@@ -60,7 +60,7 @@ def keep(state, mode=None, sign_in=None, run_app=False):
     return True
 
 
-def options(state, progress, failed, provider, runtime, paths=None, engines=None, published=None):
+def options(state, progress, failed, provider, runtime, paths=None, engines=None, published=None):  # limits: parameters -- builds pipeline.check's options, one parameter per source of them
     """The options of pipeline.check for this project now (`failed`: the tools started without; `provider`, `runtime`: the
     assistant's and the isolated copy's, eaos/journeys/guided/ check_provider and check_runtime; `engines`: those to run again
     with again_from; `published`: the published address the person named for this check, read signed in, read only)."""

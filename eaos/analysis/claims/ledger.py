@@ -82,7 +82,7 @@ def withhold(claims):
     return shown, withheld
 
 
-def make(index, statement, claim_type, confidence, method, evidence_ids, falsifier, **extra):
+def make(index, statement, claim_type, confidence, method, evidence_ids, falsifier, **extra):  # limits: parameters -- a claim's required fields (the claim-ledger schema)
     # The schema caps a statement at STATEMENT_LIMIT. Each builder names a bounded list (naming());
     # this is the last guard: one long sentence on a large project must not reject the whole ledger.
     if len(statement) > STATEMENT_LIMIT: statement = statement[:STATEMENT_LIMIT - 1].rstrip() + '…'
@@ -225,11 +225,12 @@ def _contested(kind, detail, cluster, fact_sets):
             'impact_key': None, 'measured': {}}
 
 
-def _engine_claim(index, kind, cluster, detail, said, finish=(None, None)):
+def _engine_claim(index, kind, cluster, said, finish=(None, None)):
     """The claim of one kind at one place, from what its verdict says. With a finish line (`finish`: the targets and the
     engines that state them, complexity) its probe judges exactly those targets, and only those engines are run again: a
     branch count is EAOS's own; with none left to clear (only sizes, or scores EAOS counts within the limit) it is a
     hypothesis for the person, never work a batch cannot finish."""
+    detail = cluster['corroboration'][kind]
     (finish, judges), engines, impact_key = finish, ', '.join(detail['asserted_by']), said['impact_key']
     confidence = 'HYPOTHESIS' if finish == [] else said['confidence']
     return make(index, said['statement'][:600], 'structure' if kind in ('cycle', 'boundary') else 'risk',
@@ -270,7 +271,7 @@ def from_engines(fact_sets, offset=0):
             if counted and not finish[0]: continue
             index += 1
             said = (_counted if counted else says[detail['verdict']])(kind, detail, cluster, fact_sets)
-            made.append(_engine_claim(index, kind, cluster, detail, said, finish))
+            made.append(_engine_claim(index, kind, cluster, said, finish))
     return made
 
 

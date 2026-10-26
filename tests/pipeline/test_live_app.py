@@ -66,7 +66,7 @@ class SetupTests(unittest.TestCase):
         run = LiveRun.__new__(LiveRun)
         run.profile, run.runtime, run.apart = {}, Path(tempfile.gettempdir()), None
         run.database_url = lambda: None
-        self.assertEqual(run.extra()['EAOS_PLAYWRIGHT'], str(home() / 'node/node_modules/playwright'))
+        self.assertEqual(run.run_env()['EAOS_PLAYWRIGHT'], str(home() / 'node/node_modules/playwright'))
         self.assertIn('process.env.EAOS_PLAYWRIGHT', live_assist.PROMPT if hasattr(live_assist, 'PROMPT') else Path(live_assist.__file__).read_text())
 
 
@@ -129,7 +129,7 @@ class SharedAppTests(unittest.TestCase):
                 with self.assertRaises(OSError): urllib.request.urlopen(seen[0][1], timeout=1)
         live = LiveRun(self.target, self.runtime, 'S05')
         try:
-            self.assertEqual(live.extra()['AUTH_SECRET'], json.loads(seen[0][2])['cookies'][0]['value'],
+            self.assertEqual(live.run_env()['AUTH_SECRET'], json.loads(seen[0][2])['cookies'][0]['value'],
                              'a later run accepts the session made by this profile')
         finally: live.stop()
 

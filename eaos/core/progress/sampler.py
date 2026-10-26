@@ -114,7 +114,7 @@ class Sampler:
 
     def table(self):
         """The text `ps` printed and the pid of that `ps` (which is itself a child of the run, and is left out)."""
-        with subprocess.Popen(self.command, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, text=True) as child:
+        with subprocess.Popen(self.command, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, text=True) as child:  # nosemgrep: python.lang.security.audit.dangerous-subprocess-use-audit -- ps with fixed arguments, no shell
             try:
                 out, _ = child.communicate(timeout=self.timeout)
             except subprocess.TimeoutExpired:

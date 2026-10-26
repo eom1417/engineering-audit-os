@@ -1,5 +1,45 @@
 # Changelog
 
+## 0.0.80 (2026-10-26)
+
+M8, interfaces and a tidy repository. The Studio could do things no assistant could ask for, its Understand had grown
+to 19 screens (~3,100 lines) most people never opened, EAOS's own code carried 129 functions over five parameters and
+276 engine findings by its own laws, and the layout of 2026-10-26 had been moved by hand. Now:
+- **Parity** (M8.1): every one of the Studio's 62 routes has an MCP tool or a written reason it has none (12: the chat
+  itself, the person's own sign-in, the page's own plumbing); five tools added (`projects`, `branch_view`, `reorder`,
+  `replan_ideal`, `sign_in_forget`, the last one the person's only), `branch_change` fetches and proposes a conflict's
+  resolution, `eaos projects` in the terminal. A test derives the routes from the code, so a new route without a tool
+  fails, and runs the whole journey from the terminal alone.
+- **A light Studio** (M8.2): Understand is one report page: the report for people (summary, gaps, layers, structure,
+  system, target, plan), the screens' pictures and the report's files; old addresses land on it. 4,900 lines of the
+  Studio's JavaScript and their Python builders removed; the built Studio 1,405 KB → 1,039 KB, held by a size budget
+  and the report page's payload by another. The references to a `docs/STUDIO.md` that no longer exists are gone.
+- **Tests diet** (M8.3): duplicates merged (D1, D3, D4), tests of removed code removed, fixed sleeps replaced by
+  awaited conditions (the run has written, its assistant's pid is known, the children are gone).
+- **EAOS clean by its own laws** (M8.4): `tools/quality.json` records nothing: no Semgrep, jscpd or knip finding left,
+  each escaped render or list-argv call justified on its own line with its reason (`# nosemgrep: <rule> -- why`); no
+  function over 50 lines; no function over five parameters unless grouped where the callers already group them or
+  justified on its `def` line (`# limits: parameters -- why`, a rule of `tools/code_limits.py`). Two real fixes found on
+  the way: a notice's link was not escaped, and the Studio ran any action named in a click, not only its table's own.
+  The Studio's JavaScript is linted for undefined names and unused imports (ESLint) in `tools/quality.sh`; `uv.lock`
+  lets osv-scanner read EAOS's Python dependencies; every package `__init__.py` holds only its docstring and names.
+- **Safe moves** (M8.5): a move tool for Python and JavaScript/TypeScript beside the codemods (every import and path
+  that names a moved file written again, every exposed name kept, a move that would change meaning refused whole with
+  its reason), drawn first as one tree "today → proposed", and a move gate that refuses a batch whole on any difference
+  (the public surface, every test by name and result, every check that ran before, the boundaries, every screen).
+- **The context trimmed safely** (M8.6): done items to an archive, a line said twice kept once, stale paths fixed, a
+  person's own instructions proposed for a private file; refused unless every instruction before is found in exactly
+  one file after, in what is committed (an ignored archive is refused).
+- **Born tidy** (M8.7): the build and add-a-feature journeys hold the repository and context checks in every change's
+  gates and each milestone's proof.
+- **EAOS by its own repository rules** (M8.8): the repository and context checks of M7.8 and M7.9 over EAOS find
+  nothing, and `tools/quality.sh` fails on any (`docs/STANDARDS.md` §1). The engines' folder (31 files over a limit of
+  25) is split by kind (`security/`, `api/`, `code/`), moved by EAOS's own move tool: 25 files, 36 written again.
+- An independent review of the moves and context work found 12 defects before the merge, each fixed with the test
+  that reproduces it: a gate that passed when every test vanished, an ignored archive losing instructions, a
+  suppression comment hiding a new weakness from the batch's security gate (a suppression now hides only a finding
+  that existed before), columns counted in bytes on a line with Arabic text, and the move tool's other edge cases.
+
 ## 0.0.79 (2026-10-26)
 
 M7, reliable fixes and hand-over. The refusal of a breaking fix was in the code and its unit tests, but no trial ran

@@ -67,7 +67,8 @@ class Base(Workspace):
                     try: os.killpg(run['pid'], 9)
                     except OSError: pass
             app.close()
-        time.sleep(0.3)
+        pids = [run['pid'] for app in self.apps for run in app.store.all() if run.get('pid')]
+        until(lambda: not any(alive(pid) for pid in pids), 5)
         super().tearDown()
 
     def make(self, adapters_=None, **options):
@@ -399,6 +400,12 @@ class Selection(Base):
         self.assertEqual((preview['risk']['level'], preview['confirm'], preview['batches']), ('low', None, []))
 
 
+def until(condition, seconds):
+    """Waits for a condition instead of a fixed sleep; whether it came true is the caller's to assert."""
+    deadline = time.monotonic() + seconds
+    while time.monotonic() < deadline and not condition(): time.sleep(0.05)
+
+
 def alive(pid):
     from eaos.interfaces.studio_actions.lane_assistants import alive
     return alive(pid)
@@ -549,7 +556,7 @@ class Runs(Base):
         os.environ.update(FAKE_MODE='slow', FAKE_SECONDS='6')
         run = self.start('explain')
         running = self.app.wait(run, ('running',), 10)
-        time.sleep(0.6)
+        until(lambda: self.app.store.load(run).get('pid') and any(e['kind'] != 'state' for e in self.app.store.events(run)), 10)  # it has written
         self.assertEqual(self.post(f'/api/runs/{run}/pause')[1]['run']['state'], 'paused')
         time.sleep(0.5)                             # what the assistant wrote before it was paused is still read
         count = len(self.app.store.events(run))
@@ -612,7 +619,7 @@ class Runs(Base):
         os.environ.update(FAKE_MODE='slow', FAKE_SECONDS='3')
         live = self.start('explain')
         self.app.wait(live, ('running',), 10)
-        time.sleep(0.5)
+        until(lambda: self.app.store.load(live).get('pid') and any(e['kind'] != 'state' for e in self.app.store.events(live)), 10)
         self.app.close()
         self.app.manager.children.clear()
         dead = 'r-dead'

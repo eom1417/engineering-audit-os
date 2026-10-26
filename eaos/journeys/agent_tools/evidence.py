@@ -22,7 +22,7 @@ def _claims(report):
     return {c['id']: c for c in _read(path).get('claims') or []} if path.is_file() else {}
 
 
-def findings(project=None, kind=None, path=None, text=None, fixable_only=False, limit=PAGE, offset=0, area=None, severity=None):
+def findings(project=None, kind=None, path=None, text=None, fixable_only=False, limit=PAGE, offset=0, area=None, severity=None):  # limits: parameters -- the findings tool's arguments, one for one (MCP server and CLI)
     state = state_of(project)
     report, lang = _report(state), state.get('lang') or 'en'
     claims, rows = _claims(report), []

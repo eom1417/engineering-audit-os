@@ -187,7 +187,7 @@ document.querySelectorAll('.rows').forEach(function(r){r.classList.toggle('all',
 document.querySelectorAll('[data-area-block]').forEach(function(h){h.hidden=!!a&&h.dataset.areaBlock!==a});
 var out=document.getElementById('shown');if(out){out.textContent=active?(d.lang==='ar'?('المعروض: '+n):('Showing: '+n)):''}}
 ['q','fsev','farea','fauto'].forEach(function(id){var e=document.getElementById(id);if(e){e.addEventListener('input',count);e.addEventListener('change',count)}});
-var saved=null;try{saved=localStorage.getItem('eaos-human-lang')}catch(e){}setLang(saved||d.getAttribute('data-lang')||'ar');
+var saved=(location.search.match(/[?&]lang=(ar|en)\b/)||[])[1]||null;if(!saved){try{saved=localStorage.getItem('eaos-human-lang')}catch(e){}}setLang(saved||d.getAttribute('data-lang')||'ar');
 document.getElementById('lang').onclick=function(){setLang(d.getAttribute('data-lang')==='ar'?'en':'ar')};
 document.getElementById('print').onclick=function(){window.print()};
 window.addEventListener('beforeprint',function(){document.querySelectorAll('section.report').forEach(function(s){s.classList.add('on')})});

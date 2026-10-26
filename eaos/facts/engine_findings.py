@@ -50,7 +50,7 @@ def _edge_summary(edges, call_edges, module_edges, metrics):
 def _merge_codegraph(target, workdir, input_sha, facts):
     """CodeGraph edges are facts at a different layer than findings; they belong in our graph."""
     try:
-        from ..engines import codegraph as codegraph_engine
+        from ..engines.code import codegraph as codegraph_engine
         # The adapter already ran the tools during `analyze` and wrote what it found beside
         # its report. Reading that file keeps this to one pass over the files.
         edges = codegraph_engine.read_graph_facts(Path(workdir) / 'engines')
@@ -77,14 +77,17 @@ def _engine_metric_facts(manifest, input_sha):
 
 
 def _finding_fact(item, input_sha):
+    """The fact of one finding; one the project justified on its line is an `engine_finding_justified`, with its
+    reason: shown apart, never a card, and still held against a change by the gates (assessments/weaknesses.py new)."""
     subject = item['subject']
-    return make('engine_finding', NAME, VERSION, input_sha,
+    return make('engine_finding_justified' if item.get('justified') else 'engine_finding', NAME, VERSION, input_sha,
                 {'path': subject.get('path'), 'line': subject.get('line'), 'symbol': subject.get('key')},
                 {'engine': item['engine'], 'engine_version': item['engine_version'], 'rule': item['rule'],
                  'kind': item['kind'], 'method': item['method'], 'message': item['message'],
                  'measurements': item['measurements'], 'engine_confidence': item['engine_confidence'],
                  'subject_kind': subject.get('kind'), 'cwe': item.get('cwe') or [],
-                 'sites': [{'path': path, 'line': line} for path, line in item.get('sites', [])]},
+                 'sites': [{'path': path, 'line': line} for path, line in item.get('sites', [])],
+                 **({'justified': item['justified']} if item.get('justified') else {})},
                 limitations=LIMITATIONS[:1])
 
 
@@ -98,13 +101,23 @@ def _kind_counts(facts):
     return {kind: len([f for f in facts if f['value'].get('kind') == kind]) for kind in kinds}
 
 
+def _apart(facts):
+    """(the facts, what the project justified on its line with its reason): the second reported apart, not hidden."""
+    justified = [f for f in facts if f['kind'] == 'engine_finding_justified']
+    return [f for f in facts if f['kind'] != 'engine_finding_justified'], [
+        {'engine': f['value']['engine'], 'rule': f['value']['rule'], 'path': f['location']['path'],
+         'line': f['location'].get('line'), 'why': f['value']['justified']} for f in justified][:100]
+
+
 def _summary(manifest, facts, present, absent, edge_merge):
     from ..engines import not_applicable
     # A merged graph edge is an engine fact too, but it carries no finding `kind`: it is an edge,
     # not a judgement. Counting over `.get` keeps it in the engine tallies without inventing a
     # kind for it, and keeps one missing key from taking the whole stage down.
+    facts, justified = _apart(facts)
     counts = {name: len([f for f in facts if f['value'].get('engine') == name]) for name in present}
     return {'engines_observed': present, 'engines_unavailable': absent,
+            'justified': justified,
             'engines_failed': _failed(manifest),
             'engines_not_applicable': not_applicable(manifest),
             # Candidate boundaries of today's components (GitNexus communities), for the map and the target.
@@ -150,7 +163,7 @@ def run(target, source, out=None, only=None, keep=False):
     present, absent = observed(manifest), missing(manifest)
     edge_merge = _merge_codegraph(target, workdir, input_sha, facts) if 'codegraph' in present else dict(NO_CODEGRAPH)
     facts += _engine_metric_facts(manifest, input_sha)
-    facts += [_finding_fact(item, input_sha) for item in manifest['findings']]
+    facts += [_finding_fact(item, input_sha) for item in manifest['findings'] + manifest.get('justified', [])]
     summary = _summary(manifest, facts, present, absent, edge_merge)
     _drop_scratch(Path(workdir) / 'engines')
     return {'facts': facts, 'input_sha': input_sha, 'summary': summary, 'available': bool(present),

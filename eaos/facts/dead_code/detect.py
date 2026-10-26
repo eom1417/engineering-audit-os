@@ -68,7 +68,7 @@ REVIEW_REASONS = {'test_only': 'only tests name it: delete it with them, or keep
                             'manifests or the docs runs it, so ask whether anyone still does before deleting it'}
 
 
-def _finding(rule, path, line, symbol, message, subject_kind, evidence, sha, tests=(), program=False):
+def _finding(rule, path, line, symbol, message, subject_kind, evidence, sha, tests=(), program=False):  # limits: parameters -- a record's constructor: one dead-code finding's fields
     # A name or module only tests read is either dead with its tests, or a contract the tests pin on purpose (a
     # test harness kept outside tests/); the text cannot tell which, so it is a review candidate (test_only), not an
     # asserted defect. A program in a scripts/ or tools/ folder is never imported: that nothing imports it says
@@ -97,6 +97,10 @@ class References:
             if text is None: continue
             self.texts[path] = text
             (self.tests if _is_test(path) else self.product)[path] = _tokens(text)
+
+    def texts_of(self, paths):
+        """{path: text} of the given paths it holds the text of."""
+        return {p: self.texts[p] for p in paths if p in self.texts}
 
     def outside(self, name, path, span=None):
         """(product occurrences outside the definition, test files naming it)."""
@@ -203,7 +207,8 @@ def run(target, source, symbols=None, resolved=None, entry_points=None, **option
     known = {item['path'] for item in source.readable()}
     code = {path for path in known if language_of(path) in ('python', 'javascript', 'typescript', 'tsx')}
     refs = References(source)
-    seeds, reached, whole, texts, test_importers = _walk(source, known, code, refs, resolved or [], entry_points or [])
+    texts = refs.texts_of(code)
+    seeds, reached, whole, test_importers = _walk(source, known, texts, resolved or [], entry_points or [])
     fixtures = _rule_fixtures(code, texts)
     sha = source.content_fingerprint
     # With no production entry point, nothing says who uses the code: a library's public names serve callers

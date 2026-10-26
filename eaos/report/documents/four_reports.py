@@ -178,7 +178,7 @@ def target_state(out, ar):
     components = target.get('target_components') or []
     infrastructure = target.get('infrastructure') or []
     absent = [i for i in infrastructure if not i['present']]
-    numbers = _target_numbers(target, components, _read(out, 'features.json', 'features', []), infrastructure, absent, ar)
+    numbers = _target_numbers(target, _read(out, 'features.json', 'features', []), ar)
     page = Page('الصورة المثالية' if ar else 'Target state')
     _target_summary(page, L, numbers, absent, ar)
     _target_evidence(page, out, components, infrastructure, ar)
@@ -226,7 +226,11 @@ def _target_unexamined(target, ar):
     return 'الخدمات المصغّرة غير مقترحة: لا سيناريو جودة يبررها.' if ar else 'No service split is proposed: no quality scenario justifies one.'
 
 
-def _target_numbers(target, components, features, infrastructure, absent, ar):
+def _target_numbers(target, features, ar):
+    """The numbers the target page cites, each with the record it is read from: the target's own, and the plan's
+    features it places."""
+    components, infrastructure = target.get('target_components') or [], target.get('infrastructure') or []
+    absent = [i for i in infrastructure if not i['present']]
     return {
         'reference': (target.get('reference') or '—', 'target-architecture.json → reference'),
         'components': (len(components), 'target-architecture.json → target_components'),

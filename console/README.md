@@ -34,7 +34,8 @@ The source fingerprint in `SOURCE.json` covers `package.json`, `package-lock.jso
 ```
 src/index.html, src/boot.js     the page and its first script
 src/core/                       the runtime every place shares (one bundle)
-  main.js        builds self.EAOS (the API below) and starts
+  main.js        starts the Studio and offers api.js as self.EAOS
+  api.js         the API below, written once: what a place imports from 'eaos' (knip.json reads it there)
   address.js     addresses (#/path?query, the prototype's): parseHash, href, navigate, setQuery, redraw
   router.js      screens, drawing, refresh keeping focus and scroll (the core imports in one direction: no cycle)
   places.js      which bundle holds an address (the IA's prefixes) or a sheet (found by the build)
@@ -53,9 +54,9 @@ src/data/                       the data layer: the report, the live API and its
   derive.js      a run's view from its events          normalize.js   the search's Arabic-aware matching
   contract.js    docs/studio-actions.json (actions, verbs, lifecycle, snapshot)
 src/places/<place>/             one bundle per place (status, waiting, problems, plan, activity, project, ask, open,
-                                understand, understand-change, -built, -screens, -records)
+                                report); src/places/kit/ the helpers several places share
 src/words/<file>.js             the dictionary: every key as [Arabic, English]
-src/css/                        tokens.css, core.css (shell and the lead's screens), activity.css (A), understand.css (B)
+src/css/                        tokens.css, core.css (shell and the lead's screens), activity.css (A), places.css (B)
 tools/                          checks of a served console (below)
 ```
 

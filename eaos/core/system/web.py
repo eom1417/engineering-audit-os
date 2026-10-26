@@ -11,4 +11,4 @@ def opened(url, headers=None, timeout=30, files=False):
     `files`: a pinned release, checked by its sha256 before use, may also come from a folder (an offline mirror)."""
     request = url if isinstance(url, urllib.request.Request) else urllib.request.Request(url, headers=headers or {})
     if urlsplit(request.full_url).scheme not in ('http', 'https', *(('file',) if files else ())): raise ValueError(f'not an http(s) address: {request.full_url}')
-    return urllib.request.urlopen(request, timeout=timeout)  # nosec B310 nosemgrep (the scheme is checked above)
+    return urllib.request.urlopen(request, timeout=timeout)  # nosec B310 nosemgrep: python.lang.security.audit.dynamic-urllib-use-detected -- the scheme is checked above

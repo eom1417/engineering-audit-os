@@ -20,9 +20,11 @@ SEVERITIES = ('low', 'medium', 'high', 'critical')
 PROJECT = '*'
 
 
-def _findings(sets):
+def _findings(sets, justified=False):
+    """The security findings of the engines' facts; with `justified`, those the project justified on their line too."""
+    kinds = ('engine_finding', 'engine_finding_justified') if justified else ('engine_finding',)
     return [fact for fact in (sets.get('external') or {}).get('facts', [])
-            if fact.get('kind') == 'engine_finding' and fact['value'].get('kind') in SECURITY
+            if fact.get('kind') in kinds and fact['value'].get('kind') in SECURITY
             and fact['value'].get('subject_kind') != 'package' and fact['location'].get('path')
             and (fact['value']['kind'] == 'secret' or classify(fact['location']['path']) != 'test')]
 
@@ -112,7 +114,8 @@ def present(specification, sets):
 def new(before, after, paths):
     """The security findings in `paths` that the facts in folder `after` have and those in `before` had not, from the
     engines both ran: the gate that refuses a change bringing a weakness in (eaos/journeys/fix/execute.py new_debt). `before` None:
-    nothing was there before, a project built from its plan (eaos/journeys/build_from_plan/steps.py)."""
+    nothing was there before, a project built from its plan (eaos/journeys/build_from_plan/steps.py). A finding the
+    change justified on its line counts: a comment hides only a finding the project already had."""
     from pathlib import Path
     from ...facts.store import read_set
     built = before is None
@@ -120,7 +123,7 @@ def new(before, after, paths):
                      for folder in (before, after))
     engines = observed(after) & (observed(after) if built else observed(before))
     def found(sets):
-        return {(f['value']['engine'], f['value']['rule'], f['location']['path']) for f in _findings(sets)
+        return {(f['value']['engine'], f['value']['rule'], f['location']['path']) for f in _findings(sets, justified=True)
                 if f['value']['engine'] in engines and f['location']['path'] in paths}
     return sorted(found(after) - found(before))
 

@@ -13,7 +13,7 @@ const enc = encodeURIComponent;
 const runHref = r => href('/activity/run/' + enc(r.id));
 
 /** A refusal of the live API, said where it happened. */
-export function refused(e) { toast(e instanceof ActionError ? e.message : String(e), { refusal: true }); }
+function refused(e) { toast(e instanceof ActionError ? e.message : String(e), { refusal: true }); }
 
 export function controls(r, small) {
   if (offline()) return '';
@@ -91,7 +91,7 @@ function otherFlows() {
   }).join('')}</div>`;
 }
 
-export function queueRows() {
+function queueRows() {
   const q = ac.queue();
   if (!q.length) return `<p class="small muted">${t('ac.line.empty')}</p>`;
   const busy = !!ac.liveRun();
@@ -117,7 +117,7 @@ function outcome(r) {
   if (r.outcome === 'undone') return `<span>${esc(t('ac.out.rejected'))}</span>`;
   return '';
 }
-export function runRow(r) {
+function runRow(r) {
   const rs = ac.runState(r), m = ac.took(r);
   const bits = [ac.kindWord(r), fmtWhen(r.ended || r.created)].concat(ac.ended(r) && m ? [ac.minutes(m)] : []);
   /* a run that ended badly asks the assistant why from its own row (RUN-12), without opening it first */
@@ -292,4 +292,3 @@ function runsPage(ctx) {
 screen({ id: 'S-14', path: '/activity/runs', place: 'activity', title: () => t('ac.runs.title'), render: runsPage, loading: loadingPage });
 act('ac-rq', el => searchTyped(el));
 act('ac-quick', el => setQuery({ quick: el.checked ? '1' : null }));
-export { runHref };

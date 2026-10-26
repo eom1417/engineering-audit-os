@@ -8,7 +8,7 @@ const enc = encodeURIComponent;
 const confidence = c => (c == null ? null : c >= 0.9 ? 'confirmed' : c >= 0.6 ? 'likely' : 'hypothesis');
 S.notes = S.notes || {};
 
-export function codeBlock(c) {
+function codeBlock(c) {
   const hidden = new Set(c.hidden || []);
   return `<div class="code">${c.lines.map((l, i) => {
     const n = c.start + i;
@@ -68,8 +68,7 @@ function planHTML(p, all) {
   return `<div class="planline"><b>${esc(k ? t('pd.plan.task', { step: step.id, k: num(k), n: num(ids.length) }) : t('pd.plan.step', { step: step.id }))}</b>
       ${step.gate ? `<span>${esc(t('pd.plan.gate', { gate: L(step.gate) }))}</span>` : ''}
       <span>${waitsFor ? t('pd.plan.waits.on', { id: `<a class="link" href="${href('/problems/' + enc(waitsFor.id))}">${code(waitsFor.id)}</a>` }) : t('pd.plan.waits')}</span></div>
-    <div class="actions" style="margin-top:12px"><a class="btn btn--secondary btn--sm" href="${href('/problems/plan/' + enc(step.id))}">${t('pd.plan.open')}</a>
-      <a class="btn btn--plain btn--sm" href="${href('/understand/components', { focus: component(p) })}">${icon('map', 'icon--sm')}${t('pd.map')}</a></div>`;
+    <div class="actions" style="margin-top:12px"><a class="btn btn--secondary btn--sm" href="${href('/problems/plan/' + enc(step.id))}">${t('pd.plan.open')}</a></div>`;
 }
 
 function noteHTML(p) {

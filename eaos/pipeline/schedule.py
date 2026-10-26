@@ -99,7 +99,7 @@ def _clashes(stage, taken, mode):
                 or (stage.ai and mode != 'speed' and any(other.ai for other in taken)))
 
 
-def ready_stages(left, ended, running, mode, room, quick=()):
+def ready_stages(left, ended, running, mode, room, quick=()):  # limits: parameters -- a pure scheduling decision over the schedule's separate state, each given by the tests
     """The stages of `left`, in the declared order, that may start now beside `running`: all they wait for has ended
     (`ended`, or what `ended(name)` shows it: a loop that may run again hides what it broke), they clash with nothing
     running (_clashes), and at most `room` of them. A stage of `quick` only settles its row (resumed, not requested): it

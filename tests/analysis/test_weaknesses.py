@@ -6,7 +6,7 @@ from pathlib import Path
 from unittest import mock
 
 from eaos.analysis.assessments import weaknesses
-from eaos.engines import codeql
+from eaos.engines.security import codeql
 from eaos.analysis.claims.probe_queries import run_graph_query
 
 
@@ -50,6 +50,20 @@ class WeaknessTests(unittest.TestCase):
                 (folder / 'facts/external.json').write_text(json.dumps(sets(*rows)['external']))
             self.assertEqual(weaknesses.new(before, after, {'app/db.py'}), [('bandit', 'B608', 'app/db.py')])
             self.assertEqual(weaknesses.new(before, after, {'app/other.py'}), [])
+
+    def test_a_comment_hides_only_a_weakness_the_project_already_had_and_is_never_a_card(self):
+        # A fix that brought an unsafe call with `# nosemgrep: rule -- why` passed the gate; a justified finding is no card.
+        justified = {**fact('J', 'semgrep', 'app/db.py', 11, 'sql', ['CWE-89']), 'kind': 'engine_finding_justified'}
+        with tempfile.TemporaryDirectory() as tmp:
+            had, before, after = Path(tmp, 'had'), Path(tmp, 'before'), Path(tmp, 'after')
+            for folder, rows in ((had, [fact('A', 'semgrep', 'app/db.py', 10, 'sql')]), (before, []), (after, [justified])):
+                (folder / 'facts').mkdir(parents=True)
+                (folder / 'facts/external.json').write_text(json.dumps(sets(*rows)['external']))
+            self.assertEqual(weaknesses.new(before, after, {'app/db.py'}), [('semgrep', 'sql', 'app/db.py')])
+            self.assertEqual(weaknesses.new(had, after, {'app/db.py'}), [])
+        made = []
+        weaknesses.claims(sets(justified), lambda *args, **extra: made.append(args), None)
+        self.assertEqual(made, [])
 
     def test_codeql_runs_only_on_open_source_code_public_on_github(self):
         with tempfile.TemporaryDirectory() as tmp:

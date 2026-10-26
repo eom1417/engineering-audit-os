@@ -1,4 +1,4 @@
-"""studio/pipeline.json: the pipeline map, current, ideal and gap (contract v2, docs/STUDIO.md D9).
+"""studio/pipeline.json: the pipeline map, current, ideal and gap (contract v2).
 
 Built from facts/pipeline.json (eaos/facts/declared_pipelines/detect.py), the cards and the fix plan; the Studio computes no position and
 no number. Each stage gets its layer and its order inside the layer from EAOS's own layered layout (eaos/analysis/maps/layout.py),
@@ -67,7 +67,7 @@ def section(record, cards=(), plan=None, lang='en'):
     for p in record['pipelines']: _add_pipeline(p, on_file, out)
     pipelines, stages, edges = out['pipelines'], out['stages'], out['edges']
     by_stage = {s['id']: s for s in stages}
-    gap, ideal = _gap(record, by_stage, edges, out['routers'], out['fans'], out['errors'], out['hidden'], on_file)
+    gap, ideal = _gap(record, by_stage, edges, out, on_file)
     product = [p for p in pipelines if p['role'] == 'product']
     real = [s for s in stages if s['kind'] not in STRUCTURAL]
     return {'detected': bool(record['detected']), 'confidence': _confidence(record),
@@ -231,15 +231,16 @@ def verdict(record, product, stages, lang):
             f'No pipeline in this project: EAOS looked for {looked} kinds and found none.')
 
 
-def _gap(record, by_stage, edges, routers, fans, errors, hidden, on_file):
-    """One entry per broken rule, and the ideal it implies: each stage's operation, the new stages and edges."""
+def _gap(record, by_stage, edges, out, on_file):
+    """One entry per broken rule, and the ideal it implies: each stage's operation, the new stages and edges. `out` is
+    the map's rows (its hidden channels, routers and fans read here)."""
     gap = _GapBuilder(by_stage, on_file)
     raw = {p['id']: p for p in record['pipelines']}
     _shared_symbols(record, by_stage, gap)
     for pid, p in raw.items(): _contract_rules(pid, p, by_stage, gap)
-    for h in hidden: _hidden_rule(h, gap)
-    for r in routers: _router_rule(r, gap)
-    for f in fans:
+    for h in out['hidden']: _hidden_rule(h, gap)
+    for r in out['routers']: _router_rule(r, gap)
+    for f in out['fans']:
         if not f['matched']: _gather(f, gap)
     _budget_rules(raw, by_stage, gap)
     for g in gap.entries:   # the evidence of a pipeline-level entry may lack a line; a stage's entry always has one
@@ -260,7 +261,7 @@ class _GapBuilder:
         cards = self.on_file.get((where or {}).get('path')) or []
         return (cards[0]['id'], cards[0].get('milestone')) if cards else (None, None)
 
-    def add(self, rule, pipeline, subject, kind, op, detail, where, stages=()):
+    def add(self, rule, pipeline, subject, kind, op, detail, where, stages=()):  # limits: parameters -- the fields of one gap entry
         card, step = self.card_of(where)
         self.entries.append({'id': f'gap:{rule}:{subject}', 'rule': rule, 'pipeline': pipeline, 'subject': subject, 'subject_kind': kind,
                              'operation': op, 'detail': detail[:300], 'evidence': where, 'card': card, 'step': step})

@@ -1,7 +1,7 @@
 """The one model of a report: what a problem is, its area and severity, the health score, and every card with its state.
 
 REPORT.html (eaos/report/human_report/) and the Studio (eaos/report/studio/export.py) read their numbers from here and compute none
-of their own (docs/STUDIO.md, D2).
+of their own.
 
 What a problem is: one task card of plan.json. Its area and severity come from one table, PATTERNS below:
     pattern             area             default severity

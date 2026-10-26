@@ -125,17 +125,17 @@ def as_screen(route, hashed):
     return '/#' + route if hashed and route.startswith('/') and '#' not in route else route
 
 
-def discover(base, max_routes=200, timeout=1800, storage_state=None, read_only=False, seeds=()):
-    """(routes, error): every page of the app reached from `base` by its links, [{path, depth, status}]. Signed in
-    (`storage_state`), a link that would sign out, delete or change (lock_specs.LEAVES) is never followed; `read_only` (a
-    published address) sends nothing but GET."""
+def discover(base, max_routes=200, storage_state=None, read_only=False, seeds=()):
+    """(routes, error): every page of the app reached from `base` by its links, [{path, depth, status}], within half an
+    hour. Signed in (`storage_state`), a link that would sign out, delete or change (lock_specs.LEAVES) is never
+    followed; `read_only` (a published address) sends nothing but GET."""
     from ..behavior.specs import LEAVES
     absent = missing('playwright')
     if absent: return None, absent
     config = {'base': base, 'max_routes': max_routes, 'modules': {'playwright': str(toolchain.home() / 'node/node_modules')},
               'read_only': read_only, 'seeds': list(seeds)}
     if storage_state: config.update(storage_state=str(storage_state), leaves=LEAVES)
-    result, error = _node('crawl.mjs', config, timeout)
+    result, error = _node('crawl.mjs', config, 1800)
     return (result or {}).get('routes'), error
 
 
@@ -149,9 +149,12 @@ def _measure(row, base, out, number, storage_state):
                report=Path(speed['report']).relative_to(out).as_posix() if speed.get('report') else None)
 
 
-def crawl(base, out, max_routes=200, measured=MEASURED, storage_state=None, read_only=False, seeds=()):
+def crawl(base, out, max_routes=200, measured=MEASURED, **way):
+    """The app's pages from `base`, Lighthouse on a few; `way`: how they are reached, discover's storage_state,
+    read_only and seeds."""
+    read_only, storage_state = way.get('read_only', False), way.get('storage_state')
     if read_only: max_routes, measured = min(max_routes, PUBLISHED_ROUTES), min(measured, PUBLISHED_MEASURED)
-    routes, error = discover(base, max_routes, storage_state=storage_state, read_only=read_only, seeds=seeds)
+    routes, error = discover(base, max_routes, **way)
     if routes is None:
         return {'status': 'unavailable' if error and error.startswith(('not installed', 'Node.js')) else 'error', 'reason': error, 'routes': []}
     routes = [r for r in routes if r.get('status') == 'observed']

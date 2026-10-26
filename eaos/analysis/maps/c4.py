@@ -38,16 +38,21 @@ def _externals(report):
 
 def workspace(project, stack, components, edges, externals):
     """(dsl text, mermaid text) for one model; components [(name, description)], edges [(from, to, label)]."""
-    ids = {name: f'c{index}' for index, (name, _) in enumerate(components, 1)}
-    lines = _model_lines(project, stack, components, edges, externals, ids)
+    lines = _model_lines(project, stack, components, edges, externals)
     lines += ['  }', '  views {', '    systemContext system {', '      include *', '      autolayout', '    }',
               '    container system {', '      include *', '      autolayout', '    }',
               '    component app {', '      include *', '      autolayout', '    }', '  }', '}', '']
-    return '\n'.join(lines), _plain_mermaid(components, edges, ids)
+    return '\n'.join(lines), _plain_mermaid(components, edges)
 
 
-def _model_lines(project, stack, components, edges, externals, ids):
+def _ids(components):
+    """Each component's generated identifier, the same in the DSL and in the Mermaid text."""
+    return {name: f'c{index}' for index, (name, _) in enumerate(components, 1)}
+
+
+def _model_lines(project, stack, components, edges, externals):
     """The DSL's model: the user, the system with its components, the outside systems and every link."""
+    ids = _ids(components)
     ext_ids = {name: f'ext{index}' for index, (name, _) in enumerate(externals, 1)}
     lines = [f'workspace {quote(project)} {{', '  model {', '    user = person "User"',
              f'    system = softwareSystem {quote(project)} {{',
@@ -62,7 +67,8 @@ def _model_lines(project, stack, components, edges, externals, ids):
     return lines
 
 
-def _plain_mermaid(components, edges, ids):
+def _plain_mermaid(components, edges):
+    ids = _ids(components)
     safe = lambda name: re.sub(r'[^A-Za-z0-9_]', '_', ids[name])
     mermaid = ['flowchart LR'] + [f'  {safe(name)}["{name.replace(chr(34), chr(39))}"]' for name, _ in components]
     mermaid += [f'  {safe(a)} --> {safe(b)}' for a, b, _ in edges if a in ids and b in ids and a != b]
@@ -72,7 +78,7 @@ def _plain_mermaid(components, edges, ids):
 MAX_EDGES = 150
 
 
-def readable(names, edges, group_of, cycles=(), limit=MAX_EDGES, title=''):
+def readable(names, edges, group_of, cycles=(), limit=MAX_EDGES, title=''):  # limits: parameters -- a diagram's parts, links, groups and loops, with its cap and title
     """A Mermaid flowchart a person reads in VS Code: the parts in one subgraph per layer (or top folder), each link
     labelled with its import count, strongest first and capped at `limit` (a comment says how many are left out),
     and the links inside an import loop drawn red. edges: [(from, to, count or None)]."""

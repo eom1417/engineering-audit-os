@@ -60,7 +60,7 @@ def run(command, project=None, **options):
     steps = [(i, ar, en, done, _fake_scan if i == 'scan' else step) for i, ar, en, done, step in guided.STEPS]
     # Never the person's real assistants (`eaos assistant install` writes into ~/.claude and ~/.codex), never the Studio,
     # and no version check of every installed tool: the doctor's rows are tested on their own.
-    with redirect_stdout(printed), mock.patch.object(guided, 'STEPS', steps), mock.patch.object(guided, 'watch'), \
+    with redirect_stdout(printed), mock.patch.object(guided.commands, 'STEPS', steps), mock.patch.object(guided.commands, 'watch'), \
             mock.patch.dict(guided.TERMINAL, check=lambda args: _fake_scan(project_state.current(args.project), args)), \
             mock.patch.object(sys.stdin, 'isatty', return_value=False), \
             mock.patch('eaos.core.toolchain.doctor', return_value={'tools': []}), \
@@ -123,7 +123,7 @@ class Journey(unittest.TestCase):
         self.assertIn('eaos start .', printed)
         self.assertNotIn('log', printed.lower())
         home = Path(self.tmp.name) / 'person'; (home / 'Desktop').mkdir(parents=True)
-        with mock.patch.object(guided.Path, 'home', return_value=home):
+        with mock.patch.object(Path, 'home', return_value=home):
             guided.save({'project': str(home), 'workspace': str(guided.workspace(home)), 'lang': 'en'})
             code, printed = run('next', home / 'Desktop')
         self.assertEqual(code, 6, 'a record left for the home folder is not gone on with')
@@ -139,7 +139,7 @@ class Journey(unittest.TestCase):
         self.assertEqual([(q['id'], q['kind'], q['answer']) for q in kept], [('install_tools', 'yes_no', True)])
         def asks(state, args): guided.ask(state, 'run_app', 'May I run your app?', args.yes); return 0
         printed = io.StringIO()
-        with mock.patch.object(guided, 'STEPS', [('x', 'x', 'x', lambda s: False, asks)]), redirect_stdout(printed), \
+        with mock.patch.object(guided.commands, 'STEPS', [('x', 'x', 'x', lambda s: False, asks)]), redirect_stdout(printed), \
                 mock.patch.object(sys.stdin, 'isatty', return_value=False):
             code = guided.main(Namespace(command='next', project=str(self.project), lang='en', yes=False))
         self.assertEqual(code, 4)
@@ -149,7 +149,7 @@ class Journey(unittest.TestCase):
         def breaks(state, args): raise OSError(98, 'Address already in use')
         self.saved()
         printed = io.StringIO()
-        with mock.patch.object(guided, 'STEPS', [('x', 'x', 'x', lambda s: False, breaks)]), redirect_stdout(printed):
+        with mock.patch.object(guided.commands, 'STEPS', [('x', 'x', 'x', lambda s: False, breaks)]), redirect_stdout(printed):
             code = guided.main(Namespace(command='next', project=str(self.project), lang='en', yes=False))
         self.assertEqual(code, 1)
         self.assertIn('port it needs is used by another program', printed.getvalue())

@@ -224,9 +224,9 @@ const META = {
   replan_ideal: { group: 'plan', icon: 'ai' }, run_nodes: { group: 'plan', icon: 'ai' },
   status: { group: 'answers', icon: 'status' }, overview: { group: 'answers', icon: 'status' }, menu: { group: 'answers', icon: 'activity' },
   findings: { group: 'answers', icon: 'problems', link: '/problems' }, finding: { group: 'answers', icon: 'problems' }, impact: { group: 'answers', icon: 'map' },
-  ask: { group: 'answers', icon: 'book' }, branches: { group: 'answers', icon: 'branch', link: '/project/branches' }, structure: { group: 'answers', icon: 'layers', link: '/understand/architecture' },
+  ask: { group: 'answers', icon: 'book' }, branches: { group: 'answers', icon: 'branch', link: '/project/branches' }, structure: { group: 'answers', icon: 'layers', link: '/report' },
   design_brief: { group: 'answers', icon: 'book' }, design_choose: { group: 'expert' }, plan: { group: 'answers', icon: 'layers', link: '/problems/plan' },
-  report_file: { group: 'answers', icon: 'file', link: '/understand/report-files' }, open_report: { group: 'answers', icon: 'external', link: '/understand/report-files' },
+  report_file: { group: 'answers', icon: 'file', link: '/report?part=files' }, open_report: { group: 'answers', icon: 'external', link: '/report?part=files' },
   note: { group: 'answers', icon: 'note' },
 };
 const GROUPS = ['check', 'app', 'build', 'plan', 'answers'];
@@ -286,6 +286,6 @@ sheet('launcher', {
   },
   after(el) {
     const input = el.querySelector('#lc-q');
-    if (input) input.addEventListener('input', () => { el.querySelector('#lc-list').innerHTML = launcherList(input.value); });
+    if (input) input.addEventListener('input', () => { el.querySelector('#lc-list').innerHTML = launcherList(input.value); });  // nosemgrep: javascript.browser.security.insecure-document-method, javascript.browser.security.insecure-innerhtml -- the query only filters; every text is a word or escaped
   },
 });

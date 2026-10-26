@@ -5,7 +5,7 @@ from unittest import mock
 
 from shared_fixture import Workspace
 
-from eaos.engines import scc
+from eaos.engines.code import scc
 
 CONTRACTS = Path(__file__).resolve().parents[1] / 'contracts'
 
@@ -16,14 +16,15 @@ def sample(name):
 
 class SampleTests(Workspace):
     def test_each_sample_is_pinned_and_maps_everything_and_no_secret_survives(self):
-        from eaos.engines import (checkov, dependency_cruiser, gitnexus, oasdiff, sarif, semgrep, spectral, sqlfluff,
-                                  trivy)
+        from eaos.engines.security import checkov, semgrep, trivy
+        from eaos.engines.code import dependency_cruiser, gitnexus, sqlfluff
+        from eaos.engines.api import oasdiff, spectral
+        from eaos.engines import sarif
         for module, name, file, kinds in ((semgrep, 'semgrep', 'semgrep.sarif', None), (trivy, 'trivy', 'trivy.sarif', {'secret'}),
                                           (checkov, 'checkov', 'results_sarif.sarif', {'misconfiguration'}),
                                           (spectral, 'spectral', 'spectral.sarif', {'api_contract'})):
             with self.subTest(engine=name):
-                payload = sample(name)
-                self.assertEqual(payload['pinned_version'], module.PINNED)
+                payload = sample(name)                       # its pin: test_engine_contracts
                 path = Path(self.tmp) / f'{name}.sarif'
                 path.write_text(json.dumps(payload[file]))
                 findings, unmapped = sarif.read(path, name, module.PINNED)
@@ -32,7 +33,6 @@ class SampleTests(Workspace):
                 if kinds: self.assertLessEqual(kinds, {f['kind'] for f in findings})
         self.assertNotRegex(json.dumps(sample('trivy')), r'\*{6,}', 'the trivy sample is redacted')
         payload = sample('scc')
-        self.assertEqual(payload['pinned_version'], scc.PINNED)
         for language in payload['scc.json']:
             for field in ('Name', 'Count', 'Code', 'Complexity'): self.assertIn(field, language)
             for row in language['Files']:
@@ -55,7 +55,7 @@ class SampleTests(Workspace):
         for cycle in payload['check-cycles.json']['cycles']: self.assertIn('files', cycle)
         rows = gitnexus.table(payload['cypher-imports.json']['markdown'])
         self.assertTrue(rows and all(len(row) == 2 for row in rows))
-        from eaos.engines import trivy
+        from eaos.engines.security import trivy
         path = Path(self.tmp) / 'trivy.sarif'
         path.write_text(json.dumps({'runs': [{'tool': {'driver': {'rules': [
             {'id': 'jwt-token', 'name': 'Secret', 'shortDescription': {'text': 'JWT token'},
@@ -100,7 +100,7 @@ class SemgrepTests(Workspace):
         self.assertFalse((root / 'eaos/rules/semgrep-rules').exists())
 
     def test_the_rules_catch_their_examples_and_spare_the_correct_code(self):
-        from eaos.engines import semgrep
+        from eaos.engines.security import semgrep
         if semgrep.version() is None: self.skipTest('semgrep is not installed')
         import subprocess
         done = subprocess.run([semgrep.which('semgrep'), '--test', '--disable-version-check', str(self.RULES)],
@@ -108,7 +108,7 @@ class SemgrepTests(Workspace):
         self.assertEqual(done.returncode, 0, done.stdout[-2000:] + done.stderr[-2000:])
 
     def test_the_silenced_official_rules_are_left_out_and_the_other_security_rules_kept(self):
-        from eaos.engines import semgrep
+        from eaos.engines.security import semgrep
         checkout = Path(self.tmp) / 'official'
         for name in (*semgrep.SILENCED, 'javascript/browser/security/insecure-innerhtml.yaml', 'javascript/lang/style/x.yaml'):
             (checkout / name).parent.mkdir(parents=True, exist_ok=True)
@@ -119,7 +119,7 @@ class SemgrepTests(Workspace):
         self.assertEqual(copied, {'javascript/browser/security/insecure-innerhtml.yaml'})
 
     def test_rule_ids_and_paths_do_not_depend_on_where_things_are_installed(self):
-        from eaos.engines import semgrep
+        from eaos.engines.security import semgrep
         sarif = Path(self.tmp) / 'out.sarif'
         sarif.write_text(json.dumps({'runs': [{'tool': {'driver': {'rules': [{'id': 'rules.official.python.lang.security.x'}]}},
                                                'results': [{'ruleId': 'rules.eaos.eaos.security.y', 'locations': [
@@ -140,7 +140,7 @@ class SemgrepTests(Workspace):
 
 class DependencyCruiserTests(Workspace):
     def test_a_policy_deny_becomes_a_forbidden_rule_written_outside_the_project(self):
-        from eaos.engines.dependency_cruiser import configuration, glob_regex
+        from eaos.engines.code.dependency_cruiser import configuration, glob_regex
         (Path(self.tmp) / 'eaos.policy.json').write_text(json.dumps({
             'layers': {'ui': ['src/ui/**'], 'db': ['src/db/*.ts']},
             'rules': [{'deny': {'from': 'ui', 'to': 'db'}, 'reason': 'screens go through services'}]}))
@@ -153,7 +153,7 @@ class DependencyCruiserTests(Workspace):
         self.assertFalse(re.match(glob_regex('src/db/*.ts'), 'src/db/deep/users.ts'))
 
     def test_a_cycle_closed_only_by_import_type_is_coupling_not_a_runtime_cycle(self):
-        from eaos.engines import dependency_cruiser
+        from eaos.engines.code import dependency_cruiser
         if dependency_cruiser.version() is None: self.skipTest('dependency-cruiser is not installed')
         root = Path(self.tmp) / 'project'
         (root / 'src').mkdir(parents=True)
@@ -202,7 +202,7 @@ class ReportedRunTests(Workspace):
         kinds = {fact['kind'] for fact in result['facts']}
         self.assertEqual(kinds, {'symbol_metric_external'})
         self.assertEqual(_findings({'external': {'facts': result['facts']}}), [])
-        from eaos.engines import sqlfluff
+        from eaos.engines.code import sqlfluff
         payload = sample('sqlfluff')['sqlfluff.json']
         def fake_run(command, **_):
             Path(command[command.index('--write-output') + 1]).write_text(json.dumps(payload))
@@ -214,7 +214,7 @@ class ReportedRunTests(Workspace):
         self.assertEqual(sum(report.coverage['violations_by_code'].values()), len(codes))
         self.assertEqual({f['rule'] for f in report.findings}, {c for c in codes if not sqlfluff.style(c)})
         self.assertEqual(report.coverage['style_only_not_findings'], sum(1 for c in codes if sqlfluff.style(c)))
-        from eaos.engines import checkov
+        from eaos.engines.security import checkov
         def fake_run(command, **_):
             out = Path(command[command.index('--output-file-path') + 1])
             (out / 'results_sarif.sarif').write_text(json.dumps({'runs': [{'tool': {'driver': {'rules': []}}, 'results': []}]}))
@@ -226,7 +226,7 @@ class ReportedRunTests(Workspace):
             report = checkov.analyze(self.tmp, Path(self.tmp) / 'work')
         self.assertEqual((report.status, report.findings), ('observed', []))
         self.assertEqual(report.coverage['frameworks'], {'github_actions': {'passed': 116, 'failed': 0, 'skipped': 0}})
-        from eaos.engines import dependency_cruiser
+        from eaos.engines.code import dependency_cruiser
         def fake_run(command, **_):
             out = Path(command[command.index('--output-to') + 1])
             out.write_text(json.dumps({'summary': {'totalCruised': 0, 'violations': [],
@@ -240,7 +240,7 @@ class ReportedRunTests(Workspace):
         self.assertIn('missing-typescript-transpiler', report.reason)
 
     def run_with(self, pages):
-        from eaos.engines import gitnexus
+        from eaos.engines.code import gitnexus
         calls = []
         def fake_run(command, **_):
             calls.append(command)
@@ -258,7 +258,7 @@ class ReportedRunTests(Workspace):
 
     def test_its_misreadings_of_python_are_no_cycle_and_a_real_cycle_stays(self):
         # EAOS, 2026-10-24: all six of GitNexus's cycles were `from . import core` and `import html` misread
-        from eaos.engines import gitnexus
+        from eaos.engines.code import gitnexus
         copy = Path(self.tmp) / 'copy'
         (copy / 'core').mkdir(parents=True)
         (copy / 'core/markup.py').write_text('import html\nfrom . import words\n')
@@ -269,7 +269,7 @@ class ReportedRunTests(Workspace):
         self.assertFalse(gitnexus.misread(['core/markup.py', 'core/words.py'], copy))
 
     def test_every_page_is_read_until_a_short_one_and_a_page_at_the_output_limit_is_an_error(self):
-        from eaos.engines import gitnexus
+        from eaos.engines.code import gitnexus
         total = gitnexus.PAGE + 7
         def pages(query, offset):
             if 'IMPORTS' in query: return [(f'f{i}.ts', 'hub.ts') for i in range(offset, min(total, offset + gitnexus.PAGE))]
@@ -279,7 +279,7 @@ class ReportedRunTests(Workspace):
         report, _ = self.run_with(lambda query, offset: [('x' * 200, 'y' * 200)] * 200 if 'IMPORTS' in query else [])
         self.assertEqual(report.status, 'error')
         self.assertIn('output limit', report.reason)
-        from eaos.engines.gitnexus import excluded
+        from eaos.engines.code.gitnexus import excluded
         self.assertTrue(excluded('src/components/ui/button.tsx', ['components/ui']), 'excluded paths match whole segments')
         self.assertFalse(excluded('src/components/uikit/button.tsx', ['components/ui']))
 
@@ -301,7 +301,7 @@ class OpenApiTests(Workspace):
         return root
 
     def test_a_removed_path_is_a_breaking_change_and_a_specification_with_no_history_has_nothing_to_compare(self):
-        from eaos.engines import oasdiff
+        from eaos.engines.api import oasdiff
         from eaos.engines.process import state_digest
         if oasdiff.version() is None: self.skipTest('oasdiff is not installed')
         root = self.project()
@@ -320,7 +320,7 @@ class OpenApiTests(Workspace):
 
 class GitNexusTests(Workspace):
     def test_it_runs_on_a_copy_and_leaves_the_project_and_the_home_untouched(self):
-        from eaos.engines import gitnexus
+        from eaos.engines.code import gitnexus
         from eaos.engines.process import state_digest
         if gitnexus.version() is None: self.skipTest('gitnexus is not installed')
         root = Path(self.tmp) / 'project'

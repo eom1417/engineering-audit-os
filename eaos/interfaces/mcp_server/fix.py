@@ -9,15 +9,20 @@ from ...core.toolchain import catalog as tools_catalog
 
 
 def _fix_tools(server, reading, working, _answer, _status):
-    """The tools of the findings, the plan, the run, the fixes and the person's decision on them."""
-    from ...analysis.target_state import look as design
-    from ...journeys import agent_tools as tools, guided
+    """The tools of the findings, the plan, the run, the fixes and the person's decision on them, in this order."""
+    for group in (_finding_tools, _report_tools, _run_tools, _batch_tools, _edit_tools): group(server, reading, working, _answer)
+    _decision_tools(server, working, _answer, _status)
+
+
+def _finding_tools(server, reading, working, _answer):
+    """The problems found, one of them whole, the architecture and the plan."""
+    from ...journeys import agent_tools as tools
 
     @server.tool(annotations=reading, description='The problems found, most important first, filtered by kind, file path (part of it), '
                  'text in the title, or only those EAOS can fix; paged with limit and offset.')
     @_answer
     def findings(kind: str | None = None, path: str | None = None, text: str | None = None, fixable_only: bool = False,
-                 limit: int = 30, offset: int = 0, project: str | None = None) -> str:
+                 limit: int = 30, offset: int = 0, project: str | None = None) -> str:  # limits: parameters -- the MCP tool's schema: each parameter is an argument the assistant passes
         return tools.findings(project, kind, path, text, fixable_only, limit, offset)
 
     @server.tool(annotations=reading, description='One problem whole, by card (TASK-…) or claim (CLM-…) id: what and why, the evidence '
@@ -37,6 +42,12 @@ def _fix_tools(server, reading, working, _answer, _status):
     @_answer
     def plan(milestone: str | None = None, project: str | None = None) -> str:
         return tools.plan(project, milestone)
+
+
+def _report_tools(server, reading, working, _answer):
+    """The look, the report's files, the report for people and the Studio."""
+    from ...analysis.target_state import look as design
+    from ...journeys import agent_tools as tools, guided
 
     @server.tool(annotations=reading, description='The look, at almost no tokens: the EAOS design standard (phone first, both '
                  'directions, one theme), the Arabic font catalogue, the free pinned design libraries on this computer, the '
@@ -64,8 +75,6 @@ def _fix_tools(server, reading, working, _answer, _status):
     @_answer
     def open_report(show: bool = True, project: str | None = None) -> str:
         from ...journeys.build_from_plan import steps as build_tools
-        from pathlib import Path
-        import os
         state = project_state.load(Path(project or os.getcwd()).expanduser().resolve())
         if (state or {}).get('mode') == 'build' and not guided.scan_done(state): return build_tools.open_blueprint(project, show)
         return tools.open_report(project, show)
@@ -78,6 +87,11 @@ def _fix_tools(server, reading, working, _answer, _status):
     @_answer
     def open_studio(show: bool = True, address: str | None = None, project: str | None = None) -> str:
         return tools.open_studio(project, show, address=address)
+
+
+def _run_tools(server, reading, working, _answer):
+    """The AI nodes, the external tools, and the agreement to run the app."""
+    from ...journeys import agent_tools as tools
 
     @server.tool(annotations=working, description='Run the AI nodes on the latest check, any of them at any time (card_triage, '
                  'visual_reviewer, ideal_planner, pipeline_gap_planner, plan_orderer, fix_reviewer; all when none named). Returns a job.')
@@ -101,6 +115,11 @@ def _fix_tools(server, reading, working, _answer, _status):
     @_answer
     def run_setup(person_agreed: bool = False, project: str | None = None) -> str:
         return tools.run_setup(project, person_agreed)
+
+
+def _batch_tools(server, reading, working, _answer):
+    """Getting the app to run, its recorded screens, and a batch of fixes opened."""
+    from ...journeys import agent_tools as tools
 
     @server.tool(annotations=working, description='Try your proposal to make the app run: {"env": {complete environment}, "start": '
                  '[argv], "install": [[argv]], "prepare": [[argv]], "database": "postgres"|"none", "seed_script": "<Node script run '
@@ -135,9 +154,14 @@ def _fix_tools(server, reading, working, _answer, _status):
     @_answer
     def fix_start(cards: list[str] | None = None, size: int = 10, project: str | None = None, base: str | None = None,
                   deliver_as: str | None = None, merge_into: str | None = None, base_commit: str | None = None,
-                  assistants: int = 1) -> str:
+                  assistants: int = 1) -> str:  # limits: parameters -- the MCP tool's schema: each parameter is an argument the assistant passes
         return tools.fix_start(project, cards, size, base=base, deliver_as=deliver_as, merge_into=merge_into, base_commit=base_commit,
                                assistants=assistants)
+
+
+def _edit_tools(server, reading, working, _answer):
+    """The open batch: read, change, leave out, close or abandon."""
+    from ...journeys import agent_tools as tools
 
     @server.tool(annotations=reading, description='Read a file (or list a folder) in the open batch\'s copy, as it is now, with line numbers.')
     @_answer
@@ -173,6 +197,11 @@ def _fix_tools(server, reading, working, _answer, _status):
     @_answer
     def fix_abandon(project: str | None = None) -> str:
         return tools.fix_abandon(project)
+
+
+def _decision_tools(server, working, _answer, _status):
+    """The person's decision on the branch, and the note for whoever continues."""
+    from ...journeys import agent_tools as tools
 
     @server.tool(annotations=working, description='Take the waiting branch into the person\'s current branch (whenever they say take it '
                  'in, merge, or accept; never merge it with git yourself), then delete the branch and bring the report and the '

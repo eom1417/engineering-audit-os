@@ -1,4 +1,4 @@
-"""The ideal planner as an AI node: node 1 (docs/STUDIO.md D10 and D11).
+"""The ideal planner as an AI node: node 1.
 
 The planning itself is eaos/ai/ideal/planner.py `plan`, unchanged: the bundle, the plan and critique passes and the
 evidence check of every element. As a node it gains the framework's guards: the time and cost recorded (never cut),
@@ -11,6 +11,7 @@ from contextlib import nullcontext
 from pathlib import Path
 
 from . import framework as core
+from .runner import settings_of
 from ..ideal import planner as ideal, prompts as ideal_prompts
 
 SUBJECT = 'ideal'
@@ -65,8 +66,10 @@ def _dropped(plan_record):
             for row in (plan_record or {}).get('dropped') or []]
 
 
-def run(node, report, launcher=None, adapters=None, project=None, lang='en', fresh=False, say=None, cancel=None, started=None,
-        assistants=None, **_):
+def run(node, report, **options):
+    """Plan the ideal (eaos/ai/ideal/planner.py) as a node; the settings come by name, as every node's (runner.RUN_OPTIONS)."""
+    o = settings_of(options)
+    project, lang, launcher = o['project'], o['lang'], o['launcher']
     report = Path(report)
     data = ideal.bundle(report, project, lang)
     prompt, at, began = ideal_prompts.prompt_plan(data), core.now(), time.monotonic()
@@ -74,15 +77,15 @@ def run(node, report, launcher=None, adapters=None, project=None, lang='en', fre
     asked = core.digest([prompt])
     schema = core.digest([ideal_prompts.IDEAL_SCHEMA, ideal_prompts.CRITIQUE_SCHEMA])
     current, state = ideal.current(report)
-    if not fresh and state == 'planned' and current.get('inputs') == base['inputs']:
+    if not o['fresh'] and state == 'planned' and current.get('inputs') == base['inputs']:
         return core.keep(report, node, core.record(node, {**base, 'state': 'decided', 'method': 'model', 'assistant': current.get('assistant'),
                                                           'model': current.get('model'), 'prompt': asked, 'schema': schema, 'cached': True,
                                                           'seconds': 0.0, 'cost_usd': None, 'why': None},
                                                    _decisions(node, report, current), _dropped(current)))
     stamp = at.replace(':', '').replace('+0000', 'Z')
-    launcher = launcher or core.launcher_of(adapters, report / 'ideal' / f'run-{stamp}', cancel, started)
-    with assistants or nullcontext():
-        result = ideal.plan(report, launcher=launcher, project=project, lang=lang, adapters={}, cancel=cancel, say=say)
+    launcher = launcher or core.launcher_of(o['adapters'], report / 'ideal' / f'run-{stamp}', o['cancel'], o['started'])
+    with o['assistants'] or nullcontext():
+        result = ideal.plan(report, launcher=launcher, project=project, lang=lang, adapters={}, cancel=o['cancel'], say=o['say'])
     fields = {'assistant': getattr(launcher, 'assistant', None), 'model': getattr(launcher, 'model', None),
               'prompt': asked if launcher else None, 'schema': schema, 'cached': False, 'seconds': round(time.monotonic() - began, 1),
               'cost_usd': core.spent(launcher)}

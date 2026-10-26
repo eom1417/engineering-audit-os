@@ -94,7 +94,7 @@ def scenarios(rows):
     by_id = {row['id']: row for row in rows}
     found = []
 
-    def add(kind, question, stimulus, response, metric, threshold, unit):
+    def add(kind, question, stimulus, response, metric, threshold, unit):  # limits: parameters -- a quality scenario's fields
         row = by_id[question]
         found.append({'id': f'QS-{len(found) + 1:03d}', 'kind': kind, 'stimulus': stimulus, 'response': response,
                       'measure': {'metric': metric, 'threshold': threshold, 'unit': unit},

@@ -6,7 +6,7 @@ from pathlib import Path
 from shared_fixture import Workspace
 
 from eaos.engines import ordered
-from eaos.engines import osv_scanner, syft
+from eaos.engines.security import osv_scanner, syft
 from eaos.engines.contract import KINDS
 
 CONTRACTS = Path(__file__).resolve().parents[1] / 'contracts'

@@ -119,7 +119,7 @@ def _job_answer(job, seconds, project):
             'what_now': f'Call `wait` with job="{job}" to follow it; keep going until it is done.'}
 
 
-def _start(kind, state, arguments, seconds=WAIT, runner='eaos.journeys.agent_tools', watch=False):
+def _start(kind, state, arguments, seconds=WAIT, runner='eaos.journeys.agent_tools', watch=False):  # limits: parameters -- the job and how it is waited for, run and watched, each set apart by its callers
     """Start a job once the project's running one ended (waited for up to `seconds`: eaos/journeys/fix/lanes.py), and answer as `_job_answer`
     does. `watch`: the live Studio is opened on its map first (once, before the job writes anything), its address in `watch`."""
     route = '/scan' if kind != 'audit' or toolchain.ready(state['project']) else '/tools'

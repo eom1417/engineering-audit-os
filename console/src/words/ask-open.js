@@ -27,7 +27,6 @@ export default {
   'ac.op.old.why': ['لماذا', 'Why'],
   'ac.op.old.why.v': ['كل فحص يعيد ترقيم المشاكل؛ هذا الرقم ليس في آخر فحص.', 'Each check numbers the problems again; this id is not in the latest check.'],
   'ac.op.old.back': ['ارجع إلى المشاكل', 'Back to the problems'],
-  'ac.op.old.history': ['افتح الفحوص عبر الزمن', 'Open checks over time'],
   'ac.op.partial.guide': ['الأجزاء الناقصة تقول لماذا، وأي خطوة تنتجها.', 'The missing parts say why, and which step produces them.'],
   'ac.op.partial.see': ['اعرض ما يظهر', 'See what is shown'],
   'ac.op.contract': ['هذه البيانات من عقد أقدم: أعد بناء التقرير.', 'This data is of an older contract: rebuild the report.'],

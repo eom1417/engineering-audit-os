@@ -70,6 +70,34 @@ EAOS لا يستدعي نموذجًا بنفسه في هذا الطريق: عق�
 نفسه، وكل جواب ينتظره) يحتاج كلامه (`person_agreed`، أو `person_said` بعد 30 ثانية على الأقل من عرض السؤال) ورمز تأكيد
 المعاينة، ويُرفض دائمًا داخل تشغيل بدأه الاستوديو. المساعد يسأل الشخص هذه فقط، ويعمل الباقي بنفسه.
 
+## Parity with the Studio (التكافؤ مع الاستوديو)
+
+كل ما يفعله الاستوديو له أداة MCP، والرحلة كلها تمشي من الطرفية وحدها. الجدول الكامل في الكود:
+`PARITY` في [`eaos/interfaces/mcp_server/studio_parity.py`](../eaos/interfaces/mcp_server/studio_parity.py) (62 طريقًا
+للاستوديو: 50 لها أداة، و12 بلا أداة عمدًا في `NO_TOOL`)، و`tests/interfaces/test_parity.py` يستخرج طرق الاستوديو من
+الكود (خادم القراءة وعقد `docs/studio-actions.json`) فيفشل لو أُضيف طريق بلا صف، أو صف يسمّي أداة غير موجودة؛ ويمشي
+الرحلة كلها بأمر `eaos` وحده (فحص بلا ذكاء، جواب سؤاله، المشاكل، الحال، إصلاح بطاقة في الطابور للمساعد، إيقافه، السجل).
+
+| فعل الاستوديو | أداة MCP | الأمر |
+| --- | --- | --- |
+| الأقسام والتقدم والأحداث (`/api/sections`، `progress`، `events`، `report-file`) | `overview` و`findings` و`finding` و`structure` و`plan` و`report_file`؛ `status` و`runs` و`wait` | `eaos problems`، `eaos status`، `eaos watch` |
+| الصور وتذكرة التقرير (`screen`، `report-image`، `report-ticket`: صفحة التقرير في الاستوديو تعرض بها التقرير وصور الشاشات) | `open_report` | — |
+| المشاريع والتبديل بينها (`/api/projects`، `projects/open`) | **`projects`**، `open_studio` | **`eaos projects`**، `eaos studio <المجلد>` |
+| تسجيل الدخول: الحال، المتابعة بدونه، النسيان | `waiting`، **`sign_in_forget`** (قرار الشخص) | `eaos sign-in --signed-out` / `--forget` |
+| تشغيل أي فعل (`POST /api/runs`) ومعاينته | الأداة بنفس اسم الفعل؛ `act` و`runs(op=check/estimate)`؛ **`replan_ideal`** | `eaos check`، `eaos fix` وأخواتها |
+| الطابور: عرض، إيقاف، استئناف، إعادة، ترتيب | `runs`، **`reorder`** | `eaos runs`، `eaos stop` …؛ الترتيب بلا أمر |
+| الأسئلة وقرارات التقرير | `waiting` | `eaos waiting`، `eaos answer` |
+| الاعتماد والرمي | `accept`، `undo` | `eaos accept`، `eaos undo` |
+| الفروع: الجرد، التفاصيل، حداثة الفحص، السياق | **`branch_view`**، `branches` | `eaos branches`، `eaos branch`؛ التفاصيل بلا أمر |
+| فرع التحليل؛ دمج وحذف وحماية وتنظيف واسترجاع | `choose_branch`؛ `branch_change` | `eaos branch <اسم>`؛ `eaos branches …` |
+| تحديث فروع البعيد، واقتراح حل تعارض | `branch_change` بـ`op=fetch` و`op=conflict` (جديد) | بلا أمر |
+| خطة مشروع جديد (`/api/plan`) | `blueprint_start` | بلا أمر |
+| الاستخدام، والمساعدون | `history(op=usage)`، `assistant_check` | `eaos usage`، `eaos doctor` |
+| بلا أداة عمدًا: محادثة الاستوديو (المساعد هو المحادثة نفسها)، ودخول الشخص لتطبيقه بيده (`sign-in/open`، `input`، `done`: الشخص وحده، أبدًا المساعد)، وأدوات الصفحة نفسها (الكلمات، الجلسة، المخططات) | — | — |
+
+الأدوات الجديدة (بالخط العريض) تسجَّل مع أدوات الحوكمة في `eaos mcp` فقط، لا في أفعال الاستوديو المباشرة، وكلها تنادي
+نواة الاستوديو نفسها (`govern.core` و`GET_ROUTES` و`studio_server`)، بلا تنفيذ ثانٍ.
+
 ## المخرجات: مجلد واحد لكل مشروع
 
 كل ما يصنعه EAOS للمستخدم في مجلد واحد ظاهر: `~/EAOS/<اسم المشروع>/`، لا في مشروعه ولا مبعثرًا:

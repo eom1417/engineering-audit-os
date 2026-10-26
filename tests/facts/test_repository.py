@@ -41,7 +41,7 @@ class CraftTests(unittest.TestCase):
         self.assertEqual(found(root), {('stale-doc-path', 'README.md')})
 
     def test_source_in_a_folder_tools_skip_and_a_machine_detail_in_a_published_file_are_found(self):
-        machine = 'It ran at /home/alice/work on 10 ' + 'cores.'       # built, so this published file holds none itself
+        machine = 'It ran at /ho' + 'me/alice/work on 10 ' + 'cores.'       # built, so this published file holds none itself
         root = project({'src/target/plan.java': 'class Plan {}', 'notes.md': machine,
                         'local.md': 'see /home/alice/x', 'tools.json': '["(?<![\\\\w.-])/work' + 'space/"]'},
                        tracked=['src', 'notes.md', 'tools.json'])

@@ -159,5 +159,20 @@
     "to",
     "from"
   ],
-  "per_rule": 5
+  "per_rule": 5,
+  "context_archive": "archive/CONTEXT-DONE.md",
+  "context_personal": [
+    [
+      "\\b(?:I|I'm|I've|me|my)\\b(?![/.-])",
+      "speaks as one person"
+    ],
+    [
+      "\\b(?:the owner|the maintainer)(?:'s)?\\b",
+      "binds every contributor to one person's ways"
+    ],
+    [
+      "(?:المالك|مالك المشروع)",
+      "binds every contributor to one person's ways"
+    ]
+  ]
 }

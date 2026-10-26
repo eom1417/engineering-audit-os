@@ -145,6 +145,23 @@ run), against the M2 numbers. The machine was quiet, so the time is comparable t
 | Detection baseline | 6 of 8 planted problems found |
 
 
+## After M8: 0.0.80 (2026-10-26)
+
+Measured on the code (no check of `develop` ran for this milestone; the next one from the Studio measures the check's
+rows on 0.0.80).
+
+| Measure | Before M8 (0.0.79) | After M8 |
+|---|---|---|
+| Python lines (`eaos/`) | 69,553 in 470 files | 71,615 in 490 files (the move tool, its gate, the context batch, MCP parity) |
+| Studio UI (`console/src`) | 14,091 JS lines in 106 files | 10,119 in 79 files |
+| Built Studio | 1,405 KB | 1,039 KB (budgeted) |
+| Studio routes with an MCP tool | 42 of 62 | 50 of 62, the other 12 with their reason |
+| Tests | 20,930 lines in 134 files, 748 test functions | 21,538 lines in 141 files, 774 test functions |
+| Engine findings on EAOS's own code (`tools/quality.json`) | 276 | 0 |
+| Functions over 50 lines / over 5 parameters | 5 / 129 listed | 0 / 0 listed (the justified ones say why on their line) |
+| Repository and context findings on EAOS | 4 | 0 (a law of `tools/quality.sh`) |
+| Python dependencies read by osv-scanner | 0 | 57 |
+
 ## After M6: 0.0.78 (2026-10-25)
 
 The check's rows (time, output, cards, engine findings) are the last check of `develop` the working Studio holds, from

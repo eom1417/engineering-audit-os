@@ -329,7 +329,7 @@ def _javascript(project, folder, package, report):
     prepare = prepare_commands(manager, package, project, folder, database)
     if prepare: profile['prepare'] = prepare
     if database in ('postgres', 'sqlite'): profile['database'] = {'kind': database, 'name': re.sub(r'\W', '_', project.name.lower())[:40] or 'app'}
-    if production: profile['baseline'] = _production_profile(manager, lockfile, build, production, profile['env'], port)
+    if production: profile['baseline'] = _production_profile(manager, lockfile, build, production, profile)
     out_of_reach = database in ('mysql', 'mongodb', 'supabase') or '@neondatabase/serverless' in dependencies(package)
     return {'profile': profile, 'facts': {'folder': folder, 'manager': manager, 'framework': framework(package), 'database': database,
                                           'env_names': sorted(names), 'database_out_of_reach': out_of_reach}, 'limitations': _draft_limitations(start, database, unset, dependencies(package))}
@@ -348,9 +348,10 @@ def _draft_limitations(start, database, unset, deps=()):
     return limitations
 
 
-def _production_profile(manager, lockfile, build, production, env, port):
-    """run.json -> baseline: the built app, installed with its dev dependencies, on the port its start command names."""
-    install = install_argv(manager, lockfile)
+def _production_profile(manager, lockfile, build, production, profile):
+    """run.json -> baseline: the built app, installed with its dev dependencies, on the port its start command names,
+    with the development `profile`'s environment and port."""
+    install, env, port = install_argv(manager, lockfile), profile['env'], profile['port']
     return {'install': [install[:2] + ['--include=dev'] if manager == 'npm' else install], 'build': build, 'start': production,
             'port': next((int(production[production.index(flag) + 1]) for flag in ('--port', '-p') if flag in production), port),
             'env': {**{k: v for k, v in env.items() if k != 'NODE_ENV'}, 'NODE_ENV': 'production', 'PORT': str(port)}}

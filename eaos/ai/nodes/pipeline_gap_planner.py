@@ -1,4 +1,4 @@
-"""The pipeline-gap planner: how each gap of the pipeline map is closed, planned by the assistant (docs/STUDIO.md D11).
+"""The pipeline-gap planner: how each gap of the pipeline map is closed, planned by the assistant.
 
 It reads the pipeline map's gap (studio/pipeline.json `views.gap`: one entry per broken pipeline rule, with its
 evidence and operation) and the rules themselves (eaos/data/pipeline-rules.json), then decides for each gap: "plan"

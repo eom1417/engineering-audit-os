@@ -26,6 +26,17 @@ class CodeLimits(unittest.TestCase):
         grown = {'functions': {'eaos/runs_answer.py::_answer': 42}, 'modules': {}}
         self.assertEqual(code_limits.breaches(grown, baseline), ['eaos/runs_answer.py::_answer: 42 (allowed 41)'])
 
+    def test_a_function_says_why_on_its_signature_or_counts(self):
+        source = ('def tool(a, b, c, d, e, f):  # limits: parameters -- mirrors the command\'s options\n    return a\n'
+                  'def bare(a, b, c, d, e, f):  # limits: parameters --\n    return a\n'
+                  'def other(a, b, c, d, e, f):  # limits: functions -- not a kind that may be justified\n    return a\n'
+                  'def wrapped(a, b, c,\n            d, e, f):  # limits: parameters -- a record\'s fields\n    """Doc."""\n'
+                  'def plain(a, b, c, d, e, f):\n    return a\n')
+        lines = source.splitlines()
+        said = {node.name: code_limits.justified(node, lines) for node in ast.parse(source).body}
+        self.assertEqual(said, {'tool': {'parameters'}, 'bare': set(), 'other': set(), 'wrapped': {'parameters'},
+                                'plain': set()})
+
     def test_quality_refuses_a_number_that_grew_or_a_kind_not_recorded(self):
         import quality
         now, recorded = {'bandit:B602': 1, 'semgrep:x': 3, 'vulture:y': 1}, {'semgrep:x': 3, 'vulture:y': 2}

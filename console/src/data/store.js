@@ -57,7 +57,7 @@ function ended(before, after) {
 
 /** The report's changed sections, whether it still matches the code and every flow's progress, read again: after a run
  *  ended, and when the tab is seen again or the feed comes back (a phone's tab sleeps and misses the feed's events). */
-export function catchUp() {
+function catchUp() {
   reload(false).then(refreshFreshness, refreshFreshness);
   refreshProgress();
 }

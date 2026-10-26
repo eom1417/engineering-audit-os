@@ -36,3 +36,18 @@ class SarifTests(Workspace):
         found = read(path, 'x', '1', [{'match': '*', 'kind': 'vulnerability'}])[0]
         self.assertEqual([(f['measurements'][0]['value'], f['engine_confidence'], f['cwe']) for f in found],
                          [('high', 'low', ['CWE-78']), ('medium', 'medium', ['CWE-89'])])
+
+    def test_a_result_suppressed_with_a_reason_on_its_line_is_justified_and_without_one_stays_a_finding(self):
+        # `# nosemgrep` alone once dropped the finding: a comment could hide a weakness from every gate.
+        (Path(self.tmp) / 'a.py').write_text('x\ny\nrun(x)  # nosemgrep: KNOWN-1 -- the argv is built here, no shell\nrun(y)  # nosemgrep\n')
+        place = lambda line: [{'physicalLocation': {'artifactLocation': {'uri': 'a.py'}, 'region': {'startLine': line}}}]
+        result = lambda line, **more: {**SARIF['runs'][0]['results'][0], 'locations': place(line), **more}
+        path = Path(self.tmp) / 'justified.sarif'
+        path.write_text(json.dumps({**SARIF, 'runs': [{**SARIF['runs'][0], 'results': [
+            result(3, suppressions=[{'kind': 'inSource'}]), result(4, suppressions=[{'kind': 'inSource'}]),
+            result(3, suppressions=[{'kind': 'inSource', 'status': 'rejected'}])]}]}))
+        rules = [{'match': 'KNOWN-*', 'kind': 'vulnerability'}]
+        found = read(path, 'x', '1', rules, root=self.tmp)[0]
+        self.assertEqual([f.get('justified') for f in found], ['the argv is built here, no shell', None, None],
+                         'no reason, or a rejected suppression: a plain finding')
+        self.assertEqual([f.get('justified') for f in read(path, 'x', '1', rules)[0]], [None, None, None], 'no line to read: no reason')

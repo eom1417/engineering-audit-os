@@ -66,7 +66,7 @@ def run_command(project, argv, timeout):
     environment = {k: v for k, v in os.environ.items() if k in {'PATH', 'HOME', 'LANG', 'TMPDIR', 'SystemRoot', 'WINDIR'}}
     started = time.monotonic()
     try:
-        completed = subprocess.run(argv, cwd=project, env=environment, capture_output=True, text=True,
+        completed = subprocess.run(argv, cwd=project, env=environment, capture_output=True, text=True,  # nosemgrep: python.lang.security.audit.dangerous-subprocess-use-audit -- the project's own declared command, a list argv, run in its isolated copy with the person's consent, no shell
                                    timeout=timeout, check=False)
         output, code, timed_out = (completed.stdout + completed.stderr)[-4000:], completed.returncode, False
     except subprocess.TimeoutExpired:
@@ -281,10 +281,12 @@ def run_profile(target, out, runtime, timeout=1800):
     files, health = {}, []
     try:
         live.setup()
-        for commands, at_root in suites:
+        for suite in suites:
+            at_root = suite[1]
             folder = live.sandbox.copy / ('' if at_root else live.profile.get('app') or '')
             (folder / '.eaos-coveragerc').write_text(COVERAGERC, encoding='utf-8')
-            python = _run_tests(live, commands, folder, v8, timeout, result['attempts'], at_root)
+            python, ran = _run_tests(live, suite, folder, v8, timeout)
+            result['attempts'] += ran
             covered, contexts = _python_coverage(live, python, folder, at_root) if python else ({}, {})
             files.update(covered)
             health.append(suite_health(folder, contexts))
@@ -324,10 +326,11 @@ def _one_suite(suites):
             'redundant': redundant[:30], 'redundant_count': count, 'redundant_share': round(count / tests, 3) if tests else None}
 
 
-def _run_tests(live, commands, app, v8, timeout, attempts, at_root=False):
-    """Run each test command in the sandbox, Python ones under coverage when the project has it, each with its runner's
-    per-test report and Node's V8 coverage on; every run goes to `attempts`. The Python that ran coverage, or None."""
-    python = None
+def _run_tests(live, suite, app, v8, timeout):
+    """Run each test command of `suite` ((commands, run from the root), _suites) in the sandbox, Python ones under
+    coverage when the project has it, each with its runner's per-test report and Node's V8 coverage on. (The Python
+    that ran coverage or None, a row per run.)"""
+    (commands, at_root), python, attempts = suite, None, []
     for argv in commands:
         started = time.monotonic()
         run_argv = argv
@@ -336,7 +339,7 @@ def _run_tests(live, commands, app, v8, timeout, attempts, at_root=False):
         code, stdout, stderr = live.run(with_timing(run_argv, app), timeout=timeout, env={'NODE_V8_COVERAGE': str(v8)}, at_root=at_root)
         attempts.append({'argv': [str(a) for a in argv], 'exit_code': code, 'timed_out': f'stopped after {timeout}s' in stderr,
                          'duration_seconds': round(time.monotonic() - started, 2), 'output_tail': (stdout + stderr)[-2000:]})
-    return python
+    return python, attempts
 
 
 def _python_coverage(live, python, app, at_root=False):
@@ -391,6 +394,6 @@ def publish_facts(out, result):
                'test_files': len(result.get('test_files', [])),
                'uncovered_entry_reachable_files': result.get('uncovered_entry_reachable_files', []),
                'interpretation': 'Coverage of the command that ran. Not proof of correctness, and not proof that uncovered code is dead.'}
-    write_set(out, NAME, NAME, VERSION, facts, fingerprint, LIMITATIONS, summary,
-              available=bool(result.get('executed')), reason=result.get('reason'))
+    write_set(out, NAME, NAME, VERSION, LIMITATIONS, {'facts': facts, 'input_sha': fingerprint, 'summary': summary,
+                                                     'available': bool(result.get('executed')), 'reason': result.get('reason')})
     return facts

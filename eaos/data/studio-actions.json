@@ -2,7 +2,7 @@
  "schema_version": 1,
  "contract": "studio-actions",
  "revision": 1,
- "about": "The command centre (docs/STUDIO.md D8): every EAOS action the Studio can run, the selections and verbs, the run lifecycle, the run events, the preview, the endpoints and their security, and the snapshot behaviour. Built by NS46.T9 (eaos/interfaces/studio_actions/); read by the Studio pages of NS46.T10 and mounted by the NS37.T2 server. A packaged byte-identical copy is eaos/data/studio-actions.json.",
+ "about": "The command centre: every EAOS action the Studio can run, the selections and verbs, the run lifecycle, the run events, the preview, the endpoints and their security, and the snapshot behaviour. Built by NS46.T9 (eaos/interfaces/studio_actions/); read by the Studio pages of NS46.T10 and mounted by the NS37.T2 server. A packaged byte-identical copy is eaos/data/studio-actions.json.",
  "actions": [
   {
    "id": "status",

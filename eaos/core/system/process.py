@@ -19,7 +19,7 @@ def communicate(process, timeout):
     while True:
         check_cancelled()
         remaining = deadline - time.monotonic()
-        if remaining <= 0: raise subprocess.TimeoutExpired(process.args, timeout)
+        if remaining <= 0: raise subprocess.TimeoutExpired(process.args, timeout)  # nosemgrep: python.lang.security.audit.dangerous-subprocess-use-audit -- only the timeout of the run above, nothing is started here
         try: return process.communicate(timeout=min(0.25, remaining))
         except subprocess.TimeoutExpired:
             if time.monotonic() >= deadline: raise
@@ -28,10 +28,10 @@ def communicate(process, timeout):
 def run_command(argv, timeout, **options):
     """Capture a command in its own process group; interruption or timeout kills its children too."""
     check_cancelled()
-    with subprocess.Popen(argv, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, start_new_session=True, **options) as child:
+    with subprocess.Popen(argv, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, start_new_session=True, **options) as child:  # nosemgrep: python.lang.security.audit.dangerous-subprocess-use-audit -- the one runner of list argvs its callers build, never a shell
         try:
             out, err = communicate(child, timeout)
-            return subprocess.CompletedProcess(argv, child.returncode, out, err)
+            return subprocess.CompletedProcess(argv, child.returncode, out, err)  # nosemgrep: python.lang.security.audit.dangerous-subprocess-use-audit -- only the record of the run above, nothing is started here
         finally:
             if child.poll() is None: _end(child)
 

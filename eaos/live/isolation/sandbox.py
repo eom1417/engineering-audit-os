@@ -118,7 +118,7 @@ def _network_isolation():
     unshare = shutil.which('unshare')
     if not unshare: return ()
     try:
-        done = subprocess.run([unshare, '-rn', 'true'], capture_output=True, timeout=10)
+        done = subprocess.run([unshare, '-rn', 'true'], capture_output=True, timeout=10)  # nosemgrep: python.lang.security.audit.dangerous-subprocess-use-audit -- unshare with fixed arguments, no shell
     except (OSError, subprocess.TimeoutExpired):
         return ()
     return (unshare, '-rn') if done.returncode == 0 else ()
@@ -244,7 +244,7 @@ class Sandbox:
         environment = self.environment(env, argv)
         full, where = self._command(argv, environment, self._inside(cwd), network)
         started = time.monotonic()
-        process = subprocess.Popen(full, cwd=where, env=environment, stdout=subprocess.PIPE,
+        process = subprocess.Popen(full, cwd=where, env=environment, stdout=subprocess.PIPE,  # nosemgrep: python.lang.security.audit.dangerous-subprocess-use-audit -- the project's own declared command, a list argv, run in its isolated copy with the person's consent, no shell
                                    stderr=subprocess.PIPE, text=True, start_new_session=True)
         from ...core.system.process import communicate
         try:
@@ -270,7 +270,7 @@ class Sandbox:
         log = open(self.workdir / f'service-{len(self.started)}.log', 'w', encoding='utf-8')
         environment = self.environment(env, argv)
         full, where = self._command(argv, environment, self._inside(cwd), True)
-        process = subprocess.Popen(full, cwd=where, env=environment, stdout=log, stderr=subprocess.STDOUT, start_new_session=True)
+        process = subprocess.Popen(full, cwd=where, env=environment, stdout=log, stderr=subprocess.STDOUT, start_new_session=True)  # nosemgrep: python.lang.security.audit.dangerous-subprocess-use-audit -- the project's own declared command, a list argv, run in its isolated copy with the person's consent, no shell
         self.started.append((process, argv, time.monotonic(), log))
         from ...core.system.process import check_cancelled
         deadline = time.monotonic() + timeout

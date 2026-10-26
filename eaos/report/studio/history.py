@@ -1,4 +1,4 @@
-"""studio/history.json: the project over time (contract v2, docs/STUDIO.md D7), read from the ledger (eaos/core/project/ledger.py) and
+"""studio/history.json: the project over time (contract v2), read from the ledger (eaos/core/project/ledger.py) and
 the check in hand; nothing is estimated.
 
 - scans: every check the ledger recorded (its `baseline` and `recheck` points), oldest first, with the cards open and

@@ -206,8 +206,8 @@ class StateView:
         archive branch); a protected one is shown with its reason, never as a base or a target. The base commit is what the
         confirm token pins, so a branch that moves after the preview is caught before anything runs."""
         from ....journeys import agent_tools
-        wanted = wanted if isinstance(wanted, dict) else {}
         state, head = self.state(), self.head()
+        wanted = _wanted(wanted, head)
         working = state.get('branch') or head['branch']
         base = str(wanted.get('base') or '').strip() or working
         protected = self.policy()['protected']
@@ -223,13 +223,13 @@ class StateView:
         view = self._fix_view(state, base, working)
         out['continuable'] = _continuable(agent_tools.work_branches(view), locals_)
         out['direct_blocked'] = self._direct_blocked(base, blocked(base))
-        return self._fix_delivery(out, view, base, wanted, hint, head, blocked)
+        return self._fix_delivery(out, view, wanted, hint, blocked)
 
-    def _fix_delivery(self, out, view, base, wanted, hint, head, blocked):
-        """Where the batch goes: on the base itself, on an EAOS branch waiting for a decision, or on a new one."""
+    def _fix_delivery(self, out, view, wanted, hint, blocked):
+        """Where the batch goes (`wanted`'s merge_into already defaulted): on the base itself, on an EAOS branch waiting for a
+        decision, or on a new one."""
         from ....journeys import agent_tools
-        asked = str(wanted.get('deliver_as') or '').strip()
-        merge = str(wanted.get('merge_into') or '') or head['branch']
+        base, asked, merge = out['base']['branch'], str(wanted.get('deliver_as') or '').strip(), wanted['merge_into']
         if asked == base and out['direct_blocked']: return out | {'mode': 'direct', 'deliver_as': base, 'merge_into': base, 'problem': out['direct_blocked']}
         try:
             out['deliver_as'], out['merge_into'] = agent_tools.delivery(view, asked or self._named_after(view, base, hint) or None, merge)
@@ -331,6 +331,12 @@ def _branches_of(row):
         yield context['analysis_branch'], 'base'
     for name in (row.get('branch_op') or {}).get('branches') or []:
         if name not in (work, context.get('analysis_branch')): yield name, 'operation'
+
+
+def _wanted(wanted, head):
+    """The person's choices of where a Fix builds, merge_into defaulting to the branch open in the project folder."""
+    wanted = wanted if isinstance(wanted, dict) else {}
+    return {**wanted, 'merge_into': str(wanted.get('merge_into') or '') or head['branch']}
 
 
 def _continuable(names, locals_):

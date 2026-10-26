@@ -89,7 +89,7 @@ class EnginesAtOnceTests(unittest.TestCase):
         import threading
         import time
         from unittest import mock
-        from eaos import engines
+        from eaos.engines import run as engines
         state, guard = {}, threading.Lock()
         def adapter(name, after=()):
             def analyze(*_args, **_kwargs):
@@ -185,7 +185,7 @@ class InstalledEngineTests(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
-        from eaos.engines import enola, jscpd
+        from eaos.engines.code import enola, jscpd
         if not (enola.version() and jscpd.version()):
             raise unittest.SkipTest('the pinned engines are not installed in this environment')
 

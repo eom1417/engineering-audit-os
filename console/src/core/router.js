@@ -11,13 +11,13 @@ import { clearSelection, picked } from '../data/selection.js';
 import { need, pendingOf, state as dataState, mode } from '../data/source.js';
 import { project } from '../data/model.js';
 import { loadingHTML } from './loading.js';
-import { parseHash } from './address.js';
+import { parseHash, navigate } from './address.js';
 import { a11yRegions, hold } from './a11y.js';
 
 const screens = [];
 const renderHooks = [];
 /** The sections every screen's frame reads: the project's name and check, and what waits for the owner. */
-export const SHELL_NEEDS = ['head', 'decisions'];
+const SHELL_NEEDS = ['head', 'decisions'];
 /** Page states an address may ask for, to review a state the data does not have now (`?state=`); every other state
  *  comes from the data. */
 const ASKABLE = ['loading', 'empty', 'offline', 'reconnecting'];
@@ -27,6 +27,7 @@ const ASKABLE = ['loading', 'empty', 'offline', 'reconnecting'];
  *  replaces the earlier one (a finished screen replaces its outline). */
 export function screen(def) {
   const keys = [];
+  // nosemgrep: javascript.lang.security.audit.detect-non-literal-regexp -- the path is a screen's own address in the code, never input
   const re = new RegExp('^' + def.path.replace(/:(\w+)/g, (m, k) => { keys.push(k); return '([^/]+)'; }) + '$');
   const i = screens.findIndex(x => x.path === def.path);
   if (i >= 0) screens.splice(i, 1);
@@ -64,12 +65,20 @@ function routeKey(r) { const q = Object.assign({}, r.query); delete q.sheet; del
 
 export function onRoute() {
   const r = parseHash();
-  if (addressPrefs(r) || !bundleReady(r)) return;
+  if (landOld(r) || addressPrefs(r) || !bundleReady(r)) return;
   const key = routeKey(r);
   if (key === current.key) { syncSheet(r.query.sheet || null); refreshAssist(); return; }
   leave(r);
   arrive(r, key);
   syncSheet(r.query.sheet || null);
+}
+/** Understand's views became the one report page (M8.2): an old address (a notice, a shared link) lands on it, a
+ *  report file's sheet kept open; true when the address was replaced. */
+function landOld(r) {
+  if (r.path !== '/understand' && !r.path.startsWith('/understand/')) return false;
+  const sheet = (r.query.sheet || '').startsWith('file:') ? r.query.sheet : null;
+  navigate('/report', { sheet, lang: r.query.lang, theme: r.query.theme }, { replace: true });
+  return true;
 }
 /** Language and theme in the address (LNK-01) apply and are remembered; true when the language draws everything again. */
 function addressPrefs(r) {
@@ -129,13 +138,18 @@ function draw(r, m, bundlePending) {
   const sc = m && m.screen;
   const main = document.getElementById('main');
   document.title = t('doc.title', { place: sc && sc.title ? sc.title(ctx) : 'EAOS', project: project().name || 'EAOS' });
-  main.innerHTML = screenHTML(sc, ctx, bundlePending);
+  // A screen that holds what a redraw would lose (a frame's page) says what it shows: the same, it is left as it is.
+  const steady = sc && sc.steady && !bundlePending && ctx.state !== 'loading' ? sc.steady(ctx) : '';
+  const kept = steady && main.dataset.screen === sc.id && main.dataset.steady === steady;
+  // nosemgrep: javascript.browser.security.insecure-document-method, javascript.browser.security.insecure-innerhtml -- each screen's render escapes every value it draws (esc, rich, code: core/format.js)
+  if (!kept) main.innerHTML = screenHTML(sc, ctx, bundlePending);
   main.dataset.screen = sc ? sc.id : '';
-  renderShell(sc ? sc.place || null : null, r.path);
+  main.dataset.steady = steady || '';
+  renderShell(sc ? sc.place || null : null);
   renderBanner(ctx);
   renderStrip();
   renderSelbar();
-  if (sc && sc.after && ctx.state !== 'loading') sc.after(main, ctx);
+  if (sc && sc.after && ctx.state !== 'loading' && !kept) sc.after(main, ctx);
   a11yRegions(main);
   renderHooks.forEach(fn => fn(ctx));
   readMissing(ctx, bundlePending);
@@ -158,5 +172,5 @@ let pending = 0;
 /** A redraw at the next frame, however many changes arrive before it (the live data). */
 export function refreshSoon() {
   if (pending) return;
-  pending = requestAnimationFrame(() => { pending = 0; if (!document.querySelector('#main textarea:focus, #main input[type=search]:focus')) refresh(); else renderShell(match(parseHash().path) ? match(parseHash().path).screen.place : null, parseHash().path); });
+  pending = requestAnimationFrame(() => { pending = 0; if (!document.querySelector('#main textarea:focus, #main input[type=search]:focus')) refresh(); else renderShell(match(parseHash().path) ? match(parseHash().path).screen.place : null); });
 }

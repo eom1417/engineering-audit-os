@@ -3,7 +3,7 @@
 // A dropped stream reconnects with Last-Event-ID, so the server replays exactly what was missed (or says `reset`).
 import { token } from './source.js';
 
-export function parseFrame(block) {
+function parseFrame(block) {
   const out = { event: 'message', data: '' };
   const data = [];
   for (const line of block.split('\n')) {
@@ -20,7 +20,7 @@ export function parseFrame(block) {
 }
 
 /** Feeds text chunks in, gets whole frames out. */
-export function frameSplitter(onFrame) {
+function frameSplitter(onFrame) {
   let buffer = '';
   return chunk => {
     buffer += chunk;

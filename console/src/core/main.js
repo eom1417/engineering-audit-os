@@ -1,34 +1,19 @@
 // The console's core (assets/studio.js): the shell, the router, sheets, notices, search, the project menu, the
-// floating assistant and the data layer, offered to every place's bundle as one object, self.EAOS (a place imports
-// it as `import { t, screen } from 'eaos'`; console/README.md lists it). It starts once the person's dictionary is
+// floating assistant and the data layer, offered to every place's bundle as one object, self.EAOS (api.js; a place
+// imports it as `import { t, screen } from 'eaos'`; console/README.md lists it). It starts once the person's dictionary is
 // read: the report's manifest, then the live command state, then the screen of the address.
 import { prefs, applyDocument } from './prefs.js';
 import * as i18n from './i18n.js';
-import * as format from './format.js';
 import * as router from './router.js';
-import * as address from './address.js';
-import { a11yRegions } from './a11y.js';
-import { loadingHTML } from './loading.js';
 import * as sheets from './sheets.js';
 import * as notices from './notices.js';
 import * as settings from './settings.js';
-import * as shell from './shell.js';
-import * as outline from './outline.js';
-import { act, tickAct } from './events.js';
-import { S } from './state.js';
-import { redrawAssist } from './assist.js';
-import * as ac from './marks.js';
-import * as markdown from './markdown.js';
+import { act } from './events.js';
 import './search.js';
 import './menu.js';
 import * as source from '../data/source.js';
 import * as store from '../data/store.js';
-import * as model from '../data/model.js';
-import * as selection from '../data/selection.js';
-import * as derive from '../data/derive.js';
-import * as normalize from '../data/normalize.js';
-import * as contract from '../data/contract.js';
-import { client, ActionError, TERMINAL, ACTIVE, RETRYABLE } from '../data/actions.js';
+import * as api from './api.js';
 
 act('sheet', el => sheets.openSheet(el.dataset.sheet));
 act('sheet-close', () => sheets.closeSheet());
@@ -38,11 +23,7 @@ act('theme-set', el => settings.setTheme(el.dataset.theme));
 act('copy', el => notices.copyText(el.dataset.text || ''));
 act('go', el => sheets.closeSheetThen(() => { location.hash = el.dataset.href; }));
 
-self.EAOS = Object.assign({}, i18n, format, address, router, sheets, notices, settings, shell, outline, {
-  act, tickAct, S, prefs, redrawAssist, ac, a11yRegions, loadingHTML, markdown, md: markdown.md,
-  data: source, live: store.live, store, model, selection, derive, normalize, contract,
-  client, ActionError, TERMINAL, ACTIVE, RETRYABLE,
-});
+self.EAOS = Object.assign({}, api);  // extensible: the Ask place adds its askAPI
 
 // the theme follows the system until the person chooses one
 matchMedia('(prefers-color-scheme: dark)').addEventListener('change', ev => {

@@ -10,7 +10,7 @@ govern_words.WORDS, the contract (docs/studio-actions.json) or the core's own wo
     eaos problems [--kind …]   eaos problem <id>                    what the check found
     eaos fix|verify|explain|plan <ids…> | --group by=value           the verbs, previewed first
     eaos branch [name]   eaos branches [merge|delete|protect|unprotect|cleanup|restore] …   (eaos accept, undo and these: interfaces/terminal/branches.py)
-    eaos history   eaos compare <a> <b>   eaos usage
+    eaos history   eaos compare <a> <b>   eaos usage   eaos projects
 """
 import functools
 import shlex
@@ -86,7 +86,8 @@ def _said(actions, record):
 @command
 def check(args, lang):
     project = _project(args)
-    inputs = govern.check_inputs(*(getattr(args, name, None) for name in ('path', 'mode', 'assistant', 'sign_in', 'published', 'run_app', 'again_from')))   # check, start
+    inputs = govern.check_inputs(getattr(args, 'path', None), getattr(args, 'assistant', None), getattr(args, 'again_from', None),   # check, start
+                                 **{name: getattr(args, name, None) for name in ('mode', 'sign_in', 'published', 'run_app')})
     shown = govern.estimate(project, inputs)['estimate']
     say(words('estimate', lang, low=shown['minutes_low'], high=shown['minutes_high'], basis=text_of(shown['basis'], lang)))
     record = govern.start_check(project, inputs, lang)
@@ -220,6 +221,7 @@ def signing_in(args, lang):
     from ..studio_server import sign_in as page
     project = _project(args)
     if args.forget:
+        refuse_in_studio_run('sign_in_forget')      # the person's only, as the MCP tool is
         page.forget(project)
         return guided.box(lang, words('sign_in_forgot', lang), commands=['eaos status'])
     if not govern.signing_in(project): return guided.box(lang, words('sign_in_none', lang), commands=['eaos watch'])
@@ -312,6 +314,17 @@ def act(args, lang):
 
 def contract_verb(verb):
     return next(v for v in contract()['verbs'] if v['id'] == verb)
+
+
+@command
+def projects(args, lang):
+    """`eaos projects`: the Studio's project switcher in a terminal."""
+    from ..studio_server.projects import listing
+    rows = listing(args.project)['projects']
+    for row in rows:
+        say(f"{'✓' if row['current'] else ' '} {row['name']:<28} {row['score'] if row['score'] is not None else '-':<6} {(row['checked'] or '-')[:16]:<16} "
+            f"{'🟢' if row['studio'] else '  '} {row['path']}")
+    guided.box(lang, words('projects', lang, count=len(rows)), commands=['eaos studio <folder>'])
 
 
 # ---------------------------------------------------------------- history, comparison, use

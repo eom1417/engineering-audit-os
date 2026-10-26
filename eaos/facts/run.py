@@ -70,8 +70,7 @@ def collect_external(target, out, source, only=None, keep=False):
     if referenced:
         result['summary'] = dict(result.get('summary') or {})
         result['summary']['registry_referenced_dead_code_marked'] = referenced
-    external_entry = write_set(out, 'external', external.NAME, external.VERSION, facts, result['input_sha'],
-                                external.LIMITATIONS, result['summary'], result['available'], result['reason'])
+    external_entry = write_set(out, 'external', external.NAME, external.VERSION, external.LIMITATIONS, {**result, 'facts': facts})
     return [external_entry]
 
 
@@ -150,17 +149,13 @@ def _load_cache(cache_path):
     except ValueError: return {}
 
 
-def _run_extractor(name, target, source, produced, context, step, done, total):
+def _run_extractor(name, target, source, produced, context):
+    """(the extractor's module, its result, the seconds it took)."""
     module = EXTRACTORS[name]
-    step(name, done, total, 'running')
     began = _time.monotonic()
     arguments = EXTRACTOR_ARGS.get(name, lambda produced, context: {})(produced, context)
     result = module.run(target, source, **arguments)
-    available = result['available']
-    step(name, done + 1, total, 'ok' if available else 'unavailable', _time.monotonic() - began,
-         reason='' if available else result.get('reason') or '',
-         reason_code='' if available else 'extractor_unavailable')
-    return module, result
+    return module, result, _time.monotonic() - began
 
 
 def _extract(names, target, out, source, context):
@@ -170,19 +165,23 @@ def _extract(names, target, out, source, context):
     step = progress.step
     for name in names: step(name, 0, len(names), 'waiting')
     for done, name in enumerate(names):
-        module, result = _run_extractor(name, target, source, produced, context, step, done, len(names))
+        step(name, done, len(names), 'running')
+        module, result, seconds = _run_extractor(name, target, source, produced, context)
+        available = result['available']
+        step(name, done + 1, len(names), 'ok' if available else 'unavailable', seconds,
+             reason='' if available else result.get('reason') or '',
+             reason_code='' if available else 'extractor_unavailable')
         produced[name] = result['facts']
         if result.get('reused_from_cache'): reuse[name] = result['reused_from_cache']
-        entries.append(write_set(out, name, module.NAME, module.VERSION, result['facts'], result['input_sha'],
-                                 module.LIMITATIONS, result['summary'], result['available'], result['reason']))
+        entries.append(write_set(out, name, module.NAME, module.VERSION, module.LIMITATIONS, result))
     return entries, reuse
 
 
-def collect(target, out, selected=None, max_commits=2000, max_files=100000, max_bytes=2_000_000, source=None,
-            exclude=(), engines=None, cache=None):
+def collect(target, out, selected=None, max_commits=2000, source=None, exclude=(), engines=None, cache=None):  # limits: parameters -- the `eaos facts` command's options and a check's own snapshot and cache, each a keyword
     """Each extractor's start and end is reported as a step of the running stage (eaos/core/progress/context.py): the live
     map shows where the facts stage is inside. It does not change what runs. `cache`: the file the parsed files are kept in between checks (in the check's runtime,
-    never in the report: 63 MB of it sat among EAOS's facts); without one they are kept for this call only."""
+    never in the report: 63 MB of it sat among EAOS's facts); without one they are kept for this call only. `source`: the snapshot to read when the
+    caller built it (with its own bounds); else one with the default bounds."""
     target, out = _checked_paths(target, out)
     # What the project declared out of scope applies to every caller, not only the ones that
     # remembered to ask. Two commands honoured it and three did not.
@@ -191,7 +190,7 @@ def collect(target, out, selected=None, max_commits=2000, max_files=100000, max_
     exclude = sorted({*(exclude or ()), *declared_exclusions(target)})
     exclusion_reason_map = exclusion_reasons(target)
     names = ordered(selected)
-    source = source or Source(target, max_files=max_files, max_bytes=max_bytes, exclude=exclude)
+    source = source or Source(target, exclude=exclude)
     context = {'cache': _load_cache(Path(cache)) if cache else {}, 'max_commits': max_commits}
     entries, reuse = _extract(names, target, out, source, context)
     if engines is not None:

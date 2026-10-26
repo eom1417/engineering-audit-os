@@ -70,7 +70,7 @@ def enter(spec):
 if __name__ == '__main__':
     try:
         enter(json.loads(sys.argv[1]))
-        os.execvp(sys.argv[2], sys.argv[2:])
+        os.execvp(sys.argv[2], sys.argv[2:])  # nosemgrep: python.lang.security.audit.dangerous-os-exec-audit, python.lang.security.audit.dangerous-os-exec-tainted-env-args -- the sandbox's own launcher: it runs, once its view is entered, the argv the sandbox built
     except (OSError, ValueError, AttributeError, IndexError) as problem:
         print(f'eaos sandbox: {problem}', file=sys.stderr)
         raise SystemExit(127)

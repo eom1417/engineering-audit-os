@@ -27,6 +27,7 @@ the code's interfaces, as the snapshots are of the screens.
 import json
 import shutil
 from pathlib import Path
+from typing import NamedTuple
 
 from ...core import progress
 from ...core.progress.flow import OPTIONAL, Stage
@@ -82,7 +83,7 @@ def _pass(live, lock, base, output, how):
     screens = Screens(stream, lock / '__screenshots__', output.parent / 'snapshots', keep=update).start()
     try:
         code, out, err = live.sandbox.run(argv, timeout=3600, network=True, cwd='.eaos-lock',
-                                          env={**live.extra(), 'BASE_URL': base, 'EAOS_LOCK_REPORT': str(output),
+                                          env={**live.run_env(), 'BASE_URL': base, 'EAOS_LOCK_REPORT': str(output),
                                                'EAOS_LOCK_STREAM': str(stream), 'EAOS_LOCK_KIND': kind or '',
                                                'EAOS_LOCK_UPDATE': '1' if update else ''})
     finally:
@@ -107,7 +108,7 @@ def _approvals(live, lock, output, update):
     argv = [str(pytest), f'{lock.name}/approvals', '-c', f'{lock.name}/pytest.ini', '-p', 'no:cacheprovider',
             '--continue-on-collection-errors', '-q', f'--junitxml={output}']
     code, out, err = live.sandbox.run(argv, timeout=1800, env={
-        **live.extra(), 'PYTHONPATH': str(Path(live.sandbox.copy).resolve()), 'PYTEST_DISABLE_PLUGIN_AUTOLOAD': '1',
+        **live.run_env(), 'PYTHONPATH': str(Path(live.sandbox.copy).resolve()), 'PYTEST_DISABLE_PLUGIN_AUTOLOAD': '1',
         'APPROVAL_TESTS_USE_REPORTER': APPROVE if update else COMPARE})
     live.log.append({'argv': argv, 'exit': code, 'tail': (out + err)[-3000:]})
     statuses = approval_statuses(output)
@@ -126,16 +127,28 @@ def _approved(lock, statuses):
             for name, status in statuses.items()}
 
 
-def _run_specs(live, lock, base, recorded, stem, update, declared=(), known=()):
-    """{spec file: (status, reason)} of one pass of every spec the lock holds: the screens with Playwright, the
-    interfaces of the code with pytest; their reports are playwright-<stem>.json and approvals-<stem>.xml in `recorded`."""
+class LockPass(NamedTuple):
+    """One pass of the lock's specs: its name (its reports' and log's), whether it records (the first pass on the
+    original), and what may differ without failing it: the screens `declared` to change, the tests `known` to fail
+    before the change (spec_statuses)."""
+    name: str
+    update: bool = False
+    declared: tuple = ()
+    known: tuple = ()
+
+
+def _run_specs(live, lock, base, recorded, how):
+    """{spec file: (status, reason)} of one pass `how` (LockPass) of every spec the lock holds: the screens with
+    Playwright, the interfaces of the code with pytest; their reports are playwright-<name>.json and approvals-<name>.xml
+    in `recorded`."""
     statuses = {}
     for kind, files in passes(lock) if (lock / 'playwright.config.ts').is_file() else []:
         mark = f'@{kind}' if kind else ''         # a kind's pass: its specs' statuses beside the run's one session's
-        found = spec_statuses(_pass(live, lock, base, recorded / f'playwright-{stem}{mark}.json', (update, kind, files)), declared, known)
+        report = _pass(live, lock, base, recorded / f'playwright-{how.name}{mark}.json', (how.update, kind, files))
+        found = spec_statuses(report, how.declared, how.known)
         statuses.update({file + mark: status for file, status in found.items()})
     if (lock / 'approvals').is_dir():
-        statuses.update(_approvals(live, lock, recorded / f'approvals-{stem}.xml', update))
+        statuses.update(_approvals(live, lock, recorded / f'approvals-{how.name}.xml', how.update))
     return statuses
 
 
@@ -216,10 +229,10 @@ def run_lock(report, target, runtime, app=None):
         if lock is None:         # the code names no feature and the running app no page: nothing is recorded, said so
             return {'results': [], 'limitations': ['the program has no feature to lock']}
         progress.begin('record')
-        _run_specs(live, lock, base, recorded, 'record', update=True)
+        _run_specs(live, lock, base, recorded, LockPass('record', update=True))
         _keep(lock, recorded)
         progress.begin('verify')
-        results = _results(report, _run_specs(live, lock, base, recorded, 'verify', update=False))
+        results = _results(report, _run_specs(live, lock, base, recorded, LockPass('verify')))
         progress.end('verify', detail={'screens': len(results), 'passed': sum(r['status'] == 'passed' for r in results)})
     finally:
         if not app: live.stop()
@@ -312,7 +325,7 @@ def _walk(live, base, folder, kind, recorder):
     argv = ['playwright', 'test', '--config', 'lock.config.ts', '--project=lock', '--no-deps', '--workers=1',
             '--trace=retain-on-failure', '--output', str(folder / f'results{mark}'), *files]
     code, out, err = live.sandbox.run(argv, timeout=3600, network=True, cwd='.eaos-lock', env={
-        **live.extra(), 'BASE_URL': base, 'EAOS_LOCK_REPORT': str(folder / f'report{mark}.json'), 'EAOS_LOCK_KIND': kind or '',
+        **live.run_env(), 'BASE_URL': base, 'EAOS_LOCK_REPORT': str(folder / f'report{mark}.json'), 'EAOS_LOCK_KIND': kind or '',
         'EAOS_LOCK_STREAM': str(folder / STREAM), **({} if kind else {'EAOS_RRWEB': str(recorder), 'EAOS_JOURNEYS': str(folder / 'rrweb')})})
     live.log.append({'argv': argv, 'exit': code, 'tail': (out + err)[-3000:]})
 
@@ -334,10 +347,10 @@ def _pages_of(plan):
             for s in plan.get('specs') or [] if s.get('tool') == 'playwright' and s.get('path')}
 
 
-def verify_lock(report, target, runtime, name='results-after', declared=(), known=()):
-    """The lock recorded on the original, run once on `target` (a candidate EAOS committed on the granted commit):
-    behavior-lock/<name>.json, and {specs, passed, failed}. Needs what the original recorded, screens or interfaces of
-    the code. No recording is ever updated here; a screen in `declared` may look different (spec_statuses)."""
+def verify_lock(report, target, runtime, how=LockPass('results-after')):
+    """The lock recorded on the original, run once on `target` (a candidate EAOS committed on the granted commit) as
+    pass `how` (LockPass): behavior-lock/<its name>.json, and {specs, passed, failed}. Needs what the original recorded,
+    screens or interfaces of the code. No recording is ever updated here; a screen `how.declared` may look different."""
     from ..app.run import LiveRun
     report, runtime = Path(report), Path(runtime)
     recorded = runtime / 'behavior-lock'
@@ -349,11 +362,11 @@ def verify_lock(report, target, runtime, name='results-after', declared=(), know
     try:
         base = _start(live, lock)
         lend_kinds(report, lock, lock / '.auth/user.json')
-        results = _results(report, _run_specs(live, lock, base, recorded, name, update=False, declared=declared, known=known))
+        results = _results(report, _run_specs(live, lock, base, recorded, how._replace(update=False)))
     finally:
         live.stop()
-        live.record(f'behavior-lock/run-log-{name}.json')
-    _write(runtime, f'{name}.json', live, results)
+        live.record(f'behavior-lock/run-log-{how.name}.json')
+    _write(runtime, f'{how.name}.json', live, results)
     return _judged(_passed_before(runtime, results), results)
 
 

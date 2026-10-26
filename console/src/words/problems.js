@@ -84,7 +84,6 @@ export default {
   'pd.component': ['المكوّن', 'Component'],
   'pd.kind': ['النوع', 'Kind'],
   'pd.area': ['المجال', 'Area'],
-  'pd.map': ['اعرضها على الخريطة', 'Show it on the map'],
   'pd.select': ['اختر هذه المشكلة', 'Select this problem'],
   'pd.none': ['اختر مشكلة من القائمة لتراها هنا.', 'Pick a problem in the list to see it here.'],
   'pd.notfound': ['{id} ليست في هذا الفحص.', '{id} is not in this check.'],

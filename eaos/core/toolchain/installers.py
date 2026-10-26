@@ -27,7 +27,7 @@ def install_browsers(echo=print):
     Linux computer may lack are named in the error, and `playwright install-deps` needs an administrator)."""
     if not browser_missing(): return
     playwright = home() / 'bin/playwright'
-    done = subprocess.run([str(playwright), 'install', 'chromium', 'chromium-headless-shell'], capture_output=True, text=True,
+    done = subprocess.run([str(playwright), 'install', 'chromium', 'chromium-headless-shell'], capture_output=True, text=True,  # nosemgrep: python.lang.security.audit.dangerous-subprocess-use-audit -- a list argv of a tool EAOS installs at its pin, no shell
                           env={**tool_env(), 'PLAYWRIGHT_BROWSERS_PATH': str(browsers())}, timeout=1800)
     if done.returncode: raise RuntimeError('the browser did not install: ' + (done.stdout + done.stderr)[-400:])
     echo(f"install chromium for playwright in {browsers()}")
@@ -126,12 +126,12 @@ def _pip_one(tool):
     wanted = [f"{tool['install']['package']}=={tool['version']}", *tool['install'].get('with', [])]
     runner = uv()
     if not (venv / 'bin/python').exists():
-        if runner: subprocess.run([runner, 'venv', '--quiet', '--no-cache', '--python', sys.executable, str(venv)], check=True, env=env)
-        else: subprocess.run([sys.executable, '-m', 'venv', str(venv)], check=True, env=env)
+        if runner: subprocess.run([runner, 'venv', '--quiet', '--no-cache', '--python', sys.executable, str(venv)], check=True, env=env)  # nosemgrep: python.lang.security.audit.dangerous-subprocess-use-audit -- uv at its pin making the tools venv, a list argv, no shell
+        else: subprocess.run([sys.executable, '-m', 'venv', str(venv)], check=True, env=env)  # nosemgrep: python.lang.security.audit.dangerous-subprocess-use-audit -- this Python making the tools venv, a list argv, no shell
     if runner and not (venv / 'bin/pip').exists():
-        subprocess.run([runner, 'pip', 'install', '--quiet', '--no-cache', '--python', str(venv / 'bin/python'), *wanted], check=True, env=env)
+        subprocess.run([runner, 'pip', 'install', '--quiet', '--no-cache', '--python', str(venv / 'bin/python'), *wanted], check=True, env=env)  # nosemgrep: python.lang.security.audit.dangerous-subprocess-use-audit -- the pinned requirements of the registry, a list argv, no shell
     else:
-        subprocess.run([str(venv / 'bin/pip'), 'install', '-q', '--no-cache-dir', *wanted], check=True, env=env)
+        subprocess.run([str(venv / 'bin/pip'), 'install', '-q', '--no-cache-dir', *wanted], check=True, env=env)  # nosemgrep: python.lang.security.audit.dangerous-subprocess-use-audit -- the pinned requirements of the registry, a list argv, no shell
     _link(venv / 'bin' / tool['binary'], tool['binary'])
 
 
@@ -141,7 +141,7 @@ def _npm(tool):
     if not npm: raise RuntimeError(f"{tool['name']}: npm is not installed; install Node.js 18 or newer, then run this again")
     env = {**tool_env(), **tool['install'].get('env', {})}
     with tempfile.TemporaryDirectory(prefix='eaos-npm-cache-') as cache:   # npm's own kept 1.5 GB of the tools
-        subprocess.run([npm, 'install', '--prefix', str(prefix), '--cache', cache, '--no-audit', '--no-fund', '--loglevel=error',
+        subprocess.run([npm, 'install', '--prefix', str(prefix), '--cache', cache, '--no-audit', '--no-fund', '--loglevel=error',  # nosemgrep: python.lang.security.audit.dangerous-subprocess-use-audit -- npm installing the registry's pinned packages, a list argv, no shell
                         f"{tool['install']['package']}@{tool['version']}", *tool['install'].get('with', [])], check=True, env=env)
     if tool['install'].get('library'): return
     _link(prefix / 'node_modules/.bin' / tool['binary'], tool['binary'])

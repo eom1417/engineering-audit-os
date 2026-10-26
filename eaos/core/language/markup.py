@@ -6,7 +6,7 @@ def esc(value):
     return html.escape(str(value), quote=True)
 
 
-def svg_text(x, y, text, cls, side='left', rtl=False, attrs=''):
+def svg_text(x, y, text, cls, side='left', rtl=False, attrs=''):  # limits: parameters -- an SVG text element's position, words, class and direction
     """SVG text anchored at x on its left or right side; Arabic runs right to left so its words keep their order."""
     anchor = ('end' if side == 'left' else 'start') if rtl else ('start' if side == 'left' else 'end')
     return (f'<text x="{x:.1f}" y="{y:.1f}" text-anchor="{anchor}" direction="{"rtl" if rtl else "ltr"}" class="{cls}"{attrs}>'

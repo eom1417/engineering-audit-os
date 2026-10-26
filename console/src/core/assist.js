@@ -37,10 +37,6 @@ const ROUTES = [
   }],
   [/^\/activity\/run\/([^/]+)$/, x => { const id = decodeURIComponent(x[1]); const r = live.runs.find(y => y.id === id); return { kind: 'run', id, label: id + (r ? ' ' + L(r.label) : '') }; }],
   [/^\/project\/branches\/(.+)$/, x => { const n = decodeURIComponent(x[1]); return { kind: 'branch', id: n, label: n }; }],
-  [/^\/understand\/(components|functions|gaps|paths|data|screens|library|history)\/(.+)$/, x => {
-    if (x[2] === 'all' || x[2] === 'compare') return null;
-    const id = decodeURIComponent(x[2]); return { kind: 'thing', id: id.split('#').pop(), label: id };
-  }],
   [/^\/problems\/plan\/([^/]+)$/, x => (x[1] === 'waves' ? null : { kind: 'thing', id: x[1], label: x[1] })],
   [/^\/waiting\/(.+)$/, x => (['sign-in', 'questions', 'decided'].includes(x[1]) ? null : waitingCtx(decodeURIComponent(x[1])))],
 ];
@@ -142,6 +138,7 @@ function draw() {
   const back = hold(document.getElementById('assist'));
   const sb = document.getElementById('assist-body');
   const keepBottom = sb ? sb.scrollHeight - sb.scrollTop - sb.clientHeight < 40 : true;
+  // nosemgrep: javascript.browser.security.insecure-document-method, javascript.browser.security.insecure-innerhtml -- the panel escapes every message (core/markdown.js)
   host.innerHTML = `${fabHTML()}
     ${open ? `${desk() ? '' : '<div class="assist-scrim" data-act="assist-close"></div>'}
     <aside class="assist" id="assist" tabindex="-1" role="dialog" aria-modal="${desk() ? 'false' : 'true'}" aria-labelledby="assist-title">${panelHTML()}</aside>` : ''}`;

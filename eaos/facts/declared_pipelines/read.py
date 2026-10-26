@@ -2,6 +2,7 @@
 function touches. Shared by the readers of eaos/facts/declared_pipelines/."""
 import ast
 import re
+from typing import NamedTuple
 
 from .. import call_name
 
@@ -59,7 +60,7 @@ def site(path, line, text=None):
 class Found:
     """One pipeline: its stages, edges, routers and the rest, each with its evidence."""
 
-    def __init__(self, key, title, kind, entry, evidence=(), role=None, confidence=None):
+    def __init__(self, key, title, kind, entry, evidence=(), role=None, confidence=None):  # limits: parameters -- a record's constructor: one pipeline's fields, the optional ones keywords
         self.id, self.title, self.kind = slug(key), title, kind
         self.role = role or ('tooling' if kind in TOOLING else 'product')
         self.confidence = confidence if confidence is not None else CONFIDENCE.get(kind, 0.7)
@@ -78,7 +79,7 @@ class Found:
             self.order.append(key)
         return key
 
-    def edge(self, a, b, matched_by, where, names=(), shape=None, kind='data', condition=None):
+    def edge(self, a, b, matched_by, where, names=(), shape=None, kind='data', condition=None):  # limits: parameters -- a record's constructor: one edge's fields, the optional ones keywords
         if a == b or a not in self.stages or b not in self.stages: return None
         row = self.edges.get((a, b))
         if row is None:
@@ -238,23 +239,30 @@ def _unparse(node, limit=80):
     except Exception: return ''
 
 
+class _Body(NamedTuple):
+    """What an entry function's body shows: the libraries it calls, its side effects and its marks."""
+    tools: list
+    effects: list
+    marks: set
+
+
 def describe(py, rel, node, found_stage):
     """Fill a stage's tools, side effects and marks from its entry function's body (one level, no guessing)."""
     if node is None: return
     if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)): _signature(node, found_stage)
     imports = py.imports.get(rel, {})
-    tools, effects, marks = [], [], set(found_stage['marks'])
+    body = _Body([], [], set(found_stage['marks']))
     for sub in ast.walk(node):
         if isinstance(sub, ast.Call):
             root = _root(sub.func)
-            if root in imports: _outside_tool(py, imports, root, sub, tools, effects, marks)
-            effects += _call_effects(sub, root, marks)
+            if root in imports: _outside_tool(py, imports, root, sub, body)
+            body.effects.extend(_call_effects(sub, root, body.marks))
             if _has_timeout(sub): found_stage['timeout'] = True
         elif isinstance(sub, ast.Global):
-            effects += [('global', name, sub.lineno) for name in sub.names]
+            body.effects.extend(('global', name, sub.lineno) for name in sub.names)
         elif _names_model(sub):
-            marks.add('ai')
-    _fill(found_stage, rel, tools, effects, marks)
+            body.marks.add('ai')
+    _fill(found_stage, rel, body)
 
 
 def _has_timeout(call):
@@ -274,16 +282,16 @@ def _signature(node, found_stage):
     found_stage['shared_context'] = len(params) == 1 and params[0].arg in CONTEXT_PARAMS
 
 
-def _outside_tool(py, imports, root, sub, tools, effects, marks):
+def _outside_tool(py, imports, root, sub, body):
     """A call into a library from outside the project: a tool of the stage, slow or risky by what it is."""
     module = imports[root][0] or ''
     top = (module or root).split('.')[0]
     if not top or _in_project(py, module, top): return
-    if top not in tools: tools.append(top)
-    if top in NETWORK or root in NETWORK: marks.update(('external', 'slow'))
+    if top not in body.tools: body.tools.append(top)
+    if top in NETWORK or root in NETWORK: body.marks.update(('external', 'slow'))
     if top in ('subprocess',):
-        marks.update(('slow', 'risky'))
-        effects.append(('process', top, sub.lineno))
+        body.marks.update(('slow', 'risky'))
+        body.effects.append(('process', top, sub.lineno))
 
 
 def _in_project(py, module, top):
@@ -313,7 +321,8 @@ def _written_file(sub, callee):
     return None
 
 
-def _fill(found_stage, rel, tools, effects, marks):
+def _fill(found_stage, rel, body):
+    tools, effects, marks = body
     for kind, name, line in effects[:12]:
         found_stage['side_effects'].append({'kind': kind, 'name': name, 'path': rel, 'line': line, 'text': None})
     found_stage['tools'] = sorted(set(found_stage['tools']) | set(tools))[:12]

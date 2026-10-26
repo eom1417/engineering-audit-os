@@ -42,7 +42,7 @@ def parse(text):
 
 def stream(argv, conversation, env=None):
     """Run `claude` on the conversation, copying its stream to stderr as it comes; return the stream's result event."""
-    process = subprocess.Popen(argv, stdin=subprocess.PIPE, stdout=subprocess.PIPE, text=True, env=env)
+    process = subprocess.Popen(argv, stdin=subprocess.PIPE, stdout=subprocess.PIPE, text=True, env=env)  # nosemgrep: python.lang.security.audit.dangerous-subprocess-use-audit -- the assistant's CLI as its adapter builds it, a list argv, no shell
     with process.stdin: process.stdin.write(conversation)
     result = {}
     for line in process.stdout:

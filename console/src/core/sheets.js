@@ -18,7 +18,6 @@ let pushedAt = '';   // the address the opening pushed; a sheet that changed the
 /** Registers a sheet: {kind: drawer | dialog | menu | search, confirm, full, needs: [sections], render(arg, query,
  *  local) -> {title, sub, top, body, foot, head: false}, after(el, arg, local)}. It draws once its sections are read. */
 export function sheet(name, def) { sheets[name] = def; }
-export const hasSheet = name => !!sheets[name];
 export const sheetOpen = () => !!open;
 /** The open sheet's own state (see above); {} when none is open. */
 export const local = () => (open ? open.local : {});
@@ -86,6 +85,7 @@ function create(key, name, arg, def) {
   el.setAttribute('aria-labelledby', 'sheet-title');
   el.tabIndex = -1;
   open = { key, name, arg, def, el, scrim, ret: document.activeElement, local: {} };
+  // nosemgrep: javascript.browser.security.insecure-document-method, javascript.browser.security.insecure-innerhtml -- each sheet's render escapes every value it draws (esc, rich, code: core/format.js)
   el.innerHTML = inner(def, arg, open.local);
   host.append(scrim, el);
   document.documentElement.style.overflow = 'hidden';
@@ -104,6 +104,7 @@ export function rerenderSheet() {
   const back = hold(st.el);
   const body = st.el.querySelector('.sheet__body');
   const top = body ? body.scrollTop : 0;
+  // nosemgrep: javascript.browser.security.insecure-document-method, javascript.browser.security.insecure-innerhtml -- each sheet's render escapes every value it draws (esc, rich, code: core/format.js)
   st.el.innerHTML = inner(st.def, st.arg, st.local);
   const nb = st.el.querySelector('.sheet__body'); if (nb) nb.scrollTop = top;
   if (st.def.after) st.def.after(st.el, st.arg, st.local);

@@ -102,9 +102,9 @@ def _pip_install(*packages):
     """Install into EAOS's own environment: with pip, or with uv (the installer's environments have no pip)."""
     import subprocess
     uv = shutil.which('uv') or next((str(p) for p in [home() / 'app/uv/uv'] if p.exists()), None)
-    has_pip = subprocess.run([sys.executable, '-m', 'pip', '--version'], capture_output=True).returncode == 0
+    has_pip = subprocess.run([sys.executable, '-m', 'pip', '--version'], capture_output=True).returncode == 0  # nosemgrep: python.lang.security.audit.dangerous-subprocess-use-audit -- this Python asked for its pip version, fixed arguments, no shell
     argv = ([sys.executable, '-m', 'pip', 'install', '--quiet'] if has_pip or not uv else [uv, 'pip', 'install', '--quiet', '--python', sys.executable])
-    subprocess.run(argv + list(packages), check=True)
+    subprocess.run(argv + list(packages), check=True)  # nosemgrep: python.lang.security.audit.dangerous-subprocess-use-audit -- pip installing EAOS's own named packages after the person's yes, a list argv, no shell
 
 
 def doctor(args):

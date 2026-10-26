@@ -130,11 +130,11 @@ def ai_inputs(assistant):
     return {'use_assistant': False} if assistant == 'none' else {'use_assistant': True, 'assistant': assistant}
 
 
-def check_inputs(paths=None, mode=None, assistant=None, sign_in=None, published=None, run_app=None, again_from=None):
-    """A new check (always fresh: a check asked for is a new one), of these paths, in this mode, with this AI, signing in
-    to the app this way (kept), reading the published address named for this check, the app run when agreed (kept);
-    `again_from`: the last check goes on from that stage instead (the Studio's "Redo from here")."""
-    chosen = {'paths': list(paths or []), 'mode': mode, 'sign_in': sign_in, 'published': published, 'run_app': run_app, 'again_from': again_from}
+def check_inputs(paths=None, assistant=None, again_from=None, **chosen):
+    """A new check (always fresh: a check asked for is a new one), of these paths, with this AI; `again_from`: the last
+    check goes on from that stage instead (the Studio's "Redo from here"). `chosen`, each kept when given: mode, sign_in
+    (how the app is signed in to, kept), published (the address named for this check), run_app (when agreed, kept)."""
+    chosen = {'paths': list(paths or []), **chosen, 'again_from': again_from}
     return {'fresh': not again_from, **{key: value for key, value in chosen.items() if value}, **ai_inputs(assistant)}
 
 
@@ -326,6 +326,19 @@ def branch_change(project, operation, preview, confirm, confirm_unmerged=None):
 
 def restore(project, recovery):
     return _control(project).restore({'recovery': recovery})
+
+
+def fetch(project, remote=None):
+    """The remote's branches brought up to date (git fetch --prune of one remote), as the Studio's Refresh does."""
+    return _control(project).fetch({'remote': remote})
+
+
+def propose_resolution(project, source, target, assistant=None):
+    """A merge's conflict handed to the person's assistant as a review run that proposes how to resolve it and changes
+    nothing, as the Studio's Propose a resolution does; the host woken."""
+    done = _control(project).propose_resolution({'source': source, 'target': target, 'assistant': assistant})
+    wake(core(project).project)
+    return done
 
 
 # ---------------------------------------------------------------- history, comparison, use, freshness

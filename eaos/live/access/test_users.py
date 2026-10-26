@@ -9,6 +9,7 @@ the app is never installed or started again for it.
 import json
 import re
 import time
+from typing import NamedTuple
 
 from ..app.assist import _excerpt
 from ..app.run import kinds_folder
@@ -113,10 +114,10 @@ def _reached(row, nowhere):
     from urllib.parse import urlsplit
     from ..app.setup import SIGN_IN_PAGE
     path, landed = row.get('path') or '/', urlsplit(row.get('url') or '').path.rstrip('/') or '/'
-    if opened(path, row.get('url'), row.get('status'), row.get('password'), row.get('text'), nowhere): return True
+    if opened(row, nowhere): return True
     return 200 <= (row.get('status') or 0) < 400 and landed.startswith(path.rstrip('/') + '/') and not row.get('password') \
         and not SIGN_IN_PAGE.search(landed) \
-        and opened(landed, row.get('url'), row.get('status'), 0, row.get('text'), nowhere)
+        and opened({**row, 'password': 0}, nowhere, landed)
 
 
 def _sources(root, pages, limit=12000):
@@ -136,30 +137,41 @@ def _opens(live, base, session, pages):
     from ..app.setup import probe
     page = probe(live, base, session, None, pages[:3] + [NOWHERE]) if session.is_file() else {}
     nowhere, rows = nowhere_of(page), (page.get('others') or [])[:-1] if pages else [page]
-    return any(opened(row.get('path') or '/', row.get('url'), row.get('status'), row.get('password'), row.get('text'), nowhere)
+    return any(opened(row, nowhere)
                for row in rows if row)
 
 
-def make(project, live, base, state, report, provider, hand=False):
+def make(project, trial, provider):
     """The assistant's seed script, run on the running app and told what is still lacking, round by round (ROUNDS at
     most): a round that ends with something lacking goes back to the node that owns the views and the way in, the
     reading of the code (eaos/live/access/roles.py find), with what lacks, and the next round goes on with its answer. What is still
-    lacking ('' when every session works). `hand`: the person signed in themselves (BY_HAND)."""
+    lacking ('' when every session works). `trial`: what the script is tried on (Trial)."""
     from .roles import find
-    wrong = lacking(live, base, state, report, hand)
+    wrong = lacking(*trial)
     for again in range(ROUNDS):
         if not wrong: break
         if again:
-            try: find(project, report, provider, wrong)
+            try: find(project, trial.report, provider, wrong)
             except ValueError: pass                # an answer with no real line: the views stay as they were
-        wrong = _round(project, live, base, state, report, provider, hand, wrong)
+        wrong = _round(project, trial, provider, wrong)
     return wrong
 
 
-def _round(project, live, base, state, report, provider, hand, wrong):
+class Trial(NamedTuple):
+    """What a seed script is tried on, lacking()'s arguments: the running app, its address, the session file, the
+    report, and whether the person signed in themselves."""
+    live: object
+    base: str
+    state: object
+    report: object
+    hand: bool
+
+
+def _round(project, trial, provider, wrong):
     """One round of make: the assistant told what lacks until nothing does, SECONDS pass or the same lack comes twice."""
+    live, report = trial.live, trial.report
     end = time.monotonic() + SECONDS
-    messages = _told(project, live, report, hand)
+    messages = _told(project, live, report, trial.hand)
     tried = []
     while wrong and time.monotonic() < end and tried[-2:] != [wrong, wrong]:    # twice the same lack: nothing more comes
         tried.append(wrong)
@@ -169,7 +181,7 @@ def _round(project, live, base, state, report, provider, hand, wrong):
         refused = add(report, project, answer.get('views') or []) + prove(report, project, answer.get('unreachable') or [])
         script = answer.get('seed_script') or _today(live)        # a verdict alone keeps the script
         messages.append({'role': 'assistant', 'content': json.dumps({k: answer.get(k) for k in ('seed_script', 'views', 'unreachable')})})
-        wrong = ('these were not kept: ' + '; '.join(refused) + '. ' if refused else '') + _try(live, base, state, report, script, hand)
+        wrong = ('these were not kept: ' + '; '.join(refused) + '. ' if refused else '') + _try(trial, script)
     return wrong
 
 
@@ -189,10 +201,11 @@ def _today(live):
     return seed.read_text(encoding='utf-8') if seed.is_file() else ''
 
 
-def _try(live, base, state, report, script, hand):
+def _try(trial, script):
     """Run `script` as the seed on the running app (on a copy of the person's session when they signed in themselves);
     what is still lacking after it."""
     from .sign_in import seeding
+    live, base, state = trial.live, trial.base, trial.state
     refused = safe({'seed_script': script}) if script else ['no seed_script was given']
     if refused: return 'nothing ran: ' + '; '.join(refused)
     live.profile['seed'] = apply(live.runtime, {'seed_script': script})['seed']
@@ -201,4 +214,4 @@ def _try(live, base, state, report, script, hand):
     except RuntimeError as problem: return str(problem)[-2000:]
     finally:
         if seeded != state: seeded.unlink(missing_ok=True)
-    return lacking(live, base, state, report, hand)
+    return lacking(*trial)

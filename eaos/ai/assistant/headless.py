@@ -1,4 +1,4 @@
-"""The person's own assistant, started headless for a run (docs/adoption/ns46-t9-command-centre.md).
+"""The person's own assistant, started headless for a run.
 
 An adapter knows one assistant: whether it is installed and logged in, the command that starts it on a prompt (and
 resumes its session with the person's answer) with the EAOS MCP server and nothing else that writes, and how to read
@@ -61,7 +61,7 @@ class Adapter:
         self.command = list(command or [self.id_command])
 
     def _run(self, *arguments, timeout=15):
-        try: return subprocess.run(self.command + list(arguments), capture_output=True, text=True, timeout=timeout)
+        try: return subprocess.run(self.command + list(arguments), capture_output=True, text=True, timeout=timeout)  # nosemgrep: python.lang.security.audit.dangerous-subprocess-use-audit -- the assistant's CLI as its adapter builds it, a list argv, no shell
         except (OSError, subprocess.SubprocessError): return None
 
     def detect(self, fresh=False):
@@ -346,7 +346,7 @@ def _json_object(text):
     return value if isinstance(value, dict) else None
 
 
-def ask(adapter, prompt, schema, folder, cancel=None, started=None, images=()):
+def ask(adapter, prompt, schema, folder, cancel=None, started=None, images=()):  # limits: parameters -- one assistant call: the question and its answer's shape, its folder, and the run's stop and pid hooks
     """Ask the assistant one question and return {answer, model, assistant, seconds, cost_usd}.
 
     The prompt goes on standard input, so its size never meets the argument limit; the process runs in its own group in
@@ -360,7 +360,7 @@ def ask(adapter, prompt, schema, folder, cancel=None, started=None, images=()):
     folder.mkdir(parents=True, exist_ok=True)
     stream, began = folder / 'stream.jsonl', time.monotonic()
     with open(stream, 'wb') as out, open(folder / 'stderr.log', 'wb') as err:
-        process = subprocess.Popen(adapter.ask_argv(schema, folder, images), cwd=folder, stdin=subprocess.PIPE, stdout=out, stderr=err,
+        process = subprocess.Popen(adapter.ask_argv(schema, folder, images), cwd=folder, stdin=subprocess.PIPE, stdout=out, stderr=err,  # nosemgrep: python.lang.security.audit.dangerous-subprocess-use-audit -- the assistant's CLI as its adapter builds it, a list argv, no shell
                                    start_new_session=True)
         if started: started(process.pid)
         try:

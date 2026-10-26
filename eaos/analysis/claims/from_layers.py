@@ -4,7 +4,7 @@ boundary it breaks and the reference's fix, and the questions the layers could n
 A finding of a rule read from the code is CONFIRMED; one that reads the code's intent (whose row it is, whether a rule is
 only in the browser) is LIKELY, for the assistant's triage to judge; a live finding carries the request that proved it.
 A chain of files from browser code to server code that only dependency-cruiser followed (the layer rules it is given,
-eaos/engines/dependency_cruiser.py) is a finding of its own.
+eaos/engines/code/dependency_cruiser.py) is a finding of its own.
 """
 from ..layers.catalog import fix, sentence
 

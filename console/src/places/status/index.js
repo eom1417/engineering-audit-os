@@ -3,7 +3,7 @@
 import {
   t, tn, L, num, esc, icon, code, sev, href, band, fmtWhen, exactTime, screen, sheet, liveNow, freshness, live, model, data, contract, prefs, derive, has,
 } from 'eaos';
-import { buildStep } from '../understand-kit/kit.js';
+import { buildStep } from '../kit/kit.js';
 
 const { SEV } = model;
 const NEEDS = ['meta', 'head', 'health', 'cards', 'decisions', 'history', 'plans'];

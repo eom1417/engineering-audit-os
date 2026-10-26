@@ -117,7 +117,7 @@ class Terminal(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp, mock.patch.object(toolchain, 'prepare') as prepare, \
                 mock.patch.object(toolchain, 'ready', return_value=False), \
                 mock.patch.object(launch, 'start', return_value=({'port': 9, 'token': 'k'}, True)), \
-                mock.patch.object(launch, '_open') as opened, mock.patch.object(guided, 'say') as said:
+                mock.patch.object(launch, '_open') as opened, mock.patch.object(guided.commands, 'say') as said:
             guided.watch({**self.state, 'project': tmp}, Namespace(no_watch=False))
         prepare.assert_called_once_with(tmp)
         opened.assert_called_once_with('http://127.0.0.1:9/#/tools?token=k', True)

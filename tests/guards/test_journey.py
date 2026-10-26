@@ -53,9 +53,9 @@ class Journey(unittest.TestCase):
         for patch in (mock.patch.dict(os.environ, {'EAOS_HOME': str(Path(self.tmp.name) / 'home'), 'EAOS_ASSISTANT': 'none'}),
                       mock.patch.dict(runners.RUNNERS, engines=no_engines, architecture=no_engines),
                       mock.patch.object(guided, 'tools_for_check', return_value={}),
-                      mock.patch('eaos.journeys.fix.waves.original_checks', return_value={}),
-                      mock.patch('eaos.journeys.fix.waves.gates', side_effect=project_checks),
-                      mock.patch('eaos.journeys.fix.waves._against_control', return_value=False)):   # the base passes: nothing set aside
+                      mock.patch('eaos.journeys.fix.waves.batch.original_checks', return_value={}),
+                      mock.patch('eaos.journeys.fix.waves.batch.gates', side_effect=project_checks),
+                      mock.patch('eaos.journeys.fix.waves.batch._against_control', return_value=False)):   # the base passes: nothing set aside
             patch.start()
             self.addCleanup(patch.stop)
         os.environ.pop('EAOS_DETECTOR_VERDICTS', None)      # the product's own detector verdicts, as a person gets them
@@ -130,13 +130,9 @@ class Journey(unittest.TestCase):
         self.assertTrue((self.project / 'app/old_report.py').is_file())
         return ledger.load(project_state.load(self.project))['totals']
 
-    def test_check_change_check_fix_accept(self):
-        totals = self.journey()
-        self.assertEqual(totals['done'], 2, totals)
-
-    def test_progress_counts_only_the_fixes_merged(self):
-        totals = self.journey()
-        self.assertEqual((totals['closed'], totals['total']), (2, 3), totals)
+    def test_check_change_check_fix_accept_and_the_progress_counts_only_the_fixes_merged(self):
+        totals = self.journey()          # once: the whole journey is the suite's slowest proof
+        self.assertEqual((totals['done'], totals['closed'], totals['total']), (2, 2, 3), totals)
 
 
 if __name__ == '__main__':

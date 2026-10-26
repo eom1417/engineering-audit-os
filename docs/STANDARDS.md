@@ -11,10 +11,11 @@ added moves the law out of review). Numbers only ever get stricter: a change tha
 |---|---|---|---|
 | Module size | ≤ 400 lines, no exception in Python (M3, 0.0.75); the Studio's JavaScript under it since M4.6 (0.0.76), no exception | same, no exception | `tools/code_limits.py` (`tests/guards/test_code_limits.py`) |
 | Function complexity | ≤ 10, no exception in Python (M3, 0.0.75), one count for the laws and the hotspots (`core/contracts/code_laws.py` `complexity`, a nested function counted alone); the Studio's JavaScript since M4.6, no exception; a split of its code proved by `console/tools/same.cjs` (every screen and sheet drawn the same before and after) | same, no exception | same |
-| Function length | ≤ 50 lines, today's 5 longer ones listed | same | same |
-| Function parameters | ≤ 5 (self, cls aside), today's 129 listed | same | same |
+| Function length | ≤ 50 lines, no exception | same | same |
+| Function parameters | ≤ 5 (self, cls aside), none listed (M8.4): one whose parameters cannot be grouped (a tool mirroring its command's options, a record's constructor) says why on its `def` line, `# limits: parameters -- <why>`, as a justified pyflakes or Semgrep line does | same | same |
 | One source of truth | no function written twice; jscpd clones not more than recorded | no duplicated block | `test_code_limits`, `jscpd` |
 | No dead code | no unused import or variable (pyflakes); EAOS's own dead-code detector (the Python) and `knip` (the Studio) not more than recorded | no unused function, module or JS export | `test_code_limits`, `tools/quality.sh` (not `enola`: its count moves with the documents' words) |
+| Repository craft | no crowded folder, vague name, family of files, document naming a path that is gone, machine detail in a published file, or assistant's context too heavy or said twice (M8.8, 0.0.80; the limits in `eaos/rules/repository-craft.json`, the same rules EAOS reads any project with) | same | `tools/quality.sh` |
 | Layers | each layer imports only the layers under it, directly or not (`docs/ARCHITECTURE.md` §2; one layers contract in `pyproject.toml`, no exception) | same (reached by M3.1) | `import-linter` |
 
 What exceeds a limit today is listed in `tools/code_limits.json` and may only shrink: after shrinking one, run

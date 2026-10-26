@@ -192,7 +192,7 @@ class ApprovalResultTests(Workspace):
         found = {'approvals/test_cli.py': ('passed', '')}
         with mock.patch.object(behavior_lock, '_pass') as playwright, \
                 mock.patch.object(behavior_lock, '_approvals', return_value=found) as approvals:
-            statuses = behavior_lock._run_specs(mock.Mock(), lock, None, Path(self.tmp), 'record', update=True)
+            statuses = behavior_lock._run_specs(mock.Mock(), lock, None, Path(self.tmp), behavior_lock.LockPass('record', update=True))
         self.assertEqual(statuses, found)
         playwright.assert_not_called()
         self.assertEqual(approvals.call_args.args[2:], (Path(self.tmp) / 'approvals-record.xml', True))
@@ -243,8 +243,8 @@ class KindTests(Workspace):
             failed = 'failed' if how[1] == 'admin' and 'verify' in output.name else 'passed'
             return playwright_report(*[(Path(f).name, [(failed, '')]) for f in how[2] or ['playwright/home.spec.ts', 'playwright/admin.spec.ts']])
         with mock.patch.object(behavior_lock, '_pass', side_effect=one_pass):
-            recorded = behavior_lock._results(report, behavior_lock._run_specs(None, lock, None, Path(self.tmp), 'record', True))
-            after = behavior_lock._results(report, behavior_lock._run_specs(None, lock, None, Path(self.tmp), 'verify', False))
+            recorded = behavior_lock._results(report, behavior_lock._run_specs(None, lock, None, Path(self.tmp), behavior_lock.LockPass('record', True)))
+            after = behavior_lock._results(report, behavior_lock._run_specs(None, lock, None, Path(self.tmp), behavior_lock.LockPass('verify')))
         self.assertEqual(ran[:2], [('playwright-record.json', (True, None, [])),
                                    ('playwright-record@admin.json', (True, 'admin', ['playwright/admin.spec.ts']))])
         self.assertIn({'path': 'playwright/admin.spec.ts', 'kind': 'admin', 'status': 'passed'}, recorded)
@@ -294,7 +294,7 @@ class ApprovalRunTests(Workspace):
         from eaos.core import toolchain
         from eaos.live.isolation.sandbox import Sandbox
         live = mock.Mock(log=[], sandbox=Sandbox(project, Path(self.tmp) / 'authorization.json', Path(self.tmp) / 'sandbox', 'S05'))
-        live.extra.return_value = {'PATH': f"{toolchain.home() / 'bin'}{os.pathsep}{os.environ['PATH']}"}
+        live.run_env.return_value = {'PATH': f"{toolchain.home() / 'bin'}{os.pathsep}{os.environ['PATH']}"}
         return live
 
     def test_the_same_code_in_another_copy_matches_its_recording(self):
@@ -308,7 +308,7 @@ class ApprovalRunTests(Workspace):
         recorded, first = Path(self.tmp) / 'runtime/behavior-lock', self.live(project)
         try:
             lock = behavior_lock._prepare(first, out)
-            behavior_lock._run_specs(first, lock, None, recorded, 'record', update=True)
+            behavior_lock._run_specs(first, lock, None, recorded, behavior_lock.LockPass('record', update=True))
             behavior_lock._keep(lock, recorded)
         finally:
             first.sandbox.dispose()
@@ -316,7 +316,7 @@ class ApprovalRunTests(Workspace):
                          "pkg.paths.where(root=PosixPath('<root>/pkg'), pick=<function <lambda>>)")
         second = self.another_copy(project)
         try:
-            statuses = behavior_lock._run_specs(second, behavior_lock._prepare(second, out, recorded), None, recorded, 'after', update=False)
+            statuses = behavior_lock._run_specs(second, behavior_lock._prepare(second, out, recorded), None, recorded, behavior_lock.LockPass('after'))
         finally:
             second.sandbox.dispose()
         self.assertEqual(statuses, {plan['specs'][0]['path']: ('passed', '')}, second.log)
@@ -343,7 +343,7 @@ class ApprovalRunTests(Workspace):
         try:
             lock = behavior_lock._prepare(live, out)
             with mock.patch.dict(os.environ, {'PYTHONPATH': str(shadow.parent)}):
-                record = behavior_lock._run_specs(live, lock, None, recorded, 'record', update=True)
+                record = behavior_lock._run_specs(live, lock, None, recorded, behavior_lock.LockPass('record', update=True))
             # Recorded is passed, as Playwright's pass that writes the snapshots; a module that does not import is not.
             self.assertEqual(record[spec['path']], ('passed', ''), live.log)
             self.assertEqual(record[broken['path']][0], 'failed')
@@ -352,13 +352,13 @@ class ApprovalRunTests(Workspace):
             self.assertEqual([p.name for p in (recorded / 'approved').iterdir()],
                              ['test_cli_pkg_prices_py.test_the_public_interface_is_as_it_was.approved.txt'])
             self.assertEqual(next((recorded / 'approved').iterdir()).read_text().strip(), 'pkg.prices.total(a, b=1)')
-            verify = behavior_lock._run_specs(live, lock, None, recorded, 'verify', update=False)
+            verify = behavior_lock._run_specs(live, lock, None, recorded, behavior_lock.LockPass('verify'))
             self.assertEqual(verify[spec['path']], ('passed', ''), live.log)
             self.assertEqual(verify[broken['path']][0], 'failed')
             # Another size as well: the bytecode the first runs cached is checked by size and second.
             (live.sandbox.copy / 'pkg/prices.py').write_text('def total(a, b=1, c=0):\n    return a + b + c\n')
             lock = behavior_lock._prepare(live, out, recorded)
-            changed = behavior_lock._run_specs(live, lock, None, recorded, 'after', update=False)
+            changed = behavior_lock._run_specs(live, lock, None, recorded, behavior_lock.LockPass('after'))
             self.assertEqual(changed[spec['path']][0], 'failed', live.log)
             self.assertIn('Approval Mismatch', changed[spec['path']][1])
         finally:

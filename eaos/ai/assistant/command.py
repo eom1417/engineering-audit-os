@@ -44,7 +44,7 @@ class Provider:
         with tempfile.TemporaryDirectory(prefix='eaos-adapter-') as cwd, tempfile.TemporaryFile() as out, tempfile.TemporaryFile() as err:
             try:
                 counted={'EAOS_MODEL_USAGE':str(self.config['usage']),'EAOS_MODEL_STAGE':stage or 'other'} if self.config.get('usage') else {}
-                p=subprocess.Popen(self.config['argv'],stdin=subprocess.PIPE,stdout=out,stderr=err,cwd=cwd,shell=False,start_new_session=(os.name=='posix'),
+                p=subprocess.Popen(self.config['argv'],stdin=subprocess.PIPE,stdout=out,stderr=err,cwd=cwd,shell=False,start_new_session=(os.name=='posix'),  # nosemgrep: python.lang.security.audit.dangerous-subprocess-use-audit -- the assistant command the person configured, a list argv, shell=False
                                  env={**os.environ,**counted})
                 try:
                     with p.stdin:p.stdin.write(_request(messages,small,reads,deep))

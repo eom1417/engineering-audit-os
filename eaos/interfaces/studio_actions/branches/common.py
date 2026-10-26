@@ -30,7 +30,7 @@ def git(project, *args, timeout=60, env=None):
     try:
         return subprocess.run(['git', '-C', str(project), *args], capture_output=True, text=True, timeout=timeout, env=environment)
     except subprocess.TimeoutExpired:
-        return subprocess.CompletedProcess(args, 124, '', 'git timed out')
+        return subprocess.CompletedProcess(args, 124, '', 'git timed out')  # nosemgrep: python.lang.security.audit.dangerous-subprocess-use-audit -- runs nothing: the answer of a git that timed out
 
 
 def _out(project, *args):

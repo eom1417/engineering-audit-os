@@ -165,7 +165,7 @@ class ToolTests(Home):
         guided.save(state)
         with mock.patch('eaos.facts.run.collect'), \
              mock.patch('eaos.journeys.fix.execute.new_breakage', side_effect=[[], ['src/b.js: import of a file that is gone']]), \
-             mock.patch('eaos.journeys.fix.waves.batch_acceptance', return_value={'TASK-001': 0, 'TASK-002': 0}):
+             mock.patch('eaos.journeys.fix.waves.batch.batch_acceptance', return_value={'TASK-001': 0, 'TASK-002': 0}):
             kept = agent_tools._fix_edit_job(str(self.project), {'card': 'TASK-001', 'edits': [
                 {'path': 'src/a.js', 'find': 'a = 1', 'replace': 'a = 3'}]}, lambda *_: None)
             broke = agent_tools._fix_edit_job(str(self.project), {'card': 'TASK-002', 'edits': [
@@ -181,8 +181,8 @@ class ToolTests(Home):
         self.assertEqual(agent_tools.fix_finish(str(self.project))['status'], 'cards_left')
         agent_tools.fix_skip('TASK-002', 'needs a product decision', str(self.project))
         self.assertEqual(project_state.load(self.project)['open_wave']['failed']['TASK-002'], 'skipped: needs a product decision')
-        with mock.patch('eaos.journeys.fix.waves.batch_acceptance', return_value={'TASK-001': 0}), \
-                mock.patch('eaos.journeys.fix.waves.original_checks', return_value=[]), mock.patch('eaos.journeys.fix.waves.gates', return_value=''):
+        with mock.patch('eaos.journeys.fix.waves.batch.batch_acceptance', return_value={'TASK-001': 0}), \
+                mock.patch('eaos.journeys.fix.waves.batch.original_checks', return_value=[]), mock.patch('eaos.journeys.fix.waves.batch.gates', return_value=''):
             done = batch_finish.finish_job(str(self.project), {}, lambda *_: None)
         self.assertEqual((done['branch'], done['kept']), ('eaos/wave-1', ['TASK-001']))
         self.assertIn('a = 3', guided._git(self.project, 'show', 'eaos/wave-1:src/a.js').stdout, 'the fix arrives as a branch')
@@ -225,7 +225,7 @@ class ToolTests(Home):
         with as_first, mock.patch.object(lanes, 'WAIT', 0):
             self.assertEqual(lanes.mine(project_state.load(self.project)['open_wave'], list(tasks)), ['TASK-001', 'TASK-002', 'TASK-003'])
             with mock.patch('eaos.facts.run.collect'), mock.patch('eaos.journeys.fix.execute.new_breakage', return_value=[]), \
-                    mock.patch('eaos.journeys.fix.waves.batch_acceptance', return_value={'TASK-001': 0}):
+                    mock.patch('eaos.journeys.fix.waves.batch.batch_acceptance', return_value={'TASK-001': 0}):
                 kept = agent_tools._fix_edit_job(str(self.project), {'card': 'TASK-001', 'edits': [
                     {'path': 'src/a.js', 'find': 'a = 1', 'replace': 'a = 3'}]}, lambda *_: None)
             self.assertEqual(kept['left'], ['TASK-003'], 'its own: the card left for the end comes with fix_finish')
@@ -488,31 +488,31 @@ class PersonOnly(Home):
                      ('fix', 'TASK-001', '--auto-accept', '--yes')):
             self.assertEqual(self.eaos(*argv, '--project', str(self.project), studio_run=True)[0], 3, argv)
         with mock.patch.dict(os.environ, {'EAOS_STUDIO_RUN': 'r1'}):
-            for call in (lambda: mcp_govern.branch_op('delete', 'feature', project=str(self.project)),
-                         lambda: mcp_govern.waiting_op('answer', 'q1', 'yes', person_said='yes', project=str(self.project)),
-                         lambda: mcp_govern.act_op('fix', ['TASK-001'], op='start', auto_accept=True, person_agreed=True, project=str(self.project))):
+            for call in (lambda: mcp_govern.branch_change('delete', 'feature', project=str(self.project)),
+                         lambda: mcp_govern.waiting('answer', 'q1', 'yes', person_said='yes', project=str(self.project)),
+                         lambda: mcp_govern.act('fix', ['TASK-001'], op='start', auto_accept=True, person_agreed=True, project=str(self.project))):
                 self.assertRaises(PermissionError, call)
         self.assertEqual(self.eaos('branches', 'delete', 'feature', '--project', str(self.project))[0], 4)
-        shown = mcp_govern.branch_op('delete', 'feature', project=str(self.project))
-        asked = mcp_govern.branch_op('delete', 'feature', confirm=shown['confirm'], project=str(self.project))
+        shown = mcp_govern.branch_change('delete', 'feature', project=str(self.project))
+        asked = mcp_govern.branch_change('delete', 'feature', confirm=shown['confirm'], project=str(self.project))
         self.assertEqual(asked['status'], 'needs_the_person')
         self.assertTrue(self.has('feature'), 'a confirm token proves a preview was seen, not that the person agreed')
-        mcp_govern.branch_op('delete', 'feature', confirm=shown['confirm'], person_agreed=True, project=str(self.project))
+        mcp_govern.branch_change('delete', 'feature', confirm=shown['confirm'], person_agreed=True, project=str(self.project))
         self.assertFalse(self.has('feature'))
         kept = govern.core(str(self.project)).branches.recoveries()[-1]['id']
         self.assertEqual(self.eaos('branches', 'restore', kept, '--project', str(self.project), '--yes', studio_run=True)[0], 3)
         with mock.patch.dict(os.environ, {'EAOS_STUDIO_RUN': 'r1'}):
-            self.assertRaises(PermissionError, lambda: mcp_govern.branch_op('restore', kept, person_agreed=True, project=str(self.project)))
+            self.assertRaises(PermissionError, lambda: mcp_govern.branch_change('restore', kept, person_agreed=True, project=str(self.project)))
         self.assertEqual(self.eaos('branches', 'restore', kept, '--project', str(self.project))[0], 4)
-        self.assertEqual(mcp_govern.branch_op('restore', kept, project=str(self.project))['status'], 'needs_the_person')
+        self.assertEqual(mcp_govern.branch_change('restore', kept, project=str(self.project))['status'], 'needs_the_person')
         self.assertFalse(self.has('feature'), 'a deleted branch comes back only with the person\'s yes')
-        self.assertEqual(mcp_govern.act_op('fix', ['TASK-001'], op='start', auto_accept=True, project=str(self.project))['status'], 'needs_the_person')
-        self.assertIn('no reply', mcp_govern.waiting_op('answer', 'q1', 'yes', project=str(self.project))['why'])
+        self.assertEqual(mcp_govern.act('fix', ['TASK-001'], op='start', auto_accept=True, project=str(self.project))['status'], 'needs_the_person')
+        self.assertIn('no reply', mcp_govern.waiting('answer', 'q1', 'yes', project=str(self.project))['why'])
         govern.shown('q1')
-        self.assertIn('not answered yet', mcp_govern.waiting_op('answer', 'q1', 'yes', person_said='yes', project=str(self.project))['why'])
+        self.assertIn('not answered yet', mcp_govern.waiting('answer', 'q1', 'yes', person_said='yes', project=str(self.project))['why'])
         govern._SHOWN['q1'] -= agent_tools.ANSWER_SECONDS
         with mock.patch.object(govern, 'answer', return_value={'status': 'answered'}) as answered:
-            self.assertEqual(mcp_govern.waiting_op('answer', 'q1', 'yes', person_said='نعم', project=str(self.project))['status'], 'answered')
+            self.assertEqual(mcp_govern.waiting('answer', 'q1', 'yes', person_said='نعم', project=str(self.project))['status'], 'answered')
         answered.assert_called_once()
 
     def test_the_mcp_wait_follows_a_job_of_the_project_it_names(self):

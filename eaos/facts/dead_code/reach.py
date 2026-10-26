@@ -238,13 +238,13 @@ def _bundles(source, known):
     return {found for path in known if path.endswith(BUILD_SCRIPTS) and not _is_test(path)
             for found in bundled.entries(path, source.text(path) or '', known)}
 
-def _walk(source, known, code, refs, resolved, entry_points):
-    """(seeds, reached, whole, texts, test_importers): what the product reaches from its roots, and the files read whole."""
+def _walk(source, known, texts, resolved, entry_points):
+    """(seeds, reached, whole, test_importers): what the product reaches from its roots, and the files read whole.
+    `texts`: the text of each code file."""
     graph, test_importers = _edges(resolved)
     seeds = _seeds(source, known, entry_points)
-    texts = {p: refs.texts[p] for p in code if p in refs.texts}
     reached = _reachable(_roots(source, known, seeds), graph, texts)
     # Package data and files loaded by a path literal are run or read whole by something else (a test runner, k6,
     # a codemod engine): they are reached, and their names are not judged one by one.
     whole = _package_data(source, known) | {found for path in reached if path in texts for found in _loaded(path, texts[path], texts)}
-    return seeds, reached | whole, whole, texts, test_importers
+    return seeds, reached | whole, whole, test_importers

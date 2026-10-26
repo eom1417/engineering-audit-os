@@ -7,8 +7,7 @@ the Studio shows the honest coverage state instead of a blank page. Nothing here
 
     GET /api/session            the server's mode, the CSRF token, the project, the feed's source and its last id
     GET /api/manifest           studio/manifest.json
-    GET /api/sections/<name>    studio/<name>.json, for every section of the contract; the library with ?only=<ids>
-                                cut to those documents and images and the images they point at (library_items)
+    GET /api/sections/<name>    studio/<name>.json, for every section of the contract
     GET /api/schemas/<name>     the section's JSON Schema
     GET /api/openapi.json       the OpenAPI 3.1 document of the routes above, each response the section's own schema
     GET /api/events             the live stream (server.py)
@@ -38,9 +37,10 @@ from ...core.project import state as project_state
 PREFIX = 'studio-'
 NO_STORE = {'Cache-Control': 'no-store', 'X-Content-Type-Options': 'nosniff'}
 MAX_PAGE, TICKET_SECONDS = 32 * 2 ** 20, 120
-# the report for people: its own inline style and script, nothing from the network, never in a frame
+# the report for people: its own inline style and script, nothing from the network, framed by the Studio's report page
+# only (places/report/human.js, a sandboxed frame), never by another site
 PAGE_CSP = ("default-src 'none'; style-src 'unsafe-inline'; script-src 'unsafe-inline'; img-src data:; font-src data:; "
-            "connect-src 'none'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'")
+            "connect-src 'none'; base-uri 'none'; form-action 'none'; frame-ancestors 'self'")
 TEXT_TYPES = ('.md', '.json', '.jsonl', '.txt', '.csv', '.html', '.yaml', '.yml', '.sarif', '.xml', '.log')
 MAX_FILE = 2 * 2 ** 20
 MAX_IMAGE = 8 * 2 ** 20
@@ -103,15 +103,6 @@ def _not_found(payload):
     return JSONResponse(payload, status_code=404, headers=NO_STORE)
 
 
-def library_items(library, ids):
-    """The library section cut to what one page shows: the documents and images named, and the images those documents
-    point at (by file name), so opening a document reads its own text and pictures, not the whole library."""
-    documents = [d for d in library.get('documents', []) if d['id'] in ids]
-    texts = ' '.join(t for d in documents for t in [d.get('text', ''), *(d.get('texts') or {}).values()])
-    images = [i for i in library.get('images', []) if i['id'] in ids or i['id'].rsplit('/', 1)[-1] in texts]
-    return {**library, 'documents': documents, 'images': images}
-
-
 def _json_file(body):
     return Response(body, media_type='application/json', headers=NO_STORE)
 
@@ -153,8 +144,7 @@ class _Read:
         if name not in self.schemas: return _not_found({'error': 'unknown', 'message': f'{name} is not a section of the contract'})
         body = _file(self.folder / f'{name}.json') if name in self.listed() or name == 'coverage' else None
         if body is None: return _not_found({'error': 'not_written', 'section': name, 'coverage': self.coverage_row(name)})
-        only = request.query_params.get('only')
-        return JSONResponse(library_items(json.loads(body), only.split(',')), headers=NO_STORE) if name == 'library' and only else _json_file(body)
+        return _json_file(body)
 
     async def schema(self, request):
         name = request.path_params['name']
@@ -183,7 +173,7 @@ def progress_routes(ctx):
     """The live map's routes: the progress of every flow, the check's alone, the files the check produced, the
     screens the safety flow recorded, the check's screen pictures, and the report for people by a one-use ticket."""
     async def ticket(request):
-        return JSONResponse(report_ticket(ctx.tickets), headers=NO_STORE)
+        return report_ticket(ctx.tickets, ctx.report)
     async def page(request):
         return await run_in_threadpool(report_page, ctx.report, ctx.tickets, request.path_params['ticket'])
     async def scan_progress(request):
@@ -256,27 +246,29 @@ def progress_state(report, state, last_id=None):
     return {'journey': journeys.journey(state) if state else [], 'flows': flows, 'tools_needed': needed, 'now': now(), 'feed_last': last_id}
 
 
-def report_ticket(tickets):
+def report_ticket(tickets, report):
     """`/api/report-ticket` (with the launch token): a one-use key, good for TICKET_SECONDS, to open the report for people
-    in a tab of the person's own browser (`/report/<ticket>`, no token: a page GET passes the guard), local or remote.
+    in a tab of the person's own browser or in the Studio's report page (`/report/<ticket>`, no token: a page GET passes
+    the guard), local or remote; 404 while no report for people is built, so neither opens an error page.
     (A real incident: "Open the full report" opened a browser on the server and showed the person a server path.)"""
+    if not (Path(report) / 'human' / 'index.html').is_file(): return _refuse(404, 'not_found', 'no report for people has been built yet')
     import secrets
     now = time.time()
     for old in [key for key, until in tickets.items() if until < now]: tickets.pop(old)
     key = secrets.token_urlsafe(24)
     tickets[key] = now + TICKET_SECONDS
-    return {'url': f'/report/{key}', 'seconds': TICKET_SECONDS}
+    return JSONResponse({'url': f'/report/{key}', 'seconds': TICKET_SECONDS}, headers=NO_STORE)
 
 
 def report_page(report, tickets, ticket):
     """`/report/<ticket>`: human/index.html (what REPORT.html is a copy of, guided.publish) as text/html with a policy of
-    its own (PAGE_CSP), once per ticket."""
+    its own (PAGE_CSP: framed by this server's own pages only), once per ticket."""
     if tickets.pop(ticket, 0) < time.time(): return _refuse(404, 'ticket', 'this address was used or has expired: open the report again')
     target = Path(report) / 'human' / 'index.html'
     if not target.is_file(): return _refuse(404, 'not_found', 'no report for people has been built yet')
     if target.stat().st_size > MAX_PAGE: return _refuse(413, 'size', 'the page is larger than 32 MB')
     return Response(target.read_bytes(), media_type='text/html; charset=utf-8',
-                    headers={**NO_STORE, 'Content-Security-Policy': PAGE_CSP, 'Referrer-Policy': 'no-referrer', 'X-Frame-Options': 'DENY'})
+                    headers={**NO_STORE, 'Content-Security-Policy': PAGE_CSP, 'Referrer-Policy': 'no-referrer', 'X-Frame-Options': 'SAMEORIGIN'})
 
 
 def report_file(report, path):

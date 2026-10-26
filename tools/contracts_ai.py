@@ -3,7 +3,7 @@ from contract_shapes import B, NN, NS, S, arr, enum, obj
 from contracts_maps import STUDIO_V2
 from contracts_studio import COUNT, OPERATIONS, REF, REFS, section_v2
 
-# The planned ideal (studio/ideal.json, eaos/ai/ideal/planner.py, docs/STUDIO.md D10): every Target/Ideal view from the
+# The planned ideal (studio/ideal.json, eaos/ai/ideal/planner.py): every Target/Ideal view from the
 # rules, then planned by the person's assistant on top of them, each element citing the evidence it stands on, and each
 # view with its provenance. Every section that draws a target carries the same optional `provenance`.
 IDEAL_VIEWS = ('system', 'change', 'journeys', 'paths', 'data_paths', 'infra', 'pipeline', 'plan_order')
@@ -45,7 +45,7 @@ STUDIO_V2['ideal'] = (
              'runs': arr(obj({'at': S, 'state': enum(*IDEAL_STATES), 'assistant': NS, 'model': NS, 'seconds': NN,
                               'passes': REFS, 'message': S}, ['at', 'state', 'passes']))},
             ['state', 'message', 'provenance', 'views', 'evidence', 'critique', 'questions', 'runs']))
-# The AI nodes (eaos/ai/nodes/, docs/STUDIO.md D11): a stage whose input is a deterministic output and whose output is
+# The AI nodes (eaos/ai/nodes/): a stage whose input is a deterministic output and whose output is
 # a structured decision, routed on by declared branches. `ai-node` is one node's run (<report>/nodes/<node>/last.json),
 # whose decisions all share one shape; `studio-nodes` is what the Studio draws of every node.
 NODE_STATES = ('decided', 'rules_only', 'failed')

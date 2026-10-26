@@ -178,9 +178,6 @@ def build(cards=5000, components=1000, seed=7, functions_per_module=2, modules_p
     sections['ideal'] = synthetic_ideal(comps, layer, card_rows)
     sections['nodes'] = synthetic_nodes(card_rows)
 
-    sections['library'] = {**V2, 'documents': [{'id': d['id'], 'text': f"# {d['title']}\n\n## Summary\n\nSynthetic document {i} of {components} components.\n",
-                                                'chars': 60, 'truncated': False} for i, d in enumerate(sections['docs']['docs'])],
-                           'images': [], 'counts': {}}
     written = list(sections)
     sections['coverage'] = {**V2, **coverage_section.coverage(Path('.'), sections, written, [], 'en')}
     return sections

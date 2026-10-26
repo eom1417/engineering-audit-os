@@ -1,4 +1,4 @@
-"""The card triage: every open card confirmed, doubted or rejected before it reaches the person (docs/STUDIO.md D11).
+"""The card triage: every open card confirmed, doubted or rejected before it reaches the person.
 
 The assistant reads each card with its evidence (the facts it stands on, and a short excerpt of the project's code at
 each fact's line, marked as untrusted data) and decides: confirm (the evidence holds: on to the plan), doubt (it does

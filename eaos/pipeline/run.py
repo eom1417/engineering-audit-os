@@ -36,7 +36,7 @@ def _runners():
 def execute(target, out, *, only=(), skip=(), language='ar', exclude=(), engines=None, provider=None,
             goal=None, audit_run=None, runners=None, intake=None,
             max_files=100000, max_bytes=2_000_000, policy_path=None, _completed=None, progress=None, without_tools=(),
-            runtime=None, mode='normal', paths=None, patterns=None, sign_in=None):
+            runtime=None, mode='normal', paths=None, patterns=None, sign_in=None):  # limits: parameters -- the run's keyword-only options, passed through as **options by check, again and resume
     """`progress(done, total, stage)` is called before each stage that will run, so a person waiting sees where
     the run is; it never changes what runs. `without_tools`: the tools whose install failed and the person started
     without; the manifest records them (`options`). `runtime`: the folder the app is run in, an isolated copy, given only
@@ -67,7 +67,7 @@ def execute(target, out, *, only=(), skip=(), language='ar', exclude=(), engines
     started_at = datetime.now(timezone.utc).isoformat(timespec='seconds')
     began = time.monotonic()
     todo = _todo(requested, completed)
-    head = _head(target, out, started_at, requested, language, exclude, max_files, max_bytes, policy_path, intake)
+    head = _head(context, started_at, requested)
     head['options']['without_tools'] = sorted(without_tools)
     head.update(mode=mode, paths=paths or ['complete'])     # not options: a check goes on in another mode or path
     log = ProgressLog(out)
@@ -129,16 +129,17 @@ def _requested(only, skip):
     return [name for name in ORDER if (not only or name in wanted) and name not in skipped]
 
 
-def _head(target, out, started_at, requested, language, exclude, max_files, max_bytes, policy_path, intake):
-    """What the manifest says of the run whatever its stages do; with the stages so far it is also the checkpoint
-    written after each stage, which a run stopped or killed midway is resumed from."""
+def _head(context, started_at, requested):
+    """What the manifest says of the run whatever its stages do, its options read from the run's `context`; with the
+    stages so far it is also the checkpoint written after each stage, which a run stopped or killed midway is resumed
+    from."""
     from ..core.project.workspace import inventory
-    return {'contract_version': 1, 'target': str(target), 'out': str(out), 'started_at': started_at,
+    return {'contract_version': 1, 'target': str(context.target), 'out': str(context.out), 'started_at': started_at,
             'requested': requested,
-            'options': {'language': language, 'exclude': list(exclude), 'max_files': max_files, 'max_bytes': max_bytes,
-                        'policy_path': str(policy_path) if policy_path else None,
-                        'intake': str(Path(intake).resolve()) if intake else None},
-            'source_fingerprint': inventory(target, max_files=max_files, max_bytes=max_bytes)['fingerprint']}
+            'options': {'language': context.language, 'exclude': list(context.exclude), 'max_files': context.max_files,
+                        'max_bytes': context.max_bytes,
+                        'policy_path': str(context.policy_path) if context.policy_path else None, 'intake': context.intake},
+            'source_fingerprint': inventory(context.target, max_files=context.max_files, max_bytes=context.max_bytes)['fingerprint']}
 
 
 def _manifest(head, began, results, loops):
@@ -232,7 +233,7 @@ def clear(out, patterns=None):
     return freed
 
 
-def check(target, out, again_from=None, checked=False, paths=None, go_on=False, **options):
+def check(target, out, again_from=None, checked=False, paths=None, go_on=False, **options):  # limits: parameters -- the check's own choices (again, go on, focus); the run's options pass on as **options
     """A check the person asked for: a fresh full run, which first clears the previous check's bulky data (clear) unless
     it runs some stages only. `go_on`: a run that did not end (stopped, broken or killed midway: its checkpoint is there)
     goes on from that checkpoint instead, unless the source changed since; a new check never does (one stopped and
