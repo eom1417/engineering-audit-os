@@ -35,6 +35,10 @@ BINARY_EXT = {'.dll', '.exe', '.so', '.dylib', '.bin', '.class', '.jar', '.war',
 # Environment files that should never be committed (samples are fine).
 ENV_NAME = re.compile(r'(^|[\\/])\.env(?:\.[\w.-]+)?$', re.I)
 ENV_SAFE_NAMES = {'.env.example', '.env.sample', '.env.template', '.env.test'}
+# Source code by its extension: such a file named or placed as a build output is still source when it sits beside
+# source the project imports, or under a source folder (a Java or Rust package named `target` inside src/).
+SOURCE_EXT = {'.py', '.js', '.jsx', '.mjs', '.cjs', '.ts', '.tsx', '.java', '.kt', '.scala', '.rs', '.go', '.cs', '.rb', '.php',
+              '.swift', '.vue', '.svelte'}
 
 
 def _module_paths(rel, language):
@@ -76,6 +80,18 @@ def classify(rel):
     return None
 
 
+def _source_after_all(rel, imported):
+    """A build-output name that is source: a file of source code beside one the project imports, or under `src/` before
+    the folder that named it output (EAOS's own build_info.py beside the modules that import it was a leftover card)."""
+    path = PurePosixPath(rel)
+    if path.suffix.lower() not in SOURCE_EXT: return False
+    folder = path.parent.as_posix()
+    if any(PurePosixPath(other).parent.as_posix() == folder for other in imported if '/' in str(other)): return True
+    parts = path.parts
+    built = next((i for i, part in enumerate(parts) if part in BUILD_DIRS), len(parts))
+    return 'src' in parts[:built]
+
+
 def _imported_modules(resolve_facts):
     """Module identifiers that something imports into: to_path and module.
 
@@ -107,6 +123,7 @@ def collect(source, resolve_facts):
         elif ext == '.ts': language = 'typescript'
         elif ext == '.tsx': language = 'tsx'
         if _is_reachable(rel, language, imported): continue
+        if reason == 'build_output' and _source_after_all(rel, imported): continue
         facts_list.append({'path': rel, 'reason': reason, 'sha256': item.get('sha256')})
     return facts_list
 

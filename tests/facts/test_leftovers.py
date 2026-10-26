@@ -46,3 +46,13 @@ class LeftoverTests(unittest.TestCase):
                          'an imported temp file is not a leftover')
         self.assertEqual(result['summary']['by_reason']['archived_directory'], 2)
         self.assertEqual(result['summary']['by_reason']['build_output'], 1)
+
+    def test_source_named_or_placed_as_build_output_beside_imported_source_or_under_src_is_source(self):
+        # M7.7: EAOS's own build_info.py, beside the modules it is imported with, and a Java package named `target`
+        files = ['eaos/core/system/build_info.py', 'eaos/core/system/launch.py', 'src/main/java/app/target/Plan.java',
+                 'target/classes/app/Plan.class', 'build_notes.txt', 'dist/bundle.js']
+        imported = [{'kind': 'module_edge', 'value': {'to_path': 'eaos/core/system/launch.py'},
+                     'location': {'path': 'eaos/interfaces/cli.py', 'start_line': 1}}]
+        with tempfile.TemporaryDirectory() as tmp:
+            found = {f['location']['path'] for f in run(Path(tmp), _Source(files), resolve_facts=imported)['facts']}
+        self.assertEqual(found, {'target/classes/app/Plan.class', 'build_notes.txt', 'dist/bundle.js'})
