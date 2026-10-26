@@ -213,6 +213,16 @@ def _record_tools(server, reading, working):
     def ask(question: str, project: str | None = None) -> str:
         return tools.ask(question, project)
 
+    @server.tool(annotations=reading, description='How the app\'s users fared in the last experience run: each persona\'s goals in '
+                 'order with their result, time and steps counted, the difficulties ranked (confirmed first, then by severity), '
+                 'the tickets, the replays that broke, the services not covered, and the records missing. The full story with '
+                 'pictures is EXPERIENCE.md in the report (report_file). ' + PROJECT_DOC)
+    @_answer
+    def experience(project: str | None = None) -> str:
+        from ...journeys import guided
+        from ...report.experience.story import story, summary
+        return summary(story(guided.report_of(tools.state_of(project))))
+
 
 def _audit_tool(server, reading, working):
     """The check itself, with every choice the person makes for it."""

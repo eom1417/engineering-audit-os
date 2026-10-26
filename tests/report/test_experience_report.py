@@ -1,8 +1,10 @@
 """The experience report (M10.8): one story from the records, told in EXPERIENCE.md in both languages and by the MCP tool."""
+import asyncio
 import json
 import tempfile
 import unittest
 from pathlib import Path
+from unittest import mock
 
 from eaos.report.experience.document import write
 from eaos.report.experience.story import story, summary
@@ -86,6 +88,15 @@ class ExperienceReport(unittest.TestCase):
         self.assertEqual(told['personas'][0]['goals'][0]['steps'], 1)
         self.assertEqual(told['difficulties']['ranked'][0]['id'], 'D3')
 
+
+    def test_the_mcp_tool_answers_the_summary(self):
+        from eaos.interfaces.mcp_server.server import build
+        from eaos.journeys import guided
+        with mock.patch.object(guided, 'report_of', return_value=self.report), \
+             mock.patch('eaos.journeys.agent_tools.state_of', return_value={}), \
+             mock.patch.dict('os.environ', {'EAOS_HOME': str(self.report / 'home')}):
+            answer = asyncio.run(build().call_tool('experience', {'project': str(self.report)}))
+        self.assertEqual(json.loads(answer.content[0].text)['difficulties']['ranked'][0]['id'], 'D3')
 
 if __name__ == '__main__':
     unittest.main()
