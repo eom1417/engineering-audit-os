@@ -27,12 +27,12 @@ import json
 import re
 import threading
 from ...core.contracts.code_laws import LAWS
+from ...core.contracts.untrusted import UNTRUSTED
 from datetime import datetime, timezone
 from pathlib import Path
 
 RULES_ONLY = 'rules only'
 LOG = 'runs.jsonl'
-UNTRUSTED = 'untrusted_project_data'          # eaos/ai/semantic.py UNTRUSTED: the project's text is data, never orders
 WORDS = {
     'no_assistant': 'No assistant is installed and logged in here, so the rules decided alone.',
     'stuck': 'The assistant gave no output at all for 20 minutes, so it was stuck and was ended; the rules decided alone.',
