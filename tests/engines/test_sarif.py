@@ -37,10 +37,17 @@ class SarifTests(Workspace):
         self.assertEqual([(f['measurements'][0]['value'], f['engine_confidence'], f['cwe']) for f in found],
                          [('high', 'low', ['CWE-78']), ('medium', 'medium', ['CWE-89'])])
 
-    def test_a_result_the_project_justified_on_its_line_is_its_decision_not_a_finding(self):
-        # `# nosemgrep: rule -- why` reaches the SARIF as a suppression in the source; EAOS counted it as a finding.
-        justified = {**SARIF['runs'][0]['results'][0], 'suppressions': [{'kind': 'inSource'}]}
-        rejected = {**justified, 'suppressions': [{'kind': 'inSource', 'status': 'rejected'}]}
+    def test_a_result_suppressed_with_a_reason_on_its_line_is_justified_and_without_one_stays_a_finding(self):
+        # `# nosemgrep` alone once dropped the finding: a comment could hide a weakness from every gate.
+        (Path(self.tmp) / 'a.py').write_text('x\ny\nrun(x)  # nosemgrep: KNOWN-1 -- the argv is built here, no shell\nrun(y)  # nosemgrep\n')
+        place = lambda line: [{'physicalLocation': {'artifactLocation': {'uri': 'a.py'}, 'region': {'startLine': line}}}]
+        result = lambda line, **more: {**SARIF['runs'][0]['results'][0], 'locations': place(line), **more}
         path = Path(self.tmp) / 'justified.sarif'
-        path.write_text(json.dumps({**SARIF, 'runs': [{**SARIF['runs'][0], 'results': [justified, rejected]}]}))
-        self.assertEqual(len(read(path, 'x', '1', [{'match': 'KNOWN-*', 'kind': 'vulnerability'}])[0]), 1, 'a rejected suppression stays a finding')
+        path.write_text(json.dumps({**SARIF, 'runs': [{**SARIF['runs'][0], 'results': [
+            result(3, suppressions=[{'kind': 'inSource'}]), result(4, suppressions=[{'kind': 'inSource'}]),
+            result(3, suppressions=[{'kind': 'inSource', 'status': 'rejected'}])]}]}))
+        rules = [{'match': 'KNOWN-*', 'kind': 'vulnerability'}]
+        found = read(path, 'x', '1', rules, root=self.tmp)[0]
+        self.assertEqual([f.get('justified') for f in found], ['the argv is built here, no shell', None, None],
+                         'no reason, or a rejected suppression: a plain finding')
+        self.assertEqual([f.get('justified') for f in read(path, 'x', '1', rules)[0]], [None, None, None], 'no line to read: no reason')

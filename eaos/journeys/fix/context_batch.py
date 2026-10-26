@@ -10,6 +10,7 @@ context_trim.py) on a branch of their own, never mixed with fix cards or moves.
 
 The branch is handed over like a wave's (waves.apply); accept and undo decide it."""
 import posixpath
+from pathlib import Path
 
 from ...analysis.repair import context_trim
 from ...core.project.ledger import TRAILER
@@ -25,6 +26,7 @@ def private_problem(private_to):
     clean = posixpath.normpath(private_to)
     if posixpath.isabs(private_to) or clean.startswith('..'): return f'{private_to} is outside the repository'
     if clean.startswith(ASSISTANT_FOLDERS): return f"{private_to} is in an assistant's own folder"
+    if clean == '.git' or clean.startswith('.git/'): return f"{private_to} is inside git's own folder"
     return ''
 
 
@@ -44,7 +46,7 @@ def make(batch):
     `refused`). `batch`: {target, runtime, number, private_to, deliver_as}."""
     batch = {**batch, 'kind': 'context', 'items': []}
     root, base = own_batch(batch['target'], batch['runtime'], f"CONTEXT-{batch['number']}")
-    if (why := private_problem(batch.get('private_to'))): return record_batch(batch, root, base, [], [why])
+    if (why := private_problem(batch.get('private_to')) or _ignored(root, _extra(batch))): return record_batch(batch, root, base, [], [why])
     allowed = set(context_trim.plan(root)['before']) | set(_extra(batch))
     try: done = context_trim.apply(root, batch.get('private_to'))
     except context_trim.Untrimmable as problem: return record_batch(batch, root, base, [], [f'an instruction would be lost or repeated: {problem}'])
@@ -54,8 +56,25 @@ def make(batch):
         return record_batch(batch, root, base, [], [f'the trim would write files that are not the context: {", ".join(stray[:5])}'])
     commit_all(root, f"Trim the assistants' context: {done['archived']} done item(s) archived, {done['tokens_before'] - done['tokens_after']} "
                      f"tokens fewer every session\n\nExecuted by EAOS (context batch).\n\n{TRAILER}: context")
+    if (lost := _not_committed(root, done['written'])):
+        git(root, 'reset', '--hard', '--quiet', base)
+        return record_batch(batch, root, base, [], [f'the commit does not hold what the trim checked: {", ".join(lost[:5])}'])
     batch['extra'] = {k: done[k] for k in ('archived', 'private', 'renamed', 'kept_twice', 'tokens_before', 'tokens_after')}
     return record_batch(batch, root, base, done['written'], [])
+
+
+def _ignored(root, paths):
+    """Why a file the trim writes would never reach the branch (git ignores it), else ''."""
+    ignored = [p for p in paths if git(root, 'check-ignore', '-q', '--no-index', p).returncode == 0]
+    return f"{', '.join(ignored)} is ignored by git: what moves there would be lost from the branch" if ignored else ''
+
+
+def _not_committed(root, written):
+    """The files the trim wrote whose committed text is not what was checked: what is verified is what is delivered."""
+    def held(path):
+        shown = git(root, 'show', f'HEAD:{path}')
+        return shown.returncode == 0 and shown.stdout == (Path(root) / path).read_text(encoding='utf-8')
+    return [path for path in written if not held(path)]
 
 
 def _extra(batch):

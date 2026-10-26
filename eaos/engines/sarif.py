@@ -16,6 +16,11 @@ very-high on every rule), else the rule's precision (CodeQL).
 The weaknesses a rule names (CWE-78, ...) are read from its tags and the result's, in whichever spelling the tool
 writes them (Semgrep `CWE-78: ...`, Bandit `external/cwe/cwe-78`, CodeQL `external/cwe/cwe-078`), so two engines
 reporting the same weakness can be told apart from two reporting different ones at the same file.
+
+A result the project suppressed on its line (SARIF suppressions, kind inSource) is a justified finding only when the
+line says why (`# nosemgrep: rule -- why`): it keeps its place, marked `justified` with that reason, so the check
+reports it apart and the gates still see it (a change never brings a weakness in behind a comment). Without a reason,
+or without the project's root to read the line from, it stays a plain finding.
 """
 import json
 import re
@@ -30,17 +35,36 @@ CWE = re.compile(r'\bcwe[-/:]?0*(\d+)', re.IGNORECASE)
 
 
 def _results(data):
-    """(rules by id, result) for every result of every run, but those suppressed in the source: a line the project
-    justified (`# nosemgrep: rule -- why`) is its decision, not a finding (SARIF suppressions, kind inSource)."""
+    """(rules by id, result) for every result of every run."""
     for run in data.get('runs') or []:
         driver = (run.get('tool') or {}).get('driver') or {}
         rules = {rule.get('id'): rule for rule in driver.get('rules') or []}
         for result in run.get('results') or []:
-            if not _justified(result): yield rules, result
+            yield rules, result
 
 
-def _justified(result):
+WHY = re.compile(r'\bnosem(?:grep)?\b.*?\s--\s+(\S.*?)\s*$')
+
+
+def justification(result, root, sites):
+    """The reason the project wrote on the line of a result it suppressed in the source, or None."""
+    if not (_suppressed(result) and root and sites[0]['path'] and sites[0]['line']): return None
+    try: lines = (Path(root) / sites[0]['path']).read_text(encoding='utf-8', errors='replace').splitlines()
+    except OSError: return None
+    return _said(lines, sites[0]['line'])
+
+
+def _suppressed(result):
     return any(s.get('kind') == 'inSource' and s.get('status') in (None, 'accepted') for s in result.get('suppressions') or [])
+
+
+def _said(lines, line):
+    """The reason after ` -- ` of the suppression on `line`, or on a comment line just above it."""
+    here = lines[line - 1] if 0 < line <= len(lines) else ''
+    above = lines[line - 2] if 1 < line <= len(lines) + 1 else ''
+    if 'nosem' not in here and above.lstrip().startswith(('#', '//')): here = above
+    found = WHY.search(here)
+    return found[1] if found else None
 
 
 def _artifacts(result):
@@ -90,8 +114,9 @@ def _sites(result):
             for physical, artifact in _artifacts(result) if artifact.get('uri')]
 
 
-def read(path, engine, version, rules=None):
-    """(findings, unmapped) from one SARIF file; see the module docstring for the mapping and severity."""
+def read(path, engine, version, rules=None, root=None):
+    """(findings, unmapped) from one SARIF file; see the module docstring for the mapping, the severity and a justified
+    finding (`root`: the project, whose lines say why a result was suppressed)."""
     if rules is None:
         rules = json.loads(RULES.read_text(encoding='utf-8')).get(engine, [])
     data = json.loads(Path(path).read_text(encoding='utf-8'))
@@ -110,6 +135,7 @@ def read(path, engine, version, rules=None):
                                 ((result.get('message') or {}).get('text') or rule_id)[:500],
                                 measurements=[measurement('severity', severity)], sites=sites,
                                 engine_confidence=_confidence(result, rule), cwe=_cwe(result, rule)))
+        if (why := justification(result, root, sites)): findings[-1]['justified'] = why
     return findings, unmapped
 
 
@@ -163,7 +189,8 @@ class Declared:
         args = [str(a).replace('{target}', str(Path(target).resolve())).replace('{output}', str(output)) for a in self.entry['engine']['args']]
         code, _, error, seconds = run([which(self.entry['binary']), *args], cwd=output.parent)
         if not output.is_file(): return Report(self.NAME, self.version(), self.PINNED, ERROR, seconds=seconds, reason=error.strip()[-300:] or f'exit {code}')
-        findings, unmapped = read(output, self.NAME, self.version(), self.entry['engine'].get('rules') or [{'match': '*', 'kind': 'risk'}])
+        findings, unmapped = read(output, self.NAME, self.version(), self.entry['engine'].get('rules') or [{'match': '*', 'kind': 'risk'}],
+                                  target)
         return Report(self.NAME, self.version(), self.PINNED, OBSERVED, seconds=seconds, findings=findings, unmapped=unmapped, raw=str(output))
 
 
@@ -176,4 +203,4 @@ def declared():
 def collected(path, target, engine, version):
     """(findings, unmapped) of an engine's SARIF file, its paths made relative to the project first."""
     relativise(path, target)
-    return read(path, engine, version)
+    return read(path, engine, version, root=target)

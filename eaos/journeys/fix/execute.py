@@ -40,9 +40,9 @@ def own_batch(target, runtime, name):
     return root, git(root, 'rev-parse', 'HEAD').stdout.strip()
 
 
-def commit_all(root, message):
-    """Everything the batch changed in the copy, committed as EAOS."""
-    git(root, 'add', '-A')
+def commit_all(root, message, paths=None):
+    """Everything the batch changed in the copy (only `paths` when given: never what a run left there), as EAOS."""
+    git(root, 'add', '-A', *(['--', *paths] if paths else []))
     if git(root, '-c', 'user.name=EAOS', '-c', 'user.email=eaos@localhost', 'commit', '--quiet', '-m', message).returncode:
         raise RuntimeError('the batch left nothing to commit')
 

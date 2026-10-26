@@ -5,7 +5,7 @@ import subprocess
 import sys
 from pathlib import Path
 
-from shared_fixture import Workspace
+from shared_fixture import Workspace, scratch
 
 from eaos.analysis.repair import move_gate, moves
 from eaos.analysis.repair.move_python import Unmovable
@@ -121,3 +121,50 @@ class MoveTests(Workspace):
         self.assertEqual(move_gate.surface_differences(exposed, now, {'a.py': 'b.py'}),
                          ['the entry point http GET /a is gone', 'the command script:shop ran shop/cli.py and now runs shop/cli/main.py',
                           'b.py no longer exposes what a.py did: g'])
+        lost = [{'argv': ['python', '-m', 'unittest'], 'exit': 0, 'output': 'test_go (test_shop.T.test_go) ... ok\nRan 1 test\n'}]
+        self.assertEqual(move_gate.test_differences(lost, [], mapping), ['python -m unittest ran before the moves and not after'],
+                         'a suite the moves emptied (tests/ with no test_*.py left builds no command) is every test lost')
+
+    def apply_and_read(self, files, asked, path):
+        root = Path(scratch())
+        for name, text in files.items():
+            (root / name).parent.mkdir(parents=True, exist_ok=True)
+            (root / name).write_bytes(text.encode('utf-8'))
+        moves.apply(root, asked)
+        return (root / path).read_bytes().decode('utf-8')
+
+    def test_python_imports_are_rewritten_at_the_right_place_whatever_the_line_holds_and_where_the_module_goes(self):
+        # Review of 2026-10-26: a column in UTF-8 bytes put the rewrite three characters off after Arabic text; a form
+        # feed split the lines; a module moved to the top gave `from  import mod`; CRLF came back LF.
+        sub = [{'from': 'pkg/m.py', 'to': 'pkg/sub/m.py'}]
+        base = {'pkg/__init__.py': '', 'pkg/m.py': 'def f(): return 1\n'}
+        self.assertEqual(self.apply_and_read({**base, 'main.py': 'import pkg.m\nprint("مرحبا", pkg.m.f())\n'}, sub, 'main.py'),
+                         'import pkg.sub.m\nprint("مرحبا", pkg.sub.m.f())\n')
+        self.assertEqual(self.apply_and_read({**base, 'main.py': 'a = 1\x0c\nimport pkg.m\nprint(pkg.m.f())\n'}, sub, 'main.py'),
+                         'a = 1\x0c\nimport pkg.sub.m\nprint(pkg.sub.m.f())\n')
+        self.assertEqual(self.apply_and_read({**base, 'main.py': 'from pkg.m import f\r\nprint(f())\r\n'}, sub, 'main.py'),
+                         'from pkg.sub.m import f\r\nprint(f())\r\n')
+        self.assertEqual(self.apply_and_read({**base, 'main.py': 'from pkg import m\n'}, [{'from': 'pkg/m.py', 'to': 'm.py'}], 'main.py'),
+                         'import m\n')
+        with self.assertRaisesRegex(Unmovable, 'from outside its package'):
+            self.apply_and_read({**base, 'pkg/a.py': 'from .m import f\n'}, [{'from': 'pkg/a.py', 'to': 'tools/a.py'}], 'pkg/m.py')
+
+    def test_a_src_layout_is_read_from_its_tests_and_a_folder_that_was_there_gets_no_init(self):
+        files = {'src/pkg/__init__.py': '', 'src/pkg/m.py': 'X = 1\n', 'tests/test_m.py': 'from pkg.m import X\n'}
+        self.assertEqual(self.apply_and_read(files, [{'from': 'src/pkg/m.py', 'to': 'src/pkg/sub/m.py'}], 'tests/test_m.py'),
+                         'from pkg.sub.m import X\n')
+        root = Path(scratch())
+        for name in ('src/pkg/__init__.py', 'src/pkg/m.py'):
+            (root / name).parent.mkdir(parents=True, exist_ok=True)
+            (root / name).write_text('X = 1\n' if name.endswith('m.py') else '')
+        self.assertEqual(moves.apply(root, [{'from': 'src/pkg/m.py', 'to': 'src/other/m.py'}])['created'], ['src/other/__init__.py'],
+                         'src/ was there and is no package: only the folder the move made gets one')
+
+    def test_javascript_reads_base_url_template_literals_require_resolve_and_another_alias_that_holds_the_file(self):
+        files = {'tsconfig.json': '{"compilerOptions": {"baseUrl": ".", "paths": {"@/*": ["src/*"], "@lib/*": ["src/lib/*"]}}}',
+                 'src/lib/util.ts': 'export const a = 1\n',
+                 'src/app.ts': ("import b from 'src/lib/util'\nconst m = await import(`./lib/util`)\n"
+                                "const p = require.resolve('./lib/util')\nimport {a} from '@lib/util'\nconst d = import(`./lib/${name}`)\n")}
+        self.assertEqual(self.apply_and_read(files, [{'from': 'src/lib/util.ts', 'to': 'src/core/util.ts'}], 'src/app.ts'),
+                         "import b from 'src/core/util'\nconst m = await import(`./core/util`)\nconst p = require.resolve('./core/util')\n"
+                         "import {a} from '@/core/util'\nconst d = import(`./lib/${name}`)\n")

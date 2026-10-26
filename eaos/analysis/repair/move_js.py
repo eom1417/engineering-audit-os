@@ -2,22 +2,37 @@
 mock (`vi.mock`, `jest.mock`) whose specifier names a moved file, or that a moved file writes, spelled again for the new
 places in the form it was written: relative stays relative and an alias (`@/`) stays an alias while the file is still
 under its folder; no extension, a folder's index, or the `.js` a TypeScript file writes for its `.ts`, kept as they were.
-A package name (`react`) is never touched."""
+A package name (`react`) is never touched; a bare specifier is the project's own only under tsconfig's `baseUrl`
+(`'src/lib/util'`), and only when it names a file of the project."""
 import posixpath
 import re
 from pathlib import PurePosixPath
 
-from ...facts.code.resolve import JS_SUFFIXES, js_aliases, js_candidates, js_directory
+from ...facts.code.resolve import JS_SUFFIXES, _jsonc, js_aliases, js_candidates, js_directory
 
-SPECIFIER = re.compile(r'''(?:\bfrom|\bimport|\brequire\s*\(|\bimport\s*\(|\.(?:mock|doMock|unmock|requireActual|importActual)\s*\()'''
-                       r'''\s*(['"])([^'"\n]+)\1''')
+SPECIFIER = re.compile(r'''(?:\bfrom|\bimport|\brequire(?:\.resolve)?\s*\(|\bimport\s*\(|\.(?:mock|doMock|unmock|requireActual|importActual)\s*\()'''
+                       r'''\s*(['"`])([^'"`\n]+)\1''')
 
 
 def aliases(read, known):
-    """The project's path aliases (tsconfig and jsconfig paths, vite's alias, `@/` for src/), as the resolver reads them."""
+    """The project's path aliases (tsconfig and jsconfig paths, vite's alias, `@/` for src/), as the resolver reads them,
+    and last each config's `baseUrl` (a bare specifier read from that folder)."""
     class Reader:
         def text(self, path): return read(path)
-    return js_aliases(Reader(), known)
+    return js_aliases(Reader(), known) + [('', [folder]) for folder in _base_urls(read, known)]
+
+
+def _base_urls(read, known):
+    """The folder each tsconfig or jsconfig's baseUrl names, '' for the root."""
+    configs = sorted(p for p in known if PurePosixPath(p).name.startswith(('tsconfig', 'jsconfig')) and p.endswith('.json'))
+    return list(dict.fromkeys(folder for folder in (_base_url(read, path) for path in configs) if folder is not None))
+
+
+def _base_url(read, path):
+    base = ((_jsonc(read(path) or '') or {}).get('compilerOptions') or {}).get('baseUrl')
+    if base is None: return None
+    folder = posixpath.normpath(posixpath.join(posixpath.dirname(path), base))
+    return '' if folder == '.' else folder + '/'
 
 
 def spans(path, text, moves, aliased=()):
@@ -25,6 +40,7 @@ def spans(path, text, moves, aliased=()):
     out = []
     for match in SPECIFIER.finditer(text):
         spec = match.group(2)
+        if '${' in spec: continue                  # a template literal that builds the path: not a path
         new = _respelled(path, spec, moves, aliased)
         if new and new != spec: out.append((match.start(2), match.end(2), new))
     return out
@@ -78,12 +94,18 @@ def _stem(path):
 
 
 def _as_alias(spec, base, aliased):
-    """`base` under the alias the specifier was written with, while it is still under that alias's folder."""
-    for prefix, folders in aliased:
-        if spec != prefix.rstrip('/') and not spec.startswith(prefix): continue
-        for folder in folders:
-            root = folder.rstrip('/')
-            if base == root or base.startswith(root + '/'): return prefix + base[len(root):].lstrip('/')
+    """`base` under the alias the specifier was written with while it is still under that alias's folder, else under
+    another alias that holds it (`@lib/util` leaving lib/ becomes `@/core/util`); None when no alias does."""
+    written = next((row for row in aliased if spec == row[0].rstrip('/') or spec.startswith(row[0])), None)   # longest first
+    written = [written] if written else []
+    others = [row for row in aliased if row[0] and row not in written]
+    return next((found for prefix, folders in written + others if (found := _under(prefix, folders, base))), None)
+
+
+def _under(prefix, folders, base):
+    for folder in folders:
+        root = folder.rstrip('/')
+        if not root or base == root or base.startswith(root + '/'): return prefix + base[len(root):].lstrip('/')
     return None
 
 

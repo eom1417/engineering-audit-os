@@ -104,7 +104,7 @@ def analyze(target, workdir, exclude=(), formats=None):
     if code not in (0, 1) or not output.is_file():
         return tool.failed(NAME, found, seconds, code, error)
     normalise(output, target)
-    findings, unmapped = sarif.read(output, NAME, found)
+    findings, unmapped = sarif.read(output, NAME, found, root=target)
     return Report(NAME, found, PINNED, OBSERVED, seconds=seconds, findings=findings, unmapped=unmapped, raw=str(output),
                   coverage={'status': 'observed', 'rule_sets': used, 'silenced': list(SILENCED), 'official_commit': commit,
                             'official_missing': None if commit else 'python -m eaos tools install --only semgrep-rules'},

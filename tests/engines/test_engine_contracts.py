@@ -19,17 +19,25 @@ def sample(name):
     return json.loads((CONTRACTS / f'{name}.json').read_text(encoding='utf-8'))
 
 
+# The engines with no captured sample: each writes SARIF, read by sarif.py and its tests (test_sarif).
+UNSAMPLED = ('bandit', 'gitleaks', 'codeql')
+TAGGED = ('codegraph',)      # its release tag, v0.20.1, is the version it prints
+
+
 class SampleTests(unittest.TestCase):
-    def test_every_adapter_of_the_registry_is_callable_pinned_to_its_sample_and_maps_into_the_shared_kinds(self):
+    def test_every_adapter_of_the_registry_is_its_module_pinned_with_its_sample_and_maps_into_the_shared_kinds(self):
         # The one contract every engine holds (it was asked in three files, each of a few engines). Without `analyze`
         # the registry raised AttributeError on every run and a working engine contributed nothing.
+        import importlib
         from eaos.engines import ADAPTERS, tool
         for name, adapter in ADAPTERS.items():
             with self.subTest(engine=name):
+                self.assertIs(adapter, importlib.import_module('eaos.engines.' + name.replace('-', '_')))
                 for method in ('analyze', 'capabilities', 'version'):
                     self.assertTrue(callable(getattr(adapter, method, None)), f'{name} has no {method}')
-                self.assertEqual(adapter.PINNED.lstrip('v'), tool.pinned(name), 'the adapter and the registry pin one version')
-                if (CONTRACTS / f'{name}.json').is_file():
+                pin = 'v' + tool.pinned(name) if name in TAGGED else tool.pinned(name)
+                self.assertEqual(adapter.PINNED, pin, 'the adapter and the registry pin one version')
+                if name not in UNSAMPLED:
                     self.assertEqual(sample(name)['pinned_version'], adapter.PINNED, f'{name}: captured from another version')
                 for capability in adapter.capabilities(): self.assertIn(capability.kind, KINDS)
         kinds = list(enola.KIND_BY_SOURCE.values()) + list(reforge.KIND_BY_FAMILY.values()) + list(codegraph.TOOLS.values())

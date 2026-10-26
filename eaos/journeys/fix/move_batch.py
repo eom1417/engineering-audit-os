@@ -13,6 +13,7 @@ fix cards, and refused whole on any difference.
 
 The handed-over branch is fetched into the person's project like a wave's (waves.apply); accept and undo decide it.
 """
+import hashlib
 import posixpath
 from pathlib import Path, PurePosixPath
 
@@ -34,12 +35,12 @@ def proposal(report, target):
     known = moves.files(target)
     drawn = _from_findings(report, known) + _from_target_shape(report, target, known)
     seen, rows = set(), []
-    for number, move in enumerate(drawn, 1):
+    for move in drawn:
         if move['from'] in seen: continue
         seen.add(move['from'])
         refused = moves.plan(target, [move], known)['refused']
-        rows.append({'id': f'MOVE-{number:03d}', **move, 'refused': '; '.join(refused)})
-    return {'moves': rows, 'tree': tree(rows)}
+        rows.append({'id': move_id(move), **move, 'refused': '; '.join(refused)})
+    return {'moves': rows, 'tree': tree(rows), 'limits': [move_gate.PUBLISHED] if move_gate.published(target, known) else []}
 
 
 def _set(report, name):
@@ -47,6 +48,11 @@ def _set(report, name):
     from ...facts.store import read_set
     try: return read_set(report, name).get('facts') or []
     except (OSError, ValueError): return []
+
+
+def move_id(move):
+    """A move's id, from its two places: the same move keeps it however the proposal changes between two calls."""
+    return 'MOVE-' + hashlib.sha256(f"{move['from']}->{move['to']}".encode('utf-8')).hexdigest()[:10]
 
 
 def _findings(report):
@@ -156,8 +162,9 @@ def make(batch):
     say('moves')
     try: made = moves.apply(root, batch['moves'])
     except Unmovable as problem: return record_batch(batch, root, base, [], [f'the move tool refused: {problem}'])
+    touched = [*before['mapping'], *made['rewritten'], *made['created'], *before['mapping'].values()]   # never what a run left
     commit_all(root, f"Move {made['moved']} file(s) to their place\n\n" + '\n'.join(f"  {m['from']} -> {m['to']}" for m in batch['moves'])
-               + f'\n\nExecuted by EAOS (move batch).\n\n{TRAILER}: moves')
+               + f'\n\nExecuted by EAOS (move batch).\n\n{TRAILER}: moves', touched)
     say('gate')
     differences = _gate(batch, root, before)
     if differences: git(root, 'reset', '--hard', '--quiet', base)
@@ -166,7 +173,7 @@ def make(batch):
 
 def _gate(batch, root, before):
     """Every difference the moves made: the surface, the tests and checks, what is newly broken, the screens."""
-    after = named_checks(root, batch['runtime'], f"moves-{batch['number']}-after")
+    after = named_checks(root, batch['runtime'], f"moves-{batch['number']}-after", [(r['argv'], r['at_root']) for r in before['checks']])
     out = move_gate.surface_differences(before['surface'], move_gate.surface(root, moves.files(root)), before['mapping'])
     out += move_gate.test_differences(before['checks'], after, before['mapping'])
     return out + new_breakage(batch['report'], root) + _lock(batch, root)
@@ -182,20 +189,22 @@ def _lock(batch, root):
             + '; '.join(sorted(failing_tests(batch['runtime'], name)))[:600]] if verdict['failed'] else []
 
 
-def named_checks(root, runtime, name):
-    """[{argv, exit, output}] of the run profile's checks and the Python tests on `root`, the tests told to name each
-    test they run (unittest -v, pytest -rA), so the gate finds every test back by its name."""
+def named_checks(root, runtime, name, checks=None):
+    """[{argv, at_root, exit, output}] of the run profile's checks and the Python tests on `root`, the tests told to name
+    each test they run (unittest -v, pytest -rA), so the gate finds every test back by its name. `checks` [(argv,
+    at_root)]: the same commands as before the moves (after them, a tests/ folder emptied by the moves builds none)."""
     from ...live.app.run import LiveRun
     from ...live.testing.verify import python_tests
     live = LiveRun(root, runtime, 'S09')
-    checks = [(argv, False) for argv in live.profile.get('checks') or []] + [(argv, True) for argv in python_tests(root, live.profile)]
+    if checks is None:
+        checks = [(argv, False) for argv in live.profile.get('checks') or []] + [(argv, True) for argv in python_tests(root, live.profile)]
     if not checks: return []
     try:
         live.setup()
         rows = []
         for argv, at_root in checks:
             code, out, err = live.run(_naming(argv), timeout=1800, at_root=at_root)
-            rows.append({'argv': [str(a) for a in argv], 'exit': code, 'output': out + err})
+            rows.append({'argv': [str(a) for a in argv], 'at_root': at_root, 'exit': code, 'output': out + err})
         return rows
     finally:
         live.stop()

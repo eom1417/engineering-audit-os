@@ -105,7 +105,7 @@ def _read(root, path):
     file = Path(root) / path
     try:
         if file.stat().st_size > BIGGEST or PurePosixPath(path).name in NOT_TEXT: return None
-        return file.read_text(encoding='utf-8')
+        with open(file, encoding='utf-8', newline='') as read: return read.read()      # its own line ends kept
     except (OSError, UnicodeDecodeError): return None
 
 
@@ -200,7 +200,7 @@ def apply(root, moves):
     texts = edits(root, drawn, known)
     git = (root / '.git').exists()
     for old, new in sorted(drawn['mapping'].items()): _move(root, old, new, git)
-    for old, text in texts.items(): (root / drawn['mapping'].get(old, old)).write_text(text, encoding='utf-8')
+    for old, text in texts.items(): (root / drawn['mapping'].get(old, old)).write_text(text, encoding='utf-8', newline='')
     created = _new_packages(root, drawn['mapping'], set(known))
     _prune(root, drawn['mapping'])
     return {'moved': len(drawn['mapping']), 'rewritten': sorted(drawn['mapping'].get(p, p) for p in texts), 'created': created}
@@ -214,17 +214,21 @@ def _move(root, old, new, git):
 
 
 def _new_packages(root, mapping, known):
-    """An __init__.py in each new folder a Python module of a package moved into, so it stays importable as before."""
-    created = []
+    """An __init__.py in each folder the move made for a Python module of a package, so it stays importable as before;
+    a folder that was there before the move is left as it was (src/ is no package)."""
+    created, there = [], {PurePosixPath('.')} | {folder for p in known for folder in PurePosixPath(p).parents}
     for old, new in sorted(mapping.items()):
-        if not old.endswith('.py') or not posixpath.dirname(old) or posixpath.dirname(old) + '/__init__.py' not in known: continue
+        if not _in_package(old, known): continue
         for folder in reversed(PurePosixPath(new).parents):
-            init = folder / '__init__.py'
-            if folder.as_posix() == '.' or (root / init).exists(): continue
-            if (root / folder.parent / '__init__.py').exists() or folder.parent.as_posix() == '.':
-                (root / init).write_text('', encoding='utf-8')
-                created.append(init.as_posix())
+            if folder in there or (root / folder / '__init__.py').exists(): continue
+            (root / folder / '__init__.py').write_text('', encoding='utf-8')
+            created.append((folder / '__init__.py').as_posix())
     return created
+
+
+def _in_package(path, known):
+    """Whether `path` is a Python module of a regular package (its folder holds an __init__.py)."""
+    return path.endswith('.py') and bool(posixpath.dirname(path)) and posixpath.dirname(path) + '/__init__.py' in known
 
 
 def _prune(root, mapping):

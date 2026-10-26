@@ -22,7 +22,8 @@ def moves_propose(project=None):
     from ..fix.move_batch import proposal
     state = state_of(project)
     drawn = proposal(_report(state), guided.source(state))
-    return {**drawn, 'what_now': ('Show the person the tree (today → proposed) and the reason of each move, in plain words. '
+    return {**drawn, 'what_now': ('Show the person the tree (today → proposed) and the reason of each move, in plain words, '
+                                  'and what `limits` says. '
                                   'Ask which moves they accept; then call moves_make with their ids and person_agreed=true. '
                                   'Nothing moves without their choice.' if drawn['moves'] else
                                   'Nothing to move: tell the person the layout needs no move.')}
@@ -64,11 +65,20 @@ def _chosen(state, moves):
     """(why nothing starts, or None; the moves of the proposal the person named, each one the tool can make)."""
     from ..fix.move_batch import proposal
     drawn = {m['id']: m for m in proposal(_report(state), guided.source(state))['moves']}
-    chosen = [drawn[i] for i in moves or [] if i in drawn]
-    if not chosen: return {'status': 'error', 'error': 'no move of the proposal was named: call moves_propose and pass the ids the person accepted'}, []
+    named = list(moves or [])
+    chosen = [drawn[i] for i in named if i in drawn]
+    return _not_chosen(named, drawn, chosen), chosen
+
+
+def _not_chosen(named, drawn, chosen):
+    """Why the moves named cannot start: an id no longer proposed (an id names its two places, never another move),
+    none named, or one the tool cannot make; else None."""
+    if (gone := [i for i in named if i not in drawn]):
+        return {'status': 'error', 'error': f"no longer proposed: {', '.join(gone[:5])}; call moves_propose again"}
+    if not chosen: return {'status': 'error', 'error': 'no move of the proposal was named: call moves_propose and pass the ids the person accepted'}
     if (cannot := [m['id'] for m in chosen if m['refused']]):
-        return {'status': 'error', 'error': f"these moves cannot be made: {', '.join(cannot)} (see `refused` in moves_propose)"}, []
-    return None, chosen
+        return {'status': 'error', 'error': f"these moves cannot be made: {', '.join(cannot)} (see `refused` in moves_propose)"}
+    return None
 
 
 def _not_now(state):

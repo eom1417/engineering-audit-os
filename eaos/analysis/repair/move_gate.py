@@ -8,7 +8,11 @@
                                   pytest -rA, TAP, jest and vitest), else the counts it printed
     test_differences(...)         each test not back with its name and result, each check whose exit changed
 
-A move changes no behaviour: any difference refuses the batch whole (journeys/fix/move_batch.py)."""
+A move changes no behaviour: any difference refuses the batch whole (journeys/fix/move_batch.py).
+
+Its limit: the surface is read inside the repository. The names each file exposes are compared through the moves, so a
+module of a published package that moves keeps its names under a new import path, and whoever imports the old path
+from outside the repository is not seen (PUBLISHED says so in the proposal)."""
 import ast
 import json
 import re
@@ -19,6 +23,9 @@ from pathlib import Path, PurePosixPath
 
 from .move_python import dotted
 
+PUBLISHED = ('This project publishes a package (pyproject [project] or package.json without "private"): a moved module '
+             'keeps its names under a new import path, and code outside this repository that imports the old path breaks. '
+             'The gate reads this repository only.')
 SURFACES = ('http', 'page', 'cli', 'graphql', 'rpc', 'websocket', 'job', 'event')
 JS_EXPORT = re.compile(r'^\s*export\s+(?:default\s+(?:async\s+)?(?:function|class)?\s*(\w+)?|(?:declare\s+)?(?:async\s+)?'
                        r'(?:function\*?|class|const|let|var|type|interface|enum|abstract\s+class)\s+(\w+)|\{([^}]*)\}|\*\s+as\s+(\w+))', re.M)
@@ -96,6 +103,15 @@ def _normal(path):
         if part == '..' and parts: parts.pop()
         elif part not in ('.', ''): parts.append(part)
     return '/'.join(parts)
+
+
+def published(root, known):
+    """Whether the project publishes a package others import: pyproject's [project], or a package.json not private."""
+    for path in (p for p in known if PurePosixPath(p).name in ('pyproject.toml', 'package.json')):
+        text = _text(root, path) or ''
+        if path.endswith('.toml') and re.search(r'(?m)^\[project\]', text): return True
+        if path.endswith('.json') and '"name"' in text and not re.search(r'"private"\s*:\s*true', text): return True
+    return False
 
 
 def exports(root, known):
@@ -221,13 +237,16 @@ def _starts(name, old):
 
 
 def test_differences(before, after, mapping):
-    """Each check whose exit changed and each test not back with its name and result; rows: [{argv, exit, output}]."""
+    """Each check that ran before and not after, each whose exit changed, and each test not back with its name and
+    result (a suite that found no test after counts as every test lost); rows: [{argv, exit, output}]."""
     names = renamed_tests(mapping)
-    was = {tuple(row['argv']): row for row in before}
+    now = {tuple(row['argv']): row for row in after}
     out = []
-    for row in after:
-        old = was.get(tuple(row['argv']))
-        if old is None: continue
+    for old in before:
+        row = now.get(tuple(old['argv']))
+        if row is None:
+            out.append(f"{' '.join(old['argv'])} ran before the moves and not after")
+            continue
         if old['exit'] != row['exit']: out.append(f"{' '.join(row['argv'])} exited {old['exit']} and now {row['exit']}")
         expected = Counter({(_translated(n, names), r): c for (n, r), c in test_results(old['output']).items()})
         got = test_results(row['output'])

@@ -58,3 +58,19 @@ class ContextBatchTests(unittest.TestCase):
                                           'number': 1, 'private_to': place})
             self.assertEqual(summary['kept'], [])
             self.assertTrue(summary['refused'][0].endswith(('outside the repository', "an assistant's own folder")), summary['refused'])
+
+    def test_a_trim_whose_archive_git_ignores_is_refused_and_what_is_committed_is_what_was_checked(self):
+        # Review of 2026-10-26: an ignored archive was written, checked in memory, never committed: the done items were
+        # lost from the delivered branch.
+        (self.project / '.gitignore').write_text('archive/\n')
+        git(self.project, 'add', '-A')
+        git(self.project, 'commit', '-qm', 'ignore the archive')
+        runtime = project_state.runtime_of(project_state.load(self.project))
+        (runtime / 'authorization.json').write_text(json.dumps({'commit': git(self.project, 'rev-parse', 'HEAD')}))
+        summary = context_batch.make({'target': self.project, 'runtime': runtime, 'number': 1})
+        self.assertEqual(summary['kept'], [])
+        self.assertIn('archive/CONTEXT-DONE.md is ignored by git', summary['refused'][0])
+        self.assertIn("git's own folder", context_batch.private_problem('.git/notes.md'))
+        root = Path(summary['root'])
+        (root / 'AGENTS.md').write_text('changed after the commit\n')
+        self.assertEqual(context_batch._not_committed(root, ['AGENTS.md', 'GEMINI.md']), ['AGENTS.md'])

@@ -31,3 +31,10 @@ class BornTidyTests(Workspace):
                          'the change that added the family is held for it')
         self.assertEqual(tidy(built, built, list(FAMILY)), [], 'a finding the project already had is not the change\'s')
         self.assertEqual(tidy(None, built, ['src/main.py']), [], 'a change elsewhere is not held for it')
+
+    def test_a_check_older_than_the_repository_reading_holds_nothing_against_a_change(self):
+        # Review of 2026-10-26: with no repository facts before, every finding at a changed path looked new.
+        built = self.facts('built', {**APP, **FAMILY})
+        older = self.facts('older', APP)
+        (older / 'facts/repository.json').unlink()
+        self.assertEqual(tidy(older, built, list(FAMILY)), [])

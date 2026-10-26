@@ -61,7 +61,9 @@ def debt(before, after, paths, dead=True, had=None):
 def tidy(before, after, paths):
     """The repository findings of `after` (eaos/facts/repository/) at one of `paths` or a folder holding one, that
     `before` did not have: a crowded folder the change filled, a test it put where the code's layout is not, a context
-    file it made heavier."""
+    file it made heavier. A `before` check that did not read the repository (older than M7.8) holds nothing against it:
+    every finding would look new."""
+    if before and not (Path(before) / 'facts/repository.json').is_file(): return []     # a check older than M7.8 read none
     paths = set(paths)
     rows = lambda folder: {(f['value']['rule'], f['value']['path']): {
         'gate': 'tidy', 'where': f['value']['path'], 'what': f"{f['value']['en']}: {f['value']['fix_en']}"}

@@ -11,6 +11,7 @@ from shared_fixture import Workspace
 
 from analysis.test_moves import FAMILY, SHOP
 from eaos.facts.run import collect
+from eaos.analysis.repair import move_gate
 from eaos.journeys.fix import move_batch
 
 DYNAMIC = ('\n\nclass Dynamic(unittest.TestCase):\n    def test_by_name(self):\n        import importlib\n'
@@ -21,11 +22,13 @@ def git(root, *argv):
     return subprocess.run(['git', '-C', str(root), *argv], check=True, capture_output=True, text=True).stdout.strip()
 
 
-def unittest_checks(root, runtime, name):
-    """The project's checks as the gate runs them: here its unittest suite, each test named."""
+def unittest_checks(root, runtime, name, checks=None):
+    """The project's checks as the gate runs them: here its unittest suite, each test named; like a real run, it leaves
+    a file behind (coverage.out) that is not the project's."""
+    (Path(root) / 'coverage.out').write_text(name)
     done = subprocess.run([sys.executable, '-m', 'unittest', 'discover', '-s', 'tests', '-v'], cwd=root, capture_output=True,
                           text=True, env={**os.environ, 'PYTHONDONTWRITEBYTECODE': '1'})
-    return [{'argv': ['python', '-m', 'unittest'], 'exit': done.returncode, 'output': done.stdout + done.stderr}]
+    return [{'argv': ['python', '-m', 'unittest'], 'at_root': True, 'exit': done.returncode, 'output': done.stdout + done.stderr}]
 
 
 class MoveBatchTests(Workspace):
@@ -54,6 +57,16 @@ class MoveBatchTests(Workspace):
         self.assertEqual((summary['kept'], summary['refused'], summary['branch']), (['shop/pipeline_run.py', 'shop/pipeline_load.py'], [], 'eaos/moves-1'))
         self.assertTrue((Path(summary['root']) / 'shop/pipeline/run.py').is_file())
         self.assertEqual(git(root, 'status', '--porcelain'), '', "the person's project is never written")
+        self.assertNotIn('coverage.out', git(Path(summary['root']), 'show', '--name-only', '--format=', 'HEAD').split(),
+                         'what a run left in the copy never lands on the branch')
+
+    def test_tests_the_moves_take_out_of_reach_refuse_the_batch(self):
+        # Review of 2026-10-26: tests/test_x.py moved into tests/<folder>/ (the tests-flat proposal) left unittest with no
+        # test to run, no command was built after, and the gate passed with zero tests.
+        root = self.project(SHOP)
+        summary = self.make(root, [{'from': 'tests/test_shop.py', 'to': 'tests/shop/test_shop.py'}])
+        self.assertEqual(summary['kept'], [])
+        self.assertIn('test_shop.T.test_go: passed before, not after', ' '.join(summary['refused']).replace('shop.test_shop', 'test_shop'))
 
     def test_a_batch_that_breaks_what_the_tool_cannot_see_is_refused_whole_with_the_test_that_says_so(self):
         root = self.project({**SHOP, 'tests/test_shop.py': SHOP['tests/test_shop.py'] + DYNAMIC})
@@ -79,4 +92,11 @@ class MoveBatchTests(Workspace):
         self.assertEqual(family['shop/pipeline_run.py'], 'shop/pipeline/run.py')
         self.assertEqual(family['shop/pipeline_step2.py'], 'shop/pipeline/step2.py')
         self.assertIn('shop/', drawn['tree'])
+        self.assertEqual({m['id'] for m in drawn['moves']}, {move_batch.move_id(m) for m in drawn['moves']}, 'an id names its two places')
+        self.assertEqual(drawn['limits'], [], 'a project that publishes no package')
+        from eaos.journeys.agent_tools.tidying import _not_chosen
+        rows = {m['id']: m for m in drawn['moves']}
+        self.assertIn('no longer proposed', _not_chosen(['MOVE-gone'], rows, [])['error'])
+        (root / 'pyproject.toml').write_text('[project]\nname = "shop"\n')
+        self.assertEqual(move_batch.proposal(report, root)['limits'], [move_gate.PUBLISHED])
         self.assertTrue(any(line.startswith('  pipeline_load.py  →  shop/pipeline/load.py') for line in drawn['tree']))

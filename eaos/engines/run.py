@@ -127,6 +127,7 @@ def analyze(target, workdir, exclude=(), only=None, formats=None, keep=False):
     reports = _run_all(selected, target, workdir, exclude, formats)
     after = state_digest(target)
     if keep: selected, reports = _with_kept(workdir, selected, reports)
+    findings, justified = _split(selected, reports)
     manifest = {
         'contract_version': 1,
         'generated_at': datetime.now(timezone.utc).isoformat(timespec='seconds'),
@@ -134,8 +135,7 @@ def analyze(target, workdir, exclude=(), only=None, formats=None, keep=False):
         'requested': selected, 'unknown_engines': unknown,
         'target_unchanged': before == after, 'target_digest': before,
         'engines': reports,
-        'findings': sorted((item for name in selected for item in reports[name].get('findings', [])),
-                     key=lambda row: (row['engine'], row['id'])),
+        'findings': findings, 'justified': justified,
         'coverage': {name: {'status': reports[name]['status'], 'reason': reports[name].get('reason', ''),
                             'version': reports[name].get('version'),
                             'evaluated_kinds': reports[name].get('evaluated_kinds', []),
@@ -145,9 +145,16 @@ def analyze(target, workdir, exclude=(), only=None, formats=None, keep=False):
                   'finding enters as heuristic evidence and needs corroboration or a probe to rise above it.'}
     # On disk each finding once, under its engine (the list above repeats them for the caller): compact, read back
     # by _with_kept; the facts carry them on (facts/external.json).
-    on_disk = {key: value for key, value in manifest.items() if key != 'findings'}
+    on_disk = {key: value for key, value in manifest.items() if key not in ('findings', 'justified')}
     (workdir / 'engines.json').write_text(json.dumps(on_disk, ensure_ascii=False, separators=(',', ':')), encoding='utf-8')
     return manifest
+
+
+def _split(selected, reports):
+    """(the findings, the findings the project justified on their line): every engine's, in one order. A justified one is
+    reported apart, never as a defect, and still read by the gates (eaos/engines/sarif.py)."""
+    every = sorted((item for name in selected for item in reports[name].get('findings', [])), key=lambda row: (row['engine'], row['id']))
+    return [f for f in every if not f.get('justified')], [f for f in every if f.get('justified')]
 
 
 def _selected(only):
