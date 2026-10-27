@@ -53,14 +53,15 @@ class ScenarioTest(unittest.TestCase):
         self.assertEqual(json.loads((self.report / 'experience/scenario.json').read_text()), made)
 
     def test_bad_references_unknown_roles_and_cycles_are_repaired(self):
-        bad = json.loads(json.dumps(GOOD))
-        bad['personas'][0]['role'] = 'wizard'
+        unknown = json.loads(json.dumps(GOOD))
+        unknown['personas'][0]['role'] = 'wizard'
+        self.assertEqual(scenario.checked(unknown, ['customer', 'admin'])['personas'][0]['role'], 'visitor')
+        bad = json.loads(json.dumps(GOOD))      # signed in: a visitor's goal would gate nothing, and no circle would close
         bad['personas'][0]['goals'][0]['waits_for'] = ['buyer.receive', 'nobody.nothing', 'buyer.order']
         bad['personas'][1]['goals'].append({'id': 'Approve', 'goal': 'again', 'waits_for': []})
         bad['handoffs'].append({'from': 'ghost.walk', 'to': 'admin.approve', 'event': 'x'})
         made = scenario.checked(bad, ['customer', 'admin'])
         buyer, admin = made['personas']
-        self.assertEqual(buyer['role'], 'visitor')
         self.assertEqual([g['id'] for g in admin['goals']], ['approve', 'approve-2'])
         names = {f"{p['id']}.{g['id']}": g['waits_for'] for p in made['personas'] for g in p['goals']}
         self.assertNotIn('nobody.nothing', names['buyer.order'])
