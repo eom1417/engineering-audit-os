@@ -50,7 +50,7 @@ class SupabaseAccessDetectionTests(unittest.TestCase):
         self.assertEqual(records[('storage', 'storage')]['target'], 'avatars')
         [(_, _, auth)] = supabase_access.extract_calls('await supabase.auth.signOut();')
         self.assertEqual((auth['operation'], auth['target'], auth['symbol']), ('signOut', 'auth', 'auth'))
-        # `context.supabase.from(...)` is the real-world shape used by finance-os; lines are one-based.
+        # `context.supabase.from(...)` is the real-world shape of a real finance app; lines are one-based.
         [(_, line, prop)] = supabase_access.extract_calls('const x = 1;\nawait context.supabase.from("movements").insert({});')
         self.assertEqual((line, prop['target'], prop['operation']), (2, 'movements', 'insert'))
         written = [r for _, _, r in supabase_access.extract_calls(

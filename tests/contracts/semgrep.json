@@ -1,7 +1,7 @@
 {
  "engine": "semgrep",
  "pinned_version": "1.178.0",
- "captured_from": "semgrep scan --config rules --sarif finance-os (EAOS rules + official security/secrets at a84ff9c), one result per rule, ids and paths normalised",
+ "captured_from": "semgrep scan --config rules --sarif on a real finance app (EAOS rules + official security/secrets at a84ff9c), one result per rule, ids and paths normalised",
  "semgrep.sarif": {
   "version": "2.1.0",
   "runs": [

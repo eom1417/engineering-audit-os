@@ -1,8 +1,7 @@
 # EAOS architecture
 
 Where everything lives, what may depend on what, and how a check flows. **Before adding a file, find its place in
-section 4.** Sections 1-2 are the layout and its rule (M3.1); section 3 is the target of M4 (`ROADMAP.md`); this page
-is updated in the same change that moves anything.
+section 4.** This page is updated in the same change that moves anything (`docs/STANDARDS.md` §8).
 
 ## 1. The layout
 
@@ -13,52 +12,61 @@ Ten layers, each a folder of `eaos/`; inside a layer, one folder per job, each o
 ```
 engineering-audit-os/
   eaos/                    the Python package (only __init__.py and __main__.py at its root)
-    interfaces/            thin doors, all calling the same journeys: cli.py (the `eaos` command), menu.py (`/eaos` alone),
+    interfaces/            thin doors, all calling the same journeys: cli.py (the `eaos` command) with
+                           command_groups.py, menu.py (`/eaos` alone), deep_checks.py (`eaos logic-flaws`),
                            govern.py with govern_words.py (the governance core the terminal, MCP and the Studio share)
       terminal/            the terminal's governance commands and its branch commands
-      mcp_server/          `eaos mcp`: the server and its tools (build, fix, govern, the AI nodes as jobs)
+      mcp_server/          `eaos mcp`: the server and its tools (build, fix, govern, the AI nodes as jobs) and
+                           studio_parity.py (every Studio route has a tool or a written reason)
       studio_server/       the Studio's local server: the guard, the read API, the live stream, the built Studio
       studio_actions/      the Studio's actions (docs/studio-actions.json): runs, chat, lanes; branches/ its branch control
     journeys/              the person's journeys: check.py, check_choices.py, extend.py, handover.py, catalog.py
-      fix/                 fixing in batches: selection, execute (the sandbox and the gates), lanes, regenerate, finish;
-                           waves/ a batch fixed at once and handed over as a branch
+      fix/                 fixing in batches: selection, execute (the sandbox and the gates), lanes, regenerate, finish,
+                           the move and context batches; waves/ a batch fixed at once and handed over as a branch
       build_from_plan/     build from a plan: the blueprint, the assistant's steps, the checks and the look
       agent_tools/         what an assistant does EAOS with (the tools behind MCP)
       guided/              the guided way in: `eaos start`, `next`, `status`, `doctor`, `clean`
     pipeline/              the check: stages.py and loops.py (declared as data), path_choice, run, stage_run, schedule,
                            rounds, coverage, estimate, remedies (what EAOS does about a stage that did not run)
-      runners/             each stage's runner: by_rules, by_assistant, pages, live_app, sign_in, layers_live
+      runners/             each stage's runner: by_rules, by_assistant, pages, live_app, sign_in, layers_live, experience
     report/                what people read: views.py (every view agrees with the ledger)
       documents/           START-HERE, the four reports, RUN.md, the layers for people
       target_architecture/ TARGET-ARCHITECTURE: the picture, its decisions, gaps, reconciliation, ADRs
       blueprint/           the blueprint of a project built from its plan: design, spec, view
       human_report/        REPORT.html, one self-contained page in both languages
+      experience/          EXPERIENCE.md: the simulated users' story, told from their records
       studio/              the data the Studio reads; user_journeys/ (the app's screens and the links between them),
                            paths/ (the code paths through their layers)
     ai/                    the person's assistant: ask.py (answers from the records), semantic.py (the model's layer)
-      assistant/           its adapters (Claude Code, Codex), headless runs and events, readiness, prompts, setup
+      assistant/           its adapters (Claude Code, Codex), headless runs and events, readiness, prompts, setup,
+                           tiers.py (the model each stage asks)
       ideal/               the ideal, planned with a model on top of the rules
       nodes/               the AI nodes of the pipeline, declared as data, on framework.py (triage, plan orderer, ...)
     analysis/              judging by rules (nothing at the root but __init__.py)
       understanding/       what the program is: features, aspects, measurements, the dossier, the owner's intake and
                            engagement, the bounded source the model reads
-      claims/              one ledger of everything asserted: claims from facts, records and layers, probes, correlation
+      claims/              one ledger of everything asserted: claims from facts, records, layers, the repository, the
+                           experience and the logic-flaw hunt; probes, correlation
       assessments/         ready judgements per kind of finding: dead code, dependencies, mechanical, policy, weaknesses,
                            the debt register
-      layers/              the whole system in layers (M6): placement, boundaries, browser, endpoints, guards, data,
+      layers/              the whole system in layers: placement, boundaries, browser, endpoints, guards, data,
                            the rules split, operations
+      experience/          the simulated users' plan: the scenario, the domain data, the simulation, the judging
+      logic_flaws/         the optional logic-flaw hunt: the brief and prompts, the grounding and the record
       maps/                the maps people read: architecture, system, pipeline, C4, impact, and their layout
       target_state/        where the project should be: references, projection, repair or rebuild, transform,
                            sustainability, the declared policy, the look
       readiness/           production readiness and the load model
       planning/            the plan: cards, order, documents, the plan the person brings, the roadmap, ranking
-      repair/              how a card is fixed and proven: remediation, codemods, gates, finish line, acceptance, review
+      repair/              how a card is fixed and proven: remediation, codemods, the move tool and its gate, the
+                           context trim, gates, finish line, acceptance, review
       presentation/        the one model of a report and the counts every view shows
     live/                  the app running in its isolated copy: agent.py (the one browser agent)
       isolation/           the sandbox: run only with consent, without secrets, seeing its own disk
       app/                 starting the app: detect its stack (detect.py JavaScript, detect_python.py), set it up, run it
       access/              signing in: the session, test accounts and users, each kind of user's views
-      behavior/            the behaviour lock: specs written before any change, each pass read
+      behavior/            the behaviour lock: specs written before any change, each pass read, intended changes
+      experience/          the simulated users on the copy: actors, the cast, hand-offs, support, replays, seeded data
       screens/             finding and picturing the screens, and judging them
       trials/              trials on the running app: its API, its data rules, its load
       testing/             the project's own tests: what they touch and how healthy they are
@@ -70,28 +78,32 @@ engineering-audit-os/
       declared_pipelines/  pipelines a project declares (its Python code and frameworks, LangGraph, build files, queues)
       dead_code/           what no user can reach and nothing reads, and the registries that keep a name alive
       duplication/         fingerprints, repeated sequences, redundant work
+      repository/          the repository as an engineer and an assistant read it: its layout and its assistants' context
       runtime/             services, configuration files, how each file bounds its load
       domain/              constants, data models, rules and module state
       defects/             broken code, leftover files, committed credentials
-    engines/               one adapter per external analyzer, named after its tool, flat by design, beside what they
-                           share (contract, tool, process, sarif, openapi); the registry is eaos/data/toolchain.json
+    engines/               one adapter per external analyzer, named after its tool, in security/, api/ and code/,
+                           beside what they share at the root (contract, tool, process, run, sarif); the registry is
+                           eaos/data/toolchain.json
     core/                  what every layer reads; it imports nothing of EAOS
       project/             a project's records: places, state, runs, ledger, jobs, branches, workspace, repo context
-      contracts/           artifacts, documents, decisions, check paths, the code laws, the owner's share
+      contracts/           artifacts, documents, decisions, check paths, the code laws, the owner's share, untrusted text
       language/            the words in both languages, plain words, a person's intents, the language check
       system/              processes, resources, the web, a local database, the version, usage, the Studio's launch
                            and who may talk to it
       toolchain/           every external tool at its pinned version, and the catalog the assistant adds to
       progress/            the progress of every long piece of work
     data/ rules/ templates/   contracts, words, catalogs, the built Studio; engine rules; scripts the app runs
-  console/                 the Studio UI (JS, esbuild; built into eaos/data/studio)
+  console/                 the Studio UI (plain JavaScript, bundled by esbuild into eaos/data/studio; console/README.md)
   tests/                   the unittest suite, one folder per layer it proves (guards/ for the whole), fixtures/,
                            contracts/ (engines' pinned outputs), and the two helpers every test shares
   tools/                   developer tools: quality (every code law) with code_limits, golden_trial with
-                           detection_baseline, corpus, metrics, validate, dev_setup and dev_paths, the contracts'
-                           makers (make_contracts, contracts_*), the Studio's synthetic data, upstream_check
-  upstreams/               the licences of the pinned external tools
-  docs/                    this page and the other references; archive/ the done history
+                           detection_baseline, corpus, metrics, validate, dev_setup and dev_paths, platform_assets,
+                           upstream_check; the proofs with the real assistant (fix, journeys, tidy, experience); the
+                           contracts' makers (make_contracts, contracts_*, contract_shapes), the Studio's synthetic data,
+                           the progress checks, translation_seed
+  upstreams/               the licences of the pinned external tools (THIRD_PARTY_NOTICES.md)
+  docs/                    this page and the other references
 ```
 
 A folder is never named after what EAOS skips or calls a build output in a project it reads (`build`, `dist`,
@@ -111,11 +123,10 @@ contract in `pyproject.toml`, run by `tools/quality.sh`; since M3.1 with no exce
   the rules' findings (triage, the strict judge of M7.4) and their verdicts come back as data.
 - `report` renders the analysis and the assistant's verdicts; it computes nothing of its own.
 - `pipeline` runs the stages, `journeys` combine the pipeline with the person's steps, `interfaces` stay thin.
-- The order was one line, not groups of peers (the plan of M-1): on today's code reports read the analysis and the
-  assistant reads both, so groups that never import each other would have needed a rewrite, where one order needed
-  five moves of code (M3.1).
+- The order is one line, not groups of peers: reports read the analysis and the assistant reads both, so groups that
+  never import each other would have needed a rewrite, where one order needed five moves of code (M3.1).
 
-## 3. The pipeline as loops (M4)
+## 3. The pipeline as loops
 
 Stages stay declared as data (`eaos/pipeline/stages.py`: what each needs, produces, reads). Each stage belongs to a
 loop; a loop runs until its exit condition holds or its rounds are spent, then acts as declared. Reordering the
@@ -125,7 +136,7 @@ pipeline, or turning a step into a loop, is a change of data, never of code.
 Loop(name, stages, needs=(...), max_rounds=N, on_fail='explain' | 'escalate' | 'stop', switch='<check path>')
 ```
 
-`eaos/pipeline/loops.py` is the declaration (M4.1): every stage of `stages.py` in one loop, the stages' order the loops'
+`eaos/pipeline/loops.py` is the declaration: every stage of `stages.py` in one loop, the stages' order the loops'
 order. A loop's exit: `met` (every stage ok or absent with its reason), `explained` (a stage of `needs` absent with its
 reason) or `not_met` (a stage broke). Not met, it runs its broken stages again while its rounds last
 (`pipeline/rounds.py`), hiding what it broke from the other loops until then; then `explain`, `escalate` or `stop`.
@@ -143,17 +154,17 @@ stages' real dependencies:
 | plan | order, steps | steps; 1; explain |
 | hand_over | reports, translate | reports; 1; escalate |
 
-The target loops of the North Star, which these grow into:
+The loops of the North Star (`docs/NORTH-STAR.md`), which the check's loops and the fix journey serve:
 
 | Loop | Stages (today's names) | Exit condition |
 |---|---|---|
 | L1 Understand | facts, features, intake, policy, engines | facts complete; coverage ledger written |
 | L2 Run and see | setup, session, crawl, screens, journeys, lock, record | expected screens pictured, or the AI explorer tried, or a failure explained |
-| L2b Try as a user (optional, M10) | replay of saved journeys (always); scenario, data, actors, tickets (short or full simulation) | replays green or their breaks shown; each persona reached its goals or its difficulties recorded with evidence |
+| L2b Try as a user (optional) | replay of saved journeys (always); scenario, data, actors, tickets (short or full simulation) | replays green or their breaks shown; each persona reached its goals or its difficulties recorded with evidence |
 | L3 Judge | claims, probe, triage, weaknesses, visual, the simulation's difficulties | every finding confirmed / needs validation / rejected, with evidence |
 | L4 Envision | semantic, ideal, target, reconcile, estimate | ideal picture; repair-or-rebuild decision with its estimate |
 | L5 Plan | plan, order, cards, steps | every card has an acceptance check and a place in the order |
-| L6 Fix | fix batches (~15 cards) | every card fixed, or left with its reason |
+| L6 Fix | fix batches (ten cards each, `journeys/fix/selection.py`) | every card fixed, or left with its reason |
 | L7 Hand over | handover, report | one clear report; a branch waiting for the owner's decision |
 
 Every loop writes its part of the **coverage ledger** (`pipeline/coverage.py`, `coverage` in the checkpoint and the
@@ -167,10 +178,10 @@ for a reason the person did not choose) shows in red at the top of START-HERE.md
 | any new module | the folder whose `__init__.py` docstring names its job (section 1); none fits: a new folder with its one-line docstring, once it holds two modules or more |
 | something every layer reads (a contract, a path, a word, the store) | `core/` (`project/`, `contracts/`, `language/`, `system/`, `toolchain/`, `progress/`): it imports nothing of EAOS |
 | a read of an http(s) address | `core/system/web.py` `opened`: http and https only (urllib also opens `file://`) |
-| a rule that reads source and produces facts | `facts/<its folder>` (`code/`, `pipelines/`, `deadcode/`, `duplication/`, `runtime/`, `domain/`, `defects/`); a framework's detector in `facts/frameworks/` |
+| a rule that reads source and produces facts | `facts/<its folder>` (`code/`, `declared_pipelines/`, `dead_code/`, `duplication/`, `repository/`, `runtime/`, `domain/`, `defects/`); a framework's detector in `facts/frameworks/` |
 | a rule of the system's layers (a boundary, an endpoint's guard, a data rule, what ships to the browser) | `analysis/layers/`: its sentence, boundary, severity and fix in `catalog.py`, its check in the module of its boundary; findings become cards through `analysis/claims/from_layers.py` |
 | trying a layer on the running app or a database of the run's own | `live/trials/data.py` (migrations, Supabase advisors, pgTAP), `live/trials/api.py` (Schemathesis); the stage that joins them is `pipeline/runners/layers_live.py` |
-| an adapter for an external tool | `engines/<name>.py` + its entry in `eaos/data/toolchain.json` (`check: engines`) |
+| an adapter for an external tool | `engines/<kind>/<name>.py` (`security/`, `api/`, `code/`) + its entry in `eaos/data/toolchain.json` (`check: engines`) |
 | running the app, signing in, finding screens | `live/`: how a stack starts in `live/app/detect.py` (JavaScript, static sites) or `live/app/detect_python.py`; the test account by rules in `live/access/test_account.py`; `live/screens/` for the crawl, the audit and the pages files name (`file_routes.py`) |
 | driving the browser for a goal, recording, replaying | `live/agent.py` with `templates/screens/agent.mjs` (the one browser-agent layer, M5.2): the assistant is passed in, never imported |
 | judging findings by rules, cards, plan, estimates | `analysis/<its folder>`: a claim in `claims/`, a ready judgement in `assessments/`, the plan in `planning/`, how a card is fixed in `repair/` |
@@ -185,7 +196,7 @@ for a reason the person did not choose) shows in red at the top of START-HERE.md
 | a CLI command, MCP tool, API route or Studio action | `interfaces/`: thin, calling a journey |
 | a word naming a concept (a stage, a path, a kind of problem) | `eaos/data/words.json`, every form beside the others; the engine reads it through `core/language/words.py`, the Studio's build makes its keys from it |
 | a sentence composed with values | beside the code that composes it, Arabic and English together |
-| a Studio screen | `console/src/places/<place>/` (only core places; see `ROADMAP.md` M8) |
+| a Studio screen | `console/src/places/<place>/`, one of the places `console/README.md` lists |
 | a test | `tests/<layer>/test_<what it proves>.py`, beside the tests of the layer it proves (a guard of the whole in `tests/guards/`), one test per real behaviour |
 | a developer tool | `tools/` |
 | scratch of a task | a folder outside the repository, removed when the task ends: never in the repository |
@@ -201,12 +212,14 @@ for a reason the person did not choose) shows in red at the top of START-HERE.md
 
 ## 6. Outputs (what a check leaves)
 
-- `output/<project>/REPORT.html`: the one page people read; beside it eight documents: `START-HERE.md`, the four reports
-  (`CURRENT-STATE.md`, `TARGET-STATE.md`, `GAP-AND-STRATEGY.md`, `EXECUTION-PLAN.md`), `TARGET-ARCHITECTURE.md`, `RUN.md`
-  and the index `README.md`; plus `PLAN/` (STEPS, WAVES, one TASK card each) and `adr/`, which assistants read when
-  fixing cards (M1.4: the other 19 Markdown renderings removed; their records stay).
+- `~/EAOS/<project>/REPORT.html` (`core/project/places.py`; `EAOS_OUTPUT` moves it): the one page people read; beside
+  it eight documents: `START-HERE.md`, the four reports (`CURRENT-STATE.md`, `TARGET-STATE.md`, `GAP-AND-STRATEGY.md`,
+  `EXECUTION-PLAN.md`), `TARGET-ARCHITECTURE.md`, `RUN.md` and the index `README.md`; `EXPERIENCE.md` when the
+  simulated users ran; plus `PLAN/` (STEPS, WAVES, one TASK card each) and `adr/`, which assistants read when fixing
+  cards (M1.4: the other 19 Markdown renderings removed; their records stay). The contract of each:
+  `core/contracts/artifacts.py`.
 - `technical/layers.json`: the system in layers (M6), what START-HERE's layers section and REPORT.html's (shown in the
   Studio's report page) read; its findings are also the `boundaries` fact set the claims make cards of.
 - `technical/`: records later stages and the Studio read. Caches never live here (M1.2). A run removes the documents
   a check no longer writes (`eaos/pipeline/run.py` RETIRED).
-- `runtime/` in EAOS's home: working copies, caches, batch copies, bounded by a retention rule (M1.1).
+- `runtime/` in the project's folder of EAOS's home (`~/.eaos/projects/<project>-<id>/`): working copies, caches, batch copies, bounded by a retention rule (M1.1).

@@ -12,9 +12,10 @@ instead of chased later.
 ## The way
 
 The person writes to their assistant: "I have my project's plan in this file, build it with EAOS with the best
-structure". Or, from the Studio: **"Build from a plan"** in the assistant's panel, with the new project's name, the
-plan's files and pictures of its screens (or pasted text); the blueprint is drawn in a new folder beside the project
-(`POST /api/plan`, `eaos/interfaces/studio_actions/plan.py`), and the build starts once the person agrees.
+structure". Or, in the Studio's Activity, the **Build from a plan** group: **Read a plan to build**, then **Build the
+whole product**. Given the new project's name, the plan's files and pictures of its screens (or pasted text), the
+blueprint is drawn in a new folder beside the project (`POST /api/plan`, `eaos/interfaces/studio_actions/plan.py`), and
+the build starts once the person agrees.
 
 | # | Tool | What happens |
 | --- | --- | --- |
@@ -23,14 +24,14 @@ plan's files and pictures of its screens (or pasted text); the blueprint is draw
 | 3 | `blueprint_design` | The stack (the person's choice, else the recommendation), the target structure, the layer rules, and the build plan in milestones and cards |
 | 4 | `build_start` | One agreement, then the first milestone in an isolated copy. The blueprint and its rules enter the project itself (`eaos.policy.json` and `docs/blueprint/`) |
 | 5 | `build_edit` | The assistant writes card by card; a card is kept only if it passes the gates, security among them (Bandit and Gitleaks on every card, CodeQL when a milestone closes, where it may run) |
-| 6 | `build_finish` | The whole milestone's checks, then a branch `eaos/build-N` on top of the last one; a milestone with screens has them pictured and reviewed against DESIGN.md by the check's own stages (`facts`, `features`, `setup`, `screens`, `visual`, in `look/` beside the report), and what departs is fixed first in the next milestone. Then the next milestone with no new question |
+| 6 | `build_finish` | The whole milestone's checks, then a branch `eaos/build-N` on top of the last one; a milestone with screens has them pictured and reviewed against DESIGN.md by the check's own stages (`facts`, `features`, `setup`, `screens`, `visual`, in `look/` beside the report), and what departs is fixed first in the next milestone. Then the next milestone with no new question. A milestone refused three times in a row is handed over with what stays unproven, said in the answer, its record and the Studio's build plan, so the build never stalls |
 | 7 | `accept` | At the end the person decides: take the last branch (it holds every milestone) or throw it away |
 | 8 | `audit` | The acceptance check of the built project; once it is done the project goes on as "Check and fix" |
 
 **In the Studio** the build is a journey of its own (`eaos/data/journeys.json`): read the plan, the spec and the look,
 the blueprint, build milestone by milestone, the acceptance check. The live map draws each milestone as a stage and
-each card as its step (`eaos/journeys/catalog.py`), and the library's "The blueprint and the look" group shows BLUEPRINT.md and
-DESIGN.md before any check exists.
+each card as its step (`eaos/journeys/catalog.py`), and the Studio's library shows BLUEPRINT.md and DESIGN.md before
+any check exists.
 
 Wherever the blueprint was drawn (the Studio or the person's own assistant session), the Studio reads it from the
 blueprint folder (`eaos/report/studio/blueprint_plan.py`): the Plan page lists the milestones and each build card with its
@@ -97,8 +98,9 @@ of the code it changes, a build against nothing (everything found is the card's)
 | Copies | The same lines in more than one place (outside tests and configuration) |
 | Complexity and size | A function past the complexity limit, a module past the line limit |
 | Security | A weakness or an exposed secret: Bandit and Gitleaks on every card, CodeQL when a milestone closes, where it may run |
+| Tidiness | The repository's craft or its assistants' context made worse, so a project built or extended ends with no such finding |
 | Tests | A card without a test for its acceptance criteria |
-| Project checks | typecheck, lint and test |
+| Project checks | typecheck, lint and test; at the last milestone its browser journeys (e2e) too |
 | Dead code | At the last milestone: what nothing uses |
 
 A card that breaks a gate goes back to the assistant with the reasons; it fixes it and sends it again.
@@ -107,15 +109,16 @@ A card that breaks a gate goes back to the assistant with the reasons; it fixes 
 
 In the outputs folder (`~/EAOS/<project>/blueprint/`): `SOURCE.md` (the plan as read), `product-spec.json`,
 `stack.json`, `eaos.policy.json`, `plan.json`, and `BLUEPRINT.md` (the blueprint in words a person reads: the parts, the
-technologies with why and how to change them, the rules, and the order of the build). The target structure is
+technologies with why and how to change them, the rules, and the order of the build). `BLUEPRINT.html`, beside the
+outputs folder's `README.md`, shows the blueprint and the build's progress to the person. The target structure is
 `technical/target-architecture.json`, where a check keeps its own and in the same shape (its parts are the layers), so
 the report and the Studio draw both alike; the look is `DESIGN.md` beside it, where the screen review reads it.
 
 ## Extend a project
 
 A project already checked grows the same way: a feature, a page or a part, planned against what the project is, and
-built by the batches that fix it. From the Studio: **"Extend the project"** in the assistant's panel (the same form,
-without a name); or ask the assistant: "add this feature to my project with EAOS".
+built by the batches that fix it. In the Studio: **Read a feature's plan to add** in the same group (the same request
+with `mode` `extend`, without a name); or ask the assistant: "add this feature to my project with EAOS".
 
 | # | Tool | What happens |
 | --- | --- | --- |
@@ -124,18 +127,23 @@ without a name); or ask the assistant: "add this feature to my project with EAOS
 | 3 | `fix_start` … `fix_finish` | Once the person agrees, the cards are built as any fix, through every gate, and handed over as a branch the person takes in or not |
 | 4 | `audit` | The check goes on over the project as it is now; a card not built yet stays in the plan after it |
 
+**An intended change passes the behaviour lock.** The lock fails a change that alters a recorded screen's picture or
+words. A feature that changes existing screens on purpose declares them in its spec (`changes_screens`: the screens,
+and the words it adds); when it changes a file every page shows (a base layout or template), `extend_plan` declares
+every screen. On those
+screens only the declared addition passes; anything else still fails (`eaos/live/behavior/intended.py`). Once the
+batch is kept, the declared screens are recorded again, so the next card meets the new truth.
 
-## Measures
+## Measured
 
-| Measure | What it measures | Goal |
-| --- | --- | --- |
-| B1 | Plan formats read into their text | 1.0 |
-| B2 | Blueprint checks on the sample specs | 1.0 |
-| B3 | Projects built from a plan that an EAOS check finds clean | 1.0 |
-| B4 | Features of built plans that passed their gates with their tests | 1.0 |
+With the real assistant on a small Flask app of the compatibility corpus (`tools/journeys_proof.py`, version 0.0.83):
+building from a PRD reached the first milestone's proof gate in 338 seconds for $0.91, and adding a link to the
+navigation every page shows passed the behaviour lock in 120 seconds for $0.43. All measures are in
+[METRICS.md](METRICS.md).
 
 ## Limits
 
-The build lays out web products in TypeScript: React or Next.js on the web, optionally a Hono, Express or Fastify
-server, PostgreSQL, Supabase or SQLite for data, and Better Auth, Supabase Auth or Clerk for sign-in. Native mobile apps
-and other server languages are not laid out yet.
+The build lays out web products in TypeScript (`eaos/data/stacks.json`): React with Vite or Next.js on the web,
+optionally a Hono, Express or Fastify server, PostgreSQL (with Drizzle or Prisma), Supabase or SQLite for data, Better
+Auth, Supabase Auth or Clerk for sign-in, Tailwind CSS or CSS modules, and Vitest with Playwright for tests. Native
+mobile apps and other server languages are not laid out yet.

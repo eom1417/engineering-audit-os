@@ -24,15 +24,16 @@ before anything else; it binds over this file.
 
 - Least code, best result; one source of truth; clear and clean; nothing replaced is left behind; fix the cause, not
   the symptom, and never break what exists.
-- EAOS itself: module ≤ 400 lines and function complexity ≤ 10 with no exception in Python; the Studio's JavaScript
-  under the same laws, no exception (`console/tools/same.cjs` proves a split left every screen as it was); functions
-  ≤ 50 lines and ≤ 5 parameters, no listed exception: a function whose parameters cannot be grouped (a
-  tool mirroring its command, a record's constructor) says why on its `def` line, `# limits: parameters -- <why>`. The laws EAOS holds every project to stay 600 / 15
-  (`eaos/core/contracts/code_laws.py`). No dead code, no duplication, no medium or high security finding; layers per
+- EAOS itself: modules ≤ 400 lines and function complexity ≤ 10, no exception, in Python and in the Studio's
+  JavaScript (`console/tools/same.cjs` proves a split left every screen as it was); functions ≤ 50 lines and ≤ 5
+  parameters, none listed: a function whose parameters cannot be grouped (a tool mirroring its command, a record's
+  constructor) says why on its `def` line, `# limits: parameters -- <why>`. The laws EAOS holds every project to stay
+  600 / 15 (`eaos/core/contracts/code_laws.py`). No dead code, no duplication, no security finding; layers per
   `docs/ARCHITECTURE.md`.
 - **`tools/quality.sh`** checks every law in about a minute and refuses any number worse than recorded
-  (`tools/code_limits.json`, `tools/quality.json`, the layer contracts in `pyproject.toml`); `--record` after a number
-  went down, `python tools/code_limits.py --tighten` after a listed function or module shrank.
+  (`tools/code_limits.json`, `tools/quality.json`, the layers contract in `pyproject.toml`, EAOS's own repository
+  rules, ESLint on the Studio); `--record` after a number went down, `python tools/code_limits.py --tighten` after a
+  listed function or module shrank.
 - **The published tree holds only the product.** No machine detail (cores, memory, load, host names, internal
   addresses), no absolute path of a development machine, no personal e-mail, no name of a private project: a real
   incident is told by what it was, not by whose it was (`tests/guards/test_public_tree.py`). Secrets come from the
@@ -40,7 +41,8 @@ before anything else; it binds over this file.
 
 ## The flow
 
-`main` is the release line and is never committed to directly (git hooks refuse it); `develop` is where work lands.
+`main` is the release line and is never committed to directly (its branch protection and gate,
+`.github/workflows/main-gate.yml`, and the maintainers' git hooks refuse it); `develop` is where work lands.
 1. **Build on a new branch** `dev/<topic>` from `develop`.
 2. **Verify** there: the affected tests while working, then once before merging:
    ```bash
@@ -62,10 +64,9 @@ maintainers declare it.
 ## Tests
 
 `unittest`, one test per real behaviour, a fix adds a test only when it reproduces a real failure. Guards that always
-stay: `test_code_limits`, `test_studio_assets`, `test_golden_facts`, `test_consistency`, `test_artifact_contract`,
-`test_public_tree`, the golden trial (`tools/golden_trial.sh`, with the detection baseline of
-`tests/fixtures/baseline-app` and no layer finding on its clean twin `tests/fixtures/baseline-clean`), `test_layers`
-(every planted boundary defect found). `tests/guards/test_journey.py` is the fast end-to-end proof. A change to running
+stay: every test of `tests/guards/` (`tests/guards/test_journey.py` is the fast end-to-end proof), `test_layers`
+(every planted boundary defect found) and the golden trial (`tools/golden_trial.sh`, with the detection baseline of
+`tests/fixtures/baseline-app` and no layer finding on its clean twin `tests/fixtures/baseline-clean`). A change to running
 apps or finding screens also runs the compatibility corpus (`tools/corpus.py`, a background job of about an hour); a
 milestone end measures `docs/METRICS.md` with `tools/metrics.py`. The proofs with the real assistant, each spending money:
 `tools/fix_proof.py` (in the golden trial), `tools/journeys_proof.py` (the three journeys), `tools/tidy_proof.py`

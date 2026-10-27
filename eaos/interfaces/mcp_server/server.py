@@ -237,7 +237,7 @@ def _audit_tool(server, reading, working):
     """The check itself, with every choice the person makes for it."""
     from ...journeys import agent_tools as tools
 
-    @server.tool(annotations=working, description='Check the whole project (35 stages: files, features, tools, tests, structure, '
+    @server.tool(annotations=working, description='Check the whole project (40 stages: files, features, tools, tests, structure, '
                  'security, load, plan). Returns a job to follow with `wait`; when the project was already checked at this commit, '
                  'returns the overview at once, also when the code moved on since (it says so): fresh=true checks again from the '
                  'start, only when the person asks for a new check. A started check answers with `watch`, '
