@@ -1,5 +1,38 @@
 # Changelog
 
+## 0.0.82 (2026-10-27)
+
+M10, the user's full experience, simulated, and what M9's proofs found. Scanners find what a rule can name; the
+difficulties a person meets are seen only by trying the app as them, and M9's proofs found a lock that refused every
+intended change, a queue a question held, and move proposals that cost a reader more. Now:
+- **Simulated users** (M10.1-M10.8, built in a second lane and merged here): the scenario (personas, goals, hand-offs
+  as data) and the domain data (history seeded once into the run's own database, external services stubbed or said
+  as not covered); each persona drives the app's isolated copy within its budgets, every step with its picture; one
+  waits for the event another makes; a support desk answers or escalates tickets; each difficulty is met again by a
+  fresh persona, its evidence kept, ruled on by the strict judge, and a confirmed one becomes a fix card with its
+  steps to reproduce (its own words, `experience_difficulty`); the story in EXPERIENCE.md, the report page's fourth
+  part in the Studio, the CLI (`eaos experience`) and MCP. The app's text reaches every prompt as untrusted data;
+  only a copy on this computer is driven.
+- **The paths** (M10.9): "try the experience" as its own check path (`--path experience`); the short simulation as an
+  option of the complete check, off by default, its time and calls said before it starts; the saved journeys replayed
+  without AI in every full check as rows of the behaviour lock, in the scenario's order, a red replay shown like a
+  broken screen. The experience's assistant calls on their model tiers.
+- **M9.4**: the official Semgrep rules stay (EAOS is open source, each person runs it on their own code).
+- **M9.6**: the target shape's moves are drawn for the picture, never proposed (measured costing a reader 9-16% more
+  tokens for the same answers); a Python file is never sent to a folder no import can name. On four corpus apps the
+  proposal now moves nothing they do not need.
+- **M9.7**: the behaviour lock knows an intended change: a card declares the screens it changes and the words it adds
+  (the extend planner does it when a shared template changes); on those screens only the declared addition passes,
+  anything else still fails; the screens are recorded again after the batch is kept, apart from the lock's original.
+- **M9.8**: a Studio run waiting for the person's answer releases the project's slot; the answer goes on as soon as the
+  slot is free, before the queue.
+- **M9.9**: the logic-flaw hunt through MCP with its own agreement; an adapter that fails says its own reason (a reply
+  with braces in its prose was read wrong); the progress names a stage still running (next-dashboard's "stuck"
+  measuring was a sign-in waiting for the person).
+- Three independent reviews before the merge (28 defects), each fixed with its test: confirmed difficulties had never
+  become cards, the replays were never in the lock, a retry pointed at the wrong pictures, the lock's original
+  pictures were overwritten by a re-recording, saved journeys would be cleared before their replay on Python 3.10.
+
 ## 0.0.81 (2026-10-26)
 
 M9, intelligence, cost and the final proof. Every stage asked the person's strongest model, the ideal's critique wrote

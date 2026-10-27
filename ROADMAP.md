@@ -4,7 +4,7 @@ Where EAOS is going: from today's EAOS to the tool of `docs/NORTH-STAR.md`, a co
 command. The milestones run in this order; each ends with one version (`CHANGELOG.md` says what it changed and why)
 and its numbers in `docs/METRICS.md`. This page is updated at each milestone's end.
 
-## Done (version 0.0.81)
+## Done (version 0.0.82)
 
 | Milestone | What it delivered | Version |
 |---|---|---|
@@ -20,10 +20,9 @@ and its numbers in `docs/METRICS.md`. This page is updated at each milestone's e
 | M7 Reliable fixes and hand-over | a real batch proves a breaking fix is refused; the lock reads words; hand-overs survive the session; a strict judge; the repository and its assistants' context read as an engineer reads them | 0.0.79 |
 | M8 Interfaces and a tidy repository | everything the Studio does through MCP and the CLI; the Studio's Understand one report page; a move tool and its gate, the assistants' context trimmed safely, new projects born tidy; EAOS clean by its own laws and repository rules | 0.0.80 |
 | M9 Intelligence, cost and the final proof | model tiers per stage, a cheaper model never closing anything alone; logic-flaw hunting as an optional deep check; the three journeys proved end to end from the CLI and the Studio; the runtime 68 MB; the tidy measured (no move batch proved yet) | 0.0.81 |
+| M10 The user's full experience, simulated (and what M9's proofs found) | simulated users on the isolated copy (scenario, data, personas, hand-offs, support, a strict judge, fix cards with steps); the experience as a check path, a short option and free replays in every full check; the lock knowing an intended change; a queue never held by a question | 0.0.82 |
 
 ## Next
 
-| Milestone | Goal |
-|---|---|
-| M9, what its proofs found | moves that help a reader (measured), the behaviour lock knowing an intended change, a Studio queue never held by a question |
-| M10 The user's full experience, simulated | AI actors try the program as its users would, in the isolated copy; replays free in every full check |
+Every planned milestone is done; the next ones are set by the maintainers from what the checks of real projects
+show (`docs/METRICS.md`).
