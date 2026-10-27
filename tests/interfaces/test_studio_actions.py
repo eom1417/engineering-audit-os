@@ -113,6 +113,8 @@ class Contract(unittest.TestCase):
             self.assertTrue(action['label']['ar'] and action['label']['en'])
             self.assertEqual(action['needs_assistant'], action['mode'] == 'assistant')
         self.assertEqual({a['id'] for a in data['actions'] if a['irreversible']}, {'accept', 'undo'})
+        experience = next(a for a in data['actions'] if a['id'] == 'experience')
+        self.assertTrue(experience['description']['ar'] and experience['description']['en'], "the simulated users' action says what it does")
         self.assertEqual(set(data['lifecycle']['states']), {'queued', *store.ACTIVE, *store.TERMINAL})
         with tempfile.TemporaryDirectory() as folder, mock.patch.dict(os.environ, {'EAOS_HOME': folder}):
             project = Path(folder) / 'p'
