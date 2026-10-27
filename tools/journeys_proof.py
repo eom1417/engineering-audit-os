@@ -55,7 +55,6 @@ FEATURE = ('Add an About page at /about saying "Flaskr, a small blog" with the n
            'the navigation every page shows.')
 
 
-
 # ---------------------------------------------------------------- recording
 
 class Journey:
