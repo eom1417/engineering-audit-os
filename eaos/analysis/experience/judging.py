@@ -240,8 +240,23 @@ def facts_of(rows):
     sha = digest(json.dumps([[r['goal'], r['kind'], r['screen']] for r in confirmed]).encode('utf-8'))
     keys = ('id', 'goal', 'persona', 'kind', 'note', 'screen', 'steps', 'pictures', 'second', 'why', 'harmed', 'severity',
             'repro', 'title', 'title_ar', 'fix', 'fix_ar')
-    return sha, [make('experience_difficulty', NAME, VERSION, sha, {'path': row['journey'] or RECORD}, {k: row.get(k) for k in keys},
+    return sha, [make('experience_difficulty', NAME, VERSION, sha, {'path': row['journey'] or RECORD},
+                      {**{k: row.get(k) for k in keys}, 'message': _said(row), 'evidence': _witnessed(row)},
                       limitations=LIMITATIONS) for row in confirmed]
+
+
+def _said(row):
+    """What the difficulty is, as a reader of the fact alone sees it (the card's triage read only the fact's kind and
+    doubted both real ones of flask-microblog, 2026-10-27): its title, what the person met, its steps to reproduce."""
+    steps = ' > '.join(str(step) for step in row.get('repro') or [])
+    return '; '.join(part for part in (row.get('title'), row.get('note'), steps and f'steps: {steps}') if part)
+
+
+def _witnessed(row):
+    """How it is known: the persona met it, a fresh one met it again, the judge's reason, the pictures kept."""
+    again = (row.get('second') or {}).get('same')
+    return (f"met by {row.get('persona')} on {row.get('screen') or 'its screen'}"
+            f"{', met again by a fresh persona' if again else ''}; {len(row.get('pictures') or [])} pictures; the judge: {row.get('why') or ''}")
 
 
 def _indexed(report, entry):
