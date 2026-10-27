@@ -97,6 +97,11 @@ class JudgingTests(unittest.TestCase):
         self.assertIn('no one named as harmed', ruled['D3']['why'])
         sets = {'experience': read_set(self.report, 'experience')}
         self.assertEqual([f['value']['id'] for f in sets['experience']['facts']], ['D1'])
+        # the card's triage reads a fact's summary: the kind alone made it doubt both real ones of flask-microblog
+        from eaos.report.studio.evidence import summary as said
+        told = said(sets['experience']['facts'][0]['value'], 'experience_difficulty')
+        self.assertIn('the cart is hard to find', told)
+        self.assertIn('met again by a fresh persona', told)
         claims = []
         experience(sets, lambda *args, **extra: claims.append((args, extra)), None)
         (statement, kind, confidence, method, _), extra = claims[0]
