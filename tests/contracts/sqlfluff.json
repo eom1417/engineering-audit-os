@@ -1,7 +1,7 @@
 {
  "engine": "sqlfluff",
  "pinned_version": "4.3.0",
- "captured_from": "sqlfluff lint --format json --dialect postgres on a finance-os migration: one violation per code",
+ "captured_from": "sqlfluff lint --format json --dialect postgres on a real finance app's migration: one violation per code",
  "sqlfluff.json": [
   {
    "filepath": "supabase/migrations/20260721235456_9f2bd8ef-8395-474a-a32d-f732defc41b6.sql",

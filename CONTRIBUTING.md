@@ -12,13 +12,18 @@ Thank you for helping. EAOS checks other people's code, so its own code is held 
 
 ```bash
 bash tools/dev_setup.sh          # .venv, every external tool at its pinned version, the development material
+(cd console && npm ci)           # the Studio's build and lint tools (esbuild, ESLint)
 ```
+
+`AGENTS.md` is the full manual for changing EAOS (the flow, the tests, the proofs); this page is the short version.
 
 ## Before every commit
 
 ```bash
+tools/quality.sh                 # every code law, about a minute; refuses any number worse than recorded
 .venv/bin/python -m unittest discover -s tests -q && .venv/bin/python tools/validate.py
-(cd console && npm run build)    # only when console/ changed: the Studio built into eaos/data/studio, within its budgets
+(cd console && npm run build)    # only when console/ or docs/studio-actions.json changed: the Studio built into
+                                 # eaos/data/studio, within its budgets
 ```
 
 ## The code laws
@@ -28,15 +33,15 @@ bash tools/dev_setup.sh          # .venv, every external tool at its pinned vers
 2. **One source of truth.** Anything needed in more than one place is written once and called from everywhere else.
 3. **Clear and clean.** No dead code, no unused import, small functions with one job, modules with one responsibility.
 
-`tests/guards/test_code_limits.py` enforces what can be measured in EAOS itself: no module over 400 lines and no function
-over cyclomatic complexity 10, with no exception; functions over 50 lines or 5 parameters only as listed in
-`tools/code_limits.json`, a list that may only shrink; no function written twice, no pyflakes finding. (600 lines and 15
-are the limits EAOS holds the projects it checks to: `eaos/core/contracts/code_laws.py`.) The laws in full:
-`docs/STANDARDS.md`.
+`tests/guards/test_code_limits.py` enforces what can be measured in EAOS itself: no module over 400 lines, no function
+over cyclomatic complexity 10 or 50 lines, none over 5 parameters unless its `def` line says why
+(`# limits: parameters -- <why>`); no function written twice, no pyflakes finding. (600 lines and 15 are the limits
+EAOS holds the projects it checks to: `eaos/core/contracts/code_laws.py`.) The laws in full: `docs/STANDARDS.md`.
 
 ## The rules of the codebase
 
-- **A new Python module is declared in `eaos.policy.json`**, in its layer, or the policy gate fails.
+- **A new Python module goes in the folder of its job** (`docs/ARCHITECTURE.md` §4); a layer imports only the layers
+  under it (`import-linter`, the layers contract in `pyproject.toml`).
 - **Every text a person reads exists in English and in Arabic**, added to both at once.
 - **A new report document is declared in `eaos/core/contracts/artifacts.py`**, with its owner, purpose and line budget.
 - **A test is added only when it reproduces a real failure**, one test per real behaviour.
@@ -44,8 +49,9 @@ are the limits EAOS holds the projects it checks to: `eaos/core/contracts/code_l
 
 ## Commits
 
-Commit messages are in English and say what changed and why, in plain sentences. Bump the patch version
-(`pyproject.toml`, `eaos/__init__.py`) and add a `CHANGELOG.md` entry with each published update.
+Commit messages are in English and say what changed and why, in plain sentences. A release bumps the patch version
+(`pyproject.toml`, `eaos/__init__.py`, the badges in both READMEs) and adds a `CHANGELOG.md` entry; the maintainers do
+this at each milestone's end.
 
 ## Licence
 

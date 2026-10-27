@@ -1,9 +1,13 @@
 # EAOS metrics
 
-Measured at each milestone end by `tools/metrics.py <check output> <project home> --write "<title>"` (its docstring
-names this container's folders): the repository as it is, the latest check of `develop`, the corpus
-(`tools/corpus.json`) and the detection baseline (`tests/fixtures/baseline-problems.json`). Numbers are compared with
-the section before; a worse number needs its reason here.
+The numbers of EAOS, measured at each milestone end, oldest first. `tools/metrics.py <check output> <project home>
+--write "<title>"` measures the repository as it is, the latest check of `develop`, the compatibility corpus
+(`tools/corpus.json`) and the detection baseline (`tests/fixtures/baseline-problems.json`); the proofs with the real
+assistant (`tools/*_proof.py`) measure the journeys. Numbers are compared with the section before; a worse number
+needs its reason here.
+
+Latest: **0.0.83**, the final proof (below). M7 (0.0.79) has no section of its own: what it changed is proved by the
+fix proof in the golden trial, not by a number.
 
 ## Baseline: 0.0.71 (2026-10-23), EAOS's own check of `develop`
 
@@ -86,21 +90,6 @@ The machine was busy: the time is not comparable, and Checkov's version probe to
   unconfirmed without its plugins but its unused dependencies its own; security semgrep 93, bandit 9, CodeQL 2,
   gitleaks 1, checkov 5, Trivy 0 vulnerable packages beyond OSV-Scanner.
 
-## After M4: 0.0.76 (2026-10-24)
-
-M4 changed how the check runs, not what the engines find, so the engine measure was not run again. Measured:
-
-| Measure | Before M4 | After M4 |
-|---|---|---|
-| The ideal picture (EAOS's own check, real trial with Claude) | 1,461 s: plan 7 min, critique 18 min (3 tries, the whole ideal written again) | 474 s: three plan parts side by side 149-181 s, critique 287 s (3 tries, changes only, 15 KB instead of 65 KB) |
-| Its output and cost | 119 elements, 4 dropped; $5.75 | 112 elements, 0 dropped; $6.00 |
-| GitNexus import cycles on EAOS | 10 (6 on today's code) | 0: all six its misreading of Python |
-| The Studio's JavaScript over the laws | not measured | 0 (48 functions over complexity 10 and 4 modules over 400 lines split; every screen and sheet drawn the same before and after) |
-| Repair or rebuild of EAOS | none | repair: 101 cards, 5-14 hours; rebuild 549 files, 55-147 hours (rough rule) |
-
-- The critique still broke its JSON twice in the trial (Arabic text in a long answer): without the retries the ideal
-  takes about 5 minutes.
-
 ## After M3: 0.0.75 (2026-10-24), the rules' part of a check of `develop`
 
 Measured as after M2 (`eaos audit --engines` by the beta-trial EAOS on `develop` at `484debd1`, no assistant, no app
@@ -128,7 +117,25 @@ run), against the M2 numbers. The machine was quiet, so the time is comparable t
 - The cards' titles of agreeing engines were stored in Arabic and printed so in an English check: stored in English
   since this measure (`eaos/analysis/claims/ledger.py`), the reports render them from the template in the reader's language.
 
+## After M4: 0.0.76 (2026-10-24)
+
+M4 changed how the check runs, not what the engines find, so the engine measure was not run again. Measured:
+
+| Measure | Before M4 | After M4 |
+|---|---|---|
+| The ideal picture (EAOS's own check, real trial with Claude) | 1,461 s: plan 7 min, critique 18 min (3 tries, the whole ideal written again) | 474 s: three plan parts side by side 149-181 s, critique 287 s (3 tries, changes only, 15 KB instead of 65 KB) |
+| Its output and cost | 119 elements, 4 dropped; $5.75 | 112 elements, 0 dropped; $6.00 |
+| GitNexus import cycles on EAOS | 10 (6 on today's code) | 0: all six its misreading of Python |
+| The Studio's JavaScript over the laws | not measured | 0 (48 functions over complexity 10 and 4 modules over 400 lines split; every screen and sheet drawn the same before and after) |
+| Repair or rebuild of EAOS | none | repair: 101 cards, 5-14 hours; rebuild 549 files, 55-147 hours (rough rule) |
+
+- The critique still broke its JSON twice in the trial (Arabic text in a long answer): without the retries the ideal
+  takes about 5 minutes.
+
 ## After M5: 0.0.77 (2026-10-25)
+
+The check's rows (time, stages, documents, output, cards, engine findings) repeat the last full check of `develop`,
+from before M5, as after M0; no new full check ran for this milestone.
 
 | Measure | Value |
 |---|---|
@@ -143,60 +150,6 @@ run), against the M2 numbers. The machine was quiet, so the time is comparable t
 | Engine findings | 3,853 (`semgrep` 1,673, `reforge` 1,557) |
 | Compatibility corpus | 12 of 12 apps pass (12 pinned) |
 | Detection baseline | 6 of 8 planted problems found |
-
-
-## The final proof: 0.0.83 (2026-10-27)
-
-| Measure | Value |
-|---|---|
-| Compatibility corpus | **15 of 15** apps run and pictured |
-| Detection baseline | **16 of 16** planted problems found; the fix proof and the clean twin green |
-| Repair (flaskr, CLI, real assistant) | check 738 s $1.02, a card fixed and handed over 118 s $0.36 |
-| Add a feature: a link on the navigation every page shows | 120 s $0.43, through the behaviour lock (M9.7) |
-| Build from a PRD to the first milestone's proof gate | 338 s $0.91 |
-| Simulated users (flask-microblog, whole) | 6 of 10 goals reached (3 of 11 before), 3 tickets, 6 confirmed, 5 fix cards (0 before), 142 calls, $6.37; 2 of the 6 came from the route prefix fixed in this version |
-
-## After M10: 0.0.82 (2026-10-27)
-
-The simulated users on three corpus apps of different kinds (`tools/experience_proof.py`, the real assistant):
-
-| App | Whole simulation (`--path experience`) | Found | The short option beside the complete check | The replays in that full check |
-|---|---|---|---|---|
-| flask-microblog (sign-in) | 3 personas, 11 goals (9 waiting on a hand-off that never came), 3 tickets; the stage 504 s, 50 calls, check $2.31 | 1 confirmed (search crashes with a technical Elasticsearch page: 2 pictures, 4 steps to reproduce), 3 doubted, 7 rejected | 62 s, 7 calls | 3 skipped (no goal reached to replay) |
-| django-locallibrary (two roles) | 4 personas, 9 goals, 2 reached, 2 tickets; the stage 391 s, 38 calls, check $7.62 | 6 doubted, 1 rejected | 11 s, 1 call | 2 green, 2 skipped, no AI call |
-| next-dashboard (Next.js, sign-in) | 2 personas, 4 goals, 1 reached, 2 stuck, 2 tickets; the stage 155 s, 14 calls, check $7.50 | 2 doubted, 2 rejected | 21 s, 2 calls | 1 green, 2 skipped, no AI call |
-
-The short simulation adds 11-62 s and 1-7 light calls to a complete check and confirmed nothing on these runs; the whole
-simulation found one real failure a person would meet. The replays cost nothing and are green.
-
-## After M9: 0.0.81 (2026-10-26)
-
-| Measure | Value |
-|---|---|
-| Runtime of a full check of EAOS (`--run-app --assistant claude`, 39 stages) | **68 MB** in 176 files (target ≤ 100; 760 MB at M5); its largest part `syntax-cache.json` 65 MB |
-| That check | 3,474 s wall, $9.09; output 125 MB in 959 files; 56 plan tasks from 184 claims; 1,394 engine findings (`reforge` 1,013, `enola` 182) |
-| Repair end to end (flaskr, real assistant) | CLI 19 min, $2.24; Studio action API 19 min, $2.32 (the check 80% of both) |
-| Build from a PRD to the first milestone's proof gate (MCP) | 378 s, $0.95, its screens reviewed |
-| Add a feature (CLI and MCP; Studio) | a page of its own: 90 s, $0.49; Studio plan and build 631 s (400 of them queued), $0.88; a link on every page refused by the behaviour lock (it knows no intended change) |
-| The tidy on three corpus apps (flaskr, task-api, flask-microblog) | no move batch proved (moves unwritable, no runnable tests, an app that stops starting); the target shape's moves made unproven: same answers (10/10), tokens +9% and +16% |
-| Model tiers | each stage's tier recorded per run; the next check of `develop` measures the cost per check against 0.0.80 |
-
-## After M8: 0.0.80 (2026-10-26)
-
-Measured on the code (no check of `develop` ran for this milestone; the next one from the Studio measures the check's
-rows on 0.0.80).
-
-| Measure | Before M8 (0.0.79) | After M8 |
-|---|---|---|
-| Python lines (`eaos/`) | 69,553 in 470 files | 71,615 in 490 files (the move tool, its gate, the context batch, MCP parity) |
-| Studio UI (`console/src`) | 14,091 JS lines in 106 files | 10,119 in 79 files |
-| Built Studio | 1,405 KB | 1,039 KB (budgeted) |
-| Studio routes with an MCP tool | 42 of 62 | 50 of 62, the other 12 with their reason |
-| Tests | 20,930 lines in 134 files, 748 test functions | 21,538 lines in 141 files, 774 test functions |
-| Engine findings on EAOS's own code (`tools/quality.json`) | 276 | 0 |
-| Functions over 50 lines / over 5 parameters | 5 / 129 listed | 0 / 0 listed (the justified ones say why on their line) |
-| Repository and context findings on EAOS | 4 | 0 (a law of `tools/quality.sh`) |
-| Python dependencies read by osv-scanner | 0 | 57 |
 
 ## After M6: 0.0.78 (2026-10-25)
 
@@ -219,8 +172,60 @@ before M6; the next check of `develop` from the Studio measures them on 0.0.78.
 | Detection baseline | 15 of 16 planted problems found |
 | Layer findings judged on the corpus | 37 findings on 3 apps, 2 false (5%) |
 
+## After M8: 0.0.80 (2026-10-26)
 
-## Findings of the M-1 measurement (inputs for M1-M4; what remained became cards of `ROADMAP.md`)
+Measured on the code (no check of `develop` ran for this milestone; the next one from the Studio measures the check's
+rows on 0.0.80).
+
+| Measure | Before M8 (0.0.79) | After M8 |
+|---|---|---|
+| Python lines (`eaos/`) | 69,553 in 470 files | 71,615 in 490 files (the move tool, its gate, the context batch, MCP parity) |
+| Studio UI (`console/src`) | 14,091 JS lines in 106 files | 10,119 in 79 files |
+| Built Studio | 1,405 KB | 1,039 KB (budgeted) |
+| Studio routes with an MCP tool | 42 of 62 | 50 of 62, the other 12 with their reason |
+| Tests | 20,930 lines in 134 files, 748 test functions | 21,538 lines in 141 files, 774 test functions |
+| Engine findings on EAOS's own code (`tools/quality.json`) | 276 | 0 |
+| Functions over 50 lines / over 5 parameters | 5 / 129 listed | 0 / 0 listed (the justified ones say why on their line) |
+| Repository and context findings on EAOS | 4 | 0 (a law of `tools/quality.sh`) |
+| Python dependencies read by osv-scanner | 0 | 57 |
+
+## After M9: 0.0.81 (2026-10-26)
+
+| Measure | Value |
+|---|---|
+| Runtime of a full check of EAOS (`--run-app --assistant claude`, 39 stages) | **68 MB** in 176 files (target ≤ 100; 760 MB at M5); its largest part `syntax-cache.json` 65 MB |
+| That check | 3,474 s wall, $9.09; output 125 MB in 959 files; 56 plan tasks from 184 claims; 1,394 engine findings (`reforge` 1,013, `enola` 182) |
+| Repair end to end (flaskr, real assistant) | CLI 19 min, $2.24; Studio action API 19 min, $2.32 (the check 80% of both) |
+| Build from a PRD to the first milestone's proof gate (MCP) | 378 s, $0.95, its screens reviewed |
+| Add a feature (CLI and MCP; Studio) | a page of its own: 90 s, $0.49; Studio plan and build 631 s (400 of them queued), $0.88; a link on every page refused by the behaviour lock (it knows no intended change) |
+| The tidy on three corpus apps (flaskr, task-api, flask-microblog) | no move batch proved (moves unwritable, no runnable tests, an app that stops starting); the target shape's moves made unproven: same answers (10/10), tokens +9% and +16% |
+| Model tiers | each stage's tier recorded per run; the next check of `develop` measures the cost per check against 0.0.80 |
+
+## After M10: 0.0.82 (2026-10-27)
+
+The simulated users on three corpus apps of different kinds (`tools/experience_proof.py`, the real assistant):
+
+| App | Whole simulation (`--path experience`) | Found | The short option beside the complete check | The replays in that full check |
+|---|---|---|---|---|
+| flask-microblog (sign-in) | 3 personas, 11 goals (9 waiting on a hand-off that never came), 3 tickets; the stage 504 s, 50 calls, check $2.31 | 1 confirmed (search crashes with a technical Elasticsearch page: 2 pictures, 4 steps to reproduce), 3 doubted, 7 rejected | 62 s, 7 calls | 3 skipped (no goal reached to replay) |
+| django-locallibrary (two roles) | 4 personas, 9 goals, 2 reached, 2 tickets; the stage 391 s, 38 calls, check $7.62 | 6 doubted, 1 rejected | 11 s, 1 call | 2 green, 2 skipped, no AI call |
+| next-dashboard (Next.js, sign-in) | 2 personas, 4 goals, 1 reached, 2 stuck, 2 tickets; the stage 155 s, 14 calls, check $7.50 | 2 doubted, 2 rejected | 21 s, 2 calls | 1 green, 2 skipped, no AI call |
+
+The short simulation adds 11-62 s and 1-7 light calls to a complete check and confirmed nothing on these runs; the whole
+simulation found one real failure a person would meet. The replays cost nothing and are green.
+
+## The final proof: 0.0.83 (2026-10-27)
+
+| Measure | Value |
+|---|---|
+| Compatibility corpus | **15 of 15** apps run and pictured |
+| Detection baseline | **16 of 16** planted problems found; the fix proof and the clean twin green |
+| Repair (flaskr, CLI, real assistant) | check 738 s $1.02, a card fixed and handed over 118 s $0.36 |
+| Add a feature: a link on the navigation every page shows | 120 s $0.43, through the behaviour lock (M9.7) |
+| Build from a PRD to the first milestone's proof gate | 338 s $0.91 |
+| Simulated users (flask-microblog, whole) | 6 of 10 goals reached (3 of 11 before), 3 tickets, 6 confirmed, 5 fix cards (0 before), 142 calls, $6.37; 2 of the 6 came from the route prefix fixed in this version |
+
+## Findings of the M-1 measurement (the inputs of M1-M4, kept as where they started)
 
 - **Disk:** `live_run.py:114` never removes `run-data`; output cleared only for `BULKY` (`pipeline/run.py:307`); Studio
   sections written twice (`studio/export.py:366`); engine findings stored three times; `human/index.html` copies

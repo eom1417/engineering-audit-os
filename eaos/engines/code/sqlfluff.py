@@ -1,6 +1,6 @@
 """SQLFluff: the project's SQL (migrations, functions, policies) linted in the Postgres dialect.
 
-Most of what it reports is layout and capitalisation (1,762 of 1,790 in finance-os). Those families
+Most of what it reports is layout and capitalisation (1,762 of 1,790 in one real finance app). Those families
 (LT, CP, AL, JJ, and RF03/RF05/RF06, which are quoting and consistency) are counted in the coverage by
 code, never dropped silently, but only the rest become findings: ambiguity, structure, convention,
 references that can break (a keyword used as a name, an unqualified column in a join), and files the

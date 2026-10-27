@@ -5,13 +5,12 @@ The Studio a person opens with `eaos studio`: the governance console the design 
 CSS, no UI framework, no network beyond the server that serves it. Arabic (right to left) first, English equally
 finished, light and dark, phone (390 px) first and desktop (1440 px).
 
-It replaced the old front end (`studio/`, React), since removed.
-
 ## Build
 
 ```bash
-cd console && npm install     # once: esbuild, the one build tool (console/node_modules, 12 MB)
+cd console && npm ci          # once: esbuild (the one build tool) and ESLint, at the versions package-lock.json pins
 npm run build                 # bundles into ../eaos/data/studio, writes SOURCE.json, checks the budgets
+npm run lint                  # ESLint: undefined names and unused imports (tools/quality.sh runs it too)
 ```
 
 `scripts/build.mjs` makes classic scripts (a page opened from a file runs no module script):
@@ -26,8 +25,9 @@ npm run build                 # bundles into ../eaos/data/studio, writes SOURCE.
 
 Budgets (the build fails past them, and `tests/guards/test_studio_assets.py` checks them again): the first page's script
 (boot, core, Arabic words, Status) at most 240 KB gzipped (target 200), the stylesheet 48 KB, the whole Studio 6 MB.
-The source fingerprint in `SOURCE.json` covers `package.json`, `package-lock.json`, `scripts/build.mjs`, `src/` and
-`docs/studio-actions.json`; the suite fails when the source changed without a rebuild.
+The source fingerprint in `SOURCE.json` covers `package.json`, `package-lock.json`, `scripts/build.mjs`, `src/`,
+`docs/studio-actions.json` and `eaos/data/words.json` (the build makes the words' keys from it); the suite fails when
+the source changed without a rebuild.
 
 ## Layout
 
@@ -43,6 +43,8 @@ src/core/                       the runtime every place shares (one bundle)
   sheets.js      sheets with their own address, focus trap, local() state, needs
   search.js      Search or ask (Ctrl/Cmd+K)        menu.js   the project menu, "Open it live"
   assist.js      the floating assistant (the conversation itself comes from the Ask place: EAOS.askAPI)
+  marks.js       the marks several places draw (EAOS.ac): a state's glyph and word, times, money, the runs
+  markdown.js    Markdown an assistant writes, drawn without a library and escaped
   i18n.js prefs.js settings.js format.js notices.js events.js state.js outline.js loading.js a11y.js
 src/data/                       the data layer: the report, the live API and its feed
   source.js      the report's sections: live API or the read-only copy's .js twins; need(), section(), reload()
@@ -57,7 +59,10 @@ src/places/<place>/             one bundle per place (status, waiting, problems,
                                 report); src/places/kit/ the helpers several places share
 src/words/<file>.js             the dictionary: every key as [Arabic, English]
 src/css/                        tokens.css, core.css (shell and the lead's screens), activity.css (A), places.css (B)
+src/fonts/                      IBM Plex Sans Arabic and IBM Plex Mono (OFL-1.1, its licence beside them)
+scripts/build.mjs               the build and its budgets
 tools/                          checks of a served console (below)
+eslint.config.js, knip.json     the lint's rules and knip's entries, both run by tools/quality.sh
 ```
 
 ## The data layer, and the shapes the screens read
@@ -104,15 +109,16 @@ dictionary, never from the report's own sentence (so English is finished too).
 ## The API every place uses (`import { … } from 'eaos'`)
 
 - words: `t(key, vars)`, `tn(key, n, vars)`, `L(text)`, `num(n)`, `has(key)`, `prefs` {lang, theme, tz}
-- markup: `esc`, `rich` (report text, paths isolated), `icon`, `code`, `sev`, `chk`, `assistantPicker` (who runs an action), `band`, `fmtWhen`, `fmtTime`,
-  `exactTime`, `inMinutes`, `expiresAt`
+- markup: `esc`, `rich` (report text, paths isolated), `icon`, `code`, `sev`, `chk`, `assistantPicker` (who runs an
+  action), `band`, `fmtWhen`, `fmtTime`, `exactTime`, `inMinutes`, `expiresAt`, `md` (Markdown), `ac` (marks.js)
 - addresses: `screen(def)`, `href(path, query)`, `navigate`, `setQuery`, `parseHash`, `refresh`, `offline()`,
   `afterRender`, `a11yRegions`
 - sheets: `sheet(name, def)`, `openSheet`, `closeSheet`, `closeSheetThen`, `rerenderSheet`, `local()`
 - acts and notices: `act(name, fn)`, `tickAct(name, list, ticks)` (ticking problems in a list), `toast(text, {refusal, link})`, `announce`, `copyText`
 - shell: `liveNow()`, `freshness()`, `setSelbar(fn)`; placeholders `outline(def)`, `outlineSheet(name, title, features)`, `loadingHTML()`
 - data: `data` (source.js), `client` (actions.js, null offline), `ActionError`, `live` and `store` (store.js), `model`,
-  `selection`, `derive`, `normalize`, `contract`; `S` (the page's own state: answers being typed, the assistant)
+  `selection`, `derive`, `normalize`, `contract`; `TERMINAL`, `ACTIVE`, `RETRYABLE` (a run's states); `S` (the page's
+  own state: answers being typed, the assistant)
 
 ## Checks of a served console (`tools/`)
 

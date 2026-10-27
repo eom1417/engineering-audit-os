@@ -1,6 +1,6 @@
 """OSV-Scanner: every locked dependency version checked against the OSV advisory database.
 
-It reads the project's lockfiles itself (the most exact source: 17 vulnerable packages in finance-os
+It reads the project's lockfiles itself (the most exact source: 17 vulnerable packages in one real finance app
 where Syft's SBOM alone yields 7), and Syft's SBOM for the components no lockfile names. A package
 found through several sources is one finding with every source as a site. The lookup is
 deterministic: this exact version is listed as affected. What it cannot say is whether the vulnerable

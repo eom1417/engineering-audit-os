@@ -5,7 +5,7 @@ behaviour; the console draws the same markup with the same CSS classes on the re
 markup as it is; replace what it reads and what it does. The lead's ports are the model: `src/places/status/index.js`,
 `src/places/waiting/list.js`, `src/places/problems/{list,detail,preview}.js`.
 
-## Who owns what (two builders work in parallel; each edits only their own files)
+## Who owns what (when two builders work in parallel, each edits only their own files)
 
 | Owner | Files |
 |---|---|
@@ -22,11 +22,11 @@ file in your place is imported from your place's `index.js`.
 
 1. **Copy the screen's code** into your place (one file per screen or per group of screens), as an ES module:
    `const { D, S, t, … } = EAOS` becomes `import { t, tn, L, esc, icon, screen, sheet, act, … } from 'eaos'`. A place
-   imports `'eaos'` and its own files only (the build refuses anything else).
+   imports `'eaos'`, its own files and the kit (`src/places/kit/`) only (the build refuses anything else).
 2. **Data: replace `D.*` by the model or the live state** (table in `README.md`). Declare the report sections the
    screen draws: `screen({ …, needs: ['cards', 'plans'] })` (or `needs: ctx => […]`); for a sheet, `sheet(name, {
    needs: […] })`. The router reads them first and draws `loading(ctx)` meanwhile (the prototype's loading state).
-   A section not in the model: read it with `data.section('<name>')` (the JSON of `schemas/artifacts/studio-<name>.schema.json`)
+   A section not in the model: read it with `data.section('<name>')` (the JSON of `eaos/data/schemas/artifacts/studio-<name>.schema.json`)
    and, when several screens need the same shape, write the getter in your place's own `model.js`. Large sections:
    functions, library (`data.libraryItems(ids)`), paths: only on the screens that show them.
 3. **Actions: replace the simulation by the API** (`client`, null in the read-only copy):
@@ -63,7 +63,7 @@ file in your place is imported from your place's `index.js`.
 7. **Check it** on the served preview (`README.md`, Checks): `node console/tools/sweep.cjs --routes=…` and
    `sheets-sweep.cjs`, `targets.cjs`, `axe.cjs` on your routes, at 390 and 1440, Arabic and English, light and dark:
    0 console errors, 0 missing words, 0 overflow, 0 axe violations, every control 44 px on the phone. Build
-   (`cd console && npm run build`) and run `tests.test_studio_assets` before each commit; commit `eaos/data/studio`
+   (`cd console && npm run build`) and run `tests.guards.test_studio_assets` before each commit; commit `eaos/data/studio`
    with your source (one build per commit; on a conflict in `eaos/data/studio`, rebuild).
 
 ## Shared pieces you will need

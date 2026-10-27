@@ -6,7 +6,7 @@
 //                            reaches the core only through `import … from 'eaos'` (self.EAOS)
 //   assets/words-<lang>.js   the dictionary of one language (src/words/*.js hold every key as [Arabic, English])
 //   assets/style.css         tokens, components and every place's styles, with the fonts beside it
-// Then SOURCE.json (the fingerprint of the source, which tests/test_studio_assets.py recomputes without Node, and the
+// Then SOURCE.json (the fingerprint of the source, which tests/guards/test_studio_assets.py recomputes without Node, and the
 // list of files shipped) and the weight budgets: a build that grows past one fails and says by how much.
 import crypto from 'node:crypto';
 import fs from 'node:fs';
@@ -18,7 +18,7 @@ import * as esbuild from 'esbuild';
 const HERE = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const SRC = path.join(HERE, 'src');
 const OUT = path.resolve(HERE, '../eaos/data/studio');
-// Keep in step with SOURCES in tests/test_studio_assets.py
+// Keep in step with SOURCES in tests/guards/test_studio_assets.py
 export const SOURCES = ['package.json', 'package-lock.json', 'scripts/build.mjs', 'src', '../docs/studio-actions.json', '../eaos/data/words.json'];
 const KB = 1024;
 const BUDGETS = [
