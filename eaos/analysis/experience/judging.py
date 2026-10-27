@@ -29,7 +29,9 @@ NOT_TRIED = {'reached': None, 'same': False}
 LIMITATIONS = ['Met by simulated users on an isolated copy with sample data, tried again by a fresh one and ruled on by '
                'the assistant; a real person may find a way the simulated ones did not.',
                "The support desk's assistant reads the whole project folder, its secrets files (.env and the like) included: "
-               'the assistant adapter cannot leave files out of what it may read.']
+               'the assistant adapter cannot leave files out of what it may read.',
+               "The copy is driven on this computer only, but the app's own server is not kept off the network: what it "
+               'sends out while the simulated users act (mail, payments, webhooks) goes where its settings point.']
 PLAIN = {'click': "Click '{name}'", 'fill': "Type '{value}' into '{name}'", 'press': 'Press {value}', 'open': 'Open {value}',
          'back': 'Go back'}
 FIX = 'Make this step plain for the person who met it.'
