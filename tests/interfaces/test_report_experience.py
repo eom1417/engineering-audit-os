@@ -32,7 +32,7 @@ const out = await build({ entryPoints: [%(part)s], bundle: true, write: false, f
 const part = await import('data:text/javascript,' + encodeURIComponent(out.outputFiles[0].text));
 const first = part.experiencePart({ query });
 await new Promise(r => setTimeout(r, 10));
-console.log(JSON.stringify({ view: story ? part.experienceView(story, query) : '', first, then: part.experiencePart({ query }), asked }));
+console.log(JSON.stringify({ first, then: part.experiencePart({ query }), asked }));
 """
 
 
@@ -80,8 +80,8 @@ class ExperiencePart(unittest.TestCase):
 
     def test_the_story_is_drawn_with_the_opened_goal_its_pictures_and_the_ranked_difficulties(self):
         got = draw(self.story, {'part': 'experience', 'goal': 'owner.add-product'}, json.dumps(self.story))
-        view = got['view']
-        self.assertEqual(got['then'], view, 'the part reads experience/story.json once and draws it')
+        view = got['then']
+        self.assertIn('rp.ex.reading', got['first'], 'experience/story.json is read once, then drawn')
         self.assertEqual(got['asked'][0], 'experience/story.json')
         self.assertIn('rp.ex.reached{&quot;n&quot;:&quot;1&quot;,&quot;all&quot;:&quot;2&quot;}', view)
         self.assertIn('Sara &lt;b&gt;', view)
@@ -103,8 +103,8 @@ class ExperiencePart(unittest.TestCase):
     def test_a_closed_goal_reads_no_picture_and_a_report_without_the_file_says_how_to_run_it(self):
         got = draw(self.story, {'part': 'experience'}, json.dumps(self.story))
         self.assertFalse([p for p in got['asked'] if 'report-image' in p])
-        self.assertNotIn('Server error', got['view'])
-        missing = draw(None, {'part': 'experience'})
+        self.assertNotIn('Server error', got['then'])
+        missing = draw(None, {'part': 'experience'})   # the route answered 404: no file
         self.assertIn('rp.ex.reading', missing['first'])
         self.assertIn('eaos check --path experience', missing['then'])
         self.assertIn('<bdi>experience</bdi>', missing['then'])

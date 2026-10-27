@@ -102,8 +102,8 @@ function replays(s) {
 
 const block = (title, body) => body ? `<section class="section"><h2 class="h2">${t(title)}</h2>${body}</section>` : '';
 
-/** The part from a story (story.py's shape): what a test draws with a fixture story. */
-export function experienceView(s, query) {
+/** The part from a story (story.py's shape). */
+function experienceView(s, query) {
   if (!s || !s.ran) return howToRun('rp.ex.none.why');
   const missing = (s.missing || []).length ? `<p class="small caution-ic">${t('rp.ex.missing')} ${s.missing.map(m => code('experience/' + m)).join(' ')}</p>` : '';
   return `<p class="small ink-2">${t('rp.ex.guide')}</p>${overview(s)}${missing}
