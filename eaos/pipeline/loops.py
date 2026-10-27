@@ -42,6 +42,9 @@ LOOPS = (
          needs=('setup', 'screens'), max_rounds=2),
     # the layers tried on the running app: an option of the check (the `layers` path), its time said before it starts
     Loop('try_layers', ('layers_trial',), needs=('layers_trial',), switch='layers'),
+    # simulated users on the running app: alone the whole simulation (the `experience` path), beside `complete` its short
+    # option (one persona, the main task), its time and cost said before it starts
+    Loop('try_experience', ('experience',), needs=('experience',), switch='experience'),
     Loop('judge', ('measure', 'architecture', 'load', 'readiness', 'claims', 'probe', 'sustainability', 'transform',
                    'semantic', 'plan', 'target', 'proposals', 'triage', 'visual', 'cards'), needs=('claims', 'triage')),
     Loop('envision', ('ideal', 'pipeline_gaps', 'reconcile'), needs=('ideal', 'reconcile')),

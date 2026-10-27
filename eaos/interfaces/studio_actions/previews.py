@@ -39,10 +39,11 @@ def _bound(selection, where, auto):
     return {'bound': bound, 'auto_accept': True} if auto else bound
 
 
-def _rough(action):
-    """An action's time by a rough rule for its step, in minutes."""
+def _rough(action, inputs):
+    """An action's time by a rough rule for its step, in minutes; a check's with what the experience adds when chosen."""
     low, high = (5, 30) if action == 'audit' else (10, 40) if action in ('run_setup', 'run_try', 'safety_net', 'fix_finish', 'build_finish') else (0, 1)
-    return {'minutes_low': low, 'minutes_high': high, 'basis': {'en': 'a rough rule for this step', 'ar': 'تقدير تقريبي لهذه الخطوة'}}
+    return {'minutes_low': low, 'minutes_high': high, 'basis': {'en': 'a rough rule for this step', 'ar': 'تقدير تقريبي لهذه الخطوة'},
+            **(check_choices.adds(inputs.get('paths')) if action == 'audit' else {})}
 
 
 class Previews:
@@ -129,7 +130,7 @@ class Previews:
         measured = self._measured(action, inputs)
         if action == 'audit':
             out['check'] = check_choices.offered(project_state.load(str(self.project)), self._studio() and self._studio().parent)
-        out.update(estimate=measured or _rough(action),
+        out.update(estimate=measured or _rough(action, inputs),
                    risk={'level': 'high' if spec['irreversible'] else 'medium' if spec['changes_code'] else 'low',
                          'why': spec['description'] if spec['description']['en'] else spec['label']},
                    on_failure=selecting.ON_FAILURE['fix' if spec['changes_code'] else 'read'])

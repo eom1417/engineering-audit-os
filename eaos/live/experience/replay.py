@@ -4,6 +4,9 @@ behaviour lock: a journey that no longer replays is a behaviour that broke, show
 
     replay_all(base, sessions, report)   experience/replays.json: {version, replays: [...], summary: {green, red, skipped}}
     as_lock(replays)                     its rows in the behaviour lock's shape (behavior-lock/results.json `results`)
+    saved(report)                        whether any journey is saved to replay
+    join_lock(runtime, lock, replays)    the lock's record (run_lock's answer) with the replays as its rows, written to
+                                         <runtime>/behavior-lock/results.json: every full check, after the lock's run
 
 A journey that never reached its goal is skipped: it is not a behaviour to keep. One replay's pictures go to
 experience/replays/<name>/, replaced each time, so they never pile up.
@@ -76,3 +79,19 @@ def as_lock(replays):
         rows.append({'path': 'experience/' + (found.get('file') or found['goal']), 'status': LOCK_STATUS[found['status']],
                      **({'reason': reason[:300]} if reason else {})})
     return rows
+
+
+def saved(report):
+    """Whether `report` holds a saved journey to replay."""
+    return any((Path(report) / 'experience' / JOURNEYS).glob('*.json'))
+
+
+def join_lock(runtime, lock, replays):
+    """The behaviour lock's record `lock` with each replay a row (as_lock) in place of an earlier check's, written to
+    <runtime>/behavior-lock/results.json, so a journey that no longer replays shows as a broken screen does."""
+    rows = [r for r in lock.get('results') or [] if not r['path'].startswith('experience/')] + as_lock(replays)
+    record = {**lock, 'results': rows}
+    folder = Path(runtime) / 'behavior-lock'
+    folder.mkdir(parents=True, exist_ok=True)
+    (folder / 'results.json').write_text(json.dumps(record, ensure_ascii=False, indent=1) + '\n', encoding='utf-8')
+    return record

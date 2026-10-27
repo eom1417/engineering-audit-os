@@ -90,6 +90,9 @@ def check(args, lang):
                                  **{name: getattr(args, name, None) for name in ('mode', 'sign_in', 'published', 'run_app')})
     shown = govern.estimate(project, inputs)['estimate']
     say(words('estimate', lang, low=shown['minutes_low'], high=shown['minutes_high'], basis=text_of(shown['basis'], lang)))
+    if shown.get('experience'):
+        cost = shown['experience']
+        say(words('experience_cost', lang, **{**cost, 'calls': ', '.join(f'{k} {v}' for k, v in cost['calls'].items())}))
     record = govern.start_check(project, inputs, lang)
     if getattr(args, 'watch', True): return follow(project, record['id'], lang)
     guided.box(lang, words('started', lang, run=record['id']), commands=['eaos watch', f"eaos stop {record['id']}"])

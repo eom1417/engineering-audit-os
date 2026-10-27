@@ -8,7 +8,7 @@ NO_RUN = ('the person has not agreed to run the app in an isolated copy (eaos ne
 
 # One app from the sign-in to the last page stage: an app that keeps its sessions in memory forgot the person's at
 # each restart, so the check asked them to sign in again for every stage
-PAGE_STAGES = frozenset(('session', 'record', 'journeys', 'crawl', 'screens'))
+PAGE_STAGES = frozenset(('session', 'record', 'journeys', 'crawl', 'screens', 'experience'))
 
 
 def shared_app(context, published=False):

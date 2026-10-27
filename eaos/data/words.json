@@ -546,6 +546,20 @@
     "أكتب كل وثيقة بالعربي والإنجليزي",
     "Writing every document in Arabic and in English"
    ]
+  },
+  "experience": {
+   "title": [
+    "يجرّب تجربة المستخدمين",
+    "Try the users' experience"
+   ],
+   "does": [
+    "مستخدمون محاكَون يستعملون التطبيق وهو يعمل، كل نوع من المستخدمين بحسابه، ويُحكم على ما تعثّروا فيه.",
+    "Simulated users use the running app, each kind of user signed in as itself, and what they stumbled on is judged."
+   ],
+   "doing": [
+    "أجرّب تجربة المستخدمين",
+    "Trying the users' experience"
+   ]
   }
  },
  "paths": {
@@ -607,6 +621,16 @@
    "looks_at": [
     "يجرّب على نسخة معزولة: البناء النهائي (أسرار في الملفات المنشورة)، قواعد البيانات كمستخدمين مختلفين، ونقاط الطلب بحسابين تجريبيين. يضيف حتى 15 دقيقة.",
     "On an isolated copy: the production build (secrets in what ships), the data rules as different users, and the endpoints with two test accounts. Adds up to 15 minutes."
+   ]
+  },
+  "experience": {
+   "name": [
+    "تجربة المستخدمين",
+    "Try the experience"
+   ],
+   "looks_at": [
+    "مستخدمون محاكَون يجرّبون التطبيق وهو يعمل. وحده: عدة أشخاص ببياناتهم وتسليماتهم ودعم فني، حتى ساعة. مع الفحص الشامل: شخص واحد يؤدي المهمة الرئيسية، حتى 5 دقائق و12 طلبًا خفيفًا من المساعد وحكم واحد. مطفأ إلا إذا اخترته.",
+    "Simulated users try the running app. Alone: several people with their data, hand-offs and a support desk, up to an hour. Beside the complete check: one person doing the main task, up to 5 minutes, 12 light assistant calls and one ruling. Off unless chosen."
    ]
   }
  },

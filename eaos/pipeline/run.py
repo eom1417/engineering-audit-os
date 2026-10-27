@@ -70,6 +70,7 @@ def execute(target, out, *, only=(), skip=(), language='ar', exclude=(), engines
     head = _head(context, started_at, requested)
     head['options']['without_tools'] = sorted(without_tools)
     head.update(mode=mode, paths=paths or ['complete'])     # not options: a check goes on in another mode or path
+    context['paths'] = head['paths']                         # the experience's stage: whole alone, short beside complete
     log = ProgressLog(out)
     log.started(STAGES, requested, previous_seconds(out), mode=mode, assistants=context.assistants.count)
     run = {'completed': completed, 'requested': requested, 'results': {}, 'blocked': {}, 'log': log, 'context': context,

@@ -6,6 +6,8 @@ replays of the saved journeys. The judging of what the personas met is judging.p
     simulate(report, project, app, provider)       experience/run.json, journeys/, tickets.json (and the history seeded)
     judged(report, app, provider)                  experience/difficulties.json, the `experience` facts
     replays(report, app)                           experience/replays.json
+    short(report, project, app, provider)          the full check's option: one persona doing the app's main task within
+                                                   SHORT steps, planned by rules, then judged (no data seeded, no support)
 
 `app`: {'base': the copy's address, 'sessions': {kind of user: its browser state or None}, 'runtime': the run's folder
 or None (its database is seeded only then), 'database': the copy's SQLite file, if any}.
@@ -48,6 +50,22 @@ def simulate(report, project, app, provider):
     ran = cast.run(app, planned, {'order': scenarios.order(planned), 'data': data, 'on_stuck': desk}, provider, report)
     desk.save(report)
     return {**ran, 'seeded': seeded}
+
+
+# The short simulation (the full check's option): one goal of at most `steps` light calls, one deep ruling when it met
+# something; `seconds` is the most it takes, said before the check starts (eaos/journeys/check_choices.py).
+SHORT = {'steps': 12, 'seconds': 300}
+
+
+def short(report, project, app, provider):
+    """One persona (the first the rules plan) doing its first goal, the app's main task, within SHORT steps; what it met
+    judged as the full simulation's is. experience/run.json, its journey saved (replayed by every later check)."""
+    given = scenarios.brief(report)
+    planned = scenarios.checked(scenarios.rules(given), [role['id'] for role in given['roles']])
+    persona = next(p for p in planned['personas'] if p['goals'])
+    one = {**planned, 'personas': [{**persona, 'goals': [{**persona['goals'][0], 'steps': SHORT['steps']}]}], 'handoffs': []}
+    ran = cast.run(app, one, {'order': scenarios.order(one)}, provider, report)
+    return {**ran, 'judged': judging.judge(report, provider)}
 
 
 def replays(report, app):

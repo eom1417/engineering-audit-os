@@ -436,7 +436,8 @@
         "look",
         "code",
         "speed",
-        "layers"
+        "layers",
+        "experience"
        ]
       },
       "description": "Only these paths of the check (eaos/pipeline/path_choice.py); the complete check when empty."

@@ -137,6 +137,7 @@ stages' real dependencies:
 | understand | facts, features, roles, intake, engines, policy | facts; 1; stop |
 | run_and_see | setup, verify, session, crawl, lock, record, journeys, screens, baseline, layers | setup, screens; 2; explain |
 | try_layers (switch `layers`) | layers_trial | layers_trial; 1; explain |
+| try_experience (switch `experience`) | experience | experience; 1; explain |
 | judge | measure, architecture, load, readiness, claims, probe, sustainability, transform, semantic, plan, target, proposals, triage, visual, cards | claims, triage; 1; explain |
 | envision | ideal, pipeline_gaps, reconcile (the repair-or-rebuild decision: `analysis/target_state/repair_or_rebuild.py`) | ideal, reconcile; 1; explain |
 | plan | order, steps | steps; 1; explain |
@@ -193,10 +194,10 @@ for a reason the person did not choose) shows in red at the top of START-HERE.md
 
 | Path | What runs |
 |---|---|
-| Full check | every loop; L2b replays the saved journeys without AI; the short simulation only when chosen in the check's preview, which shows its time and cost |
+| Full check | every loop; the saved journeys replayed without AI after the lock's run (`record`), each a row of behavior-lock/results.json; the short simulation (try_experience beside `complete`) only when chosen in the check's preview, which shows its time and assistant calls |
 | A focused path (look, security, …) | only the loops it needs |
 | Try the layers (`layers`, beside `complete` an option of the full check) | L1-L2 as far as needed to run the app, then try_layers: the production build read, the migrations tried per table with pgTAP and the Supabase advisors, the API tried by Schemathesis with two test accounts (up to 15 minutes, said before it starts) |
-| Try the experience (M10) | L1 and L2 as far as needed to run the app, then L2b's full simulation, L3 and the experience report |
+| Try the experience (`experience`, M10.9) | L1 and L2 as far as needed to run the app signed in, then try_experience's whole simulation (`eaos/pipeline/runners/experience.py`), L3 and the experience report |
 
 ## 6. Outputs (what a check leaves)
 
