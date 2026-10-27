@@ -1,5 +1,5 @@
 {
- "about": "The one words catalog (M3.5): every word that names a concept of EAOS, in Arabic then English, read by the engine (eaos/core/language/words.py) and built into the Studio (console/scripts/build.mjs). A concept keeps each form its readers need beside the others: a stage's title (the Studio's list), what it does, and what EAOS says while doing it (the terminal's progress); a loop of the check's name (eaos/pipeline/loops.py); a kind of problem's name for one card, for a group of them, and why it matters. A sentence that composes values stays beside the code that composes it.",
+ "about": "The one words catalog (M3.5): every word that names a concept of EAOS, in Arabic then English, read by the engine (eaos/core/language/words.py) and built into the Studio (console/scripts/build.mjs). A concept keeps each form its readers need beside the others: a stage's title (the Studio's list), what it does, and what EAOS says while doing it (the terminal's progress); a loop of the check's name (eaos/pipeline/loops.py); a kind of problem's name for one card, for a group of them, and why it matters. A sentence that composes values stays beside the code that composes it. What this version of EAOS does not check yet (`unchecked`): each kind of problem with its area, its name and why it matters; while one is listed, its area and the whole score are never called good or excellent.",
  "stages": {
   "facts": {
    "title": [
@@ -1021,6 +1021,41 @@
    "name": [
     "التسليم والتقارير",
     "Handing over the reports"
+   ]
+  }
+ },
+ "unchecked": {
+  "data_in_code": {
+   "area": "security",
+   "one": [
+    "بيانات حقيقية مكتوبة داخل الكود",
+    "Real data written in the code"
+   ],
+   "why": [
+    "أسماء وأرقام جوالات وهويات وجداول سجلات توضع في الكود أثناء بنائه، فتنتقل مع كل نسخة منه. هذا الإصدار من EAOS لا يبحث عنها بعد.",
+    "Names, phone numbers, IDs and tables of records put in the code while it was built travel with every copy of it. This version of EAOS does not look for them yet."
+   ]
+  },
+  "old_engines": {
+   "area": "quality",
+   "one": [
+    "محركات قديمة ما زالت موصولة",
+    "Old engines still wired in"
+   ],
+   "why": [
+    "كود قديم حلّ غيره محله لكنه ما زال يُستدعى أو يقف خلف خيار مطفأ، فلا يراه فحص الكود الميت. هذا الإصدار من EAOS لا يبحث عنه بعد.",
+    "Old code another part replaced, still called or behind a switched-off option, so the dead-code check does not see it. This version of EAOS does not look for it yet."
+   ]
+  },
+  "data_saving": {
+   "area": "performance",
+   "one": [
+    "طريقة حفظ البيانات ونقلها ونسخها الاحتياطية",
+    "How the data is saved, sent and backed up"
+   ],
+   "why": [
+    "حفظ يرسل كل البيانات عند كل تعديل، وبيانات محفوظة في مكانين، ونسخ احتياطية ناقصة، وتعديلات تضيع. هذا الإصدار من EAOS لا يقيسها بعد.",
+    "A save that sends all the data on every edit, the same data kept in two places, incomplete backups, edits that get lost. This version of EAOS does not measure these yet."
    ]
   }
  }

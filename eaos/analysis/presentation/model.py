@@ -34,6 +34,8 @@ The health score, derived only from those cards:
     density of an area    = sum of its weights per 100 source files (a project under 100 files counts as 100)
     area score            = 100 x 20 / (20 + density)   (20 weighted points per 100 files halve the score)
     health score          = the mean of the measured areas' scores; a confirmed critical problem caps it at 39
+    grade                 = the score's band, but never good or excellent over ground this version does not check
+                            (words.json `unchecked`): it reads `partial` there, for the whole score and for that area
 An area whose checking stage failed or was not reached is left out of the mean and shown as not measured.
 A security card the assistant closed as not worth changing (cards.json `closed`: a vulnerable library with no fixed
 version) is an accepted risk, not a solved one: it is no longer work, but it still weighs on the security score, and
@@ -51,6 +53,7 @@ from pathlib import Path
 
 from ...core.contracts.decisions import ready, waiting
 from ...core.language.plain import kind as plain_kind
+from ...core.language.words import unchecked
 from .counts import (all_card_count, architecture_counts, collection_count, density_counts, history_scale,  # noqa: F401  (the views read them here)
                      history_ticks, layer_counts, pipeline_counts, problems_left, remaining, structure_counts,
                      system_counts, unparsed_count)
@@ -184,7 +187,10 @@ def score(rows, source_files, statuses=None, known=True):
     size = max(source_files or 0, 100) / 100
     areas = {area: _area_score(area, rows, size, known and _area_measured(area, statuses)) for area in AREAS}
     overall, capped = _overall(areas, rows)
-    return {'score': overall, 'grade': _grade(overall), 'areas': areas, 'capped': capped, 'size': round(size * 100)}
+    kinds, grade = unchecked(), _grade(overall)
+    for area, a in areas.items(): a['partial'] = any(k['area'] == area for k in kinds)
+    return {'score': overall, 'grade': 'partial' if kinds and grade in ('good', 'excellent') else grade, 'areas': areas,
+            'capped': capped, 'size': round(size * 100), 'unchecked': [k['id'] for k in kinds]}
 
 
 def _overall(areas, rows):

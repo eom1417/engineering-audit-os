@@ -2,6 +2,7 @@
 from collections import Counter
 
 from ...core.language import plain
+from ...core.language.words import catalog
 from ...analysis.presentation import model as M
 from ...core.language.markup import both as T, esc
 from ...analysis.presentation.model import AREAS, CRITICAL_CAP, HALF_POINT, SEVERITIES, SEVERITY_WEIGHT, ledger_of
@@ -113,6 +114,8 @@ def not_checked(m):
             items.append(T(f'لم يُشغَّل: {esc(plain.stage(row["stage"], "ar"))}. {esc(row["reason"]["ar"])}',
                            f'Not run: {esc(plain.stage(row["stage"], "en"))}. {esc(row["reason"]["en"])}', 'li'))
     items += _coverage_limits(coverage)
+    items += [T(f'لا يفحصه هذا الإصدار: {esc(row["one"][0])}. {esc(row["why"][0])}', f'Not checked by this version: {esc(row["one"][1])}. {esc(row["why"][1])}', 'li')
+              for row in (catalog()['unchecked'][kind] for kind in m['score'].get('unchecked') or [])]
     items.append(T('الأداء الحقيقي تحت الضغط لم يُقَس بتشغيل؛ هو تقدير من شكل الكود.',
                    'Real performance under load was not measured by running it; it is an estimate from the shape of the code.', 'li'))
     return (f'<h3>{T("ما لم نفحصه", "What we did not check")}</h3><div class="card honest">'

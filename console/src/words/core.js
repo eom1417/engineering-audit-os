@@ -85,6 +85,7 @@ export default {
   'band.fair': ['مقبولة', 'fair'],
   'band.good': ['جيدة', 'good'],
   'band.excellent': ['ممتازة', 'excellent'],
+  'band.partial': ['لم يُفحص كله', 'not fully checked'],
   'who.you': ['تحتاجك', 'Need you'],
   'who.eaos': ['يصلحها EAOS', 'EAOS fixes'],
   'who.all': ['الكل', 'All'],

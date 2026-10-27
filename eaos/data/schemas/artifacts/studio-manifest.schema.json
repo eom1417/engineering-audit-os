@@ -47,9 +47,27 @@
             }
           },
           "additionalProperties": false
+        },
+        "ar": {
+          "type": "object",
+          "required": [
+            "file",
+            "sha256"
+          ],
+          "properties": {
+            "file": {
+              "const": "locale.js"
+            },
+            "sha256": {
+              "type": "string",
+              "pattern": "^[a-f0-9]{64}$"
+            }
+          },
+          "additionalProperties": false
         }
       },
-      "additionalProperties": false
+      "additionalProperties": false,
+      "description": "The report's own texts in the other language (studio/locale.json, eaos/report/studio/localization.py), keyed by that language."
     },
     "built": {
       "type": "object",

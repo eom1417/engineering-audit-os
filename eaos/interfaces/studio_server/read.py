@@ -155,7 +155,7 @@ class _Read:
         return JSONResponse(found, headers=NO_STORE)
 
     async def locale(self, request):
-        if request.path_params['lang'] != 'en': return _not_found({'error': 'unknown_language'})
+        if request.path_params['lang'] not in ('ar', 'en'): return _not_found({'error': 'unknown_language'})
         body = _file(self.folder / 'locale.json')
         if body is None: return _not_found({'error': 'not_written'})
         return _json_file(body)

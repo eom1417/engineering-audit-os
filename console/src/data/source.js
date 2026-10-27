@@ -48,12 +48,11 @@ async function readSection(name) {
   return undefined;
 }
 
+/** The report's own texts in the other language (studio/locale.json), when the check wrote them; live only. */
 async function readLocale(manifest) {
-  if (!(manifest.locales && manifest.locales.en)) return null;
-  if (mode === 'live') {
-    try { const answer = await apiGet('/api/locales/en'); return answer.ok ? await answer.json() : null; } catch (e) { return null; }
-  }
-  return null;
+  const lang = Object.keys(manifest.locales || {})[0];
+  if (!lang || mode !== 'live') return null;
+  try { const answer = await apiGet('/api/locales/' + lang); return answer.ok ? await answer.json() : null; } catch (e) { return null; }
 }
 
 /** Reads the manifest: 'ready', 'empty' (no check has written the data yet) or 'error' (another contract). */

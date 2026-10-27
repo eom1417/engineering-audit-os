@@ -15,6 +15,12 @@ def catalog():
     return json.loads(CATALOG.read_text(encoding='utf-8'))
 
 
+def unchecked():
+    """What this version of EAOS does not check yet, each kind with its area: [{id, area}] (the catalog's `unchecked`);
+    while one is listed no grade of its area, nor the whole score, reads good or excellent."""
+    return [{'id': kind, 'area': row['area']} for kind, row in catalog()['unchecked'].items()]
+
+
 LABELS = {
     'ar': {
         'system_map': 'خريطة النظام', 'coupling_atlas': 'أطلس الترابط', 'evolution': 'عدسة التطور',

@@ -14,7 +14,7 @@ from unittest import mock
 from eaos.core.contracts import artifact_rules as artifact_contracts
 from eaos.report.studio import coverage, evidence, export, inbox
 from eaos.analysis.presentation import model
-from eaos.report.studio.localization import publish
+from eaos.report.studio import localization
 from tests.shared_fixture import Workspace
 from tests.report.test_human_report import report
 
@@ -269,24 +269,20 @@ class Contract(unittest.TestCase):
 
 
 class Localization(unittest.TestCase):
-    def test_a_translation_catalog_is_optional_keeps_both_languages_and_a_blank_one_is_refused(self):
+    def test_a_cards_title_reaches_the_other_language_from_the_translation_memory_with_no_model(self):
+        # Seen taking the README's pictures: a check run in Arabic showed Arabic titles in the English Studio.
         with tempfile.TemporaryDirectory() as tmp:
-            report_folder = Path(tmp)
-            (report_folder / 'studio').mkdir()
-            self.assertIsNone(publish(report_folder, 'ar'))
-            translations = {'en': {'هل تعتمد الخطة؟': 'Do you approve the plan?'}}
-            (report_folder / 'studio-translations.json').write_text(json.dumps(translations))
-            metadata = publish(report_folder, 'ar')
-            catalog = json.loads((report_folder / 'studio/locale.json').read_text())
-            self.assertEqual((catalog['source_locale'], catalog['translations']), ('ar', translations))
+            report_folder = Path(tmp) / 'technical'
+            (report_folder / 'studio').mkdir(parents=True)
+            (Path(tmp) / 'translation-memory.json').write_text(json.dumps({'en': {'⟦1⟧: تعقيد في ⟦2⟧': '⟦1⟧: Complexity in ⟦2⟧'}}))
+            cards = [{'id': 'TASK-003', 'title': 'تعقيد في eaos/sandbox.py'}, {'id': 'TASK-004', 'title': 'شيء لم يُترجم'}]
+            translations = localization.catalog(report_folder, {'tasks': []}, cards, 'ar')
+            self.assertEqual(translations, {'en': {'تعقيد في eaos/sandbox.py': 'Complexity in eaos/sandbox.py'}})
+            metadata = localization.publish(report_folder / 'studio', 'ar', translations)
+            written = json.loads((report_folder / 'studio/locale.json').read_text())
+            self.assertEqual((written['source_locale'], written['translations']), ('ar', translations))
             self.assertEqual((metadata['en']['file'], len(metadata['en']['sha256'])), ('locale.js', 64))
-        with tempfile.TemporaryDirectory() as tmp:
-            report_folder = Path(tmp)
-            (report_folder / 'studio').mkdir()
-            (report_folder / 'studio-translations.json').write_text(json.dumps({'en': {'question': ''}}))
-            with self.assertRaises(ValueError):
-                publish(report_folder, 'ar')
-            self.assertFalse((report_folder / 'studio/locale.js').exists())
+            self.assertIsNone(localization.publish(report_folder / 'studio', 'ar', {}))     # nothing translated: no file
 
 
 if __name__ == '__main__':

@@ -32,8 +32,8 @@ main{padding-top:28px;padding-bottom:40px}.js section.report{display:none}.js se
 .hero{display:grid;grid-template-columns:220px 1fr;gap:28px;align-items:center;padding:26px 28px}
 .hero-score{text-align:center}.big{font-size:72px;font-weight:800;line-height:1}.big small{display:block;font-size:14px;font-weight:500;color:var(--muted);margin-top:6px}
 .grade-word{display:inline-block;margin-top:10px;padding:4px 14px;border-radius:999px;font-weight:700}
-.grade-excellent,.grade-good{color:var(--good)}.grade-fair{color:var(--warn)}.grade-weak,.grade-critical{color:var(--bad)}
-.grade-word.grade-excellent,.grade-word.grade-good{background:var(--good-soft)}.grade-word.grade-fair{background:var(--warn-soft)}.grade-word.grade-weak,.grade-word.grade-critical{background:var(--bad-soft)}
+.grade-excellent,.grade-good{color:var(--good)}.grade-fair,.grade-partial{color:var(--warn)}.grade-weak,.grade-critical{color:var(--bad)}
+.grade-word.grade-excellent,.grade-word.grade-good{background:var(--good-soft)}.grade-word.grade-fair,.grade-word.grade-partial{background:var(--warn-soft)}.grade-word.grade-weak,.grade-word.grade-critical{background:var(--bad-soft)}
 .lead{font-size:19px;margin:4px 0 16px}.hero h3{margin:0}
 .meter{position:relative;margin:8px 0 4px}.bands{display:flex;gap:2px;height:26px;border-radius:6px;overflow:hidden;font-size:12px}
 .band{display:flex;align-items:center;justify-content:center;color:var(--ink-2);background:var(--surface-2)}

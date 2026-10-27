@@ -93,6 +93,8 @@ export default {
   'st.nm.other': ['لم يُقس في هذا الفحص: لم تنتج مراحله ما يقيسه.', 'Not measured in this check: its stages produced nothing to measure it.'],
   'st.fold.journey.all': ['كل خطوات رحلتك تمّت.', 'Every step of your journey is done.'],
   'st.measured.all': ['قيس كل مجال.', 'Every area was measured.'],
+  'st.unchecked': ['لا يفحصه هذا الإصدار من EAOS بعد', 'Not checked by this version of EAOS yet'],
+  'st.unchecked.tag': ['لا يُفحص بعد', 'Not checked yet'],
   'pl.fix_branch_waits': [{ zero: 'لا فرع ينتظر قرارك', one: 'فرع واحد ينتظر قرارك', two: 'فرعان ينتظران قرارك', few: '{n} فروع تنتظر قرارك', many: '{n} فرعًا ينتظر قرارك', other: '{n} فرع ينتظر قرارك' }, { one: '1 branch waits for your decision', other: '{n} branches wait for your decision' }],
   'st.context.report': ['التقرير من {branch} عند {commit}.', 'The report is of {branch} at {commit}.'],
   'st.context.same': ['تعمل على {checkout}، ويفحص EAOS الفرع نفسه.', 'You work on {checkout}, and EAOS checks the same branch.'],

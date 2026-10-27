@@ -142,9 +142,7 @@ def _load(path):
 def translate(report, provider, say=lambda done, total: None):
     """Write report/i18n/<lang>/ for every document; {'pieces', 'remembered', 'calls', 'failed'}."""
     report = Path(report)
-    memory_file = report.parent / MEMORY
-    seed, kept = _load(SEED), _load(memory_file)
-    memory = {lang: {**seed.get(lang, {}), **kept.get(lang, {})} for lang in LANGS}
+    memory_file, memory = report.parent / MEMORY, memory_of(report)
     texts = [(name, path.read_text(encoding='utf-8', errors='replace')) for path, name in documents(report)]
     wanted = sorted({(lang, template(piece)[0]) for _, text in texts for lang in LANGS for piece in pieces_to_send(text, lang)})
     missing = [pair for pair in wanted if pair[1] not in memory[pair[0]]]
@@ -152,6 +150,18 @@ def translate(report, provider, say=lambda done, total: None):
     _save_memory(memory_file, memory, wanted)
     _write_translations(report, texts, memory)
     return counts
+
+
+def memory_of(report):
+    """{lang: {template: translation}}: EAOS's own memory, then the report's, as the last translation left them."""
+    seed, kept = _load(SEED), _load(Path(report).parent / MEMORY)
+    return {lang: {**seed.get(lang, {}), **kept.get(lang, {})} for lang in LANGS}
+
+
+def in_language(piece, memory, lang):
+    """A piece in `lang` from the memory (`memory_of`), as the documents were translated; None when it is already in
+    `lang` or the memory has no translation of it. No model is asked."""
+    return _translated(piece, memory[lang], lang)
 
 
 def _save_memory(memory_file, memory, wanted):

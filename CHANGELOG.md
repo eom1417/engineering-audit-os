@@ -1,5 +1,24 @@
 # Changelog
 
+## 0.0.84 (2026-10-27)
+
+M11, an honest score. A real project checked several times was called strong and clean while it held real data in its
+code, old engines still wired in and a save that sent its whole state on every edit: the score counted only what EAOS
+measures, and called the rest good. And taking the README's pictures, a check run in Arabic showed Arabic card titles
+in the English Studio. Now:
+- **What this version does not check is said** (`eaos/data/words.json` `unchecked`: real data in the code, old engines
+  still wired in, how the data is saved, sent and backed up, each in its area). While one is listed, neither its area
+  nor the whole score is called good or excellent: they read "not fully checked" (a lower band stays as it is), in the
+  report, its "What we did not check", and the Studio's "What was measured". Each later milestone that checks one
+  removes it from the list.
+- **A card's title in the person's language.** The translation stage already translated every plan document, card
+  titles with them; the Studio's data now carries those titles in the other language (`studio/locale.json`, both ways,
+  no model asked), so the English Studio shows English titles of a check run in Arabic, and the reverse. The old
+  English-only catalog nobody wrote is gone.
+
+Measured on EAOS's own last check: 88 of 88 Arabic card titles shown in English; security, code quality and
+performance marked not fully checked, the score "78, not fully checked" instead of "78, good".
+
 ## 0.0.83 (2026-10-27)
 
 The final proof: everything run for real on the last version, and what it found fixed. Every milestone had been proved

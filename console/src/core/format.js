@@ -42,9 +42,11 @@ export function estimate(p) {
   if (lo == null || hi == null) return t('pv.estimate.none');
   return hi > 180 ? t('pv.estimate.h', { lo: num(Math.round(lo / 60)), hi: num(Math.ceil(hi / 60)) }) : t('pv.estimate.v', { lo: num(lo), hi: num(hi) });
 }
-export function band(score) {
+/** A score's band; never good or excellent over ground this version does not check (partial: 'partial' instead). */
+export function band(score, partial) {
   if (score == null) return null;
-  return score < 40 ? 'critical' : score < 60 ? 'weak' : score < 75 ? 'fair' : score < 90 ? 'good' : 'excellent';
+  const b = score < 40 ? 'critical' : score < 60 ? 'weak' : score < 75 ? 'fair' : score < 90 ? 'good' : 'excellent';
+  return partial && (b === 'good' || b === 'excellent') ? 'partial' : b;
 }
 
 const locale = () => (prefs.lang === 'ar' ? 'ar-u-nu-latn-ca-gregory' : 'en-GB');

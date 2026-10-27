@@ -12,7 +12,7 @@ W = {  # every fixed word of the page: (Arabic, English)
     'performance': ('الأداء تحت الضغط', 'Performance under load'), 'ux': ('شكل الشاشات', 'How the screens look'),
     'maintainability': ('سهولة التطوير والاختبار', 'Ease of change and testing'),
     'critical': ('حرجة', 'Critical'), 'high': ('عالية', 'High'), 'medium': ('متوسطة', 'Medium'), 'low': ('منخفضة', 'Low'),
-    'excellent': ('ممتاز', 'Excellent'), 'good': ('جيد', 'Good'), 'fair': ('مقبول', 'Fair'), 'weak': ('ضعيف', 'Weak'),
+    'excellent': ('ممتاز', 'Excellent'), 'good': ('جيد', 'Good'), 'partial': ('لم يُفحص كله', 'Not fully checked'), 'fair': ('مقبول', 'Fair'), 'weak': ('ضعيف', 'Weak'),
     'CONFIRMED': ('مؤكدة', 'Confirmed'), 'LIKELY': ('مرجّحة', 'Likely'), 'HYPOTHESIS': ('فرضية', 'Hypothesis'),
     'S': ('صغير', 'Small'), 'M': ('متوسط', 'Medium'), 'L': ('كبير', 'Large'),
     'na': ('غير متاح في هذا التقرير.', 'Not available in this report.'),
@@ -41,6 +41,8 @@ SEVERITY_MEANS = {
 GRADE_MEANS = {
     'excellent': ('المشروع في حالة ممتازة: المشاكل قليلة وخفيفة.', 'The project is in excellent shape: few, light problems.'),
     'good': ('المشروع في حالة جيدة: توجد مشاكل، لكن معظمها غير عاجل.', 'The project is in good shape: there are problems, but most are not urgent.'),
+    'partial': ('ما فحصناه في حالة جيدة، لكن هذا الإصدار من EAOS لا يفحص كل شيء بعد، فلا نصفه بالجيد ولا الممتاز: انظر «ما لم نفحصه».',
+                'What we checked is in good shape, but this version of EAOS does not check everything yet, so we do not call it good or excellent: see "What we did not check".'),
     'fair': ('المشروع يعمل، لكن فيه مشاكل تستحق خطة إصلاح قبل أن تكبر.', 'The project works, but has problems that deserve a fix plan before they grow.'),
     'weak': ('المشاكل كثيرة وتبطئ التطوير وتزيد احتمال الأعطال؛ الإصلاح مطلوب قريبًا.',
              'Problems are many; they slow development and make failures likelier. Fixing is needed soon.'),
