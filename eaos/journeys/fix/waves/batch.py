@@ -97,7 +97,7 @@ def gates(batch, name):
     if batch['lock']:
         from ....live.behavior.lock import LockPass, verify_lock
         verdict = verify_lock(batch['report'], batch['root'], batch['runtime'],
-                              LockPass(name, declared=batch['declared'], known=batch.get('known') or ()))
+                              LockPass(name, declared=batch['declared'], known=batch.get('known') or (), intended=batch.get('intended')))
         if verdict['failed']:      # every screen that differs, at once: one per run cost a batch hours
             from ....live.behavior.lock import failing_tests
             return (f"the behaviour lock broke on {verdict['failed']} of {verdict['specs']} specs: "
@@ -131,8 +131,16 @@ def declared_screens(cards):
     """The screens a batch may change the look of: every one ('*') when it holds a design card, else none. A design card
     changes a shared part (a font, a card, a strip) that shows on pages its finding never named: by those pages, each run
     found one more screen and 33 sound design cards were left out (EAOS, 2026-10-15). Their pictures are the next check's
-    to review; a page's errors and its server's answers stay locked."""
-    return {'*'} if any((card.get('design') or {}).get('findings') for card in cards) else set()
+    to review; a page's errors and its server's answers stay locked. A design card that declares the screens it changes
+    (`changes_screens`) is judged by its declaration instead (intended_screens)."""
+    return {'*'} if any((card.get('design') or {}).get('findings') and not card.get('changes_screens') for card in cards) else set()
+
+
+def intended_screens(cards):
+    """{screen: the words its cards add} of the batch's cards that declare the screens they change on purpose
+    (eaos/live/behavior/intended.py): on those screens only the declared addition passes the lock."""
+    from ....live.behavior.intended import screens_of
+    return screens_of(cards)
 
 
 def open_batch(target, runtime, number):
@@ -176,8 +184,10 @@ def finish_batch(report, target, runtime, wave, **options):
         say('regenerate')
         regenerate(batch['root'])
     progress.begin('gates')
-    batch.update(before=original_checks(target, batch['runtime']), declared=declared_screens(cards[c] for c in kept))
+    batch.update(before=original_checks(target, batch['runtime']), declared=declared_screens(cards[c] for c in kept),
+                 intended=intended_screens([cards[c] for c in kept]))
     kept = _through_gates(batch, kept, failed)
+    _new_truth(batch, kept, cards)
     progress.begin('handover')
     _record_cards(batch, wave, kept, failed)
     return _write_wave(batch, wave, kept, failed)
@@ -254,6 +264,16 @@ def _through_gates(batch, kept, failed):
         raise GatesFailed(why, failing_output(batch['runtime'], batch['name']))
     progress.begin('culprit')
     return _without_culprits(batch, kept, failed)
+
+
+def _new_truth(batch, kept, cards):
+    """Once a batch is kept, the screens its cards changed on purpose recorded again on its code, so the next card is
+    compared with them (eaos/live/behavior/intended.py record_intended); the cards left out by the gates declare nothing."""
+    screens = intended_screens([cards[c] for c in kept]) if batch['lock'] else {}
+    if not screens: return
+    from ....live.behavior.intended import record_intended
+    batch['say']('record')
+    record_intended(batch['report'], batch['root'], batch['runtime'], set(screens))
 
 
 def _against_control(batch):
