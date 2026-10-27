@@ -6,7 +6,8 @@ blocked when one of them was not reached.
 
 `plan['order']` is the goals' names in dependency order (the scenario's `order`, given by the caller: live/ never reads
 analysis/); `plan['data']` is data.json, whose `through_ui` values the persona types; `plan['on_stuck']`, when given,
-is asked about a journey that did not reach its goal and may answer the journey that replaces it (support, M10.6).
+is asked about a journey that did not reach its goal and may answer the journey that replaces it (support, M10.6);
+`plan['budget']`, when given, is the run's {seconds, calls} in place of BUDGET (the short simulation's).
 """
 import json
 import time
@@ -39,14 +40,15 @@ def _status(journey):
 class _Board:
     """The run while it goes: each goal's ending, the events made, the time and calls spent."""
 
-    def __init__(self, folder):
+    def __init__(self, folder, budget):
         self.folder, self.began, self.calls, self.goals, self.events = Path(folder), time.monotonic(), 0, [], []
+        self.budget = budget
 
     def _seconds(self): return round(time.monotonic() - self.began, 1)
 
     def over(self, calls=0):
         """Whether the run's budget is spent, counting `calls` not kept yet."""
-        return self._seconds() >= BUDGET['seconds'] or self.calls + calls >= BUDGET['calls']
+        return self._seconds() >= self.budget['seconds'] or self.calls + calls >= self.budget['calls']
 
     def waiting(self, goal):
         """Why `goal` cannot start (the run's budget, or the goals it waits for that were not reached), or None."""
@@ -105,7 +107,8 @@ def run(app, scenario, plan, provider, report):
     """<report>/experience/run.json ({version, goals: [{name, persona, role, status: reached | stuck | stopped |
     blocked, why?, waited_for?, seconds, calls, friction}], events: [{event, by, at}], seconds, calls}), each journey
     saved in experience/journeys (a retry after support beside the first try, as <stem>--again.json). `app` = {base: the running copy's address, sessions: {role: storage state or None}}."""
-    goals, values, board = goals_by_name(scenario), typed_values(plan.get('data')), _Board(Path(report) / 'experience')
+    goals, values = goals_by_name(scenario), typed_values(plan.get('data'))
+    board = _Board(Path(report) / 'experience', plan.get('budget') or BUDGET)
     app = {**app, 'report': report}
     for name in (n for n in plan.get('order') or [] if n in goals):
         persona, goal = goals[name]

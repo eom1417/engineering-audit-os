@@ -40,18 +40,24 @@ async function settle() {
 
 // The visible controls a person could use, each named by its role, its name and its place among those alike.
 async function controls() {
-  const found = await page.locator(CONTROLS).evaluateAll((elements) => elements.filter((e) => {
-    const box = e.getBoundingClientRect();
-    return box.width > 0 && box.height > 0 && getComputedStyle(e).visibility !== 'hidden';
-  }).map((e) => {
-    const tag = e.tagName.toLowerCase(), type = (e.getAttribute('type') || '').toLowerCase();
-    const role = e.getAttribute('role') || (tag === 'a' ? 'link' : tag === 'select' ? 'combobox' : tag === 'summary' ? 'button'
-      : ['textarea'].includes(tag) || (tag === 'input' && !['submit', 'button', 'checkbox', 'radio'].includes(type)) ? 'textbox'
-      : tag === 'input' && ['checkbox', 'radio'].includes(type) ? type : 'button');
-    const name = (e.getAttribute('aria-label') || (role === 'textbox' ? '' : e.innerText) || e.getAttribute('placeholder')
-      || e.getAttribute('title') || e.value || e.getAttribute('name') || '').trim().replace(/\s+/g, ' ').slice(0, 80);
-    return { role, name };
-  }));
+  const found = await page.locator(CONTROLS).evaluateAll((elements) => {
+    // A field's name as a person and getByRole read it: its label (a <label> or aria-labelledby) before its placeholder,
+    // never only its `name` attribute, which the locator cannot find it by.
+    const labelled = (e) => ((e.getAttribute('aria-labelledby') || '').split(/\s+/).map((id) => document.getElementById(id)?.innerText || '').join(' ')
+      || Array.from(e.labels || []).map((label) => label.innerText).join(' ')).trim();
+    return elements.filter((e) => {
+      const box = e.getBoundingClientRect();
+      return box.width > 0 && box.height > 0 && getComputedStyle(e).visibility !== 'hidden';
+    }).map((e) => {
+      const tag = e.tagName.toLowerCase(), type = (e.getAttribute('type') || '').toLowerCase();
+      const role = e.getAttribute('role') || (tag === 'a' ? 'link' : tag === 'select' ? 'combobox' : tag === 'summary' ? 'button'
+        : ['textarea'].includes(tag) || (tag === 'input' && !['submit', 'button', 'checkbox', 'radio'].includes(type)) ? 'textbox'
+        : tag === 'input' && ['checkbox', 'radio'].includes(type) ? type : 'button');
+      const name = (e.getAttribute('aria-label') || labelled(e) || (role === 'textbox' ? '' : e.innerText) || e.getAttribute('placeholder')
+        || e.getAttribute('title') || e.value || e.getAttribute('name') || '').trim().replace(/\s+/g, ' ').slice(0, 80);
+      return { role, name };
+    });
+  });
   const seen = {};
   return found.filter((c) => c.name).map((c) => ({ ...c, nth: (seen[c.role + c.name] = (seen[c.role + c.name] ?? -1) + 1) })).slice(0, 120);
 }
@@ -80,6 +86,7 @@ async function act(command) {
     if (command.op === 'click' && UNSAFE.test(target.name || '')) return { ok: false, error: `refused: "${target.name}" could change or remove something` };
     let control = locate(target);
     if (!(await control.count())) control = page.getByText(target.name || '', { exact: true }).nth(target.nth || 0);
+    if (!(await control.count())) control = page.locator(`[name=${JSON.stringify(target.name || '')}]`).nth(target.nth || 0);
     if (!(await control.count())) return { ok: false, error: `no ${target.role} named "${target.name}" on this page` };
     if (command.op === 'fill') await control.fill(String(command.value ?? ''), { timeout: 5000 });
     else await control.click({ timeout: 5000 });

@@ -124,7 +124,8 @@ EXPERIENCE_SPEND = ("The simulated users ask your assistant: {step}. Up to {call
 STEPS_SPEND = {'plan': 'the personas and their data planned once or twice on its deep tier',
                'run': "every step of every persona on its light tier (up to 300 in a run, an hour at most), and support "
                       "reading the project on its standard tier for a persona that gets stuck",
-               'judge': 'each difficulty tried again by a fresh persona on its light tier, then one deep ruling'}
+               'judge': 'each difficulty tried again by a fresh persona on its light tier, then one deep ruling; then '
+                        'this check runs again from its claims, so its AI stages ask again too'}
 
 
 def _paid_assistant(args, out):

@@ -68,6 +68,7 @@ def _difficulty(page, d, ar):
     page.items([_say(ar, 'لتكرارها: ', 'To reproduce: ') + str(step) for step in d.get('repro') or []])
     fix = _in(d, 'fix', ar)
     if fix: page.para(_say(ar, 'الحل: ', 'The fix: ') + fix)
+    if d.get('card'): page.para(_say(ar, 'بطاقة إصلاحها: ', 'Its fix card: ') + f"`{d['card']}`")
     for picture in (d.get('pictures') or [])[:1]: _image(page, title, picture)
 
 

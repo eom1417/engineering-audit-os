@@ -55,6 +55,15 @@ class ActorTests(unittest.TestCase):
         self.assertEqual((journey['reached'], journey['stopped'], len(journey['steps']), journey['calls']), (False, 'steps', 3, 3))
         self.assertIn('steps budget', journey['stuck'])
 
+    def test_a_goals_own_seconds_end_it_sooner_than_the_budget(self):
+        # the short simulation's five minutes were never held: a goal ran on the actor's own ten (M10.10)
+        click = {'action': 'click', 'target': {'role': 'button', 'name': 'More', 'nth': 0}}
+        clock = mock.Mock(monotonic=mock.Mock(side_effect=iter(range(0, 10000, 100))))
+        with mock.patch.object(actor, 'time', clock):
+            journey = actor.act(Still(), PERSONA, {**GOAL, 'seconds': 300}, Scripted(*[click] * 20))
+        self.assertEqual(journey['stopped'], 'time')
+        self.assertLess(len(journey['steps']), 5)
+
     def test_a_persona_that_gives_up_says_why_and_its_journey_is_saved_by_goal(self):
         assistant = Scripted({'action': 'stuck', 'why': 'I cannot find where to order'})
         journey = actor.act(Still(), PERSONA, GOAL, assistant)
