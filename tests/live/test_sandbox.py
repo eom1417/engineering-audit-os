@@ -178,6 +178,16 @@ class SandboxTests(Workspace):
         self.assertFalse(home.exists())
         self.assertTrue((Path(self.tmp) / 'work/sandbox-run.json').is_file())
 
+    def test_a_stopped_service_returns_only_once_no_process_of_it_is_left_writing(self):
+        # A bundler's worker outlived its leader after the stop and wrote its coverage into a folder being removed
+        process = subprocess.Popen([sys.executable, '-c', 'import os, signal, subprocess, sys, time; '
+                                    'subprocess.Popen([sys.executable, "-c", "import signal, time; signal.signal(signal.SIGTERM, lambda *a: (time.sleep(1), open(%r, \'w\').write(\'late\'), exit(0))); time.sleep(60)"]); '
+                                    'time.sleep(60)' % str(Path(self.tmp) / 'late.txt')], start_new_session=True)
+        time.sleep(1)
+        sandbox.Sandbox._kill(process)
+        self.assertTrue((Path(self.tmp) / 'late.txt').is_file(), 'the worker finished writing before the stop returned')
+        with self.assertRaises(ProcessLookupError): os.killpg(process.pid, 0)
+
     def test_the_next_run_removes_what_a_killed_run_left_and_never_what_a_live_run_holds(self):
         live, left = self.box(), Path(self.tmp) / 'work/home-left-by-a-killed-run'
         (left / '.cache').mkdir(parents=True)
