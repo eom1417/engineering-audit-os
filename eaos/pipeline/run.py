@@ -74,7 +74,7 @@ def execute(target, out, *, only=(), skip=(), language='ar', exclude=(), engines
     log.started(STAGES, requested, previous_seconds(out), mode=mode, assistants=context.assistants.count)
     run = {'completed': completed, 'requested': requested, 'results': {}, 'blocked': {}, 'log': log, 'context': context,
            'runners': runners, 'progress': progress, 'todo': todo, 'out': out, 'began': began, 'head': head,
-           'lock': threading.RLock()}
+           'lock': threading.RLock(), 'running': []}
     # What a stage reads of the run: the stages ended so far. It only asks of those it waits for, so it reads them
     # ended whatever else runs beside it (tests/pipeline/test_parallel.py).
     context['manifest_so_far'] = {'stages': run['results'], 'status': 'RUNNING'}

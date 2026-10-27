@@ -67,7 +67,8 @@ def _run_stage(stage, run):
     """One stage, run while others may run beside it; what it ends with is written under the run's lock."""
     context, log, results = run['context'], run['log'], run['results']
     with run['lock']:
-        if run['progress']: run['progress'](sum(name in results for name in run['todo']), len(run['todo']), stage.name)
+        run['running'].append(stage.name)
+        _report(run)
         log.stage_started(stage.name)
     step = log.stepper(stage.name)
     token = _STEP.set(step)
@@ -76,10 +77,19 @@ def _run_stage(stage, run):
     finally: _STEP.reset(token)
     with run['lock']:
         results[stage.name] = row
+        run['running'].remove(stage.name)
+        _report(run)
         log.ended(row)
         _write(run['out'] / CHECKPOINT, {**run['head'], 'stages': results, 'coverage': ledger(results)})
         _block_dependents(stage, results, run['blocked'])
         if PAGE_STAGES <= results.keys(): close_app(context)
+
+
+def _report(run):
+    """The person's progress: the stages ended, and the newest stage still running, never one that ended (next-dashboard's
+    check said "Measuring size and complexity" for 14 minutes, a stage of 0.03 s started beside the sign-in that ran)."""
+    if run['progress'] and run['running']:
+        run['progress'](sum(name in run['results'] for name in run['todo']), len(run['todo']), run['running'][-1])
 
 
 def _block_dependents(stage, results, blocked):

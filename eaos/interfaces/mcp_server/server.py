@@ -71,7 +71,7 @@ what the tools returned.
 # In a run the Studio started (EAOS_STUDIO_RUN set by eaos/interfaces/studio_actions), the assistant asks instead, and the person
 # answers in the Studio, which calls these itself.
 PERSON_ONLY = ('accept', 'undo', 'choose_branch', 'answer', 'branches merge', 'branches delete', 'branches protect', 'branches cleanup',
-               'branches restore', 'auto_accept', 'sign_in_forget')
+               'branches restore', 'auto_accept', 'sign_in_forget', 'logic_flaws')
 STUDIO = 'EAOS Studio'           # the name the Studio's own calls are recorded under
 
 
@@ -222,6 +222,15 @@ def _record_tools(server, reading, working):
         from ...journeys import guided
         from ...report.experience.story import story, summary
         return summary(story(guided.report_of(tools.state_of(project))))
+
+    @server.tool(annotations=working, description='Hunt logic flaws after a check (skipped steps, races, wrong checks): the person\'s '
+                 'assistant reads the code twice on its deep tier, then the check goes on from its claims so the cards include them. '
+                 'It spends: without person_agreed it answers needs_agreement with what it costs; ask the person, and only after '
+                 'their yes call again with person_agreed=true. minutes: the most it may take (default 40). Returns a job. ' + PROJECT_DOC)
+    @_answer
+    def logic_flaws(person_agreed: bool = False, minutes: int | None = None, project: str | None = None) -> str:
+        from .. import deep_checks
+        return deep_checks.logic_flaws_tool(project, person_agreed, minutes)
 
 
 def _audit_tool(server, reading, working):

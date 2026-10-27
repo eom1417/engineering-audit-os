@@ -2,8 +2,10 @@
 
 A run is `direct` (EAOS's own tool, called here, its job followed for progress), `assistant` (the person's assistant
 started headless by its adapter, its output read into events), or `handoff` (no assistant here: the request waits for
-the next `status` call). One run per project is running, paused or waiting for the person at a time; the rest wait in
-the queue in the person's order. Only the server that holds the project's `dispatch.lock` starts runs, so two Studio
+the next `status` call). One run per project holds the slot (running, paused, or a handoff) at a time, so two runs never
+work on the project and its branches at once; the rest wait in the queue in the person's order. A run waiting for the
+person's answer has nothing working and releases the slot; its answer, given while another run holds it, is kept and
+the run goes on as soon as the slot is free, before the queue. Only the server that holds the project's `dispatch.lock` starts runs, so two Studio
 servers never start the same one. Everything a run is lives on disk (eaos/core/project/runs.py): a restarted server
 goes on reading an assistant that is still alive, follows a job that is still running, and says plainly which run
 stopped with the server.
@@ -21,10 +23,10 @@ from ...core.language import plain
 from ...ai.assistant import prompts
 from . import handoff, lane_assistants as helpers, planners, resume
 from .lane_assistants import alive
-from .run_answers import Answers
+from .run_answers import Answers, holds_slot
 from .run_outcome import Outcomes
 from .run_turns import Turns
-from ...core.project.runs import ACTIVE, RETRYABLE, TERMINAL, contract, now
+from ...core.project.runs import RETRYABLE, TERMINAL, contract, now
 from ...core.project import state as project_state
 
 STUDIO = 'EAOS Studio'                      # eaos/interfaces/mcp_server/server.py STUDIO
@@ -122,20 +124,20 @@ class Manager(Turns, Answers, Outcomes):
 
     def dispatch(self):
         with self._mutex:
-            run = self._next_run()
-            if run is None: return
-            self.set_state(run, 'running', attempt=self.store.load(run).get('attempt') or 1)
-        threading.Thread(target=self._start, args=(run,), daemon=True).start()
+            go_on = self._answered_next()           # an answered run first: it was started before any queued one
+            run = None if go_on else self._next_run()
+            if run is None and go_on is None: return
+            if run: self.set_state(run, 'running', attempt=self.store.load(run).get('attempt') or 1)
+        threading.Thread(target=go_on or (lambda: self._start(run)), daemon=True).start()
 
     def _next_run(self):
-        """The queued run to start now, or None: the first in line when nothing runs."""
+        """The queued run to start now, or None: the first in line when no run holds the slot (`holds_slot`)."""
         queue = self.store.queue()
         if not queue: return None
-        active = [row for row in self.store.all() if row.get('state') in ACTIVE and not row.get('read')]
-        if not active: return queue[0]
-        # a run that only waits for the person does not block a direct step (closing a stuck batch, accept, undo):
-        # the person may press it from the palette while the question is open
-        if any(row.get('state') != 'waiting_for_person' for row in active): return None
+        holding = [row for row in self.store.all() if holds_slot(row)]
+        if not holding: return queue[0]
+        # a handoff waiting for the person's assistant does not block a direct step (closing a stuck batch, accept, undo)
+        if any(row.get('state') != 'waiting_for_person' for row in holding): return None
         return next((r for r in queue if self.store.load(r).get('mode') == 'direct'), None)
 
     def recover(self):

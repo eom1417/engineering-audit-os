@@ -5,7 +5,17 @@ import threading
 
 from ...journeys import guided
 from ...ai.assistant import prompts
-from ...core.project.runs import now
+from ...core.project.runs import ACTIVE, now
+from .lane_assistants import alive
+
+
+def holds_slot(row):
+    """Whether run `row` holds the project's one slot. A run that only waits for the person's answer (its question
+    open, or its answer kept until the slot is free) has no process working on the project and holds none; a handoff,
+    which an assistant outside may be working on, still holds it."""
+    if row.get('state') not in ACTIVE or row.get('read'): return False
+    released = row.get('state') == 'waiting_for_person' and (row.get('question') or row.get('answer_waiting')) and not alive(row.get('pid'))
+    return not released
 
 
 class Answers:
@@ -24,7 +34,7 @@ class Answers:
         number = len(record.get('questions') or []) + 1
         question = {**question, 'id': f'{run}-q{number}', 'run': run, 'asked': now()}
         self.store.append(run, 'question', question['text'], question)
-        self.set_state(run, 'waiting_for_person', 'a question', question=question, questions=(record.get('questions') or []) + [question['id']])
+        self.set_state(run, 'waiting_for_person', 'a question', question=question, answer_waiting=None, questions=(record.get('questions') or []) + [question['id']])
 
     def answer(self, question_id, option=None, text=None, via='studio'):
         with self._mutex, (self.store.folder / 'question-answer.lock').open('a+') as lock:
@@ -44,19 +54,47 @@ class Answers:
         self.store.append(run, 'answer', {'en': f"You answered {prompts.WHERE[via]['en']}: {label['en']}", 'ar': f"جاوبت {prompts.WHERE[via]['ar']}: {label['ar']}"},
                           {'question': question_id, 'option': option, 'text': text, 'by': 'person', 'via': via})
         self.store.update(run, question=None, answered=(record.get('answered') or []) + [{'id': question_id, 'option': option, 'text': text, 'at': now()}])
+        answer = {'question': question, 'option': option, 'text': text, 'via': via}
+        if self._slot_taken(run):
+            # a run waiting for the person released its slot (runs.py `_next_run`): its answer is kept, and the
+            # dispatcher goes on with it once the run now going ends, so two runs never work on the project at once
+            self.store.append(run, 'step', {'en': 'Your answer is kept: this run goes on as soon as the work running now ends.',
+                                            'ar': 'جوابك محفوظ: هذا التشغيل يكمل أول ما يخلص الشغل اللي شغال الحين.'}, {'tool': None})
+            self.store.update(run, answer_waiting={**answer, 'at': now()})
+            return self.store.load(run)
+        return self._go_on(run, record, answer)
+
+    def _go_on(self, run, record, answer):
+        """The answer acts: the run is running again, its step or its assistant goes on from the answer."""
+        question, option, text, via = answer['question'], answer['option'], answer['text'], answer['via']
         self.set_state(run, 'running', 'answered')
         if option is None and prompts.binding(record, question): return self._custom_answer(run, record, question, text)
         if question.get('why') == 'branch':
             # The person picked the branch in the Studio (their own press, behind the token, CSRF and Origin checks): it
             # is recorded as their choice whoever asked, then the step runs again on that branch. Recorded for direct runs
             # only, an assistant asking it got the answer as text and status kept asking for the branch.
-            self._choose_branch(option, label['en'])
+            self._choose_branch(option, self._label_of(question, option, text)['en'])
         if record.get('mode') == 'direct': return self._direct_answer(run, record, question, option)
         done = self._act_on(run, question, option)
         adapter = self.adapters.get(record.get('assistant'))
         if adapter is None: self._fail(run, 'the assistant of this run is not available any more')
         else: threading.Thread(target=self._launch, args=(run, adapter, prompts.answer(question, option, text, self.lang, done, via), record.get('session')), daemon=True).start()
         return self.store.load(run)
+
+    def _slot_taken(self, run):
+        """Whether another run than `run` holds the project's one slot (`holds_slot`)."""
+        return any(holds_slot(row) for row in self.store.all() if row['id'] != run)
+
+    def _answered_next(self):
+        """The run whose kept answer goes on now (the first answered), or None while another run holds the slot."""
+        rows = self.store.all()
+        if any(holds_slot(row) for row in rows): return None
+        waiting = sorted((row for row in rows if row.get('state') == 'waiting_for_person' and row.get('answer_waiting')), key=lambda row: row['answer_waiting']['at'])
+        if not waiting: return None
+        record, kept = waiting[0], waiting[0]['answer_waiting']
+        self.store.update(record['id'], answer_waiting=None)
+        self.set_state(record['id'], 'running', 'answered')
+        return lambda: self._go_on(record['id'], self.store.load(record['id']), kept)
 
     @staticmethod
     def _label_of(question, option, text):
