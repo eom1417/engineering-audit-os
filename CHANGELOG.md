@@ -27,6 +27,12 @@ Now:
 - **Planted in the detection baseline**: an export behind `USE_OLD_EXPORT = false`, a total worked out by `totalV1`
   and `totalV2`; a switch fixed on whose branch runs must stay unfound. "Old engines still wired in" is off the list
   of what this version does not check.
+- Found while proving it, both fixed with their test: a Python server started as `python -u` had its option given to
+  Coverage.py, which refused it; and a stopped service returned while its bundler's workers still wrote into the
+  run's folder. The interpreter's options stay its own, and a stop now waits for the whole process group.
+
+Measured: the detection baseline 21 of 21 with nothing that must stay found; no old-engine card on EAOS's own code or
+on the corpus; the corpus 15 of 15 with every server run with coverage on.
 
 ## 0.0.85 (2026-10-27)
 

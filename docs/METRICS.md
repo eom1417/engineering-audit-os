@@ -223,6 +223,7 @@ simulation found one real failure a person would meet. The replays cost nothing 
 | The switched-off export | CONFIRMED: the server's run measured `export.js` and never ran `oldExportFile` |
 | False alarms on EAOS's own code (the tests and the built Studio excluded) | 0 old-engine cards, after `new`, `next` and `previous` stopped counting as markers (4 before) and a pair was held to one folder and one language |
 | False alarms on the compatibility corpus (15 apps, the code alone) | 0 |
+| Compatibility corpus, every app's server run with coverage on | **15 of 15** run and pictured, after two defects it found were fixed (a Python server's `-u` given to Coverage.py; a bundler's workers still writing after the stop) |
 
 ### The cost of adding a tool
 
