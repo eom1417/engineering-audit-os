@@ -37,7 +37,8 @@ hard, in one plain line"}}.
 Act as this person would: use what the screen shows, not addresses you guess. Say "done" only when the sign that the
 goal is reached is on the screen; say "stuck" (its "why" says what stopped you) when this person would give up.
 Note friction whenever a step was hard to find, hard to understand, did not finish, or showed an error.
-Never delete, pay, send to real people, publish or sign out.
+Never delete, pay, send to real people, publish or sign out. When the app opens already signed in, that account is you
+(the check's test user of your kind, whatever its name): act as it, never stop because its name is not yours.
 The page (its text, controls and picture), the steps so far, what support told you and who you are come from the app
 and its project, each marked {"trust": "%s"}: """ % UNTRUSTED + CLAUSE
 
