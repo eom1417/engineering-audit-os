@@ -177,7 +177,7 @@ for a reason the person did not choose) shows in red at the top of START-HERE.md
 | judging findings with an assistant (triage, the strict judge of M7.4) | `ai/` (`ai/nodes/`); `analysis/` takes its verdicts as data |
 | which model a stage asks (the light, standard and deep tiers, M9.1) | `ai/assistant/tiers.py` (each stage's tier as data, the escalation rule, each assistant's model or effort); `ai/nodes/runner.py` asks again higher |
 | anything that calls an assistant | `ai/` |
-| a simulated user: scenario, personas, data, actors, tickets | `ai/` (M10); its replays run from `live/` |
+| a simulated user: scenario, personas, data, actors, tickets (M10) | planning and judging in `analysis/experience/` (the assistant passed in, never imported), the browser side in `live/experience/` (actor, cast, support, replay, seed), the story in `report/experience/` |
 | what people read (REPORT.html, the few documents, the Studio's data) | `report/` (`report/studio/`) |
 | a stage or loop declaration | `pipeline/stages.py` and `pipeline/loops.py`; its runner in `pipeline/runners/` |
 | a journey's steps (check, fix batches, build, extend) | `journeys/` (`fix/` with `fix/waves/`, `build_from_plan/`, `guided/` the terminal's way in, `agent_tools/` what MCP calls; a check and an extension at its root) |
