@@ -36,6 +36,17 @@ class Stages(unittest.TestCase):
             tiers.tier_of('ideal_planner')
         self.assertEqual([tiers.up(t) for t in tiers.TIERS], ['standard', 'deep', None])
 
+    def test_the_experiences_calls_pass_the_flags_of_their_tiers(self):
+        # The provider reads no stage name (eaos/ai/assistant/command.py): each experience call's small/deep flags are its tier.
+        import re
+        flags = {'light': 'small=True', 'deep': 'deep=True'}
+        calls = [(m.group(0), m.group(1)) for path in Path('eaos').rglob('*.py')
+                 for m in re.finditer(r"provider\.complete\((?:[^\n]*\n)?[^\n]*?stage='(experience_\w+)'[^\n]*", path.read_text(encoding='utf-8'))]
+        self.assertEqual({stage for _, stage in calls}, {s for s in tiers.STAGES if s.startswith('experience_')})
+        for call, stage in calls:
+            with self.subTest(stage):
+                for tier, flag in flags.items(): self.assertEqual(flag in call, tiers.tier_of(stage) == tier, call)
+
     def test_each_assistant_is_told_its_tiers_model_or_effort(self):
         with mock.patch.dict(os.environ, {}, clear=False) as env:
             env.pop('EAOS_CLAUDE_MODEL', None)

@@ -82,7 +82,7 @@ class _Journey:
 
     def spent(self):
         """The budget this journey ran out of, or None."""
-        if len(self.steps) >= BUDGET['steps']: return 'steps'
+        if len(self.steps) >= min(self.goal.get('steps') or BUDGET['steps'], BUDGET['steps']): return 'steps'
         if time.monotonic() - self.began >= BUDGET['seconds']: return 'time'
         if self.calls >= BUDGET['calls']: return 'calls'
         return 'failures' if self.failed >= BUDGET['failures'] else None

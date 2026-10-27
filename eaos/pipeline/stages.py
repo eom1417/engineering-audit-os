@@ -124,6 +124,15 @@ _DECLARED = (
                       "database of the run's own and tried per table with pgTAP as no one, the owner and another user (and the "
                       "Supabase advisors), the API tried by Schemathesis with two test accounts; each failure a finding with "
                       'its evidence'),
+    Stage('experience', produces=('experience/run.json',), requires=('setup',), reads=('roles', 'session', 'screens'),
+          necessity=OPTIONAL, uses=('app',),
+          absent_when='the person did not choose to try the experience (the `experience` path, or its short option beside '
+                      'the complete check, its time and cost said before it starts), no assistant was installed or allowed, '
+                      'or the app is not running in an isolated copy',
+          description="Simulated users try the running app, signed in as each kind of user: alone, personas planned with "
+                      'their data, their hand-offs and a support desk, each difficulty met again by a fresh one and judged; '
+                      "beside the complete check, one persona doing the app's main task within a step budget. The confirmed "
+                      'difficulties become cards, the journeys reached are kept for every later check to replay', ai=True),
     Stage('readiness', produces=('readiness.json',), requires=('intake',), reads=('baseline', 'layers'),
           description='How the program holds up in production and under pressure, as findings with evidence: the external '
                       'dependencies a fault would hit, the routes a security scan would request, a health route, telemetry '
@@ -139,7 +148,7 @@ _DECLARED = (
           description='Enforce the declared architecture policy'),
     Stage('load', produces=('load-model.json',), requires=('facts',), reads=('engines', 'baseline'),
           description='A cost record per entry point, with a stated projection at 1000x'),
-    Stage('claims', produces=('dossier.json', 'README.md'), requires=('facts', 'features', 'measure', 'load'), reads=('layers', 'layers_trial', 'policy'),
+    Stage('claims', produces=('dossier.json', 'README.md'), requires=('facts', 'features', 'measure', 'load'), reads=('layers', 'layers_trial', 'experience', 'policy'),
           description='Facts interpreted into a ledger of falsifiable claims'),
     Stage('probe', produces=('probes.json',), requires=('claims',), amends=('dossier.json',),
           description='Settle every claim whose truth can be decided mechanically'),
@@ -210,7 +219,7 @@ ORDER = tuple(stage.name for stage in STAGES)
 PHASES = {phase: tuple(sorted(names, key=ORDER.index)) for phase, names in {
           'read': ('facts', 'features', 'roles', 'intake', 'measure', 'architecture', 'policy', 'load'),
           'tools': ('engines', 'layers', 'layers_trial', 'claims', 'probe', 'sustainability', 'transform'),
-          'app': ('setup', 'verify', 'session', 'crawl', 'lock', 'record', 'journeys', 'screens', 'baseline', 'readiness'),
+          'app': ('setup', 'verify', 'session', 'crawl', 'lock', 'record', 'journeys', 'screens', 'baseline', 'experience', 'readiness'),
           'assistant': ('semantic', 'triage', 'visual', 'ideal', 'pipeline_gaps'),
           'plan': ('plan', 'target', 'proposals', 'cards', 'reconcile', 'order', 'steps', 'reports', 'translate')}.items()}
 PHASE = {name: phase for phase, names in PHASES.items() for name in names}

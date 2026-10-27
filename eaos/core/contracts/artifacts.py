@@ -116,6 +116,14 @@ ARTIFACTS = (
     Artifact('live/api-trial', 'layers_trial', RECORD, "The OpenAPI derived for the API trial when the project has none; "
              "Schemathesis' report and the accounts' sessions are removed once read", required=False,
              absent_when='the person did not choose to try the layers, or the app is not running in an isolated copy'),
+    Artifact('experience/run.json', 'experience', RECORD, "The simulated users' run: each goal's ending, the hand-offs' events, "
+             'the time and calls spent; the journeys, pictures and judging beside it under experience/', required=False, checked=False,
+             absent_when='the person did not choose to try the experience, no assistant was allowed, or the app did not run'),
+    Artifact('EXPERIENCE.md', 'experience', DOCUMENT, "The users' story: who tried the app, what each reached, the difficulties "
+             'confirmed with their steps and pictures, the replays', 9, 400, record='experience/story.json', required=False,
+             checked=False, absent_when='the person did not choose to try the experience'),
+    Artifact('experience/story.json', 'experience', RECORD, "The experience report's data, EXPERIENCE.md's record", required=False,
+             checked=False, absent_when='the person did not choose to try the experience'),
     Artifact('architecture/map.json', 'architecture', RECORD, 'The code as a city (CodeCharta) and its dependency clusters (Emerge), '
              'with their hotspots and clusters', required=False,
              absent_when='external engines were not requested, or neither CodeCharta nor Emerge is installed or reads this project'),

@@ -2,7 +2,8 @@
 and the simulated users (M10: eaos experience plan | run | judge | replay | report). Thin: each finds the person's
 assistant and calls the analysis that does the work. The hunt says what it will spend and asks, then runs the check
 again from its claims so the cards and their triage include what it found; the experience drives the app's isolated
-copy already running (--base), on this computer only, and says what it will spend and asks before it asks the assistant."""
+copy already running (--base), on this computer only, and says what it will spend and asks before it asks the assistant;
+its judging runs the check again from its claims, as the hunt does, so the confirmed difficulties become cards."""
 import ipaddress
 import sys
 from pathlib import Path
@@ -143,7 +144,11 @@ def _experience_step(step, args, out, app, assistant):
     from ..report.experience.story import story, summary
     if step == 'plan': return {'personas': len(simulation.prepare(out, assistant)[0]['personas'])}
     if step == 'run': return {k: v for k, v in simulation.simulate(out, args.target, app, assistant).items() if k in ('seconds', 'calls', 'seeded')}
-    if step == 'judge': return simulation.judged(out, app, assistant)
+    if step == 'judge':
+        from ..pipeline.run import again
+        said = simulation.judged(out, app, assistant)
+        again(args.target, out, 'claims')            # the confirmed difficulties read by the claims: cards
+        return said
     if step == 'replay': return simulation.replays(out, app)['summary']
     return {'written': [str(path) for path in write(out, args.lang)], 'difficulties': len(summary(story(out))['difficulties']['ranked'])}
 
@@ -151,6 +156,9 @@ def _experience_step(step, args, out, app, assistant):
 def experience_command(args):
     step, out = args.step, Path(args.out).resolve()
     app = _app(args) if step in ('run', 'judge', 'replay') else None      # refused before anything is spent
+    if step == 'judge':
+        from ..pipeline.run import same_source
+        same_source(args.target, out)                # the report of a check of this very code, or a plain refusal
     assistant = _paid_assistant(args, out) if step in STEPS_SPEND else None
     if step in STEPS_SPEND and assistant is None: return 1
     print(f'experience {step}: {_experience_step(step, args, out, app, assistant)}')

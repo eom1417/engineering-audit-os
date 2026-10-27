@@ -2,10 +2,15 @@
 again in every full check with no assistant at all, on the browser agent's replay (eaos/live/agent.py), and joins the
 behaviour lock: a journey that no longer replays is a behaviour that broke, shown in red.
 
-    replay_all(base, sessions, report)   experience/replays.json: {version, replays: [...], summary: {green, red, skipped}}
+    replay_all(base, sessions, report, order=None)
+                                         experience/replays.json: {version, replays: [...], summary: {green, red, skipped}}
     as_lock(replays)                     its rows in the behaviour lock's shape (behavior-lock/results.json `results`)
+    saved(report)                        whether any journey is saved to replay
+    join_lock(runtime, lock, replays)    the lock's record (run_lock's answer) with the replays as its rows, written to
+                                         <runtime>/behavior-lock/results.json: every full check, after the lock's run
 
-A journey that never reached its goal is skipped: it is not a behaviour to keep. One replay's pictures go to
+One journey per goal is replayed (one_per_goal): the retry after support when there is one, never the judge's second
+attempt. A journey that never reached its goal is skipped: it is not a behaviour to keep. One replay's pictures go to
 experience/replays/<name>/, replaced each time, so they never pile up.
 """
 import json
@@ -48,12 +53,34 @@ def replay_one(base, journey, out, storage_state=None):
             'seconds': round(time.monotonic() - began, 1)}
 
 
-def replay_all(base, sessions, report):
+def _in_order(paths, order):
+    """The saved journeys in `order` (the goals' names in the scenario's order, given by the caller: a hand-off goal after
+    the goal it waits for), those it does not name after them, by name."""
+    rank = {name: index for index, name in enumerate(order or [])}
+
+    def place(path):
+        journey = load(path)
+        return rank.get(journey.get('goal') if isinstance(journey, dict) else None, len(rank)), path.name
+    return sorted(paths, key=place)
+
+
+def one_per_goal(paths):
+    """One saved journey per goal: the support desk's retry (<stem>--again.json) in place of the first try when there is
+    one, as the run's outcome is; never the judge's second attempt (<stem>--second.json), which only tested a difficulty."""
+    chosen = {}
+    for path in sorted(paths):
+        if path.stem.endswith('--second'): continue
+        stem = path.stem.removesuffix('--again')
+        if stem != path.stem or stem not in chosen: chosen[stem] = path
+    return list(chosen.values())
+
+
+def replay_all(base, sessions, report, order=None):
     """experience/replays.json in `report`, written and returned: every saved journey replayed on the app at `base`,
-    signed in with its role's storage state (`sessions`: {role: path or None})."""
+    signed in with its role's storage state (`sessions`: {role: path or None}), in `order` (_in_order)."""
     folder = Path(report) / 'experience'
     replays = []
-    for path in sorted((folder / JOURNEYS).glob('*.json')):
+    for path in _in_order(one_per_goal((folder / JOURNEYS).glob('*.json')), order):
         journey = load(path)
         if not isinstance(journey, dict):
             replays.append({'goal': path.stem, 'status': 'skipped', 'why': 'the saved journey cannot be read', 'screens': [], 'seconds': 0})
@@ -76,3 +103,19 @@ def as_lock(replays):
         rows.append({'path': 'experience/' + (found.get('file') or found['goal']), 'status': LOCK_STATUS[found['status']],
                      **({'reason': reason[:300]} if reason else {})})
     return rows
+
+
+def saved(report):
+    """Whether `report` holds a saved journey to replay."""
+    return any((Path(report) / 'experience' / JOURNEYS).glob('*.json'))
+
+
+def join_lock(runtime, lock, replays):
+    """The behaviour lock's record `lock` with each replay a row (as_lock) in place of an earlier check's, written to
+    <runtime>/behavior-lock/results.json, so a journey that no longer replays shows as a broken screen does."""
+    rows = [r for r in lock.get('results') or [] if not r['path'].startswith('experience/')] + as_lock(replays)
+    record = {**lock, 'results': rows}
+    folder = Path(runtime) / 'behavior-lock'
+    folder.mkdir(parents=True, exist_ok=True)
+    (folder / 'results.json').write_text(json.dumps(record, ensure_ascii=False, indent=1) + '\n', encoding='utf-8')
+    return record
