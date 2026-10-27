@@ -79,7 +79,7 @@ class Browser:
         Path(self._config.name).unlink(missing_ok=True)
 
 
-def _command(step):
+def step_command(step):
     """The browser command of a recorded or proposed step."""
     action = step.get('action')
     if action == 'open': return {'op': 'open', 'path': step.get('value') or '/'}
@@ -87,11 +87,15 @@ def _command(step):
     return {'op': action, 'target': step.get('target') or {}, 'value': step.get('value')}
 
 
+def seen(page, steps):
+    """The page now and the last steps, as an assistant reads them before choosing the next step."""
+    return {'steps_so_far': [{k: s.get(k) for k in ('action', 'target', 'value', 'landed', 'error')} for s in steps[-10:]],
+            'page_now': {k: page.get(k) for k in ('path', 'title', 'text', 'controls', 'error')}, 'picture': page.get('picture')}
+
+
 def _brief(page, steps, goal):
     """What the assistant reads before choosing the next step."""
-    return json.dumps({'goal': goal, 'steps_so_far': [{k: s.get(k) for k in ('action', 'target', 'value', 'landed', 'error')} for s in steps[-10:]],
-                       'page_now': {k: page.get(k) for k in ('path', 'title', 'text', 'controls', 'error')},
-                       'picture': page.get('picture')}, ensure_ascii=False)
+    return json.dumps({'goal': goal, **seen(page, steps)}, ensure_ascii=False)
 
 
 def explore(browser, goal, provider, start='/'):
@@ -105,20 +109,20 @@ def explore(browser, goal, provider, start='/'):
         if step.get('action') == 'done': break
         if step.get('action') not in ('click', 'fill', 'press', 'open', 'back'):
             return _record(goal, start, steps, screens, f'the assistant answered no step: {json.dumps(step)[:200]}')
-        before, page = page.get('path'), browser.do(_command(step))
-        steps.append(_taken(step, before, page))
+        before, page = page.get('path'), browser.do(step_command(step))
+        steps.append(taken(step, before, page))
         failed = failed + 1 if page.get('error') else 0
-        _reached(screens, page)
+        reach(screens, page)
     return _record(goal, start, steps, screens)
 
 
-def _taken(step, before, page):
+def taken(step, before, page):
     """The record of a step taken: what was asked, where it began and landed, its picture, its error."""
     return {**{k: step.get(k) for k in ('action', 'target', 'value', 'why')}, 'at': before, 'landed': page.get('path'),
             'picture': Path(page.get('picture') or '').name, **({'error': page['error']} if page.get('error') else {})}
 
 
-def _reached(screens, page):
+def reach(screens, page):
     """The page's address added to the screens reached, once."""
     if page.get('path') and page['path'] not in screens: screens.append(page['path'])
 
@@ -140,7 +144,7 @@ def replay(browser, record):
     page = browser.do({'op': 'open', 'path': record.get('start') or '/'})
     screens = [page.get('path')] if page.get('ok') else []
     for number, step in enumerate((s for s in record.get('steps') or [] if not s.get('error')), 1):
-        page = browser.do(_command(step))
+        page = browser.do(step_command(step))
         if not page.get('ok'): return {'screens': screens, 'broken_at': number, 'error': page.get('error')}
-        _reached(screens, page)
+        reach(screens, page)
     return {'screens': screens}
