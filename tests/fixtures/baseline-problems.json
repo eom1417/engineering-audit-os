@@ -1,5 +1,5 @@
 {
- "about": "The detection baseline (docs/STANDARDS.md §5, M0.2): the problems planted in tests/fixtures/baseline-app and how far EAOS finds each, in the golden trial's check (the app run, no assistant). 'found' is what the last recorded check reached: card (a fix card names it), finding (an engine or a screen recorded it, no card), missed. tools/detection_baseline.py refuses a check that finds any of them less; --record writes what a check found after it found more. tests/fixtures/baseline-clean is its clean twin (M6.0): the same app done right, on which no layer finding may appear.",
+ "about": "The detection baseline (docs/STANDARDS.md §5, M0.2): the problems planted in tests/fixtures/baseline-app and how far EAOS finds each, in the golden trial's check (the app run, no assistant). 'found' is what the last recorded check reached: card (a fix card names it), finding (an engine or a screen recorded it, no card), missed. tools/detection_baseline.py refuses a check that finds any of them less; --record writes what a check found after it found more. tests/fixtures/baseline-clean is its clean twin (M6.0): the same app done right, on which no layer finding may appear. 'must_stay' lists what is planted to stay unfound (an example, a placeholder, the program's own configuration): a check that finds any of them, as a finding or a card, is refused too.",
  "problems": [
   {
    "id": "command-injection",
@@ -173,6 +173,65 @@
    ],
    "card": "M6.10",
    "found": "card"
+  },
+  {
+   "id": "real-data-staff",
+   "what": "a table of staff written as code: Arabic and English names, Saudi mobiles, national ids, IBANs (M12.4)",
+   "path": "web/staff.js",
+   "line": 2,
+   "kinds": [
+    "real personal data"
+   ],
+   "found": "card"
+  },
+  {
+   "id": "real-data-monthly",
+   "what": "a table of each month's orders written as code (M12.4)",
+   "path": "web/staff.js",
+   "line": 10,
+   "kinds": [
+    "holds the program's records"
+   ],
+   "found": "card"
+  },
+  {
+   "id": "real-data-admin",
+   "what": "a default administrator in the server: a name, an e-mail and a mobile (M12.4)",
+   "path": "server.js",
+   "line": 96,
+   "kinds": [
+    "real personal data"
+   ],
+   "found": "card"
+  }
+ ],
+ "must_stay": [
+  {
+   "id": "menu-table",
+   "what": "the menu, a table of the program's own links: configuration, not data (M12.4)",
+   "path": "web/menu.js",
+   "kinds": [
+    "real_data",
+    "written in the code"
+   ]
+  },
+  {
+   "id": "example-row",
+   "what": "the empty roster's example row: John Doe, jane@example.com, a 555 number (M12.4)",
+   "path": "web/menu.js",
+   "kinds": [
+    "real_data",
+    "written in the code"
+   ]
+  },
+  {
+   "id": "test-people",
+   "what": "the tests' people: placeholders (M12.4)",
+   "path": "app.test.js",
+   "kinds": [
+    "real_data",
+    "written in the code"
+   ]
   }
  ]
 }

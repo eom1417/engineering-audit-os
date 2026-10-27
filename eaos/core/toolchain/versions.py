@@ -8,6 +8,7 @@ import subprocess
 from .pins import Unavailable, binary_path, browsers, checkout, home, npm_prefix, release_spec, selected, tool_env, venv_of
 
 VERSION = re.compile(r'(\d+\.\d+\.\d+)')
+WHEEL = re.compile(r'-(\d+\.\d+\.\d+)-py3-none-any\.whl')
 
 
 def _git_version(tool):
@@ -17,9 +18,10 @@ def _git_version(tool):
 
 
 def _library_version(tool):
-    # A Node library EAOS's own helper scripts import (axe, the CSS analyzer): it has no executable, and its
-    # version is the one its package.json declares in the tool's own prefix.
-    found = package_version(tool, tool['install']['package'])
+    # A library EAOS's own helper scripts import (axe and the CSS analyzer in Node, Presidio in Python): it has no
+    # executable, and its version is the one its package records in the tool's own prefix or environment.
+    package = tool['install']['package']
+    found = pip_version(package, venv_of(tool)) if tool['install']['method'] == 'pip' else package_version(tool, package)
     if not found: return None, 'not installed'
     missing = _companions_missing(tool)
     return (None, missing) if missing else (found, '')
@@ -95,6 +97,7 @@ def _companions_missing(tool):
     pip = tool['install']['method'] == 'pip'
     for spec in tool['install'].get('with', []):
         name, _, wanted = spec.partition('==') if pip else spec.rpartition('@')
+        if ' @ ' in spec: name, wanted = spec.split(' @ ')[0], WHEEL.search(spec).group(1)   # a wheel at its pinned address
         found = pip_version(name, venv_of(tool)) if pip else package_version(tool, name)
         if found != wanted: return f'{name} {wanted} is not installed beside it (found {found})'
     return ''

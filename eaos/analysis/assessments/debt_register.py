@@ -4,9 +4,10 @@ An item says what the debt is (category), how bad (severity), who saw it (witnes
 how hot that place is (hotspot), what it costs to leave (impact) and what to do (recommendation).
 
 Severity comes from the evidence, never from a wish to look calm. High or critical needs either one
-deterministic witness (a lookup that admits no reading: a committed key, a locked version the advisory
-database lists, a name that is not defined, a table without row-level security) or two witnesses from
-different tools. Without either, the item is written at medium and `probe_needed` says a probe must decide.
+deterministic witness (a lookup that admits no reading: a committed key, an IBAN or national id whose check
+digit holds, a locked version the advisory database lists, a name that is not defined, a table without row-level
+security) or two witnesses from different tools. Without either, the item is written at medium and `probe_needed`
+says a probe must decide.
 
 hotspot, for the item's hottest file, from measurements.json:
     score = pct(complexity_max) x pct(churn) x (1 + pct(fan_in))
@@ -53,6 +54,8 @@ RECOMMENDATIONS = {
     'dead_code': 'Delete it in one commit; the audit shows nothing reaches it.',
 }
 CREDENTIAL_SEVERITY = {'public': 'low', 'test': 'low'}
+# Personal values whose check digits were verified (an IBAN, a Saudi national id, a card number): a lookup, not a guess.
+CHECKED_VALUES = ('IBAN_CODE', 'SA_NATIONAL_ID', 'CREDIT_CARD')
 
 
 def _load(path, default):
@@ -86,8 +89,9 @@ def hotspots(measurements):
 def witness(fact):
     """(tool, kind) of the fact a claim rests on."""
     value = fact.get('value') or {}
-    if fact.get('kind') == 'engine_finding':
-        return value.get('engine') or 'engine', 'deterministic' if value.get('method') == 'deterministic' else 'heuristic'
+    if fact.get('kind') in ('engine_finding', 'symbol_metric_external'):    # a finding, or a record (a value Presidio found, M12)
+        checked = value.get('method') == 'deterministic' or value.get('entity') in CHECKED_VALUES
+        return value.get('engine') or 'engine', 'deterministic' if checked else 'heuristic'
     if fact.get('kind') in DETERMINISTIC_FACTS: return f"eaos.{fact.get('extractor', fact['kind'])}", 'deterministic'
     if fact.get('kind') == 'data_table' and value.get('rls_enabled') is False: return 'eaos.domain', 'deterministic'
     return f"eaos.{fact.get('extractor', fact.get('kind'))}", 'heuristic'
@@ -186,7 +190,7 @@ def _layered(render, category, severity):
     (eaos/analysis/layers/catalog.py); any other item's as they were."""
     key, params = render.get('key'), render.get('params') or {}
     if key == 'repository_finding': return 'maintainability', 'low'      # never raises the risk grade (M7.8)
-    if key in ('logic_flaw', 'experience_difficulty'): return params.get('category') or 'reliability', params.get('severity') or 'medium'
+    if key in ('logic_flaw', 'experience_difficulty', 'real_data'): return params.get('category') or 'reliability', params.get('severity') or 'medium'
     if key != 'layer_finding': return category, severity
     return LAYER_CATEGORY.get(params.get('boundary'), 'architecture'), params.get('severity') or 'medium'
 

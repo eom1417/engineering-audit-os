@@ -34,6 +34,7 @@ there is marked "not kept" and its licence is read at its repository.
 | `checkov` ([Checkov](https://github.com/bridgecrewio/checkov)) | the Checkov authors | Apache-2.0 | GitHub Actions, Dockerfiles, Terraform and Kubernetes files; SARIF and JSON read | kept |
 | `bandit` ([Bandit](https://github.com/PyCQA/bandit)) | PyCQA | Apache-2.0 | SARIF read | kept |
 | `gitleaks` ([Gitleaks](https://github.com/gitleaks/gitleaks)) | Zachary Rice | MIT | secrets redacted; SARIF read | kept |
+| `presidio` ([Presidio](https://github.com/microsoft/presidio) analyzer, with [spaCy](https://github.com/explosion/spaCy) and its `en_core_web_sm` model) | Microsoft Corporation; ExplosionAI GmbH | MIT (the model: MIT) | imported by EAOS's own script in its own environment; string literals read, values masked, none written | kept |
 | `codeql` ([CodeQL](https://github.com/github/codeql-action), the CodeQL bundle) | GitHub, Inc. | GitHub CodeQL Terms and Conditions | run only on an open-source codebase public on GitHub.com, as its terms allow; SARIF read | not kept |
 | `dependency-cruiser` ([dependency-cruiser](https://github.com/sverweij/dependency-cruiser)) | Sander Verweij | MIT | the JavaScript and TypeScript import graph, with TypeScript installed beside it; JSON read | kept |
 | `sqlfluff` ([SQLFluff](https://github.com/sqlfluff/sqlfluff)) | the SQLFluff authors | MIT | the project's SQL linted in the Postgres dialect; JSON read | kept |

@@ -37,6 +37,7 @@ QUERY_PATTERNS = {
     'weakness_present': 'security_weakness',
     'boundary_finding_present': 'layer_boundary',
     'repository_finding_present': 'repository_craft',
+    'real_data_present': 'real_data',
 }
 
 
@@ -248,6 +249,14 @@ PATTERNS = {
         ],
         'rollback': 'revert واحد يعيد الملفات كما كانت.',
     },
+    'real_data': {
+        'change': 'انقل البيانات إلى مكانها كما تقول البطاقة (قاعدة البيانات، أو ملف بذرة خارج البرنامج، أو قيم تجريبية بدلها)، واقرأها عن طريق طبقة البيانات، خلف قفل السلوك؛ ثم أعد الفحص بـ Presidio و ast-grep.',
+        'options': [
+            {'option': 'نقلها إلى قاعدة البيانات وحذفها من الكود', 'cost': 'متوسطة', 'verdict': 'مختار افتراضيًا'},
+            {'option': 'إبقاؤها مع سبب مكتوب حين تكون بيانات عامة يعرضها البرنامج بقصد', 'cost': 'صفر', 'verdict': 'حين يثبته الكود أو المالك'},
+        ],
+        'rollback': 'revert واحد يعيد الملفات كما كانت.',
+    },
     'generic': {
         'change': '⧗ لا نمط معالجة معروف لهذه الفئة: صمّم التغيير يدويًا، واذكر البديل «لا نفعل شيئًا» صراحة قبل الاعتماد.',
         'options': [{'option': 'تصميم يدوي بعد قراءة الدليل', 'cost': 'غير محددة', 'verdict': 'مطلوب'}],
@@ -262,7 +271,7 @@ def pattern_for(claim):
     pattern['name'] = name
     pattern['options'] = [*pattern['options'], dict(DO_NOTHING, verdict=cost_of_inaction(name))]
     render = claim.get('render') or {}
-    if render.get('key') in ('layer_finding', 'repository_finding', 'logic_flaw', 'experience_difficulty'):   # the finding's own fix (M6.11, M7.8)
+    if render.get('key') in ('layer_finding', 'repository_finding', 'logic_flaw', 'experience_difficulty', 'real_data'):   # the finding's own fix (M6.11, M7.8)
         pattern['change'] = (render.get('params') or {}).get('fix_ar') or pattern['change']
     if name == 'generic':
         reason = _generic_fallback_reason(claim)
@@ -308,5 +317,6 @@ def cost_of_inaction(name):
         'security_weakness': 'يبقى باب مفتوح لمن يرسل مدخلًا مصممًا أو يجد السر، ولا يظهر أثره إلا بعد الاستغلال',
         'layer_boundary': 'يبقى الحد مفتوحًا: سرّ أو بيانات أو قاعدة يصل إليها من لا يملكها',
         'repository_craft': 'يبقى الوصول لأي شي في الريبو أبطأ وأصعب على كل مهندس ومساعد، وتكلّف كل جلسة توكنز أكثر',
+        'real_data': 'تبقى بيانات الناس أو سجلات البرنامج تنتقل مع كل نسخة من الكود، وتطلع في الشاشات حتى لو قاعدة البيانات فاضية',
         'generic': '⧗ غير محددة',
     }[name]

@@ -663,6 +663,20 @@
     "A crowded folder, a name that says nothing, a documented path that is gone, heavy context files: every engineer and assistant takes longer to find what they need."
    ]
   },
+  "real_data": {
+   "one": [
+    "بيانات حقيقية مكتوبة في الكود",
+    "Real data written in the code"
+   ],
+   "group": [
+    "بيانات حقيقية مكتوبة في الكود",
+    "Real data written in the code"
+   ],
+   "why": [
+    "أسماء وأرقام جوالات وهويات وجداول سجلات وُضعت في الكود أثناء بنائه: تنتقل مع كل نسخة منه، وتطلع في الشاشات حتى لو قاعدة البيانات فاضية.",
+    "Names, phone numbers, IDs and tables of records put in the code while it was built: they travel with every copy of it, and show on the screens even when the database is empty."
+   ]
+  },
   "layer_boundary": {
    "one": [
     "حد مكسور بين الطبقات",
@@ -1025,17 +1039,6 @@
   }
  },
  "unchecked": {
-  "data_in_code": {
-   "area": "security",
-   "one": [
-    "بيانات حقيقية مكتوبة داخل الكود",
-    "Real data written in the code"
-   ],
-   "why": [
-    "أسماء وأرقام جوالات وهويات وجداول سجلات توضع في الكود أثناء بنائه، فتنتقل مع كل نسخة منه. هذا الإصدار من EAOS لا يبحث عنها بعد.",
-    "Names, phone numbers, IDs and tables of records put in the code while it was built travel with every copy of it. This version of EAOS does not look for them yet."
-   ]
-  },
   "old_engines": {
    "area": "quality",
    "one": [

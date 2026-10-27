@@ -132,6 +132,7 @@ def _pip_one(tool):
         subprocess.run([runner, 'pip', 'install', '--quiet', '--no-cache', '--python', str(venv / 'bin/python'), *wanted], check=True, env=env)  # nosemgrep: python.lang.security.audit.dangerous-subprocess-use-audit -- the pinned requirements of the registry, a list argv, no shell
     else:
         subprocess.run([str(venv / 'bin/pip'), 'install', '-q', '--no-cache-dir', *wanted], check=True, env=env)  # nosemgrep: python.lang.security.audit.dangerous-subprocess-use-audit -- the pinned requirements of the registry, a list argv, no shell
+    if tool['install'].get('library'): return       # a library EAOS's own script imports (Presidio): no command to link
     _link(venv / 'bin' / tool['binary'], tool['binary'])
 
 

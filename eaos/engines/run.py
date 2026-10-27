@@ -8,7 +8,7 @@ from pathlib import Path
 from typing import NamedTuple
 
 from .code import ast_grep, codegraph, dependency_cruiser, enola, gitnexus, jscpd, knip, lizard, react_docgen, reforge, scc, sqlfluff
-from .security import bandit, checkov, codeql, gitleaks, osv_scanner, semgrep, syft, trivy
+from .security import bandit, checkov, codeql, gitleaks, osv_scanner, presidio, semgrep, syft, trivy
 from .api import oasdiff, spectral
 from . import sarif
 from .contract import NOT_APPLICABLE, OBSERVED, UNAVAILABLE
@@ -21,10 +21,10 @@ from ..core.toolchain import registry
 # command of its own has its adapter here, by its NAME; an added tool that declares an `engine` runs through sarif.py.
 # Install, run and display read the one list; an entry without its adapter fails here, at import.
 _BY_NAME = {module.NAME: module for module in (ast_grep, bandit, checkov, codegraph, codeql, dependency_cruiser, enola, gitleaks,
-                                                gitnexus, jscpd, knip, lizard, oasdiff, osv_scanner, react_docgen, reforge, scc,
+                                                gitnexus, jscpd, knip, lizard, oasdiff, osv_scanner, presidio, react_docgen, reforge, scc,
                                                 semgrep, spectral, sqlfluff, syft, trivy)}
 ADAPTERS = {tool['name']: _BY_NAME[tool['name']] for tool in registry()['tools']
-            if tool.get('check') == 'engines' and tool.get('binary') and not tool.get('engine')} | sarif.declared()
+            if tool.get('check') == 'engines' and (tool.get('binary') or tool['install'].get('library')) and not tool.get('engine')} | sarif.declared()
 # What an engine may take while it runs; an adapter that takes more says so (CodeQL's database: codeql.MEMORY).
 ENGINE_MB = 1024
 

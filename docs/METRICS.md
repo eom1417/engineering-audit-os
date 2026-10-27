@@ -6,7 +6,7 @@ The numbers of EAOS, measured at each milestone end, oldest first. `tools/metric
 assistant (`tools/*_proof.py`) measure the journeys. Numbers are compared with the section before; a worse number
 needs its reason here.
 
-Latest: **0.0.83**, the final proof (below). M7 (0.0.79) has no section of its own: what it changed is proved by the
+Latest: **0.0.85**, M12 (below). M7 (0.0.79) has no section of its own: what it changed is proved by the
 fix proof in the golden trial, not by a number.
 
 ## Baseline: 0.0.71 (2026-10-23), EAOS's own check of `develop`
@@ -213,6 +213,24 @@ The simulated users on three corpus apps of different kinds (`tools/experience_p
 
 The short simulation adds 11-62 s and 1-7 light calls to a complete check and confirmed nothing on these runs; the whole
 simulation found one real failure a person would meet. The replays cost nothing and are green.
+
+## After M12: 0.0.85 (2026-10-27), real data in the code
+
+| Measure | Value |
+|---|---|
+| Detection baseline | **19 of 19** planted problems found (16 before; the staff table, the monthly table and the server's administrator each a card); the 3 examples that must stay (the menu, John Doe, the tests' people) not found |
+| False alarms on EAOS's own code (731 files, the tests and the built Studio excluded) | 0 findings |
+| False alarms on the compatibility corpus (15 apps, Presidio and ast-grep alone) | 1 finding, right: the users written into CoreUI's dashboard screen; 2 menu tables read as people before the fix of this version, 0 after |
+| Presidio's read of EAOS's string literals | about 4 s (literals only, the model only on name fields) |
+| Presidio's environment | 398 MB (spaCy and its small English model), its own |
+
+### The cost of adding a tool
+
+| Tool or rule | Files | Lines | Core changed | Time |
+|---|---|---|---|---|
+| Presidio (M12.1) | the registry entry (24), the adapter (63), its script (179), its words (38), the licences | 304 | yes, once: the toolchain knew a Node library with no command, not a Python one (`install.library` for pip, 1 line), nor a wheel pinned at its address beside a tool (6 lines); the engine registry took a tool with no command (1 line). Fixed in general, so the next Python library adds none | about 3 h, with the lab's choice made before |
+| ast-grep data-table rules (M12.2) | the rule file (90) and its examples (47) | 137 | no | under 1 h |
+| The sorting and its card (M12.3) | one assessment (209), one claims builder (108), one line each in the ledger, the probes, the remediation, the words, the score's patterns, the debt register, the check paths | 330 + 15 | no: the registries a card kind joins, as every kind before | about 2 h |
 
 ## The final proof: 0.0.83 (2026-10-27)
 

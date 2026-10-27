@@ -87,6 +87,10 @@ http.createServer(async (req, res) => {
   if (url.pathname === '/api/report') return send(res, 200, orderLines(Object.values(orders)));
   if (url.pathname === '/api/export') return res.end(exportLines(Object.values(orders)));
   if (url.pathname === '/api/store-check') return storeCheck(req, res, url.searchParams.get('host') || 'localhost');
+  if (url.pathname === '/api/contact') return send(res, 200, DEFAULT_ADMIN);
   res.setHeader('Content-Type', 'text/html; charset=utf-8');
   return res.end(page);
 }).listen(config.PORT, '0.0.0.0');
+
+// The administrator the contact route shows, typed in while the server was built.
+const DEFAULT_ADMIN = { name: 'Mohammed Al-Shehri', email: 'm.alshehri@alnoor-clinic.sa', mobile: '0504443322' };

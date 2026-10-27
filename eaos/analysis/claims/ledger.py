@@ -12,6 +12,7 @@ from .engine_measures import engine_measurement
 from .from_experience import experience
 from .from_layers import layer_findings
 from .from_logic_flaws import logic_flaws
+from .from_real_data import real_data
 from .from_repository import repository_findings
 from .from_facts import (broken_code, cochanges, cycles, dead_code, external_writes, hotspots, large_modules,
                          mutable_globals, policy_violations, trace_gaps, vulnerable_dependencies)
@@ -26,7 +27,7 @@ PROVING_METHODS = {'runtime_probe', 'test_evidence', 'static_fact', 'history_fac
 BUILDERS = (cycles, cochanges, duplicated_rules, hotspots, large_modules, mutable_globals, external_writes,
             structural_duplicates, sequences, redundant_work, policy_violations, trace_gaps, dead_code, broken_code,
             vulnerable_dependencies, weaknesses, layer_findings, logic_flaws, repository_findings,
-            experience)
+            experience, real_data)
 TYPES = ['structure', 'responsibility', 'contract', 'business_rule', 'flow_step', 'risk', 'cause', 'capability_gap', 'cost']
 
 
@@ -49,7 +50,7 @@ VERDICTS = DATA / 'detector-verdicts.json'
 # The card keys whose detector is one of their params: (the detector's prefix, the param).
 DETECTED_BY = {'engine_cluster': ('engine_cluster', 'kind'), 'layer_finding': ('layer', 'rule'),
                'repository_finding': ('repository', 'rule'), 'logic_flaw': ('logic', 'class'),
-               'experience_difficulty': ('experience', 'kind')}
+               'experience_difficulty': ('experience', 'kind'), 'real_data': ('real_data', 'kind')}
 
 
 def detector_of(claim):

@@ -1,5 +1,41 @@
 # Changelog
 
+## 0.0.85 (2026-10-27)
+
+M12, real data in the code. A real project checked several times held its staff (names, phones, ids), a table of each
+month's numbers and a default administrator written as code; EAOS had no check for it, and since 0.0.84 said so. Now:
+- **Presidio pinned** (MIT, its own environment, spaCy's small English model pinned by its checksum): a library with no
+  command, run by EAOS's own script (`eaos/templates/presidio/scan.py`) over the project's **string literals only**, so
+  code tokens are never taken for people. It adds Saudi mobiles, national ids (their check digit verified) and Arabic
+  names (a common given name and the word after it) to Presidio's e-mails, IBANs, cards, phones and English names; a
+  name counts only as a whole field value of two words or more, a name or a generic phone only under a key that says
+  so. Placeholders that must stay (John Doe, example.com, 555 numbers, 0500000000, lorem) are recorded and never
+  counted (`eaos/rules/personal-data.json`, every list data). No value is written: its kind, a mask and a digest.
+- **ast-grep rules for tables written as code** (`eaos/rules/ast-grep/rules/data-tables.yml`, JavaScript, TypeScript,
+  TSX, Python, each with its examples): arrays of three records or more, maps keyed by dates or months; and JSON a
+  module of the product imports, read from the resolved graph.
+- **Each one sorted on its evidence** (`eaos/analysis/assessments/real_data.py`): a table holding a personal value that
+  is no placeholder is personal; one whose records carry two words of a domain (salary, price, date...) or keyed by
+  dates holds the program's records; one word of a domain is doubtful and only that goes to the judge (the card
+  triage); the program's own configuration (routes, menus, options) is nothing. Outside a table, a record of two kinds
+  of personal value, or one national id, IBAN or card number. Then where it is reached from: the product, or only
+  tests, stories, documents, mocks, a seed or a migration; the same values in a seed or migration say the database
+  holds them already.
+- **One card each** (`real_data`, in both languages): what it holds, where, the screens and endpoints that reach it,
+  and where the data goes (the database with a seed outside the product, the database that already holds it, or
+  placeholders); personal data in the product or a migration high, the program's records medium, real values in tests
+  or seeds low. Its probe asks Presidio and ast-grep again, so a fix closes it only when they no longer find it.
+- **Planted in the detection baseline**: staff in Arabic and English with Saudi mobiles, national ids and IBANs, a
+  monthly table, an administrator in the server; and, new, examples that must stay (`must_stay`: the menu, the empty
+  state's John Doe, the tests' people), which refuse a check that finds them. "Real data written in the code" is off
+  the list of what this version does not check.
+- Adding the tool needed one change of the toolchain, now general: a Python library with no command (`install.library`
+  for pip, like the Node libraries before) and a wheel pinned at its address beside a tool.
+
+Measured: the detection baseline 19 of 19 (16 before) with nothing that must stay found; no finding on EAOS's own code;
+on the 15 apps of the compatibility corpus one finding, right (users written into a dashboard screen), after two menu
+tables read as people were fixed (a name alone in a table of the program's own keys is not a person).
+
 ## 0.0.84 (2026-10-27)
 
 M11, an honest score. A real project checked several times was called strong and clean while it held real data in its
