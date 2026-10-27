@@ -126,6 +126,10 @@ h1.empty__title { font-size: var(--fs-body); line-height: var(--lh-body); }
 .rp-shots { display: grid; gap: var(--s4); grid-template-columns: repeat(auto-fill, minmax(min(100%, 420px), 1fr)); }
 .rp-shots > .rp-shot { margin: 0; }
 .rp-shot { display: grid; gap: var(--s3); align-content: start; }
+.rp-ex-steps, .rp-ex-diffs { list-style: none; padding: 0; margin: var(--s3) 0 0; display: grid; gap: var(--s3); }
+.rp-ex-story { padding: var(--s3) 0 var(--s4); }
+.rp-ex-list { margin: var(--s2) 0; padding-inline-start: var(--s5); display: grid; gap: var(--s1); }
+.rp-ex-diff { display: grid; gap: var(--s2); }
 .rp-findings .row { min-height: 40px; padding-inline: 0; gap: var(--s2); }
 .un-picfig { margin: 0; display: grid; gap: var(--s2); }
 .un-picfig--phone { max-width: 390px; }

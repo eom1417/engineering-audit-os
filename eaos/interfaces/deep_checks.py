@@ -2,9 +2,12 @@
 and the simulated users (M10: eaos experience plan | run | judge | replay | report). Thin: each finds the person's
 assistant and calls the analysis that does the work. The hunt says what it will spend and asks, then runs the check
 again from its claims so the cards and their triage include what it found; the experience drives the app's isolated
-copy already running (--base), and its judging runs the check again from its claims the same way."""
+copy already running (--base), on this computer only, and says what it will spend and asks before it asks the assistant;
+its judging runs the check again from its claims, as the hunt does, so the confirmed difficulties become cards."""
+import ipaddress
 import sys
 from pathlib import Path
+from urllib.parse import urlsplit
 
 
 def _assistant(args):
@@ -15,9 +18,10 @@ def _assistant(args):
     return found
 
 
-def _agreed(args):
-    """What the hunt will spend, then the person's yes (or --yes); False when they did not agree."""
-    print(f"The logic-flaw hunt asks your assistant twice on its deep tier, each a long reading of the code (up to "
+def _agreed(args, notice=None):
+    """What the deep check will spend (`notice`, the hunt's by default), then the person's yes (or --yes); False when
+    they did not agree."""
+    print(notice or f"The logic-flaw hunt asks your assistant twice on its deep tier, each a long reading of the code (up to "
           f"{args.minutes} minutes in all), then runs this check again from its claims, so its AI stages ask again too. "
           f"On a subscription it uses your plan; on a key it costs about what two long code reviews cost. "
           f"The spend shows in `eaos usage`.")
@@ -47,35 +51,83 @@ def logic_flaws_command(args):
     return 0
 
 
+def _loopback(host):
+    """Whether `host` is this computer: localhost or a loopback address."""
+    if host == 'localhost': return True
+    try: return ipaddress.ip_address(host).is_loopback
+    except ValueError: return False
+
+
+def _runtime(args):
+    """--runtime resolved, when it is a run folder of this project's own EAOS workspace (core/project/state.py
+    runtime_of: <workspace>/runtime[-<branch>]); any other folder is refused, since its database is written into."""
+    if not args.runtime: return None
+    from ..core.project.places import workspace
+    runtime, own = Path(args.runtime).resolve(), workspace(args.target).resolve()
+    if runtime.parent != own or not runtime.name.startswith('runtime'):
+        raise ValueError(f"--runtime must be a run folder of this project's EAOS workspace ({own}/runtime...), not {runtime}")
+    return str(runtime)
+
+
 def _app(args):
-    """The running copy: its address, each kind of user's browser state (<kind>.json in --sessions), its run folder."""
+    """The running copy: its address (on this computer only), each kind of user's browser state (<kind>.json in
+    --sessions), its run folder (this project's own), its database's suffix."""
     if not args.base: raise ValueError('this step drives the running copy of the app: give its address with --base')
+    address = urlsplit(args.base)
+    if address.scheme not in ('http', 'https') or not _loopback(address.hostname or ''):
+        raise ValueError(f'--base must be the isolated copy running on this computer (http://127.0.0.1:<port> or '
+                         f'localhost), not {args.base}: the simulated users act on what they open')
     folder = Path(args.sessions) if args.sessions else None
     sessions = {path.stem: path for path in folder.glob('*.json')} if folder and folder.is_dir() else {}
-    return {'base': args.base.rstrip('/'), 'sessions': sessions, 'runtime': args.runtime, 'database': args.database}
+    return {'base': args.base.rstrip('/'), 'sessions': sessions, 'runtime': _runtime(args), 'database': args.database,
+            'apart': args.apart}
 
 
-def _judged(args, simulation):
-    """The difficulties judged, then the check run again from its claims, so the confirmed ones become cards (the
-    report of a check of this very code, as the logic-flaw hunt asks)."""
-    from ..pipeline.run import again, same_source
-    same_source(args.target, args.out)
-    said = simulation.judged(args.out, _app(args), _assistant(args))
-    again(args.target, args.out, 'claims')
-    return said
+SPEND = ("The simulated users ask your assistant: {step}. Up to {calls} calls in all; on a subscription it uses your plan, "
+         "on a key each light step costs little and the deep ones about what a code review costs. The spend shows in "
+         "`eaos usage`.")
+STEPS_SPEND = {'plan': 'the personas and their data planned once or twice on its deep tier',
+               'run': "every step of every persona on its light tier (up to 300 in a run, an hour at most), and support "
+                      "reading the project on its standard tier for a persona that gets stuck",
+               'judge': 'each difficulty tried again by a fresh persona on its light tier, then one deep ruling'}
 
 
-def experience_command(args):
+def _paid_assistant(args, out):
+    """The assistant after the person agreed to what this step will spend, its use counted with the check's; None
+    when they did not agree."""
+    from ..core.system.usage import FILE as USAGE
+    if not _agreed(args, SPEND.format(step=STEPS_SPEND[args.step], calls=args.max_calls)): return None
+    assistant = _assistant(args)
+    assistant.config['usage'] = str(out / USAGE)     # eaos/core/system/usage.py: counted with the check's own use
+    return assistant
+
+
+def _experience_step(step, args, out, app, assistant):
+    """What one step of the simulated users did, in a few numbers."""
     from ..analysis.experience import simulation
     from ..report.experience.document import write
     from ..report.experience.story import story, summary
-    step = args.step
-    if step == 'plan': said = {'personas': len(simulation.prepare(args.out, _assistant(args))[0]['personas'])}
-    elif step == 'run': said = {k: v for k, v in simulation.simulate(args.out, args.target, _app(args), _assistant(args)).items() if k in ('seconds', 'calls', 'seeded')}
-    elif step == 'judge': said = _judged(args, simulation)
-    elif step == 'replay': said = simulation.replays(args.out, _app(args))['summary']
-    else: said = {'written': [str(path) for path in write(args.out, args.lang)], 'difficulties': len(summary(story(args.out))['difficulties']['ranked'])}
-    print(f'experience {step}: {said}')
+    if step == 'plan': return {'personas': len(simulation.prepare(out, assistant)[0]['personas'])}
+    if step == 'run': return {k: v for k, v in simulation.simulate(out, args.target, app, assistant).items() if k in ('seconds', 'calls', 'seeded')}
+    if step == 'judge':
+        from ..pipeline.run import again
+        said = simulation.judged(out, app, assistant)
+        again(args.target, out, 'claims')            # the confirmed difficulties read by the claims: cards
+        return said
+    if step == 'replay': return simulation.replays(out, app)['summary']
+    return {'written': [str(path) for path in write(out, args.lang)], 'difficulties': len(summary(story(out))['difficulties']['ranked'])}
+
+
+def experience_command(args):
+    step, out = args.step, Path(args.out).resolve()
+    app = _app(args) if step in ('run', 'judge', 'replay') else None      # refused before anything is spent
+    if step == 'judge':
+        from ..pipeline.run import same_source
+        same_source(args.target, out)                # the report of a check of this very code, or a plain refusal
+    assistant = _paid_assistant(args, out) if step in STEPS_SPEND else None
+    if step in STEPS_SPEND and assistant is None: return 1
+    print(f'experience {step}: {_experience_step(step, args, out, app, assistant)}')
+    return 0
 
 
 def commands(s):
@@ -96,9 +148,11 @@ def commands(s):
     q.add_argument('target'); q.add_argument('--out', required=True, help="the finished check's report folder")
     q.add_argument('--base', default=None, help="the address of the app's isolated copy, already running")
     q.add_argument('--sessions', default=None, help='a folder of browser states, one <kind of user>.json each')
-    q.add_argument('--runtime', default=None, help="the run's folder: its own database is seeded with the history")
+    q.add_argument('--runtime', default=None, help="the run's folder in this project's EAOS workspace: its own database is seeded with the history")
+    q.add_argument('--apart', default='', help="the suffix of the copy's own database when its run was started apart (eaos/live/app/run.py)")
     q.add_argument('--database', default=None, help="the copy's SQLite file, when it keeps one inside the run")
     q.add_argument('--assistant', choices=['claude', 'codex'], default=None)
     q.add_argument('--max-calls', type=int, default=400)
     q.add_argument('--lang', choices=['ar', 'en'], default='ar')
+    q.add_argument('--yes', action='store_true', help='agree to the time and cost it shows')
     q.set_defaults(func=experience_command)

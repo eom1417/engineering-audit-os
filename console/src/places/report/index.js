@@ -1,17 +1,20 @@
-// S-17 The report (M8.2): what a check found, on one page in three parts, each its own address (?part=): the report
+// S-17 The report (M8.2): what a check found, on one page in four parts, each its own address (?part=): the report
 // for people (REPORT.html, eaos/report/human_report: summary, gaps, layers, structure, system, target, plan) as EAOS
-// built it, in a frame of its own; the pictures of the app's screens the check took, with their findings on them; and
-// the report's files, each read as text or downloaded. Understand's old addresses land here (core/router.js landOld).
+// built it, in a frame of its own; the pictures of the app's screens the check took, with their findings on them;
+// the report's files, each read as text or downloaded; and the users' experience (M10.8, experience/story.json).
+// Understand's old addresses land here (core/router.js landOld).
 import { t, screen, prefs } from 'eaos';
 import { seg, empty, loading } from '../kit/kit.js';
 import { humanPart, humanAfter } from './human.js';
 import { screensPart, SCREENS_NEEDS } from './screens.js';
 import { filesPart } from './files.js';
+import { experiencePart } from './experience.js';
 
 const PARTS = {
   report: { draw: humanPart, needs: [] },
   screens: { draw: screensPart, needs: SCREENS_NEEDS },
   files: { draw: filesPart, needs: [] },
+  experience: { draw: experiencePart, needs: [] },
 };
 const partOf = query => (PARTS[query.part] ? query.part : 'report');
 

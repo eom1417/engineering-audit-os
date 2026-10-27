@@ -48,7 +48,8 @@ VERDICTS = DATA / 'detector-verdicts.json'
 
 # The card keys whose detector is one of their params: (the detector's prefix, the param).
 DETECTED_BY = {'engine_cluster': ('engine_cluster', 'kind'), 'layer_finding': ('layer', 'rule'),
-               'repository_finding': ('repository', 'rule'), 'logic_flaw': ('logic', 'class')}
+               'repository_finding': ('repository', 'rule'), 'logic_flaw': ('logic', 'class'),
+               'experience_difficulty': ('experience', 'kind')}
 
 
 def detector_of(claim):

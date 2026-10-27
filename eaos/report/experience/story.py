@@ -1,7 +1,7 @@
 """The one model of the experience report (M10.8): EXPERIENCE.md, the Studio and the MCP tool all read `story(report)`.
 
 It reads the records the experience run wrote under <report>/experience/ (NOTES: scenario.json, data.json,
-journeys/<persona>--<goal>.json, run.json, replays.json, tickets.json, difficulties.json) and only arranges them:
+journeys/<persona>--<goal>.json (a retry after support, <stem>--again.json, is the goal's kept journey), run.json, replays.json, tickets.json, difficulties.json) and only arranges them:
 
     story(report)     {version, ran, personas: [{id, name, role, about, goals: [goal in run order]}], difficulties:
                       {ranked, rejected}, time: [{goal, persona, status, seconds, calls}], seconds, calls, tickets,
@@ -28,21 +28,29 @@ def _load(path):
     return body if isinstance(body, dict) else None
 
 
+def _journeys(folder):
+    """{goal: (stem, journey)}: each goal's kept journey, its retry after support over its first try; the judge's
+    second attempt is evidence, not the goal's journey."""
+    journeys = {}
+    for path in sorted(folder.glob('*.json')):
+        body = _load(path)
+        if not body or not body.get('goal') or body.get('attempt') == 'second': continue
+        if body.get('attempt') == 'again' or body['goal'] not in journeys: journeys[body['goal']] = (path.stem, body)
+    return journeys
+
+
 def _records(folder):
     """({file name: its record}, [the files missing]); journeys/ counts as missing when it holds no journey."""
     found = {name: _load(folder / name) for name in RECORDS}
-    journeys = {}
-    for path in sorted((folder / JOURNEYS).glob('*.json')):
-        body = _load(path)
-        if body and body.get('goal'): journeys[body['goal']] = (path.stem, body)
+    journeys = _journeys(folder / JOURNEYS)
     missing = [name for name, body in found.items() if body is None] + ([JOURNEYS + '/'] if not journeys else [])
     return found, journeys, missing
 
 
-def _picture(stem, name):
-    """The picture of a step, relative to the report: experience/journeys/<stem>/<file>."""
+def _picture(stem, name, journey=None):
+    """The picture of a step, relative to the report: experience/journeys/<the journey's pictures_dir, else stem>/<file>."""
     if not name: return None
-    return str(name) if '/' in str(name) else f'{FOLDER}/{JOURNEYS}/{stem}/{name}'
+    return str(name) if '/' in str(name) else f"{FOLDER}/{JOURNEYS}/{(journey or {}).get('pictures_dir') or stem}/{name}"
 
 
 def _target(target):
@@ -50,9 +58,9 @@ def _target(target):
     return target
 
 
-def _step(stem, step):
+def _step(stem, step, journey=None):
     return {'action': step.get('action'), 'target': _target(step.get('target')), 'value': step.get('value'),
-            'why': step.get('why'), 'landed': step.get('landed'), 'picture': _picture(stem, step.get('picture')),
+            'why': step.get('why'), 'landed': step.get('landed'), 'picture': _picture(stem, step.get('picture'), journey),
             'error': step.get('error')}
 
 
@@ -73,7 +81,7 @@ def _goal(name, ran, journeys):
     return {'name': name, 'persona': ran.get('persona') or journey.get('persona') or name.split('.', 1)[0],
             'wanted': journey.get('wanted'), 'status': status, 'why': _why(ran, journey),
             'seconds': ran.get('seconds', journey.get('seconds')), 'calls': ran.get('calls', journey.get('calls')),
-            'steps': [_step(stem, s) for s in journey.get('steps') or []],
+            'steps': [_step(stem, s, journey) for s in journey.get('steps') or []],
             'friction': journey.get('friction') or ran.get('friction') or []}
 
 

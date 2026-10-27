@@ -23,6 +23,10 @@ from ...core.project.ledger import TRAILER
 from .execute import commit_all, git, new_breakage, own_batch, record_batch
 
 FAMILY, TESTS = 'prefix-family', 'tests-flat'
+# Moves drawn but never proposed, with what measured them: the target shape's, made on three corpus apps, gave a reader
+# the same answers to ten questions for 9 to 16% more tokens, in folders named after routes and files (M9.5).
+MEASURED_WORSE = {'target-shape': "not proposed: the target shape's moves cost a reader more (the same answers, 9 to 16% "
+                                  "more tokens, M9.5); drawn for the picture only"}
 SOURCE = ('.py', '.js', '.jsx', '.mjs', '.cjs', '.ts', '.tsx', '.vue', '.svelte')
 
 
@@ -30,7 +34,7 @@ SOURCE = ('.py', '.js', '.jsx', '.mjs', '.cjs', '.ts', '.tsx', '.vue', '.svelte'
 
 def proposal(report, target):
     """{moves: [{id, from, to, reason, rule, refused}], tree: [lines]}: the moves the repository's findings and the target
-    shape draw, each checked alone by the move tool (`refused`: why it cannot be made, else '')."""
+    shape draw, each checked alone by the move tool (`refused`: why it cannot be made or is not proposed, else '')."""
     target = Path(target)
     known = moves.files(target)
     drawn = _from_findings(report, known) + _from_target_shape(report, target, known)
@@ -38,9 +42,17 @@ def proposal(report, target):
     for move in drawn:
         if move['from'] in seen: continue
         seen.add(move['from'])
-        refused = _cannot(target, move, known) + _shared_place(move, drawn)
+        refused = [MEASURED_WORSE[move['rule']]] if move['rule'] in MEASURED_WORSE else \
+            _not_a_package(move) or _cannot(target, move, known) + _shared_place(move, drawn)
         rows.append({'id': move_id(move), **move, 'refused': '; '.join(refused)})
     return {'moves': rows, 'tree': tree(rows), 'limits': [move_gate.PUBLISHED] if move_gate.published(target, known) else []}
+
+
+def _not_a_package(move):
+    """Why a Python file cannot live where it is sent: a folder whose name no import can spell (services/cli-tests-py/)."""
+    folders = PurePosixPath(move['to']).parts[:-1]
+    bad = [f for f in folders if move['to'].endswith('.py') and not f.isidentifier()]
+    return [f'{move["to"]}: no import can name the folder {bad[0]}'] if bad else []
 
 
 def _cannot(target, move, known):
