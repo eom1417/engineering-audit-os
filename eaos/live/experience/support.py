@@ -68,16 +68,18 @@ def answer(ticket, provider, project):
 class Desk:
     """The support desk of one run: called as cast's plan['on_stuck'](journey, persona, goal), it opens at most one ticket
     per goal and BUDGET per run; an answered ticket earns the persona one more try on a fresh browser from
-    `browser_for(persona, goal)` (a context manager), whose journey it returns; `values` are the goals' typed values."""
+    `browser_for(persona, goal)` (a context manager), whose journey it returns; `values` are the goals' typed values.
+    `calls` counts every call it made (each answer, each retry's steps), for the run's budget (cast.py)."""
 
     def __init__(self, provider, project, browser_for, values=None):
         self.provider, self.project, self.browser_for, self.values = provider, project, browser_for, values or {}
-        self.tickets = []
+        self.tickets, self.calls = [], 0
 
     def __call__(self, journey, persona, goal):
         if len(self.tickets) >= BUDGET or any(t['goal'] == goal['name'] for t in self.tickets): return None
         written = ticket(journey, persona)
         reply = answer(written, self.provider, self.project)
+        self.calls += 1
         record = {'id': f'T{len(self.tickets) + 1}', 'goal': goal['name'], 'persona': persona['id'], 'asked': written['asked'],
                   'answer': reply['answer'], 'escalated': reply['escalate'], **({'why': reply['why']} if reply['why'] else {}),
                   'after': 'stuck'}
@@ -85,6 +87,7 @@ class Desk:
         if reply['escalate']: return None
         with self.browser_for(persona, goal) as browser:
             again = act(browser, persona, {**goal, 'help': reply['answer']}, self.provider, self.values.get(goal['name']))
+        self.calls += again.get('calls', 0)
         record['after'] = 'reached' if again.get('reached') else 'stuck'
         return {**again, 'ticket': record['id']}
 

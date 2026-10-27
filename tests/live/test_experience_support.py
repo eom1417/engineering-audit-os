@@ -56,7 +56,7 @@ class SupportTests(unittest.TestCase):
         self.assertIn('no basket anywhere', ticket['content']['asked'])
         told = json.loads(assistant.asked[1]['brief'])['support_told_you']
         self.assertEqual((told['trust'], told['content'][:12]), (UNTRUSTED, '1. Open Shop'))
-        self.assertEqual(desk.tickets[0]['after'], 'reached')
+        self.assertEqual((desk.tickets[0]['after'], desk.calls), ('reached', 2), 'its answer and the retry\'s step are counted')
         with tempfile.TemporaryDirectory() as tmp:
             saved = json.loads(desk.save(tmp).read_text())
         self.assertEqual((saved['version'], [t['id'] for t in saved['tickets']]), (1, ['T1']))

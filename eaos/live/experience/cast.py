@@ -16,7 +16,7 @@ from ..agent import Browser
 from . import actor
 
 VERSION = 1
-BUDGET = {'seconds': 3600, 'calls': 300}      # the whole run; past either, no new goal starts
+BUDGET = {'seconds': 3600, 'calls': 300}      # the whole run, support's calls and retries in it; past either, nothing new starts
 RUN = 'run.json'
 
 
@@ -44,9 +44,13 @@ class _Board:
 
     def _seconds(self): return round(time.monotonic() - self.began, 1)
 
+    def over(self, calls=0):
+        """Whether the run's budget is spent, counting `calls` not kept yet."""
+        return self._seconds() >= BUDGET['seconds'] or self.calls + calls >= BUDGET['calls']
+
     def waiting(self, goal):
         """Why `goal` cannot start (the run's budget, or the goals it waits for that were not reached), or None."""
-        if self._seconds() >= BUDGET['seconds'] or self.calls >= BUDGET['calls']: return "the run's budget ran out", []
+        if self.over(): return "the run's budget ran out", []
         reached = {g['name'] for g in self.goals if g['status'] == 'reached'}
         missing = [name for name in goal.get('waits_for') or [] if name not in reached]
         return (f"it waits for {', '.join(missing)}, which was not reached", missing) if missing else (None, [])
@@ -84,12 +88,17 @@ def _journey(app, persona, goal, provider, values):
         return actor.act(browser, persona, goal, provider, values)
 
 
-def _helped(plan, persona, goal, journey):
+def _helped(plan, persona, goal, journey, board):
     """The journey kept, and the calls spent: a journey that did not reach its goal is replaced by the one
-    plan['on_stuck'] answers, when it answers one."""
-    calls = journey.get('calls', 0)
-    again = plan['on_stuck'](journey, persona, goal) if plan.get('on_stuck') and not journey.get('reached') else None
-    return (again, calls + again.get('calls', 0)) if again else (journey, calls)
+    plan['on_stuck'] answers, when it answers one and the run's budget is not spent. The calls of the helper count
+    against the run's budget: its own `calls` counter when it keeps one (the support desk: its answers and retries),
+    else the calls of the journey it answers."""
+    calls, helper = journey.get('calls', 0), plan.get('on_stuck')
+    if not helper or journey.get('reached') or board.over(calls): return journey, calls
+    before = getattr(helper, 'calls', None)
+    again = helper(journey, persona, goal)
+    spent = helper.calls - before if isinstance(before, int) else (again or {}).get('calls', 0)
+    return (again or journey), calls + spent
 
 
 def run(app, scenario, plan, provider, report):
@@ -107,7 +116,7 @@ def run(app, scenario, plan, provider, report):
         goal = {**goal, 'events': board.told(goal)}
         first = _journey(app, persona, goal, provider, values.get(name))
         actor.save(board.folder / actor.JOURNEYS, first)
-        journey, calls = _helped(plan, persona, goal, first)
+        journey, calls = _helped(plan, persona, goal, first, board)
         if journey is not first: actor.save(board.folder / actor.JOURNEYS, journey, 'again')      # both tries kept
         board.keep(persona, goal, journey, calls)
     return board.write()
