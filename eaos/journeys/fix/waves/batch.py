@@ -185,7 +185,7 @@ def finish_batch(report, target, runtime, wave, **options):
         regenerate(batch['root'])
     progress.begin('gates')
     batch.update(before=original_checks(target, batch['runtime']), declared=declared_screens(cards[c] for c in kept),
-                 intended=intended_screens([cards[c] for c in kept]))
+                 intended=intended_screens(map(cards.get, kept)))
     kept = _through_gates(batch, kept, failed)
     _new_truth(batch, kept, cards)
     progress.begin('handover')
