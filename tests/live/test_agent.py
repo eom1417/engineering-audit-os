@@ -15,6 +15,9 @@ PAGE = """<html><body><nav><button onclick="location.hash='#/reports'">Reports</
 <main id="m"></main><script>
 const draw = () => { document.getElementById('m').innerText = location.hash === '#/reports' ? 'Monthly reports' : 'Home'; };
 addEventListener('hashchange', draw); draw();</script></body></html>"""
+# A server-rendered form (Django, WTForms): each field named by its <label>, its `name` attribute the code's own.
+FORM = """<html><body><form><label for="id_first_name">First name:</label><input id="id_first_name" name="first_name">
+<textarea name="post"></textarea><p id="out"></p></form></body></html>"""
 
 
 class App(BaseHTTPRequestHandler):
@@ -24,7 +27,7 @@ class App(BaseHTTPRequestHandler):
         self.send_response(200)
         self.send_header('Content-Type', 'text/html')
         self.end_headers()
-        self.wfile.write(PAGE.encode())
+        self.wfile.write((FORM if self.path == '/form' else PAGE).encode())
 
 
 class Scripted:
@@ -57,6 +60,21 @@ class AgentTests(unittest.TestCase):
                     self.assertEqual(agent.replay(browser, record), {'screens': ['/', '/#/reports']})
                     gone = {**record, 'steps': [{'action': 'click', 'target': {'role': 'tab', 'name': 'Gone', 'nth': 0}}]}
                     self.assertEqual(agent.replay(browser, gone)['broken_at'], 1)
+        finally:
+            server.shutdown()
+
+    def test_a_labelled_field_is_listed_by_its_label_and_filled_by_what_was_listed(self):
+        # the simulated users of django-locallibrary and flask-microblog were shown "first_name" and "post", the fields'
+        # `name` attributes, which no fill could find: every form goal got stuck (M10.10)
+        server = ThreadingHTTPServer(('127.0.0.1', 0), App)
+        threading.Thread(target=server.serve_forever, daemon=True).start()
+        try:
+            with tempfile.TemporaryDirectory() as tmp, agent.Browser(f'http://127.0.0.1:{server.server_port}', Path(tmp)) as browser:
+                page = browser.do({'op': 'open', 'path': '/form'})
+                self.assertEqual([c['name'] for c in page['controls'] if c['role'] == 'textbox'], ['First name:', 'post'])
+                for name in ('First name:', 'post'):
+                    done = browser.do({'op': 'fill', 'target': {'role': 'textbox', 'name': name, 'nth': 0}, 'value': 'Ingrid'})
+                    self.assertTrue(done['ok'], done.get('error'))
         finally:
             server.shutdown()
 

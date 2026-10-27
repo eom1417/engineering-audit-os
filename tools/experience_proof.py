@@ -78,7 +78,8 @@ def manifest(report):
     return {'check_seconds': round(record.get('seconds') or 0),
             'not_ok': {n: f"{r['status']}: {str(r.get('reason'))[:200]}" for n, r in stages.items() if r.get('status') != 'ok'},
             'experience_stage': stages.get('experience'), 'cost_usd': cost(use.get('total')), 'calls': (use.get('total') or {}).get('calls'),
-            'calls_by_stage': {name: row.get('calls') for name, row in used.items()}, 'experience_cost_usd': cost(used.get('experience'))}
+            'calls_by_stage': {name: row.get('calls') for name, row in used.items()},
+            'experience_cost_usd': round(sum(row.get('cost_usd') or 0 for name, row in used.items() if name.startswith('experience')), 3)}
 
 
 def step(app, paths):
