@@ -6,7 +6,10 @@ import tempfile
 import unittest
 from pathlib import Path
 
+from eaos.analysis.assessments.debt_register import _layered
 from eaos.analysis.claims.from_experience import experience, present
+from eaos.analysis.repair.remediation import pattern_for
+from eaos.core.language.words import FALSIFIERS, IMPACTS, TEMPLATES
 from eaos.analysis.experience import judging
 from eaos.facts.store import read_set
 
@@ -93,6 +96,12 @@ class JudgingTests(unittest.TestCase):
         self.assertEqual((statement, kind, confidence, method), ('D1: the cart is hard to find', 'risk', 'LIKELY', ['model_inference']))
         self.assertIn("Steps to reproduce: 1. As a user, open / 2. Click 'Cart' 3. Met: the cart has no label", extra['impact']['scenario'])
         self.assertEqual(present(extra['probe_spec']['specification'], sets)[0], 'CONFIRMED')
+        render = extra['render']
+        self.assertEqual((render['key'], render['params']['severity']), ('experience_difficulty', 'high'),
+                         'a difficulty is its own kind of card, not a layer finding')
+        for words in (*TEMPLATES.values(), *IMPACTS.values(), *FALSIFIERS.values()): self.assertIn('experience_difficulty', words)
+        self.assertEqual(_layered(render, 'architecture', 'low'), ('reliability', 'high'))
+        self.assertEqual(pattern_for({'statement': statement, 'render': render})['change'], 'سمّ السلة.')
 
     def test_without_a_second_attempt_or_a_judge_nothing_is_confirmed(self):
         summary = judging.judge(self.report, Judge([verdict(f'D{n}') for n in range(1, 6)]))
