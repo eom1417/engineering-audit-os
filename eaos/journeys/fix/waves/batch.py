@@ -268,10 +268,10 @@ def _through_gates(batch, kept, failed):
 
 def _new_truth(batch, kept, cards):
     """Once a batch is kept, the screens its cards changed on purpose recorded again on its code, so the next card is
-    compared with them (eaos/live/behavior/intended.py record_intended); the cards left out by the gates declare nothing."""
+    compared with them (eaos/live/behavior/rerecord.py record_intended); the cards left out by the gates declare nothing."""
     screens = intended_screens([cards[c] for c in kept]) if batch['lock'] else {}
     if not screens: return
-    from ....live.behavior.intended import record_intended
+    from ....live.behavior.rerecord import record_intended
     batch['say']('record')
     try: record_intended(batch['report'], batch['root'], batch['runtime'], set(screens))
     except Exception as problem:    # noqa: BLE001 - the batch passed its gates: kept; the next card meets the older truth

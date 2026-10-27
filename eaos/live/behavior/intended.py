@@ -10,7 +10,7 @@ errors. A card without the declaration is judged exactly as before.
 
 The words a pass saw are written by the page specs (eaos/live/behavior/specs.py) to EAOS_LOCK_WORDS, the pass's
 `words-<name>` folder, removed once judged. Once a batch with such a change is kept (eaos/journeys/fix/waves/batch.py),
-its declared screens are recorded again on its code (record_intended) into behavior-lock/intended/<commit>/, and every
+its declared screens are recorded again on its code (rerecord.py record_intended) into behavior-lock/intended/<commit>/, and every
 later run on code that holds that commit compares with them (restore_intended): the next card meets the new truth.
 At most KEPT such recordings are kept, the oldest removed.
 """
@@ -99,29 +99,6 @@ def restore_intended(recorded, lock, target):
     for row in _index(recorded):
         if _holds(target, row['commit']) and (Path(recorded) / FOLDER / row['commit']).is_dir():
             shutil.copytree(Path(recorded) / FOLDER / row['commit'], Path(lock) / '__screenshots__', dirs_exist_ok=True)
-
-
-def record_intended(report, target, runtime, screens):
-    """The declared `screens` recorded again on `target` (a kept batch's copy, at its commit), kept for every later run on
-    code that holds the commit: behavior-lock/intended/<commit>/, and the screens recorded."""
-    from ..app.run import LiveRun
-    from .folder import _prepare, lend_kinds
-    from .lock import LockPass, _run_specs, _start
-    recorded = Path(runtime) / 'behavior-lock'
-    commit = subprocess.run(['git', '-C', str(target), 'rev-parse', 'HEAD'], capture_output=True, text=True).stdout.strip()
-    live = LiveRun(target, runtime, 'S09')
-    lock = _prepare(live, report, recorded)
-    restore_intended(recorded, lock, target)
-    try:
-        base = _start(live, lock)
-        lend_kinds(report, lock, lock / '.auth/user.json')
-        _run_specs(live, lock, base, recorded, LockPass('intended', update=True))
-    finally:
-        live.stop()
-        live.record('behavior-lock/run-log-intended.json')
-    kept = _keep_screens(lock / '__screenshots__', recorded / FOLDER / commit, screens)
-    _remember(recorded, commit, kept)
-    return kept
 
 
 def _keep_screens(shots, into, screens):

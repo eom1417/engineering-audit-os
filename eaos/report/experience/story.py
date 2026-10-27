@@ -125,7 +125,7 @@ def _cards(report):
 def _difficulties(record, cards):
     """{ranked: confirmed first, then by severity high to low, then the doubts; rejected: listed apart}; each with its
     fix card (`card`) once the plan made one."""
-    rows = [{**d, 'card': cards.get(d.get('id'))} for d in (record or {}).get('difficulties') or [] if isinstance(d, dict)]
+    rows = [{**d, 'card': cards.get(d.get('id')) or d.get('card')} for d in (record or {}).get('difficulties') or [] if isinstance(d, dict)]
     return {'ranked': sorted((d for d in rows if d.get('verdict') != 'reject'), key=_rank),
             'rejected': [d for d in rows if d.get('verdict') == 'reject']}
 
