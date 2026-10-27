@@ -192,18 +192,18 @@ needed, in English and Arabic, light and dark, on a computer and on a phone.
 
 <table>
   <tr>
-    <td width="50%"><img alt="The live check: 40 stages, the tools of each, and redo from any stage" src="docs/assets/screens/en/check-dark.webp"></td>
-    <td width="50%"><img alt="A problem card with its evidence: the copied code itself" src="docs/assets/screens/en/problems-dark.webp"></td>
+    <td width="50%"><img alt="The live check: every stage, the tools of each, and redo from any stage" src="docs/assets/screens/en/check-dark.webp"></td>
+    <td width="50%"><img alt="A problem card: why it matters, where it is, and what fixing it touches" src="docs/assets/screens/en/problems-dark.webp"></td>
   </tr>
   <tr>
     <td><b>Live check.</b> Every stage as it runs, the tools of each, what it produced, and "redo from here".</td>
-    <td><b>Problems.</b> Every card with its evidence, down to the line, ready to fix in one batch.</td>
+    <td><b>Problems.</b> Every card with its evidence and where it is, to fix, verify, explain or plan, alone or in a batch.</td>
   </tr>
   <tr>
-    <td colspan="2"><img alt="The system map: regions, components and the links between them" src="docs/assets/screens/en/system-dark.webp"></td>
+    <td colspan="2"><img alt="The report: the structure today, coloured by the density of its problems, beside the target structure" src="docs/assets/screens/en/system-dark.webp"></td>
   </tr>
   <tr>
-    <td colspan="2"><b>The system map.</b> Regions, components and their links, today, during the change and at the target.</td>
+    <td colspan="2"><b>The report.</b> The structure today and the target it should reach, the system in layers, the plan and its progress, and the users' experience.</td>
   </tr>
 </table>
 
@@ -213,9 +213,7 @@ needed, in English and Arabic, light and dark, on a computer and on a phone.
   <img alt="The live check on a phone" src="docs/assets/screens/en/phone-check.webp" width="30%">
 </p>
 
-<p align="center"><sub>Pictured: a real check of
-<a href="https://github.com/gothinkster/node-express-realworld-example-app">RealWorld Conduit</a>, an open-source
-Node.js and TypeScript example app (MIT).</sub></p>
+<p align="center"><sub>Pictured: a real check of EAOS's own repository, run by EAOS itself.</sub></p>
 
 ## What you receive
 

@@ -204,18 +204,18 @@ flowchart RL
 
 <table dir="rtl">
   <tr>
-    <td width="50%"><img alt="الفحص الحي: 40 مرحلة، وأدوات كل مرحلة، والإعادة من أي مرحلة" src="docs/assets/screens/ar/check-dark.webp"></td>
-    <td width="50%"><img alt="بطاقة مشكلة بدليلها: الكود المنسوخ نفسه" src="docs/assets/screens/ar/problems-dark.webp"></td>
+    <td width="50%"><img alt="الفحص الحي: كل مرحلة، وأدواتها، والإعادة من أي مرحلة" src="docs/assets/screens/ar/check-dark.webp"></td>
+    <td width="50%"><img alt="بطاقة مشكلة: لماذا تهم، وأين هي، وما الذي يمسّه إصلاحها" src="docs/assets/screens/ar/problems-dark.webp"></td>
   </tr>
   <tr>
     <td><b>الفحص الحي.</b> كل مرحلة وهي تعمل، وأدواتها، وما أنتجته، و«أعد من هنا».</td>
-    <td><b>المشاكل.</b> كل بطاقة بدليلها حتى السطر، جاهزة للإصلاح في دفعة واحدة.</td>
+    <td><b>المشاكل.</b> كل بطاقة بدليلها ومكانها، لتُصلَح أو يُتحقق منها أو تُشرح أو يُخطط لها، وحدها أو في دفعة.</td>
   </tr>
   <tr>
-    <td colspan="2"><img alt="خريطة النظام: المناطق والمكونات والروابط بينها" src="docs/assets/screens/ar/system-dark.webp"></td>
+    <td colspan="2"><img alt="التقرير: البنية اليوم ملوّنة بكثافة مشاكلها، بجانب البنية المستهدفة" src="docs/assets/screens/ar/system-dark.webp"></td>
   </tr>
   <tr>
-    <td colspan="2"><b>خريطة النظام.</b> المناطق والمكونات وروابطها: اليوم، وأثناء التغيير، وعند الهدف.</td>
+    <td colspan="2"><b>التقرير.</b> البنية اليوم والهدف الذي تبلغه، والنظام في طبقات، والخطة وتقدمها، وتجربة المستخدمين.</td>
   </tr>
 </table>
 
@@ -225,9 +225,7 @@ flowchart RL
   <img alt="الفحص الحي على الجوال" src="docs/assets/screens/ar/phone-check.webp" width="30%">
 </p>
 
-<p align="center"><sub>في الصور: فحص حقيقي لمشروع
-<a href="https://github.com/gothinkster/node-express-realworld-example-app">RealWorld Conduit</a>، تطبيق مثال مفتوح
-المصدر بـ Node.js وTypeScript (رخصة MIT).</sub></p>
+<p align="center"><sub>في الصور: فحص حقيقي لمستودع EAOS نفسه، أجراه EAOS بنفسه.</sub></p>
 
 ## ماذا تستلم
 
