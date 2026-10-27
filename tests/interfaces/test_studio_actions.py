@@ -540,6 +540,23 @@ class Runs(Base):
         self.assertEqual(resume.next_assistant(three, 'claude', 'failed', ready), 'claude', 'a crash: the same one again')
         self.assertIsNone(resume.next_assistant({'claude': 'signed-out'}, 'claude', 'not_signed_in', ready))
 
+    def test_a_run_waiting_for_an_answer_lets_the_next_start_and_its_answer_goes_on_when_the_slot_is_free(self):
+        """The incident (M9.3): an extend_start run waited on "build it?" and the next run stayed queued seven minutes."""
+        waiting = self.start('explain')
+        self.assertEqual(self.app.wait(waiting, ('waiting_for_person', 'failed'), 30)['state'], 'waiting_for_person')
+        os.environ.update(FAKE_MODE='slow', FAKE_SECONDS='2')
+        second, third = (self.start('explain', cards=(c,)) for c in ('TASK-002', 'TASK-004'))
+        self.assertEqual(self.app.wait(second, ('running', 'done'), 10)['state'], 'running', 'the waiting run holds no slot')
+        question = self.app.store.load(waiting)['question']
+        self.assertEqual(self.post(f"/api/questions/{question['id']}/answer", {'option': 'yes'})[0], 200)
+        kept = self.app.store.load(waiting)
+        self.assertEqual((kept['state'], bool(kept['answer_waiting'])), ('waiting_for_person', True), 'never two runs at once')
+        self.assertEqual(self.app.wait(waiting, ('running', 'done', 'failed'), 20)['state'], 'running')
+        self.assertEqual(self.app.store.load(second)['state'], 'done')
+        self.assertEqual(self.app.store.load(third)['state'], 'queued', 'the answered run goes on before the queue')
+        self.assertEqual(self.app.wait(waiting, ('done', 'failed'), 20)['state'], 'done')
+        self.assertEqual(self.app.wait(third, ('done', 'failed'), 20)['state'], 'done')
+
     def test_one_run_at_a_time_and_the_queue_is_reordered(self):
         os.environ.update(FAKE_MODE='slow', FAKE_SECONDS='2')
         first, second, third = (self.start('explain', cards=(c,)) for c in ('TASK-001', 'TASK-002', 'TASK-004'))
