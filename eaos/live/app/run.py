@@ -247,9 +247,14 @@ class LiveRun:
                   and self.run([argv[0], '-c', 'import coverage'], timeout=60)[0] == 0)
         return ran.server(argv, env, self.ran, self.sandbox.copy, python)
 
-    def stop(self):
+    def stop(self, out=None):
         """Stop the project and remove its copy, leave the run's database (stopped once no other run is on it, its data
-        kept for the next step) and stop its Mailpit (its mail with it); the run's records stay in the runtime folder."""
+        kept for the next step) and stop its Mailpit (its mail with it); the run's records stay in the runtime folder.
+        `out`: a check's folder, where what the server ran is recorded when it ran measured (eaos/live/testing/ran.py)."""
+        if self.ran and out:
+            from ..testing.ran import server_record
+            self.sandbox.stop()                       # the server ends, writing what it ran, before its copy goes
+            server_record(out, self.ran, self.sandbox.copy)
         self.sandbox.dispose()
         if hasattr(self, '_database'): self._database.stop()
         if hasattr(self, '_mailpit'):

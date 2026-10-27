@@ -57,11 +57,7 @@ def close_app(context):
     """Release the shared app after the last page stage, or when the check stops or breaks; the published address's
     session, which is for one check only, goes with it."""
     app = context.pop('page_app', None)
-    if app and app[0].ran:
-        from ...live.testing.ran import server_record
-        app[0].sandbox.stop()                       # the server ends, writing what it ran, before its copy goes
-        server_record(context.out, app[0].ran, app[0].sandbox.copy)
-    if app: app[0].stop()
+    if app: app[0].stop(context.out)               # what its server ran recorded there (M13.2)
     from ...live.access.sign_in import PUBLISHED
     chosen = context.get('sign_in') or {}
     if chosen.get('published'): (Path(chosen['folder']) / PUBLISHED).unlink(missing_ok=True)

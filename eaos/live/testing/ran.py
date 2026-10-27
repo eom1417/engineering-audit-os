@@ -14,6 +14,7 @@ server is not measured, and its record says so.
 """
 import json
 import shutil
+from itertools import takewhile
 import sqlite3
 from pathlib import Path, PurePosixPath
 from urllib.parse import urlsplit
@@ -145,7 +146,9 @@ def server(argv, env, folder, copy, python=False):
     env = {**env, 'NODE_V8_COVERAGE': str(folder / 'v8'), 'NODE_OPTIONS': options}
     if python:
         (Path(copy) / RC).write_text(f'[run]\ndata_file = {folder / ".coverage"}\nparallel = true\nsigterm = true\n', encoding='utf-8')
-        argv = [argv[0], '-m', 'coverage', 'run', f'--rcfile={Path(copy) / RC}', *argv[1:]]
+        # the interpreter's own options (-u, -X dev) stay the interpreter's, before `-m coverage`: Coverage.py takes none
+        flags = list(takewhile(lambda part: str(part).startswith('-') and str(part) != '-m', argv[1:]))
+        argv = [argv[0], *flags, '-m', 'coverage', 'run', f'--rcfile={Path(copy) / RC}', *argv[1 + len(flags):]]
     return argv, env
 
 

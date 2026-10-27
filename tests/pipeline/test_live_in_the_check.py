@@ -23,7 +23,7 @@ class FakeRun:
     def setup(self): pass
     def start(self): return 'http://127.0.0.1:9'
     def seed(self, base, storage=None): pass
-    def stop(self): pass
+    def stop(self, out=None): pass
 
 
 # the app's page for an address it does not have, as the screens open it (eaos/live/access/roles.py nowhere_of)
