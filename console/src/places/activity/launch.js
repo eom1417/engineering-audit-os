@@ -134,10 +134,10 @@ function checkFoot(c, p, pubErr) {
 /** The questions the chosen paths ask: the sign-in (returned), and running the app. */
 function askedOf(c) {
   const offer = c.offer;
-  const needsSignin = !c.paths.length || c.paths.includes('look');
+  const needsSignin = !c.paths.length || c.paths.some(id => ['look', 'experience'].includes(id));
   c.signinAsked = needsSignin;
   // without the person's yes to run the app, its pages, sign-in and speed are never checked: asked here, once
-  c.runAppAsked = !!offer && offer.run_app === false && (!c.paths.length || c.paths.some(id => ['look', 'speed'].includes(id)));
+  c.runAppAsked = !!offer && offer.run_app === false && (!c.paths.length || c.paths.some(id => ['look', 'speed', 'experience'].includes(id)));
   return needsSignin;
 }
 
