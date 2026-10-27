@@ -83,7 +83,7 @@ class _Journey:
     def spent(self):
         """The budget this journey ran out of, or None."""
         if len(self.steps) >= min(self.goal.get('steps') or BUDGET['steps'], BUDGET['steps']): return 'steps'
-        if time.monotonic() - self.began >= BUDGET['seconds']: return 'time'
+        if time.monotonic() - self.began >= min(self.goal.get('seconds') or BUDGET['seconds'], BUDGET['seconds']): return 'time'
         if self.calls >= BUDGET['calls']: return 'calls'
         return 'failures' if self.failed >= BUDGET['failures'] else None
 
@@ -126,11 +126,14 @@ def file_name(goal_name):
 
 def save(folder, journey, attempt=None):
     """The journey written in `folder` (experience/journeys); its path. The first try is <stem>.json; another attempt of
-    the same goal (`attempt`: 'again' after support, 'second' for the judge) is <stem>--<attempt>.json and says so."""
+    the same goal (`attempt`: 'again' after support, 'second' for the judge) is <stem>--<attempt>.json and says so; a new
+    first try removes the other attempts an earlier run left (replay.py would replay a stale retry)."""
     folder = Path(folder)
     folder.mkdir(parents=True, exist_ok=True)
     name = file_name(journey['goal'])
     path = folder / (name.replace('.json', f'--{attempt}.json') if attempt else name)
+    for stale in ('again', 'second') if not attempt else ():     # a new first try: an earlier run's other attempts are not its own
+        (folder / name.replace('.json', f'--{stale}.json')).unlink(missing_ok=True)
     journey = {**journey, 'attempt': attempt} if attempt else journey
     path.write_text(json.dumps(journey, ensure_ascii=False, indent=1) + '\n', encoding='utf-8')
     return path

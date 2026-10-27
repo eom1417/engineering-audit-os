@@ -114,6 +114,19 @@ class CastTests(unittest.TestCase):
             run = self.run_cast(Scripted(STUCK), on_stuck=Desk())
         self.assertEqual(Desk.asked, [], 'a spent budget starts no support retry')
 
+    def test_a_new_first_try_removes_an_earlier_runs_retry_and_second_attempt(self):
+        # replay.py prefers <stem>--again.json: a stale retry of an earlier run was replayed in place of the new journey
+        journeys = Path(self.tmp.name) / 'experience/journeys'
+        journeys.mkdir(parents=True)
+        for stale in ('buyer--order--again.json', 'buyer--order--second.json'): (journeys / stale).write_text('{}')
+        self.run_cast(Scripted(DONE, DONE, DONE))
+        self.assertEqual(sorted(p.name for p in journeys.glob('buyer--order*.json')), ['buyer--order.json'])
+
+    def test_a_budget_of_the_plan_is_the_runs_own(self):
+        # the short simulation's budget (simulation.SHORT) held by the cast in place of the whole run's hour
+        run = self.run_cast(Scripted(DONE), budget={'seconds': 300, 'calls': 1})
+        self.assertEqual([g['status'] for g in run['goals']], ['reached', 'blocked', 'blocked'])
+
     def test_the_runs_budget_blocks_the_goals_left(self):
         with mock.patch.dict(cast.BUDGET, calls=1):
             run = self.run_cast(Scripted(DONE))

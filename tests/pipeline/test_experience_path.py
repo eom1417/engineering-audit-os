@@ -209,6 +209,7 @@ class Judged(unittest.TestCase):
             journeys = report / judging.JOURNEYS
             journeys.mkdir(parents=True)
             (journeys / 'buyer--order.json').write_text(json.dumps(stuck))
+            (report / 'experience/run.json').write_text(json.dumps({'goals': [{'name': 'buyer.order', 'status': 'stuck'}]}))
             judging.confirm(report, lambda goal: {'reached': False, 'same': True, 'journey': stuck})
             self.assertEqual(judging.judge(report, judge)['confirm'], 1)
             index = json.loads((report / 'facts/index.json').read_text())

@@ -51,7 +51,8 @@ class JudgingTests(unittest.TestCase):
         journeys.mkdir(parents=True)
         for name, journey in (('buyer--order', ORDER), ('buyer--profile', PROFILE)): (journeys / f'{name}.json').write_text(json.dumps(journey))
         (self.report / 'experience/run.json').write_text(json.dumps({'goals': [
-            {'name': 'buyer.order', 'status': 'stuck'}, {'name': 'admin.approve', 'persona': 'admin', 'status': 'stuck', 'why': 'no list'}]}))
+            {'name': 'buyer.order', 'status': 'stuck'}, {'name': 'buyer.profile', 'status': 'reached'},
+            {'name': 'buyer.retry', 'status': 'reached'}, {'name': 'admin.approve', 'persona': 'admin', 'status': 'stuck', 'why': 'no list'}]}))
         (self.report / 'experience/tickets.json').write_text(json.dumps({'tickets': [{'goal': 'buyer.order', 'asked': 'Where is the cart?'}]}))
 
     def test_difficulties_are_merged_per_goal_kind_and_screen_with_their_steps_and_pictures(self):
@@ -63,6 +64,12 @@ class JudgingTests(unittest.TestCase):
         self.assertEqual(find['pictures'], ['experience/journeys/buyer--order/step-1.jpg'])
         self.assertEqual(found[('buyer.order', 'error')]['screen'], '/cart')
         self.assertEqual(found[('buyer.order', 'stuck')]['repro'], ['As a user, open /', "Click 'Cart'", "Click 'Pay'", 'Met: I cannot pay'])
+
+    def test_an_earlier_runs_saved_journey_is_not_judged_again(self):
+        # a short simulation judged again, each with a deep call, the difficulties of the whole run before it, whose
+        # journeys stay saved for the replays (M10.10)
+        (self.report / judging.JOURNEYS / 'buyer--old.json').write_text(json.dumps(dict(ORDER, goal='buyer.old')))
+        self.assertNotIn('buyer.old', {d['goal'] for d in judging.difficulties(self.report)})
 
     def test_a_retry_after_support_points_at_its_own_pictures_and_the_judges_attempt_is_not_a_difficulty(self):
         journeys = self.report / judging.JOURNEYS

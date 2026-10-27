@@ -3,7 +3,7 @@ it left, with its steps and pictures, tried again by a fresh actor that does not
 by the assistant as strictly as the card triage (M7.4) rules on a card; the confirmed ones become the `experience` fact
 set the claims make fix cards of (eaos/analysis/claims/from_experience.py), each with its steps to reproduce.
 
-    difficulties(report)        the difficulties of experience/journeys/*.json (and run.json), merged per goal, kind and screen:
+    difficulties(report)        the difficulties of this run's goals (run.json) in experience/journeys/*.json, merged per goal, kind and screen:
                                 a goal's first try and its retry after support both count; the judge's second attempt does not
     confirm(report, attempt)    each goal tried again (`attempt(goal name)`, given by the caller): `second` recorded
     judge(report, provider)     the ruling, experience/difficulties.json and the `experience` fact set
@@ -127,11 +127,17 @@ def _merged(found):
     return list(merged.values())
 
 
+def _this_run(report):
+    """The goals this run's run.json records: the journeys an earlier run saved for the replays are not met again."""
+    goals = (_load(Path(report) / 'experience/run.json', {}) or {}).get('goals') or []
+    return {g['name'] for g in goals if isinstance(g, dict) and g.get('name')}
+
+
 def difficulties(report):
-    """Every difficulty the simulated users met, numbered D1.. in order of goal, then of where it was met."""
-    journeys = {path.stem: _load(path) for path in (Path(report) / JOURNEYS).glob('*.json')}
+    """Every difficulty the simulated users of this run met, numbered D1.. in order of goal, then of where it was met."""
+    journeys, ran = {path.stem: _load(path) for path in (Path(report) / JOURNEYS).glob('*.json')}, _this_run(report)
     journeys = {stem: j for stem, j in sorted(journeys.items(), key=lambda item: (item[0].removesuffix('--again'), item[0]))
-                if isinstance(j, dict) and j.get('goal') and j.get('attempt') != 'second'}       # the judge's own attempt is evidence
+                if isinstance(j, dict) and j.get('goal') in ran and j.get('attempt') != 'second'}   # the judge's own attempt is evidence
     found = [row for stem, journey in journeys.items() for row in _of_journey(stem, journey)]
     found += _of_run(report, {j['goal'] for j in journeys.values()})
     return [{'id': f'D{n}', **row, 'second': dict(NOT_TRIED)} for n, row in enumerate(_merged(found), 1)]

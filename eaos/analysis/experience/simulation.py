@@ -63,8 +63,10 @@ def short(report, project, app, provider):
     given = scenarios.brief(report)
     planned = scenarios.checked(scenarios.rules(given), [role['id'] for role in given['roles']])
     persona = next(p for p in planned['personas'] if p['goals'])
-    one = {**planned, 'personas': [{**persona, 'goals': [{**persona['goals'][0], 'steps': SHORT['steps']}]}], 'handoffs': []}
-    ran = cast.run(app, one, {'order': scenarios.order(one)}, provider, report)
+    goal = {**persona['goals'][0], 'steps': SHORT['steps'], 'seconds': SHORT['seconds']}
+    one = {**planned, 'personas': [{**persona, 'goals': [goal]}], 'handoffs': []}
+    budget = {'seconds': SHORT['seconds'], 'calls': SHORT['steps']}      # the estimate said before the check, held
+    ran = cast.run(app, one, {'order': scenarios.order(one), 'budget': budget}, provider, report)
     return {**ran, 'judged': judging.judge(report, provider)}
 
 
