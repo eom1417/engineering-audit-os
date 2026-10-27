@@ -1,4 +1,5 @@
 """Real data written in the code (M12): the tables and records sorted on their evidence, and the cards they earn."""
+import json
 import tempfile
 import unittest
 from pathlib import Path
@@ -87,6 +88,14 @@ def _installed(module):
 
 
 class TheBaselineApp(unittest.TestCase):
+    def test_presidio_s_pinned_output_reads_as_one_masked_value_per_row_with_no_value_written(self):
+        captured = json.loads((Path(__file__).resolve().parents[1] / 'contracts/presidio.json').read_text(encoding='utf-8'))
+        rows = presidio.rows('\n'.join(json.dumps(row, ensure_ascii=False) for row in captured['presidio.jsonl']))
+        self.assertEqual({row['measurements']['record'] for row in rows}, {presidio.RECORD})
+        self.assertIn(('web/staff.js', 'SA_NATIONAL_ID'), {(row['path'], row['measurements']['entity']) for row in rows})
+        self.assertNotIn('1757491186', json.dumps(rows))                    # the national id itself is never written
+
+
     def test_presidio_and_ast_grep_find_what_was_planted_and_leave_what_must_stay(self):
         if not (_installed(presidio) and _installed(ast_grep)): self.skipTest('Presidio or ast-grep is not installed at its pin')
         with tempfile.TemporaryDirectory(prefix='eaos-real-data-') as work:

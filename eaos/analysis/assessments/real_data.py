@@ -126,12 +126,17 @@ def _read(root, path):
     except (OSError, TypeError): return []
 
 
+def _inside(table, hits):
+    """The values on the lines of a table."""
+    last = table['end_line'] or table['line']
+    return [h for h in hits if h['path'] == table['path'] and table['line'] <= h['line'] <= last]
+
+
 def _from_tables(sets, root, hits):
     """(findings, the values they hold): one per table that is data."""
     out, used = [], set()
     for table in tables(sets):
-        inside = [h for h in hits if h['path'] == table['path'] and table['line'] <= h['line'] <= (table['end_line'] or table['line'])]
-        keys = _keys(_read(root, table['path']), table)
+        inside, keys = _inside(table, hits), _keys(_read(root, table['path']), table)
         used |= {id(h) for h in inside}
         if not keys & DOMAIN: inside = [h for h in inside if h['entity'] not in NAMES_ONLY]    # a menu's 'Button Groups'
         kind = kind_of(table, inside, keys)

@@ -1,0 +1,277 @@
+{
+ "engine": "presidio",
+ "pinned_version": "2.2.366",
+ "captured_from": "python -I eaos/templates/presidio/scan.py tests/fixtures/baseline-app eaos/rules/personal-data.json presidio.jsonl (Presidio 2.2.366, spaCy 3.8.18, en_core_web_sm 3.8.0)",
+ "presidio.jsonl": [
+  {
+   "path": "app.test.js",
+   "line": 9,
+   "key": "email",
+   "entity": "EMAIL_ADDRESS",
+   "score": 1.0,
+   "masked": "t•••@example.com",
+   "digest": "973dfe463ec85785",
+   "placeholder": true
+  },
+  {
+   "path": "app.test.js",
+   "line": 9,
+   "key": "phone",
+   "entity": "SA_PHONE",
+   "score": 0.7,
+   "masked": "050••••000",
+   "digest": "cd307e5003fc32a9",
+   "placeholder": true
+  },
+  {
+   "path": "app.test.js",
+   "line": 10,
+   "key": "email",
+   "entity": "EMAIL_ADDRESS",
+   "score": 1.0,
+   "masked": "j•••@example.org",
+   "digest": "13d855ce931073d4",
+   "placeholder": true
+  },
+  {
+   "path": "app.test.js",
+   "line": 10,
+   "key": "name",
+   "entity": "PERSON",
+   "score": 0.85,
+   "masked": "J••• D••",
+   "digest": "ed37d99b1445238a",
+   "placeholder": true
+  },
+  {
+   "path": "app.test.js",
+   "line": 10,
+   "key": "phone",
+   "entity": "SA_PHONE",
+   "score": 0.7,
+   "masked": "050••••000",
+   "digest": "cd307e5003fc32a9",
+   "placeholder": true
+  },
+  {
+   "path": "app.test.js",
+   "line": 11,
+   "key": "email",
+   "entity": "EMAIL_ADDRESS",
+   "score": 1.0,
+   "masked": "j•••@example.net",
+   "digest": "a717f79976ccb5e0",
+   "placeholder": true
+  },
+  {
+   "path": "app.test.js",
+   "line": 11,
+   "key": "name",
+   "entity": "PERSON",
+   "score": 0.85,
+   "masked": "J••• S••••",
+   "digest": "32ddaf65cc3aa8d3",
+   "placeholder": true
+  },
+  {
+   "path": "app.test.js",
+   "line": 11,
+   "key": "phone",
+   "entity": "SA_PHONE",
+   "score": 0.7,
+   "masked": "050••••000",
+   "digest": "cd307e5003fc32a9",
+   "placeholder": true
+  },
+  {
+   "path": "server.js",
+   "line": 96,
+   "key": "email",
+   "entity": "EMAIL_ADDRESS",
+   "score": 1.0,
+   "masked": "m•••@alnoor-clinic.sa",
+   "digest": "4a9c20b3027befb4",
+   "placeholder": false
+  },
+  {
+   "path": "server.js",
+   "line": 96,
+   "key": "name",
+   "entity": "PERSON",
+   "score": 0.85,
+   "masked": "M••••••• A••••••••",
+   "digest": "b9b15f2999d69f02",
+   "placeholder": false
+  },
+  {
+   "path": "server.js",
+   "line": 96,
+   "key": "mobile",
+   "entity": "SA_PHONE",
+   "score": 0.7,
+   "masked": "050••••322",
+   "digest": "d41375012a032b04",
+   "placeholder": false
+  },
+  {
+   "path": "web/menu.js",
+   "line": 8,
+   "key": "email",
+   "entity": "EMAIL_ADDRESS",
+   "score": 1.0,
+   "masked": "j•••@example.com",
+   "digest": "8c87b489ce35cf2e",
+   "placeholder": true
+  },
+  {
+   "path": "web/menu.js",
+   "line": 8,
+   "key": "name",
+   "entity": "PERSON",
+   "score": 0.85,
+   "masked": "J••• D••",
+   "digest": "94890005f3b2117a",
+   "placeholder": true
+  },
+  {
+   "path": "web/staff.js",
+   "line": 3,
+   "key": "iban",
+   "entity": "IBAN_CODE",
+   "score": 1.0,
+   "masked": "SA1••••••••••••••••••878",
+   "digest": "dbd207c24a8656b0",
+   "placeholder": false
+  },
+  {
+   "path": "web/staff.js",
+   "line": 3,
+   "key": "name",
+   "entity": "PERSON",
+   "score": 0.85,
+   "masked": "A••••••• A•••••••",
+   "digest": "bc8a33663af89305",
+   "placeholder": false
+  },
+  {
+   "path": "web/staff.js",
+   "line": 3,
+   "key": "nationalid",
+   "entity": "SA_NATIONAL_ID",
+   "score": 1.0,
+   "masked": "175••••186",
+   "digest": "f80e292bf8dde485",
+   "placeholder": false
+  },
+  {
+   "path": "web/staff.js",
+   "line": 3,
+   "key": "phone",
+   "entity": "SA_PHONE",
+   "score": 0.7,
+   "masked": "055••••987",
+   "digest": "ed5b8a9d6172a8f4",
+   "placeholder": false
+  },
+  {
+   "path": "web/staff.js",
+   "line": 4,
+   "key": "iban",
+   "entity": "IBAN_CODE",
+   "score": 1.0,
+   "masked": "SA5••••••••••••••••••384",
+   "digest": "e6bb3ac0b413eb1d",
+   "placeholder": false
+  },
+  {
+   "path": "web/staff.js",
+   "line": 4,
+   "key": "name",
+   "entity": "PERSON",
+   "score": 0.85,
+   "masked": "N•••• A•••••••••",
+   "digest": "c24d7bd92339e180",
+   "placeholder": false
+  },
+  {
+   "path": "web/staff.js",
+   "line": 4,
+   "key": "nationalid",
+   "entity": "SA_NATIONAL_ID",
+   "score": 1.0,
+   "masked": "101••••459",
+   "digest": "992f13af532d03d4",
+   "placeholder": false
+  },
+  {
+   "path": "web/staff.js",
+   "line": 4,
+   "key": "phone",
+   "entity": "SA_PHONE",
+   "score": 0.7,
+   "masked": "+96••••••••••312",
+   "digest": "021881327f9e56c7",
+   "placeholder": false
+  },
+  {
+   "path": "web/staff.js",
+   "line": 5,
+   "key": "name",
+   "entity": "AR_NAME",
+   "score": 0.7,
+   "masked": "س••• ا••••••",
+   "digest": "6ba2fb5ea8cee5eb",
+   "placeholder": false
+  },
+  {
+   "path": "web/staff.js",
+   "line": 5,
+   "key": "nationalid",
+   "entity": "SA_NATIONAL_ID",
+   "score": 1.0,
+   "masked": "182••••263",
+   "digest": "9216b511f1b63a9f",
+   "placeholder": false
+  },
+  {
+   "path": "web/staff.js",
+   "line": 5,
+   "key": "phone",
+   "entity": "SA_PHONE",
+   "score": 0.7,
+   "masked": "053••••543",
+   "digest": "3a8c18655ed7c015",
+   "placeholder": false
+  },
+  {
+   "path": "web/staff.js",
+   "line": 6,
+   "key": "name",
+   "entity": "AR_NAME",
+   "score": 0.7,
+   "masked": "ف•• ا••••••",
+   "digest": "56e1ca7cd758df65",
+   "placeholder": false
+  },
+  {
+   "path": "web/staff.js",
+   "line": 6,
+   "key": "nationalid",
+   "entity": "SA_NATIONAL_ID",
+   "score": 1.0,
+   "masked": "129••••791",
+   "digest": "80b95c2352fd1ace",
+   "placeholder": false
+  },
+  {
+   "path": "web/staff.js",
+   "line": 6,
+   "key": "phone",
+   "entity": "SA_PHONE",
+   "score": 0.7,
+   "masked": "056••••321",
+   "digest": "967565ec9d4d637c",
+   "placeholder": false
+  }
+ ]
+}
