@@ -50,9 +50,9 @@ A small web app where one person keeps the books they want to read.
 - English only; one user, no sign-in.
 - It must run with one command and have tests for every feature.
 """
-# A page of its own: a link on every page is refused by the behaviour lock (no intended change to a recorded screen).
+# A link on every page: refused on every screen before the lock knew an intended change (M9.7).
 FEATURE = ('Add an About page at /about saying "Flaskr, a small blog" with the number of posts, linked as "About" from '
-           'the navigation every page shows.')      # a link on every page: M9.7's case, refused on every screen before
+           'the navigation every page shows.')
 
 
 
