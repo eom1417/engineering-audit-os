@@ -153,10 +153,10 @@ class ProgressTests(unittest.TestCase):
         # next-dashboard's check said "Measuring size and complexity (5 of 30)" for 14 minutes: measure, started beside the
         # sign-in, ended in 0.03 s, and the sign-in that ran on was never named
         from eaos.pipeline import stage_run
-        said, log = [], mock.Mock(enabled=False)
+        said, log, folder = [], mock.Mock(enabled=False), tempfile.TemporaryDirectory()
+        self.addCleanup(folder.cleanup)
         run = {'context': {}, 'log': log, 'results': {}, 'progress': lambda *step: said.append(step), 'todo': ['session', 'measure'],
-               'runners': {}, 'out': Path(tempfile.mkdtemp()), 'head': {}, 'blocked': {}, 'lock': threading.RLock(), 'running': ['session']}
-        self.addCleanup(shutil.rmtree, run['out'])
+               'runners': {}, 'out': Path(folder.name), 'head': {}, 'blocked': {}, 'lock': threading.RLock(), 'running': ['session']}
         with mock.patch.object(stage_run, '_one', return_value={'status': 'ok'}), mock.patch.object(stage_run, 'ledger', return_value={}):
             stage_run._run_stage(BY_NAME['measure'], run)
         self.assertEqual(said, [(0, 2, 'measure'), (1, 2, 'session')])
