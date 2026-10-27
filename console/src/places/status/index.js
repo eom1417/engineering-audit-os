@@ -128,10 +128,10 @@ function healthBody() {
         <div class="meter__track"></div><div class="meter__nm">${notMeasured(a.id)}</div></div>`;
     }
     return `<div class="meter"><div class="meter__top"><span><a class="meter__name" href="${href('/problems', { area: a.id })}">${t('area.' + a.id)}</a><span class="meter__count">${esc(tn('pl.problem', a.cards))}</span></span>
-      <span class="meter__val">${esc(t('st.meter.v', { score: num(a.score), band: t('band.' + band(a.score)) }))}</span></div>
+      <span class="meter__val">${esc(t('st.meter.v', { score: num(a.score), band: t('band.' + band(a.score, a.partial)) }))}</span></div>
       <div class="meter__track" role="img" aria-label="${esc(t('area.' + a.id))}: ${a.score}">${ticks}<span class="meter__fill" style="width:${a.score}%"></span></div></div>`;
   }).join('');
-  return `<div class="health-card__top"><span class="figure">${h.score}</span><span class="health-card__band">${t('band.' + band(h.score))}</span></div>
+  return `<div class="health-card__top"><span class="figure">${h.score}</span><span class="health-card__band">${t('band.' + band(h.score, h.unchecked.length > 0))}</span></div>
     <p class="small ink-2" style="margin-top:4px">${esc(trend(h))}</p>
     <div class="meters" style="margin-top:20px">${meters}</div>
     <details class="fold" style="margin-top:16px;border-top:1px solid var(--line)"><summary style="padding-inline:0;min-height:48px">${icon('info', 'muted')}<span class="row__main small">${t('st.health.formula.title')}</span>${icon('chev', 'chev icon--sm')}</summary>
@@ -144,7 +144,7 @@ function healthRow() {
   const weakest = h.areas.filter(a => a.score != null).sort((a, b) => a.score - b.score)[0];
   return `<section class="section only-phone"><div class="panel rows">
     <button class="row" data-act="sheet" data-sheet="health">
-      <span class="row__main"><span class="row__title">${esc(t('st.health', { score: h.score, band: t('band.' + band(h.score)) }))}</span>
+      <span class="row__main"><span class="row__title">${esc(t('st.health', { score: h.score, band: t('band.' + band(h.score, h.unchecked.length > 0)) }))}</span>
       <span class="row__meta" style="display:block">${weakest ? esc(t('st.health.weakest', { area: t('area.' + weakest.id), score: weakest.score })) + '. ' : ''}${esc(trend(h))}</span></span>
       ${icon('chev', 'icon--dir muted')}</button></div></section>`;
 }
@@ -200,12 +200,15 @@ function aboutHTML(p, sz) {
         ${icon('chev', 'icon--sm icon--dir muted')}</button></li>`).join('')}</ul>
     <p class="small muted" style="margin-top:8px">${t('st.about.redo')}</p>` : ''}`;
 }
-// the areas the check did not measure, and how to measure them
-function measuredHTML(unmeasured) {
+// the areas the check did not measure, and how to measure them; then what this version of EAOS does not check at all
+function measuredHTML(unmeasured, unchecked) {
   return `<p class="small ink-2">${unmeasured.length ? t('st.measured.v', { n: tn('pl.area', unmeasured.length) }) : t('st.measured.all')}</p>
     ${unmeasured.map(a => `<div class="nm" style="margin-top:12px"><div class="nm__title"><span class="tag tag--nm">${t('nm')}</span>${t('area.' + a.id)}</div>
       <p class="small ink-2">${a.id === 'performance' ? t('st.measured.why') : t('st.nm.other')}</p>
-      ${a.id === 'performance' ? `<div><a class="btn btn--secondary btn--sm" href="${href('/activity', { sheet: 'check', path: 'speed' })}">${t('st.nm.act')}</a></div>` : ''}</div>`).join('')}`;
+      ${a.id === 'performance' ? `<div><a class="btn btn--secondary btn--sm" href="${href('/activity', { sheet: 'check', path: 'speed' })}">${t('st.nm.act')}</a></div>` : ''}</div>`).join('')}
+    ${unchecked.length ? `<div class="block-title" style="margin-top:16px">${t('st.unchecked')}</div>
+    ${unchecked.map(k => `<div class="nm" style="margin-top:12px"><div class="nm__title"><span class="tag tag--nm">${t('st.unchecked.tag')}</span>${t('unchecked.' + k.id)}</div>
+      <p class="small ink-2">${t('unchecked.' + k.id + '.why')}</p></div>`).join('')}` : ''}`;
 }
 
 function folds(ctx) {
@@ -221,14 +224,14 @@ function folds(ctx) {
   const journeySum = left.length ? t('st.fold.journey.sum', { done: num(steps.length - left.length), all: num(steps.length), next: left[0].title }) : t('st.fold.journey.all');
   const st = sz.stages;
   const about = aboutHTML(p, sz);
-  const unmeasured = model.health().areas.filter(a => a.score == null);
-  const measured = measuredHTML(unmeasured);
+  const health = model.health(), unmeasured = health.areas.filter(a => a.score == null);
+  const measured = measuredHTML(unmeasured, health.unchecked);
   const standSum = waiting.length ? tn('pl.fix_branch_waits', waiting.length) : n.short || '';
   return `<div class="section panel">
     ${fold('stand', t('st.fold.stand'), esc(standSum), stand)}
     ${fold('journey', t('st.fold.journey'), esc(journeySum), journey)}
     ${fold('about', t('st.fold.about'), esc(t('st.fold.about.sum', { files: tn('pl.file', sz.files || 0), lines: tn('pl.line', sz.lines || 0), stages: tn('pl.stage', st.length) })), about)}
-    ${fold('measured', t('st.fold.measured'), esc(unmeasured.length ? unmeasured.map(a => t('area.' + a.id)).join(t('list.sep')) : t('st.measured.all')), measured)}
+    ${fold('measured', t('st.fold.measured'), esc([...unmeasured.map(a => t('area.' + a.id)), ...health.unchecked.map(k => t('unchecked.' + k.id))].join(t('list.sep')) || t('st.measured.all')), measured)}
   </div>`;
 }
 

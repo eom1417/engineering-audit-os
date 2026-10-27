@@ -90,8 +90,16 @@ class HumanReportTests(unittest.TestCase):
         areas = {name: area['score'] for name, area in result['areas'].items()}
         # security: medium from the register (2) + critical likely (10 x 0.7) = 9 -> 100 x 20 / 29
         self.assertEqual(areas, {'security': 69, 'quality': 92, 'structure': 91, 'maintainability': 91, 'performance': None, 'ux': None})
-        self.assertEqual((result['score'], result['grade'], result['capped']), (86, 'good', False))
+        # 86 reads good, but this version does not check everything (words.json `unchecked`): it says so, never good.
+        self.assertEqual((result['score'], result['grade'], result['capped']), (86, 'partial', False))
         self.assertEqual((result['areas']['security']['light'], result['areas']['performance']['light']), ('red', 'grey'))
+        self.assertEqual({k: a['partial'] for k, a in result['areas'].items() if a['partial']},
+                         {area['area']: True for area in model.unchecked()})
+        summary = section(self.page, 'summary')
+        self.assertIn('Not checked by this version: Real data written in the code', summary)
+        quality = summary[summary.index('data-area="quality"'):summary.index('data-area="performance"')]
+        self.assertIn('Not fully checked', quality)       # 92, green, but it holds ground this version does not check
+        self.assertNotIn('>Good<', quality)
         rows = [dict(row, confidence='CONFIRMED') for row in model.problems(self.out)]
         self.assertEqual(model.score(rows, 50)['score'], model.CRITICAL_CAP)
         # A vulnerable library the assistant kept (no fixed version) still weighs: EAOS read security 100 with one known.

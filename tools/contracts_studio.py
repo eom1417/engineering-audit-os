@@ -89,7 +89,8 @@ SYSTEM_SECTION = section({
 STUDIO = {
  'manifest': ('The index of the Studio\'s data, written last so a reader never sees a half-written set: which EAOS built it, which scan, and every section with its fingerprint.',
   section({'language': enum('ar', 'en'),
-           'locales': obj({'en': obj({'file': {'const': 'locale.js'}, 'sha256': {'type': 'string', 'pattern': '^[a-f0-9]{64}$'}}, ['file', 'sha256'], extra=False)}, [], extra=False),
+           'locales': obj({lang: obj({'file': {'const': 'locale.js'}, 'sha256': {'type': 'string', 'pattern': '^[a-f0-9]{64}$'}}, ['file', 'sha256'], extra=False)
+                           for lang in ('ar', 'en')}, [], extra=False),
            'built': obj({'version': S, 'commit': S, 'digest': S, 'studio_digest': S, 'built': S}),
            'project': obj({'name': {'type': 'string', 'minLength': 1}}),
            'scanned': REF('scan'),
@@ -111,8 +112,10 @@ STUDIO = {
           ['scanned', 'eaos', 'freshness', 'verdict', 'next'])),
  'health': ('The project\'s health: one score by one formula, its domains, and the score after every scan.',
   section({'score': REF('ratio_measure'), 'formula': S,
-           'domains': arr(obj({'id': S, 'name': S, 'score': REF('ratio_measure'), 'cards': {'type': 'integer', 'minimum': 0}})),
-           'history': arr(obj({'at': S, 'commit': NS, 'score': {'type': ['number', 'null'], 'minimum': 0, 'maximum': 1}}))},
+           'domains': arr(obj({'id': S, 'name': S, 'score': REF('ratio_measure'), 'cards': {'type': 'integer', 'minimum': 0}, 'partial': B},
+                              ['id', 'name', 'score', 'cards'])),
+           'history': arr(obj({'at': S, 'commit': NS, 'score': {'type': ['number', 'null'], 'minimum': 0, 'maximum': 1}})),
+           'unchecked': arr(obj({'id': S, 'area': S}, ['id', 'area']))},
           ['score', 'formula', 'domains', 'history'])),
  'cards': ('Every card of the plan on its own file and evidence, with its state read from the ledger and why it matters in both languages.',
   section({'cards': arr(obj({'id': S, 'key': S, 'title': S, 'kind': S, 'category': S,

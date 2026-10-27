@@ -105,10 +105,18 @@ def overview(project=None):
     return {'project': state['project'], 'checked_commit': state.get('scanned_commit'), 'status': manifest.get('status'),
             'incomplete_stages': [name for name, row in (manifest.get('stages') or {}).items() if row.get('status') in ('failed', 'not_reached')],
             'counts': summary_counts(report), 'claims_by_confidence': claims, 'problem_kinds': _problem_kinds(tasks),
+            'not_checked_by_this_version': _unchecked(),
             'milestones': _milestones(plan, tasks),
             'report_for_people': str(branches.home(state) / 'REPORT.html') if (branches.home(state) / 'REPORT.html').is_file() else None,
             'outputs_folder': str(guided.outputs(state)), 'technical_report': str(report),
             'next': 'Use `findings` and `finding` for the evidence, `structure` for the architecture, `plan` for the order of work.'}
+
+
+def _unchecked():
+    """What this version of EAOS does not check yet, in plain words: never tell the person the project is clean there."""
+    from ...core.language.words import catalog
+    return [{'kind': kind, 'area': row['area'], 'what': row['one'][1], 'why': row['why'][1],
+             'say': 'not checked by this version of EAOS: do not call this ground good or clean'} for kind, row in catalog()['unchecked'].items()]
 
 
 def _problem_kinds(tasks):

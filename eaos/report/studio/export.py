@@ -208,11 +208,11 @@ def _publish_all(run):
     # Last of the sections: it says which of the others were written, and what is not measured yet.
     _attempt(built, errors, 'coverage', lambda: coverage_section.coverage(report, built, [e['name'] for e in entries], list(errors), lang))
     if 'coverage' in built: publish('coverage', {'schema_version': 1, 'contract': CONTRACT, 'revision': REVISION, **built['coverage']})
-    from .localization import publish as publish_locales
+    from . import localization
     locales = None
     try:
-        locales = publish_locales(report, lang)
-    except (OSError, ValueError, TypeError) as error:
+        locales = localization.publish(folder, lang, localization.catalog(report, run.m['plan'], built.get('cards') or [], lang))
+    except (OSError, ValueError, TypeError, KeyError) as error:
         errors.append({'section': 'locales', 'error': str(error)[:300]})
     (folder / 'errors.json').write_text(json.dumps(errors, ensure_ascii=False, indent=1) + '\n', encoding='utf-8')
     manifest = {'schema_version': 1, 'language': lang, 'contract': CONTRACT, 'revision': REVISION, 'built': run.stamp,

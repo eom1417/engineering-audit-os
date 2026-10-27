@@ -39,6 +39,7 @@ function catalogWords() {
   for (const [id, stage] of Object.entries(catalog.stages)) { table[`ac.stage.${id}`] = stage.title; table[`ac.stage.${id}.does`] = stage.does; }
   for (const [id, p] of Object.entries(catalog.paths)) table[`ac.path.${id}`] = p.name;
   for (const [id, kind] of Object.entries(catalog.kinds)) table[`kind.${id}`] = kind.one;
+  for (const [id, row] of Object.entries(catalog.unchecked)) { table[`unchecked.${id}`] = row.one; table[`unchecked.${id}.why`] = row.why; }
   return table;
 }
 

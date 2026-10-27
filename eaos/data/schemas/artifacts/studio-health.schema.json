@@ -49,6 +49,9 @@
           "cards": {
             "type": "integer",
             "minimum": 0
+          },
+          "partial": {
+            "type": "boolean"
           }
         }
       }
@@ -79,6 +82,24 @@
             ],
             "minimum": 0,
             "maximum": 1
+          }
+        }
+      }
+    },
+    "unchecked": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "id",
+          "area"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "area": {
+            "type": "string"
           }
         }
       }

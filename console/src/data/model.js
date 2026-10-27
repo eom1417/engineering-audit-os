@@ -67,7 +67,8 @@ export function totals() {
 export function health() {
   return memo('health', ['health'], h => ({
     score: h ? pct(h.score) : null, formula: h ? h.formula : '',
-    areas: ((h && h.domains) || []).map(d => ({ id: d.id, score: pct(d.score), cards: d.cards })),
+    areas: ((h && h.domains) || []).map(d => ({ id: d.id, score: pct(d.score), cards: d.cards, partial: !!d.partial })),
+    unchecked: (h && h.unchecked) || [],
     history: ((h && h.history) || []).map(x => ({ at: x.at, commit: x.commit, score: x.score == null ? null : Math.round(x.score * 100) })),
   }));
 }
