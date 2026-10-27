@@ -16,7 +16,7 @@ PYTHON="${PYTHON:-python3}"
 
 if [ "$(uname)" = Linux ] && command -v apt-get >/dev/null; then
   SUDO=""; [ "$(id -u)" = 0 ] || SUDO="sudo"
-  # venv, the Arabic and Latin fonts Typst embeds in EXECUTIVE.pdf, and git
+  # venv, the Arabic and Latin fonts the pictures of a project's screens need, and git
   $SUDO apt-get install -y python3-venv fonts-noto-core git || echo "warning: apt-get could not install the system packages"
 fi
 

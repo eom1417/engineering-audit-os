@@ -67,7 +67,10 @@ stay: `test_code_limits`, `test_studio_assets`, `test_golden_facts`, `test_consi
 `tests/fixtures/baseline-app` and no layer finding on its clean twin `tests/fixtures/baseline-clean`), `test_layers`
 (every planted boundary defect found). `tests/guards/test_journey.py` is the fast end-to-end proof. A change to running
 apps or finding screens also runs the compatibility corpus (`tools/corpus.py`, a background job of about an hour); a
-milestone end measures `docs/METRICS.md` with `tools/metrics.py`.
+milestone end measures `docs/METRICS.md` with `tools/metrics.py`. The proofs with the real assistant, each spending money:
+`tools/fix_proof.py` (in the golden trial), `tools/journeys_proof.py` (the three journeys), `tools/tidy_proof.py`
+(moves and context, ten questions per app), `tools/experience_proof.py` (the simulated users). A tool's new pin:
+`tools/platform_assets.py` fills its asset for every computer EAOS supports.
 
 ## Setting up a computer
 
