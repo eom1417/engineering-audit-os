@@ -96,7 +96,7 @@ class HumanReportTests(unittest.TestCase):
         self.assertEqual({k: a['partial'] for k, a in result['areas'].items() if a['partial']},
                          {area['area']: True for area in model.unchecked()})
         summary = section(self.page, 'summary')
-        self.assertIn('Not checked by this version: Real data written in the code', summary)
+        self.assertIn('Not checked by this version: Old engines still wired in', summary)
         quality = summary[summary.index('data-area="quality"'):summary.index('data-area="performance"')]
         self.assertIn('Not fully checked', quality)       # 92, green, but it holds ground this version does not check
         self.assertNotIn('>Good<', quality)

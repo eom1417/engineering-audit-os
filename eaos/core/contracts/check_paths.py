@@ -8,8 +8,8 @@ COMPLETE = 'complete'
 SPINE = ('proposals', 'triage', 'order', 'translate')
 PATHS = {
     'complete': {},
-    'security': {'stages': ('engines',), 'kinds': ('secret', 'vulnerability', 'misconfiguration'), 'engines': ('syft',),
-                 'patterns': ('security_weakness', 'upgrade_dependency', 'layer_boundary')},
+    'security': {'stages': ('engines',), 'kinds': ('secret', 'vulnerability', 'misconfiguration'), 'engines': ('syft', 'presidio', 'ast-grep'),
+                 'patterns': ('security_weakness', 'upgrade_dependency', 'layer_boundary', 'real_data')},
     'look': {'stages': ('roles', 'setup', 'session', 'lock', 'record', 'journeys', 'crawl', 'screens', 'visual'), 'patterns': ('design_review',)},
     'code': {'stages': ('engines', 'setup', 'verify', 'architecture', 'policy', 'semantic', 'ideal', 'pipeline_gaps'),
              'kinds': ('boundary', 'complexity', 'coupling', 'cycle', 'dataflow', 'dead_code', 'duplication', 'literal_duplication',

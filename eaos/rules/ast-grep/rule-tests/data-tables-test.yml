@@ -1,0 +1,47 @@
+id: eaos.data.table
+valid:
+  - 'const PAIR = [{ a: 1 }, { b: 2 }];'
+invalid:
+  - 'const STAFF = [{ name: "A", dept: "ICU" }, { name: "B", dept: "ER" }, { name: "C", dept: "OR" }];'
+---
+id: eaos.data.dated-map
+valid:
+  - 'const STATUS = { open: 1, closed: 2, held: 3 };'
+invalid:
+  - 'const MONTHLY = { "2026-01": [12, 14], "2026-02": [10, 13], "2026-03": [11, 11] };'
+---
+id: eaos.data.table-typescript
+valid:
+  - 'const IDS: number[] = [1, 2, 3];'
+invalid:
+  - 'export const ROWS: Row[] = [{ id: 1 }, { id: 2 }, { id: 3 }];'
+---
+id: eaos.data.dated-map-typescript
+valid:
+  - 'const LIMITS = { min: 1, max: 9, step: 2 };'
+invalid:
+  - 'const BY_MONTH = { Jan: 3, Feb: 4, Mar: 5 };'
+---
+id: eaos.data.table-tsx
+valid:
+  - 'const one = [{ n: "A" }];'
+invalid:
+  - 'const users = [{ n: "A" }, { n: "B" }, { n: "C" }];'
+---
+id: eaos.data.dated-map-tsx
+valid:
+  - 'const style = { color: "red", margin: 0, padding: 2 };'
+invalid:
+  - 'const sales = { "2025-10": 4, "2025-11": 5, "2025-12": 6 };'
+---
+id: eaos.data.table-python
+valid:
+  - 'PAIR = [{"a": 1}, {"b": 2}]'
+invalid:
+  - 'STAFF = [{"name": "A"}, {"name": "B"}, {"name": "C"}]'
+---
+id: eaos.data.dated-map-python
+valid:
+  - 'LEVELS = {"low": 1, "medium": 2, "high": 3}'
+invalid:
+  - 'SHIFTS = {"2026-01": 12, "2026-02": 10, "2026-03": 11}'

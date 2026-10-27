@@ -48,7 +48,7 @@ engineering-audit-os/
       claims/              one ledger of everything asserted: claims from facts, records, layers, the repository, the
                            experience and the logic-flaw hunt; probes, correlation
       assessments/         ready judgements per kind of finding: dead code, dependencies, mechanical, policy, weaknesses,
-                           the debt register
+                           real data in the code, the debt register
       layers/              the whole system in layers: placement, boundaries, browser, endpoints, guards, data,
                            the rules split, operations
       experience/          the simulated users' plan: the scenario, the domain data, the simulation, the judging
@@ -181,7 +181,8 @@ for a reason the person did not choose) shows in red at the top of START-HERE.md
 | a rule that reads source and produces facts | `facts/<its folder>` (`code/`, `declared_pipelines/`, `dead_code/`, `duplication/`, `repository/`, `runtime/`, `domain/`, `defects/`); a framework's detector in `facts/frameworks/` |
 | a rule of the system's layers (a boundary, an endpoint's guard, a data rule, what ships to the browser) | `analysis/layers/`: its sentence, boundary, severity and fix in `catalog.py`, its check in the module of its boundary; findings become cards through `analysis/claims/from_layers.py` |
 | trying a layer on the running app or a database of the run's own | `live/trials/data.py` (migrations, Supabase advisors, pgTAP), `live/trials/api.py` (Schemathesis); the stage that joins them is `pipeline/runners/layers_live.py` |
-| an adapter for an external tool | `engines/<kind>/<name>.py` (`security/`, `api/`, `code/`) + its entry in `eaos/data/toolchain.json` (`check: engines`) |
+| an adapter for an external tool | `engines/<kind>/<name>.py` (`security/`, `api/`, `code/`) + its entry in `eaos/data/toolchain.json` (`check: engines`); a library with no command (Presidio) is run by EAOS's own script in `templates/<tool>/` with its environment's Python (`install.library`) |
+| real data written in the code (M12) | the values: Presidio's script `templates/presidio/scan.py` and its words `rules/personal-data.json`; the tables: `rules/ast-grep/rules/data-tables.yml`; sorted on evidence in `analysis/assessments/real_data.py`, its cards in `analysis/claims/from_real_data.py` |
 | running the app, signing in, finding screens | `live/`: how a stack starts in `live/app/detect.py` (JavaScript, static sites) or `live/app/detect_python.py`; the test account by rules in `live/access/test_account.py`; `live/screens/` for the crawl, the audit and the pages files name (`file_routes.py`) |
 | driving the browser for a goal, recording, replaying | `live/agent.py` with `templates/screens/agent.mjs` (the one browser-agent layer, M5.2): the assistant is passed in, never imported |
 | judging findings by rules, cards, plan, estimates | `analysis/<its folder>`: a claim in `claims/`, a ready judgement in `assessments/`, the plan in `planning/`, how a card is fixed in `repair/` |

@@ -97,7 +97,8 @@ for undefined names and unused imports (`console/eslint.config.js`).
 **A card is done when, on its own `dev/<topic>` branch:**
 1. `tools/quality.sh` passes.
 2. The full suite and `tools/validate.py` pass; the Studio is built when `console/` changed.
-3. The golden trial passes; the detection baseline finds the same problems or more; the compatibility corpus does not
+3. The golden trial passes; the detection baseline finds the same problems or more, and none of the examples planted to
+   stay (`must_stay`: a placeholder, the program's own configuration); the compatibility corpus does not
    get worse when the change touches running apps or finding screens.
 4. It is merged into `develop` (`--no-ff`), pushed, and the branch deleted.
 5. **The context is updated in the same change** (section 8).

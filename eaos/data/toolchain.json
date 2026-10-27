@@ -435,6 +435,30 @@
    }
   },
   {
+   "name": "presidio",
+   "role": "read",
+   "stages": [
+    "S04",
+    "S10"
+   ],
+   "applies": "all",
+   "check": "engines",
+   "license": "MIT",
+   "repository": "https://github.com/microsoft/presidio",
+   "version": "2.2.366",
+   "install": {
+    "method": "pip",
+    "package": "presidio-analyzer",
+    "library": true,
+    "own_venv": true,
+    "with": [
+     "spacy==3.8.18",
+     "en_core_web_sm @ https://github.com/explosion/spacy-models/releases/download/en_core_web_sm-3.8.0/en_core_web_sm-3.8.0-py3-none-any.whl#sha256=1932429db727d4bff3deed6b34cfc05df17794f4a52eeb26cf8928f7c1a0fb85"
+    ]
+   },
+   "install_note": "Real data written in the code (M12.1): a library, no executable; eaos/templates/presidio/scan.py imports it in its own environment and reads the project's string literals only, with the Saudi mobile, national id and Arabic name patterns and the placeholders of eaos/rules/personal-data.json. spaCy's small English model (MIT, its wheel pinned by its sha256) finds English names. Its own environment: spaCy's numpy and pydantic would move the versions the other Python tools share."
+  },
+  {
    "name": "codeql",
    "role": "read",
    "stages": [

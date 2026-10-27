@@ -1,0 +1,90 @@
+# Real data written in the code (M12.2): a table of records written as code (an array of three objects or more) and a
+# map keyed by dates or months. Records, not verdicts: eaos/analysis/assessments/real_data.py reads each table's keys
+# and the personal values Presidio found inside it, and only then says whether it is data.
+id: eaos.data.table
+language: JavaScript
+severity: info
+message: a table of records written as code
+metadata: {record: data_table}
+rule:
+  kind: array
+  all:
+    - has: {kind: object, nthChild: 1}
+    - has: {kind: object, nthChild: 3}
+---
+id: eaos.data.dated-map
+language: JavaScript
+severity: info
+message: a map keyed by dates or months written as code
+metadata: {record: dated_map}
+rule:
+  kind: object
+  all:
+    - has: {kind: pair, nthChild: 1, has: {field: key, regex: '(?i)^["''`]?(\d{4}-\d{2}(-\d{2})?|jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec|january|february|march|april|june|july|august|september|october|november|december|يناير|فبراير|مارس|أبريل|ابريل|مايو|يونيو|يوليو|أغسطس|اغسطس|سبتمبر|أكتوبر|اكتوبر|نوفمبر|ديسمبر)["''`]?$'}}
+    - has: {kind: pair, nthChild: 3}
+---
+id: eaos.data.table-typescript
+language: TypeScript
+severity: info
+message: a table of records written as code
+metadata: {record: data_table}
+rule:
+  kind: array
+  all:
+    - has: {kind: object, nthChild: 1}
+    - has: {kind: object, nthChild: 3}
+---
+id: eaos.data.dated-map-typescript
+language: TypeScript
+severity: info
+message: a map keyed by dates or months written as code
+metadata: {record: dated_map}
+rule:
+  kind: object
+  all:
+    - has: {kind: pair, nthChild: 1, has: {field: key, regex: '(?i)^["''`]?(\d{4}-\d{2}(-\d{2})?|jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec|january|february|march|april|june|july|august|september|october|november|december|يناير|فبراير|مارس|أبريل|ابريل|مايو|يونيو|يوليو|أغسطس|اغسطس|سبتمبر|أكتوبر|اكتوبر|نوفمبر|ديسمبر)["''`]?$'}}
+    - has: {kind: pair, nthChild: 3}
+---
+id: eaos.data.table-tsx
+language: Tsx
+severity: info
+message: a table of records written as code
+metadata: {record: data_table}
+rule:
+  kind: array
+  all:
+    - has: {kind: object, nthChild: 1}
+    - has: {kind: object, nthChild: 3}
+---
+id: eaos.data.dated-map-tsx
+language: Tsx
+severity: info
+message: a map keyed by dates or months written as code
+metadata: {record: dated_map}
+rule:
+  kind: object
+  all:
+    - has: {kind: pair, nthChild: 1, has: {field: key, regex: '(?i)^["''`]?(\d{4}-\d{2}(-\d{2})?|jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec|january|february|march|april|june|july|august|september|october|november|december|يناير|فبراير|مارس|أبريل|ابريل|مايو|يونيو|يوليو|أغسطس|اغسطس|سبتمبر|أكتوبر|اكتوبر|نوفمبر|ديسمبر)["''`]?$'}}
+    - has: {kind: pair, nthChild: 3}
+---
+id: eaos.data.table-python
+language: Python
+severity: info
+message: a table of records written as code
+metadata: {record: data_table}
+rule:
+  kind: list
+  all:
+    - has: {kind: dictionary, nthChild: 1}
+    - has: {kind: dictionary, nthChild: 3}
+---
+id: eaos.data.dated-map-python
+language: Python
+severity: info
+message: a map keyed by dates or months written as code
+metadata: {record: dated_map}
+rule:
+  kind: dictionary
+  all:
+    - has: {kind: pair, nthChild: 1, has: {field: key, regex: '(?i)^["''`]?(\d{4}-\d{2}(-\d{2})?|jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec|january|february|march|april|june|july|august|september|october|november|december|يناير|فبراير|مارس|أبريل|ابريل|مايو|يونيو|يوليو|أغسطس|اغسطس|سبتمبر|أكتوبر|اكتوبر|نوفمبر|ديسمبر)["''`]?$'}}
+    - has: {kind: pair, nthChild: 3}

@@ -1,0 +1,38 @@
+{
+  "schema_version": 1,
+  "about": "Real data written in the code (M12): what the Presidio scan (eaos/templates/presidio/scan.py, run by eaos/engines/security/presidio.py) counts as a personal value in a string literal, what it takes for a placeholder that must stay, and how a table written as code (eaos/rules/ast-grep data-table rules) is read as records of the domain or as the program's own configuration (eaos/analysis/assessments/real_data.py). Every list here is data, the owner's to change.",
+  "suffixes": [".js", ".jsx", ".mjs", ".cjs", ".ts", ".tsx", ".vue", ".svelte", ".py", ".json", ".sql"],
+  "skip_names": ["package.json", "package-lock.json", "tsconfig.json", "jsconfig.json", "composer.json", "manifest.json", "components.json", "renovate.json", "vercel.json", "netlify.json", "firebase.json", "app.json", "deno.json", "turbo.json", "lerna.json", "nx.json", "project.json", "angular.json"],
+  "skip_dirs": [".git", "node_modules", ".venv", "venv", "__pycache__", "dist", "build", ".next", ".nuxt", ".svelte-kit", "vendor", "coverage", "locales", "i18n", "translations", "lang"],
+  "max_bytes": 524288,
+  "literal": {"min": 3, "max": 300},
+  "strong": ["EMAIL_ADDRESS", "IBAN_CODE", "CREDIT_CARD", "SA_PHONE", "SA_NATIONAL_ID", "AR_NAME"],
+  "keyed": {"PERSON": "name_keys", "PHONE_NUMBER": "phone_keys"},
+  "min_score": 0.5,
+  "patterns": {
+    "SA_PHONE": "(?<![\\d+])(?:\\+?966[\\s-]?|0)5\\d(?:[\\s-]?\\d){7}(?!\\d)",
+    "SA_NATIONAL_ID": "(?<!\\d)[12]\\d{9}(?!\\d)"
+  },
+  "luhn": ["SA_NATIONAL_ID"],
+  "name_keys": ["name", "fullname", "full_name", "firstname", "first_name", "lastname", "last_name", "surname", "displayname", "display_name", "username", "owner", "employee", "staff", "patient", "customer", "client", "student", "teacher", "doctor", "nurse", "manager", "contact", "person", "member", "author", "user", "الاسم", "اسم"],
+  "phone_keys": ["phone", "mobile", "tel", "telephone", "cell", "whatsapp", "phone_number", "phonenumber", "mobile_number", "جوال", "هاتف"],
+  "arabic_given_names": ["محمد", "أحمد", "احمد", "عبدالله", "عبد الله", "عبدالرحمن", "عبد الرحمن", "عبدالعزيز", "عبد العزيز", "فهد", "خالد", "سعد", "سعود", "سلطان", "فيصل", "تركي", "نايف", "بندر", "عمر", "علي", "حسين", "يوسف", "إبراهيم", "ابراهيم", "سلمان", "مشعل", "يزيد", "زياد", "طارق", "وليد", "هشام", "ياسر", "مازن", "أنس", "انس", "معاذ", "نواف", "متعب", "عثمان", "مصطفى", "محمود", "سارة", "ساره", "نورة", "نوره", "فاطمة", "فاطمه", "عائشة", "مريم", "هيفاء", "لطيفة", "العنود", "الجوهرة", "نوف", "رهف", "غادة", "حصة", "منيرة", "أسماء", "اسماء", "خديجة", "زينب", "ليلى", "رنا", "دينا", "هيا", "بشاير", "أروى", "اروى", "جواهر", "سلمى"],
+  "placeholders": {
+    "values": ["john doe", "jane doe", "john smith", "jane smith", "test user", "demo user", "admin user", "example user", "foo bar", "lorem ipsum", "max mustermann", "فلان الفلاني", "فلان بن فلان", "اسم المستخدم"],
+    "email_domains": ["example.com", "example.org", "example.net", "test.com", "test.local", "localhost", "email.com", "domain.com", "company.com", "acme.com", "acme.test", "mail.test", "yourdomain.com", "sample.com"],
+    "digits": ["^(\\d)\\1+$", "^0?5?0{6,}\\d?$", "^(?:\\+?1)?\\d{0,3}555\\d{4}$", "^0?123456789\\d?$", "^1234567890$", "^4242(?:4242){3}$", "^4111(?:1111){3}$"]
+  },
+  "tables": {
+    "min_records": 3,
+    "code_keys": ["path", "route", "routes", "href", "url", "to", "link", "component", "element", "page", "layout", "icon", "label", "title", "subtitle", "heading", "description", "desc", "text", "placeholder", "tooltip", "hint", "key", "value", "id", "type", "kind", "variant", "size", "color", "colour", "classname", "class", "style", "children", "items", "enabled", "disabled", "visible", "hidden", "default", "required", "options", "option", "field", "fields", "column", "columns", "header", "accessor", "width", "height", "order", "index", "slug", "name", "rule", "rules", "message", "pattern", "regex", "test", "expected", "input", "output", "args", "command", "flag", "flags", "env", "method", "status", "code", "level", "lang", "locale", "en", "ar", "fr", "format", "unit", "min", "max", "step", "action", "event", "handler", "permission", "role", "roles", "scope", "group", "category", "tag", "tags", "module", "file", "src", "alt", "image", "img", "emoji", "badge", "shortcut"],
+    "domain_keys": ["email", "phone", "mobile", "address", "city", "street", "zip", "postcode", "salary", "wage", "amount", "price", "total", "balance", "revenue", "income", "expense", "paid", "due", "invoice", "order_id", "quantity", "qty", "stock", "date", "dob", "birth", "birthday", "birthdate", "age", "gender", "nationality", "country", "registered", "joined_at", "national_id", "nationalid", "iqama", "passport", "iban", "account", "card", "department", "dept", "shift", "shifts", "position", "job", "hired", "joined", "employee", "patient", "customer", "client", "student", "grade", "score", "marks", "attendance", "diagnosis", "blood", "room", "bed", "ward", "branch", "region", "company", "hospital", "school", "visits", "sales", "rating", "reviews", "lat", "lng", "latitude", "longitude"],
+    "month_keys": "^(?:\\d{4}-\\d{2}(?:-\\d{2})?|(?:jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*|يناير|فبراير|مارس|أبريل|ابريل|مايو|يونيو|يوليو|أغسطس|اغسطس|سبتمبر|أكتوبر|اكتوبر|نوفمبر|ديسمبر|محرم|صفر|ربيع|جمادى|رجب|شعبان|رمضان|شوال|ذو القعدة|ذو الحجة)$"
+  },
+  "outside_the_product": {
+    "test": ["tests", "test", "__tests__", "spec", "e2e", "cypress", "playwright"],
+    "story": ["stories", ".storybook", "storybook"],
+    "docs": ["docs", "doc", "examples", "example", "demo", "samples"],
+    "mock": ["mocks", "__mocks__", "mock", "fixtures", "fixture", "testdata"],
+    "seed": ["seeds", "seed", "seeders"]
+  }
+}
