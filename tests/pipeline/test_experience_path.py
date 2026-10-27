@@ -169,6 +169,10 @@ class Replays(unittest.TestCase):
                 simulation.replays(out, {'base': 'http://127.0.0.1:1', 'sessions': {}})
         self.assertEqual(done, ['zed.ask', 'amy.approve'])
 
+    def test_one_journey_per_goal_the_retry_after_support_in_place_of_the_first_never_the_second_attempt(self):
+        names = ['a--x.json', 'a--x--again.json', 'a--x--second.json', 'b--y.json', 'b--y--second.json']
+        self.assertEqual([p.name for p in replay.one_per_goal(Path(n) for n in names)], ['a--x--again.json', 'b--y.json'])
+
     def test_nothing_saved_nothing_replayed(self):
         lock = {'results': [], 'limitations': ['x']}
         with tempfile.TemporaryDirectory() as out, tempfile.TemporaryDirectory() as runtime, \

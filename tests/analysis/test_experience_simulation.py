@@ -84,7 +84,9 @@ class SimulationTest(unittest.TestCase):
                 self.assertIn('second_steps', judged, 'the judge reads the second attempt it rules on')
                 facts = read_set(report, 'experience')['facts']
                 self.assertEqual(facts[0]['value']['title'], 'The admin cannot find the new order')
-                self.assertEqual(simulation.replays(report, app)['summary'], {'green': 1, 'red': 0, 'skipped': 2})
+                replayed = simulation.replays(report, app)
+                self.assertEqual(replayed['summary'], {'green': 1, 'red': 0, 'skipped': 1}, 'one journey per goal, never the second attempt')
+                self.assertEqual([r['file'] for r in replayed['replays']], ['journeys/buyer--order.json', 'journeys/admin--approve.json'])
                 page, _ = write(report, 'ar')
                 text = page.read_text()
                 self.assertIn('المدير لا يجد الطلب الجديد', text)

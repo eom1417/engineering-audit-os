@@ -9,7 +9,8 @@ behaviour lock: a journey that no longer replays is a behaviour that broke, show
     join_lock(runtime, lock, replays)    the lock's record (run_lock's answer) with the replays as its rows, written to
                                          <runtime>/behavior-lock/results.json: every full check, after the lock's run
 
-A journey that never reached its goal is skipped: it is not a behaviour to keep. One replay's pictures go to
+One journey per goal is replayed (one_per_goal): the retry after support when there is one, never the judge's second
+attempt. A journey that never reached its goal is skipped: it is not a behaviour to keep. One replay's pictures go to
 experience/replays/<name>/, replaced each time, so they never pile up.
 """
 import json
@@ -63,12 +64,23 @@ def _in_order(paths, order):
     return sorted(paths, key=place)
 
 
+def one_per_goal(paths):
+    """One saved journey per goal: the support desk's retry (<stem>--again.json) in place of the first try when there is
+    one, as the run's outcome is; never the judge's second attempt (<stem>--second.json), which only tested a difficulty."""
+    chosen = {}
+    for path in sorted(paths):
+        if path.stem.endswith('--second'): continue
+        stem = path.stem.removesuffix('--again')
+        if stem != path.stem or stem not in chosen: chosen[stem] = path
+    return list(chosen.values())
+
+
 def replay_all(base, sessions, report, order=None):
     """experience/replays.json in `report`, written and returned: every saved journey replayed on the app at `base`,
     signed in with its role's storage state (`sessions`: {role: path or None}), in `order` (_in_order)."""
     folder = Path(report) / 'experience'
     replays = []
-    for path in _in_order((folder / JOURNEYS).glob('*.json'), order):
+    for path in _in_order(one_per_goal((folder / JOURNEYS).glob('*.json')), order):
         journey = load(path)
         if not isinstance(journey, dict):
             replays.append({'goal': path.stem, 'status': 'skipped', 'why': 'the saved journey cannot be read', 'screens': [], 'seconds': 0})
