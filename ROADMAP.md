@@ -4,7 +4,7 @@ Where EAOS is going: from today's EAOS to the tool of `docs/NORTH-STAR.md`, a co
 command. The milestones run in this order; each ends with one version (`CHANGELOG.md` says what it changed and why)
 and its numbers in `docs/METRICS.md`. This page is updated at each milestone's end.
 
-## Done (version 0.0.82)
+## Done (version 0.0.83)
 
 | Milestone | What it delivered | Version |
 |---|---|---|
@@ -21,6 +21,7 @@ and its numbers in `docs/METRICS.md`. This page is updated at each milestone's e
 | M8 Interfaces and a tidy repository | everything the Studio does through MCP and the CLI; the Studio's Understand one report page; a move tool and its gate, the assistants' context trimmed safely, new projects born tidy; EAOS clean by its own laws and repository rules | 0.0.80 |
 | M9 Intelligence, cost and the final proof | model tiers per stage, a cheaper model never closing anything alone; logic-flaw hunting as an optional deep check; the three journeys proved end to end from the CLI and the Studio; the runtime 68 MB; the tidy measured (no move batch proved yet) | 0.0.81 |
 | M10 The user's full experience, simulated (and what M9's proofs found) | simulated users on the isolated copy (scenario, data, personas, hand-offs, support, a strict judge, fix cards with steps); the experience as a check path, a short option and free replays in every full check; the lock knowing an intended change; a queue never held by a question | 0.0.82 |
+| The final proof | everything run for real on the last version: the corpus 15/15, the detection baseline 16/16, the three journeys and the simulated users green; five defects it found fixed | 0.0.83 |
 
 ## Next
 
