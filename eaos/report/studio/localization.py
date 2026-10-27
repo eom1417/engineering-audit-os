@@ -50,8 +50,11 @@ def _sound(text, written, lang):
 
 
 def publish(folder, source_locale, translations):
-    """Write studio/locale.json (and .js) when there is anything translated; the manifest's `locales` entry, or None."""
-    if not translations: return None
+    """Write studio/locale.json (and .js) when there is anything translated; the manifest's `locales` entry, or None
+    (and an earlier check's files removed)."""
+    if not translations:
+        for filename in ('locale.json', 'locale.js'): (folder / filename).unlink(missing_ok=True)
+        return None
     body = {'schema_version': 1, 'source_locale': source_locale, 'translations': translations}
     text = json.dumps(body, ensure_ascii=False, separators=(',', ':'), sort_keys=True)
     for filename, content in [('locale.json', text + '\n'), ('locale.js', 'window.EAOS_LOCALE=' + text + ';\n')]:

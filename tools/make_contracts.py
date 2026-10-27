@@ -103,13 +103,20 @@ for _name, (_description, _schema) in STUDIO.items():
 for _name, (_description, _schema) in STUDIO_V2.items():
     CONTRACTS[f'studio-{_name}'] = (f'studio/{_name}.json', 'NS46', _description, {**_schema, '$defs': DEFS_V2, 'x-revision': STUDIO_REVISION})
 
-def main():
+def texts():
+    """{file name: its text}: every schema as this file makes it (tests/guards/test_artifact_contract.py holds the
+    files on disk to it, so a schema is never edited by hand)."""
+    out = {}
     for name, (artifact, owner, description, schema) in CONTRACTS.items():
         schema = {'$schema': 'http://json-schema.org/draft-07/schema#', 'title': artifact, 'description': description,
                   'x-artifact': artifact, 'x-owner': owner, **schema}
-        text = json.dumps(schema, indent=2, ensure_ascii=False) + '\n'
-        OUT.mkdir(parents=True, exist_ok=True)
-        (OUT / f'{name}.schema.json').write_text(text, encoding='utf-8')
+        out[f'{name}.schema.json'] = json.dumps(schema, indent=2, ensure_ascii=False) + '\n'
+    return out
+
+
+def main():
+    OUT.mkdir(parents=True, exist_ok=True)
+    for name, text in texts().items(): (OUT / name).write_text(text, encoding='utf-8')
     print(len(CONTRACTS), 'contracts')
 
 

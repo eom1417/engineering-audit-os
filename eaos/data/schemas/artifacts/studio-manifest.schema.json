@@ -31,7 +31,7 @@
       "type": "object",
       "required": [],
       "properties": {
-        "en": {
+        "ar": {
           "type": "object",
           "required": [
             "file",
@@ -48,7 +48,7 @@
           },
           "additionalProperties": false
         },
-        "ar": {
+        "en": {
           "type": "object",
           "required": [
             "file",
@@ -66,8 +66,7 @@
           "additionalProperties": false
         }
       },
-      "additionalProperties": false,
-      "description": "The report's own texts in the other language (studio/locale.json, eaos/report/studio/localization.py), keyed by that language."
+      "additionalProperties": false
     },
     "built": {
       "type": "object",

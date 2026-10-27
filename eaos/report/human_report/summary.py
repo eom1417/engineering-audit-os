@@ -50,6 +50,7 @@ def section_summary(m, name):
         key = 'structure_area' if area == 'structure' else area
         light_word = {'green': ('جيد', 'Good'), 'amber': ('يحتاج انتباهًا', 'Needs attention'),
                       'red': ('يحتاج إصلاحًا', 'Needs fixing'), 'grey': ('لم يُقَس', 'Not measured')}[a['light']]
+        if a['partial'] and a['light'] == 'green': light_word = W['partial']     # never "good" over ground not checked
         sentence = _area_sentence(area, a, rows)
         area_score = (T(f'{num(a["score"], f"{area} score out of 100")} من {HUNDRED}', f'{num(a["score"], f"{area} score out of 100")} out of {HUNDRED}')
                       if a['score'] is not None else '')

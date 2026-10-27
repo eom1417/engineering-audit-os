@@ -199,3 +199,17 @@ class RecordTwinTests(unittest.TestCase):
             with self.subTest(document=artifact.name):
                 self.assertIn(artifact.record, BY_NAME,
                               f'{artifact.name} names {artifact.record}, which no stage declares')
+
+
+class SchemasMadeNotWritten(unittest.TestCase):
+    def test_every_schema_on_disk_is_the_one_tools_make_contracts_makes(self):
+        # Two schemas edited by hand were silently undone by the next `make_contracts.py`, and the manifest of a check
+        # in English (its other language Arabic) would have failed its contract and not been written.
+        import sys
+        tools = Path(__file__).resolve().parents[2] / 'tools'
+        sys.path.insert(0, str(tools))
+        import make_contracts
+        for name, text in make_contracts.texts().items():
+            with self.subTest(schema=name):
+                self.assertEqual((make_contracts.OUT / name).read_text(encoding='utf-8'), text,
+                                 f'{name} differs from tools/make_contracts.py: edit there, then run it')

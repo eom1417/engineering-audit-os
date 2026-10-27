@@ -51,19 +51,9 @@
             "minimum": 0
           },
           "partial": {
-            "type": "boolean",
-            "description": "a kind of problem in this area is not checked by this version (eaos/data/words.json unchecked)"
+            "type": "boolean"
           }
         }
-      }
-    },
-    "unchecked": {
-      "type": "array",
-      "description": "What this version of EAOS does not check yet, each kind with its area; while one is listed no grade reads good or excellent.",
-      "items": {
-        "type": "object",
-        "required": ["id", "area"],
-        "properties": {"id": {"type": "string"}, "area": {"type": "string"}}
       }
     },
     "history": {
@@ -92,6 +82,24 @@
             ],
             "minimum": 0,
             "maximum": 1
+          }
+        }
+      }
+    },
+    "unchecked": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "id",
+          "area"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "area": {
+            "type": "string"
           }
         }
       }

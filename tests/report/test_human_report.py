@@ -95,7 +95,11 @@ class HumanReportTests(unittest.TestCase):
         self.assertEqual((result['areas']['security']['light'], result['areas']['performance']['light']), ('red', 'grey'))
         self.assertEqual({k: a['partial'] for k, a in result['areas'].items() if a['partial']},
                          {area['area']: True for area in model.unchecked()})
-        self.assertIn('Not checked by this version: Real data written in the code', section(self.page, 'summary'))
+        summary = section(self.page, 'summary')
+        self.assertIn('Not checked by this version: Real data written in the code', summary)
+        quality = summary[summary.index('data-area="quality"'):summary.index('data-area="performance"')]
+        self.assertIn('Not fully checked', quality)       # 92, green, but it holds ground this version does not check
+        self.assertNotIn('>Good<', quality)
         rows = [dict(row, confidence='CONFIRMED') for row in model.problems(self.out)]
         self.assertEqual(model.score(rows, 50)['score'], model.CRITICAL_CAP)
         # A vulnerable library the assistant kept (no fixed version) still weighs: EAOS read security 100 with one known.
