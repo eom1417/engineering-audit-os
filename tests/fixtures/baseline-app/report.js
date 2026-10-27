@@ -19,4 +19,14 @@ function orderLines(orders) {
   return { lines, total: total.toFixed(2), count: lines.length };
 }
 
-module.exports = { orderLines };
+module.exports = { orderLines, reportTotals };
+
+// The report's total, worked out twice: the first way kept when the second came; and a switch that is on, meant to stay.
+const SHOW_COUNT = true;
+function reportTotals(orders) {
+  const totals = { total: totalV2(orders), checked: totalV1(orders) };
+  if (SHOW_COUNT) totals.count = orders.length;
+  return totals;
+}
+function totalV1(orders) { return orders.reduce((sum, order) => sum + Number(order.price) * (Number(order.quantity) || 1), 0); }
+function totalV2(orders) { let sum = 0; for (const order of orders) sum += (Number(order.price) || 0) * (Number(order.quantity) || 1); return sum; }

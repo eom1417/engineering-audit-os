@@ -177,6 +177,26 @@ def _entry_speed(measured, base, folder, state, live):
     return lighthouse(base + '/', out=folder, storage_state=state if live else None)
 
 
+def _ran_file(context, kind, live):
+    """The file a crawl of the app EAOS runs writes the JavaScript its pages ran into (M13.2), one per kind of user;
+    None for a published address."""
+    if not live: return None
+    folder = Path(context.runtime) / 'ran-browser'
+    folder.mkdir(parents=True, exist_ok=True)
+    return folder / f"{kind or 'visitor'}.json"
+
+
+def _browser_ran(context):
+    """live/ran-browser.json: the project's functions the pages ran as any kind of user; the raw coverage removed."""
+    import shutil
+    from ...live.testing.ran import browser, merged, record
+    folder = Path(context.runtime) / 'ran-browser'
+    parts = [browser(json.loads(path.read_text(encoding='utf-8')), context.target) for path in sorted(folder.glob('*.json'))]
+    record(context.out, 'browser', merged(*parts), '' if any(parts) else 'the pages loaded no script EAOS can name as a '
+           'file of the project (a built bundle names none)')
+    shutil.rmtree(folder, ignore_errors=True)
+
+
 def crawl(context):
     """Every page of the running app found in layers: the pages its code and files name and a server's GET routes
     (eaos/live/screens/crawl.py code_routes), its links followed once as each kind of user (eaos/live/access/roles.py), then the
@@ -190,13 +210,14 @@ def crawl(context):
     seeds, founds, routes = _seeds(context, live) if live else [], [], {}
     for kind, state in made:
         found = find(base, context.out / 'live/crawl' / (kind or ''), measured=0 if founds else MEASURED,
-                     storage_state=_file(state), read_only=not live, seeds=seeds)
+                     storage_state=_file(state), read_only=not live, seeds=seeds,
+                     coverage=_ran_file(context, kind, live))
         if found['status'] != 'observed': continue
         founds.append(found)
         _merge_routes(routes, found, kind)
     if not founds:
         raise SkipStage(f"the pages could not be crawled: {found.get('reason')}"[:300], code='screens_unavailable')
-    if live: _merge_explored(routes, _explored(context, base, made[0][1]))
+    if live: _merge_explored(routes, _explored(context, base, made[0][1])); _browser_ran(context)
     from ...live.screens.crawl import distinct
     _keep(context, 'crawl.json', {'schema_version': 1, **founds[0], 'routes': list(routes.values()),
                                   'pages': [paths[0] for paths in distinct(routes, seeds).values()], 'seeds': seeds})     # one per template: the lock's stand-in

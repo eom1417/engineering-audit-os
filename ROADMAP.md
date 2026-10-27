@@ -4,7 +4,7 @@ Where EAOS is going: from today's EAOS to the tool of `docs/NORTH-STAR.md`, a co
 command. The milestones run in this order; each ends with one version (`CHANGELOG.md` says what it changed and why)
 and its numbers in `docs/METRICS.md`. This page is updated at each milestone's end.
 
-## Done (version 0.0.85)
+## Done (version 0.0.86)
 
 | Milestone | What it delivered | Version |
 |---|---|---|
@@ -24,6 +24,7 @@ and its numbers in `docs/METRICS.md`. This page is updated at each milestone's e
 | The final proof | everything run for real on the last version: the corpus 15/15, the detection baseline 16/16, the three journeys and the simulated users green; five defects it found fixed | 0.0.83 |
 | M11 An honest score | what this version does not check is said, and no score or area is called good or excellent over it; a card's title in the person's language | 0.0.84 |
 | M12 Real data in the code | personal values in string literals (Presidio with Saudi and Arabic patterns, placeholders kept), tables written as code (ast-grep), each sorted on its evidence into one card that says where the data goes and the screens it feeds | 0.0.85 |
+| M13 Old engines | switches fixed to one value and the functions only their closed branch calls; what the tests, the server and the pages ran, and the code none of them ran; two engines doing one job; one card each with what replaced it and the proof nothing runs it | 0.0.86 |
 
 ## Next
 
@@ -32,7 +33,6 @@ and the model only for doubt; adding each tool is measured, so EAOS proves it gr
 
 | Milestone | What it adds |
 |---|---|
-| M13 Old engines | code replaced but still wired in: flags fixed to one value, code never run while EAOS runs the app, two engines doing one job |
 | M14 How the data is saved and kept | the bytes each save sends at real volume, the data stored twice, base64 inside records, backups restored and compared, lost updates |
 | M15 The person's rules | a requirement said once is kept for its work, pinned only on request, guarded by a check, its repeats counted |
 | M16 Strangers' projects | ten open-source projects never seen, in two rounds of five, judged from outside EAOS |

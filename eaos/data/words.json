@@ -677,6 +677,20 @@
     "Names, phone numbers, IDs and tables of records put in the code while it was built: they travel with every copy of it, and show on the screens even when the database is empty."
    ]
   },
+  "old_engine": {
+   "one": [
+    "محرك قديم ما زال موصولًا",
+    "An old engine still wired in"
+   ],
+   "group": [
+    "محركات قديمة ما زالت موصولة",
+    "Old engines still wired in"
+   ],
+   "why": [
+    "كود قديم حلّ غيره محله لكنه ما زال يُستدعى أو يقف خلف مفتاح مطفأ: يُقرأ ويُصان بلا فائدة، ويرجع يشتغل لو انقلب المفتاح بالغلط.",
+    "Old code another part replaced, still called or behind a switched-off option: read and kept for nothing, and back in use the day the option is flipped by mistake."
+   ]
+  },
   "layer_boundary": {
    "one": [
     "حد مكسور بين الطبقات",
@@ -1039,17 +1053,6 @@
   }
  },
  "unchecked": {
-  "old_engines": {
-   "area": "quality",
-   "one": [
-    "محركات قديمة ما زالت موصولة",
-    "Old engines still wired in"
-   ],
-   "why": [
-    "كود قديم حلّ غيره محله لكنه ما زال يُستدعى أو يقف خلف خيار مطفأ، فلا يراه فحص الكود الميت. هذا الإصدار من EAOS لا يبحث عنه بعد.",
-    "Old code another part replaced, still called or behind a switched-off option, so the dead-code check does not see it. This version of EAOS does not look for it yet."
-   ]
-  },
   "data_saving": {
    "area": "performance",
    "one": [

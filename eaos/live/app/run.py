@@ -98,6 +98,7 @@ class LiveRun:
         self.commit = head(target)
         self.log = []
         self.fixtures = {}
+        self.ran = None          # a folder: the server runs with coverage on, its data there (eaos/live/testing/ran.py)
 
     def database_url(self):
         """The run's own PostgreSQL (eaos/core/system/local_db.py), started on first use, when the profile declares one."""
@@ -233,9 +234,18 @@ class LiveRun:
                                 env={name: swap(value) for name, value in (self.profile.get('env') or {}).items()})
             self.__dict__.pop('_extra', None)
         base = f"http://127.0.0.1:{self.profile['port']}"
-        self.sandbox.start(self.profile['start'], base + self.profile.get('health', '/'),
-                           timeout=self.profile.get('start_timeout', 90), cwd=self.profile.get('app') or None, env=self.run_env())
+        argv, env = self._measured(self.profile['start'], self.run_env())
+        self.sandbox.start(argv, base + self.profile.get('health', '/'),
+                           timeout=self.profile.get('start_timeout', 90), cwd=self.profile.get('app') or None, env=env)
         return base
+
+    def _measured(self, argv, env):
+        """(argv, env) of the start: as declared, or with coverage on when the run measures what the server runs."""
+        if self.ran is None: return argv, env
+        from ..testing import ran
+        python = (Path(str(argv[0])).name in ran.INTERPRETERS and len(argv) > 1
+                  and self.run([argv[0], '-c', 'import coverage'], timeout=60)[0] == 0)
+        return ran.server(argv, env, self.ran, self.sandbox.copy, python)
 
     def stop(self):
         """Stop the project and remove its copy, leave the run's database (stopped once no other run is on it, its data

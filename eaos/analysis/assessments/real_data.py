@@ -21,6 +21,7 @@ import re
 from pathlib import Path, PurePosixPath
 
 from ...core.contracts.vocabulary import classify
+from ...facts.engine_findings import engine_records
 
 RULES = json.loads((Path(__file__).resolve().parents[2] / 'rules/personal-data.json').read_text(encoding='utf-8'))
 LINE_WINDOW = 3
@@ -34,21 +35,16 @@ DOMAIN = set(RULES['tables']['domain_keys'])
 NAMES_ONLY = {'PERSON'}
 
 
-def _records(sets, record):
-    return [f for f in (sets.get('external') or {}).get('facts', [])
-            if f['kind'] == 'symbol_metric_external' and f['value'].get('record') == record]
-
-
 def values(sets):
     """Presidio's personal values that are no placeholder: [{path, line, entity, digest, masked}]."""
     return [{'path': f['location']['path'], 'line': f['location'].get('line'), 'fact_id': f['id'], **f['value']}
-            for f in _records(sets, 'personal_value') if not f['value'].get('placeholder')]
+            for f in engine_records(sets, 'personal_value') if not f['value'].get('placeholder')]
 
 
 def tables(sets):
     """ast-grep's tables and dated maps: [{path, line, end_line, record}], an inner table inside an outer one dropped."""
     rows = sorted(({'path': f['location']['path'], 'line': f['location'].get('line'), 'end_line': f['value'].get('end_line'),
-                    'record': f['value']['record'], 'fact_id': f['id']} for record in TABLES for f in _records(sets, record)),
+                    'record': f['value']['record'], 'fact_id': f['id']} for record in TABLES for f in engine_records(sets, record)),
                   key=lambda t: (t['path'], t['line'], -(t['end_line'] or 0)))
     kept = []
     for row in rows:

@@ -1,15 +1,14 @@
 """Assemble the canonical dossier and the artifacts derived from it.
 
 Everything a reader sees is derived from `dossier.json`. Nothing is written into a human artifact
-that does not exist in the ledger, and no claim reaches a reader without its confidence and source. The claims
-themselves are built in eaos/analysis/claims/gather.py.
+that does not exist in the ledger, and no claim reaches a reader without its confidence and source (claims: gather.py).
 """
 from collections import namedtuple
 from datetime import datetime, timezone
 from functools import partial
 from pathlib import Path
 from ... import __version__
-from ..claims import ledger
+from ..claims import from_old_engines, ledger
 from ..claims.gather import REGISTER, build_claims, fact_index_of, needs_a_disposition, origin_of, runtime_claims
 from ...core import progress
 from ...core.contracts.document import Document, say
@@ -308,6 +307,7 @@ def _claims(request, inputs):
     progress.count('claim steps', 2, CLAIM_STEPS)
     coverage_set = _more_sets(request.out, inputs.sets)
     runtime = runtime_claims(inputs.verification, len(rows), (coverage_set or {}).get('facts'), excluded=_excluded(request.exclude))
+    runtime += from_old_engines.old_engine_claims(request.out, inputs.sets, request.target, len(rows) + len(runtime))   # they read what ran (M13)
     for fact in (coverage_set or {}).get('facts', []): fact_index.setdefault(fact['id'], fact['location'].get('path'))
     for row in runtime:
         row['origin'] = origin_of(row, fact_index)

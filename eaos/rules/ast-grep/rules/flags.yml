@@ -1,0 +1,142 @@
+# Old engines still wired in (M13.1): a switch fixed to one value at a module's top (`const USE_OLD = false`,
+# `USE_OLD = False`) and every `if` that reads a name alone or negated, with its body's lines. Records, not verdicts:
+# eaos/analysis/assessments/old_engines.py joins them, keeps a switch nothing changes, and names the functions only the
+# branch it closes calls.
+id: eaos.flag.constant
+language: JavaScript
+severity: info
+message: a switch fixed to one value at the module's top
+metadata: {record: flag_constant}
+rule:
+  pattern: const $F = $V
+  any:
+    - inside: {kind: program}
+    - inside: {kind: export_statement, inside: {kind: program}}
+constraints:
+  V: {regex: '^(true|false)$'}
+---
+id: eaos.flag.branch-read
+language: JavaScript
+severity: info
+message: a branch that reads a switch
+metadata: {record: flag_branch, form: read}
+rule:
+  kind: if_statement
+  all:
+    - has: {field: condition, has: {kind: identifier, pattern: $F}}
+    - has: {field: consequence, pattern: $BODY}
+---
+id: eaos.flag.branch-negated
+language: JavaScript
+severity: info
+message: a branch that reads a switch
+metadata: {record: flag_branch, form: negated}
+rule:
+  kind: if_statement
+  all:
+    - has: {field: condition, has: {kind: unary_expression, regex: '^!', has: {kind: identifier, pattern: $F}}}
+    - has: {field: consequence, pattern: $BODY}
+---
+id: eaos.flag.constant-typescript
+language: TypeScript
+severity: info
+message: a switch fixed to one value at the module's top
+metadata: {record: flag_constant}
+rule:
+  pattern: const $F = $V
+  any:
+    - inside: {kind: program}
+    - inside: {kind: export_statement, inside: {kind: program}}
+constraints:
+  V: {regex: '^(true|false)$'}
+---
+id: eaos.flag.branch-read-typescript
+language: TypeScript
+severity: info
+message: a branch that reads a switch
+metadata: {record: flag_branch, form: read}
+rule:
+  kind: if_statement
+  all:
+    - has: {field: condition, has: {kind: identifier, pattern: $F}}
+    - has: {field: consequence, pattern: $BODY}
+---
+id: eaos.flag.branch-negated-typescript
+language: TypeScript
+severity: info
+message: a branch that reads a switch
+metadata: {record: flag_branch, form: negated}
+rule:
+  kind: if_statement
+  all:
+    - has: {field: condition, has: {kind: unary_expression, regex: '^!', has: {kind: identifier, pattern: $F}}}
+    - has: {field: consequence, pattern: $BODY}
+---
+id: eaos.flag.constant-tsx
+language: Tsx
+severity: info
+message: a switch fixed to one value at the module's top
+metadata: {record: flag_constant}
+rule:
+  pattern: const $F = $V
+  any:
+    - inside: {kind: program}
+    - inside: {kind: export_statement, inside: {kind: program}}
+constraints:
+  V: {regex: '^(true|false)$'}
+---
+id: eaos.flag.branch-read-tsx
+language: Tsx
+severity: info
+message: a branch that reads a switch
+metadata: {record: flag_branch, form: read}
+rule:
+  kind: if_statement
+  all:
+    - has: {field: condition, has: {kind: identifier, pattern: $F}}
+    - has: {field: consequence, pattern: $BODY}
+---
+id: eaos.flag.branch-negated-tsx
+language: Tsx
+severity: info
+message: a branch that reads a switch
+metadata: {record: flag_branch, form: negated}
+rule:
+  kind: if_statement
+  all:
+    - has: {field: condition, has: {kind: unary_expression, regex: '^!', has: {kind: identifier, pattern: $F}}}
+    - has: {field: consequence, pattern: $BODY}
+---
+id: eaos.flag.constant-python
+language: Python
+severity: info
+message: a switch fixed to one value at the module's top
+metadata: {record: flag_constant}
+rule:
+  pattern: $F = $V
+  inside: {kind: expression_statement, inside: {kind: module}}
+constraints:
+  F: {regex: '^[A-Z][A-Z0-9_]*$'}
+  V: {regex: '^(True|False)$'}
+---
+id: eaos.flag.branch-read-python
+language: Python
+severity: info
+message: a branch that reads a switch
+metadata: {record: flag_branch, form: read}
+rule:
+  kind: if_statement
+  all:
+    - has: {field: condition, kind: identifier, pattern: $F}
+    - has: {field: consequence, pattern: $BODY}
+---
+id: eaos.flag.branch-negated-python
+language: Python
+severity: info
+message: a branch that reads a switch
+metadata: {record: flag_branch, form: negated}
+rule:
+  kind: if_statement
+  all:
+    - has: {field: condition, kind: not_operator, has: {kind: identifier, pattern: $F}}
+    - has: {field: consequence, pattern: $BODY}

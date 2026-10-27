@@ -19,4 +19,13 @@ function exportLines(orders) {
   return lines.map(line => [line.item, line.quantity, line.price, line.amount].join(',')).join('\n') + `\ntotal,${total.toFixed(2)}`;
 }
 
-module.exports = { exportLines };
+module.exports = { exportLines, exportFile };
+
+// The file's two ways: the old one switched off when the new one came.
+const USE_OLD_EXPORT = false;
+function exportFile(orders) {
+  if (USE_OLD_EXPORT) return oldExportFile(orders);
+  return csvExportFile(orders);
+}
+function oldExportFile(orders) { return orders.map(order => order.item).join(';'); }
+function csvExportFile(orders) { return exportLines(orders); }

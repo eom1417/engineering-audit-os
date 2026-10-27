@@ -22,6 +22,7 @@ def shared_app(context, published=False):
     if 'page_app' not in context:
         from ...live.app.run import LiveRun
         live = LiveRun(context.target, context.runtime, 'S05')
+        live.ran = Path(context.runtime) / 'ran-server'      # what the server runs while the pages are opened (M13.2)
         live.freeze()                                    # the lock records on it: the folders it reads, kept as they are
         state = sign_in.session(context.runtime)
         try:
@@ -56,6 +57,10 @@ def close_app(context):
     """Release the shared app after the last page stage, or when the check stops or breaks; the published address's
     session, which is for one check only, goes with it."""
     app = context.pop('page_app', None)
+    if app and app[0].ran:
+        from ...live.testing.ran import server_record
+        app[0].sandbox.stop()                       # the server ends, writing what it ran, before its copy goes
+        server_record(context.out, app[0].ran, app[0].sandbox.copy)
     if app: app[0].stop()
     from ...live.access.sign_in import PUBLISHED
     chosen = context.get('sign_in') or {}

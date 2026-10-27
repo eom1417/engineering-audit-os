@@ -125,16 +125,18 @@ def as_screen(route, hashed):
     return '/#' + route if hashed and route.startswith('/') and '#' not in route else route
 
 
-def discover(base, max_routes=200, storage_state=None, read_only=False, seeds=()):
+def discover(base, max_routes=200, storage_state=None, read_only=False, seeds=(), coverage=None):  # limits: parameters -- the crawl's options, each a keyword with its default
     """(routes, error): every page of the app reached from `base` by its links, [{path, depth, status}], within half an
     hour. Signed in (`storage_state`), a link that would sign out, delete or change (lock_specs.LEAVES) is never
-    followed; `read_only` (a published address) sends nothing but GET."""
+    followed; `read_only` (a published address) sends nothing but GET; `coverage`: a file for the JavaScript the pages
+    ran (crawl.mjs)."""
     from ..behavior.specs import LEAVES
     absent = missing('playwright')
     if absent: return None, absent
     config = {'base': base, 'max_routes': max_routes, 'modules': {'playwright': str(toolchain.home() / 'node/node_modules')},
               'read_only': read_only, 'seeds': list(seeds)}
     if storage_state: config.update(storage_state=str(storage_state), leaves=LEAVES)
+    if coverage: config['coverage'] = str(coverage)
     result, error = _node('crawl.mjs', config, 1800)
     return (result or {}).get('routes'), error
 
@@ -151,7 +153,7 @@ def _measure(row, base, out, number, storage_state):
 
 def crawl(base, out, max_routes=200, measured=MEASURED, **way):
     """The app's pages from `base`, Lighthouse on a few; `way`: how they are reached, discover's storage_state,
-    read_only and seeds."""
+    read_only and seeds, and its coverage file."""
     read_only, storage_state = way.get('read_only', False), way.get('storage_state')
     if read_only: max_routes, measured = min(max_routes, PUBLISHED_ROUTES), min(measured, PUBLISHED_MEASURED)
     routes, error = discover(base, max_routes, **way)

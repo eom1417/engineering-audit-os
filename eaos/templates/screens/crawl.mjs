@@ -8,8 +8,10 @@
 // by its routes; any other fragment is an anchor of the same page. Requests to any other origin are aborted. Signed in,
 // a link matching config.leaves (sign out, delete, change) is never opened; config.read_only (a published site) lets
 // nothing but GET through.
-// The result is one JSON object on stdout: {routes: [{path, depth, status}]}.
-import { readFileSync } from 'node:fs';
+// The result is one JSON object on stdout: {routes: [{path, depth, status}]}. With config.coverage (a file), the
+// JavaScript each page ran is written there, every script's functions with whether any page ran them (M13.2,
+// eaos/live/testing/ran.py browser).
+import { readFileSync, writeFileSync } from 'node:fs';
 import { playwrightFrom } from './pinned.mjs';
 
 const config = JSON.parse(readFileSync(process.argv[2], 'utf8'));
@@ -32,6 +34,18 @@ function pathOf(href) {
 const STARTS = /^\s*(ابدأ|ابدا|ابدأ الآن|يلا|start|get started|begin|continue|متابعة|تابع|skip|تخطَّ?ي?|next|التالي)(\s|!|$)/i;
 const MOVERS = 'nav button, [role=navigation] button, header button, footer button, [role=tablist] button, [role=tab], [role=link], [role=menuitem]';
 const UNSAFE = /delete|remove|clear|reset|save|submit|send|pay|buy|sign|log ?out|حذف|امسح|مسح|احفظ|حفظ|أرسل|ارسل|إرسال|ادفع|دفع|شراء|خروج|تسجيل/i;
+
+// {url: {name: ran}}: the functions of every script the pages loaded from the app, ran when any page ran them.
+const ran = {};
+function collect(entries) {
+  for (const entry of entries) {
+    if (!entry.url.startsWith(base.origin) || entry.url.includes('/node_modules/')) continue;
+    const functions = (ran[entry.url] ||= {});
+    for (const f of entry.functions) {
+      if (f.functionName) functions[f.functionName] = functions[f.functionName] || (f.ranges[0]?.count || 0) > 0;
+    }
+  }
+}
 
 const hrefs = (page) => page.evaluate(() => [...document.querySelectorAll('a[href]')].map((a) => a.href));
 
@@ -77,6 +91,7 @@ try {
   while (queue.length && routes.length < config.max_routes) {
     const { path, depth } = queue.shift();
     const page = await context.newPage();
+    if (config.coverage) await page.coverage.startJSCoverage({ resetOnNavigation: false }).catch(() => {});
     let status = 'observed', links = [];
     try {
       const answer = await page.goto(new URL(path, base).href, { waitUntil: 'load', timeout: config.timeout_ms || 30000 });
@@ -91,6 +106,7 @@ try {
     } catch (error) {
       status = 'error';
     }
+    if (config.coverage) collect(await page.coverage.stopJSCoverage().catch(() => []));
     await page.close();
     routes.push({ path, depth, status });
     for (const href of links) {
@@ -100,5 +116,7 @@ try {
   }
 } finally {
   await browser.close();
+  if (config.coverage) writeFileSync(config.coverage, JSON.stringify(Object.entries(ran).map(([url, functions]) => ({
+    url, functions: Object.entries(functions).map(([functionName, hit]) => ({ functionName, ranges: [{ count: hit ? 1 : 0 }] })) }))));
 }
 process.stdout.write(JSON.stringify({ routes }) + '\n');
