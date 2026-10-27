@@ -32,40 +32,48 @@ def _failed_titles(path):
 
     def walk(suite):
         for spec in suite.get('specs') or []:
-            if any(status in ('failed', 'timedOut') for status, _ in _outcomes(spec, ())): found.add(spec.get('title'))
+            if any(status in ('failed', 'timedOut') for status, _ in _outcomes(spec, ((), None, ''))): found.add(spec.get('title'))
         for child in suite.get('suites') or []: walk(child)
     for suite in report.get('suites') or []: walk(suite)
     return found
 
 
-def _declared(status, message, declared):
+def _declared(status, message, declared, intended=(None, '')):
     """A test failed only because its screen looks different, on a screen the batch's design cards say they change
-    (`declared` snapshot names, eaos/journeys/fix/waves/ declared_screens): their change, not a breakage."""
+    (`declared` snapshot names, eaos/journeys/fix/waves/ declared_screens): their change, not a breakage. `intended`:
+    (the pass's Intended or None, the spec file): on a screen a card declares it changes, only its declared addition
+    passes (eaos/live/behavior/intended.py judged)."""
     said = ANSI.sub('', message or '')
     found = (SCREENSHOT.search(said) or WORDS.search(said)) if status == 'failed' else None
-    return 'passed' if found and ('*' in declared or found.group(1) in declared) else status
+    if not found: return status
+    if '*' in declared or found.group(1) in declared: return 'passed'
+    from .intended import judged
+    return 'passed' if intended[0] and judged(intended[1], found.group(1), said, intended[0]) else status
 
 
-def spec_statuses(report, declared=(), known=()):
+def spec_statuses(report, declared=(), known=(), intended=None):
     """{spec path: (status, reason)} from a Playwright JSON report: a spec passes when none of its tests failed
-    and at least one ran; one whose every test was skipped is quarantined with the skip's reason."""
+    and at least one ran; one whose every test was skipped is quarantined with the skip's reason. `intended`: the pass's
+    declared changes (eaos/live/behavior/intended.py for_pass), or None."""
     found = {}
 
     def walk(suite, file=None):
         file = suite.get('file') or file
         for spec in suite.get('specs') or []:
-            found.setdefault(file, []).extend(_outcomes(spec, declared, spec.get('title') in known))
+            found.setdefault(file, []).extend(_outcomes(spec, (declared, intended, file), spec.get('title') in known))
         for child in suite.get('suites') or []: walk(child, file)
     for suite in report.get('suites') or []: walk(suite)
     return _verdicts(found)
 
 
 def _outcomes(spec, declared, known=False):
-    """[(status, message)] of one spec's tests; a test that never ran, skipped with its reason. `known`: it fails on the
-    code before the batch too (eaos/journeys/fix/waves/ _against_control), so it says nothing of the batch."""
+    """[(status, message)] of one spec's tests; a test that never ran, skipped with its reason. `declared`: (the declared
+    screens, the pass's Intended or None, the spec file). `known`: it fails on the code before the batch too
+    (eaos/journeys/fix/waves/ _against_control), so it says nothing of the batch."""
     tests = spec.get('tests') or []
     ran = _ran(tests)
-    return ([('passed' if known else _declared(status, message, declared), message) for status, message in ran] or
+    screens, intended, file = declared
+    return ([('passed' if known else _declared(status, message, screens, (intended, file)), message) for status, message in ran] or
             [('skipped', (test.get('annotations') or [{}])[0].get('description', '')) for test in tests])
 
 
