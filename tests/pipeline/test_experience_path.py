@@ -97,6 +97,16 @@ class Stage(unittest.TestCase):
             said = runner.experience(Context(out=Path(out), target='.', provider=provider, language='en', paths=paths))
             return said, {name: call.called for name, call in calls.items()}, write.called
 
+    def test_the_judged_set_joins_the_facts_stages_list_the_claims_read(self):
+        # the claims read the facts stage's list, made before the judging indexed `experience`: a confirmed difficulty
+        # of a real check (flask-microblog, M10.10) never became a card
+        collected = {'sets': [{'set': 'syntax'}, {'set': 'experience', 'old': True}]}
+        with tempfile.TemporaryDirectory() as out:
+            (Path(out) / 'facts').mkdir()
+            (Path(out) / 'facts/index.json').write_text(json.dumps({'sets': [{'set': 'syntax'}, {'set': 'experience', 'facts': 1}]}))
+            runner._joined(Context(out=Path(out), collected=collected))
+        self.assertEqual(collected['sets'], [{'set': 'syntax'}, {'set': 'experience', 'facts': 1}])
+
     def test_alone_the_whole_simulation_beside_complete_the_short_one_and_the_report_either_way(self):
         said, called, written = self._run(['experience'])
         self.assertEqual((said['simulation'], said['confirmed']), ('whole', 2))
@@ -118,6 +128,8 @@ class Stage(unittest.TestCase):
         played = run.call_args.args[1]
         self.assertEqual([len(p['goals']) for p in played['personas']], [1])
         self.assertEqual(played['personas'][0]['goals'][0]['steps'], simulation.SHORT['steps'])
+        self.assertEqual(played['personas'][0]['goals'][0]['seconds'], simulation.SHORT['seconds'], 'its five minutes held')
+        self.assertEqual(run.call_args.args[2]['budget'], {'seconds': simulation.SHORT['seconds'], 'calls': simulation.SHORT['steps']})
 
 
 class Replays(unittest.TestCase):
