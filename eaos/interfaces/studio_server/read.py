@@ -155,9 +155,12 @@ class _Read:
         return JSONResponse(found, headers=NO_STORE)
 
     async def locale(self, request):
-        if request.path_params['lang'] not in ('ar', 'en'): return _not_found({'error': 'unknown_language'})
+        """The report's texts in `lang` (studio/locale.json), only when the catalog holds that language."""
         body = _file(self.folder / 'locale.json')
         if body is None: return _not_found({'error': 'not_written'})
+        try: held = json.loads(body).get('translations') or {}
+        except (ValueError, AttributeError): held = {}
+        if request.path_params['lang'] not in held: return _not_found({'error': 'unknown_language'})
         return _json_file(body)
 
     async def spec(self, request):
