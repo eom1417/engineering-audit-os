@@ -142,14 +142,18 @@ def _save(report, rows):
     path.write_text(json.dumps({'version': 1, 'difficulties': rows}, ensure_ascii=False, indent=1) + '\n', encoding='utf-8')
 
 
+def _last_pictures(journey, stem):
+    """The pictures of a journey's last three steps, relative to the report."""
+    return [picture(journey, stem, s['picture']) for s in (journey.get('steps') or [])[-3:] if isinstance(s, dict) and s.get('picture')]
+
+
 def _second(result, row):
     """`second` of one difficulty from the second attempt of its goal (a journey, or second_attempt's answer with the
     `file` it was saved as): {reached, same, journey?: that file, pictures?: its last pictures}."""
     journey = result.get('journey') if isinstance(result, dict) and 'journey' in result else result
     if not isinstance(journey, dict): return dict(NOT_TRIED)
     saved = result.get('file') if isinstance(result, dict) else None
-    stem = Path(saved).stem if saved else actor_file(journey.get('goal') or row['goal']).replace('.json', '--second')
-    pictures = [picture(journey, stem, s['picture']) for s in (journey.get('steps') or [])[-3:] if isinstance(s, dict) and s.get('picture')]
+    pictures = _last_pictures(journey, Path(saved).stem if saved else actor_file(row['goal']).replace('.json', '--second'))
     return {'reached': bool(journey.get('reached')), 'same': met(journey, row), **({'journey': saved} if saved else {}),
             **({'pictures': pictures} if pictures else {})}
 

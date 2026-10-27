@@ -28,14 +28,21 @@ def _load(path):
     return body if isinstance(body, dict) else None
 
 
+def _journeys(folder):
+    """{goal: (stem, journey)}: each goal's kept journey, its retry after support over its first try; the judge's
+    second attempt is evidence, not the goal's journey."""
+    journeys = {}
+    for path in sorted(folder.glob('*.json')):
+        body = _load(path)
+        if not body or not body.get('goal') or body.get('attempt') == 'second': continue
+        if body.get('attempt') == 'again' or body['goal'] not in journeys: journeys[body['goal']] = (path.stem, body)
+    return journeys
+
+
 def _records(folder):
     """({file name: its record}, [the files missing]); journeys/ counts as missing when it holds no journey."""
     found = {name: _load(folder / name) for name in RECORDS}
-    journeys = {}
-    for path in sorted((folder / JOURNEYS).glob('*.json')):
-        body = _load(path)
-        if not body or not body.get('goal') or body.get('attempt') == 'second': continue     # the judge's attempt is evidence
-        if body.get('attempt') == 'again' or body['goal'] not in journeys: journeys[body['goal']] = (path.stem, body)
+    journeys = _journeys(folder / JOURNEYS)
     missing = [name for name, body in found.items() if body is None] + ([JOURNEYS + '/'] if not journeys else [])
     return found, journeys, missing
 

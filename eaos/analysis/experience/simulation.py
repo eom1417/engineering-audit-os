@@ -66,7 +66,7 @@ def judged(report, app, provider):
         persona, goal = goals[name]
         folder = journeys / actor.file_name(name).replace('.json', '--second')
         with Browser(app['base'], folder, app['sessions'].get(persona.get('role'))) as browser:
-            tried = second.second_attempt(browser, persona, goal, provider, values=values.get(name))
+            tried = second.second_attempt(browser, persona, {**goal, 'values': values.get(name)}, provider)
         saved = actor.save(journeys, tried['journey'], 'second')
         return {**tried, 'file': f'experience/{actor.JOURNEYS}/{saved.name}'}
     judging.confirm(report, attempt)

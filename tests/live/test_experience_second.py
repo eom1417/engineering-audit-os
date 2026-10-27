@@ -55,7 +55,7 @@ class SecondAttemptTests(unittest.TestCase):
 
     def test_the_second_attempt_types_the_goals_own_values(self):
         assistant = Scripted({'action': 'done'})
-        second_attempt(Pages(), PERSONA, GOAL, assistant, values={'Email': 'sara@example.com'})
+        second_attempt(Pages(), PERSONA, {**GOAL, 'values': {'Email': 'sara@example.com'}}, assistant)
         self.assertIn('sara@example.com', assistant.asked[0])
 
 

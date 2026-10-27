@@ -101,20 +101,24 @@ def _paid_assistant(args, out):
     return assistant
 
 
-def experience_command(args):
+def _experience_step(step, args, out, app, assistant):
+    """What one step of the simulated users did, in a few numbers."""
     from ..analysis.experience import simulation
     from ..report.experience.document import write
     from ..report.experience.story import story, summary
+    if step == 'plan': return {'personas': len(simulation.prepare(out, assistant)[0]['personas'])}
+    if step == 'run': return {k: v for k, v in simulation.simulate(out, args.target, app, assistant).items() if k in ('seconds', 'calls', 'seeded')}
+    if step == 'judge': return simulation.judged(out, app, assistant)
+    if step == 'replay': return simulation.replays(out, app)['summary']
+    return {'written': [str(path) for path in write(out, args.lang)], 'difficulties': len(summary(story(out))['difficulties']['ranked'])}
+
+
+def experience_command(args):
     step, out = args.step, Path(args.out).resolve()
     app = _app(args) if step in ('run', 'judge', 'replay') else None      # refused before anything is spent
     assistant = _paid_assistant(args, out) if step in STEPS_SPEND else None
     if step in STEPS_SPEND and assistant is None: return 1
-    if step == 'plan': said = {'personas': len(simulation.prepare(out, assistant)[0]['personas'])}
-    elif step == 'run': said = {k: v for k, v in simulation.simulate(out, args.target, app, assistant).items() if k in ('seconds', 'calls', 'seeded')}
-    elif step == 'judge': said = simulation.judged(out, app, assistant)
-    elif step == 'replay': said = simulation.replays(out, app)['summary']
-    else: said = {'written': [str(path) for path in write(out, args.lang)], 'difficulties': len(summary(story(out))['difficulties']['ranked'])}
-    print(f'experience {step}: {said}')
+    print(f'experience {step}: {_experience_step(step, args, out, app, assistant)}')
     return 0
 
 

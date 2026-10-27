@@ -1,7 +1,7 @@
 """The second attempt of a goal (M10.7): a fresh actor runs the same goal again on a fresh browser, told nothing of the
 first attempt, so a difficulty it meets again is not the first actor's own slip.
 
-    second_attempt(browser, persona, goal, provider, difficulty=None, values=None)   {reached, same, journey}
+    second_attempt(browser, persona, goal, provider, difficulty=None)   {reached, same, journey}
     met(journey, difficulty)                                             whether a journey met that difficulty again
     screen(journey, kind, number)                                        the screen a difficulty happened on
 
@@ -32,9 +32,9 @@ def met(journey, difficulty):
                for f in journey.get('friction') or [])
 
 
-def second_attempt(browser, persona, goal, provider, difficulty=None, values=None):
+def second_attempt(browser, persona, goal, provider, difficulty=None):
     """The goal run again by a fresh actor on `browser` (a new one, given by the caller): {reached, same, journey};
-    `same` compares the journey with `difficulty` when one is given. `values` are the goal's typed values (data.json's
-    through_ui), the same the first attempt typed."""
-    journey = act(browser, persona, {k: goal[k] for k in GOAL if goal.get(k)}, provider, values)
+    `same` compares the journey with `difficulty` when one is given. `goal['values']` are the goal's typed values
+    (data.json's through_ui), the same the first attempt typed."""
+    journey = act(browser, persona, {k: goal[k] for k in GOAL if goal.get(k)}, provider, goal.get('values'))
     return {'reached': bool(journey.get('reached')), 'same': bool(difficulty) and met(journey, difficulty), 'journey': journey}
