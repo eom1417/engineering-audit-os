@@ -4,7 +4,7 @@ import json
 import unittest
 from pathlib import Path
 
-from eaos.live.experience.second import second_attempt
+from eaos.live.experience.second import met, second_attempt
 
 PERSONA = {'id': 'buyer', 'role': 'user', 'name': 'Sara', 'about': 'a first-time buyer'}
 GOAL = {'name': 'buyer.order', 'goal': 'Order a book', 'start': '/', 'done_when': 'the page says Ordered',
@@ -46,6 +46,17 @@ class SecondAttemptTests(unittest.TestCase):
         self.assertEqual((result['reached'], result['same']), (True, False))
         result = second_attempt(Pages(), PERSONA, GOAL, Scripted({'action': 'done'}), {'kind': 'stuck', 'screen': '/'})
         self.assertFalse(result['same'])
+
+    def test_a_journey_a_budget_or_the_assistant_ended_did_not_give_up_again(self):
+        for ended in ('assistant', 'time', 'calls'):
+            journey = {'reached': False, 'stopped': ended, 'stuck': f'the {ended} budget ran out', 'steps': []}
+            self.assertFalse(met(journey, {'kind': 'stuck', 'screen': '/'}), ended)
+        self.assertTrue(met({'reached': False, 'stopped': None, 'stuck': 'lost', 'steps': []}, {'kind': 'stuck', 'screen': '/'}))
+
+    def test_the_second_attempt_types_the_goals_own_values(self):
+        assistant = Scripted({'action': 'done'})
+        second_attempt(Pages(), PERSONA, GOAL, assistant, values={'Email': 'sara@example.com'})
+        self.assertIn('sara@example.com', assistant.asked[0])
 
 
 if __name__ == '__main__':

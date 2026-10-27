@@ -71,9 +71,15 @@ class SimulationTest(unittest.TestCase):
                 tickets = json.loads((report / 'experience/tickets.json').read_text())['tickets']
                 self.assertEqual((tickets[0]['goal'], tickets[0]['escalated']), ('admin.approve', True))
                 self.assertEqual(simulation.judged(report, app, assistant)['confirm'], 1)
+                kept = json.loads((report / 'experience/journeys/admin--approve--second.json').read_text())
+                self.assertEqual((kept['attempt'], kept['pictures_dir']), ('second', 'admin--approve--second'))
+                second = json.loads((report / 'experience/difficulties.json').read_text())['difficulties'][0]['second']
+                self.assertEqual(second['journey'], 'experience/journeys/admin--approve--second.json')
+                judged = json.loads(assistant.asked[-1][1])['difficulties'][0]
+                self.assertIn('second_steps', judged, 'the judge reads the second attempt it rules on')
                 facts = read_set(report, 'experience')['facts']
                 self.assertEqual(facts[0]['value']['title'], 'The admin cannot find the new order')
-                self.assertEqual(simulation.replays(report, app)['summary'], {'green': 1, 'red': 0, 'skipped': 1})
+                self.assertEqual(simulation.replays(report, app)['summary'], {'green': 1, 'red': 0, 'skipped': 2})
                 page, _ = write(report, 'ar')
                 text = page.read_text()
                 self.assertIn('المدير لا يجد الطلب الجديد', text)

@@ -19,7 +19,7 @@ ORDER = {'version': 1, 'persona': 'buyer', 'role': 'user', 'goal': 'buyer.order'
                       {'step': 2, 'kind': 'error', 'note': 'Server error'}]}
 PROFILE = {'version': 1, 'persona': 'buyer', 'role': 'user', 'goal': 'buyer.profile', 'wanted': 'Save my profile', 'start': '/',
            'reached': True, 'steps': [dict(CART, landed='/profile')], 'friction': [{'step': 1, 'kind': 'understand', 'note': 'what is OK?'}]}
-AGAIN = {'goal': 'buyer.order', 'reached': False, 'steps': [CART], 'friction': [{'step': 1, 'kind': 'find', 'note': 'hidden cart'}]}
+AGAIN = {'goal': 'buyer.order', 'reached': False, 'stuck': 'no checkout', 'steps': [CART], 'friction': [{'step': 1, 'kind': 'find', 'note': 'hidden cart'}]}
 
 
 class Judge:
