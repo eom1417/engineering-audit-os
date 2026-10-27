@@ -69,8 +69,8 @@ def short(report, project, app, provider):
 
 
 def replays(report, app):
-    """Every saved journey replayed with no assistant."""
-    return replay.replay_all(app['base'], app['sessions'], report)
+    """Every saved journey replayed with no assistant, in the scenario's order (a hand-off goal after the one it waits for)."""
+    return replay.replay_all(app['base'], app['sessions'], report, scenarios.order(_read(report, 'scenario.json') or {}))
 
 
 def judged(report, app, provider):

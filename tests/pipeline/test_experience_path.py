@@ -154,6 +154,21 @@ class Replays(unittest.TestCase):
         self.assertEqual(rows['experience/journeys/visitor--look.json']['status'], 'quarantined')
         context.provider.assert_not_called()
 
+    def test_the_journeys_replay_in_the_scenarios_order_a_hand_off_after_what_it_waits_for(self):
+        scenario = {'personas': [{'id': 'zed', 'goals': [{'id': 'ask', 'waits_for': []}]},
+                                 {'id': 'amy', 'goals': [{'id': 'approve', 'waits_for': ['zed.ask']}]}]}
+        done = []
+        with tempfile.TemporaryDirectory() as out:
+            folder = Path(out) / 'experience'
+            (folder / 'journeys').mkdir(parents=True)
+            (folder / 'scenario.json').write_text(json.dumps(scenario))
+            for name, goal in (('amy--approve', 'amy.approve'), ('zed--ask', 'zed.ask')):
+                (folder / 'journeys' / f'{name}.json').write_text(json.dumps({'goal': goal, 'reached': True, 'steps': []}))
+            with mock.patch.object(replay, 'replay_one', lambda base, journey, out, state=None: done.append(journey['goal']) or
+                                   {'goal': journey['goal'], 'status': 'green', 'screens': [], 'seconds': 0}):
+                simulation.replays(out, {'base': 'http://127.0.0.1:1', 'sessions': {}})
+        self.assertEqual(done, ['zed.ask', 'amy.approve'])
+
     def test_nothing_saved_nothing_replayed(self):
         lock = {'results': [], 'limitations': ['x']}
         with tempfile.TemporaryDirectory() as out, tempfile.TemporaryDirectory() as runtime, \
@@ -164,3 +179,70 @@ class Replays(unittest.TestCase):
 
 if __name__ == '__main__':
     unittest.main()
+
+
+class Judged(unittest.TestCase):
+    """The review of M10 (2026-10-27): the confirmed difficulties were written as facts nobody read, no card came of them."""
+
+    def test_a_confirmed_difficulty_is_indexed_read_by_the_claims_and_becomes_a_card(self):
+        from eaos.analysis.claims.ledger import from_facts
+        from eaos.analysis.experience import judging
+        from eaos.analysis.planning.cards import build_tasks
+        from eaos.facts.run import read_available
+        from eaos.facts.store import write_index
+        stuck = {'version': 1, 'persona': 'buyer', 'role': 'user', 'goal': 'buyer.order', 'wanted': 'Order a book', 'start': '/',
+                 'reached': False, 'stuck': 'I cannot pay', 'stopped': None, 'friction': [],
+                 'steps': [{'action': 'click', 'target': {'role': 'button', 'name': 'Pay'}, 'at': '/cart', 'landed': '/cart',
+                            'picture': 'step-1.jpg', 'error': 'Server error'}]}
+        verdict = {'id': 'D1', 'verdict': 'confirm', 'why': 'step 1 shows the error', 'harmed': 'every buyer', 'severity': 'high',
+                   'title': 'Paying fails', 'title_ar': 'الدفع يفشل', 'fix': 'Make paying work.', 'fix_ar': 'أصلح الدفع.'}
+        judge = mock.Mock()
+        judge.complete.return_value = ({'result': {'verdicts': [verdict]}}, {})
+        with tempfile.TemporaryDirectory() as folder:
+            report, target = Path(folder, 'report'), Path(folder, 'app')
+            target.mkdir()
+            write_index(report, target, [])                      # the check this judging belongs to
+            journeys = report / judging.JOURNEYS
+            journeys.mkdir(parents=True)
+            (journeys / 'buyer--order.json').write_text(json.dumps(stuck))
+            judging.confirm(report, lambda goal: {'reached': False, 'same': True, 'journey': stuck})
+            self.assertEqual(judging.judge(report, judge)['confirm'], 1)
+            index = json.loads((report / 'facts/index.json').read_text())
+            self.assertIn('experience', [row['set'] for row in index['sets']])
+            self.assertEqual(json.loads((report / 'facts/run.json').read_text())['target'], str(target), 'its target kept')
+            sets = read_available(report)                       # how the claims stage reads a report's facts
+            claims = [c for c in from_facts(sets, target=target) if 'experience_difficulty_present' in json.dumps(c.get('probe_spec'))]
+            self.assertEqual([c['statement'] for c in claims], ['Paying fails'])
+            cards = build_tasks(target, report, {'claims': claims}, sets)
+        self.assertEqual([card['title'] for card in cards], ['Paying fails'])
+
+
+class Disk(unittest.TestCase):
+    def test_a_new_check_clears_the_old_difficulties_and_pictures_and_keeps_the_journeys_to_replay(self):
+        from eaos.pipeline.run import PICTURES, bulky
+        with tempfile.TemporaryDirectory() as out:
+            out = Path(out)
+            kept = ['experience/journeys/buyer--order.json', 'experience/scenario.json']
+            gone = ['experience/run.json', 'experience/difficulties.json', 'experience/journeys/buyer--order/step-1.jpg',
+                    'experience/journeys/buyer--order--second/step-1.jpg', 'experience/replays/buyer--order/step-1.jpg',
+                    'facts/experience.json', 'EXPERIENCE.md']
+            for name in kept + gone:
+                (out / name).parent.mkdir(parents=True, exist_ok=True)
+                (out / name).write_text('x')
+            cleared = bulky(out)
+            for name in gone: self.assertTrue(any(out / name == p or p in (out / name).parents for p in cleared), name)
+            for name in kept: self.assertFalse(any(out / name == p or p in (out / name).parents for p in cleared), name)
+            pictures = bulky(out, PICTURES)
+            self.assertIn(out / 'experience/journeys/buyer--order--second', pictures)
+            self.assertNotIn(out / 'experience/journeys/buyer--order.json', pictures)
+
+    def test_the_experience_report_is_a_declared_document(self):
+        from eaos.core.contracts import artifacts
+        from eaos.core.contracts.artifact_rules import validate as contract
+        with tempfile.TemporaryDirectory() as out:
+            out = Path(out)
+            (out / 'README.md').write_text('# index\n')
+            (out / 'run-manifest.json').write_text(json.dumps({'stages': {name: {'status': 'ok'} for name in ORDER}}))
+            (out / 'EXPERIENCE.md').write_text('# experience\n')
+            self.assertFalse([p for p in contract(out, {'claims': []}) if 'EXPERIENCE.md' in p])
+        self.assertEqual(artifacts.BY_NAME['EXPERIENCE.md'].owner, 'experience')

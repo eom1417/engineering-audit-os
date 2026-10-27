@@ -41,7 +41,8 @@ def experience(context):
 def replayed(context, lock):
     """The lock's record (run_lock's answer) with every saved journey replayed on the check's app, no assistant asked,
     each a row of behavior-lock/results.json; as it was when no journey is saved."""
+    from ...analysis.experience import simulation
     from ...live.experience import replay
     if not replay.saved(context.out): return lock
     app = app_of(context)
-    return replay.join_lock(app['runtime'], lock, replay.replay_all(app['base'], app['sessions'], context.out))
+    return replay.join_lock(app['runtime'], lock, simulation.replays(context.out, app))

@@ -13,6 +13,7 @@ import json
 from pathlib import Path
 
 from ...facts import digest, make
+from ...facts.run import add_to_index
 from ...facts.store import write_set
 from ...live.experience.second import met, screen
 
@@ -211,6 +212,14 @@ def facts_of(rows):
                       limitations=LIMITATIONS) for row in confirmed]
 
 
+def _indexed(report, entry):
+    """The `experience` set listed in the facts' index of the check it judges (its target kept), so the claims read it;
+    nothing when the report holds no check."""
+    try: target = json.loads((Path(report) / 'facts/run.json').read_text(encoding='utf-8'))['target']
+    except (OSError, ValueError, KeyError): return
+    add_to_index(report, target, entry)
+
+
 def judge(report, provider):
     """The ruling on every difficulty (those `confirm` tried again, else all found, none met again): written to
     experience/difficulties.json, the confirmed ones as the `experience` fact set. Returns the summary."""
@@ -221,5 +230,6 @@ def judge(report, provider):
     _save(report, rows)
     sha, facts = facts_of(rows)
     summary = {verdict: sum(row['verdict'] == verdict for row in rows) for verdict in VERDICTS}
-    write_set(report, NAME, NAME, VERSION, LIMITATIONS, {'facts': facts, 'input_sha': sha, 'summary': summary})
+    entry = write_set(report, NAME, NAME, VERSION, LIMITATIONS, {'facts': facts, 'input_sha': sha, 'summary': summary})
+    _indexed(report, entry)
     return summary

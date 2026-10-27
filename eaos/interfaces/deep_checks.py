@@ -2,7 +2,7 @@
 and the simulated users (M10: eaos experience plan | run | judge | replay | report). Thin: each finds the person's
 assistant and calls the analysis that does the work. The hunt says what it will spend and asks, then runs the check
 again from its claims so the cards and their triage include what it found; the experience drives the app's isolated
-copy already running (--base)."""
+copy already running (--base), and its judging runs the check again from its claims the same way."""
 import sys
 from pathlib import Path
 
@@ -55,6 +55,16 @@ def _app(args):
     return {'base': args.base.rstrip('/'), 'sessions': sessions, 'runtime': args.runtime, 'database': args.database}
 
 
+def _judged(args, simulation):
+    """The difficulties judged, then the check run again from its claims, so the confirmed ones become cards (the
+    report of a check of this very code, as the logic-flaw hunt asks)."""
+    from ..pipeline.run import again, same_source
+    same_source(args.target, args.out)
+    said = simulation.judged(args.out, _app(args), _assistant(args))
+    again(args.target, args.out, 'claims')
+    return said
+
+
 def experience_command(args):
     from ..analysis.experience import simulation
     from ..report.experience.document import write
@@ -62,7 +72,7 @@ def experience_command(args):
     step = args.step
     if step == 'plan': said = {'personas': len(simulation.prepare(args.out, _assistant(args))[0]['personas'])}
     elif step == 'run': said = {k: v for k, v in simulation.simulate(args.out, args.target, _app(args), _assistant(args)).items() if k in ('seconds', 'calls', 'seeded')}
-    elif step == 'judge': said = simulation.judged(args.out, _app(args), _assistant(args))
+    elif step == 'judge': said = _judged(args, simulation)
     elif step == 'replay': said = simulation.replays(args.out, _app(args))['summary']
     else: said = {'written': [str(path) for path in write(args.out, args.lang)], 'difficulties': len(summary(story(args.out))['difficulties']['ranked'])}
     print(f'experience {step}: {said}')

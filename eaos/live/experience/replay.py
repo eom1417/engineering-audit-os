@@ -2,7 +2,8 @@
 again in every full check with no assistant at all, on the browser agent's replay (eaos/live/agent.py), and joins the
 behaviour lock: a journey that no longer replays is a behaviour that broke, shown in red.
 
-    replay_all(base, sessions, report)   experience/replays.json: {version, replays: [...], summary: {green, red, skipped}}
+    replay_all(base, sessions, report, order=None)
+                                         experience/replays.json: {version, replays: [...], summary: {green, red, skipped}}
     as_lock(replays)                     its rows in the behaviour lock's shape (behavior-lock/results.json `results`)
     saved(report)                        whether any journey is saved to replay
     join_lock(runtime, lock, replays)    the lock's record (run_lock's answer) with the replays as its rows, written to
@@ -51,12 +52,23 @@ def replay_one(base, journey, out, storage_state=None):
             'seconds': round(time.monotonic() - began, 1)}
 
 
-def replay_all(base, sessions, report):
+def _in_order(paths, order):
+    """The saved journeys in `order` (the goals' names in the scenario's order, given by the caller: a hand-off goal after
+    the goal it waits for), those it does not name after them, by name."""
+    rank = {name: index for index, name in enumerate(order or [])}
+
+    def place(path):
+        journey = load(path)
+        return rank.get(journey.get('goal') if isinstance(journey, dict) else None, len(rank)), path.name
+    return sorted(paths, key=place)
+
+
+def replay_all(base, sessions, report, order=None):
     """experience/replays.json in `report`, written and returned: every saved journey replayed on the app at `base`,
-    signed in with its role's storage state (`sessions`: {role: path or None})."""
+    signed in with its role's storage state (`sessions`: {role: path or None}), in `order` (_in_order)."""
     folder = Path(report) / 'experience'
     replays = []
-    for path in sorted((folder / JOURNEYS).glob('*.json')):
+    for path in _in_order((folder / JOURNEYS).glob('*.json'), order):
         journey = load(path)
         if not isinstance(journey, dict):
             replays.append({'goal': path.stem, 'status': 'skipped', 'why': 'the saved journey cannot be read', 'screens': [], 'seconds': 0})
