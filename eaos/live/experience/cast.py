@@ -95,7 +95,7 @@ def _helped(plan, persona, goal, journey):
 def run(app, scenario, plan, provider, report):
     """<report>/experience/run.json ({version, goals: [{name, persona, role, status: reached | stuck | stopped |
     blocked, why?, waited_for?, seconds, calls, friction}], events: [{event, by, at}], seconds, calls}), each journey
-    saved in experience/journeys. `app` = {base: the running copy's address, sessions: {role: storage state or None}}."""
+    saved in experience/journeys (a retry after support beside the first try, as <stem>--again.json). `app` = {base: the running copy's address, sessions: {role: storage state or None}}."""
     goals, values, board = goals_by_name(scenario), typed_values(plan.get('data')), _Board(Path(report) / 'experience')
     app = {**app, 'report': report}
     for name in (n for n in plan.get('order') or [] if n in goals):
@@ -105,7 +105,9 @@ def run(app, scenario, plan, provider, report):
             board.block(persona, goal, why, missing)
             continue
         goal = {**goal, 'events': board.told(goal)}
-        journey, calls = _helped(plan, persona, goal, _journey(app, persona, goal, provider, values.get(name)))
-        actor.save(board.folder / actor.JOURNEYS, journey)
+        first = _journey(app, persona, goal, provider, values.get(name))
+        actor.save(board.folder / actor.JOURNEYS, first)
+        journey, calls = _helped(plan, persona, goal, first)
+        if journey is not first: actor.save(board.folder / actor.JOURNEYS, journey, 'again')      # both tries kept
         board.keep(persona, goal, journey, calls)
     return board.write()

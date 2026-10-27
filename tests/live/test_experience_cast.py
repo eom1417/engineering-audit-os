@@ -91,8 +91,11 @@ class CastTests(unittest.TestCase):
         self.assertEqual(helped, [('no approve button', 'admin', 'admin.approve')])
         self.assertEqual([g['status'] for g in run['goals']], ['reached', 'reached', 'reached'])
         self.assertEqual((run['goals'][1]['calls'], run['goals'][1]['friction']), (3, 1))
-        saved = json.loads((Path(self.tmp.name) / 'experience/journeys/admin--approve.json').read_text())
-        self.assertTrue(saved['reached'])
+        journeys = Path(self.tmp.name) / 'experience/journeys'
+        first, again = (json.loads((journeys / f'admin--approve{s}.json').read_text()) for s in ('', '--again'))
+        self.assertEqual((first['reached'], first['pictures_dir'], 'attempt' in first), (False, 'admin--approve', False),
+                         'the first try is kept, not overwritten by the retry')
+        self.assertEqual((again['reached'], again['attempt']), (True, 'again'))
 
     def test_the_runs_budget_blocks_the_goals_left(self):
         with mock.patch.dict(cast.BUDGET, calls=1):

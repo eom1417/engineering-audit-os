@@ -3,7 +3,8 @@ it left, with its steps and pictures, tried again by a fresh actor that does not
 by the assistant as strictly as the card triage (M7.4) rules on a card; the confirmed ones become the `experience` fact
 set the claims make fix cards of (eaos/analysis/claims/from_experience.py), each with its steps to reproduce.
 
-    difficulties(report)        the difficulties of experience/journeys/*.json (and run.json), merged per goal, kind and screen
+    difficulties(report)        the difficulties of experience/journeys/*.json (and run.json), merged per goal, kind and screen:
+                                a goal's first try and its retry after support both count; the judge's second attempt does not
     confirm(report, attempt)    each goal tried again (`attempt(goal name)`, given by the caller): `second` recorded
     judge(report, provider)     the ruling, experience/difficulties.json and the `experience` fact set
 
@@ -14,6 +15,7 @@ from pathlib import Path
 
 from ...facts import digest, make
 from ...facts.store import write_set
+from ...live.experience.actor import picture
 from ...live.experience.second import met, screen
 
 NAME = 'experience'
@@ -84,7 +86,7 @@ def _met(stem, journey, kind, number, note):
     steps = journey.get('steps') or []
     upto = len(steps) if kind == 'stuck' else min(number or 0, len(steps))
     shown = range(max(1, upto - 2), upto + 1) if kind == 'stuck' else [upto]
-    pictures = [f'{JOURNEYS}/{stem}/{steps[n - 1]["picture"]}' for n in shown if 0 < n <= len(steps) and steps[n - 1].get('picture')]
+    pictures = [picture(journey, stem, steps[n - 1]['picture']) for n in shown if 0 < n <= len(steps) and steps[n - 1].get('picture')]
     return {'goal': journey['goal'], 'persona': journey.get('persona'), 'kind': kind, 'note': str(note or '')[:300],
             'screen': screen(journey, kind, number), 'steps': [upto] if upto else [], 'pictures': pictures,
             'journey': f'{JOURNEYS}/{stem}.json', 'repro': repro(journey, upto, note)}
@@ -121,8 +123,9 @@ def _merged(found):
 
 def difficulties(report):
     """Every difficulty the simulated users met, numbered D1.. in order of goal, then of where it was met."""
-    journeys = {path.stem: _load(path) for path in sorted((Path(report) / JOURNEYS).glob('*.json'))}
-    journeys = {stem: j for stem, j in journeys.items() if isinstance(j, dict) and j.get('goal')}
+    journeys = {path.stem: _load(path) for path in (Path(report) / JOURNEYS).glob('*.json')}
+    journeys = {stem: j for stem, j in sorted(journeys.items(), key=lambda item: (item[0].removesuffix('--again'), item[0]))
+                if isinstance(j, dict) and j.get('goal') and j.get('attempt') != 'second'}       # the judge's own attempt is evidence
     found = [row for stem, journey in journeys.items() for row in _of_journey(stem, journey)]
     found += _of_run(report, {j['goal'] for j in journeys.values()})
     return [{'id': f'D{n}', **row, 'second': dict(NOT_TRIED)} for n, row in enumerate(_merged(found), 1)]

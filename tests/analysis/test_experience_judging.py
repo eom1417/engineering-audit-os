@@ -61,6 +61,18 @@ class JudgingTests(unittest.TestCase):
         self.assertEqual(found[('buyer.order', 'error')]['screen'], '/cart')
         self.assertEqual(found[('buyer.order', 'stuck')]['repro'], ['As a user, open /', "Click 'Cart'", "Click 'Pay'", 'Met: I cannot pay'])
 
+    def test_a_retry_after_support_points_at_its_own_pictures_and_the_judges_attempt_is_not_a_difficulty(self):
+        journeys = self.report / judging.JOURNEYS
+        retry = dict(PROFILE, goal='buyer.retry', attempt='again', pictures_dir='buyer--retry--again')
+        (journeys / 'buyer--retry--again.json').write_text(json.dumps(retry))
+        (journeys / 'buyer--retry.json').write_text(json.dumps(dict(PROFILE, goal='buyer.retry', pictures_dir='buyer--retry',
+                                                                    friction=[{'step': 1, 'kind': 'find', 'note': 'first'}])))
+        (journeys / 'buyer--order--second.json').write_text(json.dumps(dict(AGAIN, attempt='second', friction=[{'step': 1, 'kind': 'finish', 'note': 'x'}])))
+        found = [(d['goal'], d['kind'], d['pictures']) for d in judging.difficulties(self.report)]
+        self.assertIn(('buyer.retry', 'find', ['experience/journeys/buyer--retry/step-1.jpg']), found)
+        self.assertIn(('buyer.retry', 'understand', ['experience/journeys/buyer--retry--again/step-1.jpg']), found)
+        self.assertNotIn('finish', [kind for _, kind, _ in found])
+
     def test_only_a_difficulty_met_again_and_confirmed_with_who_it_harms_becomes_a_fact_and_a_card(self):
         rows = {r['id']: r['second'] for r in judging.confirm(self.report, attempt)}
         self.assertEqual([rows[i]['same'] for i in ('D1', 'D2', 'D3', 'D4', 'D5')], [True, False, True, False, False])

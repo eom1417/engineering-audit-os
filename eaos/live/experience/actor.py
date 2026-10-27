@@ -3,7 +3,11 @@ browser agent's layer (eaos/live/agent.py), within its step, time and call budge
 picture and what the persona found hard (the friction log).
 
     act(browser, persona, goal, provider, values=None)   the journey: {goal, steps, reached, stuck, friction, ...}
-    save(folder, journey) / load(path)                   the journey as experience/journeys/<persona>--<goal>.json
+    save(folder, journey, attempt=None) / load(path)     the journey as experience/journeys/<persona>--<goal>[--<attempt>].json
+    picture(journey, stem, name)                         a step's picture, relative to the report
+
+A journey keeps `pictures_dir`, the folder of experience/journeys its pictures are in (its browser's own): the support
+desk's retry and the judge's second attempt take theirs in <stem>--again/ and <stem>--second/, never the first's.
 
 The assistant is passed in and asked on its light tier: a step is plain work. It answers "done" when the goal's own
 sign is on the screen, "stuck" when the persona would give up; a step it found hard carries a friction note.
@@ -92,6 +96,7 @@ def act(browser, persona, goal, provider, values=None):
     hand-offs it waited for, shown to the persona}) on `browser`: the steps until the persona says done or stuck, or a
     budget ends it (`stopped`: steps, time, calls or failures)."""
     journey = _Journey(persona, goal, goal.get('start') or '/')
+    if getattr(browser, 'out', None): journey.record['pictures_dir'] = Path(browser.out).name
     page = browser.do({'op': 'open', 'path': journey.record['start']})
     if page.get('ok'): reach(journey.screens, page)
     while not (spent := journey.spent()):
@@ -111,13 +116,21 @@ def file_name(goal_name):
     return goal_name.replace('.', '--', 1) + '.json'
 
 
-def save(folder, journey):
-    """The journey written in `folder` (experience/journeys); its path."""
+def save(folder, journey, attempt=None):
+    """The journey written in `folder` (experience/journeys); its path. The first try is <stem>.json; another attempt of
+    the same goal (`attempt`: 'again' after support, 'second' for the judge) is <stem>--<attempt>.json and says so."""
     folder = Path(folder)
     folder.mkdir(parents=True, exist_ok=True)
-    path = folder / file_name(journey['goal'])
+    name = file_name(journey['goal'])
+    path = folder / (name.replace('.json', f'--{attempt}.json') if attempt else name)
+    journey = {**journey, 'attempt': attempt} if attempt else journey
     path.write_text(json.dumps(journey, ensure_ascii=False, indent=1) + '\n', encoding='utf-8')
     return path
+
+
+def picture(journey, stem, name):
+    """experience/journeys/<the journey's pictures_dir, else its file's stem>/<name>: where a step's picture is."""
+    return f"experience/{JOURNEYS}/{journey.get('pictures_dir') or stem}/{name}" if name else None
 
 
 def load(path):
