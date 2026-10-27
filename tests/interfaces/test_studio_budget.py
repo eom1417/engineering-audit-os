@@ -11,7 +11,8 @@ PAGE = ROOT / 'console/src/places/report'
 SECTIONS = ROOT / 'tests/fixtures/studio/v2'
 
 STUDIO_BYTES = 1_170_000      # 1 063 547 bytes when the report page was made (1 438 220 with Understand's views)
-PAGE_BYTES = 14_300           # 12 976: assets/report.js 11 111 and screens.json 1 865 of the fixture
+PAGE_BYTES = 22_400           # 20 329 with the experience's part (M10.8): assets/report.js 18 464 and screens.json 1 865
+                              # of the fixture (12 976 when the page was made)
 PAGE_SECTIONS = {'screens'}   # the pictures' part; the report for people and the files are read apart, by address
 
 

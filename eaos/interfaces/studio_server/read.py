@@ -19,6 +19,8 @@ the Studio shows the honest coverage state instead of a blank page. Nothing here
                                 it, no `..`, text types only, at most 2 MB, never rendered (text/plain)
     GET /api/screen?path=       a screen the safety flow recorded (a PNG under the runtime folder's
                                 behavior-lock/snapshots), at most 2 MB
+    GET /api/report-image?path= a picture the check took (live/screens) or the experience's simulated users took
+                                (experience/journeys), inside the report folder, at most 8 MB
 """
 import json
 import time
@@ -45,7 +47,7 @@ TEXT_TYPES = ('.md', '.json', '.jsonl', '.txt', '.csv', '.html', '.yaml', '.yml'
 MAX_FILE = 2 * 2 ** 20
 MAX_IMAGE = 8 * 2 ** 20
 SHOTS = 'behavior-lock/snapshots'
-PICTURES = 'live/screens'
+PICTURES = ('live/screens', 'experience/journeys')   # the check's screens, the experience's steps (M10.8)
 IMAGE_TYPES = {'.png': 'image/png', '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg', '.webp': 'image/webp'}
 
 
@@ -284,11 +286,13 @@ def report_file(report, path):
     return Response(text, media_type='text/plain; charset=utf-8', headers={**NO_STORE, 'Content-Security-Policy': 'sandbox'})
 
 
-def image_file(root, folder, path):
-    """A picture inside `root`/`folder` (`path` relative to `root`): a PNG, JPEG or WebP of at most MAX_IMAGE bytes.
-    `/api/screen` serves the safety flow's recorded screens with it, `/api/report-image` the check's screen pictures."""
+def image_file(root, folders, path):
+    """A picture inside one of `root`/`folders` (one folder or a tuple; `path` relative to `root`): a PNG, JPEG or WebP
+    of at most MAX_IMAGE bytes. `/api/screen` serves the safety flow's recorded screens with it, `/api/report-image`
+    the check's screen pictures and the experience's step pictures."""
     target = _inside(root, path) if root else None
-    if target is None or target.suffix.lower() not in IMAGE_TYPES or not target.is_relative_to((Path(root) / folder).resolve()):
+    folders = (folders,) if isinstance(folders, str) else folders
+    if target is None or target.suffix.lower() not in IMAGE_TYPES or not any(target.is_relative_to((Path(root) / f).resolve()) for f in folders):
         return _refuse(400, 'path', 'only a picture EAOS took is served')
     if not target.is_file(): return _refuse(404, 'not_found', 'no such picture')
     if target.stat().st_size > MAX_IMAGE: return _refuse(413, 'size', 'the picture is larger than 8 MB')
