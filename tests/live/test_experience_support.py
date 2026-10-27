@@ -6,6 +6,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
+from eaos.core.contracts.untrusted import CLAUSE, UNTRUSTED
 from eaos.live.experience import support
 
 PERSONA = {'id': 'buyer', 'role': 'user', 'name': 'Sara', 'about': 'a first-time buyer'}
@@ -21,7 +22,7 @@ class Scripted:
         self.reply, self.steps, self.asked = support_reply, list(steps), []
 
     def complete(self, messages, **options):
-        self.asked.append({'brief': messages[-1]['content'], **options})
+        self.asked.append({'brief': messages[-1]['content'], 'system': messages[0]['content'], **options})
         if options.get('stage') == 'experience_support': return {'result': self.reply}, {}
         return {'result': self.steps.pop(0) if self.steps else {'action': 'stuck', 'why': 'nothing more'}}, {}
 
@@ -48,11 +49,14 @@ class SupportTests(unittest.TestCase):
         again = desk(STUCK, PERSONA, GOAL)
         self.assertEqual((again['reached'], again['ticket'], opened), (True, 'T1', ['buyer.order']))
         asked = assistant.asked[0]
-        self.assertEqual((asked['stage'], asked.get('small'), asked.get('deep'), asked['reads']),
-                         ('experience_support', None, None, '/project'))
-        self.assertIn('no basket anywhere', json.loads(asked['brief'])['asked'])
-        self.assertIn('"support_told_you": "1. Open Shop', assistant.asked[1]['brief'])
-        self.assertEqual(desk.tickets[0]['after'], 'reached')
+        self.assertEqual({k: asked.get(k) for k in ('stage', 'small', 'deep', 'reads', 'system')} | {'system': CLAUSE in asked['system']},
+                         {'stage': 'experience_support', 'small': None, 'deep': None, 'reads': '/project', 'system': True})
+        ticket = json.loads(asked['brief'])['ticket']
+        self.assertEqual(ticket['trust'], UNTRUSTED, 'the ticket (the app\'s pages, the persona\'s words) is marked as data')
+        self.assertIn('no basket anywhere', ticket['content']['asked'])
+        told = json.loads(assistant.asked[1]['brief'])['support_told_you']
+        self.assertEqual((told['trust'], told['content'][:12]), (UNTRUSTED, '1. Open Shop'))
+        self.assertEqual((desk.tickets[0]['after'], desk.calls), ('reached', 2), 'its answer and the retry\'s step are counted')
         with tempfile.TemporaryDirectory() as tmp:
             saved = json.loads(desk.save(tmp).read_text())
         self.assertEqual((saved['version'], [t['id'] for t in saved['tickets']]), (1, ['T1']))

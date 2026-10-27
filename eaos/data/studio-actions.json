@@ -326,8 +326,8 @@
     "ar": "تجربة المستخدمين"
    },
    "description": {
-    "en": "",
-    "ar": ""
+    "en": "How the simulated users fared on the app: each one's goals and results, the difficulties they met, ranked.",
+    "ar": "كيف جرّب المستخدمون المحاكَون البرنامج: أهداف كل واحد ونتيجتها، والصعوبات التي واجهوها مرتبة."
    },
    "mode": "direct",
    "needs_assistant": false,

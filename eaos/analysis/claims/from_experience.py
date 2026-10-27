@@ -1,6 +1,7 @@
 """The claims the simulated users earn (M10.7): one per confirmed difficulty of the `experience` fact set
-(eaos/analysis/experience/judging.py), read as a finding of the app's behaviour under test (the debt register files it
-under reliability), its steps to reproduce in its scenario. Met twice and ruled on by an assistant, never proven by a
+(eaos/analysis/experience/judging.py), its own card key `experience_difficulty` (eaos/core/language/words.py: its title,
+why it matters, what would refute it), filed under reliability by the debt register, its fix its own, its steps to
+reproduce in its scenario. Met twice and ruled on by an assistant, never proven by a
 rule: LIKELY at most."""
 
 
@@ -13,7 +14,7 @@ def experience(fact_sets, add, target):
         add(value['title'], 'risk', 'LIKELY', ['model_inference'],
             f"A fresh simulated user reaching {value['goal']} without meeting it, by these steps: {steps}",
             fact_ids=[fact['id']], confidence_ceiling='LIKELY',
-            render={'key': 'layer_finding', 'params': {'rule': 'experience-difficulty', 'boundary': 'tests', 'severity': value['severity'],
+            render={'key': 'experience_difficulty', 'params': {'kind': value['kind'], 'goal': value['goal'], 'severity': value['severity'],
                                                        'en': value['title'], 'ar': value.get('title_ar') or value['title'],
                                                        'fix_en': value['fix'], 'fix_ar': value.get('fix_ar') or value['fix'],
                                                        'path': fact['location']['path'], 'line': None}},

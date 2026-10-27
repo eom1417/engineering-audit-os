@@ -63,6 +63,16 @@ class ExperienceReport(unittest.TestCase):
         self.assertIsNone(told['personas'][1]['goals'][0]['steps'][0]['picture'])
         self.assertEqual((told['replays']['summary']['red'], told['missing']), (1, ['data.json']))
 
+    def test_a_retry_after_support_is_the_goals_journey_with_its_own_pictures(self):
+        folder = self.report / 'experience/journeys'
+        step = {'action': 'click', 'target': {'name': 'Pay'}, 'landed': '/paid', 'picture': 'step-1.jpg'}
+        _put(folder / 'buyer--order--again.json', {**_journey('buyer', 'order', True, [step]), 'attempt': 'again',
+                                                   'pictures_dir': 'buyer--order--again'})
+        _put(folder / 'buyer--order--second.json', {**_journey('buyer', 'order', False, []), 'attempt': 'second'})
+        goal = story(self.report)['personas'][0]['goals'][0]
+        self.assertEqual((goal['wanted'], goal['steps'][0]['target']), ('order done', 'Pay'))
+        self.assertEqual(goal['steps'][0]['picture'], 'experience/journeys/buyer--order--again/step-1.jpg')
+
     def test_both_languages_are_written_with_relative_pictures_and_the_missing_said(self):
         page, data = write(self.report, 'en')
         english = page.read_text(encoding='utf-8')

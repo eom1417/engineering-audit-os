@@ -57,13 +57,17 @@ def replays(report, app):
 
 def judged(report, app, provider):
     """Each difficulty met again (or not) by a fresh persona on a fresh browser, then ruled on: experience/difficulties.json
-    and the confirmed ones as the `experience` facts the plan makes cards of."""
-    goals = cast.goals_by_name(_read(report, 'scenario.json') or {})
+    and the confirmed ones as the `experience` facts the plan makes cards of. Each second attempt types the goal's own
+    values, as the first did, and is kept as journeys/<stem>--second.json with its pictures, for the judge to read."""
+    goals, values = cast.goals_by_name(_read(report, 'scenario.json') or {}), cast.typed_values(_read(report, 'data.json'))
+    journeys = Path(report) / 'experience' / actor.JOURNEYS
 
     def attempt(name):
         persona, goal = goals[name]
-        folder = Path(report) / 'experience' / 'journeys' / actor.file_name(name).replace('.json', '--second')
+        folder = journeys / actor.file_name(name).replace('.json', '--second')
         with Browser(app['base'], folder, app['sessions'].get(persona.get('role'))) as browser:
-            return second.second_attempt(browser, persona, goal, provider)
+            tried = second.second_attempt(browser, persona, {**goal, 'values': values.get(name)}, provider)
+        saved = actor.save(journeys, tried['journey'], 'second')
+        return {**tried, 'file': f'experience/{actor.JOURNEYS}/{saved.name}'}
     judging.confirm(report, attempt)
     return judging.judge(report, provider)

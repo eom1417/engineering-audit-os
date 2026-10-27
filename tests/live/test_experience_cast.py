@@ -91,8 +91,28 @@ class CastTests(unittest.TestCase):
         self.assertEqual(helped, [('no approve button', 'admin', 'admin.approve')])
         self.assertEqual([g['status'] for g in run['goals']], ['reached', 'reached', 'reached'])
         self.assertEqual((run['goals'][1]['calls'], run['goals'][1]['friction']), (3, 1))
-        saved = json.loads((Path(self.tmp.name) / 'experience/journeys/admin--approve.json').read_text())
-        self.assertTrue(saved['reached'])
+        journeys = Path(self.tmp.name) / 'experience/journeys'
+        first, again = (json.loads((journeys / f'admin--approve{s}.json').read_text()) for s in ('', '--again'))
+        self.assertEqual((first['reached'], first['pictures_dir'], 'attempt' in first), (False, 'admin--approve', False),
+                         'the first try is kept, not overwritten by the retry')
+        self.assertEqual((again['reached'], again['attempt']), (True, 'again'))
+
+    def test_supports_calls_count_against_the_runs_budget_and_a_spent_budget_asks_no_support(self):
+        class Desk:
+            calls, asked = 0, []
+
+            def __call__(self, journey, persona, goal):
+                self.asked.append(goal['name'])
+                self.calls += 4                      # its answer and a retry of three steps, then escalated
+                return None
+        desk = Desk()
+        with mock.patch.dict(cast.BUDGET, calls=6):
+            run = self.run_cast(Scripted(STUCK, STUCK), on_stuck=desk)
+        self.assertEqual((run['goals'][0]['calls'], run['calls']), (5, 5), "the desk's calls are the goal's")
+        with mock.patch.dict(cast.BUDGET, calls=1):
+            Desk.asked = []
+            run = self.run_cast(Scripted(STUCK), on_stuck=Desk())
+        self.assertEqual(Desk.asked, [], 'a spent budget starts no support retry')
 
     def test_the_runs_budget_blocks_the_goals_left(self):
         with mock.patch.dict(cast.BUDGET, calls=1):
