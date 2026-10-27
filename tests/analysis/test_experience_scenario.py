@@ -77,6 +77,18 @@ class ScenarioTest(unittest.TestCase):
         made = scenario.checked(loose, ['customer', 'admin'])
         self.assertEqual(made['personas'][1]['goals'][0]['waits_for'], ['buyer.order'])
 
+    def test_a_signed_in_persona_never_waits_for_a_visitors_sign_up(self):
+        # flask-microblog (M10.10): every signed-in goal waited for a newcomer's sign-up; it failed, 9 of 11 were blocked
+        plan = {'personas': [{'id': 'newcomer', 'role': 'visitor', 'name': 'Ana', 'about': 'new',
+                              'goals': [{'id': 'join', 'goal': 'sign up', 'start': '/', 'done_when': 'in', 'waits_for': [], 'makes': 'joined'}]},
+                             {'id': 'buyer', 'role': 'customer', 'name': 'Sara', 'about': 'buys',
+                              'goals': [{'id': 'order', 'goal': 'order', 'start': '/shop', 'done_when': 'ok',
+                                         'waits_for': ['newcomer.join'], 'makes': None}]}],
+                'handoffs': [{'from': 'newcomer.join', 'event': 'joined', 'to': 'buyer.order'}]}
+        made = scenario.checked(plan, ['customer'])
+        self.assertEqual((made['personas'][1]['goals'][0]['waits_for'], made['handoffs']), ([], []))
+        self.assertIn('buyer.order waits for newcomer.join', [d['what'] for d in made['dropped']])
+
     def test_order_puts_every_goal_after_what_it_waits_for(self):
         made = scenario.checked(GOOD, ['customer', 'admin'])
         self.assertEqual(scenario.order(made), ['buyer.order', 'admin.approve', 'buyer.receive'])
