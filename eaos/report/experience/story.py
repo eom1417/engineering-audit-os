@@ -4,7 +4,7 @@ It reads the records the experience run wrote under <report>/experience/ (NOTES:
 journeys/<persona>--<goal>.json (a retry after support, <stem>--again.json, is the goal's kept journey), run.json, replays.json, tickets.json, difficulties.json) and only arranges them:
 
     story(report)     {version, ran, personas: [{id, name, role, about, goals: [goal in run order]}], difficulties:
-                      {ranked, rejected}, time: [{goal, persona, status, seconds, calls}], seconds, calls, tickets,
+                      {ranked, rejected} (each with its fix card, `card`, once the plan made one: plan.json), time: [{goal, persona, status, seconds, calls}], seconds, calls, tickets,
                       replays: {summary, red}, not_covered, missing: [the record files that are not there]}
     summary(story)    the same without the steps, for an assistant to read in one answer
 
@@ -109,9 +109,23 @@ def _rank(difficulty):
     return (VERDICTS.get(difficulty.get('verdict'), 2), SEVERITY.get(difficulty.get('severity'), 3), str(difficulty.get('id')))
 
 
-def _difficulties(record):
-    """{ranked: confirmed first, then by severity high to low, then the doubts; rejected: listed apart}."""
-    rows = [d for d in (record or {}).get('difficulties') or [] if isinstance(d, dict)]
+def _rows(report, name, key):
+    """The rows under `key` of a record of the report (facts/experience.json, plan.json), [] when it is not there."""
+    return [row for row in (_load(Path(report) / name) or {}).get(key) or [] if isinstance(row, dict)]
+
+
+def _cards(report):
+    """{difficulty id: its fix card}: the plan's cards (plan.json) made from the confirmed difficulties of the
+    `experience` fact set (facts/experience.json), each fact holding its difficulty's id."""
+    facts = {f.get('id'): (f.get('value') or {}).get('id') for f in _rows(report, 'facts/experience.json', 'facts')}
+    return {facts[fact]: task['id'] for task in _rows(report, 'plan.json', 'tasks')
+            for fact in (task.get('evidence') or {}).get('fact_ids') or () if facts.get(fact)}
+
+
+def _difficulties(record, cards):
+    """{ranked: confirmed first, then by severity high to low, then the doubts; rejected: listed apart}; each with its
+    fix card (`card`) once the plan made one."""
+    rows = [{**d, 'card': cards.get(d.get('id'))} for d in (record or {}).get('difficulties') or [] if isinstance(d, dict)]
     return {'ranked': sorted((d for d in rows if d.get('verdict') != 'reject'), key=_rank),
             'rejected': [d for d in rows if d.get('verdict') == 'reject']}
 
@@ -127,7 +141,7 @@ def story(report):
     run = found['run.json'] or {}
     goals = _goals(run, journeys)
     return {'version': 1, 'ran': bool(goals), 'personas': _personas(found['scenario.json'], goals),
-            'difficulties': _difficulties(found['difficulties.json']),
+            'difficulties': _difficulties(found['difficulties.json'], _cards(report)),
             'time': [{k: g[k] for k in ('name', 'persona', 'status', 'seconds', 'calls')} for g in goals],
             'seconds': run.get('seconds'), 'calls': run.get('calls'),
             'tickets': [t for t in (found['tickets.json'] or {}).get('tickets') or [] if isinstance(t, dict)],

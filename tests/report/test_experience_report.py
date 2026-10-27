@@ -63,6 +63,16 @@ class ExperienceReport(unittest.TestCase):
         self.assertIsNone(told['personas'][1]['goals'][0]['steps'][0]['picture'])
         self.assertEqual((told['replays']['summary']['red'], told['missing']), (1, ['data.json']))
 
+    def test_a_confirmed_difficulty_carries_its_fix_card_once_the_plan_made_it(self):
+        # story.json had no card, so the Studio's experience part never linked a difficulty to its fix (M10.10)
+        self.assertIsNone(story(self.report)['difficulties']['ranked'][0]['card'])
+        _put(self.report / 'facts/experience.json', {'facts': [{'id': 'F-9', 'kind': 'experience_difficulty', 'value': {'id': 'D3'}}]})
+        _put(self.report / 'plan.json', {'tasks': [{'id': 'TASK-001', 'evidence': {'fact_ids': ['F-1']}},
+                                                   {'id': 'TASK-007', 'evidence': {'fact_ids': ['F-9']}}]})
+        ranked = story(self.report)['difficulties']['ranked']
+        self.assertEqual([(d['id'], d['card']) for d in ranked], [('D3', 'TASK-007'), ('D2', None), ('D1', None)])
+        self.assertIn('Its fix card: `TASK-007`', write(self.report, 'en')[0].read_text(encoding='utf-8'))
+
     def test_a_retry_after_support_is_the_goals_journey_with_its_own_pictures(self):
         folder = self.report / 'experience/journeys'
         step = {'action': 'click', 'target': {'name': 'Pay'}, 'landed': '/paid', 'picture': 'step-1.jpg'}

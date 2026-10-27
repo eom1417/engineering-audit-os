@@ -320,8 +320,15 @@ def cards(context):
     from ...analysis.planning.extension import carry
     from ...analysis.planning.cards import confirm
     record = confirm(context.target, context.out, context.language, triaged=_ran(context, 'triage'), reviewed=_ran(context, 'visual'))
+    _experience_cards(context)
     return {'extension': carry(context.target, context.out), 'kept': len(record['kept']), 'set_aside': len(record['set_aside']), 'doubted': len(record['doubted']),
             'design': len(record['design']), 'decided_by': record['decided_by']}
+
+
+def _experience_cards(context):
+    """The experience report told again once the plan's cards are final, each confirmed difficulty with its fix card."""
+    from ...report.experience.document import DATA, FOLDER, write
+    if (context.out / FOLDER / DATA).exists(): write(context.out, context.language)
 
 
 def reconcile(context):
