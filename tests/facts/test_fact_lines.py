@@ -49,3 +49,10 @@ class StarletteRouteTests(unittest.TestCase):
         found = python_web.detect(Context('app/server.py', text, 'python', []))
         self.assertEqual([(f['http_method'], f['route'], f['framework']) for f in found],
                          [('GET', '/api/runs', 'starlette'), ('POST', '/api/runs', 'starlette'), ('GET', '/health', 'starlette')])
+
+    def test_a_blueprint_or_router_made_with_its_prefix_puts_its_routes_under_it(self):
+        # flaskr (the final proof, 2026-10-27): /auth/register was read as /register, and a repair stopped on a page not there
+        from eaos.facts.code.entrypoints import Context
+        text = ('bp = Blueprint("auth", __name__, url_prefix="/auth")\napi = APIRouter(prefix="/api/")\nplain = Blueprint("blog", __name__)\n'
+                '@bp.route("/register")\ndef register(): pass\n@api.get("/users")\ndef users(): pass\n@plain.route("/")\ndef index(): pass\n')
+        self.assertEqual([f['route'] for f in python_web.detect(Context('app/auth.py', text, 'python', []))], ['/auth/register', '/api/users', '/'])
