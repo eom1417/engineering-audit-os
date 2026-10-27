@@ -117,7 +117,7 @@ def _app(args):
             'apart': args.apart}
 
 
-SPEND = ("The simulated users ask your assistant: {step}. Up to {calls} calls in all; on a subscription it uses your plan, "
+EXPERIENCE_SPEND = ("The simulated users ask your assistant: {step}. Up to {calls} calls in all; on a subscription it uses your plan, "
          "on a key each light step costs little and the deep ones about what a code review costs. The spend shows in "
          "`eaos usage`.")
 STEPS_SPEND = {'plan': 'the personas and their data planned once or twice on its deep tier',
@@ -130,7 +130,7 @@ def _paid_assistant(args, out):
     """The assistant after the person agreed to what this step will spend, its use counted with the check's; None
     when they did not agree."""
     from ..core.system.usage import FILE as USAGE
-    if not _agreed(args, SPEND.format(step=STEPS_SPEND[args.step], calls=args.max_calls)): return None
+    if not _agreed(args, EXPERIENCE_SPEND.format(step=STEPS_SPEND[args.step], calls=args.max_calls)): return None
     assistant = _assistant(args.assistant, args.max_calls)
     assistant.config['usage'] = str(out / USAGE)     # eaos/core/system/usage.py: counted with the check's own use
     return assistant
