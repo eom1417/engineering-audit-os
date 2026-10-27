@@ -28,7 +28,7 @@ def _library_version(tool):
 def _version_output(tool, path):
     """(what `path --version` printed, None), or (None, why it could not run)."""
     try:
-        # A tool that runs on another (the Structurizr CLI on the JRE) finds it in the pinned bin first.
+        # A tool that runs on another (CodeCharta's ccsh on the JRE) finds it in the pinned bin first.
         done = subprocess.run([path, *tool.get('version_args', ['--version'])], capture_output=True, text=True, timeout=120,  # nosemgrep: python.lang.security.audit.dangerous-subprocess-use-audit -- a list argv of a tool EAOS installs at its pin, no shell
                               env={**tool_env(), 'NO_COLOR': '1', 'PATH': str(home() / 'bin') + os.pathsep + os.environ.get('PATH', '')})
     except (OSError, subprocess.TimeoutExpired) as problem:
@@ -56,7 +56,7 @@ def _reported_version(tool, path, output):
     if not match: return None, f'{path} --version printed no version'
     missing = _companions_missing(tool)
     if missing: return None, missing
-    # A release numbered one way may report another (the Structurizr CLI reports its parser's version):
+    # A release numbered one way may report another (a CLI that prints its parser's version):
     # `version_reports` names what the pinned release prints, and the pinned version stands for it.
     if tool.get('version_reports'):
         return (tool['version'], '') if match.group(1) == tool['version_reports'] else (match.group(1), '')

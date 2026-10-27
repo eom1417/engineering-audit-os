@@ -7,9 +7,8 @@ architecture/target/workspace.dsl    the same context, and every target componen
                                      dependencies the reference type's layer rules allow (target_edges).
 architecture/*/diagram.mmd           the component view as a Mermaid flowchart, for the four reports.
 
-The model is text EAOS writes; no Structurizr library is used. The Structurizr CLI (pinned, on its pinned
-JRE) parses and validates each workspace, so a model that names an element twice or breaks the grammar is
-rejected by the tool itself. Names are the records' names, quoted and escaped; identifiers are generated.
+The model is text EAOS writes; no Structurizr library or CLI is used (the person may render the workspace with
+their own). Names are the records' names, quoted and escaped; identifiers are generated, so none is named twice.
 """
 import json
 import re

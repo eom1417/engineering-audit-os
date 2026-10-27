@@ -928,7 +928,7 @@
      }
     }
    },
-   "install_note": "Only the Structurizr CLI needs it; the checksum is the one Adoptium publishes."
+   "install_note": "CodeCharta's analysis CLI (ccsh) runs on it; the checksum is the one Adoptium publishes."
   },
   {
    "name": "jscodeshift",

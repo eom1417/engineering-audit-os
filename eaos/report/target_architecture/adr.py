@@ -3,8 +3,8 @@
 Each decision of target-architecture.json becomes the MADR sections a reader of any project already
 knows: "## Context and Problem Statement", "## Considered Options" (every option, with the evidence),
 "## Decision Outcome" (the choice and why), "### Consequences", and when to revisit it. The format is all
-that is used; no log4brains (unmaintained since 2024-12). Text is wrapped at 80 columns and each file is
-judged by markdownlint-cli2 with its default rules.
+that is used; no log4brains (unmaintained since 2024-12). Text is wrapped at 80 columns, as markdownlint's default
+rules want it.
 """
 import textwrap
 from pathlib import Path
