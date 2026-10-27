@@ -134,7 +134,8 @@ def changes_screens(feature):
     lock (eaos/live/behavior/intended.py): its own, else every screen ('all') when it changes a file every page shows."""
     declared = dict(feature.get('changes_screens') or {})
     if not declared.get('screens') and any(SHARED.search(_path(p)) for p in feature.get('paths') or []): declared['screens'] = ['all']
-    return {'screens': list(declared['screens']), 'adds': [str(w) for w in declared.get('adds') or []]} if declared.get('screens') else None
+    listed = lambda value: [value] if isinstance(value, str) else list(value or [])      # 'all' is one screen, not three
+    return {'screens': listed(declared['screens']), 'adds': [str(w) for w in listed(declared.get('adds'))]} if declared.get('screens') else None
 
 
 def _unnamed_addition(where, feature):

@@ -273,7 +273,9 @@ def _new_truth(batch, kept, cards):
     if not screens: return
     from ....live.behavior.intended import record_intended
     batch['say']('record')
-    record_intended(batch['report'], batch['root'], batch['runtime'], set(screens))
+    try: record_intended(batch['report'], batch['root'], batch['runtime'], set(screens))
+    except Exception as problem:    # noqa: BLE001 - the batch passed its gates: kept; the next card meets the older truth
+        batch.setdefault('limitations', []).append(f'the screens this batch changed could not be recorded again: {problem}'[:400])
 
 
 def _against_control(batch):
@@ -353,7 +355,8 @@ def _write_wave(batch, wave, kept, failed):
     if kept: git(root, 'format-patch', '--quiet', '-o', str(patches), f'{base}..HEAD')
     summary = {'wave': number, 'branch': branch or f'eaos/wave-{number}', 'root': str(root), 'base': base, 'kept': list(kept),
                'failed': failed, 'at': datetime.now(timezone.utc).isoformat(timespec='seconds'),
-               'stat': git(root, 'diff', '--shortstat', f'{base}..HEAD').stdout.strip(), **({'security': batch['security']} if batch.get('security') else {})}
+               'stat': git(root, 'diff', '--shortstat', f'{base}..HEAD').stdout.strip(), **({'security': batch['security']} if batch.get('security') else {}),
+               **({'limitations': batch['limitations']} if batch.get('limitations') else {})}
     (patches / 'wave.json').write_text(json.dumps(summary, ensure_ascii=False, indent=1) + '\n', encoding='utf-8')
     return summary
 

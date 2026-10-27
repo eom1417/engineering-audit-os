@@ -124,7 +124,8 @@ _DECLARED = (
                       "database of the run's own and tried per table with pgTAP as no one, the owner and another user (and the "
                       "Supabase advisors), the API tried by Schemathesis with two test accounts; each failure a finding with "
                       'its evidence'),
-    Stage('experience', produces=('experience/run.json',), requires=('setup',), reads=('roles', 'session', 'screens'),
+    # after the lock recorded its screens: the simulated users and their seeded history change the copy's data
+    Stage('experience', produces=('experience/run.json',), requires=('setup',), reads=('roles', 'session', 'screens', 'record', 'journeys'),
           necessity=OPTIONAL, uses=('app',),
           absent_when='the person did not choose to try the experience (the `experience` path, or its short option beside '
                       'the complete check, its time and cost said before it starts), no assistant was installed or allowed, '

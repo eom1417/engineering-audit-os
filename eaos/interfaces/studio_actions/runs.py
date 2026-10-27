@@ -123,7 +123,10 @@ class Manager(Turns, Answers, Outcomes):
             self.store.wait_change(0.5)
 
     def dispatch(self):
-        with self._mutex:
+        # the answer's lock too (run_answers.py): a server answering a run decides whether the slot is taken at the same
+        # moment another server starts a queued run, and both would work on the project at once
+        with self._mutex, (self.store.folder / 'question-answer.lock').open('a+') as lock:
+            fcntl.flock(lock, fcntl.LOCK_EX)
             go_on = self._answered_next()           # an answered run first: it was started before any queued one
             run = None if go_on else self._next_run()
             if run is None and go_on is None: return

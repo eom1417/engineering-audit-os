@@ -103,7 +103,7 @@ class IdealStage(unittest.TestCase):
         self.assertEqual(state, 'planned')
         self.assertEqual([row['id'] for row in record['dropped']], ['s9'])
         self.assertEqual(ideal.section(self.report, 'en')['views']['system']['provenance']['method'], 'planned')
-        self.assertEqual([row['name'] for row in stage_rows(STAGES) if row['ai']], ['roles', 'session', 'semantic', 'triage', 'visual', 'ideal', 'pipeline_gaps', 'order', 'translate'])
+        self.assertEqual([row['name'] for row in stage_rows(STAGES) if row['ai']], ['roles', 'session', 'experience', 'semantic', 'triage', 'visual', 'ideal', 'pipeline_gaps', 'order', 'translate'])
         self.assertEqual({BY_NAME[name].requires for name in ('triage', 'ideal', 'pipeline_gaps')}, {('proposals',)})
         self.assertEqual(BY_NAME['order'].requires, ('cards',))
 
@@ -226,6 +226,8 @@ class Consent(unittest.TestCase):
         from eaos.ai.assistant.command import Provider
         reply = 'Here is the answer:\n{"users": [{"role": "admin"}]}\nEach row has a {role} field, as {asked}.'
         self.assertEqual(claude_adapter.parse(reply), {'users': [{'role': 'admin'}]})
+        quoted = 'package.json says {"name": "app", "scripts": {"test": "jest"}}; my answer: {"ok": true}'
+        self.assertEqual(claude_adapter.parse(quoted), {'ok': True}, 'the review of M10: never a larger object it quoted')
         failing = ('import sys; sys.stdin.read(); sys.stderr.write(\'{"type": "stream_event", "secret": "raw"}\\n\'); '
                    'sys.stderr.write("claude adapter: the model returned no JSON object\\n"); sys.exit(1)')
         with self.assertRaises(ValueError) as failed:

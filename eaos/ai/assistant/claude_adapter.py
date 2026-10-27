@@ -42,14 +42,21 @@ def parse(text):
 
 
 def _object_in(text):
-    """The longest JSON object starting at one of the braces of `text`; ValueError when there is none."""
-    decoder, found = json.JSONDecoder(), []
-    for start in (index for index, char in enumerate(text) if char == '{'):
+    """The answer's JSON object in `text`: the whole span from its first brace to its last when it is one object, else
+    the last object standing on its own (never one inside another: an answer after prose quoting a larger object, or a
+    piece of the answer, is not the answer); ValueError when there is none."""
+    decoder, start, last = json.JSONDecoder(), text.find('{'), None
+    try:
+        whole = json.loads(text[start:text.rfind('}') + 1]) if start >= 0 else None
+        if isinstance(whole, dict): return whole
+    except ValueError: pass
+    while start >= 0:
         try: value, end = decoder.raw_decode(text, start)
-        except ValueError: continue
-        if isinstance(value, dict): found.append((end - start, value))
-    if not found: raise ValueError('the model returned no JSON object')
-    return max(found, key=lambda row: row[0])[1]
+        except ValueError: start = text.find('{', start + 1); continue
+        if isinstance(value, dict): last = value
+        start = text.find('{', end)
+    if last is None: raise ValueError('the model returned no JSON object')
+    return last
 
 
 def stream(argv, conversation, env=None):

@@ -74,14 +74,15 @@ def _start(live, lock):
 
 def _pass(live, lock, base, output, how):
     """One Playwright pass; `how` is (update: record the screens, the kind of user it runs as or None, its spec files,
-    the folder its screens' words are written to or None)."""
-    update, kind, files, words = how
+    the folder its screens' words are written to or None, keep: the pictures become the lock's original ones: never on
+    the re-recording of a kept batch's screens, intended.py, whose pictures are kept apart by its commit)."""
+    update, kind, files, words, keep = how
     output.parent.mkdir(parents=True, exist_ok=True)
     argv = ['playwright', 'test', '--config', 'lock.config.ts', '--project=lock', '--no-deps', '--workers=1',
             *(['--update-snapshots=all'] if update else []), *files]
     stream = output.parent / STREAM
     if stream.exists(): stream.unlink()
-    screens = Screens(stream, lock / '__screenshots__', output.parent / 'snapshots', keep=update).start()
+    screens = Screens(stream, lock / '__screenshots__', output.parent / 'snapshots', keep=keep).start()
     try:
         code, out, err = live.sandbox.run(argv, timeout=3600, network=True, cwd='.eaos-lock',
                                           env={**live.run_env(), 'BASE_URL': base, 'EAOS_LOCK_REPORT': str(output),
@@ -147,7 +148,7 @@ def _run_specs(live, lock, base, recorded, how):
     statuses, words = {}, (recorded / f'words-{how.name}') if how.intended else None     # removed once judged
     for kind, files in passes(lock) if (lock / 'playwright.config.ts').is_file() else []:
         mark = f'@{kind}' if kind else ''         # a kind's pass: its specs' statuses beside the run's one session's
-        report = _pass(live, lock, base, recorded / f'playwright-{how.name}{mark}.json', (how.update, kind, files, words))
+        report = _pass(live, lock, base, recorded / f'playwright-{how.name}{mark}.json', (how.update, kind, files, words, how.update and how.name != 'intended'))
         found = spec_statuses(report, how.declared, how.known, for_pass(how.intended, lock, words, kind))
         statuses.update({file + mark: status for file, status in found.items()})
     if words: shutil.rmtree(words, ignore_errors=True)

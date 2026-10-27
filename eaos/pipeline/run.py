@@ -223,7 +223,9 @@ def bulky(out, patterns=None):
     from ..facts.engine_findings import SCRATCH
     out = Path(out)
     patterns = patterns or (*BULKY, *(f'engines/{part}' for part in SCRATCH))
-    return sorted({path for pattern in patterns for path in out.glob(pattern)})
+    # a pattern ending in / names folders only: before Python 3.11 glob ignored the /, and experience/journeys/*/ took
+    # the saved journeys beside their picture folders
+    return sorted({path for pattern in patterns for path in out.glob(pattern) if not pattern.endswith('/') or path.is_dir()})
 
 
 def clear(out, patterns=None):

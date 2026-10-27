@@ -97,3 +97,10 @@ class IntendedChangeTests(Workspace):
         git('checkout', '-q', base)
         restore_intended(recorded, lock, repo)
         self.assertFalse((lock / '__screenshots__/root.spec.ts/root.text.txt').exists(), 'code without the change keeps the original')
+
+
+class Declaration(Workspace):
+    def test_a_single_screen_or_word_given_as_text_is_one_not_its_letters(self):
+        # the review of M10: 'all' became ['a', 'l', 'l'] and the lock refused every screen
+        from eaos.journeys.extend import changes_screens
+        self.assertEqual(changes_screens({'changes_screens': {'screens': 'all', 'adds': 'About'}}), {'screens': ['all'], 'adds': ['About']})

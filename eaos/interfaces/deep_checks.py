@@ -66,7 +66,7 @@ def logic_flaws_tool(project=None, person_agreed=False, minutes=None):
     from ..journeys import agent_tools, guided
     state = agent_tools.state_of(project)
     if not guided.scan_done(state): return {'error': 'there is no check to hunt logic flaws from', 'what_now': 'Call audit first.'}
-    minutes = minutes or hunt.MINUTES
+    minutes = min(max(int(minutes or hunt.MINUTES), 1), 240)       # the command's bound (bounded_int) and a ceiling
     if not person_agreed:
         return {'status': 'needs_agreement', 'ask_the_person': SPEND.format(minutes=minutes),
                 'what_now': 'Ask the person; only after their yes, call again with person_agreed=true. It returns a job to follow with wait.'}
