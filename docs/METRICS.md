@@ -6,7 +6,7 @@ The numbers of EAOS, measured at each milestone end, oldest first. `tools/metric
 assistant (`tools/*_proof.py`) measure the journeys. Numbers are compared with the section before; a worse number
 needs its reason here.
 
-Latest: **0.0.85**, M12 (below). M7 (0.0.79) has no section of its own: what it changed is proved by the
+Latest: **0.0.86**, M13 (below). M7 (0.0.79) has no section of its own: what it changed is proved by the
 fix proof in the golden trial, not by a number.
 
 ## Baseline: 0.0.71 (2026-10-23), EAOS's own check of `develop`
@@ -213,6 +213,25 @@ The simulated users on three corpus apps of different kinds (`tools/experience_p
 
 The short simulation adds 11-62 s and 1-7 light calls to a complete check and confirmed nothing on these runs; the whole
 simulation found one real failure a person would meet. The replays cost nothing and are green.
+
+## After M13: 0.0.86 (2026-10-28), old engines
+
+| Measure | Value |
+|---|---|
+| Detection baseline | **21 of 21** planted problems found (19 before: the switched-off export and the two totals each a card); the 4 examples that must stay not found |
+| What ran, on the baseline app's check | the tests: 1 file; the Node server while the pages were opened: 4 files, 10 functions ran, 7 never; the browser: no script named as a project file (its page's script is inline) |
+| The switched-off export | CONFIRMED: the server's run measured `export.js` and never ran `oldExportFile` |
+| False alarms on EAOS's own code (the tests and the built Studio excluded) | 0 old-engine cards, after `new`, `next` and `previous` stopped counting as markers (4 before) and a pair was held to one folder and one language |
+| False alarms on the compatibility corpus (15 apps, the code alone) | 0 |
+| Compatibility corpus, every app's server run with coverage on | **15 of 15** run and pictured, after two defects it found were fixed (a Python server's `-u` given to Coverage.py; a bundler's workers still writing after the stop) |
+
+### The cost of adding a tool
+
+| Tool or rule | Files | Lines | Core changed | Time |
+|---|---|---|---|---|
+| ast-grep switch rules (M13.1) | the rule file (142) and its examples (78) | 220 | no; the ast-grep adapter now keeps a branch body's lines (8 lines), for any rule that captures one | under 1 h |
+| Coverage while the app runs (M13.2) | `live/testing/ran.py` (157), a Node preload (4), the crawl's JS coverage (20), the tests' record (17) | 198 | yes, small: the app's start goes through one function that turns coverage on (12 lines in `live/app/run.py`), and the shared app's close records it (5) | about 3 h |
+| The sorting and its cards (M13.1, M13.3, M13.4) | two assessments (250, 100), one claims module (147), one line each in the probes, the remediation, the words, the score's patterns, the debt register, the check paths | 497 + 15 | no | about 3 h |
 
 ## After M12: 0.0.85 (2026-10-27), real data in the code
 

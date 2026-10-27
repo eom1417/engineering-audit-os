@@ -288,7 +288,9 @@ class Sandbox:
 
     @staticmethod
     def _kill(process):
-        """Terminate the whole process group, then kill what is left."""
+        """Terminate the whole process group, then kill what is left; return once no process of it is left, so none
+        still writes into a folder about to be read or removed (a bundler's workers wrote their coverage after their
+        leader ended, into a run folder being removed)."""
         try:
             os.killpg(process.pid, signal.SIGTERM)
             process.wait(timeout=5)
@@ -298,6 +300,7 @@ class Sandbox:
             try: os.killpg(process.pid, signal.SIGKILL)
             except ProcessLookupError: return
             process.wait()
+        _drained(process.pid)
 
     def stop(self):
         """Stop every started service (its whole process group) and record how each ended."""
@@ -315,6 +318,21 @@ class Sandbox:
         self.stop()
         shutil.rmtree(self.folder, ignore_errors=True)
         self._held.close()
+
+
+def _drained(group, wait=5.0):
+    """Wait until no process of the group is left, `wait` seconds at most, then kill what still is."""
+    deadline = time.monotonic() + wait
+    while time.monotonic() < deadline:
+        try: os.killpg(group, 0)
+        except (ProcessLookupError, PermissionError): return
+        time.sleep(0.1)
+    try: os.killpg(group, signal.SIGKILL)
+    except (ProcessLookupError, PermissionError): return
+    while time.monotonic() < deadline + 2:
+        try: os.killpg(group, 0)
+        except (ProcessLookupError, PermissionError): return
+        time.sleep(0.1)
 
 
 @contextmanager

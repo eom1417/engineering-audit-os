@@ -29,6 +29,7 @@ from .python_suite import DEFAULT_COMMANDS, INTERPRETER, command as _python_suit
 NAME = 'verification'
 VERSION = '1'
 from ...core.project.workspace import SKIP_DIRS, write
+from .ran import merged, python_report, record, v8 as v8_functions
 from .suite import COVERAGERC, suite_health, with_timing
 
 LIMITATIONS = [
@@ -266,22 +267,18 @@ def run_profile(target, out, runtime, timeout=1800):
     tests, covered = discover_tests(source, sets)
     result = {'target': str(target), 'out': str(out), 'test_files': tests, 'declared_coverage': covered,
               'executed': False, 'limitations': LIMITATIONS, 'attempts': []}
-    files, health = {}, []
+    files, health, lines = {}, [], []
     try:
         live.setup()
         for suite in suites:
-            at_root = suite[1]
-            folder = live.sandbox.copy / ('' if at_root else live.profile.get('app') or '')
-            (folder / '.eaos-coveragerc').write_text(COVERAGERC, encoding='utf-8')
-            python, ran = _run_tests(live, suite, folder, v8, timeout)
-            result['attempts'] += ran
-            covered, contexts = _python_coverage(live, python, folder, at_root) if python else ({}, {})
-            files.update(covered)
-            health.append(suite_health(folder, contexts))
+            attempts, covered, healthy, ran = _suite(live, suite, v8, timeout)
+            result['attempts'] += attempts
+            files.update(covered); health.append(healthy); lines.append(ran)
         result['suite'] = _one_suite(health)
         for path, row in v8_coverage(v8, live.sandbox.copy).items():
             files.setdefault(path, {'covered_lines': row['functions_hit'], 'statements': row['functions'], 'percent': row['percent'],
                                     'unit': 'functions'})
+        record(out, 'tests', merged(v8_functions(v8, live.sandbox.copy), *lines))     # what the tests ran, by function (M13.2)
     finally:
         live.stop()
         live.record('verify-log.json')
@@ -312,6 +309,17 @@ def _one_suite(suites):
     tests, count = sum(s['tests'] for s in suites), sum(s['redundant_count'] for s in suites)
     return {**suites[0], 'tests': tests, 'seconds': round(sum(s['seconds'] for s in suites), 1), 'slowest': slowest,
             'redundant': redundant[:30], 'redundant_count': count, 'redundant_share': round(count / tests, 3) if tests else None}
+
+
+def _suite(live, suite, v8, timeout):
+    """(attempts, its Python coverage rows, its health, the lines it ran) of one suite run in the copy."""
+    at_root = suite[1]
+    folder = live.sandbox.copy / ('' if at_root else live.profile.get('app') or '')
+    (folder / '.eaos-coveragerc').write_text(COVERAGERC, encoding='utf-8')
+    python, attempts = _run_tests(live, suite, folder, v8, timeout)
+    covered, contexts = _python_coverage(live, python, folder, at_root) if python else ({}, {})
+    ran = python_report(folder / '.eaos-coverage.json', '' if at_root else live.profile.get('app') or '')
+    return attempts, covered, suite_health(folder, contexts), ran
 
 
 def _run_tests(live, suite, app, v8, timeout):

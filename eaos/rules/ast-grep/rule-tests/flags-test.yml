@@ -1,0 +1,78 @@
+id: eaos.flag.constant
+valid:
+  - 'function f() { const OFF = false; }'
+  - 'const LIMIT = 3;'
+invalid:
+  - 'const USE_OLD = false;'
+  - 'export const USE_OLD = true;'
+---
+id: eaos.flag.branch-read
+valid:
+  - 'if (a && b) { go(); }'
+invalid:
+  - 'if (USE_OLD) { old(); } else { fresh(); }'
+---
+id: eaos.flag.branch-negated
+valid:
+  - 'if (USE_OLD) { old(); }'
+invalid:
+  - 'if (!USE_OLD) { fresh(); }'
+---
+id: eaos.flag.constant-typescript
+valid:
+  - 'function f() { const OFF = false; }'
+  - 'const LIMIT = 3;'
+invalid:
+  - 'const USE_OLD = false;'
+  - 'export const USE_OLD = true;'
+---
+id: eaos.flag.branch-read-typescript
+valid:
+  - 'if (a && b) { go(); }'
+invalid:
+  - 'if (USE_OLD) { old(); } else { fresh(); }'
+---
+id: eaos.flag.branch-negated-typescript
+valid:
+  - 'if (USE_OLD) { old(); }'
+invalid:
+  - 'if (!USE_OLD) { fresh(); }'
+---
+id: eaos.flag.constant-tsx
+valid:
+  - 'function f() { const OFF = false; }'
+  - 'const LIMIT = 3;'
+invalid:
+  - 'const USE_OLD = false;'
+  - 'export const USE_OLD = true;'
+---
+id: eaos.flag.branch-read-tsx
+valid:
+  - 'if (a && b) { go(); }'
+invalid:
+  - 'if (USE_OLD) { old(); } else { fresh(); }'
+---
+id: eaos.flag.branch-negated-tsx
+valid:
+  - 'if (USE_OLD) { old(); }'
+invalid:
+  - 'if (!USE_OLD) { fresh(); }'
+---
+id: eaos.flag.constant-python
+valid:
+  - "def f():\n    OFF = False"
+  - 'debug = False'
+invalid:
+  - 'USE_OLD = False'
+---
+id: eaos.flag.branch-read-python
+valid:
+  - "if a and b:\n    go()"
+invalid:
+  - "if USE_OLD:\n    old()\nelse:\n    fresh()"
+---
+id: eaos.flag.branch-negated-python
+valid:
+  - "if USE_OLD:\n    old()"
+invalid:
+  - "if not USE_OLD:\n    fresh()"

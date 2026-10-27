@@ -190,6 +190,7 @@ def _layered(render, category, severity):
     (eaos/analysis/layers/catalog.py); any other item's as they were."""
     key, params = render.get('key'), render.get('params') or {}
     if key == 'repository_finding': return 'maintainability', 'low'      # never raises the risk grade (M7.8)
+    if key == 'old_engine': return 'dead_code', params.get('severity') or 'medium'
     if key in ('logic_flaw', 'experience_difficulty', 'real_data'): return params.get('category') or 'reliability', params.get('severity') or 'medium'
     if key != 'layer_finding': return category, severity
     return LAYER_CATEGORY.get(params.get('boundary'), 'architecture'), params.get('severity') or 'medium'

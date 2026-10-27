@@ -1,5 +1,39 @@
 # Changelog
 
+## 0.0.86 (2026-10-28)
+
+M13, old engines. A real project was called clean while two old engines were still wired in: each behind a switch fixed
+to false, still called from the branch the switch closes, so the dead-code check saw them reached and said nothing.
+Now:
+- **Switches** (`eaos/rules/ast-grep/rules/flags.yml`, JavaScript, TypeScript, TSX, Python, each with its examples):
+  a name fixed to true or false at a module's top, and every `if` that reads it, alone or negated, with its body's
+  lines. A switch counts only when nothing changes it (no other assignment, no module state seen changing) and the
+  branch reads it in its own file or one importing it by name. The branch it closes is the body, or what follows it
+  (its else, or the rest of its function when the body returns). A function is an old engine when every call to it is
+  in a closed branch and no other line names it (`eaos/analysis/assessments/old_engines.py`, EAOS's own call graph).
+- **What ran** (`eaos/live/testing/ran.py`, `live/ran-tests.json`, `ran-server.json`, `ran-browser.json`): the
+  project's own functions and lines run by its tests (Coverage.py, Node's V8 coverage), by its server while the pages
+  were opened (Node's V8 coverage, with a preload so a stopped server still writes it; Coverage.py for a Python server
+  whose interpreter has it, saved on SIGTERM) and in the browser (Chromium's JS coverage during the crawl, by the
+  address a development server serves). The raw coverage is removed once read.
+- **Code never run** (`eaos/analysis/assessments/never_run.py`): a function of a file that ran that no run ran, and a
+  module an entry point reaches that no run read, each a suspect with what ran around it: one card each for the
+  whole project, for the judge.
+- **Two engines doing one job**: two functions (or modules) in one place whose names are one name a marker apart
+  (old, legacy, deprecated, or two versions), taking the same input, the old one still called; their history when the
+  repository has one. `new`, `next` or `previous` alone are a name's meaning, never a marker.
+- **One card each** (`old_engine`, in both languages) saying what replaced it and the proof nothing runs it: a
+  switched-off engine is CONFIRMED when the runs measured its file and ran none of it. Its probe reads the code again.
+- **Planted in the detection baseline**: an export behind `USE_OLD_EXPORT = false`, a total worked out by `totalV1`
+  and `totalV2`; a switch fixed on whose branch runs must stay unfound. "Old engines still wired in" is off the list
+  of what this version does not check.
+- Found while proving it, both fixed with their test: a Python server started as `python -u` had its option given to
+  Coverage.py, which refused it; and a stopped service returned while its bundler's workers still wrote into the
+  run's folder. The interpreter's options stay its own, and a stop now waits for the whole process group.
+
+Measured: the detection baseline 21 of 21 with nothing that must stay found; no old-engine card on EAOS's own code or
+on the corpus; the corpus 15 of 15 with every server run with coverage on.
+
 ## 0.0.85 (2026-10-27)
 
 M12, real data in the code. A real project checked several times held its staff (names, phones, ids), a table of each

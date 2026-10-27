@@ -56,7 +56,9 @@ def normalise(rows, found):
     for row in rows:
         rule, meta = row['ruleId'], row.get('metadata') or {}
         by_rule[rule] = by_rule.get(rule, 0) + 1
-        captures = {name: value['text'] for name, value in ((row.get('metaVariables') or {}).get('single') or {}).items()}
+        single = (row.get('metaVariables') or {}).get('single') or {}
+        captures = {name: value['text'] for name, value in single.items()}
+        captures.pop('BODY', None)                                         # a branch's body by its lines only
         path, line = tool.relative(row['file']), row['range']['start']['line'] + 1
         symbol = captures.get('NAME') or captures.get('SETTER')
         if meta.get('kind') in KINDS:
@@ -66,8 +68,14 @@ def normalise(rows, found):
         metrics.append({'path': path, 'line': line, 'symbol': symbol, 'granularity': 'symbol',
                         'measurements': {'record': meta.get('record') or rule, 'rule': rule, 'form': meta.get('form'),
                                          'captures': dict(sorted(captures.items())),
-                                         'end_line': row['range']['end']['line'] + 1}})
+                                         'end_line': row['range']['end']['line'] + 1, **_spans(single)}})
     return (sorted(metrics, key=lambda m: (m['path'], m['line'])), findings, dict(sorted(by_rule.items())))
+
+
+def _spans(single):
+    """{'spans': {'BODY': [first line, last line]}}: the lines of a branch's body (M13.1); nothing for a rule without
+    one, so the records of the other rules stay as they were."""
+    return {'spans': {'BODY': [single['BODY']['range']['start']['line'] + 1, single['BODY']['range']['end']['line'] + 1]}} if 'BODY' in single else {}
 
 
 @tool.engine(NAME, BINARY)

@@ -203,6 +203,26 @@
     "real personal data"
    ],
    "found": "card"
+  },
+  {
+   "id": "old-engine-switched",
+   "what": "a switch fixed to false (USE_OLD_EXPORT) closes the branch that alone calls the old export, oldExportFile (M13.4)",
+   "path": "export.js",
+   "line": 27,
+   "kinds": [
+    "old engine still wired in"
+   ],
+   "found": "card"
+  },
+  {
+   "id": "two-engines",
+   "what": "the report's total worked out by totalV1 and totalV2, both still called (M13.4)",
+   "path": "report.js",
+   "line": 31,
+   "kinds": [
+    "two engines doing one job"
+   ],
+   "found": "card"
   }
  ],
  "must_stay": [
@@ -231,6 +251,14 @@
    "kinds": [
     "real_data",
     "written in the code"
+   ]
+  },
+  {
+   "id": "switch-on",
+   "what": "a switch fixed to true whose branch runs (SHOW_COUNT): nothing it closes (M13.4)",
+   "path": "report.js",
+   "kinds": [
+    "show_count"
    ]
   }
  ]

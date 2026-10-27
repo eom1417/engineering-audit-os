@@ -236,3 +236,10 @@ def _engine_edges(target, codegraph_facts, kind, edge):
         new['value']['engine'] = value.get('tool', 'codegraph')
         out.append(new)
     return out
+
+
+def engine_records(sets, record):
+    """The engines' records of one kind (`record` in a symbol_metric_external fact: Presidio's personal values,
+    ast-grep's tables and switches) among the read fact sets."""
+    return [f for f in (sets.get('external') or {}).get('facts', [])
+            if f['kind'] == 'symbol_metric_external' and f['value'].get('record') == record]
