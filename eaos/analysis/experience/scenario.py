@@ -47,6 +47,8 @@ Each persona has one to five `goals`: `id` a short lowercase word, `goal` what t
 `start` the page they begin on (one of `pages` or a feature's surface, else "/"), `done_when` what they see on the
 screen when it worked, `waits_for` the goals (written "<persona>.<goal>") that must be done first, and `makes` a short
 name of what finishing it makes happen for someone else (order-placed), or null.
+A persona with a role starts signed in as that role (the check's own user): never make its goals wait for a visitor's
+sign-up, and wait on a goal of its own only when it needs what that goal made.
 A hand-off is one person's finished goal that lets another go on: `from` and `to` are goals written "<persona>.<goal>",
 `event` is the `makes` of the `from` goal. The user asks, the admin approves, the user goes on: that is two hand-offs.
 
@@ -176,6 +178,7 @@ def checked(scenario, roles):
     goals = {f"{p['id']}.{g['id']}": g for p in personas for g in p['goals']}
     for name, goal in goals.items(): goal['waits_for'] = _references(name, goal['waits_for'], goals, dropped)
     handoffs = _handoffs(_rows(scenario.get('handoffs')), goals, dropped)
+    _signed_in_first(personas, goals, dropped)
     _acyclic(goals, dropped)
     handoffs = [h for h in handoffs if h['from'] in goals[h['to']]['waits_for']]
     return {'version': VERSION, 'personas': personas, 'handoffs': handoffs, 'dropped': dropped}
@@ -258,6 +261,18 @@ def _handoffs(rows, goals, dropped):
         kept.append({'from': giver, 'event': _slug(row.get('event')) or goals[giver]['makes'] or giver.split('.', 1)[1], 'to': taker})
         if giver not in goals[taker]['waits_for']: goals[taker]['waits_for'].append(giver)
     return kept
+
+
+def _signed_in_first(personas, goals, dropped):
+    """No goal of a signed-in persona waits for a visitor's goal: it starts signed in as its role (the check's own
+    user), so a stranger's sign-up gates nothing (flask-microblog, M10.10: one failed sign-up left 9 of 11 goals
+    blocked)."""
+    visitors = {p['id'] for p in personas if p.get('role') == 'visitor'}
+    for name, goal in goals.items():
+        if name.split('.', 1)[0] in visitors: continue
+        for wait in [w for w in goal['waits_for'] if w.split('.', 1)[0] in visitors]:
+            goal['waits_for'].remove(wait)
+            dropped.append({'what': f'{name} waits for {wait}', 'why': 'a signed-in persona starts signed in: a visitor gates nothing'})
 
 
 def _acyclic(goals, dropped):
