@@ -318,6 +318,39 @@
    }
   },
   {
+   "id": "experience",
+   "tool": "experience",
+   "group": "understand",
+   "label": {
+    "en": "How the users fared",
+    "ar": "تجربة المستخدمين"
+   },
+   "description": {
+    "en": "",
+    "ar": ""
+   },
+   "mode": "direct",
+   "needs_assistant": false,
+   "irreversible": false,
+   "needs_consent": false,
+   "returns_job": false,
+   "changes_code": false,
+   "inputs": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+     "project": {
+      "type": [
+       "string",
+       "null"
+      ],
+      "description": "The project folder; the Studio fills it with the project it serves."
+     }
+    },
+    "required": []
+   }
+  },
+  {
    "id": "audit",
    "tool": "audit",
    "group": "check",
