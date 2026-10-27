@@ -21,6 +21,7 @@ import shutil
 import signal
 import subprocess
 import sys
+import threading
 import time
 import traceback
 from contextlib import contextmanager
@@ -52,7 +53,9 @@ def _path(job, project):
 def _write(record):
     path = _path(record['id'], record['project'])
     path.parent.mkdir(parents=True, exist_ok=True)
-    temporary = path.with_suffix('.tmp')
+    # a temporary file of its own per writer (as core/project/runs.py): the job and its progress write the same record at
+    # once, and a shared name was renamed away under the other (the golden trial's clean twin, 2026-10-27)
+    temporary = path.with_name(path.name + f'.{os.getpid()}.{threading.get_ident()}.tmp')
     temporary.write_text(json.dumps(record, ensure_ascii=False, indent=1) + '\n', encoding='utf-8')
     temporary.replace(path)
 
