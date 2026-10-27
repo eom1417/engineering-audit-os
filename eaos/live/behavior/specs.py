@@ -219,11 +219,15 @@ def _page_test(route, target, name, guard):
             "    await page.waitForLoadState('networkidle');",
             "    await page.waitForFunction(() => document.body.innerText.trim().length > 0, null, { timeout: 60000 }).catch(() => {});",
             f"    expect(messages.join('\\n')).toMatchSnapshot('{name}.console.txt');",
-            f"    await expect(page).toHaveScreenshot('{name}.png', {{ fullPage: true, maxDiffPixelRatio: 0.01 }});",
+            # Soft: a picture that differs still lets its words be read, so a declared addition is judged by them (intended.py).
+            f"    await expect.soft(page).toHaveScreenshot('{name}.png', {{ fullPage: true, maxDiffPixelRatio: 0.01 }});",
             # Its words too: a sentence changed is under 1% of a page's pixels (the fix proof, M7.0). Checked once recorded
-            # (EAOS_LOCK_UPDATE, or a lock recorded before held no words).
+            # (EAOS_LOCK_UPDATE, or a lock recorded before held no words); written where EAOS_LOCK_WORDS asks.
+            "    const words = (await page.locator('body').innerText()).replace(/\\s+/g, ' ').trim();",
+            f"    if (process.env.EAOS_LOCK_WORDS) {{ const seen = path.join(process.env.EAOS_LOCK_WORDS, path.relative(path.join(__dirname, '..', '__screenshots__'), test.info().snapshotPath('{name}.text.txt')));",
+            "      fs.mkdirSync(path.dirname(seen), { recursive: true }); fs.writeFileSync(seen, words); }",
             f"    if (process.env.EAOS_LOCK_UPDATE || fs.existsSync(test.info().snapshotPath('{name}.text.txt')))",
-            f"      expect((await page.locator('body').innerText()).replace(/\\s+/g, ' ').trim()).toMatchSnapshot('{name}.text.txt');",
+            f"      expect(words).toMatchSnapshot('{name}.text.txt');",
             '  });']
 
 

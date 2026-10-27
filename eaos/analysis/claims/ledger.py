@@ -9,6 +9,7 @@ import os
 from pathlib import Path
 from .duplicates import duplicated_rules, redundant_work, sequences, structural_duplicates
 from .engine_measures import engine_measurement
+from .from_experience import experience
 from .from_layers import layer_findings
 from .from_logic_flaws import logic_flaws
 from .from_repository import repository_findings
@@ -24,7 +25,8 @@ PROVING_METHODS = {'runtime_probe', 'test_evidence', 'static_fact', 'history_fac
 # The builders of the claims facts earn (eaos/analysis/claims/from_facts.py), in ledger order: the claims are numbered in it.
 BUILDERS = (cycles, cochanges, duplicated_rules, hotspots, large_modules, mutable_globals, external_writes,
             structural_duplicates, sequences, redundant_work, policy_violations, trace_gaps, dead_code, broken_code,
-            vulnerable_dependencies, weaknesses, layer_findings, logic_flaws, repository_findings)
+            vulnerable_dependencies, weaknesses, layer_findings, logic_flaws, repository_findings,
+            experience)
 TYPES = ['structure', 'responsibility', 'contract', 'business_rule', 'flow_step', 'risk', 'cause', 'capability_gap', 'cost']
 
 
@@ -46,7 +48,8 @@ VERDICTS = DATA / 'detector-verdicts.json'
 
 # The card keys whose detector is one of their params: (the detector's prefix, the param).
 DETECTED_BY = {'engine_cluster': ('engine_cluster', 'kind'), 'layer_finding': ('layer', 'rule'),
-               'repository_finding': ('repository', 'rule'), 'logic_flaw': ('logic', 'class')}
+               'repository_finding': ('repository', 'rule'), 'logic_flaw': ('logic', 'class'),
+               'experience_difficulty': ('experience', 'kind')}
 
 
 def detector_of(claim):

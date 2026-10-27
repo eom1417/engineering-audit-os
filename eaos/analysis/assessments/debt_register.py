@@ -184,10 +184,10 @@ def _with_credentials(evidence, all_facts, severity):
 def _layered(render, category, severity):
     """(category, severity): a layer finding's own, its boundary's category and its rule's severity
     (eaos/analysis/layers/catalog.py); any other item's as they were."""
-    if render.get('key') == 'repository_finding': return 'maintainability', 'low'      # never raises the risk grade (M7.8)
-    if render.get('key') == 'logic_flaw': return (render.get('params') or {}).get('category') or 'reliability', (render.get('params') or {}).get('severity') or 'medium'
-    if render.get('key') != 'layer_finding': return category, severity
-    params = render.get('params') or {}
+    key, params = render.get('key'), render.get('params') or {}
+    if key == 'repository_finding': return 'maintainability', 'low'      # never raises the risk grade (M7.8)
+    if key in ('logic_flaw', 'experience_difficulty'): return params.get('category') or 'reliability', params.get('severity') or 'medium'
+    if key != 'layer_finding': return category, severity
     return LAYER_CATEGORY.get(params.get('boundary'), 'architecture'), params.get('severity') or 'medium'
 
 

@@ -73,19 +73,21 @@ def _start(live, lock):
 
 
 def _pass(live, lock, base, output, how):
-    """One Playwright pass; `how` is (update: record the screens, the kind of user it runs as or None, its spec files)."""
-    update, kind, files = how
+    """One Playwright pass; `how` is (update: record the screens, the kind of user it runs as or None, its spec files,
+    the folder its screens' words are written to or None, keep: the pictures become the lock's original ones: never on
+    the re-recording of a kept batch's screens, intended.py, whose pictures are kept apart by its commit)."""
+    update, kind, files, words, keep = how
     output.parent.mkdir(parents=True, exist_ok=True)
     argv = ['playwright', 'test', '--config', 'lock.config.ts', '--project=lock', '--no-deps', '--workers=1',
             *(['--update-snapshots=all'] if update else []), *files]
     stream = output.parent / STREAM
     if stream.exists(): stream.unlink()
-    screens = Screens(stream, lock / '__screenshots__', output.parent / 'snapshots', keep=update).start()
+    screens = Screens(stream, lock / '__screenshots__', output.parent / 'snapshots', keep=keep).start()
     try:
         code, out, err = live.sandbox.run(argv, timeout=3600, network=True, cwd='.eaos-lock',
                                           env={**live.run_env(), 'BASE_URL': base, 'EAOS_LOCK_REPORT': str(output),
                                                'EAOS_LOCK_STREAM': str(stream), 'EAOS_LOCK_KIND': kind or '',
-                                               'EAOS_LOCK_UPDATE': '1' if update else ''})
+                                               'EAOS_LOCK_UPDATE': '1' if update else '', 'EAOS_LOCK_WORDS': str(words or '')})
     finally:
         screens.stop()
     live.log.append({'argv': argv, 'exit': code, 'tail': (out + err)[-3000:]})     # why a spec did not run
@@ -130,23 +132,26 @@ def _approved(lock, statuses):
 class LockPass(NamedTuple):
     """One pass of the lock's specs: its name (its reports' and log's), whether it records (the first pass on the
     original), and what may differ without failing it: the screens `declared` to change, the tests `known` to fail
-    before the change (spec_statuses)."""
+    before the change (spec_statuses), the screens `intended` to change by a declared addition only (intended.py)."""
     name: str
     update: bool = False
     declared: tuple = ()
     known: tuple = ()
+    intended: dict = None
 
 
 def _run_specs(live, lock, base, recorded, how):
     """{spec file: (status, reason)} of one pass `how` (LockPass) of every spec the lock holds: the screens with
     Playwright, the interfaces of the code with pytest; their reports are playwright-<name>.json and approvals-<name>.xml
     in `recorded`."""
-    statuses = {}
+    from .intended import for_pass
+    statuses, words = {}, (recorded / f'words-{how.name}') if how.intended else None     # removed once judged
     for kind, files in passes(lock) if (lock / 'playwright.config.ts').is_file() else []:
         mark = f'@{kind}' if kind else ''         # a kind's pass: its specs' statuses beside the run's one session's
-        report = _pass(live, lock, base, recorded / f'playwright-{how.name}{mark}.json', (how.update, kind, files))
-        found = spec_statuses(report, how.declared, how.known)
+        report = _pass(live, lock, base, recorded / f'playwright-{how.name}{mark}.json', (how.update, kind, files, words, how.update and how.name != 'intended'))
+        found = spec_statuses(report, how.declared, how.known, for_pass(how.intended, lock, words, kind))
         statuses.update({file + mark: status for file, status in found.items()})
+    if words: shutil.rmtree(words, ignore_errors=True)
     if (lock / 'approvals').is_dir():
         statuses.update(_approvals(live, lock, recorded / f'approvals-{how.name}.xml', how.update))
     return statuses
@@ -359,6 +364,8 @@ def verify_lock(report, target, runtime, how=LockPass('results-after')):
                            'run `eaos live lock` first')
     live = LiveRun(target, runtime, 'S09')
     lock = _prepare(live, report, recorded)
+    from .intended import restore_intended
+    restore_intended(recorded, lock, target)         # the new truth of the kept intended changes this code holds
     try:
         base = _start(live, lock)
         lend_kinds(report, lock, lock / '.auth/user.json')

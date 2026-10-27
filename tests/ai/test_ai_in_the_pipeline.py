@@ -103,7 +103,7 @@ class IdealStage(unittest.TestCase):
         self.assertEqual(state, 'planned')
         self.assertEqual([row['id'] for row in record['dropped']], ['s9'])
         self.assertEqual(ideal.section(self.report, 'en')['views']['system']['provenance']['method'], 'planned')
-        self.assertEqual([row['name'] for row in stage_rows(STAGES) if row['ai']], ['roles', 'session', 'semantic', 'triage', 'visual', 'ideal', 'pipeline_gaps', 'order', 'translate'])
+        self.assertEqual([row['name'] for row in stage_rows(STAGES) if row['ai']], ['roles', 'session', 'experience', 'semantic', 'triage', 'visual', 'ideal', 'pipeline_gaps', 'order', 'translate'])
         self.assertEqual({BY_NAME[name].requires for name in ('triage', 'ideal', 'pipeline_gaps')}, {('proposals',)})
         self.assertEqual(BY_NAME['order'].requires, ('cards',))
 
@@ -218,6 +218,22 @@ class Consent(unittest.TestCase):
         argv = run.call_args.args[0]
         self.assertEqual((argv[argv.index('-C') + 1], argv[argv.index('-s') + 1]), ('/copy', 'read-only'))
         self.assertIn('model_reasoning_effort="high"', argv)
+
+    def test_an_answer_with_braces_in_its_prose_is_read_and_a_failed_adapter_says_its_own_reason(self):
+        # EAOS's own check: the sign-in's assistant answered, its use was recorded, and the step failed with only
+        # "Model adapter exited unsuccessfully": its reply had prose with braces after the object
+        from eaos.ai.assistant import claude_adapter
+        from eaos.ai.assistant.command import Provider
+        reply = 'Here is the answer:\n{"users": [{"role": "admin"}]}\nEach row has a {role} field, as {asked}.'
+        self.assertEqual(claude_adapter.parse(reply), {'users': [{'role': 'admin'}]})
+        quoted = 'package.json says {"name": "app", "scripts": {"test": "jest"}}; my answer: {"ok": true}'
+        self.assertEqual(claude_adapter.parse(quoted), {'ok': True}, 'the review of M10: never a larger object it quoted')
+        failing = ('import sys; sys.stdin.read(); sys.stderr.write(\'{"type": "stream_event", "secret": "raw"}\\n\'); '
+                   'sys.stderr.write("claude adapter: the model returned no JSON object\\n"); sys.exit(1)')
+        with self.assertRaises(ValueError) as failed:
+            Provider({'argv': [sys.executable, '-c', failing]}).complete([{'role': 'user', 'content': 'hi'}])
+        self.assertIn('the model returned no JSON object', str(failed.exception))
+        self.assertNotIn('raw', str(failed.exception), 'never the rest of its stderr')
 
     def test_the_choice_is_kept_per_project_and_one_not_ready_is_never_used_silently(self):
         state = {'lang': 'en', 'project': str(self.project), 'workspace': str(guided.workspace(self.project)), 'questions': []}

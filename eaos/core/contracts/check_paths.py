@@ -23,6 +23,9 @@ PATHS = {
               'patterns': ('load_blocker', 'redundant_work')},
     # the layers tried on the running app (M6.6, M6.7): beside `complete` it is an option of the full check
     'layers': {'stages': ('setup', 'session', 'layers_trial'), 'patterns': ('layer_boundary', 'security_weakness')},
+    # simulated users on the running app (M10.9): alone the whole simulation, beside `complete` its short option; the
+    # difficulties' cards have no pattern of their own (eaos/analysis/repair/remediation.py classify: generic)
+    'experience': {'stages': ('roles', 'setup', 'session', 'experience'), 'patterns': ('generic',)},
 }
 # each path's (English, Arabic) name and what it looks at, as its readers take them
 for _id, _path in PATHS.items():

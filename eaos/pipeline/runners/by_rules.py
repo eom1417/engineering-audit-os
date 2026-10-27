@@ -9,6 +9,7 @@ from pathlib import Path
 
 from .by_assistant import ideal, order, pipeline_gaps, proposals, roles, semantic, translate, triage, visual
 from .live_app import NO_RUN, _keep, _live, _ran
+from .experience import experience, replayed
 from .layers_live import layers_trial
 from .pages import crawl, journeys, screens
 from ..stages import SkipStage
@@ -119,6 +120,7 @@ def record(context):
     from ...live.behavior.lock import run_lock
     from .live_app import shared_app
     result = run_lock(context.out, context.target, runtime, app=shared_app(context))     # on the app the person signed in to
+    result = replayed(context, result)                   # the saved journeys, replayed with no assistant, as its rows
     passed = sum(r['status'] == 'passed' for r in result['results'])
     _keep(context, 'lock.json', {**result, 'specs': len(result['results']), 'passed': passed})
     return {'specs': len(result['results']), 'passed': passed}
@@ -300,7 +302,7 @@ def features(context):
 
 RUNNERS = {'setup': setup, 'crawl': crawl, 'record': record, 'screens': screens, 'baseline': baseline,
            'facts': facts, 'features': features, 'intake': intake, 'measure': measure, 'lock': lock, 'reports': reports,
-           'engines': engines, 'policy': policy, 'layers': layers, 'layers_trial': layers_trial, 'claims': claims, 'probe': probe, 'load': load, 'semantic': semantic, 'roles': roles,
+           'engines': engines, 'policy': policy, 'layers': layers, 'layers_trial': layers_trial, 'experience': experience, 'claims': claims, 'probe': probe, 'load': load, 'semantic': semantic, 'roles': roles,
            'plan': plan}
 
 
@@ -318,8 +320,15 @@ def cards(context):
     from ...analysis.planning.extension import carry
     from ...analysis.planning.cards import confirm
     record = confirm(context.target, context.out, context.language, triaged=_ran(context, 'triage'), reviewed=_ran(context, 'visual'))
+    _experience_cards(context)
     return {'extension': carry(context.target, context.out), 'kept': len(record['kept']), 'set_aside': len(record['set_aside']), 'doubted': len(record['doubted']),
             'design': len(record['design']), 'decided_by': record['decided_by']}
+
+
+def _experience_cards(context):
+    """The experience report told again once the plan's cards are final, each confirmed difficulty with its fix card."""
+    from ...report.experience.document import DATA, FOLDER, write
+    if (context.out / FOLDER / DATA).exists(): write(context.out, context.language)
 
 
 def reconcile(context):

@@ -245,8 +245,11 @@ class KindTests(Workspace):
         with mock.patch.object(behavior_lock, '_pass', side_effect=one_pass):
             recorded = behavior_lock._results(report, behavior_lock._run_specs(None, lock, None, Path(self.tmp), behavior_lock.LockPass('record', True)))
             after = behavior_lock._results(report, behavior_lock._run_specs(None, lock, None, Path(self.tmp), behavior_lock.LockPass('verify')))
-        self.assertEqual(ran[:2], [('playwright-record.json', (True, None, [])),
-                                   ('playwright-record@admin.json', (True, 'admin', ['playwright/admin.spec.ts']))])
+        self.assertEqual(ran[:2], [('playwright-record.json', (True, None, [], None, True)),
+                                   ('playwright-record@admin.json', (True, 'admin', ['playwright/admin.spec.ts'], None, True))])
+        with mock.patch.object(behavior_lock, '_pass', side_effect=one_pass):
+            behavior_lock._run_specs(None, lock, None, Path(self.tmp), behavior_lock.LockPass('intended', True))
+        self.assertFalse(ran[-1][1][-1], "a kept batch's screens recorded again never become the lock's original pictures")
         self.assertIn({'path': 'playwright/admin.spec.ts', 'kind': 'admin', 'status': 'passed'}, recorded)
         (Path(self.tmp) / 'behavior-lock').mkdir(exist_ok=True)
         (Path(self.tmp) / 'behavior-lock/results.json').write_text(json.dumps({'results': recorded}))

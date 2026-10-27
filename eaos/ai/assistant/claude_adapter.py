@@ -31,15 +31,32 @@ def render(messages):
 
 
 def parse(text):
-    """The one JSON object in the model's reply; a fence or a sentence around it is tolerated, nothing else."""
+    """The JSON object in the model's reply; a fence or sentences around it are tolerated, even sentences with braces
+    (a reply after reading files ended "... the {id} field" after its object, and the whole call failed). The longest
+    object found wins: an example inside the prose is shorter than the answer."""
     text = re.sub(r'^```(?:json)?\s*|\s*```$', '', text.strip())
     try: value = json.loads(text)
-    except ValueError:
-        start, end = text.find('{'), text.rfind('}')
-        if start < 0 or end <= start: raise ValueError('the model returned no JSON object')
-        value = json.loads(text[start:end + 1])
+    except ValueError: value = _object_in(text)
     if not isinstance(value, dict): raise ValueError('the model returned JSON that is not an object')
     return value
+
+
+def _object_in(text):
+    """The answer's JSON object in `text`: the whole span from its first brace to its last when it is one object, else
+    the last object standing on its own (never one inside another: an answer after prose quoting a larger object, or a
+    piece of the answer, is not the answer); ValueError when there is none."""
+    decoder, start, last = json.JSONDecoder(), text.find('{'), None
+    try:
+        whole = json.loads(text[start:text.rfind('}') + 1]) if start >= 0 else None
+        if isinstance(whole, dict): return whole
+    except ValueError: pass
+    while start >= 0:
+        try: value, end = decoder.raw_decode(text, start)
+        except ValueError: start = text.find('{', start + 1); continue
+        if isinstance(value, dict): last = value
+        start = text.find('{', end)
+    if last is None: raise ValueError('the model returned no JSON object')
+    return last
 
 
 def stream(argv, conversation, env=None):
@@ -51,7 +68,8 @@ def stream(argv, conversation, env=None):
         sys.stderr.write(line)
         event = json.loads(line) if line.startswith('{') else None
         if isinstance(event, dict) and event.get('type') == 'result': result = event
-    if process.wait() != 0: raise RuntimeError(f'claude exited {process.returncode}')
+    if process.wait() != 0:      # its own words on why (an API error, a limit) are in its result event
+        raise RuntimeError(f'claude exited {process.returncode}' + (f": {str(result.get('result'))[:200]}" if result.get('result') else ''))
     return result
 
 

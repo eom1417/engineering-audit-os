@@ -70,11 +70,12 @@ def execute(target, out, *, only=(), skip=(), language='ar', exclude=(), engines
     head = _head(context, started_at, requested)
     head['options']['without_tools'] = sorted(without_tools)
     head.update(mode=mode, paths=paths or ['complete'])     # not options: a check goes on in another mode or path
+    context['paths'] = head['paths']                         # the experience's stage: whole alone, short beside complete
     log = ProgressLog(out)
     log.started(STAGES, requested, previous_seconds(out), mode=mode, assistants=context.assistants.count)
     run = {'completed': completed, 'requested': requested, 'results': {}, 'blocked': {}, 'log': log, 'context': context,
            'runners': runners, 'progress': progress, 'todo': todo, 'out': out, 'began': began, 'head': head,
-           'lock': threading.RLock()}
+           'lock': threading.RLock(), 'running': []}
     # What a stage reads of the run: the stages ended so far. It only asks of those it waits for, so it reads them
     # ended whatever else runs beside it (tests/pipeline/test_parallel.py).
     context['manifest_so_far'] = {'stages': run['results'], 'status': 'RUNNING'}
@@ -199,7 +200,11 @@ def _previous(out):
 # the ideal plan's raw runs another 40 MB (its record of them, ideal/runs.json, stays).
 # START-HERE.md too: kept, a check that never reached its reports showed the counts of the one before.
 BULKY = ('live/screens', 'live/screens.json', 'live/crawl', 'live/crawl.json', 'nodes/*/runs', 'nodes/*/cache', 'ideal/run-*',
-         'START-HERE.md', 'logic-flaws.json', 'facts/logic_flaws.json')     # the optional deep check's hunt, of older code
+         'START-HERE.md', 'logic-flaws.json', 'facts/logic_flaws.json',     # the optional deep check's hunt, of older code
+         # the simulated users' records, pictures and difficulties, of older code; the saved journeys
+         # (experience/journeys/<name>.json) and the scenario that orders them stay: every full check replays them
+         *(f'experience/{name}.json' for name in ('run', 'data', 'tickets', 'difficulties', 'replays', 'story')),
+         'experience/replays', 'experience/journeys/*/', 'facts/experience.json', 'EXPERIENCE.md')
 # The documents and records a check no longer writes (M1.4: 27 documents down to 8, their records kept; M1.5:
 # reports.json, which nothing read): any run removes a previous check's,
 # or the output contract (R13) finds them undeclared and the Studio's Library lists them as if current.
@@ -207,7 +212,9 @@ RETIRED = ('CONTRACTS.md', 'COUPLING-ATLAS.md', 'DECISION-BRIEF.md', 'DOMAIN-AND
            'FEATURES.md', 'FLOWS.md', 'LOAD-MODEL.md', 'MEASUREMENTS.md', 'ONBOARDING.md', 'POLICY.md', 'PROVENANCE.md',
            'RISK-REGISTER.md', 'ROADMAP.md', 'SEMANTIC.md', 'SUSTAINABILITY.md', 'SYSTEM-MAP.md', 'transform-plan.md',
            'reports.json')
-PICTURES = ('live/screens', 'live/crawl', 'nodes/*/runs', 'ideal/run-*')     # what `eaos clean --pictures` removes from every report
+# what `eaos clean --pictures` removes from every report: the simulated users' too (each journey's, its try again, its
+# second attempt and its replay), never the saved journeys
+PICTURES = ('live/screens', 'live/crawl', 'nodes/*/runs', 'ideal/run-*', 'experience/journeys/*/', 'experience/replays')
 
 
 def bulky(out, patterns=None):
@@ -216,7 +223,9 @@ def bulky(out, patterns=None):
     from ..facts.engine_findings import SCRATCH
     out = Path(out)
     patterns = patterns or (*BULKY, *(f'engines/{part}' for part in SCRATCH))
-    return sorted({path for pattern in patterns for path in out.glob(pattern)})
+    # a pattern ending in / names folders only: before Python 3.11 glob ignored the /, and experience/journeys/*/ took
+    # the saved journeys beside their picture folders
+    return sorted({path for pattern in patterns for path in out.glob(pattern) if not pattern.endswith('/') or path.is_dir()})
 
 
 def clear(out, patterns=None):

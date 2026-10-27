@@ -71,7 +71,7 @@ what the tools returned.
 # In a run the Studio started (EAOS_STUDIO_RUN set by eaos/interfaces/studio_actions), the assistant asks instead, and the person
 # answers in the Studio, which calls these itself.
 PERSON_ONLY = ('accept', 'undo', 'choose_branch', 'answer', 'branches merge', 'branches delete', 'branches protect', 'branches cleanup',
-               'branches restore', 'auto_accept', 'sign_in_forget')
+               'branches restore', 'auto_accept', 'sign_in_forget', 'logic_flaws')
 STUDIO = 'EAOS Studio'           # the name the Studio's own calls are recorded under
 
 
@@ -213,6 +213,25 @@ def _record_tools(server, reading, working):
     def ask(question: str, project: str | None = None) -> str:
         return tools.ask(question, project)
 
+    @server.tool(annotations=reading, description='How the app\'s users fared in the last experience run: each persona\'s goals in '
+                 'order with their result, time and steps counted, the difficulties ranked (confirmed first, then by severity), '
+                 'the tickets, the replays that broke, the services not covered, and the records missing. The full story with '
+                 'pictures is EXPERIENCE.md in the report (report_file). ' + PROJECT_DOC)
+    @_answer
+    def experience(project: str | None = None) -> str:
+        from ...journeys import guided
+        from ...report.experience.story import story, summary
+        return summary(story(guided.report_of(tools.state_of(project))))
+
+    @server.tool(annotations=working, description='Hunt logic flaws after a check (skipped steps, races, wrong checks): the person\'s '
+                 'assistant reads the code twice on its deep tier, then the check goes on from its claims so the cards include them. '
+                 'It spends: without person_agreed it answers needs_agreement with what it costs; ask the person, and only after '
+                 'their yes call again with person_agreed=true. minutes: the most it may take (default 40). Returns a job. ' + PROJECT_DOC)
+    @_answer
+    def logic_flaws(person_agreed: bool = False, minutes: int | None = None, project: str | None = None) -> str:
+        from .. import deep_checks
+        return deep_checks.logic_flaws_tool(project, person_agreed, minutes)
+
 
 def _audit_tool(server, reading, working):
     """The check itself, with every choice the person makes for it."""
@@ -232,7 +251,8 @@ def _audit_tool(server, reading, working):
                  'the last check goes on from that stage (one whose tool failed, or one to redo): it and the stages reading it run '
                  'again on the checked commit, the rest is kept; engines=[names] with again_from=engines runs only those tools. '
                  'paths=[...] checks only those paths, when the person has a clear goal: security, look (the screens), code '
-                 '(structure, quality, dead code), speed (load and scale); complete by default. mode=speed runs several '
+                 '(structure, quality, dead code), speed (load and scale), experience (simulated users try the running app; beside complete '
+                 'its short option, off by default: say its time and calls from the estimate first); complete by default. mode=speed runs several '
                  'assistants at once: faster, more tokens; say so before choosing it (kept). sign_in: when the app has a sign-in, how '
                  'its pages are opened (kept): hand (the person signs in on the sign-in page when the check asks; status then says '
                  'so), test_user (a seed script signs a test user in), none (signed out). published=<https address>: only when the '

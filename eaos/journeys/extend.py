@@ -12,6 +12,7 @@ fix_finish in eaos/journeys/agent_tools/: the tests, the app's own checks, the l
   (a later check keeps the cards not built yet: eaos/analysis/planning/extension.py, in the pipeline's cards stage)
 """
 import json
+import re
 import subprocess
 from pathlib import Path
 
@@ -30,9 +31,16 @@ SPEC = {**{k: v for k, v in blueprint.SPEC.items() if k not in ('look', 'stack_p
                       'functions': ['the new functions or components it writes, by name'],
                       'reuses': ['module#name of each function of the project it calls instead of writing it again'],
                       'layers': {'a new file no layer of eaos.policy.json matches yet': 'the layer it joins (the card declares it there)'},
-                      'tests': ['the test files that prove its acceptance']}]}
+                      'tests': ['the test files that prove its acceptance'],
+                      'changes_screens': {'screens': ["the routes of the existing screens it changes on purpose, 'all' when it "
+                                                      'changes a part every page shows (the navigation, the layout)'],
+                                          'adds': ['the words it adds to them (a link\'s text): the behaviour lock lets those '
+                                                   'screens differ by these words only']}}]}
 GENERIC = 3            # a function name in this many modules is a convention (main, render), not one home to reuse
 SHOWN = 300            # the reusable functions listed, the most called first
+# A file every page shows (a base template, a layout, the app's shell, the navigation): a change to it changes every screen.
+SHARED = re.compile(r'(^|/)(base|layout|_layout|__root|_app|app)\.[\w.]+$|(^|/)(layouts?|partials|includes)/'
+                    r'|(^|/)(nav|navbar|navigation|header|footer|sidebar)[\w-]*\.[\w.]+$', re.I)
 
 
 def folder(report):
@@ -118,7 +126,24 @@ def _feature_fit(feature, policy, functions, project):
                  if (layers[path] is None if policy else str(Path(path).parent) not in known)]
     for ref in feature.get('reuses') or []:
         problems += _reuse_problems(where, ref, functions, policy, set(layers.values()) - {None})
-    return problems + _written_again(where, feature, homes)
+    return problems + _written_again(where, feature, homes) + _unnamed_addition(where, feature)
+
+
+def changes_screens(feature):
+    """{screens, adds} of the existing screens a feature changes on purpose, as its card declares them to the behaviour
+    lock (eaos/live/behavior/intended.py): its own, else every screen ('all') when it changes a file every page shows."""
+    declared = dict(feature.get('changes_screens') or {})
+    if not declared.get('screens') and any(SHARED.search(_path(p)) for p in feature.get('paths') or []): declared['screens'] = ['all']
+    listed = lambda value: [value] if isinstance(value, str) else list(value or [])      # 'all' is one screen, not three
+    return {'screens': listed(declared['screens']), 'adds': [str(w) for w in listed(declared.get('adds'))]} if declared.get('screens') else None
+
+
+def _unnamed_addition(where, feature):
+    """A feature that changes existing screens without naming what it adds: the lock would refuse every one of them."""
+    declared = changes_screens(feature)
+    if not declared or declared['adds']: return []
+    return [f"{where}: it changes {', '.join(declared['screens'])} of the existing screens (a part every page shows): name the "
+            'words it adds to them (`changes_screens.adds`), the only difference the behaviour lock lets them have']
 
 
 def _path_layers(paths, policy, feature):
@@ -194,7 +219,7 @@ def _card(card_id, mid, name, feature, looked):
             'module': feature.get('module'), 'feature': feature.get('id'), 'paths': [_path(p) for p in feature['paths']] + (['eaos.policy.json'] if feature.get('layers') else []),
             'acceptance': acceptance, 'tests': tests, 'reuses': reuses, 'priority': 0, 'before': 'Not in the project yet.',
             'after': after, 'impact': feature.get('description') or '', 'decision': {'kind': 'build', 'readiness': 'ready'},
-            'status': 'planned'}
+            'status': 'planned', **({'changes_screens': changes_screens(feature)} if changes_screens(feature) else {})}
 
 
 def _path(path):

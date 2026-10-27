@@ -215,6 +215,14 @@ class ReportFile(Project):
         answer = self.get('/api/report-image', path='live/screens/screenshots/home.jpg')
         self.assertEqual((answer.status_code, answer.headers['content-type']), (200, 'image/jpeg'), "the check's pictures too")
         self.assertEqual(self.get('/api/report-image', path='studio/manifest.json').status_code, 400, 'nothing else')
+        steps = self.report / 'experience' / 'journeys' / 'owner--sign-up'
+        steps.mkdir(parents=True)
+        (steps / 'step-1.png').write_bytes(b'\x89PNG\r\n')
+        (self.report / 'experience' / 'secret.png').write_bytes(b'\x89PNG\r\n')
+        answer = self.get('/api/report-image', path='experience/journeys/owner--sign-up/step-1.png')
+        self.assertEqual((answer.status_code, answer.content), (200, b'\x89PNG\r\n'), "the experience's step pictures (M10.8)")
+        for path in ('experience/secret.png', 'experience/journeys/../secret.png', 'experience/journeys/../../link.md', '../secret.png'):
+            self.assertEqual(self.get('/api/report-image', path=path).status_code, 400, path)
 
 
 class Watch(Checked):

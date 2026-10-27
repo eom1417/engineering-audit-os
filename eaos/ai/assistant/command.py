@@ -2,6 +2,7 @@
 that reads JSON messages on stdin and answers JSON on stdout. No key, no endpoint, no shell."""
 import json
 import os
+import re
 import subprocess
 import tempfile
 
@@ -17,6 +18,14 @@ def _request(messages,small,reads,deep):
     """The JSON the adapter reads on stdin: the messages and only the options asked."""
     return json.dumps({'messages':messages,**({'small':True} if small else {}),
                        **({'reads':str(reads)} if reads else {}),**({'deep':True} if deep else {})}).encode()
+
+
+def _reason(err):
+    """The adapter's own one-line reason (serve() in claude_adapter.py writes "<name> adapter: <why>"), never the rest of
+    its stderr (the assistant's stream); the cause stayed hidden behind "exited unsuccessfully" before."""
+    err.seek(max(0,os.fstat(err.fileno()).st_size-4096))
+    said=[line for line in err.read().decode('utf-8','replace').splitlines() if re.match(r'^\w+ adapter: ',line)]
+    return f': {said[-1][:300]}' if said else '; no raw stderr exposed'
 
 
 class Provider:
@@ -51,7 +60,7 @@ class Provider:
                 except BrokenPipeError:pass   # it ended before reading: its exit code says why
                 wait(p,(out,err))
             except OSError:raise ValueError('Model adapter could not start; no raw stderr exposed') from None
-            if p.returncode:raise ValueError('Model adapter exited unsuccessfully; no raw stderr exposed')
+            if p.returncode:raise ValueError('Model adapter exited unsuccessfully'+_reason(err))
             out.seek(0);raw=out.read(self.limit+1)
         if len(raw)>self.limit:raise ValueError('Model adapter response exceeds limit')
         result=json.loads(raw)

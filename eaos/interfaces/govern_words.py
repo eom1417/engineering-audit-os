@@ -2,6 +2,8 @@
 
 WORDS = {
     'estimate': {'en': 'This check: about {low} to {high} minutes ({basis}).', 'ar': 'هذا الفحص: حوالي {low} إلى {high} دقيقة ({basis}).'},
+    'experience_cost': {'en': 'Simulated users ({simulation}): up to {minutes} minutes, assistant calls {calls}.',
+                        'ar': 'المستخدمون المحاكَون ({simulation}): حتى {minutes} دقيقة، وطلبات المساعد {calls}.'},
     'started': {'en': 'Started in the background ({run}); nothing in your project changes. Follow it, or close this window: it goes on.',
                 'ar': 'بدأ في الخلفية ({run})؛ ما يتغير شي في مشروعك. تابعه، أو سكّر هالنافذة: يكمل.'},
     'queued_run': {'en': 'Queued: {label} ({run}).', 'ar': 'في الطابور: {label} ({run}).'},
