@@ -145,6 +145,19 @@ run), against the M2 numbers. The machine was quiet, so the time is comparable t
 | Detection baseline | 6 of 8 planted problems found |
 
 
+## After M10: 0.0.82 (2026-10-27)
+
+The simulated users on three corpus apps of different kinds (`tools/experience_proof.py`, the real assistant):
+
+| App | Whole simulation (`--path experience`) | Found | The short option beside the complete check | The replays in that full check |
+|---|---|---|---|---|
+| flask-microblog (sign-in) | 3 personas, 11 goals (9 waiting on a hand-off that never came), 3 tickets; the stage 504 s, 50 calls, check $2.31 | 1 confirmed (search crashes with a technical Elasticsearch page: 2 pictures, 4 steps to reproduce), 3 doubted, 7 rejected | 62 s, 7 calls | 3 skipped (no goal reached to replay) |
+| django-locallibrary (two roles) | 4 personas, 9 goals, 2 reached, 2 tickets; the stage 391 s, 38 calls, check $7.62 | 6 doubted, 1 rejected | 11 s, 1 call | 2 green, 2 skipped, no AI call |
+| next-dashboard (Next.js, sign-in) | 2 personas, 4 goals, 1 reached, 2 stuck, 2 tickets; the stage 155 s, 14 calls, check $7.50 | 2 doubted, 2 rejected | 21 s, 2 calls | 1 green, 2 skipped, no AI call |
+
+The short simulation adds 11-62 s and 1-7 light calls to a complete check and confirmed nothing on these runs; the whole
+simulation found one real failure a person would meet. The replays cost nothing and are green.
+
 ## After M9: 0.0.81 (2026-10-26)
 
 | Measure | Value |
