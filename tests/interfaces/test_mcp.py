@@ -515,6 +515,29 @@ class PersonOnly(Home):
             self.assertEqual(mcp_govern.waiting('answer', 'q1', 'yes', person_said='نعم', project=str(self.project))['status'], 'answered')
         answered.assert_called_once()
 
+    def test_the_logic_flaw_hunt_says_its_spend_waits_for_a_yes_never_in_a_studio_run_and_runs_the_commands_hunt(self):
+        from eaos.interfaces import deep_checks
+        from eaos.interfaces.mcp_server import server as mcp_server
+        tool = mcp_server.functions()['logic_flaws']
+        with mock.patch.object(guided, 'scan_done', return_value=True), \
+             mock.patch.object(agent_tools, '_start', return_value={'job': 'j1'}) as started:
+            asked = json.loads(tool(project=str(self.project)))
+            self.assertEqual(asked['status'], 'needs_agreement')
+            self.assertIn('two long code reviews', asked['ask_the_person'])
+            with mock.patch.dict(os.environ, {'EAOS_STUDIO_RUN': 'r1'}):
+                self.assertIn("the person's decision", json.loads(tool(person_agreed=True, project=str(self.project)))['error'])
+            started.assert_not_called()
+            self.assertEqual(json.loads(tool(person_agreed=True, project=str(self.project)))['job'], 'j1')
+        self.assertEqual((started.call_args.args[0], started.call_args.kwargs['runner']), ('logic_flaws', 'eaos.interfaces.deep_checks'))
+        assistant = mock.Mock(config={})
+        with mock.patch.object(deep_checks, '_assistant', return_value=assistant), \
+             mock.patch('eaos.analysis.logic_flaws.record.run', return_value={'flaws': 1}) as hunted, \
+             mock.patch.dict(agent_tools.JOBS, {'audit': lambda project, arguments, progress: {'again_from': arguments['again_from']}}):
+            done = deep_checks.JOBS['logic_flaws'](str(self.project), {'minutes': 5}, None)
+        self.assertEqual(done, {'logic_flaws': {'flaws': 1}, 'again_from': 'claims'}, 'the hunt, then the check from its claims')
+        self.assertEqual(hunted.call_args.args[3], 5)
+        self.assertIn('usage', assistant.config, 'counted with the check\'s own use')
+
     def test_the_mcp_wait_follows_a_job_of_the_project_it_names(self):
         from eaos.interfaces.mcp_server import server as mcp_server
         with mock.patch.object(agent_tools, 'wait', return_value={'status': 'running'}) as waited:

@@ -7,37 +7,46 @@ import sys
 from pathlib import Path
 
 
-def _assistant(args):
+SPEND = ("The logic-flaw hunt asks your assistant twice on its deep tier, each a long reading of the code (up to "
+         "{minutes} minutes in all), then runs this check again from its claims, so its AI stages ask again too. "
+         "On a subscription it uses your plan; on a key it costs about what two long code reviews cost. "
+         "The spend shows in `eaos usage`.")
+
+
+def _assistant(name, max_calls):
     """The person's assistant on this machine, or an error that says there is none."""
     from ..ai import provider
-    _, found = provider(max_calls=args.max_calls, name=args.assistant)
+    _, found = provider(max_calls=max_calls, name=name)
     if found is None: raise ValueError('no AI assistant is installed here (claude or codex): this check needs one')
     return found
 
 
 def _agreed(args):
     """What the hunt will spend, then the person's yes (or --yes); False when they did not agree."""
-    print(f"The logic-flaw hunt asks your assistant twice on its deep tier, each a long reading of the code (up to "
-          f"{args.minutes} minutes in all), then runs this check again from its claims, so its AI stages ask again too. "
-          f"On a subscription it uses your plan; on a key it costs about what two long code reviews cost. "
-          f"The spend shows in `eaos usage`.")
+    print(SPEND.format(minutes=args.minutes))
     if args.yes: return True
     if not sys.stdin.isatty():
         print('Not started: add --yes to agree.'); return False
     return input('Go on? [y/N] ').strip().lower() in ('y', 'yes')
 
 
+def hunt_flaws(target, out, assistant, minutes):
+    """The hunt on the code of `target` beside its check's report `out`, its spend counted with the check's own use:
+    its summary (hunt.Unfinished or Stuck when it did not finish). The command and the MCP tool both call it."""
+    from ..analysis.logic_flaws import record
+    from ..core.system.usage import FILE as USAGE
+    assistant.config['usage'] = str(Path(out) / USAGE)     # eaos/core/system/usage.py
+    return record.run(target, Path(out), assistant, minutes)
+
+
 def logic_flaws_command(args):
     from ..analysis.logic_flaws import hunt, record
     from ..core.system.process import Stuck
-    from ..core.system.usage import FILE as USAGE
     from ..pipeline.run import again, same_source
     out = Path(args.out).resolve()
     same_source(args.target, out)                    # the report of a check of this very code, or a plain refusal
     if not _agreed(args): return 1
-    assistant = _assistant(args)
-    assistant.config['usage'] = str(out / USAGE)     # eaos/core/system/usage.py: counted with the check's own use
-    try: summary = record.run(args.target, out, assistant, args.minutes)
+    try: summary = hunt_flaws(args.target, out, _assistant(args.assistant, args.max_calls), args.minutes)
     except (hunt.Unfinished, Stuck) as failed:
         print(f'logic flaws: the hunt did not finish ({failed}); nothing was kept. Try again, or with a longer --minutes.')
         return 2
@@ -45,6 +54,32 @@ def logic_flaws_command(args):
           f"{summary['reviewed']} routes read; {out / record.RECORD}. The check goes on from its claims, so its cards include them.")
     again(args.target, out, 'claims')
     return 0
+
+
+def logic_flaws_tool(project=None, person_agreed=False, minutes=None):
+    """The MCP tool (eaos/interfaces/mcp_server/server.py logic_flaws): the spend asked first, then the hunt as a job."""
+    from ..analysis.logic_flaws import hunt
+    from ..journeys import agent_tools, guided
+    state = agent_tools.state_of(project)
+    if not guided.scan_done(state): return {'error': 'there is no check to hunt logic flaws from', 'what_now': 'Call audit first.'}
+    minutes = minutes or hunt.MINUTES
+    if not person_agreed:
+        return {'status': 'needs_agreement', 'ask_the_person': SPEND.format(minutes=minutes),
+                'what_now': 'Ask the person; only after their yes, call again with person_agreed=true. It returns a job to follow with wait.'}
+    return agent_tools._start('logic_flaws', state, {'minutes': minutes}, runner='eaos.interfaces.deep_checks')
+
+
+def _logic_flaws_job(project, arguments, progress):
+    """The hunt on the checked commit with the person's chosen assistant, then the check again from its claims."""
+    from ..core.project import state as project_state
+    from ..journeys import agent_tools, guided
+    state = project_state.load(project)
+    found = hunt_flaws(guided.source(state, state.get('scanned_commit')), guided.report_of(state),
+                       _assistant(guided.chosen_assistant(state), 4), arguments['minutes'])
+    return {'logic_flaws': found, **agent_tools.JOBS['audit'](project, {'again_from': 'claims'}, progress)}
+
+
+JOBS = {'logic_flaws': _logic_flaws_job}
 
 
 def _app(args):

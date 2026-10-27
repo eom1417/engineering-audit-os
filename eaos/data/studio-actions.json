@@ -351,6 +351,49 @@
    }
   },
   {
+   "id": "logic_flaws",
+   "tool": "logic_flaws",
+   "group": "understand",
+   "label": {
+    "en": "Hunt logic flaws",
+    "ar": "دوّر ثغرات المنطق"
+   },
+   "description": {
+    "en": "Your assistant reads the code twice on its deep tier for skipped steps, races and wrong checks, then the check goes on from what it found, so the cards include them. It spends your assistant's use: it asks your agreement first.",
+    "ar": "مساعدك يقرأ الكود مرتين بعمق يدوّر خطوات متخطاة وتسابق وتحققات غلط، وبعدها يكمل الفحص من اللي لقاه عشان تدخل في البطاقات. يصرف من استخدام مساعدك: يطلب موافقتك أول."
+   },
+   "mode": "direct",
+   "needs_assistant": false,
+   "irreversible": false,
+   "needs_consent": true,
+   "returns_job": true,
+   "changes_code": false,
+   "inputs": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+     "person_agreed": {
+      "type": "boolean"
+     },
+     "minutes": {
+      "type": [
+       "integer",
+       "null"
+      ],
+      "description": "The most the hunt may take, wall clock (default 40)."
+     },
+     "project": {
+      "type": [
+       "string",
+       "null"
+      ],
+      "description": "The project folder; the Studio fills it with the project it serves."
+     }
+    },
+    "required": []
+   }
+  },
+  {
    "id": "audit",
    "tool": "audit",
    "group": "check",
