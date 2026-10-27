@@ -1,5 +1,24 @@
 # Changelog
 
+## 0.0.83 (2026-10-27)
+
+The final proof: everything run for real on the last version, and what it found fixed. Every milestone had been proved
+on its own; nothing had yet run whole on 0.0.82. Run now, it found five defects, each fixed with its test:
+- **A Flask Blueprint's prefix** (`url_prefix="/auth"`) and a FastAPI router's were left out of the routes the code
+  shows: flaskr's sign-up was read as `/register`, and a repair stopped, rightly, on a page that is not there.
+- **A confirmed difficulty's fact said only its kind**: the card's triage, reading only that, doubted both real ones of
+  flask-microblog and no card was made. Its fact now says what it is, its steps, that a fresh persona met it again and
+  the judge's reason.
+- **A visitor's sign-up gated every signed-in goal**: one failed sign-up left 9 of 11 goals blocked. A persona with a
+  role starts signed in as it.
+- **A job's record was renamed away** by its own progress writing at the same moment (the golden trial's clean twin):
+  each writer has a temporary file of its own.
+- The extend proof now adds a link to the navigation every page shows, M9.7's case.
+
+Measured on 0.0.83: the compatibility corpus 15 of 15; the detection baseline 16 of 16, the fix proof and the clean
+twin green; repair, build and add-a-feature (a link on every page) green on flaskr; the simulated users on
+flask-microblog reached 6 of 10 goals (3 of 11 before), confirmed 6 difficulties and made 5 fix cards (none before).
+
 ## 0.0.82 (2026-10-27)
 
 M10, the user's full experience, simulated, and what M9's proofs found. Scanners find what a rule can name; the

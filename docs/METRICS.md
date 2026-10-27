@@ -145,6 +145,17 @@ run), against the M2 numbers. The machine was quiet, so the time is comparable t
 | Detection baseline | 6 of 8 planted problems found |
 
 
+## The final proof: 0.0.83 (2026-10-27)
+
+| Measure | Value |
+|---|---|
+| Compatibility corpus | **15 of 15** apps run and pictured |
+| Detection baseline | **16 of 16** planted problems found; the fix proof and the clean twin green |
+| Repair (flaskr, CLI, real assistant) | check 738 s $1.02, a card fixed and handed over 118 s $0.36 |
+| Add a feature: a link on the navigation every page shows | 120 s $0.43, through the behaviour lock (M9.7) |
+| Build from a PRD to the first milestone's proof gate | 338 s $0.91 |
+| Simulated users (flask-microblog, whole) | 6 of 10 goals reached (3 of 11 before), 3 tickets, 6 confirmed, 5 fix cards (0 before), 142 calls, $6.37; 2 of the 6 came from the route prefix fixed in this version |
+
 ## After M10: 0.0.82 (2026-10-27)
 
 The simulated users on three corpus apps of different kinds (`tools/experience_proof.py`, the real assistant):
