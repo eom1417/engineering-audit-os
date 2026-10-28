@@ -6,6 +6,7 @@ from pathlib import Path
 
 from eaos.analysis.assessments import one_source, one_source_look
 from eaos.analysis.claims import from_one_source
+from eaos.analysis.planning.ranking import claim_paths
 from eaos.engines.code import jscpd
 from shared_fixture import scratch
 
@@ -78,6 +79,7 @@ class Idioms(unittest.TestCase):
         self.assertEqual((found[0]['evidence']['count'], found[0]['evidence']['home']), (3, 'src/lib'))
         self.assertEqual(one_source.idioms(sets(idiom('a.ts', 1), idiom('b.ts', 1)), set()), [])
         self.assertEqual(one_source.idioms(sets(*(idiom('src/lib/dates.ts', n) for n in (1, 10, 20))), set()), [], 'the home itself')
+        self.assertEqual(len(one_source.idioms(sets(*(idiom('api/routes.js', n) for n in (1, 10, 20))), set())), 1, 'three in one file')
 
     def test_a_guard_repeated_in_routes_calls_for_a_middleware(self):
         guards = [record(f'server/routes/{n}.js', 4, engine='ast-grep', record='idiom', form='route_guard', rule='eaos.idiom.route-guard')
@@ -131,6 +133,8 @@ class Cards(unittest.TestCase):
         spec = next(c for c in claims if c['render']['params']['kind'] == 'near_copy')['probe_spec']['specification']
         self.assertEqual(from_one_source.present(spec, facts)[0], 'CONFIRMED')
         self.assertEqual(from_one_source.present(spec, sets())[0], 'REFUTED')
+        idiom = next(c for c in claims if c['render']['params']['kind'] == 'idiom:json_read')
+        self.assertEqual(claim_paths(idiom, {}), ['src/p0.js', 'src/p1.js', 'src/p2.js'], 'the card is about every place')
 
 
 class KeptAside(unittest.TestCase):

@@ -44,9 +44,16 @@ def claim_paths(claim, fact_index):
         paths += fact_index.get(fact_id + ':paths', [])
     # The card's own file leads, so a list cut to its first few paths never hides the file the card is about. An engine
     # card's place is where its evidence lies (eaos/analysis/claims/correlate.clusters), even when only a site of a finding names it.
-    place = ((claim.get('render') or {}).get('params') or {}).get('place')
+    params = (claim.get('render') or {}).get('params') or {}
+    place = params.get('place')
     if place and not str(place).startswith('group:'): paths.append(place)
-    return sorted({path for path in paths if path}, key=lambda path: (path != place, path))
+    return sorted({path for path in paths + _places(params) if path}, key=lambda path: (path != place, path))
+
+
+def _places(params):
+    """The files of a pattern written in many places (one source per pattern names each 'path:line'): its card is about
+    all of them."""
+    return [str(where).rsplit(':', 1)[0] for where in params['places']] if isinstance(params.get('places'), list) else []
 
 
 def cost_of(paths, sets):
