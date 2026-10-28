@@ -37,22 +37,30 @@ def _look(facts, paths):
     return rows
 
 
+def _copy(finding, paths):
+    """The row of a cluster of near copies touching a changed file, keyed by its files."""
+    places = finding['evidence']['places']
+    files = tuple(sorted({p['path'] for p in places}))
+    if not set(files) & paths: return {}
+    return {('near_copy', files): {'gate': 'copy', 'where': finding['place'], 'what': 'the same code is written in '
+                                   + ', '.join(f"{p['path']}:{p['line']}" for p in places[:4]) + ': give it one home and call it'}}
+
+
+def _again(finding, paths):
+    """The rows of an idiom or a screen pattern written again in a changed file, one per place there."""
+    evidence = finding['evidence']
+    what = (f"{evidence.get('form', '').replace('_', ' ')} is written by hand again" if finding['kind'] == 'idiom' else
+            f"the <{evidence.get('tag')}> structure is written again")
+    return {key: {'gate': 'copy', 'where': f"{place['path']}:{place.get('line') or 1}",
+                  'what': f"{what} at {place['path']}:{place.get('line') or 1}: use the one in {evidence.get('home')}"}
+            for key, place in _counted(finding['kind'], evidence.get('form') or evidence.get('tag'), evidence['places'], paths).items()}
+
+
 def _found(found, paths):
     rows = {}
     for finding in found:
-        evidence, kind = finding['evidence'], finding['kind']
-        if kind == 'look': continue
-        if kind == 'near_copy':
-            files = tuple(sorted({p['path'] for p in evidence['places']}))
-            if set(files) & paths:
-                rows[('near_copy', files)] = {'gate': 'copy', 'where': finding['place'], 'what': 'the same code is written in '
-                                              + ', '.join(f"{p['path']}:{p['line']}" for p in evidence['places'][:4]) + ': give it one home and call it'}
-            continue
-        what = (f"{evidence.get('form', '').replace('_', ' ')} is written by hand again" if kind == 'idiom' else
-                f"the <{evidence.get('tag')}> structure is written again")
-        for key, place in _counted(kind, evidence.get('form') or evidence.get('tag'), evidence['places'], paths).items():
-            rows[key] = {'gate': 'copy', 'where': f"{place['path']}:{place.get('line') or 1}",
-                         'what': f"{what} at {place['path']}:{place.get('line') or 1}: use the one in {evidence.get('home')}"}
+        if finding['kind'] == 'near_copy': rows.update(_copy(finding, paths))
+        elif finding['kind'] != 'look': rows.update(_again(finding, paths))
     return rows
 
 

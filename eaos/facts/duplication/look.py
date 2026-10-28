@@ -12,7 +12,7 @@ from pathlib import Path
 from ...core.contracts.code_laws import LOOK
 
 STYLESHEETS = ('.css', '.scss', '.sass', '.less')
-THEME_FILE = re.compile(r'(^|/)(tailwind\.config\.\w+|theme\.(js|ts|mjs|json)|tokens?\.(js|ts|mjs|json|css|scss)|_?variables\.(scss|less|css))$', re.I)
+THEME_FILE = re.compile(r'(^|/)(tailwind\.config\.\w+|theme\.(js|ts|mjs|json|css|scss)|tokens?\.(js|ts|mjs|json|css|scss)|_?variables\.(scss|less|css))$', re.I)
 TOKENS_AT_LEAST = 8
 COMMENT = re.compile(r'/\*.*?\*/', re.S)
 DECLARATION = re.compile(r'(?<![\w-])(-?-?[A-Za-z][\w-]*)\s*:\s*([^;{}]+)')
