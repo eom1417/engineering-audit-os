@@ -8,28 +8,26 @@ import { prefs } from './prefs.js';
 
 const attrs = o => Object.entries(o).filter(([, v]) => v != null && v !== false).map(([k, v]) => (v === true ? k : `${k}="${esc(v)}"`)).join(' ');
 
-/** A row's words: its title and, unless null, the meta line under it. `o.title`: the title's extra classes, or false
- *  for a title that is its own element (a name in code); `o.meta`: the meta's own classes (a laid-out meta, ac-meta),
- *  else a meta line of its own; `o.more`: markup after them. */
+/** A row's words: its title and, unless null, the meta line under it. `o.title`: the title's extra classes; `o.meta`:
+ *  the meta's own classes (a laid-out meta, ac-meta), else a meta line of its own; `o.more`: markup after them. */
 export function rowWords(title, meta, o = {}) {
   const line = o.meta ? `<span class="row__meta ${o.meta}">` : '<span class="row__meta" style="display:block">';
-  const head = o.title === false ? title : `<span class="row__title${o.title ? ' ' + o.title : ''}">${title}</span>`;
-  return `<span class="row__main">${head}${meta != null ? `${line}${meta}</span>` : ''}${o.more || ''}</span>`;
+  return `<span class="row__main"><span class="row__title${o.title ? ' ' + o.title : ''}">${title}</span>${meta != null ? `${line}${meta}</span>` : ''}${o.more || ''}</span>`;
 }
 
 /** A laid-out meta's pieces (each its own span), the empty ones left out. */
 export const bitsOf = bits => bits.filter(b => b != null && b !== false && b !== '').map(b => `<span>${b}</span>`).join('');
 
 /** A switch (a checkbox drawn as one): `input` its attributes ({name: value}, true for a bare one), `label` its name. */
-const switchBox = (input, label) => `<span class="switch"><input type="checkbox" ${attrs(input)} aria-label="${esc(label)}"><span class="switch__track"></span><span class="switch__thumb"></span></span>`;
+export const switchBox = (input, label) => `<span class="switch"><input type="checkbox" ${attrs(input)} aria-label="${esc(label)}"><span class="switch__track"></span><span class="switch__thumb"></span></span>`;
 
 /** A switch with its words after it, inside a line of other controls. */
 export const inlineSwitch = (input, label) => `<label class="ac-inline-switch small ink-2">${switchBox(input, label)}${label}</label>`;
 
-/** A switch's row: its words (and the note under them), then the switch. `o.icon`: an icon before the words; `o.cls`:
- *  the row's extra classes; `o.label`: the switch's name when the words are markup. */
+/** A switch's row: its words (and the note under them), then the switch. `o.cls`: the row's extra classes; `o.label`:
+ *  the switch's name when the words are markup. */
 export function toggleRow(words, note, input, o = {}) {
-  const head = o.icon ? `<span class="toggle-row__icon">${icon(o.icon, 'icon--sm')}${words}</span>` : note ? `<span style="display:block">${words}</span>` : words;
+  const head = note ? `<span style="display:block">${words}</span>` : words;
   return `<div class="toggle-row${o.cls ? ' ' + o.cls : ''}"><span>${head}${note ? `<span class="small muted">${note}</span>` : ''}</span>${switchBox(input, o.label || words)}</div>`;
 }
 

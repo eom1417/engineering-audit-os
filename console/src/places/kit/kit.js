@@ -9,6 +9,10 @@ export const matches = normalize.matches;
 
 export const back = (path, label, query) => `<a class="back" href="${href(path, query)}">${icon('back', 'icon--dir')}${esc(label)}</a>`;
 
+/** The report page's facts, drawn inside the place's own bundle (its parts are drawn and tested on their own, without
+ *  the core's parts). */
+export const facts = pairs => `<dl class="facts">${pairs.filter(Boolean).map(([k, v]) => `<dt>${k}</dt><dd>${v}</dd>`).join('')}</dl>`;
+
 /* ---------- choices, a list's own search, lists a page at a time ---------- */
 
 /** A segmented control whose choices are addresses (LNK-01): [value, label, count]. */

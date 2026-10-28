@@ -18,8 +18,8 @@ import {
    ================================================================================================================= */
 function branchRow(b) {
   return `<li><a class="row ac-brow" href="${brUrl(b)}">${icon('branch', 'muted')}
-    ${rowWords(`<span class="ac-brow__top"><bdi class="mono ac-brow__name">${esc(liveName(b))}</bdi>${roleTags(b)}</span>`,
-    bitsOf([aheadBehind(b), whoLine(b), b.last_commit && esc(t('ac.br.last', { when: fmtWhen(b.last_commit) }))]), { title: false, meta: 'ac-meta' })}${icon('chev', 'icon--dir muted')}</a></li>`;
+    <span class="row__main"><span class="ac-brow__top"><bdi class="mono ac-brow__name">${esc(liveName(b))}</bdi>${roleTags(b)}</span>
+      <span class="row__meta ac-meta">${bitsOf([aheadBehind(b), whoLine(b), b.last_commit && esc(t('ac.br.last', { when: fmtWhen(b.last_commit) }))])}</span></span>${icon('chev', 'icon--dir muted')}</a></li>`;
 }
 const offlinePage = () => `<div class="page">${projBack()}${pageHead(t('ac.br.offline.lede'), t('ac.br.offline'), openLiveButton())}</div>`;
 function failedPage(problem) {
@@ -65,7 +65,7 @@ function fetchLine(d) {
 }
 function recoveryFold(d) {
   const recovery = (d.recovery || []).filter(r => !r.restored);
-  return ac.fold('deleted', t('ac.br.deleted'), esc(tn('ac.pl.branch', recovery.length)), recovery.length ? `<ul class="rows">${recovery.map(r => `<li class="row row--flush">${icon('branch', 'muted')}${rowWords(code(r.branch), `${esc(t(r.where === 'remote' ? 'ac.br.deleted.remote' : 'ac.br.deleted.local', { r: r.remote || '' }))}, ${esc(fmtWhen(r.at))}. ${t('ac.br.deleted.tip', { tip: code(String(r.tip).slice(0, 7)) })}`, { title: false })}
+  return ac.fold('deleted', t('ac.br.deleted'), esc(tn('ac.pl.branch', recovery.length)), recovery.length ? `<ul class="rows">${recovery.map(r => `<li class="row row--flush">${icon('branch', 'muted')}<span class="row__main">${code(r.branch)}<span class="row__meta" style="display:block">${esc(t(r.where === 'remote' ? 'ac.br.deleted.remote' : 'ac.br.deleted.local', { r: r.remote || '' }))}, ${esc(fmtWhen(r.at))}. ${t('ac.br.deleted.tip', { tip: code(String(r.tip).slice(0, 7)) })}</span></span>
           <button class="btn btn--secondary btn--sm" data-act="sheet" data-sheet="restore:${esc(r.id)}">${t('ac.br.restore')}</button></li>`).join('')}</ul>` : `<p class="small muted">${t('ac.br.deleted.none')}</p>`);
 }
 const defaultFact = def => (def && def.name ? `${code(def.name)} <span class="small muted">${esc(def.source || '')}</span>` : '—');
@@ -223,7 +223,7 @@ sheet('cleanup', {
       title: esc(t('ac.cl.title')),
       body: `${owner()}<p>${esc(t('ac.cl.lede', { branches: tn('ac.pl.branch', p.branches.length) }))}</p>
         ${p.blocked.length ? `<div class="ac-refuse" role="alert"><p class="small">${esc(reasonsOf(p.blocked))}</p></div>` : ''}
-        ${titledBlock(`${t('ac.cl.goes')} (${num(p.branches.length)})`, `<ul class="panel rows">${p.branches.map(b => `<li class="row">${icon('branch', 'muted')}${rowWords(code(b.branch), `${t('ac.br.merged_into', { b: code(b.merged_into) })}. ${esc(L(b.whose))}`, { title: false })}</li>`).join('')}</ul>`)}
+        ${titledBlock(`${t('ac.cl.goes')} (${num(p.branches.length)})`, `<ul class="panel rows">${p.branches.map(b => `<li class="row">${icon('branch', 'muted')}<span class="row__main">${code(b.branch)}<span class="row__meta" style="display:block">${t('ac.br.merged_into', { b: code(b.merged_into) })}. ${esc(L(b.whose))}</span></span></li>`).join('')}</ul>`)}
         ${titledBlock(t('ac.cl.wt'), p.worktrees.length ? `<ul class="panel rows">${p.worktrees.map(w => `<li class="row small">${code(w.path)}</li>`).join('')}</ul>` : `<p class="small ink-2">${t('ac.cl.wt.none')}</p>`)}
         ${titledBlock(t('ac.cl.stays'), stays)}
         <p class="small ink-2">${t('ac.cl.rules')}</p>`,

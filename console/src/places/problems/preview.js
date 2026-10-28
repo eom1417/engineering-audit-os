@@ -9,6 +9,7 @@ import {
   t, tn, L, num, esc, rich, icon, code, sev, href, assistantPicker, estimate, expiresAt, sheet, act, rerenderSheet, local, parseHash, closeSheetThen,
   toast, refresh, offline, model, selection, store, client, ActionError, contract, prefs, terminalFold, toggleRow, lockLine, radio, facts,
   titledBlock,
+  switchBox,
 } from 'eaos';
 
 const enc = encodeURIComponent;
@@ -179,7 +180,8 @@ function choicesHTML(fix, p, own) {
 }
 
 function autoHTML(own) {
-  return toggleRow(t('pv.auto'), t('pv.auto.note'), { 'data-change': 'pv-auto', 'data-fk': 'auto', checked: own.auto }, { icon: 'seal', cls: 'panel panel__pad' });
+  return `<div class="toggle-row panel panel__pad"><span><span class="toggle-row__icon">${icon('seal', 'icon--sm')}${t('pv.auto')}</span><span class="small muted">${t('pv.auto.note')}</span></span>
+            ${switchBox({ 'data-change': 'pv-auto', 'data-fk': 'auto', checked: own.auto }, t('pv.auto'))}</div>`;
 }
 
 /** Start is off without a token or problems, while the place has a problem, while starting, or without an assistant

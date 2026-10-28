@@ -7,8 +7,9 @@
 // ?records=1&q= (the check's records, the free `ask` tool) and ?note=project (a note, the `note` action).
 import {
   t, num, L, esc, rich, icon, code, href, fmtTime, screen, act, refresh, refreshSoon, redrawAssist, toast, announce, parseHash, setQuery,
-  searchTyped, openSheet, offline, S, live, store, client, contract, ActionError, prefs, ac, md, toggleRow, rowWords, titledSection, openLiveButton,
+  searchTyped, openSheet, offline, S, live, store, client, contract, ActionError, prefs, ac, md, rowWords, titledSection, openLiveButton,
   pageHead,
+  switchBox,
 } from 'eaos';
 
 const KEY = 'eaos.chat';
@@ -118,7 +119,8 @@ function control() {
   const on = dc.on;
   return `<details class="panel fold" ${on ? 'open' : ''}>${ac.foldHead(t('ac.ask.dc'), on ? t('ac.ask.dc.on') : t('ac.ask.dc.off'), icon('seal', 'muted'))}
     <div class="fold__body ac-stack">
-      ${toggleRow(t('ac.ask.dc.switch'), t('owner.only'), { 'data-change': 'ac-direct', 'data-fk': 'direct', checked: on, disabled: offline() }, { icon: 'seal' })}
+      <div class="toggle-row"><span><span class="toggle-row__icon">${icon('seal', 'icon--sm')}${t('ac.ask.dc.switch')}</span><span class="small muted">${t('owner.only')}</span></span>
+        ${switchBox({ 'data-change': 'ac-direct', 'data-fk': 'direct', checked: on, disabled: offline() }, t('ac.ask.dc.switch'))}</div>
       <p class="small ink-2">${t('ac.ask.dc.may')}</p>
       <p class="small ink-2"><b>${t('ac.ask.dc.never.t')}</b> ${t('ac.ask.dc.never')}</p>
       <p class="small muted">${t('ac.ask.dc.note')}</p></div></details>`;

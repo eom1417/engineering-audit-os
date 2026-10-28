@@ -95,7 +95,7 @@ const stepWord = st => (has('ac.step.' + st) ? t('ac.step.' + st) : st);
 function stepRow(x) {
   const prog = x.total ? t('ac.stg.of', { done: num(x.done || 0), total: num(x.total) }) : '';
   const bar = x.kind === 'count' && x.total ? ac.progressBar((x.done || 0) / x.total, x.name) : '';
-  return `<li class="row ac-step" style="min-height:48px">${ac.glyph(stepGlyph(x.status))}${rowWords(code(x.name), esc(stepWord(x.status)) + (x.reason ? `: ${rich(x.reason)}` : ''), { title: false, more: x.status === 'running' ? bar : '' })}<span class="num small muted">${x.seconds ? ac.ticker(null, x.seconds) : esc(prog)}</span></li>`;
+  return `<li class="row ac-step" style="min-height:48px">${ac.glyph(stepGlyph(x.status))}<span class="row__main">${code(x.name)}<span class="row__meta" style="display:block">${esc(stepWord(x.status))}${x.reason ? `: ${rich(x.reason)}` : ''}</span>${x.status === 'running' ? bar : ''}</span><span class="num small muted">${x.seconds ? ac.ticker(null, x.seconds) : esc(prog)}</span></li>`;
 }
 /** A reported value a person reads: numbers and words, never a path of this computer. */
 const shown = v => (v != null && typeof v !== 'object' && !/^\//.test(String(v)));
