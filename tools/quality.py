@@ -90,16 +90,18 @@ def repository_craft():
 
 
 def kept_on_purpose():
-    """(the copies EAOS keeps on purpose, the markers that say no why): every `jscpd:ignore-start` in what EAOS ships
-    names its reason after ` -- ` (docs/STANDARDS.md §1, one source per pattern)."""
-    listed = subprocess.run(['git', 'ls-files', 'eaos', 'console/src'], cwd=ROOT, capture_output=True, text=True, check=True).stdout.split()
+    """(the copies EAOS keeps on purpose, the markers that say no why): every `jscpd:ignore-start` (a near copy) and
+    `ast-grep-ignore` (a way of working) in what EAOS ships names its reason after ` -- ` (docs/STANDARDS.md §1, one
+    source per pattern)."""
+    listed = subprocess.run(['git', 'ls-files', 'eaos', 'console'], cwd=ROOT, capture_output=True, text=True, check=True).stdout.split()
     kept, silent = 0, []
     for rel in listed:
-        if not rel.endswith(('.py', '.js', '.mjs', '.css')) or any(f'/{part}/' in f'/{rel}' for part in EXCLUDE): continue
+        if not rel.endswith(('.py', '.js', '.mjs', '.css')) or any(f'/{part}/' in f'/{rel}' for part in (*EXCLUDE, 'console/tools')): continue
         for number, line in enumerate((ROOT / rel).read_text(encoding='utf-8').splitlines(), 1):
-            if 'jscpd:ignore-start' not in line: continue
+            marker = next((m for m in ('jscpd:ignore-start', 'ast-grep-ignore') if m in line), None)
+            if not marker: continue
             kept += 1
-            if ' -- ' not in line: silent.append(f'one source: {rel}:{number} keeps a copy without saying why (jscpd:ignore-start -- <why>)')
+            if ' -- ' not in line: silent.append(f'one source: {rel}:{number} keeps a copy without saying why ({marker} -- <why>)')
     return kept, silent
 
 

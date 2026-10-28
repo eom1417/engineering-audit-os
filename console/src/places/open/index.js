@@ -2,7 +2,7 @@
 // folder (the projects on this computer, GET /api/projects), switch (that project's own Studio started and opened,
 // POST /api/projects/open), export (the read-only copy), nokey, readonly, oldlink (?what=), partial (the parts of the
 // report the check could not write), contract (data of another contract) and connection (the live feed's state).
-import { t, tn, num, esc, icon, code, href, fmtWhen, fmtTime, screen, refresh, data, live, client, model, ActionError, rowWords, facts, pageHead } from 'eaos';
+import { said, t, tn, num, esc, icon, code, href, fmtWhen, fmtTime, screen, refresh, data, live, client, model, rowWords, facts, pageHead } from 'eaos';
 
 const KINDS = ['folder', 'switch', 'export', 'nokey', 'readonly', 'oldlink', 'partial', 'contract', 'connection'];
 let projects = null, switching = null;
@@ -21,7 +21,7 @@ function switchTo(q) {
   const p = q.p || '';
   if (client && p && (!switching || switching.p !== p)) {
     switching = { p, late: false };
-    client.openProject(p).then(r => { location.assign(r.studio); }, e => { switching.late = true; switching.why = e instanceof ActionError ? e.message : String(e); refresh(); });
+    client.openProject(p).then(r => { location.assign(r.studio); }, e => { switching.late = true; switching.why = said(e); refresh(); });
   }
   const late = q.late === '1' || (switching && switching.late) || !client;
   return pageHead(esc(t(late ? 'ac.op.switch.late' : 'ac.op.switch', { p })), late && switching && switching.why ? esc(switching.why) : t(late ? 'ac.op.switch.late.guide' : 'ac.op.switch.guide'), `${late ? `<button class="btn btn--primary" data-act="go" data-href="${href('/open', { kind: 'switch', p, t: Date.now() })}">${icon('retry')}${t('ac.op.try')}</button>` : `<span class="state ac-state"><span class="dot dot--live" aria-hidden="true"></span>${t('ac.op.starting')}</span>`}

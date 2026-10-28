@@ -3,8 +3,8 @@
 // sheet (S-16, CHK-09); "Redo from here" with its free preview (CHK-10, POST /api/actions/audit/preview with
 // again_from); and the replay of a finished check from its own start and end times (CHK-11).
 import {
-  t, tn, L, num, esc, rich, icon, code, has, sheet, act, rerenderSheet, local, parseHash, closeSheetThen, toast, refresh, href, offline, data,
-  client, store, model, ActionError, ac, prefs, terminalFold, rowWords, facts, titledBlock,
+  sheetCall, said, t, tn, L, num, esc, rich, icon, code, has, sheet, act, rerenderSheet, local, parseHash, closeSheetThen, toast, refresh, href, offline, data,
+  client, store, model, ac, prefs, terminalFold, rowWords, facts, titledBlock,
 } from 'eaos';
 
 /** A stage's name and what it does: the dictionary's words, else its own description. */
@@ -242,7 +242,7 @@ function redoAsk(own, inputs) {
   if (!own.preview && !own.asking && !own.problem && client) {
     own.asking = true;
     client.preview('audit', { inputs }).then(p => { own.preview = p; own.asking = false; rerenderSheet(); },
-      e => { own.asking = false; own.problem = e instanceof ActionError ? e.message : String(e); rerenderSheet(); });
+      e => { own.asking = false; own.problem = said(e); rerenderSheet(); });
   }
 }
 /** How long the redo would take, while the preview is asked and once it answered. */
@@ -297,13 +297,12 @@ act('ac-redo-start', async el => {
   const own = local(), arg = (parseHash().query.sheet || '').split(':').slice(1).join(':');
   if (el.disabled || own.busy || !client) return;
   const [id, variant] = arg.split(':');
-  own.busy = true; rerenderSheet();
-  try {
+  await sheetCall(own, async () => {
     const run = await client.start({ action: 'audit', inputs: redoInputs(id, variant) });
     closeSheetThen(() => {
       store.refresh(); refresh();
       toast(t(run.state === 'queued' ? 'toast.queued' : 'toast.started', { title: t('ac.redo.title', { stage: stageTitle(id) }) }),
         { link: { href: href('/activity/run/' + encodeURIComponent(run.id)), text: t('toast.follow') } });
     });
-  } catch (e) { Object.assign(own, { busy: false, refused: e instanceof ActionError ? e.message : String(e) }); rerenderSheet(); }
+  });
 });

@@ -24,6 +24,9 @@ NAME, BINARY, PINNED = 'jscpd', 'jscpd', '5.4.2'
 ALWAYS_IGNORED = ('**/.git/**', '**/node_modules/**', '**/.venv/**', '**/dist/**', '**/build/**',
                   '**/__pycache__/**', '**/.enola/**', '**/*.d.ts')     # a declaration file: types written (or generated) for code elsewhere
 IMPORT = re.compile(r'^\s*(from\s+\S+\s+import\b|import\s|export\s.*\bfrom\s|\}\s*from\s)')
+ONE = r'[\w$]+(\s+as\s+[\w$]+)?'                   # a name imported, maybe renamed
+NAMES = re.compile(rf'^\s*\(?\s*{ONE}(\s*,\s*{ONE})*\s*,\s*$|^\s*{ONE}(\s*,\s*{ONE})+\s*$')   # a line of an import's list of names
+BLOCK_COMMENT = re.compile(r'/\*.*?\*/|/\*.*$', re.S)     # closed, or open to the fragment's end
 ASIDE = re.compile(r'^\s*("""|\'\'\'|#|//|\*|/\*)?\s*$|^\s*(#|//)')        # blank, a comment, a docstring's quotes alone
 NEAR_MODES = ('--similarity', str(NEAR_COPY['similarity']), '--max-gap-lines', str(NEAR_COPY['max_gap_lines']),
               '--ignore-identifiers', '--min-tokens', str(NEAR_COPY['min_tokens']))
@@ -62,9 +65,10 @@ def _formats(formats):
 
 
 def imports_only(fragment):
-    """Whether a pair copies only a block of imports: three import lines or more, at most three other lines of code."""
-    lines = [line for line in fragment.splitlines() if not ASIDE.match(line)]
-    imports = sum(1 for line in lines if IMPORT.match(line))
+    """Whether a pair copies only a block of imports: three import lines or more (a list of names alone continues one),
+    at most three other lines of code; a block comment is no code."""
+    lines = [line for line in BLOCK_COMMENT.sub('', fragment).splitlines() if not ASIDE.match(line)]
+    imports = sum(1 for line in lines if IMPORT.match(line) or NAMES.match(line))
     return imports >= 3 and len(lines) - imports <= 3
 
 

@@ -18,10 +18,14 @@ export const token = liveToken();
 export const mode = token ? 'live' : 'snapshot';
 
 const R = { kind: 'loading', manifest: null, data: {}, reading: {}, missing: new Set(), locale: null, contract: null };
-const listeners = new Set();
+/** [on, tell]: `on(fn)` calls `fn(what)` at each `tell(what)` until the function it returns is called. */
+export function listeners() {
+  const all = new Set();
+  return [fn => { all.add(fn); return () => all.delete(fn); }, what => all.forEach(fn => fn(what))];
+}
+const [onChange, changed] = listeners();
 /** Calls `fn` after sections arrive or change (the router redraws the screen). */
-export function onChange(fn) { listeners.add(fn); return () => listeners.delete(fn); }
-const changed = names => listeners.forEach(fn => fn(names));
+export { onChange };
 
 /** A GET of the live API with the launch token. */
 function apiGet(path) {

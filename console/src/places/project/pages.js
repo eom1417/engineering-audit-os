@@ -3,12 +3,11 @@
 // say comes from the live API: the `status` and `assistant_check` reading tools (free, answered at once), the check's
 // offer (the audit preview), /api/progress's setup, safety and tools flows, /api/sign-in, /api/usage, /api/session.
 import {
-  t, L, num, esc, icon, code, href, has, fmtWhen, exactTime, screen, sheet, act, refresh, toast, closeSheetThen, setTimeZone, offline, prefs, live,
-  store, model, client, ActionError, ac, skeletonRows, displayToggles, rowWords, bitsOf, radio, facts, titledSection, openLiveButton, pageHead,
+  said, t, L, num, esc, icon, code, href, has, fmtWhen, exactTime, screen, sheet, act, refresh, toast, closeSheetThen, setTimeZone, offline, prefs, live,
+  store, model, client, ac, skeletonRows, displayToggles, rowWords, bitsOf, radio, facts, titledSection, openLiveButton, pageHead,
 } from 'eaos';
 import { projBack, protectedNames } from './git.js';
 
-const said = e => (e instanceof ActionError ? e.message : String(e));
 const flows = () => (live.progress && live.progress.flows) || {};
 const offlinePage = (lede, guide) => `<div class="page">${projBack()}${pageHead(t(lede), t(guide), openLiveButton())}</div>`;
 const busyPage = lede => `<div class="page" aria-busy="true">${projBack()}<h1 class="lede">${t(lede)}</h1>${skeletonRows(2, [40, 70], { cls: 'section', tag: 'div' })}</div>`;

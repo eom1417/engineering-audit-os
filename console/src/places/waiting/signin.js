@@ -3,12 +3,11 @@
 // clicks there, typing and keys go to the field they clicked, scrolling and back; what the app sent (its last output
 // lines, the mails its mail catcher caught) beside it. "I have signed in" saves the session for the owner alone and
 // the check goes on; "Go on without" lets it go on signed out. Nothing typed is kept or logged.
-import { t, esc, icon, code, href, fmtTime, rich, screen, sheet, act, refresh, toast, announce, closeSheetThen, afterRender, live, store, client, ActionError, ac, titledBlock, openLiveButton, pageHead } from 'eaos';
+import { said, t, esc, icon, code, href, fmtTime, rich, screen, sheet, act, refresh, toast, announce, closeSheetThen, afterRender, live, store, client, ac, titledBlock, openLiveButton, pageHead } from 'eaos';
 
 const LOOK = 1500;     // ms between two pictures while the browser is open
 const STATUS = 4000;   // ms between two readings of what the check asks
 const page = { status: null, view: null, busy: false, problem: null, done: null, timers: [] };
-const said = e => (e instanceof ActionError ? e.message : String(e));
 
 function stop() { page.timers.forEach(clearInterval); page.timers = []; }
 afterRender(ctx => { if (ctx.path !== '/waiting/sign-in') stop(); });
@@ -114,7 +113,7 @@ function askedPage(q, st, back) {
 }
 
 function signinPage(ctx) {
-  const back = `<a class="back" href="${href('/waiting')}">${icon('back', 'icon--dir')}${t('wt.item.back')}</a>`;
+  const back = ac.back('/waiting', t('wt.item.back'));
   if (ctx.offline) return `<div class="page">${back}${pageHead(t('ac.si.offline'), t('ac.si.offline.guide'), openLiveButton())}</div>`;
   const st = page.status || live.signIn;
   const check = ac.lastCheck();

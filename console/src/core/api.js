@@ -26,4 +26,4 @@ export * as selection from '../data/selection.js';
 export * as derive from '../data/derive.js';
 export * as normalize from '../data/normalize.js';
 export * as contract from '../data/contract.js';
-export { client, ActionError, TERMINAL, ACTIVE, RETRYABLE } from '../data/actions.js';
+export { client, ActionError, said, TERMINAL, ACTIVE, RETRYABLE } from '../data/actions.js';

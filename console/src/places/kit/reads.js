@@ -1,7 +1,7 @@
 // The answers of EAOS's reading actions a view shows (impact, structure, design_brief): asked once per check and
 // inputs (POST /api/runs answers a reading action at once, run.result.answer), kept for the page, asked again after a
 // new check. Live only: the read-only copy has no server to ask.
-import { client, data, refresh, ActionError } from 'eaos';
+import { said, client, data, refresh } from 'eaos';
 
 const answers = new Map();
 const stamp = () => { const m = data.manifest(); return m && m.built ? m.built.digest : ''; };
@@ -17,7 +17,7 @@ export function read(action, inputs) {
     client.start({ action, inputs: inputs || {} }).then(run => {
       const result = run.result || {};
       Object.assign(entry, run.state === 'done' ? { state: 'ready', answer: result.answer } : { state: 'failed', error: run.error || run.state });
-    }, e => Object.assign(entry, { state: 'failed', error: e instanceof ActionError ? e.message : String(e) }))
+    }, e => Object.assign(entry, { state: 'failed', error: said(e) }))
       .then(() => refresh());
   }
   return answers.get(key);

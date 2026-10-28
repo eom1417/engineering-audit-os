@@ -17,6 +17,9 @@ export class ActionError extends Error {
   constructor(status, message, needs, reasons) { super(message); this.status = status; this.needs = needs; this.reasons = reasons || []; }
 }
 
+/** What a refused call says to the person: its message, or the error as text. */
+export const said = e => (e instanceof ActionError ? e.message : String(e));
+
 function refused(answer, payload) {
   const reasons = payload.reasons || [];
   const message = reasons.length ? reasons.map(r => r[prefs.lang] || r.en).join(' ') : String(payload.message || payload.error || answer.statusText);

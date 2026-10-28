@@ -36,6 +36,11 @@ class NearCopies(unittest.TestCase):
         self.assertTrue(all(r['measurements']['other']['path'] for r in rows))
         self.assertIn('--similarity', jscpd.NEAR_MODES)
 
+    def test_a_list_of_imports_alike_is_no_copy_and_code_is(self):
+        imports = "  said, t, tn, L, num, esc,\n  client, contract, ac,\n} from 'eaos';\n\n/* ====\n   S-47 ONE BRANCH\n   ==== */\nconst enc = encodeURIComponent;"
+        self.assertTrue(jscpd.imports_only(imports))
+        self.assertFalse(jscpd.imports_only('for x in xs:\n    if x:\n        break\n    else:\n        pass\n    y(a, b)'))
+
     def test_pairs_sharing_a_place_are_one_cluster_whose_source_is_the_fullest_copy(self):
         found = one_source.near_copies(sets(near(('a.py', 10), ('b.py', 40), lines=12), near(('b.py', 42), ('c.py', 5), 'similar', 6),
                                             near(('x.py', 1), ('y.py', 1)), near(('tests/t1.py', 1), ('tests/t2.py', 1))))
@@ -72,6 +77,7 @@ class Idioms(unittest.TestCase):
         self.assertEqual(len(found), 1, 'two records two lines apart are one place')
         self.assertEqual((found[0]['evidence']['count'], found[0]['evidence']['home']), (3, 'src/lib'))
         self.assertEqual(one_source.idioms(sets(idiom('a.ts', 1), idiom('b.ts', 1)), set()), [])
+        self.assertEqual(one_source.idioms(sets(*(idiom('src/lib/dates.ts', n) for n in (1, 10, 20))), set()), [], 'the home itself')
 
     def test_a_guard_repeated_in_routes_calls_for_a_middleware(self):
         guards = [record(f'server/routes/{n}.js', 4, engine='ast-grep', record='idiom', form='route_guard', rule='eaos.idiom.route-guard')

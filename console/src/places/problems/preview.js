@@ -6,7 +6,7 @@
 // preview again, since the token is bound to it. Address: ?sheet=verb:<verb>[:fixable | :assistant | :<problem> |
 // :step:<id>]; without a target, the current selection.
 import {
-  t, tn, L, num, esc, rich, icon, code, sev, href, assistantPicker, estimate, expiresAt, sheet, act, rerenderSheet, local, parseHash, closeSheetThen,
+  said, t, tn, L, num, esc, rich, icon, code, sev, href, assistantPicker, estimate, expiresAt, sheet, act, rerenderSheet, local, parseHash, closeSheetThen,
   toast, refresh, offline, model, selection, store, client, ActionError, contract, prefs, terminalFold, toggleRow, lockLine, radio, facts,
   titledBlock,
   switchBox,
@@ -42,7 +42,7 @@ function ask(verb, own) {
   const mine = own.ticket = (own.ticket || 0) + 1; // an answer to an older choice is dropped
   own.asking = true; own.problem = null;
   client.preview(verb, body(verb, own)).then(p => { if (mine !== own.ticket) return; own.preview = p; own.asking = false; rerenderSheet(); },
-    e => { if (mine !== own.ticket) return; own.asking = false; own.preview = null; own.problem = e instanceof ActionError ? e.message : String(e); rerenderSheet(); });
+    e => { if (mine !== own.ticket) return; own.asking = false; own.preview = null; own.problem = said(e); rerenderSheet(); });
 }
 /** The choice changed: the preview is asked again (the old one's token no longer matches). */
 function again(change) {
@@ -270,7 +270,7 @@ function started(run, verb, p) {
 
 function startRefused(e, own) {
   if (e instanceof ActionError && e.needs === 'preview') { again({ moved: true }); return; }
-  Object.assign(own, { busy: false, refused: e instanceof ActionError ? e.message : String(e) });
+  Object.assign(own, { busy: false, refused: said(e) });
   rerenderSheet();
 }
 

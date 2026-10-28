@@ -1,7 +1,7 @@
 // S-07 One problem with its evidence (PRB-06..10, PRB-15, PLN-05, FIX-01): why it matters, what the assistant
 // decided, where it is, the facts it rests on with their lines of code, its place in the plan, the other problems of the
 // same file and a note for whoever goes on after. Its sheet: one evidence fact (PRB-09).
-import { t, tn, L, num, esc, rich, icon, code, sev, chk, href, fmtWhen, sheet, act, refresh, toast, parseHash, offline, S, md, model, selection, client, ActionError, rowWords, facts, titledBlock } from 'eaos';
+import { ac, said, t, tn, L, num, esc, rich, icon, code, sev, chk, href, fmtWhen, sheet, act, refresh, toast, parseHash, offline, S, md, model, selection, client, rowWords, facts, titledBlock } from 'eaos';
 import { component, who, keepQuery, kindWord } from './shared.js';
 
 const enc = encodeURIComponent;
@@ -96,7 +96,7 @@ export function detailHTML(p, ctx) {
       <button class="btn btn--quiet btn--sm" data-act="sheet" data-sheet="impact:${esc(path)}">${t('pd.touches')}</button></li>`).join('')
     + (p.paths.length > 6 ? `<li class="small muted pad-2-3">${esc(tn('pl.file', p.paths.length - 6))} ${t('more')}</li>` : '');
   return `<article class="pdetail" aria-labelledby="pd-title">
-    <a class="back" href="${href('/problems', keepQuery(parseHash().query))}">${icon('back', 'icon--dir')}${t('pd.back')}</a>
+    ${ac.back('/problems', t('pd.back'), keepQuery(parseHash().query))}
     <header class="pdetail__head">
       <div class="pdetail__tags">${sev(p.severity)}
         ${who(p) === 'you' ? `<span class="tag tag--you">${t('who.you')}</span>` : `<span class="tag tag--eaos">${t('who.eaos')}</span>`}
@@ -160,6 +160,6 @@ act('note-save', async el => {
     toast(t('pd.note.saved'));
   } catch (e) {
     el.disabled = false;
-    toast(e instanceof ActionError ? e.message : String(e), { refusal: true });
+    toast(said(e), { refusal: true });
   }
 });

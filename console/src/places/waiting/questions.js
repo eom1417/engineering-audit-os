@@ -51,7 +51,7 @@ function card(q) {
 }
 
 function questionsPage(ctx) {
-  const back = `<a class="back" href="${href('/waiting')}">${icon('back', 'icon--dir')}${t('wt.item.back')}</a>`;
+  const back = ac.back('/waiting', t('wt.item.back'));
   if (ctx.offline) return `<div class="page">${back}${pageHead(t('ac.q.offline'), t('ac.q.offline.guide'))}</div>`;
   const list = live.questions.concat(Object.keys(answered).filter(id => !live.questions.some(q => q.id === id)).map(id => answered[id].question));
   return `<div class="page">

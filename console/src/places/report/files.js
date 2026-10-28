@@ -1,7 +1,7 @@
 // The report's files (LIB-07): the report's text files (up to 400, the report_file action), each read as text in its
 // sheet (?sheet=file:<path>: at most 2 MB, never rendered) and downloaded from there; the report for people
 // (REPORT.html) opened in a tab of this browser through the open_report action.
-import { t, num, esc, icon, code, sheet, act, data, refresh, client, toast, closeSheetThen, offline, ActionError } from 'eaos';
+import { said, t, num, esc, icon, code, sheet, act, data, refresh, client, toast, closeSheetThen, offline } from 'eaos';
 import { search, count, nm, enc, matches, page } from '../kit/kit.js';
 import { read } from '../kit/reads.js';
 
@@ -65,5 +65,5 @@ act('un-openreport', async el => {
     if (!url) throw new Error(t('un.files.unread'));
     tab.location = url;
     closeSheetThen(() => toast(t('un.files.opened')));
-  } catch (e) { if (tab) tab.close(); el.disabled = false; toast(e instanceof ActionError ? e.message : String(e), { refusal: true }); }
+  } catch (e) { if (tab) tab.close(); el.disabled = false; toast(said(e), { refusal: true }); }
 });

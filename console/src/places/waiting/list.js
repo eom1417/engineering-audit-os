@@ -3,8 +3,8 @@
 // delivered (live runs that handed a branch over and wait for a decision), the report's decisions with the answers
 // saved in the live console, the sign-in a check waits for and the questions runs ask (their own screens, builder A).
 import {
-  t, tn, L, num, esc, rich, md, icon, code, diffLines, href, fmtWhen, expiresAt, screen, sheet, act, refresh, toast, closeSheetThen, rerenderSheet,
-  local, offline, parseHash, S, live, store, model, client, ActionError, derive, chk, ac, rowWords, smallFold, terminalFold, toggleRow, lockLine,
+  sheetCall, said, t, tn, L, num, esc, rich, md, icon, code, diffLines, href, fmtWhen, expiresAt, screen, sheet, act, refresh, toast, closeSheetThen, rerenderSheet,
+  local, offline, parseHash, S, live, store, model, client, derive, chk, ac, rowWords, smallFold, terminalFold, toggleRow, lockLine,
   radio, titledBlock, pageHead,
 } from 'eaos';
 import { ownTyped, sendAnswer, sendBlocked, ownBox, whyFold, choice } from './answer.js';
@@ -197,7 +197,7 @@ screen({
     }
     if (!card) card = `<div class="empty panel"><p class="empty__title">${esc(t(live.loaded || offline() ? 'pd.notfound' : 'st.loading', { id }))}</p><a class="btn btn--secondary" href="${href('/waiting')}">${t('wt.item.back')}</a></div>`;
     return `<div class="page">
-      <a class="back" href="${href('/waiting')}">${icon('back', 'icon--dir')}${t('wt.item.back')}</a>
+      ${ac.back('/waiting', t('wt.item.back'))}
       <h1 class="lede mt-2">${lede}</h1>
       ${waits ? `<p class="guide">${t(run ? 'wt.item.guide.b' : 'wt.item.guide.q')}</p>` : ''}
       <div class="mt-5">${card}</div></div>`;
@@ -229,7 +229,7 @@ function ask(op, local) {
     local.preview = p;
     if (p.merge) { local.target = p.merge.target || ''; local.remove = p.merge.delete_after !== false; }
     rerenderSheet();
-  }, e => { local.problem = e instanceof ActionError ? e.message : String(e); rerenderSheet(); });
+  }, e => { local.problem = said(e); rerenderSheet(); });
 }
 
 function ackRow(kind, local) {
@@ -323,8 +323,8 @@ act('do-decide', async el => {
   const own = local(), id = parseHash().query.sheet.split(':').slice(1).join(':');
   const op = el.dataset.op, run = runOf(id);
   if (el.disabled || !run || !own.preview || !own.preview.confirm || own.busy) return;
-  own.busy = true; rerenderSheet();
-  try {
+  // refused, the used or stale token is spent: the next try asks for a new preview
+  await sheetCall(own, async () => {
     const choice = op === 'accept' ? Object.assign(own.target ? { merge_into: own.target } : {}, { delete_after: !!own.remove }) : undefined;
     const next = await client.decide(run.id, op, own.preview.confirm.token, choice);
     store.patchRun(run.id, next);
@@ -333,10 +333,6 @@ act('do-decide', async el => {
       toast(op === 'accept' ? t('wt.accepted.toast', { branch, target }) : t('wt.rejected.toast', { branch }));
       store.refresh();
     });
-  } catch (e) {
-    // a used or stale token is spent: the next try asks for a new preview
-    Object.assign(own, { busy: false, asked: false, preview: null, refused: e instanceof ActionError ? e.message : String(e) });
-    rerenderSheet();
-  }
+  }, { asked: false, preview: null });
 });
 

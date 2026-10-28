@@ -4,13 +4,12 @@
 // (PRJ-08: composed from the data), then every action of the contract (RUN-13), then the expert steps (FIX-16); each
 // action opens its own preview with its form (action.js).
 import {
-  t, tn, L, num, esc, rich, icon, code, href, sheet, act, rerenderSheet, local, closeSheetThen, toast, refresh, offline, S, live, store, model,
-  client, contract, normalize, ActionError, ac, rowWords, toggleRow, radio, facts, titledBlock,
+  said, t, tn, L, num, esc, rich, icon, code, href, sheet, act, rerenderSheet, local, closeSheetThen, toast, refresh, offline, S, live, store, model,
+  client, contract, normalize, ac, rowWords, toggleRow, radio, facts, titledBlock,
 } from 'eaos';
 
 const enc = encodeURIComponent;
 S.ac = S.ac || { prefill: {} };
-export const said = e => (e instanceof ActionError ? e.message : String(e));
 /** The refusal or problem line above a preview's start button, when there is one. */
 export const alertLine = text => (text ? `<p class="small" role="alert">${icon('warn', 'icon--sm')} ${esc(text)}</p>` : '');
 

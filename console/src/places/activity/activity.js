@@ -3,8 +3,8 @@
 // controls (pause, resume, stop with its question, retry, move up and down, remove from the line) on the live
 // action API (POST /api/runs/<id>/<op>, /api/runs/reorder). Everything comes from the live command state (EAOS.live).
 import {
-  t, tn, num, esc, icon, href, fmtWhen, screen, sheet, act, refresh, toast, announce, setQuery, searchTyped, parseHash, closeSheetThen, offline,
-  local, rerenderSheet, live, store, client, ActionError, normalize, model, ac, skeletonRows, rowWords, bitsOf, inlineSwitch, titledSection,
+  sheetCall, said, t, tn, num, esc, icon, href, fmtWhen, screen, sheet, act, refresh, toast, announce, setQuery, searchTyped, parseHash, closeSheetThen, offline,
+  local, live, store, client, normalize, model, ac, skeletonRows, rowWords, bitsOf, inlineSwitch, titledSection,
   pageHead,
 } from 'eaos';
 import { stagesOf, stageButton, counts, finished, stageTitle } from './stages.js';
@@ -14,7 +14,7 @@ const enc = encodeURIComponent;
 const runHref = r => href('/activity/run/' + enc(r.id));
 
 /** A refusal of the live API, said where it happened. */
-function refused(e) { toast(e instanceof ActionError ? e.message : String(e), { refusal: true }); }
+function refused(e) { toast(said(e), { refusal: true }); }
 
 export function controls(r, small) {
   if (offline()) return '';
@@ -239,12 +239,11 @@ sheet('stop', {
 act('ac-stop', async el => {
   const own = local();
   if (el.disabled || !client) return;
-  own.busy = true; rerenderSheet();
-  try {
+  await sheetCall(own, async () => {
     const run = await client.control(el.dataset.id, 'stop');
     store.patchRun(run.id, run);
     closeSheetThen(() => { refresh(); toast(t('ac.ctl.stopped')); store.refresh(); });
-  } catch (e) { Object.assign(own, { busy: false, refused: e instanceof ActionError ? e.message : String(e) }); rerenderSheet(); }
+  });
 });
 
 /* ---------- S-14 all runs ---------- */

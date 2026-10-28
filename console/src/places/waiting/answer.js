@@ -1,6 +1,6 @@
 // What a decision of the report (list.js) and a run's question (questions.js) share: the person's own words typed,
 // and an answer sent.
-import { t, num, esc, refresh, toast, S, store, ActionError, radio, smallFold } from 'eaos';
+import { said, t, num, esc, refresh, toast, S, store, radio, smallFold } from 'eaos';
 
 /** The owner's own words for a decision or a question (`input` its typing act): the box, the note under it (what the
  *  words do) and how many characters are written. */
@@ -34,6 +34,6 @@ export async function sendAnswer(id, work) {
     toast(t('toast.saved'));
     store.refresh();
   } catch (e) {
-    toast(e instanceof ActionError ? e.message : String(e), { refusal: true });
+    toast(said(e), { refusal: true });
   } finally { delete S.sending[id]; refresh(); }
 }

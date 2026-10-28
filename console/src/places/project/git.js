@@ -1,12 +1,11 @@
 // What the branch pages and their confirm sheets share (builder A): what git says, read once per base and again after
 // any change (GET /api/branches, GET /api/branches/detail, the free merge preview), and the marks they draw a branch
 // and a confirm sheet with.
-import { t, L, num, esc, icon, code, href, refresh, rerenderSheet, local, act, chk, expiresAt, store, client, ActionError, ac, skeletonRows } from 'eaos';
+import { said, t, L, num, esc, icon, code, href, refresh, rerenderSheet, local, act, chk, expiresAt, store, client, ac, skeletonRows } from 'eaos';
 
 export const enc = encodeURIComponent;
-export const said = e => (e instanceof ActionError ? e.message : String(e));
 export const reasonsOf = list => (list || []).map(r => L(r)).join(' ');
-export const projBack = () => `<a class="back" href="${href('/status', { sheet: 'project' })}">${icon('back', 'icon--dir')}${t('proj.title')}</a>`;
+export const projBack = () => ac.back('/status', t('proj.title'), { sheet: 'project' });
 
 /* ---------- what git says, read once per base and again after any change ---------- */
 export const inv = { base: null, data: null, reading: false, problem: null, details: {} };

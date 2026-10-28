@@ -1,13 +1,13 @@
 // What the plan, Status, Problems and the report page share: rows, segmented controls whose choices are
 // addresses, a list's own search, lists 50 at a time, the loading, empty and not-measured states, a problem's row and
 // the build's next step. A kit: stateless helpers bundled into each place that imports them (scripts/build.mjs).
-import { t, num, esc, icon, code, sev, rich, L, href, parseHash, searchTyped, act, offline, model, normalize, skeletonRows, rowWords, pageHead } from 'eaos';
+import { ac, t, num, esc, icon, code, sev, rich, L, href, parseHash, searchTyped, act, offline, model, normalize, skeletonRows, rowWords, pageHead } from 'eaos';
 
 const q = () => parseHash().query;
 export const enc = encodeURIComponent;
 export const matches = normalize.matches;
 
-export const back = (path, label, query) => `<a class="back" href="${href(path, query)}">${icon('back', 'icon--dir')}${esc(label)}</a>`;
+export const back = ac.back;
 
 /** The report page's facts, drawn inside the place's own bundle (its parts are drawn and tested on their own, without
  *  the core's parts). */

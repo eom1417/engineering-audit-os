@@ -4,12 +4,12 @@
 // choose the branch EAOS checks, clean up the merged branches, restore a deleted one, compare with another base, fetch.
 // One branch and its own sheets: branch.js; what both share: git.js.
 import {
-  t, tn, L, num, esc, icon, code, href, fmtWhen, screen, sheet, act, rerenderSheet, local, toast, closeSheetThen, openSheet, parseHash, setQuery,
+  sheetCall, said, t, tn, L, num, esc, icon, code, href, fmtWhen, screen, sheet, act, rerenderSheet, local, toast, closeSheetThen, openSheet, parseHash, setQuery,
   searchTyped, freshness, store, client, ActionError, normalize, ac, refresh, rowWords, bitsOf, toggleRow, lockLine, radio, facts, titledBlock,
   titledSection, refusal, openLiveButton, pageHead,
 } from 'eaos';
 import {
-  enc, said, reasonsOf, projBack, inv, inventory, changed, rowOf, brUrl, liveName, aheadBehind, whoLine, roleTags, owner, ack, valid, alert,
+  enc, reasonsOf, projBack, inv, inventory, changed, rowOf, brUrl, liveName, aheadBehind, whoLine, roleTags, owner, ack, valid, alert,
   loadingRows, closeFoot, previewing, previewOnce, answerOf, mustBeDone,
 } from './git.js';
 
@@ -236,12 +236,11 @@ sheet('cleanup', {
 act('ac-cleanup', async el => {
   const own = local();
   if (el.disabled || !own.preview) return;
-  own.busy = true; rerenderSheet();
-  try {
+  await sheetCall(own, async () => {
     const r = await client.branches.cleanup(own.preview);
     const done = answerOf(r).deleted || [];
     closeSheetThen(() => { toast(t('ac.cl.done', { n: num(done.length) })); changed(); });
-  } catch (e) { Object.assign(own, { busy: false, preview: null, asking: false, ack_cleanup: false, refused: said(e) }); rerenderSheet(); }
+  }, { preview: null, asking: false, ack_cleanup: false });
 });
 
 /* restore a deleted branch (BRN-09) */
@@ -272,11 +271,10 @@ act('ac-rs-name', el => { local().name = el.value; clearTimeout(rsTimer); rsTime
 act('ac-restore', async el => {
   const own = local();
   if (el.disabled || !client) return;
-  own.busy = true; rerenderSheet();
-  try {
+  await sheetCall(own, async () => {
     const r = await client.branches.restore(el.dataset.id, own.name || undefined);
     const name = answerOf(r).branch || own.name;
     mustBeDone(r, 'ac.rs.failed');
     closeSheetThen(() => { toast(t('ac.rs.done', { name })); changed(); });
-  } catch (e) { Object.assign(own, { busy: false, refused: said(e) }); rerenderSheet(); }
+  });
 });

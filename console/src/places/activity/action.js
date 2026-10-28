@@ -1,10 +1,10 @@
 // One action's preview with its form (RUN-13, FIX-14, FIX-16): the sheet ?sheet=action:<id> every action of the
 // launcher opens (launch.js); a reading tool answers in place, any other starts a run.
 import {
-  t, L, num, esc, icon, code, href, sheet, act, rerenderSheet, local, parseHash, closeSheetThen, toast, refresh, offline, chk, S, store, model,
+  said, t, L, num, esc, icon, code, href, sheet, act, rerenderSheet, local, parseHash, closeSheetThen, toast, refresh, offline, chk, S, store, model,
   client, contract, ActionError, has, ac, terminalFold, toggleRow, radio, facts,
 } from 'eaos';
-import { metaOf, reading, said, alertLine } from './launch.js';
+import { metaOf, reading, alertLine } from './launch.js';
 
 const enc = encodeURIComponent;
 const LONG = ['text', 'content', 'summary', 'reason', 'person_said'];

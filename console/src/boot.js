@@ -44,6 +44,7 @@
   }
 
   function savedChoices() {
+    // ast-grep-ignore: eaos.idiom.json-read -- the first script, before the Studio's code (core/prefs.js) arrives
     try { return JSON.parse(localStorage.getItem('eaos.report.studio') || '{}') || {}; } catch (e) { return {}; }
   }
 

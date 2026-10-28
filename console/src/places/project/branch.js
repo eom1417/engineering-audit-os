@@ -3,11 +3,11 @@
 // on its own free preview whose confirm token the act spends: merge, delete here or on the remote, protect, unprotect,
 // propose a conflict's resolution. What it shares with S-46: git.js.
 import {
-  t, tn, L, num, esc, icon, code, rich, diffLines, href, fmtWhen, screen, sheet, act, rerenderSheet, local, toast, closeSheetThen, live, store,
+  sheetCall, said, t, tn, L, num, esc, icon, code, rich, diffLines, href, fmtWhen, screen, sheet, act, rerenderSheet, local, toast, closeSheetThen, live, store,
   client, ActionError, ac, rowWords, lockLine, radio, facts, titledBlock, titledSection, notFound, refusal, openLiveButton, pageHead,
 } from 'eaos';
 import {
-  enc, said, reasonsOf, inv, inventory, detail, mergeTry, problemOf, changed, liveName, waitingRun, aheadBehind, whoLine, roleTags,
+  enc, reasonsOf, inv, inventory, detail, mergeTry, problemOf, changed, liveName, waitingRun, aheadBehind, whoLine, roleTags,
   conflictOf, checksLine, sheetBranch, owner, ack, valid, alert, loadingRows, closeFoot, previewing, previewOnce, mustBeDone,
 } from './git.js';
 
@@ -84,7 +84,7 @@ function branchFacts(b, det, target) {
 }
 function branchPage(ctx) {
   const name = ctx.params.name, kind = ctx.query.kind || 'local', remote = ctx.query.remote || null;
-  const back = `<a class="back" href="${href('/project/branches')}">${icon('back', 'icon--dir')}${t('proj.branches')}</a>`;
+  const back = ac.back('/project/branches', t('proj.branches'));
   if (ctx.offline) return `<div class="page">${back}${pageHead(t('ac.br.offline.lede'), null, openLiveButton())}</div>`;
   const det = client && detail(name, kind, remote);
   const problem = problemOf(name, kind, remote);
@@ -242,12 +242,11 @@ sheet('delete-remote', deleteSheet(true));
 act('ac-delete', async el => {
   const own = local(), p = own.preview;
   if (el.disabled || !p) return;
-  own.busy = true; rerenderSheet();
-  try {
+  await sheetCall(own, async () => {
     const r = await client.branches.remove(p, !!p.unmerged);
     mustBeDone(r, 'ac.dl.failed');
     closeSheetThen(() => { toast(t(p.where === 'remote' ? 'ac.dl.done.remote' : 'ac.dl.done', { b: p.branch, r: p.remote || '' })); changed(); if (p.where !== 'remote') location.hash = href('/project/branches'); });
-  } catch (e) { Object.assign(own, { busy: false, preview: null, asking: false, ack_del: false, ack_del2: false, refused: said(e) }); rerenderSheet(); }
+  }, { preview: null, asking: false, ack_del: false, ack_del2: false });
 });
 
 /* protect, remove the protection (BRN-10) */
@@ -275,11 +274,10 @@ sheet('unprotect', protectSheet(false));
 act('ac-protect', async el => {
   const own = local(), on = !!el.dataset.on, name = el.dataset.name;
   if (el.disabled || !own.preview) return;
-  own.busy = true; rerenderSheet();
-  try {
+  await sheetCall(own, async () => {
     await client.branches.protect(name, on, own.preview.confirm ? own.preview.confirm.token : null);
     closeSheetThen(() => { toast(t(on ? 'ac.pr.done' : 'ac.up.done', { b: name })); changed(); });
-  } catch (e) { Object.assign(own, { busy: false, preview: null, asking: false, refused: said(e) }); rerenderSheet(); }
+  }, { preview: null, asking: false });
 });
 
 /* propose a conflict's resolution (BRN-07): a read-only assistant run, previewed for free */
@@ -320,9 +318,8 @@ act('ac-rv-asst', el => { local().asst = el.value; rerenderSheet(); });
 act('ac-resolve', async el => {
   const own = local(), p = own.preview;
   if (el.disabled || !p) return;
-  own.busy = true; rerenderSheet();
-  try {
+  await sheetCall(own, async () => {
     const r = await client.branches.proposeResolution(p.source, p.target, own.asst || undefined);
     closeSheetThen(() => { toast(t('ac.rv.started'), { link: { href: href('/activity/run/' + enc(r.run.id)), text: t('toast.follow') } }); store.refresh(); });
-  } catch (e) { Object.assign(own, { busy: false, refused: said(e) }); rerenderSheet(); }
+  });
 });

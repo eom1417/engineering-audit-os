@@ -222,6 +222,7 @@ function seedStorage(pairs) {
     for (const [key, value] of Object.entries(pairs)) {
       if (value && typeof value === 'object') {
         let held = {};
+        // ast-grep-ignore: eaos.idiom.json-read -- runs inside the checked app's page, where no module of EAOS can be imported
         try { held = JSON.parse(window.localStorage.getItem(key) || '{}') || {}; } catch {}
         window.localStorage.setItem(key, JSON.stringify({ ...(typeof held === 'object' ? held : {}), ...value }));
       } else window.localStorage.setItem(key, value);

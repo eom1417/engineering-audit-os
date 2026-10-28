@@ -6,14 +6,13 @@
 // the assistant's own session and is kept for the tab. Also ?q= (asks at once), ?run=<id> (about a run),
 // ?records=1&q= (the check's records, the free `ask` tool) and ?note=project (a note, the `note` action).
 import {
-  t, num, L, esc, rich, icon, code, href, fmtTime, screen, act, refresh, refreshSoon, redrawAssist, toast, announce, parseHash, setQuery,
-  searchTyped, openSheet, offline, S, live, store, client, contract, ActionError, prefs, ac, md, rowWords, titledSection, openLiveButton,
+  said, t, num, L, esc, rich, icon, code, href, fmtTime, screen, act, refresh, refreshSoon, redrawAssist, toast, announce, parseHash, setQuery,
+  searchTyped, openSheet, offline, S, live, store, client, contract, prefs, ac, md, rowWords, titledSection, openLiveButton,
   pageHead,
   switchBox,
 } from 'eaos';
 
 const KEY = 'eaos.chat';
-const said = e => (e instanceof ActionError ? e.message : String(e));
 function load() { try { return JSON.parse(sessionStorage.getItem(KEY)) || null; } catch (e) { return null; } }
 const conv = load() || { session: null, turns: [] };
 // a turn that was being written when the page was reloaded is followed again
@@ -176,7 +175,7 @@ function recordsPage(q) {
 let noteSaved = null;
 function notePage() {
   return `<div class="page">
-    <a class="back" href="${href('/status')}">${icon('back', 'icon--dir')}${t('st.place')}</a>
+    ${ac.back('/status', t('st.place'))}
     ${pageHead(t('ac.note.lede'), t('ac.note.guide'))}
     ${noteSaved ? `<div class="saved section" role="status"><b>${icon('check', 'icon--sm')} ${esc(noteSaved)}</b><span>${t('pd.note.kept')}</span></div>
       <div class="actions"><a class="btn btn--secondary" href="${href('/status')}">${t('st.place')}</a><button class="btn btn--quiet" data-act="ac-note-again">${t('ac.note.another')}</button></div>`

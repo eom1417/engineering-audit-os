@@ -130,7 +130,8 @@ def _common(parts):
 
 def idioms(sets, folders):
     """One finding per idiom written PATTERN_REPEATS times or more in one language (a Python helper cannot serve a
-    script), with every place."""
+    script), with every place; the places all in one file are that file being the idiom's one home (the helpers of
+    dates, each format its own)."""
     by_form = {}
     for fact in engine_records(sets, 'idiom'):
         python = fact['location']['path'].endswith('.py')
@@ -138,7 +139,7 @@ def idioms(sets, folders):
     found = []
     for (form, _), records in sorted(by_form.items()):
         places = _places(records)
-        if len(places) < PATTERN_REPEATS: continue
+        if len(places) < PATTERN_REPEATS or len({p['path'] for p in places}) == 1: continue
         found.append(_finding('idiom', places[0]['path'], places[0]['line'], 'medium' if form == 'route_guard' else 'low',
                               form=form, count=len(places), places=places[:40],
                               home=home_for(IDIOM_HOME.get(form, 'helper'), places, folders), fact_ids=[p['fact_id'] for p in places][:20]))
