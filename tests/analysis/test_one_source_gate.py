@@ -106,6 +106,15 @@ class Trust(unittest.TestCase):
             with verdicts:
                 self.assertEqual(len(added(check(), after, {'src/lib/fee.js'})), 1)
 
+    def test_a_third_word_for_word_copy_in_a_file_that_had_one_is_refused_and_a_move_is_not(self):
+        two = check(clones=[clone('w1', 'src/lib/tax.js', 'src/lib/fee.js')])
+        three = check(clones=[{**clone('w1', 'src/lib/tax.js', 'src/lib/fee.js'), 'value': {'occurrences': [
+            {'path': 'src/lib/tax.js', 'start_line': 1}, {'path': 'src/lib/fee.js', 'start_line': 1}, {'path': 'src/lib/fee.js', 'start_line': 40}]}}])
+        with Verdicts():
+            self.assertEqual(len(added(two, three, {'src/lib/fee.js'})), 1, 'one more copy of the same lines')
+            moved = check(clones=[clone('w1', 'src/lib/tax.js', 'src/lib/charge.js')])
+            self.assertEqual(added(two, moved, {'src/lib/fee.js', 'src/lib/charge.js'}), [], 'a copy moved between the changed files')
+
     def test_a_copy_kept_on_purpose_with_its_reason_is_no_clone(self):
         body = [f'    total_{i} = price * quantity + tax_{i}' for i in range(8)]
         kept = ['def one():', '    # jscpd:ignore-start -- each MCP tool is its own signature', *body, '    # jscpd:ignore-end']

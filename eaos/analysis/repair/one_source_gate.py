@@ -84,11 +84,13 @@ def _found(found, paths):
 
 
 def _clones(record, paths):
-    """The lines copied word for word that EAOS's own metrics find without any tool, keyed by their digest."""
+    """The lines copied word for word that EAOS's own metrics find without any tool: one row per copy in the changed
+    files, keyed by their digest and numbered, so a third copy is new and a copy moved between them is not."""
     rows = {}
     for fact in (record('metrics') or {}).get('facts') or []:
         places = fact['value'].get('occurrences') or [] if fact['kind'] == 'clone_cluster' else []
-        if len(places) >= 2 and paths & {p['path'] for p in places}: rows[('clone', fact['input_sha'])] = _copied(places)
+        mine = sum(p['path'] in paths for p in places)
+        if len(places) >= 2: rows.update({('clone', fact['input_sha'], n): _copied(places) for n in range(1, mine + 1)})
     return rows
 
 
