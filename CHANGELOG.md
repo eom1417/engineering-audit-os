@@ -33,6 +33,9 @@ or the backup is needed. Now:
   whole report it read; a preference and one checked order save must stay unfound. "How the data is saved, sent and
   backed up" was the last line of what this version does not check: the list is empty.
 
+Measured: the detection baseline 28 of 28 with nothing that must stay found; the compatibility corpus 15 of 15 through
+the new stage; flaskr's empty SQLite given a year of records and restored whole; the same steps on PostgreSQL.
+
 ## 0.0.86 (2026-10-28)
 
 M13, old engines. A real project was called clean while two old engines were still wired in: each behind a switch fixed

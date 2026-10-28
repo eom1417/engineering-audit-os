@@ -222,6 +222,7 @@ simulation found one real failure a person would meet. The replays cost nothing 
 | The baseline app's page saves (no database of its own) | 5 pages read, one save sent on every visit with all 3 records the page read: one card; the server's state file found (data in files only) |
 | flaskr (SQLite) | its two empty tables given 365 records each (a year of dates, every post pointing at a user); the database's own dump restored and compared: both tables back whole; no backup declared: one card |
 | PostgreSQL, the same steps on the run's own server | 6 rows grown to 300 per table; whole documents (20 KB a row) and 300 pictures as text read; two tables sharing values found; the dump restored, every table the same, the restored database removed |
+| Compatibility corpus, every app through the new stage | **15 of 15** run and pictured |
 | What this version does not check (`unchecked`) | **empty**: the score and its areas read from their own measures |
 
 ### The cost of adding a tool
