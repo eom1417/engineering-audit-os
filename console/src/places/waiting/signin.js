@@ -3,7 +3,7 @@
 // clicks there, typing and keys go to the field they clicked, scrolling and back; what the app sent (its last output
 // lines, the mails its mail catcher caught) beside it. "I have signed in" saves the session for the owner alone and
 // the check goes on; "Go on without" lets it go on signed out. Nothing typed is kept or logged.
-import { t, esc, icon, code, href, fmtTime, rich, screen, sheet, act, refresh, toast, announce, closeSheetThen, afterRender, live, store, client, ActionError, ac } from 'eaos';
+import { t, esc, icon, code, href, fmtTime, rich, screen, sheet, act, refresh, toast, announce, closeSheetThen, afterRender, live, store, client, ActionError, ac, titledBlock, openLiveButton, pageHead } from 'eaos';
 
 const LOOK = 1500;     // ms between two pictures while the browser is open
 const STATUS = 4000;   // ms between two readings of what the check asks
@@ -42,10 +42,10 @@ function sentPanel(codes) {
   const out = (codes && codes.output) || [], mails = (codes && codes.mail) || [];
   if (!out.length && !mails.length) return `<p class="small muted">${t('ac.si.sent.none')}</p><p class="small muted">${t('ac.si.sms')}</p>`;
   return `<div class="ac-stack">
-    ${out.length ? `<div><div class="block-title">${t('ac.si.output')}</div><div class="code pad-2-3 pre" dir="ltr">${esc(out.slice(-12).join('\n'))}</div></div>` : ''}
-    ${mails.length ? `<div><div class="block-title">${t('ac.si.mails')}</div><ul class="panel rows">${mails.map(m => `<li class="row" style="align-items:flex-start"><span class="row__main" dir="auto"><span class="row__title small">${esc(m.subject || '')}</span>
+    ${out.length ? titledBlock(t('ac.si.output'), `<div class="code pad-2-3 pre" dir="ltr">${esc(out.slice(-12).join('\n'))}</div>`) : ''}
+    ${mails.length ? titledBlock(t('ac.si.mails'), `<ul class="panel rows">${mails.map(m => `<li class="row" style="align-items:flex-start"><span class="row__main" dir="auto"><span class="row__title small">${esc(m.subject || '')}</span>
       <span class="row__meta" style="display:block">${esc(t('ac.si.mail.to', { to: m.to || '' }))}${m.at ? ', ' + esc(fmtTime(m.at)) : ''}</span><span class="small ink-2" style="display:block;white-space:pre-wrap">${rich(m.text || '')}</span></span>
-      <button class="btn btn--icon" data-act="copy" data-text="${esc(m.text || '')}" aria-label="${esc(t('ac.si.copy_text'))}">${icon('copy')}</button></li>`).join('')}</ul></div>` : ''}
+      <button class="btn btn--icon" data-act="copy" data-text="${esc(m.text || '')}" aria-label="${esc(t('ac.si.copy_text'))}">${icon('copy')}</button></li>`).join('')}</ul>`) : ''}
     <p class="small muted">${t('ac.si.sms')}</p></div>`;
 }
 
@@ -53,13 +53,12 @@ function sentPanel(codes) {
 function donePage(back, check) {
   const follow = check ? `<a class="btn btn--primary" href="${href('/activity/run/' + encodeURIComponent(check.id))}">${t('ac.si.follow')}</a>` : '';
   const done = page.done === 'done';
-  return `<div class="page">${back}<h1 class="lede">${t(done ? 'ac.si.done' : 'ac.si.skipped')}</h1><p class="guide">${t(done ? 'ac.si.done.guide' : 'ac.si.skipped.guide')}</p>
-      <div class="actions">${follow}<a class="btn btn--quiet" href="${href('/project/app')}">${t(done ? 'ac.si.manage' : 'proj.app')}</a></div>
+  return `<div class="page">${back}${pageHead(t(done ? 'ac.si.done' : 'ac.si.skipped'), t(done ? 'ac.si.done.guide' : 'ac.si.skipped.guide'), `${follow}<a class="btn btn--quiet" href="${href('/project/app')}">${t(done ? 'ac.si.manage' : 'proj.app')}</a>`)}
       ${done ? `<div class="ac-note section">${ac.glyph('ok')}<span class="small">${t('ac.si.private')}</span></div>` : ''}</div>`;
 }
 // no check waits for a sign-in now
 function noAskPage(back, st) {
-  return `<div class="page">${back}<h1 class="lede">${t('ac.si.none')}</h1><p class="guide">${t('ac.si.none.guide')}</p>
+  return `<div class="page">${back}${pageHead(t('ac.si.none'), t('ac.si.none.guide'))}
       ${st.kept ? `<div class="ac-note section">${ac.glyph('ok')}<span class="small">${t('ac.si.kept')}</span></div>` : ''}
       <div class="actions"><a class="btn btn--secondary" href="${href('/project/app')}">${t('proj.app')}</a>${st.kept ? `<button class="btn btn--quiet" data-act="sheet" data-sheet="forget">${t('ac.app.forget')}</button>` : ''}</div></div>`;
 }
@@ -98,8 +97,7 @@ function askedPage(q, st, back) {
   return `<div class="page ac-page--signin">
     ${back}
     <div class="context"><span class="tag tag--owner">${icon('seal')}${t('owner.only')}</span>${until ? `<span class="tag tag--caution">${icon('clock')}${esc(t('ac.si.until', { time: until }))}</span>` : ''}</div>
-    <h1 class="lede">${t('ac.si.lede')}</h1>
-    <p class="guide">${t('ac.si.guide')}</p>
+    ${pageHead(t('ac.si.lede'), t('ac.si.guide'))}
     <p class="small ink-2 mt-2">${why}${until ? ' ' + esc(t('ac.si.then', { time: until })) : ''}</p>
     ${page.problem ? `<p class="small" role="alert">${icon('warn', 'icon--sm')} ${esc(page.problem)}</p>` : ''}
     <nav class="seg only-phone ac-si-tabs" aria-label="${esc(t('ac.si.tabs'))}"><a href="${href('/waiting/sign-in', Object.assign({}, q, { tab: null }))}" aria-current="${tab === 'pic'}">${t('ac.si.tab.pic')}</a><a href="${href('/waiting/sign-in', Object.assign({}, q, { tab: 'sent' }))}" aria-current="${tab === 'sent'}">${t('ac.si.tab.sent')}</a></nav>
@@ -117,7 +115,7 @@ function askedPage(q, st, back) {
 
 function signinPage(ctx) {
   const back = `<a class="back" href="${href('/waiting')}">${icon('back', 'icon--dir')}${t('wt.item.back')}</a>`;
-  if (ctx.offline) return `<div class="page">${back}<h1 class="lede">${t('ac.si.offline')}</h1><p class="guide">${t('ac.si.offline.guide')}</p><div class="actions"><button class="btn btn--primary" data-act="sheet" data-sheet="open-live">${t('offline.how')}</button></div></div>`;
+  if (ctx.offline) return `<div class="page">${back}${pageHead(t('ac.si.offline'), t('ac.si.offline.guide'), openLiveButton())}</div>`;
   const st = page.status || live.signIn;
   const check = ac.lastCheck();
   if (page.done) return donePage(back, check);

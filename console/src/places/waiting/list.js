@@ -6,6 +6,8 @@ import {
   t, tn, L, num, esc, rich, md, icon, code, diffLines, href, fmtWhen, expiresAt, screen, sheet, act, refresh, toast, closeSheetThen, rerenderSheet, local, offline, parseHash,
   S, live, store, model, client, ActionError, derive, chk, ac, rowWords, smallFold, terminalFold, toggleRow,
   lockLine, radio,
+  titledBlock,
+  pageHead,
 } from 'eaos';
 import { ownTyped, sendAnswer, sendBlocked, ownBox, whyFold, choice } from './answer.js';
 
@@ -159,8 +161,7 @@ function listPage(ctx) {
   // only a waiting question opens; "no question" is a plain line without an arrow
   const questions = group('q', t('wt.g.questions'), asked, `<div class="panel rows">${asked ? `<a class="row" href="${href('/waiting/questions')}">${qRow}${icon('chev', 'icon--dir muted')}</a>` : `<div class="row">${qRow}</div>`}</div>`);
   return `<div class="page">
-    <h1 class="lede">${esc(tn('pl.thing_waits', wc))}.</h1>
-    <p class="guide">${t(wc ? 'wt.guide' : 'wt.empty.guide')}</p>
+    ${pageHead(`${esc(tn('pl.thing_waits', wc))}.`, t(wc ? 'wt.guide' : 'wt.empty.guide'))}
     ${groups.length ? `<div class="mt-8">${groups.join('')}</div>` : ''}
     <div class="mt-8">${questions}</div>
     ${decided()}
@@ -287,12 +288,12 @@ sheet('accept', {
       title: t('cf.accept.title', { target: code(target) }),
       body: `<div class="owner-band">${icon('seal')}<span><b>${t('owner.only')}</b>${t('cf.band')}</span></div>
         <p>${t('cf.accept.lede', { branch: code(run.result.branch), target: code(target) })}</p>
-        ${local.preview ? `<div><div class="block-title">${t('cf.into')}</div>${into}</div>
+        ${local.preview ? `${titledBlock(t('cf.into'), into)}
         ${blocked ? `<p class="small" role="note">${icon('lock', 'icon--sm')} ${esc(L(blocked))}</p>` : ''}
         ${toggleRow(t('cf.delete'), t('cf.delete.note'), { 'data-change': 'accept-remove', checked: local.remove, 'data-fk': 'del-after' })}`
           : local.problem ? '' : `<p class="small muted" aria-busy="true">${t('cf.previewing')}</p>`}
-        ${d ? `<div><div class="block-title">${t('cf.files')}</div><div class="wcard__fact">${icon('file')}<span>${esc(tn('pl.file_changed', d.files))} <bdi dir="ltr" class="num">+${num(d.insertions)} −${num(d.deletions)}</bdi></span></div></div>` : ''}
-        ${run.result.tests ? `<div><div class="block-title">${t('cf.checks')}</div><div class="wcard__fact ${run.result.tests.passed ? 'wcard__fact--ok' : ''}">${icon(run.result.tests.passed ? 'check' : 'warn')}<span>${esc(run.result.tests.passed ? t('wt.fix.tests.ok') : t('wt.fix.tests.no'))}</span></div></div>` : ''}
+        ${d ? titledBlock(t('cf.files'), `<div class="wcard__fact">${icon('file')}<span>${esc(tn('pl.file_changed', d.files))} <bdi dir="ltr" class="num">+${num(d.insertions)} −${num(d.deletions)}</bdi></span></div>`) : ''}
+        ${run.result.tests ? titledBlock(t('cf.checks'), `<div class="wcard__fact ${run.result.tests.passed ? 'wcard__fact--ok' : ''}">${icon(run.result.tests.passed ? 'check' : 'warn')}<span>${esc(run.result.tests.passed ? t('wt.fix.tests.ok') : t('wt.fix.tests.no'))}</span></div>`) : ''}
         ${terminalFold('eaos accept' + (target ? ` --into ${esc(target)}` : ''))}`,
       foot: foot('accept', local, false),
     };

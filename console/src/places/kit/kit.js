@@ -1,7 +1,7 @@
 // What the plan, Status, Problems and the report page share: rows, segmented controls whose choices are
 // addresses, a list's own search, lists 50 at a time, the loading, empty and not-measured states, a problem's row and
 // the build's next step. A kit: stateless helpers bundled into each place that imports them (scripts/build.mjs).
-import { t, num, esc, icon, code, sev, rich, L, href, parseHash, searchTyped, act, offline, model, normalize, skeletonRows, rowWords } from 'eaos';
+import { t, num, esc, icon, code, sev, rich, L, href, parseHash, searchTyped, act, offline, model, normalize, skeletonRows, rowWords, pageHead } from 'eaos';
 
 const q = () => parseHash().query;
 export const enc = encodeURIComponent;
@@ -38,10 +38,10 @@ export const count = (shown, total) => `<span class="listhead__count" aria-live=
 
 /* ---------- state templates (DESIGN-SYSTEM section 10) ---------- */
 export const loading = (title, rows) => `<div class="page page--wide" aria-busy="true"><h1 class="lede">${title}</h1>${skeletonRows(rows || 5, [45, 80], { cls: 'mt-6' })}</div>`;
-export const nm = (title, why, actHTML) => `<div class="nm"><div class="nm__title"><span class="tag tag--nm">${t('nm')}</span>${title}</div><p class="small ink-2">${why}</p>${actHTML ? `<div>${actHTML}</div>` : ''}</div>`;
+/** What was not measured (or not checked: `o.tag` its word), why, and the action that measures it; `o.cls` the card's classes. */
+export const nm = (title, why, actHTML, o = {}) => `<div class="nm${o.cls ? ' ' + o.cls : ''}"><div class="nm__title"><span class="tag tag--nm">${o.tag || t('nm')}</span>${title}</div><p class="small ink-2">${why}</p>${actHTML ? `<div>${actHTML}</div>` : ''}</div>`;
 /** The empty state of a view (no check has written the report yet): what will be here, and the one action. */
-export const empty = (lede, guide, head) => `<div class="page">${head || ''}<h1 class="lede">${lede}</h1><p class="guide">${guide}</p>
-    <div class="actions">${checkAct('btn--primary')}</div></div>`;
+export const empty = (lede, guide, head) => `<div class="page">${head || ''}${pageHead(lede, guide, checkAct('btn--primary'))}</div>`;
 // a check is never offered in the read-only copy: there the action says how to open it live
 const checkAct = cls => (offline() ? `<button class="btn ${cls}" data-act="sheet" data-sheet="open-live">${t('offline.how')}</button>`
   : `<a class="btn ${cls}" href="${href('/activity', { sheet: 'check' })}">${t('st.empty.act')}</a>`);

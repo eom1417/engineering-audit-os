@@ -11,6 +11,9 @@ import {
   toggleRow,
   lockLine, radio,
   facts,
+  titledBlock, titledSection,
+  refusal,
+  openLiveButton, pageHead,
 } from 'eaos';
 import {
   enc, said, reasonsOf, projBack, inv, inventory, changed, rowOf, brUrl, liveName, aheadBehind, whoLine, roleTags, owner, ack, valid, alert,
@@ -25,11 +28,10 @@ function branchRow(b) {
     ${rowWords(`<span class="ac-brow__top"><bdi class="mono ac-brow__name">${esc(liveName(b))}</bdi>${roleTags(b)}</span>`,
     bitsOf([aheadBehind(b), whoLine(b), b.last_commit && esc(t('ac.br.last', { when: fmtWhen(b.last_commit) }))]), { title: false, meta: 'ac-meta' })}${icon('chev', 'icon--dir muted')}</a></li>`;
 }
-const offlinePage = () => `<div class="page">${projBack()}<h1 class="lede">${t('ac.br.offline.lede')}</h1><p class="guide">${t('ac.br.offline')}</p><div class="actions"><button class="btn btn--primary" data-act="sheet" data-sheet="open-live">${t('offline.how')}</button></div></div>`;
+const offlinePage = () => `<div class="page">${projBack()}${pageHead(t('ac.br.offline.lede'), t('ac.br.offline'), openLiveButton())}</div>`;
 function failedPage(problem) {
   const nogit = /not a git repository/.test(said(problem));
-  return `<div class="page">${projBack()}<h1 class="lede">${t(nogit ? 'ac.br.nogit' : 'ac.br.failed')}</h1><p class="guide">${nogit ? t('ac.br.nogit.guide') : esc(said(problem))}</p>
-      <div class="actions">${nogit ? `<button class="btn btn--secondary" data-act="copy" data-text="git init">${icon('copy')}${t('ac.br.nogit.copy')}</button>` : `<button class="btn btn--secondary" data-act="ac-br-reload">${icon('retry')}${t('ac.op.try')}</button>`}</div></div>`;
+  return `<div class="page">${projBack()}${pageHead(t(nogit ? 'ac.br.nogit' : 'ac.br.failed'), nogit ? t('ac.br.nogit.guide') : esc(said(problem)), nogit ? `<button class="btn btn--secondary" data-act="copy" data-text="git init">${icon('copy')}${t('ac.br.nogit.copy')}</button>` : `<button class="btn btn--secondary" data-act="ac-br-reload">${icon('retry')}${t('ac.op.try')}</button>`)}</div>`;
 }
 function branchesPage(ctx) {
   if (ctx.offline) return offlinePage();
@@ -71,7 +73,7 @@ function recoveryFold(d) {
 const defaultFact = def => (def && def.name ? `${code(def.name)} <span class="small muted">${esc(def.source || '')}</span>` : '—');
 function remotesFold(d) {
   const remotes = d.remotes || [], worktrees = d.worktrees || [], missing = d.missing_linked || [];
-  return ac.fold('remotes', t('ac.br.remotes'), esc(t('ac.br.remotes.sum.v', { remotes: remotes.join(t('list.sep')) || t('ac.br.remotes.none'), n: num(worktrees.length) })), `${facts([[t('ac.br.remote'), remotes.map(code).join(' ') || esc(t('ac.br.remotes.none'))], [t('ac.br.remote.default'), defaultFact(d.default)], [t('ac.br.remote.fetched'), esc(d.last_fetch ? fmtWhen(d.last_fetch) : t('ac.br.fetched.never'))], [t('ac.br.wt'), worktrees.map(w => `<div>${code(w.path)} ${code(w.branch || String(w.head).slice(0, 7))} <span class="small muted">${t(w.current ? 'ac.br.wt.here' : 'ac.br.wt.other')}</span></div>`).join('')], [t('ac.br.orphans'), missing.length ? missing.map(m => code(m.name)).join(' ') : t('ac.br.orphans.none')]])}`);
+  return ac.fold('remotes', t('ac.br.remotes'), esc(t('ac.br.remotes.sum.v', { remotes: remotes.join(t('list.sep')) || t('ac.br.remotes.none'), n: num(worktrees.length) })), facts([[t('ac.br.remote'), remotes.map(code).join(' ') || esc(t('ac.br.remotes.none'))], [t('ac.br.remote.default'), defaultFact(d.default)], [t('ac.br.remote.fetched'), esc(d.last_fetch ? fmtWhen(d.last_fetch) : t('ac.br.fetched.never'))], [t('ac.br.wt'), worktrees.map(w => `<div>${code(w.path)} ${code(w.branch || String(w.head).slice(0, 7))} <span class="small muted">${t(w.current ? 'ac.br.wt.here' : 'ac.br.wt.other')}</span></div>`).join('')], [t('ac.br.orphans'), missing.length ? missing.map(m => code(m.name)).join(' ') : t('ac.br.orphans.none')]]));
 }
 function branchesHTML(q, d) {
   const w = whereOf(d.context || {});
@@ -83,15 +85,13 @@ function branchesHTML(q, d) {
   return `<div class="page">
     ${projBack()}
     <div class="context">${freshChip(f)}</div>
-    <h1 class="lede">${lede}</h1>
-    <p class="guide">${t('ac.br.guide')}</p>
-    <div class="actions">
+    ${pageHead(lede, t('ac.br.guide'), `
       <button class="btn btn--primary" data-act="sheet" data-sheet="choose-branch" data-fk="br-choose">${t('ac.br.choose', { b: code(w.analysed) })}</button>
       ${w.differ ? `<a class="btn btn--secondary" href="${href('/activity', { sheet: 'check' })}">${t('ac.br.check_now')}</a>` : ''}
       <button class="btn btn--quiet" data-act="sheet" data-sheet="cleanup">${t('ac.br.cleanup')}</button>
       <p class="actions__note">${t('ac.br.note')}</p>
-    </div>
-    <section class="section" aria-labelledby="four-h"><div class="section-head"><h2 id="four-h">${t('ac.br.four')}</h2></div>${fourPanel(d.context || {}, w, f)}</section>
+    `)}
+    ${titledSection('four-h', t('ac.br.four'), fourPanel(d.context || {}, w, f))}
     <section class="section" aria-labelledby="all-h">
       <div class="section-head"><h2 id="all-h">${t('ac.br.all')}</h2><span class="small muted ac-fetch">${fetchLine(d)}</span></div>
       <div class="ptools" style="margin-top:0">
@@ -136,7 +136,7 @@ function blockedRow(r) {
 /** The choice refused while runs are in flight: each of them, to remove or stop. */
 const chooseBlocked = blocked => ({
   title: esc(t('ac.br.choose.title')),
-  body: `${owner()}<div class="ac-refuse" role="alert"><p><b>${t('ac.br.choose.refused')}</b></p><p class="small ink-2">${esc(L(blocked))}</p></div>
+  body: `${owner()}${refusal(t('ac.br.choose.refused'), [esc(L(blocked))], 'small ink-2')}
           <ul class="panel rows">${(blocked.runs || []).map(blockedRow).join('')}</ul>`,
   foot: closeFoot('close'),
 });
@@ -219,9 +219,9 @@ sheet('cleanup', {
       title: esc(t('ac.cl.title')),
       body: `${owner()}<p>${esc(t('ac.cl.lede', { branches: tn('ac.pl.branch', p.branches.length) }))}</p>
         ${p.blocked.length ? `<div class="ac-refuse" role="alert"><p class="small">${esc(reasonsOf(p.blocked))}</p></div>` : ''}
-        <div><div class="block-title">${t('ac.cl.goes')} (${num(p.branches.length)})</div><ul class="panel rows">${p.branches.map(b => `<li class="row">${icon('branch', 'muted')}${rowWords(code(b.branch), `${t('ac.br.merged_into', { b: code(b.merged_into) })}. ${esc(L(b.whose))}`, { title: false })}</li>`).join('')}</ul></div>
-        <div><div class="block-title">${t('ac.cl.wt')}</div>${p.worktrees.length ? `<ul class="panel rows">${p.worktrees.map(w => `<li class="row small">${code(w.path)}</li>`).join('')}</ul>` : `<p class="small ink-2">${t('ac.cl.wt.none')}</p>`}</div>
-        <div><div class="block-title">${t('ac.cl.stays')}</div>${stays}</div>
+        ${titledBlock(`${t('ac.cl.goes')} (${num(p.branches.length)})`, `<ul class="panel rows">${p.branches.map(b => `<li class="row">${icon('branch', 'muted')}${rowWords(code(b.branch), `${t('ac.br.merged_into', { b: code(b.merged_into) })}. ${esc(L(b.whose))}`, { title: false })}</li>`).join('')}</ul>`)}
+        ${titledBlock(t('ac.cl.wt'), p.worktrees.length ? `<ul class="panel rows">${p.worktrees.map(w => `<li class="row small">${code(w.path)}</li>`).join('')}</ul>` : `<p class="small ink-2">${t('ac.cl.wt.none')}</p>`)}
+        ${titledBlock(t('ac.cl.stays'), stays)}
         <p class="small ink-2">${t('ac.cl.rules')}</p>`,
       foot: `${alert(own.refused)}${ack('cleanup', esc(t('ac.cl.ack', { n: num(p.branches.length) })), own.ack_cleanup)}<div class="sheet__foot-row">
           <button class="btn btn--secondary" data-act="sheet-close" data-autofocus>${t('cancel')}</button>

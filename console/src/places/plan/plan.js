@@ -8,6 +8,9 @@ import {
   model, selection, data,
   ac, rowWords,
   facts,
+  titledSection,
+  notFound,
+  pageHead,
 } from 'eaos';
 import { loading, nm, prow, enc, back, empty, ticks, page } from '../kit/kit.js';
 import { buildPage } from './build.js';
@@ -181,16 +184,14 @@ function planPage(ctx) {
   const fix = ((data.section('plans') || {}).plans || []).find(p => p.kind === 'fix') || {};
   return `<div class="page page--wide">
     ${planSeg()}
-    <h1 class="lede">${esc(next ? t('un.plan.lede', { n: tn('un.pl.step', all.length), next: next.id }) : t('un.plan.lede.none', { n: tn('un.pl.step', all.length) }))}</h1>
-    <p class="guide">${t('un.plan.guide')}</p>
-    <div class="actions">${next ? fixBtn(next, 'btn--primary', t('un.plan.fixnext', { id: next.id })) : ''}
+    ${pageHead(esc(next ? t('un.plan.lede', { n: tn('un.pl.step', all.length), next: next.id }) : t('un.plan.lede.none', { n: tn('un.pl.step', all.length) })), t('un.plan.guide'), `${next ? fixBtn(next, 'btn--primary', t('un.plan.fixnext', { id: next.id })) : ''}
       <a class="btn btn--quiet" href="${href('/problems/plan/waves')}">${icon('layers', 'icon--sm')}${t('un.plan.waves')}</a>
-      <p class="actions__note">${t('st.next.note')}</p></div>
+      <p class="actions__note">${t('st.next.note')}</p>`)}
     ${planCard(fix)}
-    <section class="section" aria-labelledby="st-h"><div class="section-head"><h2 id="st-h">${t('un.plan.steps')}</h2><span class="small muted">${t('un.plan.order')}</span></div>
-      <ol class="panel un-steps">${all.map(s => stepRow(s, next)).join('')}</ol></section>
-    <section class="section" aria-labelledby="dp-h"><div class="section-head"><h2 id="dp-h">${t('un.plan.deps')}</h2></div>
-      ${depsHTML(all)}</section>
+    ${titledSection('st-h', t('un.plan.steps'), `
+      <ol class="panel un-steps">${all.map(s => stepRow(s, next)).join('')}</ol>`, `<span class="small muted">${t('un.plan.order')}</span>`)}
+    ${titledSection('dp-h', t('un.plan.deps'), `
+      ${depsHTML(all)}`)}
     <div class="panel section">${plansFold()}</div>
   </div>`;
 }
@@ -226,14 +227,13 @@ function wavesPage(ctx) {
     const list = tl.tasks.filter(x => (!wave || x.wave === wave) && (!step || x.step === step));
     const heading = wave && step ? t('un.waves.pick.both', { w: wave, s: step }) : wave ? t('un.waves.w', { w: wave }) : t('un.step.group', { id: step });
     const rows = list.slice(0, 12).map(x => { const p = model.problem(x.id); return p ? prow(p, waitText(x.id, true)) : ''; }).join('');
-    picked = `<section class="section" aria-labelledby="wp-h"><div class="section-head"><h2 id="wp-h">${esc(heading)}</h2><a class="link" href="${href(r.path)}">${t('flt.clear')}</a></div>
+    picked = titledSection('wp-h', esc(heading), `
       ${list.length ? `<div class="panel rows">${rows}</div>` : `<p class="small muted">${t('un.waves.none')}</p>`}
-      ${list.length > 12 ? `<p class="small muted mt-2">${esc(t('un.comp.andmore', { n: num(list.length - 12) }))}</p>` : ''}</section>`;
+      ${list.length > 12 ? `<p class="small muted mt-2">${esc(t('un.comp.andmore', { n: num(list.length - 12) }))}</p>` : ''}`, `<a class="link" href="${href(r.path)}">${t('flt.clear')}</a>`);
   }
   return `<div class="page page--wide">
     ${backLink}
-    <h1 class="lede">${esc(t('un.waves.lede', { n: tn('un.pl.wave', W) }))}</h1>
-    <p class="guide">${t('un.waves.guide')}</p>
+    ${pageHead(esc(t('un.waves.lede', { n: tn('un.pl.wave', W) })), t('un.waves.guide'))}
     <div class="section mt-6">${grid}${phone}</div>
     ${picked}
   </div>`;
@@ -288,7 +288,7 @@ function stepPage(ctx) {
   const all = steps();
   const s = all.find(x => x.id === ctx.params.step);
   const backLink = back('/problems/plan', t('pb.view.plan'));
-  if (!s) return `<div class="page">${backLink}<div class="empty panel mt-3"><h1 class="empty__title">${esc(t('pd.notfound', { id: ctx.params.step }))}</h1><p class="small ink-2">${t('un.notfound.guide')}</p></div></div>`;
+  if (!s) return `<div class="page">${backLink}${notFound(esc(t('pd.notfound', { id: ctx.params.step })), t('un.notfound.guide'))}</div>`;
   const tasks = s.ids.map(id => model.problem(id) || Object.assign({ id, severity: 'info', paths: [] }, s.tasks.find(x => x.id === id), { state: 'open' }));
   const before = all.filter(x => x.waits.some(w => w[0] === s.id));
   const guide = t('un.step.guide', { n: tn('pl.problem', s.ids.length), waits: s.waits.length ? t('un.step.guide.waits', { list: s.waits.map(w => w[0]).join(t('list.sep')) }) : t('un.step.guide.free'), before: before.length ? t('un.step.guide.before', { list: before.map(x => x.id).join(t('list.sep')) }) : '' });

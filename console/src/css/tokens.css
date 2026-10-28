@@ -66,10 +66,6 @@
   --sev-info: #8A94A4;      /* outline only, 3.06 */
   --sev-empty: #E2E7EE;     /* the unfilled bars of the glyph */
 
-  /* Operations (maps): categorical, glyph always drawn (validator: pass, CVD 7.7 needs the glyph) */
-  --op-introduce: #1E9A6A; --op-rebuild: #E0791F; --op-merge: #B8428C;
-  --op-modify: #2F6FDB; --op-delete: #D23C3C; --op-retain: #586477;
-
   --scrim: rgb(16 27 44 / .45);
   --shadow-1: 0 1px 2px rgb(16 27 44 / .05);
   --shadow-2: 0 2px 6px rgb(16 27 44 / .06), 0 8px 24px -4px rgb(16 27 44 / .14);
@@ -85,7 +81,7 @@
   --fs-body: 16px;   --lh-body: 27px;   --lh-body-en: 24px;    /* text, row titles */
   --fs-small: 14px;  --lh-small: 23px;  --lh-small-en: 20px;   /* second lines, meta, help */
   --fs-label: 14px;  --lh-label: 20px;                         /* buttons, chips, tabs on desktop */
-  --fs-caption: 13px; --lh-caption: 20px;                      /* tab labels on phone, badges: the floor */
+  --fs-caption: 13px;                                          /* tab labels on phone, badges: the floor */
   --fs-mono: 13px;   --lh-mono: 20px;                          /* ids, paths, branches, commits */
   --fs-code: 13px;   --lh-code: 21px;                          /* evidence excerpts, diffs */
   --fs-question: 18px;                                         /* a waiting card's question */
@@ -113,10 +109,9 @@
   --t-enter: 220ms cubic-bezier(.2, .8, .2, 1);
   --t-exit: 150ms cubic-bezier(.4, 0, 1, 1);
   --t-progress: 400ms linear;
-  --t-arrive: 600ms ease-out;
 
   /* ---------- Layers ---------- */
-  --z-sticky: 10; --z-strip: 20; --z-nav: 30; --z-popover: 40; --z-sheet: 50; --z-toast: 60; --z-confirm: 70;
+  --z-strip: 20; --z-nav: 30; --z-sheet: 50; --z-toast: 60; --z-confirm: 70;
   --z-raise: 1;      /* an input laid over its own drawing (checkbox, switch, option) */
   --z-fab: 35; --z-assist-scrim: 44; --z-assist: 45;  /* the assistant's button, its scrim and its panel */
   --z-skip: 100;     /* the skip link, above everything */
@@ -156,8 +151,6 @@
   --danger: #FF7275; --danger-soft: #3A1C21; --on-danger: #0D1219; /* 6.53; 5.79; on it 7.08 */
   --sev-critical: #FF9088; --sev-high: #F07A45; --sev-medium: #9C7F74; --sev-low: #655550; --sev-info: #6F7B8F;
   --sev-empty: #2B3646;
-  --op-introduce: #22A375; --op-rebuild: #D9772B; --op-merge: #D763A8;
-  --op-modify: #5A8EF0; --op-delete: #E25858; --op-retain: #8E9AAC;
   --scrim: rgb(0 0 0 / .6);
   --shadow-1: 0 0 0 1px rgb(255 255 255 / .02);
   --shadow-2: 0 2px 6px rgb(0 0 0 / .35), 0 8px 24px -4px rgb(0 0 0 / .5);
@@ -182,5 +175,5 @@
 
 /* Reduced motion: every duration becomes instant; fades of 120 ms at most stay. */
 @media (prefers-reduced-motion: reduce) {
-  :root { --t-press: 0ms; --t-fade: 100ms linear; --t-enter: 0ms; --t-exit: 0ms; --t-progress: 0ms; --t-arrive: 0ms; }
+  :root { --t-press: 0ms; --t-fade: 100ms linear; --t-enter: 0ms; --t-exit: 0ms; --t-progress: 0ms; }
 }

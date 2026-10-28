@@ -6,8 +6,10 @@ import {
   rowWords,
   ac,
   facts,
+  titledBlock,
+  pageHead,
 } from 'eaos';
-import { buildStep } from '../kit/kit.js';
+import { buildStep, nm } from '../kit/kit.js';
 
 const { SEV } = model;
 const NEEDS = ['meta', 'head', 'health', 'cards', 'decisions', 'history', 'plans'];
@@ -187,12 +189,10 @@ function aboutHTML(p, sz) {
 // the areas the check did not measure, and how to measure them; then what this version of EAOS does not check at all
 function measuredHTML(unmeasured, unchecked) {
   return `<p class="small ink-2">${unmeasured.length ? t('st.measured.v', { n: tn('pl.area', unmeasured.length) }) : t('st.measured.all')}</p>
-    ${unmeasured.map(a => `<div class="nm mt-3"><div class="nm__title"><span class="tag tag--nm">${t('nm')}</span>${t('area.' + a.id)}</div>
-      <p class="small ink-2">${a.id === 'performance' ? t('st.measured.why') : t('st.nm.other')}</p>
-      ${a.id === 'performance' ? `<div><a class="btn btn--secondary btn--sm" href="${href('/activity', { sheet: 'check', path: 'speed' })}">${t('st.nm.act')}</a></div>` : ''}</div>`).join('')}
+    ${unmeasured.map(a => nm(t('area.' + a.id), a.id === 'performance' ? t('st.measured.why') : t('st.nm.other'),
+      a.id === 'performance' ? `<a class="btn btn--secondary btn--sm" href="${href('/activity', { sheet: 'check', path: 'speed' })}">${t('st.nm.act')}</a>` : '', { cls: 'mt-3' })).join('')}
     ${unchecked.length ? `<div class="block-title mt-4">${t('st.unchecked')}</div>
-    ${unchecked.map(k => `<div class="nm mt-3"><div class="nm__title"><span class="tag tag--nm">${t('st.unchecked.tag')}</span>${t('unchecked.' + k.id)}</div>
-      <p class="small ink-2">${t('unchecked.' + k.id + '.why')}</p></div>`).join('')}` : ''}`;
+    ${unchecked.map(k => nm(t('unchecked.' + k.id), t('unchecked.' + k.id + '.why'), '', { tag: t('st.unchecked.tag'), cls: 'mt-3' })).join('')}` : ''}`;
 }
 
 function folds(ctx) {
@@ -237,10 +237,8 @@ function aside() {
 function emptyState(ctx) {
   const steps = (live.progress && live.progress.journey) || [];
   return `<div class="page">
-    <h1 class="lede">${t('st.empty.lede')}</h1>
-    <p class="guide">${t('st.empty.guide')}</p>
-    <div class="actions">${ctx.offline ? '' : `<a class="btn btn--primary" href="${href('/activity', { sheet: 'check' })}">${t('st.empty.act')}</a>`}
-      <button class="btn btn--quiet" data-act="copy" data-text="eaos check">${icon('copy')}${t('st.copy_request')}</button></div>
+    ${pageHead(t('st.empty.lede'), t('st.empty.guide'), `${ctx.offline ? '' : `<a class="btn btn--primary" href="${href('/activity', { sheet: 'check' })}">${t('st.empty.act')}</a>`}
+      <button class="btn btn--quiet" data-act="copy" data-text="eaos check">${icon('copy')}${t('st.copy_request')}</button>`)}
     ${steps.length ? `<div class="section panel">${ac.fold('journey', t('st.fold.journey'), esc(L(steps[0].title)), `<ol class="rows">${steps.map(s => `<li class="row" style="padding-inline:0;min-height:44px">${icon('circle', 'muted')}<span class="row__main">${esc(L(s.title))}</span></li>`).join('')}</ol>`)}</div>` : ''}
   </div>`;
 }
@@ -248,9 +246,8 @@ function emptyState(ctx) {
 /** A project still being built from its plan: the build's verdict and its one next step, never a check's score. */
 function buildState() {
   return `<div class="page">
-    <h1 class="lede">${esc(model.project().verdict)}</h1>
-    <div class="actions">${buildStep()}<a class="btn btn--quiet" href="${href('/problems/plan')}">${icon('layers', 'icon--sm')}${t('st.build.plan')}</a>
-      <p class="actions__note">${t('bp.note')}</p></div>
+    ${pageHead(esc(model.project().verdict), null, `${buildStep()}<a class="btn btn--quiet" href="${href('/problems/plan')}">${icon('layers', 'icon--sm')}${t('st.build.plan')}</a>
+      <p class="actions__note">${t('bp.note')}</p>`)}
     ${nowRows()}
   </div>`;
 }
@@ -258,8 +255,7 @@ function buildState() {
 function loadingState() {
   return `<div class="page" aria-busy="true">
     <div class="context"><span class="chip skel" style="width:110px"></span><span class="chip skel" style="width:190px"></span></div>
-    <h1 class="lede">${t('st.loading')}</h1>
-    <div class="actions"><span class="btn skel" style="width:260px"></span></div>
+    ${pageHead(t('st.loading'), null, `<span class="btn skel" style="width:260px"></span>`)}
     <div class="status-cols"><div>${glance(true)}</div></div>
   </div>`;
 }
@@ -299,7 +295,7 @@ sheet('freshness', {
       title: esc(t('st.fresh.title')),
       body: `<p class="h2">${esc(lede)}</p>
         ${facts([[t('st.fresh.checked'), p.checked_at ? esc(exactTime(p.checked_at)) : ''], [t('st.fresh.branch'), code(p.branch)], [t('st.fresh.commit'), code(p.commit)], [t('st.fresh.dirty'), t(p.dirty ? 'st.fresh.dirty.yes' : 'st.fresh.dirty.v')], fresh.tip ? `<dt>${t('st.fresh.head')}</dt><dd>${fresh.tip === p.commit ? t('st.fresh.head.v', { commit: code(fresh.tip.slice(0, 7)) }) : code(fresh.tip.slice(0, 7))}</dd>` : '', fresh.checked_at ? `<dt>${t('st.fresh.looked')}</dt><dd>${esc(fmtWhen(fresh.checked_at))}</dd>` : ''])}
-        ${files.length ? `<div><div class="block-title">${t('st.fresh.files')}</div><ul class="panel rows">${files.slice(0, 12).map(x => `<li class="row small">${code(x)}</li>`).join('')}</ul></div>` : ''}`,
+        ${files.length ? titledBlock(t('st.fresh.files'), `<ul class="panel rows">${files.slice(0, 12).map(x => `<li class="row small">${code(x)}</li>`).join('')}</ul>`) : ''}`,
       foot: `<a class="btn btn--primary btn--block" href="${href('/activity', { sheet: 'check' })}" data-act="go" data-href="${href('/activity', { sheet: 'check' })}">${t('st.fresh.check')}</a>
         <button class="btn btn--quiet btn--block" data-act="copy" data-text="eaos branch ${esc(p.branch)} && eaos check">${icon('copy')}${t('st.fresh.copy')}</button>`,
     };

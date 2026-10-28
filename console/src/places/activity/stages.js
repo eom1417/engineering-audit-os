@@ -8,6 +8,7 @@ import {
   terminalFold,
   rowWords,
   facts,
+  titledBlock,
 } from 'eaos';
 
 /** A stage's name and what it does: the dictionary's words, else its own description. */
@@ -168,7 +169,7 @@ function stageFacts(s, f, id) {
 /** The values a stage reported, as numbers and words. */
 function stageReported(raw) {
   const reported = Object.entries(raw.detail || {}).filter(([, v]) => shown(v));
-  return reported.length ? `<div><div class="block-title">${t('ac.stg.reported')}</div>${facts(reported.map(([k, v]) => [esc(k.replace(/_/g, ' ')), esc(typeof v === 'number' ? num(v) : v), 'num']))}</div>` : '';
+  return reported.length ? titledBlock(t('ac.stg.reported'), facts(reported.map(([k, v]) => [esc(k.replace(/_/g, ' ')), esc(typeof v === 'number' ? num(v) : v), 'num']))) : '';
 }
 /** The redo button, or why a stage cannot be redone now. */
 function redoFoot(s, query, ended) {
@@ -201,8 +202,8 @@ sheet('stage', {
         ${s.ai ? `<div class="ai-block"><span class="ai-block__label">${icon('ai', 'icon--sm')}${t('ac.stg.ai')}</span><p class="small mt-1">${t('ac.stg.ai.note')}</p></div>` : ''}
         ${stagePrograms(raw, s)}
         ${facts([stageFacts(s, f, id)])}
-        <div><div class="block-title">${t('ac.stg.steps')}</div>${stageSteps(raw, st)}</div>
-        <div><div class="block-title">${t('ac.stg.files')}</div>${stageFiles(raw, st, own)}</div>
+        ${titledBlock(t('ac.stg.steps'), stageSteps(raw, st))}
+        ${titledBlock(t('ac.stg.files'), stageFiles(raw, st, own))}
         ${stageReported(raw)}`,
       foot: redoFoot(s, query, ended),
     };
@@ -281,7 +282,7 @@ sheet('redo', {
       sub: `<span class="free-band">${icon('check', 'icon--sm')}${t('free')}</span>`,
       body: `<p>${esc(failed ? t('ac.redo.does.failed', { tools: (inputs.engines || []).join(t('list.sep')) }) : t('ac.redo.does', { n: num(rerun.length - 1) }))}</p>
         ${facts([[t('ac.redo.code'), t('ac.redo.code.v', { branch: code(model.project().branch), commit: code((model.project().commit || '').slice(0, 7)) })], [t('ac.redo.runs'), esc(tn('pl.stage', rerun.length))], [t('ac.redo.kept'), esc(tn('pl.stage', kept))], [t('pv.estimate'), redoEstimate(p, own)], [t('pv.risk'), `<span class="tag tag--state">${t('pv.risk.low')}</span> <span class="small ink-2">${t('ac.redo.risk')}</span>`], [t('pv.fail'), t('ac.redo.fail'), 'small']])}
-        <div><div class="block-title">${t('ac.redo.list')}</div><ul class="ac-chiplist">${rerun.map(x => `<li><span class="tag tag--state">${esc(stageTitle(x))}</span></li>`).join('')}</ul></div>
+        ${titledBlock(t('ac.redo.list'), `<ul class="ac-chiplist">${rerun.map(x => `<li><span class="tag tag--state">${esc(stageTitle(x))}</span></li>`).join('')}</ul>`)}
         <p class="small ink-2">${t('ac.redo.never')}</p>
         ${terminalFold(esc(cmd))}`,
       foot: redoStartFoot(own, p, cmd),

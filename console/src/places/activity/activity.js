@@ -9,6 +9,8 @@ import {
   rowWords,
   bitsOf,
   inlineSwitch,
+  titledSection,
+  pageHead,
 } from 'eaos';
 import { stagesOf, stageButton, counts, finished, stageTitle } from './stages.js';
 import { clockHTML } from './clock.js';
@@ -129,15 +131,14 @@ function runRow(r) {
 }
 
 function loadingPage() {
-  return `<div class="page" aria-busy="true"><h1 class="lede">${t('ac.act.loading')}</h1><div class="actions"><span class="btn skel" style="width:200px"></span></div>
+  return `<div class="page" aria-busy="true">${pageHead(t('ac.act.loading'), null, `<span class="btn skel" style="width:200px"></span>`)}
     ${skeletonRows(4, [55, 35], { cls: 'section', mark: 'dot' })}</div>`;
 }
 
 function emptyPage(off) {
-  return `<div class="page"><h1 class="lede">${t('ac.act.empty')}</h1><p class="guide">${t('ac.act.empty.guide')}</p>
-      <div class="actions"><button class="btn btn--primary" data-act="sheet" data-sheet="${off ? 'open-live' : 'check'}" data-fk="act-check">${t('st.empty.act')}</button>
-        <button class="btn btn--quiet" data-act="sheet" data-sheet="${off ? 'open-live' : 'launcher'}">${t('st.other')}</button></div>
-      <section class="section"><div class="section-head"><h2>${t('ac.act.recent')}</h2></div><div class="panel empty"><p class="small ink-2">${t('ac.act.recent.empty')}</p></div></section></div>`;
+  return `<div class="page">${pageHead(t('ac.act.empty'), t('ac.act.empty.guide'), `<button class="btn btn--primary" data-act="sheet" data-sheet="${off ? 'open-live' : 'check'}" data-fk="act-check">${t('st.empty.act')}</button>
+        <button class="btn btn--quiet" data-act="sheet" data-sheet="${off ? 'open-live' : 'launcher'}">${t('st.other')}</button>`)}
+      ${titledSection(null, t('ac.act.recent'), `<div class="panel empty"><p class="small ink-2">${t('ac.act.recent.empty')}</p></div>`)}</div>`;
 }
 /** What the running run is at, in one sentence. */
 function runLede(lr, flow) {
@@ -169,8 +170,8 @@ function actionsHTML(off, busy, last, flow) {
 function recentHTML(all) {
   const done = all.filter(r => ac.ended(r));
   const recent = done.filter(r => store.awaitsApproval(r)).concat(done.filter(r => !store.awaitsApproval(r) && r.action !== 'branch_fetch')).slice(0, 4);
-  return `<section class="section" aria-labelledby="recent-h"><div class="section-head"><h2 id="recent-h">${t('ac.act.recent')}</h2><a class="link" href="${href('/activity/runs')}">${esc(t('ac.act.all', { n: num(all.length) }))}</a></div>
-      ${recent.length ? `<ul class="panel rows">${recent.map(runRow).join('')}</ul>` : `<div class="panel empty"><p class="small ink-2">${t('ac.act.recent.empty')}</p></div>`}</section>`;
+  return titledSection('recent-h', t('ac.act.recent'), `
+      ${recent.length ? `<ul class="panel rows">${recent.map(runRow).join('')}</ul>` : `<div class="panel empty"><p class="small ink-2">${t('ac.act.recent.empty')}</p></div>`}`, `<a class="link" href="${href('/activity/runs')}">${esc(t('ac.act.all', { n: num(all.length) }))}</a>`);
 }
 function activityPage(ctx) {
   const off = ctx.offline;
@@ -180,13 +181,12 @@ function activityPage(ctx) {
   const lr = ac.liveRun(), last = ac.lastCheck(), flow = ac.checkFlow();
   const busy = !!lr;
   return `<div class="page">
-    <h1 class="lede">${activityLede(off, lr, last, flow)}</h1>
-    <p class="guide">${t(off ? 'ac.act.guide.offline' : busy ? 'ac.act.guide.busy' : 'ac.act.guide')}</p>
+    ${pageHead(activityLede(off, lr, last, flow), t(off ? 'ac.act.guide.offline' : busy ? 'ac.act.guide.busy' : 'ac.act.guide'))}
     ${actionsHTML(off, busy, last, flow)}
-    ${lr ? `<section class="section" aria-labelledby="now-h"><div class="section-head"><h2 id="now-h">${t('ac.act.now')}</h2></div>${lr.action === 'audit' ? checkNow(lr) : otherNow(lr)}${otherFlows()}</section>` : ''}
-    <section class="section" aria-labelledby="line-h"><div class="section-head"><h2 id="line-h">${t('ac.act.line')}</h2><span class="small muted">${t('ac.act.line.sub')}</span></div>${queueRows()}</section>
+    ${lr ? titledSection('now-h', t('ac.act.now'), `${lr.action === 'audit' ? checkNow(lr) : otherNow(lr)}${otherFlows()}`) : ''}
+    ${titledSection('line-h', t('ac.act.line'), queueRows(), `<span class="small muted">${t('ac.act.line.sub')}</span>`)}
     ${recentHTML(all)}
-    ${lr ? '' : `<section class="section" aria-labelledby="flows-h"><div class="section-head"><h2 id="flows-h">${t('ac.flow.title')}</h2></div>${otherFlows() || `<p class="small muted">${t('ac.flow.none')}</p>`}</section>`}
+    ${lr ? '' : titledSection('flows-h', t('ac.flow.title'), otherFlows() || `<p class="small muted">${t('ac.flow.none')}</p>`)}
   </div>`;
 }
 screen({ id: 'S-11', path: '/activity', place: 'activity', needs: ['cards', 'history'], title: () => t('nav.activity'), render: activityPage, loading: loadingPage });
@@ -276,8 +276,7 @@ function runsPage(ctx) {
   const quick = q.quick ? `<div class="section"><div class="block-title">${t('ac.runs.quick.title')}</div>${answers.length ? `<ul class="panel rows">${answers.map(x => `<li class="row">${icon('book', 'icon--sm muted')}${rowWords(esc(ac.runLabel(x)), `${t('ac.runs.quick.row')} ${esc(fmtWhen(x.created))}`)}</li>`).join('')}</ul>` : `<p class="small muted">${t('ac.runs.quick.none')}</p>`}</div>` : '';
   return `<div class="page">
     ${ac.back('/activity', t('nav.activity'))}
-    <h1 class="lede">${esc(t('ac.runs.lede', { runs: tn('ac.pl.run', all.length) }))}</h1>
-    <p class="guide">${t('ac.runs.guide')}</p>
+    ${pageHead(esc(t('ac.runs.lede', { runs: tn('ac.pl.run', all.length) })), t('ac.runs.guide'))}
     <div class="ptools">
       <label class="field">${icon('search')}<span class="sr-only">${t('ac.runs.search')}</span><input type="search" id="rq" data-fk="rq" data-input="ac-rq" value="${esc(q.q || '')}" placeholder="${esc(t('ac.runs.search'))}" autocomplete="off"></label>
       <nav class="seg" aria-label="${esc(t('ac.runs.filter'))}">${seg}</nav>

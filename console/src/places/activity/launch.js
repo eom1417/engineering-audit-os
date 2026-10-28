@@ -10,6 +10,7 @@ import {
   toggleRow,
   radio,
   facts,
+  titledBlock,
 } from 'eaos';
 
 const enc = encodeURIComponent;
@@ -67,7 +68,7 @@ function initCheck(c, q) {
 function checkFacts(p) {
   const first = !ac.lastCheck();
   const est = p && p.estimate && p.estimate.minutes_low != null ? t('pv.estimate.v', { lo: num(p.estimate.minutes_low), hi: num(p.estimate.minutes_high) }) : t('ac.chk.est.none');
-  return `${facts([[t('pv.estimate'), `${p ? esc(est) : `<span class="muted" aria-busy="true">${t('pv.updating')}</span>`}<span class="small muted" style="display:block">${p && p.estimate ? esc(L(p.estimate.basis)) : t(first ? 'ac.chk.est.basis.none' : 'ac.chk.est.basis.wait')}</span>`], [t('pv.risk'), `<span class="tag tag--state">${t('pv.risk.low')}</span> <span class="small ink-2">${t('ac.chk.risk')}</span>`], [t('pv.fail'), p ? esc(L(p.on_failure)) : t('ac.chk.fail'), 'small']])}`;
+  return facts([[t('pv.estimate'), `${p ? esc(est) : `<span class="muted" aria-busy="true">${t('pv.updating')}</span>`}<span class="small muted" style="display:block">${p && p.estimate ? esc(L(p.estimate.basis)) : t(first ? 'ac.chk.est.basis.none' : 'ac.chk.est.basis.wait')}</span>`], [t('pv.risk'), `<span class="tag tag--state">${t('pv.risk.low')}</span> <span class="small ink-2">${t('ac.chk.risk')}</span>`], [t('pv.fail'), p ? esc(L(p.on_failure)) : t('ac.chk.fail'), 'small']]);
 }
 function pathsHTML(c) {
   const pathCard = (id, on, name, looks) => `<label class="opt ac-path"><input type="checkbox" data-change="ac-path" value="${esc(id)}" data-fk="path-${esc(id)}" ${on ? 'checked' : ''}><span class="ac-path__box" aria-hidden="true">${icon('tick')}</span>
@@ -247,7 +248,7 @@ function launcherList(qv) {
   const groups = GROUPS.map(g => {
     const items = all.filter(a => metaOf(a).group === g);
     const extra = g === 'check' && verbs ? verbRow : '';
-    return items.length || extra ? `<div><div class="block-title">${t('ac.lc.g.' + g)}</div><div class="panel rows">${extra}${items.map(actionRow).join('')}</div></div>` : '';
+    return items.length || extra ? titledBlock(t('ac.lc.g.' + g), `<div class="panel rows">${extra}${items.map(actionRow).join('')}</div>`) : '';
   }).join('');
   const ex = all.filter(a => metaOf(a).group === 'expert');
   const expert = ex.length ? `<details class="panel fold" ${qv ? 'open' : ''}><summary>${rowWords(t('ac.lc.g.expert'), esc(t('ac.lc.expert.sum', { n: num(ex.length) })))}${icon('chev', 'chev')}</summary>
@@ -275,7 +276,7 @@ sheet('launcher', {
     return {
       title: esc(t('st.opt.title')),
       sub: esc(t('st.opt.sub')),
-      body: `<div><div class="block-title">${t('ac.lc.reco')}</div><div class="panel rows">${recommended()}</div></div>
+      body: `${titledBlock(t('ac.lc.reco'), `<div class="panel rows">${recommended()}</div>`)}
         <div class="ac-lc-search"><div class="block-title" id="lc-h">${t('ac.lc.all')}</div>
           <label class="field">${icon('search')}<span class="sr-only">${t('ac.lc.search')}</span><input type="search" id="lc-q" data-fk="lc-q" placeholder="${esc(t('ac.lc.search'))}" autocomplete="off" aria-describedby="lc-h"></label></div>
         <div id="lc-list" class="ac-stack">${launcherList('')}</div>`,

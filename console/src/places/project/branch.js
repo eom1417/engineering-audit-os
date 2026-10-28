@@ -8,6 +8,9 @@ import {
   rowWords,
   lockLine, radio,
   facts,
+  titledBlock, titledSection,
+  notFound, refusal,
+  openLiveButton, pageHead,
 } from 'eaos';
 import {
   enc, said, reasonsOf, inv, inventory, detail, mergeTry, problemOf, changed, liveName, waitingRun, aheadBehind, whoLine, roleTags,
@@ -72,18 +75,17 @@ function whereFact(b) {
   return t('ac.br1.local') + (b.upstream ? `, ${t('ac.br1.tracks', { u: code(b.upstream) })}${b.tracking ? ` <span class="small muted">${esc(b.tracking)}</span>` : ''}` : '');
 }
 function branchFacts(b, det, target) {
-  return `<section class="section" aria-labelledby="bf-h"><div class="section-head"><h2 id="bf-h">${t('ac.br1.facts')}</h2></div>
-      <div class="panel panel__pad">${facts([[t('ac.br1.tip'), `${code(String(b.tip).slice(0, 7))} <span class="small ink-2">${rich(b.subject || '')}</span> <span class="small muted">${esc(fmtWhen(b.last_commit))}</span>`], [t('ac.br1.where'), whereFact(b)], [t('ac.br1.vs'), aheadBehind(b)], [t('ac.br1.who'), whoLine(b)], b.protected ? `<dt>${t('ac.br.r.protected')}</dt><dd>${esc(L(b.protected))}</dd>` : '', [t('ac.br1.wt'), b.worktree ? `${code(b.worktree.path)} ${t(b.worktree.current ? 'ac.br.wt.here' : 'ac.br.wt.other')}` : t('ac.br1.wt.none')], [t('ac.br1.checks'), checksLine(det.checks)], det.lineage && det.lineage.parent ? `<dt>${t('ac.br1.lineage')}</dt><dd>${t('ac.br1.lineage.v', { p: code(det.lineage.parent), c: code(String(det.lineage.parent_commit || '').slice(0, 7)) })}</dd>` : '', [t('ac.br1.dest'), target ? t('ac.br1.dest.v', { t: code(target) }) : '—']], 'ac-facts')}</div></section>`;
+  return titledSection('bf-h', t('ac.br1.facts'), `
+      <div class="panel panel__pad">${facts([[t('ac.br1.tip'), `${code(String(b.tip).slice(0, 7))} <span class="small ink-2">${rich(b.subject || '')}</span> <span class="small muted">${esc(fmtWhen(b.last_commit))}</span>`], [t('ac.br1.where'), whereFact(b)], [t('ac.br1.vs'), aheadBehind(b)], [t('ac.br1.who'), whoLine(b)], b.protected ? `<dt>${t('ac.br.r.protected')}</dt><dd>${esc(L(b.protected))}</dd>` : '', [t('ac.br1.wt'), b.worktree ? `${code(b.worktree.path)} ${t(b.worktree.current ? 'ac.br.wt.here' : 'ac.br.wt.other')}` : t('ac.br1.wt.none')], [t('ac.br1.checks'), checksLine(det.checks)], det.lineage && det.lineage.parent ? `<dt>${t('ac.br1.lineage')}</dt><dd>${t('ac.br1.lineage.v', { p: code(det.lineage.parent), c: code(String(det.lineage.parent_commit || '').slice(0, 7)) })}</dd>` : '', [t('ac.br1.dest'), target ? t('ac.br1.dest.v', { t: code(target) }) : '—']], 'ac-facts')}</div>`);
 }
 function branchPage(ctx) {
   const name = ctx.params.name, kind = ctx.query.kind || 'local', remote = ctx.query.remote || null;
   const back = `<a class="back" href="${href('/project/branches')}">${icon('back', 'icon--dir')}${t('proj.branches')}</a>`;
-  if (ctx.offline) return `<div class="page">${back}<h1 class="lede">${t('ac.br.offline.lede')}</h1><div class="actions"><button class="btn btn--primary" data-act="sheet" data-sheet="open-live">${t('offline.how')}</button></div></div>`;
+  if (ctx.offline) return `<div class="page">${back}${pageHead(t('ac.br.offline.lede'), null, openLiveButton())}</div>`;
   const det = client && detail(name, kind, remote);
   const problem = problemOf(name, kind, remote);
   if (problem) {
-    return `<div class="page">${back}<div class="panel empty mt-3"><h1 class="empty__title">${esc(t('ac.br.notfound', { name }))}</h1>
-      <p class="small ink-2">${t('ac.br.notfound.guide')}</p><a class="btn btn--secondary" href="${href('/project/branches')}">${t('proj.branches')}</a></div></div>`;
+    return `<div class="page">${back}${notFound(esc(t('ac.br.notfound', { name })), t('ac.br.notfound.guide'), `<a class="btn btn--secondary" href="${href('/project/branches')}">${t('proj.branches')}</a>`)}</div>`;
   }
   if (!det) return `<div class="page" aria-busy="true">${back}<h1 class="lede">${t('ac.br.loading')}</h1>${loadingRows()}</div>`;
   return branchHTML(det, back);
@@ -95,11 +97,10 @@ function branchHTML(det, back) {
   return `<div class="page">
     ${back}
     <div class="context"><bdi class="mono" style="align-self:center;font-weight:500">${esc(liveName(b))}</bdi>${roleTags(b)}</div>
-    <h1 class="lede">${branchLede(b, det, waits)}</h1>
-    <p class="guide">${t(waits ? 'ac.br1.guide.eaos' : 'ac.br1.guide')}</p>
+    ${pageHead(branchLede(b, det, waits), t(waits ? 'ac.br1.guide.eaos' : 'ac.br1.guide'))}
     ${mainAction(b, waits, primary, target)}
     ${mergeNotes(b, det, merge, primary && !waits, target)}
-    <section class="section" aria-labelledby="cmd-h"><div class="section-head"><h2 id="cmd-h">${t('ac.br1.cmds')}</h2></div><ul class="panel rows">${cmds.filter(c => c !== primary).map(c => cmdButton(b, c, det)).join('')}</ul></section>
+    ${titledSection('cmd-h', t('ac.br1.cmds'), `<ul class="panel rows">${cmds.filter(c => c !== primary).map(c => cmdButton(b, c, det)).join('')}</ul>`)}
     ${branchFacts(b, det, target)}
     ${branchFolds(det)}
   </div>`;
@@ -141,7 +142,7 @@ function mergeInto(name, p) {
 }
 function mergeBody(name, p, into) {
   return `${owner()}<p>${t('ac.mg.lede', { b: code(name), t: code(p.target) })}</p>
-        ${p.blocked.length ? `<div class="ac-refuse" role="alert"><p><b>${t('ac.mg.refused')}</b></p><p class="small">${esc(reasonsOf(p.blocked))}</p>${p.conflicts.length ? `<p class="small">${p.conflicts.map(code).join(' ')}</p>` : ''}</div>` : ''}
+        ${p.blocked.length ? refusal(t('ac.mg.refused'), [esc(reasonsOf(p.blocked)), p.conflicts.length && p.conflicts.map(code).join(' ')]) : ''}
         <div><div class="block-title" id="mg-into">${t('cf.into')}</div>${into}</div>
         ${facts([[t('ac.mg.how'), t(p.path === 'accept' ? 'ac.mg.how.accept' : 'ac.mg.how.v')], [t('ac.mg.ff'), t(p.fast_forward ? 'ac.mg.ff.yes' : 'ac.mg.ff.merge')], [t('ac.mg.heads'), `${code(String(p.source_head).slice(0, 7))} → ${code(String(p.target_head).slice(0, 7))}`], [t('ac.mg.commits'), esc(tn('ac.pl.commit', p.commits.length))], [t('cf.files'), esc(tn('pl.file', p.files.length))], [t('ac.mg.conflicts'), p.conflicts.length ? ac.mark('failed', esc(tn('pl.file', p.conflicts.length))) : ac.mark('ok', t('ac.mg.conflicts.none'))], [t('cf.checks'), checksLine(p.checks)]])}`;
 }
@@ -197,7 +198,7 @@ function deleteBody(remote, br, p, lost) {
   return `${owner()}<p>${t(remote ? 'ac.dl.lede.remote' : 'ac.dl.lede', { b: code(br.name), r: code(br.remote || 'origin') })}</p>
           ${facts([[t('ac.br1.who'), esc(L(p.whose))], remote ? `<dt>${t('ac.dl.other')}</dt><dd>${t(p.local_kept ? 'ac.dl.other.local' : 'ac.dl.other.nolocal')}</dd>`
               : localLoss(p, lost)])}
-          ${lost.length ? `<div><div class="block-title">${t('ac.dl.only.list')}</div><ul class="panel rows">${lost.map(c => `<li class="row small" style="min-height:44px">${code(String(c.commit).slice(0, 7))}<span class="row__main">${rich(c.subject || '')}</span></li>`).join('')}</ul></div>` : ''}
+          ${lost.length ? titledBlock(t('ac.dl.only.list'), `<ul class="panel rows">${lost.map(c => `<li class="row small" style="min-height:44px">${code(String(c.commit).slice(0, 7))}<span class="row__main">${rich(c.subject || '')}</span></li>`).join('')}</ul>`) : ''}
           <p class="small ink-2">${t('ac.dl.recovery')}</p>`;
 }
 const deleteReady = (p, own) => p.confirm && own.ack_del && (!p.unmerged || own.ack_del2) && !own.busy;
@@ -215,7 +216,7 @@ function deleteSheet(remote) {
       const p = own.preview;
       const title = esc(t(remote ? 'ac.dl.title.remote' : 'ac.dl.title', { b: br.name, r: br.remote || '' }));
       if (!p) return { title, body: `${owner()}${previewing(own)}`, foot: closeFoot('cancel') };
-      if (p.blocked.length) return { title, body: `${owner()}<div class="ac-refuse" role="alert"><p><b>${t('ac.dl.refused')}</b></p><p class="small">${esc(reasonsOf(p.blocked))}</p></div>`, foot: closeFoot('close') };
+      if (p.blocked.length) return { title, body: owner() + refusal(t('ac.dl.refused'), [esc(reasonsOf(p.blocked))]), foot: closeFoot('close') };
       const lost = p.lost_commits || [];
       return { title, body: deleteBody(remote, br, p, lost), foot: deleteFoot(remote, br, p, own, lost) };
     },
@@ -277,7 +278,7 @@ function asstOption(a, pick) {
 }
 function resolveFiles(p, own, conflicts) {
   if (!p) return previewing(own);
-  return conflicts.length ? `<div><div class="block-title">${t('ac.rv.files')}</div><ul class="panel rows">${conflicts.map(f => `<li class="row small" style="min-height:44px">${icon('file', 'icon--sm muted')}<bdi class="mono">${esc(f)}</bdi></li>`).join('')}</ul></div>` : `<p class="small ink-2" role="note">${t('ac.rv.none')}</p>`;
+  return conflicts.length ? titledBlock(t('ac.rv.files'), `<ul class="panel rows">${conflicts.map(f => `<li class="row small" style="min-height:44px">${icon('file', 'icon--sm muted')}<bdi class="mono">${esc(f)}</bdi></li>`).join('')}</ul>`) : `<p class="small ink-2" role="note">${t('ac.rv.none')}</p>`;
 }
 sheet('resolve', {
   kind: 'drawer',
@@ -293,8 +294,8 @@ sheet('resolve', {
       body: `<p>${t('ac.rv.does', { t: code(p ? p.target : '') })}</p>
         ${resolveFiles(p, own, conflicts)}
         ${facts([[t('pv.risk'), `<span class="tag tag--state">${t('pv.risk.low')}</span> <span class="small ink-2">${t('ac.rv.risk')}</span>`]])}
-        <div><div class="block-title">${t('pv.who')}</div><div class="opts">${assistants.map(a => asstOption(a, pick)).join('')}
-          ${radio({ name: 'rv-asst', value: 'handoff', 'data-change': 'ac-rv-asst', 'data-fk': 'rv-handoff', checked: pick === 'handoff' }, t('ac.who.handoff'), t('pv.handoff'))}</div></div>
+        ${titledBlock(t('pv.who'), `<div class="opts">${assistants.map(a => asstOption(a, pick)).join('')}
+          ${radio({ name: 'rv-asst', value: 'handoff', 'data-change': 'ac-rv-asst', 'data-fk': 'rv-handoff', checked: pick === 'handoff' }, t('ac.who.handoff'), t('pv.handoff'))}</div>`)}
         ${pick !== 'handoff' ? `<p class="small ink-2">${t('pv.cost')}</p>` : ''}`,
       foot: `${alert(own.refused)}<button class="btn btn--primary btn--block" data-act="ac-resolve" data-name="${esc(name)}" data-fk="rv-do" ${p && conflicts.length && !own.busy ? '' : 'disabled'}>${esc(t('pv.start', { title: t('ac.cmd.resolve') }))}</button>`,
     };

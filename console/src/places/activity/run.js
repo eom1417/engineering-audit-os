@@ -7,6 +7,8 @@ import {
   live, store, model, client, derive, ac, md,
   inlineSwitch,
   facts,
+  titledSection,
+  notFound,
 } from 'eaos';
 import { controls, byOf } from './activity.js';
 import { stagesOf, board, counts, finished, summary, span, lostOf, stageTitle } from './stages.js';
@@ -221,9 +223,9 @@ function itemHTML(item) {
 function timeline(r, view, events, all) {
   const items = view.items;
   const shown = all || items.length <= SHOWN ? items : items.slice(-SHOWN);
-  return `<section class="section" aria-labelledby="tl-h"><div class="section-head"><h2 id="tl-h">${t('ac.run.happened')}</h2>
-      ${shown.length < items.length ? `<a class="link small" href="${href('/activity/run/' + enc(r.id), { all: '1' })}">${esc(t('ac.run.happened.trim', { n: num(shown.length), total: num(items.length) }))}</a>` : ''}</div>
-    <div class="panel panel__pad">${!client ? `<p class="small muted">${t('ac.run.live_only')}</p>` : !events.length && followOver(r) ? `<p class="small muted">${t('ac.run.trimmed')}</p>` : !events.length ? `<p class="small muted" aria-busy="true">${t('st.loading')}</p>` : `<ol class="ac-tl">${shown.map(itemHTML).join('')}</ol>`}</div></section>`;
+  return titledSection('tl-h', t('ac.run.happened'), `
+    <div class="panel panel__pad">${!client ? `<p class="small muted">${t('ac.run.live_only')}</p>` : !events.length && followOver(r) ? `<p class="small muted">${t('ac.run.trimmed')}</p>` : !events.length ? `<p class="small muted" aria-busy="true">${t('st.loading')}</p>` : `<ol class="ac-tl">${shown.map(itemHTML).join('')}</ol>`}</div>`, `
+      ${shown.length < items.length ? `<a class="link small" href="${href('/activity/run/' + enc(r.id), { all: '1' })}">${esc(t('ac.run.happened.trim', { n: num(shown.length), total: num(items.length) }))}</a>` : ''}`);
 }
 
 /* ---------- its facts (RUN-04, RUN-11, AST-03) ---------- */
@@ -266,9 +268,9 @@ function factsHTML(r, rs, events) {
     ${tok ? `<p class="small muted mt-2">${t('ac.f.used.note')} <a class="link" href="${href('/project/assistants')}">${t('proj.assistants')}</a></p>` : ''}`;
 }
 
-function notFound(id) {
-  return `<div class="page">${ac.back('/activity', t('nav.activity'))}<div class="panel empty mt-3"><h1 class="empty__title">${esc(t(offline() ? 'ac.run.offline' : 'ac.run.notfound', { id }))}</h1>
-    <p class="small ink-2">${t(offline() ? 'ac.act.guide.offline' : 'ac.run.notfound.guide')}</p><a class="btn btn--secondary" href="${href('/activity/runs')}">${t('ac.runs.title')}</a></div></div>`;
+function missingRun(id) {
+  return `<div class="page">${ac.back('/activity', t('nav.activity'))}${notFound(esc(t(offline() ? 'ac.run.offline' : 'ac.run.notfound', { id })), t(offline() ? 'ac.act.guide.offline' : 'ac.run.notfound.guide'),
+    `<a class="btn btn--secondary" href="${href('/activity/runs')}">${t('ac.runs.title')}</a>`)}</div>`;
 }
 
 /** The run's state, kind and id, and whether it came from the terminal. */
@@ -280,11 +282,11 @@ const stampHTML = (r, replaying, list) => (replaying ? `<div class="ac-stamp" ro
 const progressHTML = (r, rs, list) => (r.action === 'audit' && list.length && rs !== 'done' ? `${ac.progressBar(finished(list) / list.length, '')}<p class="small ink-2 ac-under">${esc(t(rs === 'stopped' ? 'ac.run.check.stopped.at' : 'ac.run.check.at', { done: num(finished(list)), total: num(list.length), running: num(list.filter(s => ['running', 'you', 'paused'].includes(s.state)).length) }))}</p>` : '');
 /** A check's stages on their board, with the switch that follows the running one. */
 function stagesHTML(r, rs, list) {
-  return r.action === 'audit' ? `<section class="section" aria-labelledby="stg-h"><div class="section-head"><h2 id="stg-h">${t('ac.run.stages')}</h2>
-      ${rs === 'running' ? inlineSwitch({ 'data-change': 'ac-follow', 'data-fk': 'follow', checked: follow }, t('ac.run.follow')) : ''}</div>
+  return r.action === 'audit' ? titledSection('stg-h', t('ac.run.stages'), `
       ${list.length ? `<p class="small ink-2 mb-3"><span id="ac-stage-sum">${esc(summary(counts(list)))}</span> ${t('ac.run.stages.help')}</p>
       <div id="ac-board">${board(list, rs !== 'running' || follow)}</div>
-      <p class="small muted ac-iline mt-2">${icon('ai', 'icon--sm ac-c-ai')}<span>${t('ac.run.stages.ai')}</span></p>` : `<p class="small muted">${t(rs === 'queued' ? 'ac.run.stages.later' : 'ac.run.stages.older')}</p>`}</section>` : '';
+      <p class="small muted ac-iline mt-2">${icon('ai', 'icon--sm ac-c-ai')}<span>${t('ac.run.stages.ai')}</span></p>` : `<p class="small muted">${t(rs === 'queued' ? 'ac.run.stages.later' : 'ac.run.stages.older')}</p>`}`, `
+      ${rs === 'running' ? inlineSwitch({ 'data-change': 'ac-follow', 'data-fk': 'follow', checked: follow }, t('ac.run.follow')) : ''}`) : '';
 }
 /** What the run does now, while it runs. */
 const nowHTML = (view, rs) => (view.now && ['running', 'paused'].includes(rs) ? `<p class="small ink-2" role="status">${rich(L(view.now))}</p>` : '');
@@ -297,7 +299,7 @@ const clockOf = (r, rs, flow, list, replaying) => (r.action === 'audit' && !repl
 function runPage(ctx) {
   const id = ctx.params.id;
   const r = ac.runOf(id);
-  if (!r) return live.loaded || offline() ? notFound(id) : `<div class="page" aria-busy="true"><h1 class="lede">${t('st.loading')}</h1></div>`;
+  if (!r) return live.loaded || offline() ? missingRun(id) : `<div class="page" aria-busy="true"><h1 class="lede">${t('st.loading')}</h1></div>`;
   const events = eventsOf(r);
   const view = derive.deriveRun(events, r);
   const rs = ac.runState(r);

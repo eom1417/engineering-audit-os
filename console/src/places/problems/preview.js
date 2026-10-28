@@ -11,6 +11,7 @@ import {
   terminalFold, toggleRow,
   lockLine, radio,
   facts,
+  titledBlock,
 } from 'eaos';
 
 const enc = encodeURIComponent;
@@ -54,10 +55,10 @@ function again(change) {
 
 function cardsHTML(p) {
   const shown = p.cards.slice(0, 6);
-  return `<div><div class="block-title">${t('pv.included')} (${num(p.cards.length)})</div>
+  return `${titledBlock(`${t('pv.included')} (${num(p.cards.length)})`, `
     <div class="panel rows">${shown.map(c => `<div class="row" style="min-height:48px">${c.severity ? sev(c.severity, false) : ''}<span class="row__main small">${code(c.id)} ${rich(L(c.title || ''))}</span></div>`).join('')}
-    ${p.cards.length > 6 ? `<div class="row small muted" style="min-height:44px">+ ${esc(tn('pl.problem', p.cards.length - 6))}</div>` : ''}</div></div>
-    ${p.left_out.length ? `<div><div class="block-title">${t('pv.left')} (${num(p.left_out.length)})</div><div class="panel rows">${p.left_out.slice(0, 8).map(r => `<div class="row small" style="min-height:44px">${code(r.id)}<span class="row__main muted">${esc(prefs.lang === 'ar' && r.why_ar ? r.why_ar : r.why)}</span></div>`).join('')}</div></div>` : ''}`;
+    ${p.cards.length > 6 ? `<div class="row small muted" style="min-height:44px">+ ${esc(tn('pl.problem', p.cards.length - 6))}</div>` : ''}</div>`)}
+    ${p.left_out.length ? titledBlock(`${t('pv.left')} (${num(p.left_out.length)})`, `<div class="panel rows">${p.left_out.slice(0, 8).map(r => `<div class="row small" style="min-height:44px">${code(r.id)}<span class="row__main muted">${esc(prefs.lang === 'ar' && r.why_ar ? r.why_ar : r.why)}</span></div>`).join('')}</div>`) : ''}`;
 }
 
 function radios(name, rows, picked, act) {
@@ -70,11 +71,11 @@ function radios(name, rows, picked, act) {
 function whereHTML(w, own) {
   const base = w.base ? w.base.branch : '';
   const mode = w.mode || 'new';
-  return `<div><div class="block-title">${t('pv.where')}</div><div class="panel panel__pad">${facts([[t('pv.base'), baseFact(w, base)], [t('pv.deliver'), deliverFact(w, mode, base)], mode === 'direct' ? '' : mergeFact(w)])}
+  return titledBlock(t('pv.where'), `<div class="panel panel__pad">${facts([[t('pv.base'), baseFact(w, base)], [t('pv.deliver'), deliverFact(w, mode, base)], mode === 'direct' ? '' : mergeFact(w)])}
     ${w.problem ? `<p class="small" role="note">${icon('warn', 'icon--sm')} ${esc(L(w.problem))}</p>` : ''}
     <details class="mt-2" ${own.whereOpen ? 'open' : ''} data-where><summary class="link" style="cursor:pointer;min-height:44px;display:inline-flex;align-items:center">${t('pv.change')}</summary>
       ${changeHTML(w, own, base, mode)}
-    </details></div></div>`;
+    </details></div>`);
 }
 
 /** The delivery modes this place offers: a new branch, continuing one, or straight onto the base when allowed. */
@@ -156,7 +157,7 @@ function waitingSheet(verb, own, title, cmd) {
 }
 
 function factsHTML(p) {
-  return `${facts([[t('pv.files'), esc(tn('pl.file', p.files.length))], p.batches.length ? `<dt>${t('pv.batches')}</dt><dd>${esc(t('pv.batches.v', { batches: tn('pl.batch', p.batches.length) }))}</dd>` : '', [t('pv.estimate'), `${esc(estimate(p))}<span class="small muted" style="display:block">${esc(L(p.estimate.basis))}</span>`], [t('pv.risk'), `<span class="tag ${p.risk.level === 'high' ? 'tag--caution' : 'tag--state'}">${t('pv.risk.' + p.risk.level)}</span> <span class="small ink-2">${esc(L(p.risk.why))}</span>`], [t('pv.fail'), esc(L(p.on_failure)), 'small']])}`;
+  return facts([[t('pv.files'), esc(tn('pl.file', p.files.length))], p.batches.length ? `<dt>${t('pv.batches')}</dt><dd>${esc(t('pv.batches.v', { batches: tn('pl.batch', p.batches.length) }))}</dd>` : '', [t('pv.estimate'), `${esc(estimate(p))}<span class="small muted" style="display:block">${esc(L(p.estimate.basis))}</span>`], [t('pv.risk'), `<span class="tag ${p.risk.level === 'high' ? 'tag--caution' : 'tag--state'}">${t('pv.risk.' + p.risk.level)}</span> <span class="small ink-2">${esc(L(p.risk.why))}</span>`], [t('pv.fail'), esc(L(p.on_failure)), 'small']]);
 }
 
 /** The choices and notes under the facts: a Fix's place, the assistant, a Fix's speed and accept-by-itself. */

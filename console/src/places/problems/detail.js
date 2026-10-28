@@ -1,7 +1,7 @@
 // S-07 One problem with its evidence (PRB-06..10, PRB-15, PLN-05, FIX-01): why it matters, what the assistant
 // decided, where it is, the facts it rests on with their lines of code, its place in the plan, the other problems of the
 // same file and a note for whoever goes on after. Its sheet: one evidence fact (PRB-09).
-import { t, tn, L, num, esc, rich, icon, code, sev, chk, href, fmtWhen, sheet, act, refresh, toast, parseHash, offline, S, md, model, selection, client, ActionError, rowWords, facts } from 'eaos';
+import { t, tn, L, num, esc, rich, icon, code, sev, chk, href, fmtWhen, sheet, act, refresh, toast, parseHash, offline, S, md, model, selection, client, ActionError, rowWords, facts, titledBlock } from 'eaos';
 import { component, who, keepQuery, kindWord } from './shared.js';
 
 const enc = encodeURIComponent;
@@ -134,7 +134,7 @@ sheet('fact', {
         ${facts([[t('pd.kind'), code(f.kind)], f.path ? `<dt>${t('pd.where')}</dt><dd>${code(f.path + (f.line != null ? ':' + f.line : ''))}</dd>` : ''])}
         ${f.code ? codeBlock(f.code) : `<p class="small muted">${noCode(f, [])}</p>`}
         ${others(f)}
-        <div><div class="block-title">${t('pd.ev.rests')}</div><div class="panel rows">${f.cards.map(c => { const p = model.problem(c); return p ? `<a class="row" href="${href('/problems/' + enc(c))}" data-act="go" data-href="${href('/problems/' + enc(c))}">${sev(p.severity, false)}<span class="row__main small">${code(c)} ${rich(L(p.title))}</span></a>` : ''; }).join('')}</div></div>`,
+        ${titledBlock(t('pd.ev.rests'), `<div class="panel rows">${f.cards.map(c => { const p = model.problem(c); return p ? `<a class="row" href="${href('/problems/' + enc(c))}" data-act="go" data-href="${href('/problems/' + enc(c))}">${sev(p.severity, false)}<span class="row__main small">${code(c)} ${rich(L(p.title))}</span></a>` : ''; }).join('')}</div>`)}`,
     };
   },
 });

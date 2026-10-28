@@ -5,6 +5,8 @@ import {
   t, tn, L, num, esc, rich, icon, code, sev, chk, href, screen, sheet, act, tickAct, refresh, setQuery, searchTyped, parseHash, announce, closeSheetThen, setSelbar,
   S, model, selection, data,
   skeletonRows,
+  titledBlock,
+  pageHead,
 } from 'eaos';
 import { NEEDS, SEV, AREAS, STATES, FACETS, component, who, steps, value, list, filterProblems, activeFilters, facetLabel, keepQuery } from './shared.js';
 import { detailHTML } from './detail.js';
@@ -84,8 +86,7 @@ function listColumn(q, openId) {
   return `<div class="psplit__list">
     <div class="context"><div class="seg" role="group" aria-label="${esc(t('pb.place'))}" style="min-width:200px">
       <a href="${href('/problems')}" aria-current="true">${t('pb.view.list')}</a><a href="${href('/problems/plan')}">${t('pb.view.plan')}</a></div></div>
-    <h1 class="lede">${esc(t('pb.lede', { total: tn('pl.problem', tot.problems), fixable: num(tot.fixable), you: num(tot.needs_you) }))}</h1>
-    <p class="guide">${t('pb.guide')}</p>
+    ${pageHead(esc(t('pb.lede', { total: tn('pl.problem', tot.problems), fixable: num(tot.fixable), you: num(tot.needs_you) })), t('pb.guide'))}
     <div class="ptools">
       <nav class="seg seg--count" aria-label="${esc(t('facet.who'))}">${whoSeg}</nav>
       <div class="ptools__row">
@@ -189,7 +190,7 @@ sheet('filters', {
     }).join('');
     return {
       title: esc(t('flt.title')), sub: esc(t('flt.sub')),
-      body: `<div><div class="block-title">${t('grp.title')}</div><div class="seg" role="group" aria-label="${esc(t('grp.title'))}">${groups}</div></div>${facets}`,
+      body: `${titledBlock(t('grp.title'), `<div class="seg" role="group" aria-label="${esc(t('grp.title'))}">${groups}</div>`)}${facets}`,
       foot: `<div class="sheet__foot-row"><button class="btn btn--secondary" data-act="facet-clear">${t('flt.clear')}</button>
         <button class="btn btn--primary" data-act="sheet-close" data-fk="flt-show">${esc(t('flt.show', { problems: tn('pl.problem', count) }))}</button></div>`,
     };
@@ -219,7 +220,7 @@ sheet('groups', {
     const kinds = [['severity', v => sev(v)], ['area', v => esc(t('area.' + v))], ['step', v => code(v)], ['component', v => code(v)]];
     const body = kinds.map(([k, label]) => {
       const rows = groups[k].map(g => `<button class="row" data-act="select-group" data-by="${k}" data-value="${esc(g.value)}"><span class="row__main">${label(g.value)}</span><span class="num muted">${num(g.ids.length)}</span>${icon('chev', 'icon--sm icon--dir muted')}</button>`).join('');
-      return rows ? `<div><div class="block-title">${t('facet.' + k)}</div><div class="panel rows">${rows}</div></div>` : '';
+      return rows ? titledBlock(t('facet.' + k), `<div class="panel rows">${rows}</div>`) : '';
     }).join('');
     return { title: esc(t('sg.title')), sub: esc(t('sg.sub')), body };
   },

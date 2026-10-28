@@ -3,7 +3,7 @@
 // fail together, or the assistant's own question); the answer resumes the same run (POST /api/questions/<id>/answer),
 // an option or the owner's own words: their answer, never counted as consent, and a clarification only where EAOS
 // carries out the option itself (`binding`).
-import { t, num, esc, rich, icon, code, href, fmtWhen, L, screen, act, offline, S, live, store, client, ac } from 'eaos';
+import { t, num, esc, rich, icon, code, href, fmtWhen, L, screen, act, offline, S, live, store, client, ac, pageHead } from 'eaos';
 import { ownTyped, sendAnswer, sendBlocked, ownBox, whyFold, choice } from './answer.js';
 
 const answered = {};   // question id -> what was sent in this visit
@@ -52,12 +52,11 @@ function card(q) {
 
 function questionsPage(ctx) {
   const back = `<a class="back" href="${href('/waiting')}">${icon('back', 'icon--dir')}${t('wt.item.back')}</a>`;
-  if (ctx.offline) return `<div class="page">${back}<h1 class="lede">${t('ac.q.offline')}</h1><p class="guide">${t('ac.q.offline.guide')}</p></div>`;
+  if (ctx.offline) return `<div class="page">${back}${pageHead(t('ac.q.offline'), t('ac.q.offline.guide'))}</div>`;
   const list = live.questions.concat(Object.keys(answered).filter(id => !live.questions.some(q => q.id === id)).map(id => answered[id].question));
   return `<div class="page">
     ${back}
-    <h1 class="lede">${t('ac.q.lede')}</h1>
-    <p class="guide">${t('ac.q.guide')}</p>
+    ${pageHead(t('ac.q.lede'), t('ac.q.guide'))}
     <section class="wgroup mt-8" aria-labelledby="g-q"><div class="wgroup__head"><h2 id="g-q">${t('wt.g.questions')}</h2>${live.questions.length ? `<span class="count" aria-hidden="true">${num(live.questions.length)}</span>` : ''}</div>
       ${list.length ? `<div class="stack-3">${list.map(card).join('')}</div>`
         : `<div class="panel empty"><p class="empty__title">${t(live.loaded ? 'wt.q.none' : 'st.loading')}</p><p class="small ink-2">${t('ac.q.none.guide')}</p><a class="btn btn--secondary" href="${href('/activity')}">${t('nav.activity')}</a></div>`}</section>

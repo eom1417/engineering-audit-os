@@ -10,6 +10,8 @@ import {
   S, live, store, client, contract, ActionError, prefs, ac, md,
   toggleRow,
   rowWords,
+  titledSection,
+  openLiveButton, pageHead,
 } from 'eaos';
 
 const KEY = 'eaos.chat';
@@ -159,8 +161,7 @@ function recordsPage(q) {
   }
   const hits = (records.answer && records.answer.answers) || [];
   return `<div class="page">
-    <h1 class="lede">${esc(qq ? t('ac.rec.lede', { q: qq }) : t('ac.rec.search'))}</h1>
-    <p class="guide">${t('ac.rec.guide')}</p>
+    ${pageHead(esc(qq ? t('ac.rec.lede', { q: qq }) : t('ac.rec.search')), t('ac.rec.guide'))}
     <div class="ptools"><label class="field">${icon('search')}<span class="sr-only">${t('ac.rec.search')}</span><input type="search" id="rec-q" data-fk="rec-q" data-input="ac-rec-q" value="${esc(q.q || '')}" placeholder="${esc(t('ac.rec.search'))}" autocomplete="off"></label></div>
     ${offline() ? `<div class="panel empty"><p class="small ink-2">${t('ac.ask.offline.guide')}</p></div>`
       : !qq ? `<div class="panel empty"><p class="small ink-2">${t('ac.rec.empty')}</p></div>`
@@ -177,8 +178,7 @@ let noteSaved = null;
 function notePage() {
   return `<div class="page">
     <a class="back" href="${href('/status')}">${icon('back', 'icon--dir')}${t('st.place')}</a>
-    <h1 class="lede">${t('ac.note.lede')}</h1>
-    <p class="guide">${t('ac.note.guide')}</p>
+    ${pageHead(t('ac.note.lede'), t('ac.note.guide'))}
     ${noteSaved ? `<div class="saved section" role="status"><b>${icon('check', 'icon--sm')} ${esc(noteSaved)}</b><span>${t('pd.note.kept')}</span></div>
       <div class="actions"><a class="btn btn--secondary" href="${href('/status')}">${t('st.place')}</a><button class="btn btn--quiet" data-act="ac-note-again">${t('ac.note.another')}</button></div>`
     : offline() ? `<div class="actions"><button class="btn btn--primary" data-act="sheet" data-sheet="open-live">${t('offline.how')}</button></div>`
@@ -193,12 +193,10 @@ function askPage(ctx) {
   if (q.note) return notePage();
   if (q.records) return recordsPage(q);
   if (ctx.offline) {
-    return `<div class="page"><h1 class="lede">${t('ac.ask.offline')}</h1><p class="guide">${t('ac.ask.offline.guide')}</p>
-      <div class="actions"><button class="btn btn--primary" data-act="sheet" data-sheet="open-live">${t('offline.how')}</button></div></div>`;
+    return `<div class="page">${pageHead(t('ac.ask.offline'), t('ac.ask.offline.guide'), openLiveButton())}</div>`;
   }
   if (q.state === 'noasst' || (live.assistants && !ready())) {
-    return `<div class="page"><h1 class="lede">${t('ac.ask.noasst')}</h1><p class="guide">${t('ac.ask.noasst.guide', { cmd: code('claude login') })}</p>
-      <div class="actions"><button class="btn btn--primary" data-act="copy" data-text="claude login">${icon('copy')}${t('copy')}</button><a class="btn btn--quiet" href="${href('/project/assistants')}">${t('proj.assistants')}</a></div></div>`;
+    return `<div class="page">${pageHead(t('ac.ask.noasst'), t('ac.ask.noasst.guide', { cmd: code('claude login') }), `<button class="btn btn--primary" data-act="copy" data-text="claude login">${icon('copy')}${t('copy')}</button><a class="btn btn--quiet" href="${href('/project/assistants')}">${t('proj.assistants')}</a>`)}</div>`;
   }
   // a question from Search or ask is asked at once (CHT-01)
   if (q.q && asked !== q.q && live.assistants) { asked = q.q; const run = q.run && ac.runOf(q.run); setTimeout(() => send(q.q, run ? { kind: 'run', id: run.id, label: run.id } : null, S.ac.depth || 'quick'), 0); }
@@ -207,11 +205,10 @@ function askPage(ctx) {
   const total = answers.reduce((a, x) => a + cost(x), 0);
   const busy = ac.liveRun() && ac.liveRun().verb === 'fix';
   return `<div class="page">
-    <h1 class="lede">${t('ac.ask.lede')}</h1>
-    <p class="guide">${t('ac.ask.guide')}</p>
+    ${pageHead(t('ac.ask.lede'), t('ac.ask.guide'))}
     ${busy ? `<div class="ac-note section">${icon('info', 'icon--sm')}<span class="small">${t('ac.ask.busy')}</span></div>` : ''}
-    <section class="section" aria-labelledby="conv-h"><div class="section-head"><h2 id="conv-h">${t('ac.ask.conv')}</h2><span class="small muted">${esc(t('ac.ask.conv.sum', { n: num(turns.filter(x => x.who === 'you').length) }))}</span></div>
-      ${turns.length ? `<ol class="ac-chat" aria-live="polite">${turns.map(turnHTML).join('')}</ol>` : `<div class="panel empty"><p class="small ink-2">${t('ac.ask.empty.conv')}</p></div>`}</section>
+    ${titledSection('conv-h', t('ac.ask.conv'), `
+      ${turns.length ? `<ol class="ac-chat" aria-live="polite">${turns.map(turnHTML).join('')}</ol>` : `<div class="panel empty"><p class="small ink-2">${t('ac.ask.empty.conv')}</p></div>`}`, `<span class="small muted">${esc(t('ac.ask.conv.sum', { n: num(turns.filter(x => x.who === 'you').length) }))}</span>`)}
     <section class="section" aria-label="${esc(t('as.ph'))}">${composer(q)}</section>
     <div class="section">${control()}</div>
     <p class="list-foot">${esc(t('ac.ask.cost', { n: num(answers.length), cost: ac.money(total) }))} <a href="${href('/project/assistants')}">${t('proj.assistants')}</a></p>

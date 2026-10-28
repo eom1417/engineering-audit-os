@@ -1,7 +1,7 @@
 // The plan of a project built from its plan (plans.json `build`, eaos/report/studio/blueprint_plan.py): its milestones in order,
 // each with its build cards, their acceptance and state, and the one next step: answer the blueprint's questions, or
 // build the next milestone (the `build_start` action: an assistant builds its cards through their gates).
-import { t, tn, L, num, esc, icon, code, rich, rowWords } from 'eaos';
+import { t, tn, L, num, esc, icon, code, rich, rowWords, titledSection } from 'eaos';
 import { buildStep } from '../kit/kit.js';
 
 const TAG = { done: 'tag--ok', active: 'tag--live', blocked: 'tag--caution', todo: 'tag--state' };
@@ -39,7 +39,7 @@ export function buildPage(plan) {
     ${plan.requirements ? `<p class="small ink-2">${icon('check', 'icon--sm')} ${esc(t('bp.covered', { n: num(plan.requirements) }))}</p>` : ''}
     <div class="actions">${buildStep()}<p class="actions__note">${t('bp.note')}</p></div>
     <div class="un-progress section" role="img" aria-label="${esc(Math.round(share * 100) + '%')}"><span style="transform:scaleX(${share.toFixed(3)})"></span></div>
-    <section class="section" aria-labelledby="bp-h"><div class="section-head"><h2 id="bp-h">${t('bp.milestones')}</h2><span class="small muted">${t('bp.order')}</span></div>
-      ${plan.steps.map(s => milestone(s, next)).join('')}</section>
+    ${titledSection('bp-h', t('bp.milestones'), `
+      ${plan.steps.map(s => milestone(s, next)).join('')}`, `<span class="small muted">${t('bp.order')}</span>`)}
   </div>`;
 }

@@ -1,7 +1,7 @@
-// The parts every screen draws the same way, written once (one source per pattern, docs/STANDARDS.md): a row's words,
-// a switch and its row, a radio option, a list of facts, a section's head, the rows of a list still loading, the
-// command for the terminal, a refusal, a place not found and the language and theme choices. Each returns markup; what
-// differs is a parameter.
+// The parts every screen draws the same way, written once (one source per pattern, docs/STANDARDS.md): a page's
+// opening, a section and a block under its title, a row's words, a switch and its row, a radio option, a list of facts,
+// a small fold, the rows of a list still loading, the command for the terminal, a refusal, a place not found and the
+// language and theme choices. Each returns markup; what differs is a parameter. Their look is css/parts.css.
 import { esc, icon } from './format.js';
 import { t } from './i18n.js';
 import { prefs } from './prefs.js';
@@ -21,13 +21,13 @@ export function rowWords(title, meta, o = {}) {
 export const bitsOf = bits => bits.filter(b => b != null && b !== false && b !== '').map(b => `<span>${b}</span>`).join('');
 
 /** A switch (a checkbox drawn as one): `input` its attributes ({name: value}, true for a bare one), `label` its name. */
-export const switchBox = (input, label) => `<span class="switch"><input type="checkbox" ${attrs(input)} aria-label="${esc(label)}"><span class="switch__track"></span><span class="switch__thumb"></span></span>`;
+const switchBox = (input, label) => `<span class="switch"><input type="checkbox" ${attrs(input)} aria-label="${esc(label)}"><span class="switch__track"></span><span class="switch__thumb"></span></span>`;
 
 /** A switch with its words after it, inside a line of other controls. */
 export const inlineSwitch = (input, label) => `<label class="ac-inline-switch small ink-2">${switchBox(input, label)}${label}</label>`;
 
 /** A switch's row: its words (and the note under them), then the switch. `o.icon`: an icon before the words; `o.cls`:
- *  the row's extra classes. */
+ *  the row's extra classes; `o.label`: the switch's name when the words are markup. */
 export function toggleRow(words, note, input, o = {}) {
   const head = o.icon ? `<span class="toggle-row__icon">${icon(o.icon, 'icon--sm')}${words}</span>` : note ? `<span style="display:block">${words}</span>` : words;
   return `<div class="toggle-row${o.cls ? ' ' + o.cls : ''}"><span>${head}${note ? `<span class="small muted">${note}</span>` : ''}</span>${switchBox(input, o.label || words)}</div>`;
@@ -47,8 +47,11 @@ export const lockLine = (name, locked) => `<span class="opt__line">${name}${lock
 export const facts = (pairs, cls) => `<dl class="facts${cls ? ' ' + cls : ''}">${pairs.filter(Boolean).map(p => (typeof p === 'string' ? p
   : `<dt>${p[0]}</dt><dd${p[2] ? ` class="${p[2]}"` : ''}>${p[1]}</dd>`)).join('')}</dl>`;
 
-/** A section: its head (a title, with `id` for the section to be named by, and a note beside it) and its body. */
-export const titledSection = (id, title, body, note) => `<section class="section" aria-labelledby="${id}"><div class="section-head"><h2 id="${id}">${title}</h2>${note ? `<span class="small muted">${note}</span>` : ''}</div>${body}</section>`;
+/** A section: its head (a title, `id` naming the section by it when given, and `side` beside it: a note, a link) and
+ *  its body. */
+export const titledSection = (id, title, body, side) => `<section class="section"${id ? ` aria-labelledby="${id}"` : ''}><div class="section-head"><h2${id ? ` id="${id}"` : ''}>${title}</h2>${side || ''}</div>${body}</section>`;
+/** A block under a small title (a list, a group of options). */
+export const titledBlock = (title, body) => `<div><div class="block-title">${title}</div>${body}</div>`;
 
 /** The rows of a list still being read: `n` rows of grey lines as wide as `widths` (%), each after a grey mark when
  *  `o.mark` names its kind (dot, square); `o.cls` the list's extra classes, `o.row` the row's class, `o.tag` the list's. */
@@ -78,3 +81,8 @@ export const displayToggles = fk => `${prefSeg(t('lang.label'), ['ar', 'en'].map
  *  the body's, `o.attrs`: its own attributes (open, data-*). */
 export const smallFold = (ic, title, body, o = {}) => `<details class="fold${o.cls ? ' ' + o.cls : ''}"${o.attrs ? ' ' + o.attrs : ''}><summary>${icon(ic, 'muted')}<span class="row__main small">${title}</span>${icon('chev', 'chev icon--sm')}</summary>
     <div class="fold__body${o.body ? ' ' + o.body : ''}">${body}</div></details>`;
+
+/** A page's opening: what it says (the lede), the guide under it and its actions (null: none). */
+export const pageHead = (lede, guide, actions) => `<h1 class="lede">${lede}</h1>${guide != null ? `<p class="guide">${guide}</p>` : ''}${actions != null ? `<div class="actions">${actions}</div>` : ''}`;
+/** The button saying how to open the live Studio (the read-only copy runs nothing). */
+export const openLiveButton = () => `<button class="btn btn--primary" data-act="sheet" data-sheet="open-live">${t('offline.how')}</button>`;
