@@ -110,6 +110,24 @@ class HeldOnAChange(Rules):
         self.assertEqual([(r['id'], r['places']) for r in result['rules']], [('R1', ['src/more.js:1'])])
         self.assertIn('No records in the code', held.refusal(result['rules'])[0])
 
+    def test_a_commit_of_new_files_alone_is_checked_with_the_code_laws_too(self):
+        # EAOS's own hook, 2026-10-28: every file staged was new, the "before" snapshot was never made, and the check
+        # failed ("Target must be an existing directory") on each commit
+        rule, _ = registry.add(self.project, 'No code copied word for word', 'terminal', scope={'kind': 'pinned'})
+        registry.guard(self.project, rule['id'], guards.checked({'kind': 'detector', 'detectors': ['copy']}), 'person', 'terminal')
+        body = ''.join(f'export function step{n}(rows) {{\n  const kept = rows.filter(r => r.ok && r.size > {n});\n'
+                       f'  return kept.map(r => ({{ ...r, step: {n}, total: r.size * {n} }}));\n}}\n' for n in range(4))
+        for name in ('a.js', 'b.js'): (self.project / 'src' / name).write_text(body)
+        git(self.project, 'add', '-A')
+        result = changed.check(self.project, registry.holding(self.project, {}), staged=True)
+        self.assertEqual([r['id'] for r in result['rules']], ['R1'], result['laws'])
+        # and a copy of a file already in the project, into a new one: its source is read beside it
+        git(self.project, 'reset', '-q', 'src/b.js')
+        git(self.project, 'commit', '-qm', 'a.js alone')
+        git(self.project, 'add', 'src/b.js')
+        result = changed.check(self.project, registry.holding(self.project, {}), staged=True)
+        self.assertEqual([r['id'] for r in result['rules']], ['R1'], 'code copied from a file the change does not touch')
+
     def test_the_check_reaches_the_files_that_depend_on_the_change(self):
         (self.project / 'src/db.js').write_text('export const db = { all: async () => [1] };\n')
         files, wide = changed.reached(self.project, changed.changed(self.project))

@@ -88,3 +88,11 @@ part is. Never write one machine's path in code (`tests/guards/test_platforms.py
   or measurement kept past its task.
 - One copy of the tools: `~/.eaos/tools`.
 - What EAOS makes, EAOS removes: a new kind of file comes with the rule that removes or bounds it, and its test.
+
+<!-- EAOS rules: begin (your pinned rules, written by EAOS from its rule registry; change them with eaos rules) -->
+Rules the person pinned for this project. Keep every one of them in every change; EAOS refuses a change that breaks one.
+
+- Nothing private is ever published: no machine detail, no path of this container, no name of the owner's own projects, no personal e-mail (R1, guarded by a test)
+- One source per pattern: no code copied word for word (R2, guarded by EAOS's detectors)
+- The code laws: modules of 400 lines at most, functions of complexity 10, 50 lines and 5 parameters at most (R3, guarded by a test)
+<!-- EAOS rules: end -->

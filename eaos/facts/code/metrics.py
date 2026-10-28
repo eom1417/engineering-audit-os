@@ -100,7 +100,9 @@ def _kept(lines):
     return kept
 
 
-def _windows_of(rel, lines):
+def windows_of(rel, lines):
+    """[(digest, place)] of every six lines of `lines` (normalised, comments and kept copies aside): the measure of
+    code copied word for word, here and in the diff-scoped check (eaos/analysis/rules/changed.py)."""
     kept = _kept(lines)
     cleaned = [(index + 1, normalise(line)) for index, line in enumerate(lines)
                if len(normalise(line)) >= MIN_LINE_LENGTH and not COMMENT.match(line) and index + 1 not in kept]
@@ -158,7 +160,7 @@ def run(target, source, symbols=None, **options):
         facts.append(_file_metric(item, rel, lines, language, len(mine)))
         counted = _counter(lines, language, mine)
         facts += [_symbol_metric(item, rel, lines, language, {**fact, 'complexity': counted(fact)}) for fact in mine]
-        for key, place in _windows_of(rel, lines): windows[key].append(place)
+        for key, place in windows_of(rel, lines): windows[key].append(place)
     clones = [_clone_fact(key, windows[key]) for key in sorted(windows) if _is_clone(windows[key])]
     facts += clones
     facts.sort(key=lambda f: (f['kind'], f['location']['path'], f['location'].get('start_line') or 0, f['id']))
