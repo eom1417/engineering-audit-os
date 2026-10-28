@@ -89,6 +89,20 @@ def repository_craft():
     return [f"repository: {f['rule']} {f['path']}" for f in read.findings(Source(ROOT), [], ROOT)]
 
 
+def kept_on_purpose():
+    """(the copies EAOS keeps on purpose, the markers that say no why): every `jscpd:ignore-start` in what EAOS ships
+    names its reason after ` -- ` (docs/STANDARDS.md §1, one source per pattern)."""
+    listed = subprocess.run(['git', 'ls-files', 'eaos', 'console/src'], cwd=ROOT, capture_output=True, text=True, check=True).stdout.split()
+    kept, silent = 0, []
+    for rel in listed:
+        if not rel.endswith(('.py', '.js', '.mjs', '.css')) or any(f'/{part}/' in f'/{rel}' for part in EXCLUDE): continue
+        for number, line in enumerate((ROOT / rel).read_text(encoding='utf-8').splitlines(), 1):
+            if 'jscpd:ignore-start' not in line: continue
+            kept += 1
+            if ' -- ' not in line: silent.append(f'one source: {rel}:{number} keeps a copy without saying why (jscpd:ignore-start -- <why>)')
+    return kept, silent
+
+
 def law_problems():
     """What breaks a law that has no recorded number: a limit passed, logic written twice, a leftover (in the Studio too), a
     layer crossed."""
@@ -96,6 +110,7 @@ def law_problems():
     problems += [f'written twice: {", ".join(group)}' for group in code_limits.duplicates()]
     problems += [f'leftover: {message}' for message in code_limits.leftovers()]
     problems += studio_lint()
+    problems += kept_on_purpose()[1]
     problems += repository_craft()
     layers = subprocess.run([str(Path(sys.executable).parent / 'lint-imports')], cwd=ROOT, capture_output=True, text=True)
     problems += [f'layers: {line.strip()}' for line in layers.stdout.splitlines() if line.rstrip().endswith('BROKEN')]
@@ -115,6 +130,7 @@ def measure():
         dead = dead_counts(workdir)
         now = +(counts + found + dead + knip_counts())
         now.update(one_source_counts(workdir, sets))      # the four numbers of the law are said even at zero
+        now['one_source:kept_on_purpose'] = kept_on_purpose()[0]
     return now, law_problems() + failed
 
 

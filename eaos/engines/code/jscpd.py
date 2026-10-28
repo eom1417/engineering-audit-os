@@ -4,12 +4,15 @@ With its near modes (M15.2) it finds four kinds of copy, each a pair of places: 
 aside), gap (one or two lines changed between two matching runs) and similar (two functions whose syntax trees share
 most subtrees, for JavaScript, TypeScript, Python, Go, Java and others; test files left out). The thresholds are the
 law's (eaos/core/contracts/code_laws.py NEAR_COPY). Each pair is a record (`near_copy`), never a finding:
-eaos/analysis/assessments/one_source.py joins the pairs into one cluster per pattern.
+eaos/analysis/assessments/one_source.py joins the pairs into one cluster per pattern. A pair that copies only a block of
+imports (three or more, with at most three other lines around them) is left out: modules of one kind start alike, and
+there is no logic to give one home.
 
 It scans exactly what it is given. Without the declared analysis exclusions it counted our own
 report artifacts and reported 23.1% duplication where the source holds 1.85%; scope is our duty.
 """
 import json
+import re
 from pathlib import Path
 
 from ..contract import Report, OBSERVED, UNAVAILABLE
@@ -20,6 +23,8 @@ from ..process import run, which
 NAME, BINARY, PINNED = 'jscpd', 'jscpd', '5.4.2'
 ALWAYS_IGNORED = ('**/.git/**', '**/node_modules/**', '**/.venv/**', '**/dist/**', '**/build/**',
                   '**/__pycache__/**', '**/.enola/**')
+IMPORT = re.compile(r'^\s*(from\s+\S+\s+import\b|import\s|export\s.*\bfrom\s|\}\s*from\s)')
+ASIDE = re.compile(r'^\s*("""|\'\'\'|#|//|\*|/\*)?\s*$|^\s*(#|//)')        # blank, a comment, a docstring's quotes alone
 NEAR_MODES = ('--similarity', str(NEAR_COPY['similarity']), '--max-gap-lines', str(NEAR_COPY['max_gap_lines']),
               '--ignore-identifiers', '--min-tokens', str(NEAR_COPY['min_tokens']))
 
@@ -45,8 +50,16 @@ def analyze(target, workdir, exclude=(), formats=None):
     if not report_path.is_file():
         return tool.failed(NAME, found, seconds, code, error)
     report = json.loads(report_path.read_text(encoding='utf-8'))
-    return Report(NAME, found, PINNED, OBSERVED, seconds=seconds, metrics=[_record(clone) for clone in report.get('duplicates', [])],
+    pairs = [clone for clone in report.get('duplicates', []) if not imports_only(clone.get('fragment') or '')]
+    return Report(NAME, found, PINNED, OBSERVED, seconds=seconds, metrics=[_record(clone) for clone in pairs],
                   coverage=_coverage(report, ignored, formats), provenance={'near_copy': NEAR_COPY}, raw=str(report_path))
+
+
+def imports_only(fragment):
+    """Whether a pair copies only a block of imports: three import lines or more, at most three other lines of code."""
+    lines = [line for line in fragment.splitlines() if not ASIDE.match(line)]
+    imports = sum(1 for line in lines if IMPORT.match(line))
+    return imports >= 3 and len(lines) - imports <= 3
 
 
 def _place(side):

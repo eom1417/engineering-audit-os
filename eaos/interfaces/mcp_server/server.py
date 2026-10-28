@@ -199,6 +199,7 @@ def _record_tools(server, reading, working):
     def tools_check(project: str | None = None, retry: bool = False) -> str:
         return tools.tools_check(project, retry)
 
+    # jscpd:ignore-start -- each MCP tool is its own decorated signature: the server reads its schema and words from it
     @server.tool(annotations=reading, description='What changing a file or a symbol touches, from the check\'s facts: the files that '
                  'import it (direct and further), the flows and entry points through it, the tests that cover it, and the files '
                  'that change with it in the history. target: a path or a symbol name. ' + PROJECT_DOC)
@@ -212,6 +213,7 @@ def _record_tools(server, reading, working):
     @_answer
     def ask(question: str, project: str | None = None) -> str:
         return tools.ask(question, project)
+    # jscpd:ignore-end
 
     @server.tool(annotations=reading, description='How the app\'s users fared in the last experience run: each persona\'s goals in '
                  'order with their result, time and steps counted, the difficulties ranked (confirmed first, then by severity), '
