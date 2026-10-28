@@ -119,8 +119,9 @@ def _layers_broken(report, root, out):
     return layers.introduced(before, layers.check(root, out)) if before else []
 
 
-# The security engines that answer in seconds: they run on every change a batch makes (eaos/journeys/fix/waves edit_gates).
-GATE_ENGINES = ('bandit', 'gitleaks')
+# The engines that answer in seconds: they run on every change a batch makes (eaos/journeys/fix/waves edit_gates): the
+# security ones, and jscpd and ast-grep for one source per pattern (M15.9).
+GATE_ENGINES = ('bandit', 'gitleaks', 'jscpd', 'ast-grep')
 
 
 def app_breakage(project, runtime, root, changed):

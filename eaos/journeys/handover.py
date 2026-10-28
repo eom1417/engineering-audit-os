@@ -216,12 +216,12 @@ def _how_to_continue(busy, work, on):
 def refresh(state, status=None):
     """HANDOVER.md in the outputs folder, from the state, the journal and the ledger; `status(project)` gives the next
     step (the MCP server passes the status tool of the project's way)."""
-    try: now = status(state['project']) if status else {}
-    except Exception: now = {}
+    try: live = status(state['project']) if status else {}
+    except Exception: live = {}
     state = project_state.load(state['project']) or state
     b = brief(state, steps=25, notes=15)
     ar = state.get('lang') == 'ar'
-    step = now.get('next') or {}
+    step = live.get('next') or {}
     lines = ['# HANDOVER: ' + Path(state['project']).name, '',
              ('> هذا الملف يُكتب تلقائيًا بعد كل خطوة، ليكمل أي مساعد ذكي (Claude Code أو Codex) من حيث توقف الآخر.' if ar else
               '> Written automatically after every step, so that any AI assistant (Claude Code or Codex) continues where the other stopped.'),

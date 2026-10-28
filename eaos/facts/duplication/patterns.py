@@ -15,7 +15,7 @@ LIMITATIONS = [
     'the pictured pages (live/screens.json).',
     'An element tree is its tags and static classes; two trees alike in structure can still differ in what they mean.',
 ]
-PLACES = 12          # places kept per value of the look
+PLACES = 200         # places kept per value of the look (the fix gate counts them per file)
 
 
 def _scan(source):
