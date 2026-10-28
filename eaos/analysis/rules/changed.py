@@ -1,8 +1,11 @@
 """The diff-scoped check (M16.7): on a change, before it lands, the guards of the person's rules and EAOS's fast gates
 over the files it touches and the files that depend on them (the import graph), each rule's smallest check that
-suffices: a pattern reads only those files, a test runs only when the change reaches its files, a detector reads only
-what the gates found the change added. A test runs on the working tree, the commit's files and any not yet staged
-alike; it is compared with the same test at the base commit, so only a failure the change brought refuses. Seconds and no token as the target; a full check stays for the release.
+suffices: a pattern reads the changed files (only there can the change write a new match), a test bound to files runs
+only when the change or a file importing it reaches them (the graph is read for it alone), a detector reads only what
+the gates found the change added (the code laws over the changed files). A test runs on the working tree, the
+commit's files and any not yet staged alike; it is compared with the same test at the base commit, so only a failure
+the change brought refuses. Seconds and no token as the target (about 7 s on a project of a thousand files, the graph
+read; under one without it); a full check stays for the release.
 
     changed(project, base, staged)   the files a change touches: the staged ones (a commit), else those that differ
                                      from `base` (HEAD by default) in the working tree, new files included
@@ -113,10 +116,11 @@ def _held(project, rules, change, since, gates):
     """(each rule's result, the gates' problems) on the change: `change` {changed, reached}, `since` (base, staged)."""
     paths, files = change['changed'], change['reached']
     with tempfile.TemporaryDirectory(prefix='eaos-changed-') as scratch:
-        after, before = _sides(project, files, since, scratch)
-        problems = laws(before, after, paths) if gates else []
+        after, before = _sides(project, paths, since, scratch)
+        # the code laws read the changed files alone (what the change wrote); their importers are for the rules' guards
+        problems = laws(*reversed(_sides(project, paths, since, Path(scratch) / 'laws')), paths) if gates else []
         tested = [r for r in rules if (r.get('guard') or {}).get('kind') == 'test']
-        results = held.on_change([r for r in rules if r not in tested], after, files, before, found_of(problems))
+        results = held.on_change([r for r in rules if r not in tested], after, paths, before, found_of(problems))
         with held.at_commit(project, since[0] or 'HEAD') as earlier:
             results += held.on_change(tested, project, files, earlier)
     return results, problems
@@ -127,8 +131,9 @@ def check(project, rules, base=None, staged=False, gates=True):  # limits: param
     a rule broken (the caller decides which rules may refuse: the hook only the pinned ones)."""
     started = time.monotonic()
     found = {'changed': changed(project, base, staged), 'reached': [], 'wide': False, 'results': [], 'laws': []}
+    bound = any((r.get('guard') or {}).get('kind') == 'test' and r['guard'].get('files') for r in rules)
     if found['changed']:
-        found['reached'], found['wide'] = reached(project, found['changed'])
+        found['reached'], found['wide'] = reached(project, found['changed']) if bound else (found['changed'], False)
         found['results'], found['laws'] = _held(project, rules, found, (base, staged), gates)
     broken = held.broken(found['results'])
     return {**found, 'rules': broken, 'refused': bool(broken), 'seconds': round(time.monotonic() - started, 2)}
