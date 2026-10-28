@@ -6,7 +6,7 @@ The numbers of EAOS, measured at each milestone end, oldest first. `tools/metric
 assistant (`tools/*_proof.py`) measure the journeys. Numbers are compared with the section before; a worse number
 needs its reason here.
 
-Latest: **0.0.86**, M13 (below). M7 (0.0.79) has no section of its own: what it changed is proved by the
+Latest: **0.0.87**, M14 (below). M7 (0.0.79) has no section of its own: what it changed is proved by the
 fix proof in the golden trial, not by a number.
 
 ## Baseline: 0.0.71 (2026-10-23), EAOS's own check of `develop`
@@ -213,6 +213,26 @@ The simulated users on three corpus apps of different kinds (`tools/experience_p
 
 The short simulation adds 11-62 s and 1-7 light calls to a complete check and confirmed nothing on these runs; the whole
 simulation found one real failure a person would meet. The replays cost nothing and are green.
+
+## After M14: 0.0.87 (2026-10-28), how the data is saved and kept
+
+| Measure | Value |
+|---|---|
+| Detection baseline | **28 of 28** planted problems found (21 before: the whole-state saves, "Saved" before the answer, the queue over quota, the base64 logos, the backup of the orders only, the page that sends back the whole report); the 6 examples that must stay not found |
+| The baseline app's page saves (no database of its own) | 5 pages read, one save sent on every visit with all 3 records the page read: one card; the server's state file found (data in files only) |
+| flaskr (SQLite) | its two empty tables given 365 records each (a year of dates, every post pointing at a user); the database's own dump restored and compared: both tables back whole; no backup declared: one card |
+| PostgreSQL, the same steps on the run's own server | 6 rows grown to 300 per table; whole documents (20 KB a row) and 300 pictures as text read; two tables sharing values found; the dump restored, every table the same, the restored database removed |
+| Compatibility corpus, every app through the new stage | **15 of 15** run and pictured |
+| What this version does not check (`unchecked`) | **empty**: the score and its areas read from their own measures |
+
+### The cost of adding a tool
+
+| Tool or rule | Files | Lines | Core changed | Time |
+|---|---|---|---|---|
+| Squawk (M14.3) | the registry entry, the adapter (63), its licence | ~90 | no | under 1 h, most of it reading which of its rules are style |
+| ast-grep saving rules (M14.3) | the rule file and its examples | ~190 | no | about 1 h (a comma inside a pattern of YAML's short form split it) |
+| The `keeping` stage (M14.1-M14.4) | its runner (60), `live/keeping/` (database 100, volume 90, synthetic 120, stored 60, restore 130, writes 80, files 30, lost update 80), a Playwright script (75) | ~830 | no: a stage is its declaration, its loop, its runner and its words, as every stage before | about 5 h |
+| The sorting and its cards (M14.2-M14.4) | one assessment (190), one claims module (130), one line each in the probes, the remediation, the words, the score's patterns, the debt register, the check paths | ~335 | no | about 2 h |
 
 ## After M13: 0.0.86 (2026-10-28), old engines
 

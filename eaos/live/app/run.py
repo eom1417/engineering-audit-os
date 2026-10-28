@@ -27,6 +27,7 @@ import re
 import secrets
 import shutil
 import socket
+import time
 from pathlib import Path
 
 from ..isolation.sandbox import AuthorizationError, Sandbox, head
@@ -235,6 +236,7 @@ class LiveRun:
             self.__dict__.pop('_extra', None)
         base = f"http://127.0.0.1:{self.profile['port']}"
         argv, env = self._measured(self.profile['start'], self.run_env())
+        self.started_at = time.time()                  # what the app writes from now on is its own (eaos/live/keeping/files.py)
         self.sandbox.start(argv, base + self.profile.get('health', '/'),
                            timeout=self.profile.get('start_timeout', 90), cwd=self.profile.get('app') or None, env=env)
         return base

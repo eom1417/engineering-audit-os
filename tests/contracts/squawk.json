@@ -1,0 +1,106 @@
+{
+ "engine": "squawk",
+ "pinned_version": "2.70.0",
+ "captured_from": "squawk --reporter json migrations/001.sql (a migration that adds a NOT NULL column without a default and builds an index while writes wait)",
+ "squawk.json": [
+  {
+   "file": "migrations/001.sql",
+   "line": 0,
+   "column": 0,
+   "level": "Warning",
+   "message": "Missing `IF NOT EXISTS`, the migration can't be rerun if it fails part way through.",
+   "help": null,
+   "rule_name": "prefer-robust-stmts",
+   "column_end": 79,
+   "line_end": 0
+  },
+  {
+   "file": "migrations/001.sql",
+   "line": 0,
+   "column": 27,
+   "level": "Warning",
+   "message": "Using 32-bit integer fields can result in hitting the max `int` limit.",
+   "help": "Use 64-bit integer values instead to prevent hitting this limit.",
+   "rule_name": "prefer-bigint-over-int",
+   "column_end": 33,
+   "line_end": 0
+  },
+  {
+   "file": "migrations/001.sql",
+   "line": 0,
+   "column": 27,
+   "level": "Warning",
+   "message": "Serial types make schema, dependency, and permission management difficult.",
+   "help": "Use an `IDENTITY` column instead.",
+   "rule_name": "prefer-identity",
+   "column_end": 33,
+   "line_end": 0
+  },
+  {
+   "file": "migrations/001.sql",
+   "line": 1,
+   "column": 0,
+   "level": "Warning",
+   "message": "Missing `set lock_timeout` before potentially slow ACCESS EXCLUSIVE lock operations",
+   "help": "Configure a `lock_timeout` before this statement. Statement requires: ACCESS EXCLUSIVE lock; blocking: reads, writes, schema changes.",
+   "rule_name": "require-lock-timeout",
+   "column_end": 58,
+   "line_end": 1
+  },
+  {
+   "file": "migrations/001.sql",
+   "line": 1,
+   "column": 0,
+   "level": "Warning",
+   "message": "Missing `set statement_timeout` before potentially slow operations",
+   "help": "Configure a `statement_timeout` before this statement",
+   "rule_name": "require-statement-timeout",
+   "column_end": 58,
+   "line_end": 1
+  },
+  {
+   "file": "migrations/001.sql",
+   "line": 1,
+   "column": 22,
+   "level": "Warning",
+   "message": "Adding a new column that is `NOT NULL` and has no default value to an existing table effectively makes it required.",
+   "help": "Make the field nullable or add a non-VOLATILE DEFAULT",
+   "rule_name": "adding-required-field",
+   "column_end": 57,
+   "line_end": 1
+  },
+  {
+   "file": "migrations/001.sql",
+   "line": 1,
+   "column": 22,
+   "level": "Warning",
+   "message": "Missing `IF NOT EXISTS`, the migration can't be rerun if it fails part way through.",
+   "help": null,
+   "rule_name": "prefer-robust-stmts",
+   "column_end": 57,
+   "line_end": 1
+  },
+  {
+   "file": "migrations/001.sql",
+   "line": 2,
+   "column": 0,
+   "level": "Warning",
+   "message": "Missing `IF NOT EXISTS`, the migration can't be rerun if it fails part way through.",
+   "help": "Use an explicit name for a concurrently created index",
+   "rule_name": "prefer-robust-stmts",
+   "column_end": 41,
+   "line_end": 2
+  },
+  {
+   "file": "migrations/001.sql",
+   "line": 2,
+   "column": 0,
+   "level": "Warning",
+   "message": "During normal index creation, table updates are blocked, but reads are still allowed.",
+   "help": "Use `concurrently` to avoid blocking writes.",
+   "rule_name": "require-concurrent-index-creation",
+   "column_end": 41,
+   "line_end": 2
+  }
+ ]
+}

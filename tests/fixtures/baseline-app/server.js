@@ -88,6 +88,7 @@ http.createServer(async (req, res) => {
   if (url.pathname === '/api/export') return res.end(exportFile(Object.values(orders)));
   if (url.pathname === '/api/store-check') return storeCheck(req, res, url.searchParams.get('host') || 'localhost');
   if (url.pathname === '/api/contact') return send(res, 200, DEFAULT_ADMIN);
+  if (url.pathname === '/api/state' && req.method === 'POST') return body(req).then(state => { fs.writeFileSync(__dirname + '/state.json', JSON.stringify(state)); send(res, 200, { ok: true }); });
   res.setHeader('Content-Type', 'text/html; charset=utf-8');
   return res.end(page);
 }).listen(config.PORT, '0.0.0.0');

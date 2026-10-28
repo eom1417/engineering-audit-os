@@ -359,5 +359,9 @@ def session(context):
 RUNNERS['session'] = session
 
 
+from .keeping import keeping  # noqa: E402  (the data's saving and keeping, M14)
+RUNNERS['keeping'] = keeping
+
+
 RUNNERS.update(translate=translate, verify=verify, journeys=journeys, readiness=readiness, architecture=architecture,
                sustainability=sustainability, transform=transform)

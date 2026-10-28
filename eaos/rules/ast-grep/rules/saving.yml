@@ -1,0 +1,158 @@
+# How the data is saved (M14.3): what the code does when it saves, read as records, not verdicts
+# (eaos/analysis/assessments/data_keeping.py decides): the whole of a store written to localStorage or sent in one
+# request, a queue kept in localStorage that only grows, and "saved" told before the server answered.
+id: eaos.save.whole-local
+language: JavaScript
+severity: info
+message: the whole of a store written to localStorage in one value
+metadata: {record: save_whole_local}
+rule:
+  any:
+    - pattern: localStorage.setItem($K, JSON.stringify($S))
+    - pattern: window.localStorage.setItem($K, JSON.stringify($S))
+constraints:
+  S: {regex: '(?i)^(state|store|appstate|app_state|data|alldata|everything|db|database|model|doc|document|snapshot|getstate\(\)|store\.getstate\(\))$'}
+---
+id: eaos.save.whole-request
+language: JavaScript
+severity: info
+message: the whole of a store sent in one request
+metadata: {record: save_whole_request}
+rule:
+  pattern: fetch($URL, $$$)
+  has:
+    stopBy: end
+    kind: pair
+    all:
+      - has: {field: key, regex: '^body$'}
+      - has: {field: value, pattern: JSON.stringify($S)}
+constraints:
+  S: {regex: '(?i)^(state|store|appstate|app_state|data|alldata|everything|db|database|model|doc|document|snapshot|getstate\(\)|store\.getstate\(\))$'}
+---
+id: eaos.save.growing-queue
+language: JavaScript
+severity: info
+message: a queue kept in localStorage that is added to and never trimmed
+metadata: {record: save_growing_queue}
+rule:
+  kind: statement_block
+  all:
+    - has: {stopBy: end, pattern: $Q.push($$$)}
+    - has: {stopBy: end, pattern: "localStorage.setItem($K, JSON.stringify($Q))"}
+    - not: {has: {stopBy: end, any: [{pattern: $Q.shift()}, {pattern: $Q.splice($$$)}, {pattern: $Q.slice($$$)}, {pattern: localStorage.removeItem($$$)}, {pattern: $Q.length = $N}]}}
+---
+id: eaos.save.told-before-answer
+language: JavaScript
+severity: info
+message: saved is told without reading the server's answer
+metadata: {record: save_told_early}
+rule:
+  kind: statement_block
+  all:
+    - has: {kind: expression_statement, has: {any: [{pattern: await fetch($$$)}, {pattern: fetch($$$)}]}}
+    - has: {kind: expression_statement, has: {stopBy: end, kind: string, regex: '(?i)saved|تم الحفظ|حُفظ|تم حفظ'}}
+    - not: {has: {stopBy: end, any: [{pattern: $R.ok}, {pattern: $R.status}]}}
+---
+id: eaos.save.whole-local-typescript
+language: TypeScript
+severity: info
+message: the whole of a store written to localStorage in one value
+metadata: {record: save_whole_local}
+rule:
+  any:
+    - pattern: localStorage.setItem($K, JSON.stringify($S))
+    - pattern: window.localStorage.setItem($K, JSON.stringify($S))
+constraints:
+  S: {regex: '(?i)^(state|store|appstate|app_state|data|alldata|everything|db|database|model|doc|document|snapshot|getstate\(\)|store\.getstate\(\))$'}
+---
+id: eaos.save.whole-request-typescript
+language: TypeScript
+severity: info
+message: the whole of a store sent in one request
+metadata: {record: save_whole_request}
+rule:
+  pattern: fetch($URL, $$$)
+  has:
+    stopBy: end
+    kind: pair
+    all:
+      - has: {field: key, regex: '^body$'}
+      - has: {field: value, pattern: JSON.stringify($S)}
+constraints:
+  S: {regex: '(?i)^(state|store|appstate|app_state|data|alldata|everything|db|database|model|doc|document|snapshot|getstate\(\)|store\.getstate\(\))$'}
+---
+id: eaos.save.growing-queue-typescript
+language: TypeScript
+severity: info
+message: a queue kept in localStorage that is added to and never trimmed
+metadata: {record: save_growing_queue}
+rule:
+  kind: statement_block
+  all:
+    - has: {stopBy: end, pattern: $Q.push($$$)}
+    - has: {stopBy: end, pattern: "localStorage.setItem($K, JSON.stringify($Q))"}
+    - not: {has: {stopBy: end, any: [{pattern: $Q.shift()}, {pattern: $Q.splice($$$)}, {pattern: $Q.slice($$$)}, {pattern: localStorage.removeItem($$$)}, {pattern: $Q.length = $N}]}}
+---
+id: eaos.save.told-before-answer-typescript
+language: TypeScript
+severity: info
+message: saved is told without reading the server's answer
+metadata: {record: save_told_early}
+rule:
+  kind: statement_block
+  all:
+    - has: {kind: expression_statement, has: {any: [{pattern: await fetch($$$)}, {pattern: fetch($$$)}]}}
+    - has: {kind: expression_statement, has: {stopBy: end, kind: string, regex: '(?i)saved|تم الحفظ|حُفظ|تم حفظ'}}
+    - not: {has: {stopBy: end, any: [{pattern: $R.ok}, {pattern: $R.status}]}}
+---
+id: eaos.save.whole-local-tsx
+language: Tsx
+severity: info
+message: the whole of a store written to localStorage in one value
+metadata: {record: save_whole_local}
+rule:
+  any:
+    - pattern: localStorage.setItem($K, JSON.stringify($S))
+    - pattern: window.localStorage.setItem($K, JSON.stringify($S))
+constraints:
+  S: {regex: '(?i)^(state|store|appstate|app_state|data|alldata|everything|db|database|model|doc|document|snapshot|getstate\(\)|store\.getstate\(\))$'}
+---
+id: eaos.save.whole-request-tsx
+language: Tsx
+severity: info
+message: the whole of a store sent in one request
+metadata: {record: save_whole_request}
+rule:
+  pattern: fetch($URL, $$$)
+  has:
+    stopBy: end
+    kind: pair
+    all:
+      - has: {field: key, regex: '^body$'}
+      - has: {field: value, pattern: JSON.stringify($S)}
+constraints:
+  S: {regex: '(?i)^(state|store|appstate|app_state|data|alldata|everything|db|database|model|doc|document|snapshot|getstate\(\)|store\.getstate\(\))$'}
+---
+id: eaos.save.growing-queue-tsx
+language: Tsx
+severity: info
+message: a queue kept in localStorage that is added to and never trimmed
+metadata: {record: save_growing_queue}
+rule:
+  kind: statement_block
+  all:
+    - has: {stopBy: end, pattern: $Q.push($$$)}
+    - has: {stopBy: end, pattern: "localStorage.setItem($K, JSON.stringify($Q))"}
+    - not: {has: {stopBy: end, any: [{pattern: $Q.shift()}, {pattern: $Q.splice($$$)}, {pattern: $Q.slice($$$)}, {pattern: localStorage.removeItem($$$)}, {pattern: $Q.length = $N}]}}
+---
+id: eaos.save.told-before-answer-tsx
+language: Tsx
+severity: info
+message: saved is told without reading the server's answer
+metadata: {record: save_told_early}
+rule:
+  kind: statement_block
+  all:
+    - has: {kind: expression_statement, has: {any: [{pattern: await fetch($$$)}, {pattern: fetch($$$)}]}}
+    - has: {kind: expression_statement, has: {stopBy: end, kind: string, regex: '(?i)saved|تم الحفظ|حُفظ|تم حفظ'}}
+    - not: {has: {stopBy: end, any: [{pattern: $R.ok}, {pattern: $R.status}]}}

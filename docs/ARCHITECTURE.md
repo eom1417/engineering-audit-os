@@ -48,7 +48,8 @@ engineering-audit-os/
       claims/              one ledger of everything asserted: claims from facts, records, layers, the repository, the
                            experience and the logic-flaw hunt; probes, correlation
       assessments/         ready judgements per kind of finding: dead code, dependencies, mechanical, policy, weaknesses,
-                           real data in the code, old engines and code never run, the debt register
+                           real data in the code, old engines and code never run, how the data is saved and kept,
+                           the debt register
       layers/              the whole system in layers: placement, boundaries, browser, endpoints, guards, data,
                            the rules split, operations
       experience/          the simulated users' plan: the scenario, the domain data, the simulation, the judging
@@ -69,6 +70,8 @@ engineering-audit-os/
       experience/          the simulated users on the copy: actors, the cast, hand-offs, support, replays, seeded data
       screens/             finding and picturing the screens, and judging them
       trials/              trials on the running app: its API, its data rules, its load
+      keeping/             how the data is saved and kept on the copy: its database filled, read and restored, the
+                           saves the pages send, the files the server writes, two edits of one record (M14)
       testing/             the project's own tests: what they touch and how healthy they are
     facts/                 deterministic reading: run.py, store.py, source.py, scope.py, discovery.py,
                            engine_findings.py (the engines' findings as facts)
@@ -146,7 +149,7 @@ stages' real dependencies:
 | Loop (`loops.py`) | Stages | needs, rounds, on_fail |
 |---|---|---|
 | understand | facts, features, roles, intake, engines, policy | facts; 1; stop |
-| run_and_see | setup, verify, session, crawl, lock, record, journeys, screens, baseline, layers | setup, screens; 2; explain |
+| run_and_see | setup, verify, session, crawl, lock, record, journeys, screens, baseline, layers, keeping | setup, screens; 2; explain |
 | try_layers (switch `layers`) | layers_trial | layers_trial; 1; explain |
 | try_experience (switch `experience`) | experience | experience; 1; explain |
 | judge | measure, architecture, load, readiness, claims, probe, sustainability, transform, semantic, plan, target, proposals, triage, visual, cards | claims, triage; 1; explain |
@@ -182,6 +185,7 @@ for a reason the person did not choose) shows in red at the top of START-HERE.md
 | a rule of the system's layers (a boundary, an endpoint's guard, a data rule, what ships to the browser) | `analysis/layers/`: its sentence, boundary, severity and fix in `catalog.py`, its check in the module of its boundary; findings become cards through `analysis/claims/from_layers.py` |
 | trying a layer on the running app or a database of the run's own | `live/trials/data.py` (migrations, Supabase advisors, pgTAP), `live/trials/api.py` (Schemathesis); the stage that joins them is `pipeline/runners/layers_live.py` |
 | an adapter for an external tool | `engines/<kind>/<name>.py` (`security/`, `api/`, `code/`) + its entry in `eaos/data/toolchain.json` (`check: engines`); a library with no command (Presidio) is run by EAOS's own script in `templates/<tool>/` with its environment's Python (`install.library`) |
+| how the data is saved, travels and is kept (M14) | the copy's side in `live/keeping/` (run by the `keeping` stage, `pipeline/runners/keeping.py`, the last page stage: `live/keeping.json`); the code's side in `rules/ast-grep/rules/saving.yml` and Squawk (`engines/code/squawk.py`); sorted in `analysis/assessments/data_keeping.py`, the cards in `analysis/claims/from_keeping.py` |
 | old engines still wired in (M13) | the switches: `rules/ast-grep/rules/flags.yml`; what ran of the project while EAOS ran its tests, its server and its pages: `live/testing/ran.py` (`live/ran-*.json`); sorted in `analysis/assessments/old_engines.py` and `never_run.py`, the cards in `analysis/claims/from_old_engines.py` (made beside the runtime claims, since they read what ran) |
 | real data written in the code (M12) | the values: Presidio's script `templates/presidio/scan.py` and its words `rules/personal-data.json`; the tables: `rules/ast-grep/rules/data-tables.yml`; sorted on evidence in `analysis/assessments/real_data.py`, its cards in `analysis/claims/from_real_data.py` |
 | running the app, signing in, finding screens | `live/`: how a stack starts in `live/app/detect.py` (JavaScript, static sites) or `live/app/detect_python.py`; the test account by rules in `live/access/test_account.py`; `live/screens/` for the crawl, the audit and the pages files name (`file_routes.py`) |

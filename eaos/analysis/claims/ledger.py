@@ -51,7 +51,7 @@ VERDICTS = DATA / 'detector-verdicts.json'
 DETECTED_BY = {'engine_cluster': ('engine_cluster', 'kind'), 'layer_finding': ('layer', 'rule'),
                'repository_finding': ('repository', 'rule'), 'logic_flaw': ('logic', 'class'),
                'experience_difficulty': ('experience', 'kind'), 'real_data': ('real_data', 'kind'),
-               'old_engine': ('old_engine', 'kind')}
+               'old_engine': ('old_engine', 'kind'), 'data_keeping': ('data_keeping', 'kind')}
 
 
 def detector_of(claim):

@@ -18,9 +18,9 @@ PATHS = {
              'engines': ('scc', 'ast-grep', 'react-docgen'),
              'patterns': ('import_cycle', 'duplicated_rule', 'hidden_coupling', 'trace_gap', 'untested_path', 'hotspot', 'split_module',
                           'mutable_state', 'external_write', 'policy_violation', 'layer_boundary', 'canonicalize', 'dead_code', 'remove_dead',
-                          'broken_code', 'repository_craft', 'old_engine', 'generic')},
-    'speed': {'stages': ('engines', 'setup', 'baseline'), 'kinds': ('hot_path_external', 'call_edge_external'),
-              'patterns': ('load_blocker', 'redundant_work')},
+                          'broken_code', 'repository_craft', 'old_engine', 'data_keeping', 'generic')},
+    'speed': {'stages': ('engines', 'setup', 'baseline', 'session', 'keeping'), 'kinds': ('hot_path_external', 'call_edge_external'),
+              'patterns': ('load_blocker', 'redundant_work', 'data_keeping')},
     # the layers tried on the running app (M6.6, M6.7): beside `complete` it is an option of the full check
     'layers': {'stages': ('setup', 'session', 'layers_trial'), 'patterns': ('layer_boundary', 'security_weakness')},
     # simulated users on the running app (M10.9): alone the whole simulation, beside `complete` its short option; the

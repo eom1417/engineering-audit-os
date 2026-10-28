@@ -631,6 +631,48 @@
    }
   },
   {
+   "name": "squawk",
+   "role": "read",
+   "stages": [
+    "S04"
+   ],
+   "applies": "sql",
+   "check": "engines",
+   "license": "Apache-2.0 OR MIT",
+   "repository": "https://github.com/sbdchd/squawk",
+   "version": "2.70.0",
+   "binary": "squawk",
+   "install": {
+    "method": "release",
+    "url": "https://github.com/sbdchd/squawk/releases/download/v2.70.0/squawk-linux-x64",
+    "sha256": "836ba2ab0c0ec30ae02c9f2cec065b341ff853765ceaa3965c22109c2f53eb1c",
+    "archive": "binary",
+    "member": "squawk-linux-x64",
+    "platforms": {
+     "linux-x86_64": {
+      "method": "release",
+      "url": "https://github.com/sbdchd/squawk/releases/download/v2.70.0/squawk-linux-x64",
+      "sha256": "836ba2ab0c0ec30ae02c9f2cec065b341ff853765ceaa3965c22109c2f53eb1c",
+      "archive": "binary",
+      "member": "squawk-linux-x64"
+     },
+     "darwin-arm64": {
+      "url": "https://github.com/sbdchd/squawk/releases/download/v2.70.0/squawk-darwin-arm64",
+      "sha256": "6d96c07032109202a43802e212b2c592d48a11b208d661b2c8814a7eca4a984a",
+      "archive": "binary",
+      "member": "squawk-darwin-arm64"
+     },
+     "darwin-x86_64": {
+      "url": "https://github.com/sbdchd/squawk/releases/download/v2.70.0/squawk-darwin-x64",
+      "sha256": "0369f5cc2beb7e224952d5d30068a92f9e23d65af99d7e7565c9a4fda916c379",
+      "archive": "binary",
+      "member": "squawk-darwin-x64"
+     }
+    }
+   },
+   "install_note": "Risky PostgreSQL migrations (M14.3): a NOT NULL column added without a default, no lock timeout, a table rewritten, ... read from the project's migrations (eaos/engines/code/squawk.py). It sees a migration's risk, not a design such as a whole document kept in one column: that is read on the run's own database."
+  },
+  {
    "name": "spectral",
    "role": "read",
    "stages": [

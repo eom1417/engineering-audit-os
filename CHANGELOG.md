@@ -1,5 +1,41 @@
 # Changelog
 
+## 0.0.87 (2026-10-28)
+
+M14, how the data is saved, travels and is kept. A real project was called fast and clean while every save sent its
+whole state, logos sat in its records as text, and its backup left tables out; none of it shows until the data grows
+or the backup is needed. Now:
+- **A new stage, `keeping`**, the last one on the running copy (after the lock, the screens and the layers read it as
+  it was), writes `live/keeping.json`:
+  - **the saves measured** (`eaos/templates/screens/writes.mjs`): every write the pages send on their own, its bytes,
+    whether compressed, its time, the records it carries; a save that sends back every record the page read, one that
+    grows with the data, a large one, a page that sends many;
+  - **real volume** (`eaos/live/keeping/volume.py`, `synthetic.py`): the run's own database (its PostgreSQL or an SQLite
+    file of the copy) grown fifty times where it held rows, and given a year of records where it was empty (by each
+    column's type, parents before children, dates over a year); then the saves are read again;
+  - **how it stores** (`stored.py`): columns holding whole documents, pictures written as text inside rows, the same
+    values kept in two tables;
+  - **the restore drill** (`restore.py`): the project's own backup run on the copy and restored into an empty database,
+    compared table by table (the database's own dump when the project declares none);
+  - **the files the server wrote** while it ran: data kept in two places, or in files only;
+  - **two edits of one record** (`lost_update.py`) through the app's API: a stale write taken over a newer one with no
+    conflict is a lost edit.
+- **From the code**: ast-grep rules (`eaos/rules/ast-grep/rules/saving.yml`) for a whole store written to localStorage
+  or sent in one request, a localStorage queue never trimmed, "saved" told before the server answered; pictures as
+  base64 in migrations and seeds; a column named for a whole state; the backup the project declares (none, one naming
+  only some tables, one that stays on the machine). **Squawk 2.70.0** pinned (Apache-2.0 OR MIT) for risky migrations
+  (data loss, long locks), its style rules counted, never findings. Lighthouse's own total-weight and text-compression
+  audits of the crawl's pages read.
+- **One card each** (`data_keeping`, both languages), in the performance area; what the copy showed is CONFIRMED, what
+  the code shows is LIKELY. What the copy could not read is said, never taken for clean.
+- **Planted in the detection baseline**: a whole-state save to localStorage and in one request, "Saved" before the
+  answer, a queue over quota, logos as base64 in a migration, a backup of the orders only, a page that sends back the
+  whole report it read; a preference and one checked order save must stay unfound. "How the data is saved, sent and
+  backed up" was the last line of what this version does not check: the list is empty.
+
+Measured: the detection baseline 28 of 28 with nothing that must stay found; the compatibility corpus 15 of 15 through
+the new stage; flaskr's empty SQLite given a year of records and restored whole; the same steps on PostgreSQL.
+
 ## 0.0.86 (2026-10-28)
 
 M13, old engines. A real project was called clean while two old engines were still wired in: each behind a switch fixed

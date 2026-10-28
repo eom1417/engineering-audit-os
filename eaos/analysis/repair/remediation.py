@@ -39,13 +39,18 @@ QUERY_PATTERNS = {
     'repository_finding_present': 'repository_craft',
     'real_data_present': 'real_data',
     'old_engine_present': 'old_engine',
+    'data_keeping_present': 'data_keeping',
 }
+
+
+# Card keys that are their own pattern, with or without a probe (M13, M14).
+OWN_PATTERN = ('old_engine', 'data_keeping')
 
 
 def _by_query(claim, specification):
     """The pattern the probe's query names, or None when the query names none."""
     query = specification.get('query')
-    if (claim.get('render') or {}).get('key') == 'old_engine': return 'old_engine'     # its suspects have no probe
+    if (claim.get('render') or {}).get('key') in OWN_PATTERN: return (claim.get('render') or {})['key']     # cards without a probe too
     if query == 'dead_code_present':
         return 'remove_dead' if (claim.get('render') or {}).get('key') == 'dead_code' else 'dead_code'
     if query == 'engine_cluster_present':
@@ -267,6 +272,14 @@ PATTERNS = {
         ],
         'rollback': 'revert واحد يعيد الكود كما كان.',
     },
+    'data_keeping': {
+        'change': 'غيّر طريقة الحفظ أو التخزين كما تقول البطاقة (أرسل التغيير بس، الصور ملفات، نسخة احتياطية كاملة خارج الجهاز، رقم نسخة لكل كتابة)، خلف قفل السلوك؛ ثم أعد الفحص بتشغيل التطبيق.',
+        'options': [
+            {'option': 'إصلاح طريقة الحفظ أو التخزين من أصلها', 'cost': 'متوسطة', 'verdict': 'مختار افتراضيًا'},
+            {'option': 'إبقاؤها مع سبب مكتوب حين يكون حجم البيانات صغيرًا بقصد', 'cost': 'صفر', 'verdict': 'حين يثبته الكود أو المالك'},
+        ],
+        'rollback': 'revert واحد يعيد الكود كما كان.',
+    },
     'generic': {
         'change': '⧗ لا نمط معالجة معروف لهذه الفئة: صمّم التغيير يدويًا، واذكر البديل «لا نفعل شيئًا» صراحة قبل الاعتماد.',
         'options': [{'option': 'تصميم يدوي بعد قراءة الدليل', 'cost': 'غير محددة', 'verdict': 'مطلوب'}],
@@ -281,7 +294,7 @@ def pattern_for(claim):
     pattern['name'] = name
     pattern['options'] = [*pattern['options'], dict(DO_NOTHING, verdict=cost_of_inaction(name))]
     render = claim.get('render') or {}
-    if render.get('key') in ('layer_finding', 'repository_finding', 'logic_flaw', 'experience_difficulty', 'real_data', 'old_engine'):   # the finding's own fix (M6.11, M7.8)
+    if render.get('key') in ('layer_finding', 'repository_finding', 'logic_flaw', 'experience_difficulty', 'real_data', *OWN_PATTERN):   # the finding's own fix (M6.11, M7.8)
         pattern['change'] = (render.get('params') or {}).get('fix_ar') or pattern['change']
     if name == 'generic':
         reason = _generic_fallback_reason(claim)
@@ -328,6 +341,7 @@ def cost_of_inaction(name):
         'layer_boundary': 'يبقى الحد مفتوحًا: سرّ أو بيانات أو قاعدة يصل إليها من لا يملكها',
         'repository_craft': 'يبقى الوصول لأي شي في الريبو أبطأ وأصعب على كل مهندس ومساعد، وتكلّف كل جلسة توكنز أكثر',
         'real_data': 'تبقى بيانات الناس أو سجلات البرنامج تنتقل مع كل نسخة من الكود، وتطلع في الشاشات حتى لو قاعدة البيانات فاضية',
+        'data_keeping': 'يكبر كل حفظ مع البيانات، أو تضيع بيانات أو تعديلات أو صور، ولا تنفع النسخة الاحتياطية يوم تحتاجها',
         'old_engine': 'يبقى كود قديم يُقرأ ويُصان ويُختبر بلا فائدة، ويرجع يشتغل لو انقلب المفتاح بالغلط',
         'generic': '⧗ غير محددة',
     }[name]
