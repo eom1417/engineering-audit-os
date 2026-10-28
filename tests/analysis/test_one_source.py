@@ -48,11 +48,11 @@ class Idioms(unittest.TestCase):
     def test_an_idiom_written_three_times_is_one_card_with_its_home_and_twice_is_none(self):
         def idiom(path, line, rule='eaos.idiom.date-format'):
             return record(path, line, engine='ast-grep', record='idiom', form='date_format', rule=rule)
-        three = sets(idiom('src/pages/A.tsx', 3), idiom('src/pages/A.tsx', 6), idiom('src/pages/B.tsx', 9),
+        three = sets(idiom('src/pages/A.tsx', 3), idiom('src/pages/A.tsx', 5), idiom('src/pages/B.tsx', 9),
                      idiom('src/components/C.tsx', 2, 'eaos.idiom.date-format-tsx'))
         found = one_source.idioms(three, {'src', 'src/lib', 'src/pages', 'src/components'})
-        self.assertEqual(len(found), 1, 'two records three lines apart are one place')
-        self.assertEqual((found[0]['evidence']['count'], found[0]['evidence']['ways'], found[0]['evidence']['home']), (3, 2, 'src/lib'))
+        self.assertEqual(len(found), 1, 'two records two lines apart are one place')
+        self.assertEqual((found[0]['evidence']['count'], found[0]['evidence']['home']), (3, 'src/lib'))
         self.assertEqual(one_source.idioms(sets(idiom('a.ts', 1), idiom('b.ts', 1)), set()), [])
 
     def test_a_guard_repeated_in_routes_calls_for_a_middleware(self):

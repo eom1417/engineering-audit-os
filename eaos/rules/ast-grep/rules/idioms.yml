@@ -44,14 +44,16 @@ severity: info
 message: a JSON file or stored value read and parsed in place
 metadata: {record: idiom, form: json_read}
 rule:
-  any:
-    - pattern: JSON.parse(readFileSync($$$))
-    - pattern: JSON.parse(fs.readFileSync($$$))
-    - pattern: JSON.parse(await readFile($$$))
-    - pattern: JSON.parse(await fs.readFile($$$))
-    - pattern: JSON.parse(await fs.promises.readFile($$$))
-    - pattern: JSON.parse(localStorage.getItem($$$))
-    - pattern: JSON.parse(window.localStorage.getItem($$$))
+  pattern: JSON.parse($$$)
+  has:
+    stopBy: end
+    any:
+      - pattern: readFileSync($$$)
+      - pattern: $FS.readFileSync($$$)
+      - pattern: readFile($$$)
+      - pattern: $FS.readFile($$$)
+      - pattern: localStorage.getItem($$$)
+      - pattern: $W.localStorage.getItem($$$)
 ---
 id: eaos.idiom.date-format
 language: JavaScript
@@ -165,14 +167,16 @@ severity: info
 message: a JSON file or stored value read and parsed in place
 metadata: {record: idiom, form: json_read}
 rule:
-  any:
-    - pattern: JSON.parse(readFileSync($$$))
-    - pattern: JSON.parse(fs.readFileSync($$$))
-    - pattern: JSON.parse(await readFile($$$))
-    - pattern: JSON.parse(await fs.readFile($$$))
-    - pattern: JSON.parse(await fs.promises.readFile($$$))
-    - pattern: JSON.parse(localStorage.getItem($$$))
-    - pattern: JSON.parse(window.localStorage.getItem($$$))
+  pattern: JSON.parse($$$)
+  has:
+    stopBy: end
+    any:
+      - pattern: readFileSync($$$)
+      - pattern: $FS.readFileSync($$$)
+      - pattern: readFile($$$)
+      - pattern: $FS.readFile($$$)
+      - pattern: localStorage.getItem($$$)
+      - pattern: $W.localStorage.getItem($$$)
 ---
 id: eaos.idiom.date-format-tsx
 language: Tsx
@@ -286,14 +290,16 @@ severity: info
 message: a JSON file or stored value read and parsed in place
 metadata: {record: idiom, form: json_read}
 rule:
-  any:
-    - pattern: JSON.parse(readFileSync($$$))
-    - pattern: JSON.parse(fs.readFileSync($$$))
-    - pattern: JSON.parse(await readFile($$$))
-    - pattern: JSON.parse(await fs.readFile($$$))
-    - pattern: JSON.parse(await fs.promises.readFile($$$))
-    - pattern: JSON.parse(localStorage.getItem($$$))
-    - pattern: JSON.parse(window.localStorage.getItem($$$))
+  pattern: JSON.parse($$$)
+  has:
+    stopBy: end
+    any:
+      - pattern: readFileSync($$$)
+      - pattern: $FS.readFileSync($$$)
+      - pattern: readFile($$$)
+      - pattern: $FS.readFile($$$)
+      - pattern: localStorage.getItem($$$)
+      - pattern: $W.localStorage.getItem($$$)
 ---
 id: eaos.idiom.date-format-typescript
 language: TypeScript

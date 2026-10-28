@@ -13,11 +13,12 @@ from collections import Counter
 from pathlib import PurePosixPath
 
 from ...core.contracts.code_laws import PATTERN_REPEATS
+from ...facts.duplication.element_trees import PRIMITIVES
 from ...facts.engine_findings import engine_records
 from . import one_source_look
 
 TEST = re.compile(r'(^|/)(tests?|__tests__|spec|e2e)(/|$)|[._-](test|spec)\.[a-z]+$')
-NEARBY = 10           # two records of one idiom this close in one file are one place
+NEARBY = 3            # two records of one idiom this close in one file are one place (one statement's lines)
 # The kind of home each idiom calls for, by the folders a project already names it with.
 HOMES = {'hook': ('hooks', 'composables', 'lib', 'utils'), 'helper': ('lib', 'utils', 'helpers', 'shared', 'common', 'core'),
          'middleware': ('middleware', 'middlewares', 'lib', 'utils'), 'component': ('components/ui', 'components', 'ui')}
@@ -72,9 +73,9 @@ def _cluster(members, pairs):
 
 
 def near_copies(sets):
-    """One finding per cluster of near copies, not all in tests."""
+    """One finding per cluster of near copies, not all in tests or among the primitives alike on purpose."""
     return [_cluster(members, pairs) for members, pairs in _clusters(list(_pairs(sets)))
-            if len(members) > 1 and not all(TEST.search(path) for path, _, _ in members)]
+            if len(members) > 1 and not all(TEST.search(path) or PRIMITIVES.search(path) for path, _, _ in members)]
 
 
 def _places(records):
@@ -109,7 +110,7 @@ def _common(parts):
 
 def idioms(sets, folders):
     """One finding per idiom written PATTERN_REPEATS times or more in one language (a Python helper cannot serve a
-    script), with the ways it is written."""
+    script), with every place."""
     by_form = {}
     for fact in engine_records(sets, 'idiom'):
         python = fact['location']['path'].endswith('.py')
@@ -118,9 +119,8 @@ def idioms(sets, folders):
     for (form, _), records in sorted(by_form.items()):
         places = _places(records)
         if len(places) < PATTERN_REPEATS: continue
-        ways = sorted({p['rule'] for p in places})
         found.append(_finding('idiom', places[0]['path'], places[0]['line'], 'medium' if form == 'route_guard' else 'low',
-                              form=form, count=len(places), ways=len(ways), places=places[:40],
+                              form=form, count=len(places), places=places[:40],
                               home=home_for(IDIOM_HOME.get(form, 'helper'), places, folders), fact_ids=[p['fact_id'] for p in places][:20]))
     return found
 

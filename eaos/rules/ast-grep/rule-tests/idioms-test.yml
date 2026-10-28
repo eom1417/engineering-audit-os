@@ -24,6 +24,8 @@ valid:
 invalid:
   - "const x = JSON.parse(fs.readFileSync('a.json', 'utf8'));"
   - "const prefs = JSON.parse(localStorage.getItem('prefs'));"
+  - "const prefs = JSON.parse(localStorage.getItem('prefs') || '{}');"
+  - "const list = JSON.parse(await readFile(new URL('./a.json', import.meta.url), 'utf8'));"
 ---
 id: eaos.idiom.date-format
 valid:
@@ -81,6 +83,8 @@ valid:
 invalid:
   - "const x = JSON.parse(fs.readFileSync('a.json', 'utf8'));"
   - "const prefs = JSON.parse(localStorage.getItem('prefs'));"
+  - "const prefs = JSON.parse(localStorage.getItem('prefs') || '{}');"
+  - "const list = JSON.parse(await readFile(new URL('./a.json', import.meta.url), 'utf8'));"
 ---
 id: eaos.idiom.date-format-tsx
 valid:
@@ -138,6 +142,8 @@ valid:
 invalid:
   - "const x = JSON.parse(fs.readFileSync('a.json', 'utf8'));"
   - "const prefs = JSON.parse(localStorage.getItem('prefs'));"
+  - "const prefs = JSON.parse(localStorage.getItem('prefs') || '{}');"
+  - "const list = JSON.parse(await readFile(new URL('./a.json', import.meta.url), 'utf8'));"
 ---
 id: eaos.idiom.date-format-typescript
 valid:

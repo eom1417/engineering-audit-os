@@ -49,7 +49,8 @@
    "line": 2,
    "kinds": [
     "duplication",
-    "canonicalize"
+    "canonicalize",
+    "near copies"
    ],
    "found": "finding"
   },
@@ -291,6 +292,69 @@
     "the whole collection"
    ],
    "found": "card"
+  },
+  {
+   "id": "near-copy-one-line",
+   "what": "the reports screen's lines copied into the invoice with one line changed (M15.8)",
+   "path": "web/invoice.js",
+   "kinds": [
+    "near copies"
+   ],
+   "found": "card"
+  },
+  {
+   "id": "json-three-ways",
+   "what": "a JSON file or stored value read and parsed by hand three ways: localStorage, readFileSync, readFile (M15.8)",
+   "path": "web/settings.js",
+   "kinds": [
+    "json file or stored value"
+   ],
+   "found": "card"
+  },
+  {
+   "id": "popup-three-screens",
+   "what": "the same confirmation pop-up written in three screens (M15.8)",
+   "path": "web/Refunds.jsx",
+   "kinds": [
+    "same <div> structure"
+   ],
+   "found": "card"
+  },
+  {
+   "id": "colour-off-a-shade",
+   "what": "two colours one shade apart, written outside any tokens file (M15.8)",
+   "path": "index.html",
+   "kinds": [
+    "color"
+   ],
+   "found": "card"
+  },
+  {
+   "id": "sizes-off-the-scale",
+   "what": "font sizes off the scale: 13, 15, 17 and 28 px beside the body's 16 (M15.8)",
+   "path": "index.html",
+   "kinds": [
+    "font_size"
+   ],
+   "found": "card"
+  },
+  {
+   "id": "date-three-ways",
+   "what": "a date formatted three ways: toLocaleDateString, Intl.DateTimeFormat, toISOString (M15.8)",
+   "path": "web/Invoices.jsx",
+   "kinds": [
+    "formatting a date"
+   ],
+   "found": "card"
+  },
+  {
+   "id": "route-guard-repeated",
+   "what": "each route of the account API checks the sign-in itself (M15.8)",
+   "path": "api/routes.js",
+   "kinds": [
+    "sign-in inside a route"
+   ],
+   "found": "card"
   }
  ],
  "must_stay": [
@@ -343,6 +407,24 @@
    "path": "web/save.js",
    "kinds": [
     "/api/orders/"
+   ]
+  },
+  {
+   "id": "ui-primitives",
+   "what": "the design system's primitives (dialog, sheet, drawer), alike on purpose: the source, never a copy (M15.8)",
+   "path": "web/components/ui/dialog.jsx",
+   "kinds": [
+    "structure",
+    "near copies"
+   ]
+  },
+  {
+   "id": "banner-variant",
+   "what": "a banner made different on purpose: no pattern with the pop-ups (M15.8)",
+   "path": "web/Banner.jsx",
+   "kinds": [
+    "structure",
+    "near copies"
    ]
   }
  ]

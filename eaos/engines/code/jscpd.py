@@ -39,13 +39,14 @@ def analyze(target, workdir, exclude=(), formats=None):
     workdir = Path(workdir) / 'jscpd'
     workdir.mkdir(parents=True, exist_ok=True)
     ignored = ','.join(ALWAYS_IGNORED + tuple(f'**/{pattern}/**' for pattern in exclude))
-    command = [which(BINARY), str(target), *NEAR_MODES, '--reporters', 'json',
-               '--output', str(workdir), '--ignore', ignored, '--silent']
+    # Read from inside the target: the patterns to skip then match its own folders, never the ones it sits in (a project
+    # under a folder named fixtures was skipped whole).
+    command = [which(BINARY), '.', *NEAR_MODES, '--reporters', 'json', '--output', str(workdir.resolve()), '--ignore', ignored, '--silent']
     # Without a format list jscpd counts markdown and JSON as duplication: 28.98% here against 1.88%
     # over source. The caller owns the source vocabulary, so it passes it in.
     if formats:
-        command += ['--format', ','.join(sorted(formats))]
-    code, _, error, seconds = run(command)
+        command += ['--format', ','.join(sorted(_formats(formats)))]
+    code, _, error, seconds = run(command, cwd=target)
     report_path = workdir / 'jscpd-report.json'
     if not report_path.is_file():
         return tool.failed(NAME, found, seconds, code, error)
@@ -53,6 +54,11 @@ def analyze(target, workdir, exclude=(), formats=None):
     pairs = [clone for clone in report.get('duplicates', []) if not imports_only(clone.get('fragment') or '')]
     return Report(NAME, found, PINNED, OBSERVED, seconds=seconds, metrics=[_record(clone) for clone in pairs],
                   coverage=_coverage(report, ignored, formats), provenance={'near_copy': NEAR_COPY}, raw=str(report_path))
+
+
+def _formats(formats):
+    """jscpd's names of the languages asked: JSX is its own format there (a .jsx file is javascript to EAOS)."""
+    return set(formats) | ({'jsx'} if 'javascript' in formats else set())
 
 
 def imports_only(fragment):

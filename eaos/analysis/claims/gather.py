@@ -90,12 +90,15 @@ def fact_index_of(sets):
 
 
 def _covered(value):
-    """The several paths one fact covers (a rule's definitions, a cycle's members, a cluster's occurrences), else None."""
+    """The several paths one fact covers (a rule's definitions, a cycle's or a UI pattern's members, a cluster's occurrences,
+    a near copy's other side), else None."""
     paths = None
     definitions = value.get('definitions')
     if definitions: paths = [row['path'] for row in definitions]
     members = value.get('members')
-    if members: paths = list(members)
+    if members: paths = [row['path'] if isinstance(row, dict) else row for row in members]       # a cycle's, a UI pattern's
+    other = value.get('other')
+    if isinstance(other, dict) and other.get('path'): paths = [other['path']]                       # a near copy's other side
     # A cluster spans several files; without them the claim looks like it names none.
     occurrences = value.get('occurrences')
     if isinstance(occurrences, list) and occurrences and isinstance(occurrences[0], dict):
