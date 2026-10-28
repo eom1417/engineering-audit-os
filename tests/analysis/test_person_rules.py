@@ -214,6 +214,8 @@ class InACheck(Rules):
         self.assertIn('No records written in the code', cards[0]['statement'])
         self.assertEqual(registry.find(registry.load(self.project), 'R1')['broken'], 1)
         self.assertIn("'recheck'", str(cards[0].get('checks')), 'a ready repair: its check runs the guard again on the fixed copy')
+        task = next(t for t in json.loads((out / 'plan.json').read_text())['tasks'] if t.get('pattern') == 'person_rule')
+        self.assertEqual((task['decision']['kind'], task['decision']['readiness']), ('repair', 'ready'))
         spec = cards[0]['probe_spec']
         self.assertEqual(recheck(self.project, spec)[0], 'CONFIRMED')
         for name in ('seed.js', 'more.js'): (self.project / 'src' / name).write_text('export const rows = async (db) => db.all();\n')

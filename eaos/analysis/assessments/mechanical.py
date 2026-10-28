@@ -103,7 +103,7 @@ def build_assessment(claim, fact_sets, target):
     return {'assessment': {
                 'violated_invariant': invariant,
                 'requirement_refs': [f'engagement.rules.{rule_name}'],
-                'evidence_refs': list(claim.get('fact_ids') or []),
+                'evidence_refs': list(claim.get('fact_ids') or claim.get('evidence_ids') or []),     # a rule's: its record (M16)
                 'reviewed_by': (f"engagement rule {rule_name} ({rule['source']}): {rule['why']} "
                                 'The evidence is decided by rule; no human judgement is claimed.'),
                 'before': claim['statement'],
