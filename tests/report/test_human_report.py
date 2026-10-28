@@ -90,13 +90,13 @@ class HumanReportTests(unittest.TestCase):
         areas = {name: area['score'] for name, area in result['areas'].items()}
         # security: medium from the register (2) + critical likely (10 x 0.7) = 9 -> 100 x 20 / 29
         self.assertEqual(areas, {'security': 69, 'quality': 92, 'structure': 91, 'maintainability': 91, 'performance': None, 'ux': None})
-        # 86 reads good, but this version does not check everything (words.json `unchecked`): it says so, never good.
-        self.assertEqual((result['score'], result['grade'], result['capped']), (86, 'partial', False))
+        # 86 reads good: since M14 this version checks every kind words.json `unchecked` listed, so nothing is partial
+        self.assertEqual((result['score'], result['grade'], result['capped']), (86, 'good', False))
         self.assertEqual((result['areas']['security']['light'], result['areas']['performance']['light']), ('red', 'grey'))
-        self.assertEqual({k: a['partial'] for k, a in result['areas'].items() if a['partial']},
-                         {area['area']: True for area in model.unchecked()})
+        self.assertEqual(model.unchecked(), [])
+        self.assertFalse(any(a['partial'] for a in result['areas'].values()))
         summary = section(self.page, 'summary')
-        self.assertIn('Not checked by this version: How the data is saved, sent and backed up', summary)
+        self.assertNotIn('Not checked by this version', summary)
         quality = summary[summary.index('data-area="quality"'):summary.index('data-area="performance"')]
         self.assertIn('>Good<', quality)                  # 92: old engines are checked since M13, nothing of it is left out
         rows = [dict(row, confidence='CONFIRMED') for row in model.problems(self.out)]

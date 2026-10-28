@@ -58,6 +58,8 @@ ARTIFACTS = (
              required=False, absent_when='the app is not running in an isolated copy, or it serves no page'),
     Artifact('live/screens.json', 'screens', RECORD, 'Each page at phone and desktop width: its picture, accessibility and speed',
              required=False, absent_when='the app is not running in an isolated copy, or it has no page to open'),
+    Artifact('live/keeping.json', 'keeping', RECORD, "How the data is saved and kept on the copy: the saves the pages send, the database filled, read and restored, the files the server wrote, two edits of one record",
+             required=False, absent_when='the app is not running in an isolated copy'),
     Artifact('live/baseline.json', 'baseline', RECORD, "Today's speed under the intake's load scenarios (p95) on the production build",
              required=False, absent_when='the app has no production build that starts in an isolated copy'),
     Artifact('cards.json', 'cards', RECORD, 'Which cards the plan kept, set aside or marked doubtful, and who decided'),

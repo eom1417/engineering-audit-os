@@ -4,7 +4,7 @@ Where EAOS is going: from today's EAOS to the tool of `docs/NORTH-STAR.md`, a co
 command. The milestones run in this order; each ends with one version (`CHANGELOG.md` says what it changed and why)
 and its numbers in `docs/METRICS.md`. This page is updated at each milestone's end.
 
-## Done (version 0.0.86)
+## Done (version 0.0.87)
 
 | Milestone | What it delivered | Version |
 |---|---|---|
@@ -25,6 +25,7 @@ and its numbers in `docs/METRICS.md`. This page is updated at each milestone's e
 | M11 An honest score | what this version does not check is said, and no score or area is called good or excellent over it; a card's title in the person's language | 0.0.84 |
 | M12 Real data in the code | personal values in string literals (Presidio with Saudi and Arabic patterns, placeholders kept), tables written as code (ast-grep), each sorted on its evidence into one card that says where the data goes and the screens it feeds | 0.0.85 |
 | M13 Old engines | switches fixed to one value and the functions only their closed branch calls; what the tests, the server and the pages ran, and the code none of them ran; two engines doing one job; one card each with what replaced it and the proof nothing runs it | 0.0.86 |
+| M14 How the data is saved and kept | the saves the pages send measured before and after the copy is filled to a real size; how its database stores the data; the project's backup restored and compared; files the server writes; two edits of one record; the saving code and risky migrations read (Squawk) | 0.0.87 |
 
 ## Next
 
@@ -33,6 +34,5 @@ and the model only for doubt; adding each tool is measured, so EAOS proves it gr
 
 | Milestone | What it adds |
 |---|---|
-| M14 How the data is saved and kept | the bytes each save sends at real volume, the data stored twice, base64 inside records, backups restored and compared, lost updates |
 | M15 The person's rules | a requirement said once is kept for its work, pinned only on request, guarded by a check, its repeats counted |
 | M16 Strangers' projects | ten open-source projects never seen, in two rounds of five, judged from outside EAOS |

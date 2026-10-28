@@ -38,6 +38,7 @@ there is marked "not kept" and its licence is read at its repository.
 | `codeql` ([CodeQL](https://github.com/github/codeql-action), the CodeQL bundle) | GitHub, Inc. | GitHub CodeQL Terms and Conditions | run only on an open-source codebase public on GitHub.com, as its terms allow; SARIF read | not kept |
 | `dependency-cruiser` ([dependency-cruiser](https://github.com/sverweij/dependency-cruiser)) | Sander Verweij | MIT | the JavaScript and TypeScript import graph, with TypeScript installed beside it; JSON read | kept |
 | `sqlfluff` ([SQLFluff](https://github.com/sqlfluff/sqlfluff)) | the SQLFluff authors | MIT | the project's SQL linted in the Postgres dialect; JSON read | kept |
+| `squawk` ([Squawk](https://github.com/sbdchd/squawk)) | the Squawk authors | Apache-2.0 OR MIT | the project's migrations linted; JSON read | kept |
 | `spectral` ([Spectral](https://github.com/stoplightio/spectral)) | Stoplight | Apache-2.0 | OpenAPI documents linted; SARIF read | kept |
 | `oasdiff` ([oasdiff](https://github.com/oasdiff/oasdiff)) | the oasdiff authors | Apache-2.0 | an OpenAPI document compared with its previous version; JSON read | kept |
 | `gitnexus` ([GitNexus](https://github.com/abhigyanpatwari/GitNexus)) | Abhigyan Patwari | PolyForm-Noncommercial-1.0.0 | run on a copy, never on the project; its graph read. **Non-commercial use only**: a commercial user of EAOS is bound by this licence and may skip it (`--skip gitnexus`) | kept |

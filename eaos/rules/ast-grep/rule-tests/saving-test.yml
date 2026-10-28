@@ -1,0 +1,74 @@
+id: eaos.save.whole-local
+valid:
+  - "localStorage.setItem('theme', theme);"
+  - "localStorage.setItem('row', JSON.stringify(row));"
+invalid:
+  - "localStorage.setItem('appState', JSON.stringify(state));"
+---
+id: eaos.save.whole-request
+valid:
+  - "fetch('/api/orders/1', { method: 'PUT', body: JSON.stringify(order) });"
+invalid:
+  - "fetch('/api/state', { method: 'POST', body: JSON.stringify(state) });"
+---
+id: eaos.save.growing-queue
+valid:
+  - "function f(c) { const q = JSON.parse(localStorage.getItem('q') || '[]'); q.push(c); if (q.length > 50) q.shift(); localStorage.setItem('q', JSON.stringify(q)); }"
+invalid:
+  - "function f(c) { const q = JSON.parse(localStorage.getItem('q') || '[]'); q.push(c); localStorage.setItem('q', JSON.stringify(q)); }"
+---
+id: eaos.save.told-before-answer
+valid:
+  - "async function save(s) { const r = await fetch('/api', { method: 'POST' }); if (r.ok) toast('Saved'); }"
+invalid:
+  - "async function save(s) { await fetch('/api', { method: 'POST' }); toast('Saved'); }"
+---
+id: eaos.save.whole-local-typescript
+valid:
+  - "localStorage.setItem('theme', theme);"
+  - "localStorage.setItem('row', JSON.stringify(row));"
+invalid:
+  - "localStorage.setItem('appState', JSON.stringify(state));"
+---
+id: eaos.save.whole-request-typescript
+valid:
+  - "fetch('/api/orders/1', { method: 'PUT', body: JSON.stringify(order) });"
+invalid:
+  - "fetch('/api/state', { method: 'POST', body: JSON.stringify(state) });"
+---
+id: eaos.save.growing-queue-typescript
+valid:
+  - "function f(c) { const q = JSON.parse(localStorage.getItem('q') || '[]'); q.push(c); if (q.length > 50) q.shift(); localStorage.setItem('q', JSON.stringify(q)); }"
+invalid:
+  - "function f(c) { const q = JSON.parse(localStorage.getItem('q') || '[]'); q.push(c); localStorage.setItem('q', JSON.stringify(q)); }"
+---
+id: eaos.save.told-before-answer-typescript
+valid:
+  - "async function save(s) { const r = await fetch('/api', { method: 'POST' }); if (r.ok) toast('Saved'); }"
+invalid:
+  - "async function save(s) { await fetch('/api', { method: 'POST' }); toast('Saved'); }"
+---
+id: eaos.save.whole-local-tsx
+valid:
+  - "localStorage.setItem('theme', theme);"
+  - "localStorage.setItem('row', JSON.stringify(row));"
+invalid:
+  - "localStorage.setItem('appState', JSON.stringify(state));"
+---
+id: eaos.save.whole-request-tsx
+valid:
+  - "fetch('/api/orders/1', { method: 'PUT', body: JSON.stringify(order) });"
+invalid:
+  - "fetch('/api/state', { method: 'POST', body: JSON.stringify(state) });"
+---
+id: eaos.save.growing-queue-tsx
+valid:
+  - "function f(c) { const q = JSON.parse(localStorage.getItem('q') || '[]'); q.push(c); if (q.length > 50) q.shift(); localStorage.setItem('q', JSON.stringify(q)); }"
+invalid:
+  - "function f(c) { const q = JSON.parse(localStorage.getItem('q') || '[]'); q.push(c); localStorage.setItem('q', JSON.stringify(q)); }"
+---
+id: eaos.save.told-before-answer-tsx
+valid:
+  - "async function save(s) { const r = await fetch('/api', { method: 'POST' }); if (r.ok) toast('Saved'); }"
+invalid:
+  - "async function save(s) { await fetch('/api', { method: 'POST' }); toast('Saved'); }"

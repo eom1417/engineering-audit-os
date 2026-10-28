@@ -267,6 +267,20 @@
     "Reading the layers"
    ]
   },
+  "keeping": {
+   "title": [
+    "يفحص حفظ البيانات وحمايتها",
+    "Check how the data is saved and kept"
+   ],
+   "does": [
+    "يقيس كل حفظ، ويملأ النسخة بحجم حقيقي، ويقرأ قاعدة البيانات، ويجرّب استرجاع النسخة الاحتياطية.",
+    "Measures each save, fills the copy to a real size, reads the database and tries restoring the backup."
+   ],
+   "doing": [
+    "أقيس طريقة حفظ بياناتك وأجرّب استرجاع نسختها الاحتياطية",
+    "Measuring how your data is saved and trying to restore its backup"
+   ]
+  },
   "layers_trial": {
    "title": [
     "يجرّب حدود الطبقات",
@@ -691,6 +705,20 @@
     "Old code another part replaced, still called or behind a switched-off option: read and kept for nothing, and back in use the day the option is flipped by mistake."
    ]
   },
+  "data_keeping": {
+   "one": [
+    "طريقة حفظ البيانات ونقلها وحمايتها",
+    "How the data is saved, sent and kept"
+   ],
+   "group": [
+    "طريقة حفظ البيانات ونقلها وحمايتها",
+    "How the data is saved, sent and kept"
+   ],
+   "why": [
+    "حفظ يرسل كل البيانات عند كل تعديل، وبيانات محفوظة في مكانين، وصور داخل السجلات، ونسخ احتياطية ناقصة، وتعديلات تضيع: ما تبين إلا لما تكبر البيانات أو تحتاج النسخة.",
+    "A save that sends all the data on every edit, the same data kept in two places, pictures inside records, incomplete backups, edits that get lost: none shows until the data grows or the backup is needed."
+   ]
+  },
   "layer_boundary": {
    "one": [
     "حد مكسور بين الطبقات",
@@ -1052,17 +1080,5 @@
    ]
   }
  },
- "unchecked": {
-  "data_saving": {
-   "area": "performance",
-   "one": [
-    "طريقة حفظ البيانات ونقلها ونسخها الاحتياطية",
-    "How the data is saved, sent and backed up"
-   ],
-   "why": [
-    "حفظ يرسل كل البيانات عند كل تعديل، وبيانات محفوظة في مكانين، ونسخ احتياطية ناقصة، وتعديلات تضيع. هذا الإصدار من EAOS لا يقيسها بعد.",
-    "A save that sends all the data on every edit, the same data kept in two places, incomplete backups, edits that get lost. This version of EAOS does not measure these yet."
-   ]
-  }
- }
+ "unchecked": {}
 }

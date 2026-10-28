@@ -116,6 +116,14 @@ _DECLARED = (
           description="The system as layers: every file in a layer of its reference type, the boundaries between them, what "
                       'ships to the browser, every endpoint and its guard, the data rules read from the migrations, where the '
                       "business rules live, operations and tests; each broken boundary a finding, each doubt a question"),
+    # the last page stage: it fills the copy's database, which the lock, the screens and the layers read before
+    Stage('keeping', produces=('live/keeping.json',), requires=('setup',), reads=('session', 'crawl', 'screens', 'record', 'journeys', 'layers'),
+          necessity=OPTIONAL, uses=('app',),
+          absent_when='the app is not running in an isolated copy',
+          description="How the data is saved, travels and is kept: the saves the pages send, read again once the copy's own "
+                      'database is filled to a real size; how that database stores its data (whole documents and pictures in '
+                      'columns, the same values in two tables); the project\'s backup restored into an empty database and '
+                      'compared table by table; the files the server wrote; two edits of one record through the API'),
     Stage('layers_trial', produces=('live/api-trial',), requires=('layers', 'setup'), reads=('session',), apart=True,
           amends=('layers.json', 'facts/boundaries.json'), necessity=OPTIONAL,
           absent_when='the person did not choose to try the layers (the `layers` option, its time said before it starts), or '

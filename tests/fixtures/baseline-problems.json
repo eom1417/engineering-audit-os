@@ -198,7 +198,7 @@
    "id": "real-data-admin",
    "what": "a default administrator in the server: a name, an e-mail and a mobile (M12.4)",
    "path": "server.js",
-   "line": 96,
+   "line": 97,
    "kinds": [
     "real personal data"
    ],
@@ -221,6 +221,74 @@
    "line": 31,
    "kinds": [
     "two engines doing one job"
+   ],
+   "found": "card"
+  },
+  {
+   "id": "whole-state-local",
+   "what": "the whole state written to localStorage on every save (M14.5)",
+   "path": "web/save.js",
+   "line": 5,
+   "kinds": [
+    "to localstorage in one value"
+   ],
+   "found": "card"
+  },
+  {
+   "id": "whole-state-request",
+   "what": "the whole state sent in one request to save it (M14.5)",
+   "path": "web/save.js",
+   "line": 9,
+   "kinds": [
+    "in one request to save it"
+   ],
+   "found": "card"
+  },
+  {
+   "id": "saved-before-answer",
+   "what": "Saved told without reading the server's answer (M14.5)",
+   "path": "web/save.js",
+   "line": 8,
+   "kinds": [
+    "without reading the server"
+   ],
+   "found": "card"
+  },
+  {
+   "id": "queue-over-quota",
+   "what": "a queue in localStorage added to and never trimmed (M14.5)",
+   "path": "web/save.js",
+   "line": 13,
+   "kinds": [
+    "never trimmed"
+   ],
+   "found": "card"
+  },
+  {
+   "id": "base64-logos",
+   "what": "logos written into the database as base64 text (M14.5)",
+   "path": "supabase/migrations/20261028000000_brands.sql",
+   "line": 11,
+   "kinds": [
+    "pictures into the database"
+   ],
+   "found": "card"
+  },
+  {
+   "id": "backup-skips-tables",
+   "what": "a backup that dumps only the orders, not the notes nor the brands (M14.5)",
+   "path": "scripts/backup.sh",
+   "kinds": [
+    "are not in it"
+   ],
+   "found": "card"
+  },
+  {
+   "id": "page-resends-everything",
+   "what": "the page sends back the whole report it read, on every visit (M14.5)",
+   "route": "/",
+   "kinds": [
+    "the whole collection"
    ],
    "found": "card"
   }
@@ -259,6 +327,22 @@
    "path": "report.js",
    "kinds": [
     "show_count"
+   ]
+  },
+  {
+   "id": "theme-preference",
+   "what": "a preference kept in localStorage: no state (M14.5)",
+   "path": "web/save.js",
+   "kinds": [
+    "theme"
+   ]
+  },
+  {
+   "id": "one-order-saved",
+   "what": "one order saved and its answer checked (M14.5)",
+   "path": "web/save.js",
+   "kinds": [
+    "/api/orders/"
    ]
   }
  ]

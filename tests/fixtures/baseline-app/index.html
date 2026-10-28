@@ -28,5 +28,7 @@ const screens = {
 const draw = () => (screens[location.hash] || screens['#/home'])();
 addEventListener('hashchange', draw);
 draw();
+// Kept for the page to come back to: everything it read, sent again on every visit.
+get('/api/report').then(report => fetch('/api/state', { method: 'POST', body: JSON.stringify({ report, at: Date.now() }) }));
 </script>
 </body></html>
