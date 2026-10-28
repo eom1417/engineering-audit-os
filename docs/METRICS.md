@@ -6,7 +6,7 @@ The numbers of EAOS, measured at each milestone end, oldest first. `tools/metric
 assistant (`tools/*_proof.py`) measure the journeys. Numbers are compared with the section before; a worse number
 needs its reason here.
 
-Latest: **0.0.87**, M14 (below). M7 (0.0.79) has no section of its own: what it changed is proved by the
+Latest: **0.0.89**, M16 (below). M7 (0.0.79) has no section of its own: what it changed is proved by the
 fix proof in the golden trial, not by a number.
 
 ## Baseline: 0.0.71 (2026-10-23), EAOS's own check of `develop`
@@ -213,6 +213,25 @@ The simulated users on three corpus apps of different kinds (`tools/experience_p
 
 The short simulation adds 11-62 s and 1-7 light calls to a complete check and confirmed nothing on these runs; the whole
 simulation found one real failure a person would meet. The replays cost nothing and are green.
+
+## After M16: 0.0.89 (2026-10-28), the person's own rules
+
+| Measure | Value |
+|---|---|
+| The rules proof (`tools/rules_proof.py`, the golden app with people's records in three files, no token) | the rule said twice through two doors: **one** rule; **one card** with its 3 files and 6 places; the assistant told both rules that held for the card; a fix of one place **refused** (its guard still found the rest); a fix of every place that broke the other rule **refused** with its words; the sound fix kept, handed over and taken in; the batch's rule **ended** with its batch; a later commit writing the records again **refused by the hook in 0.1 s**, said as a rule that came back |
+| A guard's cost | a pattern **0.01 s** on the trial app (ast-grep's inline rule); proved on its examples before it is kept; written once (by the person's assistant, or one ask with `--write`), then **no token** |
+| The diff-scoped check on EAOS (about a thousand files, `eaos check --changed`, the code laws' gates included) | one file **1.1 s**; 72 files **6.0 s** (61.6 s before the gates read the changed files alone and the import graph only for a test bound to files) |
+| A check's added time | the `rules` stage skips at once with no rule; with rules, each guard as above (the check's other stages unchanged) |
+| Tools | **none new**: ast-grep (inline rules), the project's own tests, EAOS's gates and detectors, git's own hook; Semgrep not used (ast-grep covers the rules in milliseconds) |
+
+### The cost of adding a tool
+
+| Part | Files | Lines | Core changed | Time |
+|---|---|---|---|---|
+| The registry (`core/project/rules.py`) | 1 | ~260 | no: a record beside the project's state | about 1 h |
+| The guards, the held check, the diff-scoped check, the context and hook (`analysis/rules/`), the guard asked once (`ai/rule_guard.py`) | 5 | ~680 | no | about 4 h |
+| The card (`analysis/claims/from_rules.py`) and the stage | 2 (~120) + one line each in the probes, the remediation, the words, the score's patterns, the debt register, the check paths, the engagement rules | ~140 | no: a stage is its declaration, its loop, its runner and its words | about 2 h |
+| The doors (terminal, MCP, Studio, chat, a card's note) | 3 + the Studio's page and words | ~500 | no | about 4 h |
 
 ## After M15: 0.0.88 (2026-10-28), one source per pattern
 
