@@ -105,6 +105,7 @@ def batch(project, card, rules):
     state['setup'] = {'commit': guided.tip(state), 'ok': ran['ok'], 'attempts': ran['attempts'], 'limitations': ran['limitations']}
     guided.safety_run(state)
     opened = done(agent_tools.fix_start(project, cards=[card['id']]), project)
+    if not opened.get('to_do'): raise SystemExit(f'rules proof: no batch opened: {opened}')
     told = [r['id'] for r in (opened.get('to_do') or [{}])[0].get('your_rules') or []]
     edited = {name: done(agent_tools.fix_edit(card['id'], edits, project=project), project) for name, edits in EDITS.items()}
     finished = done(agent_tools.fix_finish(project), project)
