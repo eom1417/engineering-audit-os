@@ -58,12 +58,18 @@ def _scope(state, card=None, pin=False):
     return {'kind': 'batch', 'ref': ((state.get('open_wave') or {}).get('number'))}
 
 
+def _language(pinned, state):
+    """The block's own line in the language the pinned rules are written in (a public English manual keeps English)."""
+    said_in = [r['lang'] for r in pinned]
+    return max(('ar', 'en'), key=said_in.count) if said_in else state.get('lang') or 'en'
+
+
 def written(state):
     """The pinned rules written again into the project's context (from the registry, the one source)."""
     project = state['project']
     record = registry.load(project)
     pinned = [r for r in record['rules'] if r['state'] == 'active' and r['scope']['kind'] == 'pinned']
-    files, made = context.write(project, pinned, record.get('context') or [], state.get('lang') or 'en')
+    files, made = context.write(project, pinned, record.get('context') or [], _language(pinned, state))
     registry.keep(project, context=made)
     if not pinned and (record.get('hook') or {}).get('on'): hook(project, False)
     return files

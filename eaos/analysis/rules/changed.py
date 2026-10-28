@@ -68,7 +68,9 @@ def reached(project, paths, graph=None):
 
 def snapshot(project, paths, folder, revision=None):
     """`paths` written into `folder` as they are in the index (revision ':'), at `revision`, or in the working tree
-    (None); a file not there (new, or deleted) is left out."""
+    (None); a file not there (new, or deleted) is left out, the folder made all the same (a commit of new files alone has
+    an empty before)."""
+    Path(folder).mkdir(parents=True, exist_ok=True)
     for path in paths:
         target = Path(folder) / path
         if revision is None:
@@ -82,6 +84,23 @@ def snapshot(project, paths, folder, revision=None):
         if shown.returncode: continue
         target.parent.mkdir(parents=True, exist_ok=True)
         target.write_bytes(shown.stdout)
+
+
+def _digests(folder, path):
+    """The six-line windows of one file (EAOS's own measure of code copied word for word, facts/code/metrics)."""
+    from ...facts.code.metrics import windows_of
+    file = Path(folder) / path
+    return {key for key, _ in windows_of(path, file.read_text(encoding='utf-8', errors='replace').splitlines())} if file.is_file() else set()
+
+
+def sources(project, after, paths):
+    """The project's other files holding six lines the changed files hold (as `after` has them): what the change may
+    have copied word for word, read beside it so the copy gate sees both sides."""
+    mine = set().union(*(_digests(after, path) for path in paths)) if paths else set()
+    if not mine: return []
+    suffixes = {Path(path).suffix for path in paths}
+    tracked = [p for p in _git(project, 'ls-files').stdout.split('\n') if Path(p).suffix in suffixes and p not in paths]
+    return [p for p in tracked if _digests(project, p) & mine]
 
 
 def laws(before, after, paths):
@@ -113,8 +132,9 @@ def _held(project, rules, change, since, gates):
     paths, files = change['changed'], change['reached']
     with tempfile.TemporaryDirectory(prefix='eaos-changed-') as scratch:
         after, before = _sides(project, paths, since, scratch)
-        # the code laws read the changed files alone (what the change wrote); their importers are for the rules' guards
-        problems = laws(*reversed(_sides(project, paths, since, Path(scratch) / 'laws')), paths) if gates else []
+        # the code laws read the changed files and the files they hold six lines of (a copy and its source), never
+        # their importers, which are for the rules' guards
+        problems = laws(*reversed(_sides(project, paths + sources(project, after, paths), since, Path(scratch) / 'laws')), paths) if gates else []
         tested = [r for r in rules if (r.get('guard') or {}).get('kind') == 'test']
         results = held.on_change([r for r in rules if r not in tested], after, paths, before, held.found_of(problems))
         with held.at_commit(project, since[0] or 'HEAD') as earlier:

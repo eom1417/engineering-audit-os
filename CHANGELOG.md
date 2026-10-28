@@ -35,7 +35,11 @@ a rule is said once and held by a machine, for as long as it was asked for:
   (the project menu) and a card's note kept as its rule, the Studio's chat keeping a requirement the person states.
 - **EAOS first**: the owner's standing requirements of EAOS are its first pinned rules (nothing private published, by
   its own test; no code copied word for word, by EAOS's gate; the code laws, by `tools/code_limits.py --check`), held by
-  the same machinery on its own repository.
+  the same machinery on its own repository: a commit publishing a private path, one copying a module word for word and
+  one adding a function past complexity 10 each refused by the hook (5 to 8 s), a sound one let through. Holding them
+  found three defects, fixed: a commit of new files alone was never checked (its "before" never made); a copy of a file
+  the change does not touch was not seen (the files holding six of the same lines are now read beside the change); the
+  rules' line of a public English manual was written in the project's chat language (now the rules' own).
 - The proof (`tools/rules_proof.py`, no token): on a copy of the golden app with people's records in three files, one
   card with the three places, a fix of one place refused, a fix of all of them that broke the other rule refused with
   its words, the sound fix kept and taken in, the batch's rule ended with its batch, and a later commit writing the

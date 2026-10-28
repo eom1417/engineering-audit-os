@@ -118,8 +118,8 @@ class Trust(unittest.TestCase):
     def test_a_copy_kept_on_purpose_with_its_reason_is_no_clone(self):
         body = [f'    total_{i} = price * quantity + tax_{i}' for i in range(8)]
         kept = ['def one():', '    # jscpd:ignore-start -- each MCP tool is its own signature', *body, '    # jscpd:ignore-end']
-        self.assertEqual(metrics._windows_of('a.py', kept), [])
-        self.assertEqual(len(metrics._windows_of('a.py', ['def one():', *body])), len(body) - metrics.WINDOW + 1)
+        self.assertEqual(metrics.windows_of('a.py', kept), [])
+        self.assertEqual(len(metrics.windows_of('a.py', ['def one():', *body])), len(body) - metrics.WINDOW + 1)
 
 
 class BeforeAfter(unittest.TestCase):

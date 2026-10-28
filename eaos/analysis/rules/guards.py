@@ -175,8 +175,7 @@ def _run_detectors(guard, found, paths):
     if found is None: return 'not_run', [], 'its detectors did not run here'
     mine = [row for row in found if _among(row['detector'], guard['detectors'])]
     if not mine: return 'held', [], 'nothing found'
-    reached = lambda place: not paths or place.split(':')[0] in paths
-    places = sorted({place for row in mine for place in row['places'] if reached(place)})
+    places = sorted({place for row in mine for place in row['places']})       # on a change, the gates found what it added
     return 'broken', places, '; '.join(sorted({row.get('said') or row['detector'] for row in mine}))[:600]
 
 
