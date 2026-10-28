@@ -68,6 +68,7 @@ def params(finding):
     return {'kind': finding['kind'] if finding['kind'] != 'idiom' else f"idiom:{finding['evidence']['form']}", 'severity': finding['severity'],
             'en': en, 'ar': ar, 'fix_en': fix_en, 'fix_ar': fix_ar, 'place': finding['place'], 'line': finding['line'],
             'home': values['home'], 'places': [f"{p['path']}:{p.get('line') or 1}" for p in finding['evidence'].get('places') or []][:40],
+            'evidence': finding['evidence'].get('why') or {},     # the three conditions a near copy or a screen pattern met
             'category': 'maintainability'}
 
 

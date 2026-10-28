@@ -25,7 +25,7 @@ from eaos.journeys import agent_tools, guided  # noqa: E402
 from eaos.live.app import setup as live_setup  # noqa: E402
 
 SOUND = 'legacy.js'
-COPIED = 'web/invoice.js'            # the near copies' card is found by this place
+COPIED = 'invoice.js'            # the near copies' card is found by this place
 
 
 def one_source(project):
@@ -36,7 +36,7 @@ def one_source(project):
         start = text.index(first)
         return text[start:text.index(last, start) + len(last)]
     export = whole('export.js', '// The orders as a file to download.', '`\\ntotal,${total.toFixed(2)}`;\n}\n')
-    invoice = whole('web/invoice.js', '// The invoice of one order', "count: lines.length };\n}\n")
+    invoice = whole('invoice.js', '// The invoice of one order', "count: lines.length };\n}\n")
     return [
         {'path': 'report.js', 'find': 'function orderLines(orders) {', 'replace': 'function orderLines(orders, missing = 1) {'},
         {'path': 'report.js', 'find': '    const quantity = Number(order.quantity) || 1;\n    const amount = price * quantity;\n    total += amount;\n    lines.push',
@@ -44,8 +44,8 @@ def one_source(project):
         {'path': 'export.js', 'find': export, 'replace': "const { orderLines } = require('./report');\n\n// The orders as a file to download.\n"
                                                         "function exportLines(orders) {\n  const { lines, total } = orderLines(orders);\n"
                                                         "  return lines.map(line => [line.item, line.quantity, line.price, line.amount].join(',')).join('\\n') + `\\ntotal,${total}`;\n}\n"},
-        {'path': 'web/invoice.js', 'find': invoice, 'replace': "// The invoice of one order: the reports screen's lines, a missing quantity counted as none.\n"
-                                                              "const { orderLines } = require('../report');\n\nconst invoiceLines = orders => orderLines(orders, 0);\n"},
+        {'path': 'invoice.js', 'find': invoice, 'replace': "// The invoice of one order: the reports screen's lines, a missing quantity counted as none.\n"
+                                                              "const { orderLines } = require('./report');\n\nconst invoiceLines = orders => orderLines(orders, 0);\n"},
     ]
 
 
@@ -112,7 +112,7 @@ def _problems(project, edited, finished, moved, sound):
     problems = [] if edited['web/payments.js'].get('kept') is False else [f"the unguarded write was kept at its edit: {edited['web/payments.js']}"]
     if sorted(finished.get('kept') or []) != sorted(sound):
         problems.append(f"the branch keeps {finished.get('kept')}, not the sound cards alone; left out: {finished.get('failed')}")
-    if 'orderLines(orders, 0)' not in _git(project, 'show', f"{finished.get('branch') or 'HEAD'}:web/invoice.js"):
+    if 'orderLines(orders, 0)' not in _git(project, 'show', f"{finished.get('branch') or 'HEAD'}:invoice.js"):
         problems.append(f"the branch {finished.get('branch')} does not call the one source from the invoice")
     if moved: problems.append(f"the person's project changed before accept: {moved}")
     if 'legacy.js' in _git(project, 'ls-tree', '-r', '--name-only', finished.get('branch') or 'HEAD').split():
@@ -126,7 +126,7 @@ def main(project):
     ids = cards(project)
     edited, finished = _batch(project, ids)
     after = _where(project)
-    if ids[COPIED] is None: return print('fix proof: the check made no card of the near copies of web/invoice.js') or 1
+    if ids[COPIED] is None: return print('fix proof: the check made no card of the near copies of invoice.js') or 1
     problems = _problems(project, edited, finished, f'{before} -> {after}' if after != before else '', [ids[SOUND], ids[COPIED]])
     refused = '; '.join(f'{card} ({str(why)[:120]})' for card, why in (finished.get('failed') or {}).items())
     print('fix proof: ' + ('; '.join(problems) if problems else f"the sound cards reached {finished.get('branch')}; refused: "

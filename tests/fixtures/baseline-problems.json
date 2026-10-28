@@ -296,7 +296,7 @@
   {
    "id": "near-copy-one-line",
    "what": "the reports screen's lines copied into the invoice with one line changed (M15.8)",
-   "path": "web/invoice.js",
+   "path": "invoice.js",
    "kinds": [
     "near copies"
    ],
@@ -424,6 +424,14 @@
    "path": "web/Banner.jsx",
    "kinds": [
     "structure",
+    "near copies"
+   ]
+  },
+  {
+   "id": "copies-in-two-parts",
+   "what": "an amount formatted alike by the API and by the screens, two parts that change apart: a likeness said, never a card (M15.8)",
+   "path": "api/amount.js",
+   "kinds": [
     "near copies"
    ]
   }
