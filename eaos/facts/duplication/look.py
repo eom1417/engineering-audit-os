@@ -12,7 +12,7 @@ from pathlib import Path
 from ...core.contracts.code_laws import LOOK
 
 STYLESHEETS = ('.css', '.scss', '.sass', '.less')
-THEME_FILE = re.compile(r'(^|/)(tailwind\.config\.\w+|theme\.(js|ts|mjs|json|css|scss)|tokens?\.(js|ts|mjs|json|css|scss)|_?variables\.(scss|less|css))$', re.I)
+THEME_FILE = re.compile(r'(^|/)(tailwind\.config\.\w+|(theme|colou?rs?|palette)\.(js|ts|mjs|json|css|scss)|tokens?\.(js|ts|mjs|json|css|scss)|_?variables\.(scss|less|css))$', re.I)
 TOKENS_AT_LEAST = 8
 COMMENT = re.compile(r'/\*.*?\*/', re.S)
 DECLARATION = re.compile(r'(?<![\w-])(-?-?[A-Za-z][\w-]*)\s*:\s*([^;{}]+)')
@@ -30,7 +30,7 @@ LENGTH = re.compile(r'(?<![\w.-])-?(?:\d*\.)?\d+(?:px|rem|em|pt)\b')
 NUMBER = re.compile(r'^-?\d+$')
 # A CSS property (or a JSX style key) and the kind of the look it sets.
 PROPERTY = [(re.compile(rx), kind) for rx, kind in (
-    (r'^(color|background(-color)?|border(-(top|right|bottom|left|inline|block)(-(start|end))?)?(-color)?|outline(-color)?|fill|stroke|'
+    (r'^(color|background(-color)?|border(-(top|right|bottom|left|inline|block)(-(start|end))?)?(-color)?|outline(-color)?|'
      r'accent-color|caret-color|text-decoration-color|backgroundColor|borderColor|outlineColor)$', 'color'),
     (r'^(font-size|fontSize)$', 'font_size'),
     (r'^(margin|padding)(-(top|right|bottom|left|inline|block)(-(start|end))?)?$|^(margin|padding)[A-Z]\w*$|^((row|column)-)?gap$|^(row|column)Gap$', 'spacing'),
@@ -59,7 +59,7 @@ RAW = {'color': lambda value: [m.group(0).lower() for m in COLOUR.finditer(value
 
 def _raw(kind, value):
     """The literal values of the look in one declared value, tokens (var(), calc() over them) aside."""
-    value = re.sub(r'var\([^()]*(\([^()]*\))?[^()]*\)|calc\([^()]*(\([^()]*\))?[^()]*\)|url\([^)]*\)', ' ', value)
+    value = re.sub(r'var\([^()]*(\([^()]*\))?[^()]*\)|calc\([^()]*(\([^()]*\))?[^()]*\)|url\([^)]*\)|[$@][\w-]+', ' ', value)
     return RAW.get(kind, _lengths)(value)
 
 
@@ -117,6 +117,10 @@ def in_script(text):
     return in_markup(text) + [('color', m.group(1).lower(), m.start()) for m in COLOUR_STRING.finditer(text)]
 
 
+# A script under these folders draws a picture (an icon, a logo): its colours are the artwork's, not the look.
+ARTWORK = re.compile(r'(^|/)(assets|icons?|brand|svgs?|images|illustrations)/', re.I)
+
+
 def is_tokens_file(path, text):
     """Whether a file is a home of the look: a theme file by name, or a stylesheet declaring its tokens."""
     if THEME_FILE.search(path): return True
@@ -139,5 +143,5 @@ def _reader(path, language):
 def values(path, text, language):
     """[(kind, value, line)] of one file's look written outside the tokens file; [] for the tokens file itself."""
     read = _reader(path, language)
-    if read is None or is_tokens_file(path, text): return []
+    if read is None or is_tokens_file(path, text) or (read is in_script and ARTWORK.search(path)): return []
     return [(kind, value, _line(text, offset)) for kind, value, offset in read(text) if kind in LOOK]

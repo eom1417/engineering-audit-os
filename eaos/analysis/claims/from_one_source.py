@@ -14,7 +14,7 @@ FORMS = {   # an idiom's form: (English, Arabic)
     'request_state': ('a request with its loading and error state', 'طلب مع حالة التحميل والخطأ'),
     'popup_close': ('closing a pop-up on Escape', 'إغلاق النافذة المنبثقة بزر Escape'),
     'drag_drop': ('drag and drop', 'السحب والإفلات'),
-    'validation': ('checking a field', 'التحقق من حقل'),
+    'validation': ('checking an e-mail address', 'التحقق من البريد الإلكتروني'),
     'pagination': ('paging a list', 'تقسيم القائمة صفحات'),
     'route_guard': ("checking the sign-in inside a route", 'التحقق من الدخول داخل كل مسار'),
 }

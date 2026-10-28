@@ -63,7 +63,6 @@ valid:
   - "if (!user) return;"
 invalid:
   - "if (!/^[^@]+@[^@]+$/.test(email)) setError('email');"
-  - "if (!name.trim()) setError('required');"
 ---
 id: eaos.idiom.pagination
 valid:
@@ -122,7 +121,6 @@ valid:
   - "if (!user) return;"
 invalid:
   - "if (!/^[^@]+@[^@]+$/.test(email)) setError('email');"
-  - "if (!name.trim()) setError('required');"
 ---
 id: eaos.idiom.pagination-tsx
 valid:
@@ -181,7 +179,6 @@ valid:
   - "if (!user) return;"
 invalid:
   - "if (!/^[^@]+@[^@]+$/.test(email)) setError('email');"
-  - "if (!name.trim()) setError('required');"
 ---
 id: eaos.idiom.pagination-typescript
 valid:

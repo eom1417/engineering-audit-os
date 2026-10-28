@@ -11,12 +11,13 @@ import re
 from collections import Counter
 from pathlib import Path
 
-from ...core.contracts.code_laws import LOOK
+from ...core.contracts.code_laws import LOOK, PATTERN_REPEATS
 from ...core.system.files import read_json
 
 NEAR_COLOUR = 3.0
 SCALE_SHARE = 0.85              # the steps most used, together carrying this share of the uses, are the scale
 SCALE_MAX = {'font_size': 8, 'spacing': 10, 'radius': 5, 'shadow': 4, 'z_index': 8}
+REPEATED_VALUES = 3             # values each written PATTERN_REPEATS times or more: a look that asks for its tokens
 DRIFT_SHARE = 0.05              # off the scale or a near copy of another colour, in this share of the uses, is drift
 HEX = re.compile(r'^#([0-9a-f]{3,8})$')
 FUNC = re.compile(r'^rgba?\(\s*([\d.]+)[,\s]+([\d.]+)[,\s]+([\d.]+)(?:\s*[,/]\s*([\d.]+%?))?\s*\)$')
@@ -176,9 +177,12 @@ def finding(facts, out):
     counts = census(out) if out else None
     seen = _seen(counts) if counts else {}
     drifts = _drifts(seen)
-    if not written and not drifts: return None
+    repeated = [row for row in written if row['count'] >= PATTERN_REPEATS]
+    # a card when the look truly repeats: values written again and again that a token would name, or drift on the pages
+    if len(repeated) < REPEATED_VALUES and not drifts: return None
     total = sum(by_kind.values())
     place = (homes or [p['path'] for p in places] or ['the pages'])[0]
     return {'kind': 'look', 'place': place, 'line': None, 'severity': 'medium' if drifts or total >= 50 else 'low',
             'evidence': {'written': total, 'by_kind': dict(sorted(by_kind.items())), 'places': places[:30], 'home': homes,
+                         'repeated': [f"{row['kind']} {row['value']} ×{row['count']}" for row in sorted(repeated, key=lambda r: -r['count'])][:12],
                          'seen': seen, 'drifts': sorted(drifts), 'tokens': _tokens(seen, written, by_kind)}}

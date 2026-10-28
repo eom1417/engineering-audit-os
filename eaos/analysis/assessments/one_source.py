@@ -12,12 +12,16 @@ import re
 from collections import Counter
 from pathlib import PurePosixPath
 
-from ...core.contracts.code_laws import PATTERN_REPEATS
+from ...core.contracts.code_laws import NEAR_COPY, PATTERN_REPEATS
 from ...facts.duplication.element_trees import PRIMITIVES
 from ...facts.engine_findings import engine_records
 from . import one_source_look
 
 TEST = re.compile(r'(^|/)(tests?|__tests__|spec|e2e)(/|$)|[._-](test|spec)\.[a-z]+$')
+# What is written alike on purpose or by a tool, never a copy to give one home: generated migrations and types, a
+# framework's twin entry points, examples and documentation pages that show each variant whole.
+ASIDE = re.compile(r'(^|/)(migrations|alembic|docs?|examples?|demos?|stories|storybook|showcase)(/|$)|\.stories\.|\.generated\.|\.gen\.|'
+                   r'(^|/)(asgi|wsgi)\.py$|(^|/)integrations/supabase/types\.ts$|(^|/)database\.types\.ts$')
 NEARBY = 3            # two records of one idiom this close in one file are one place (one statement's lines)
 # The kind of home each idiom calls for, by the folders a project already names it with.
 HOMES = {'hook': ('hooks', 'composables', 'lib', 'utils'), 'helper': ('lib', 'utils', 'helpers', 'shared', 'common', 'core'),
@@ -54,8 +58,10 @@ def _clusters(pairs):
 
 
 def _pairs(sets):
+    """The pairs worth a home: alike as the law says, NEAR_COPY's lines or more, two places apart, neither set aside."""
     for fact in engine_records(sets, 'near_copy'):
         value = fact['value']
+        if not _kept(fact): continue
         yield {'first': {'path': fact['location']['path'], 'line': fact['location'].get('line'), 'end_line': value.get('end_line')},
                'second': value.get('other') or {}, 'kind': value.get('kind'), 'similarity': value.get('similarity'),
                'lines': value.get('lines') or 0, 'fact_id': fact['id']}
@@ -70,6 +76,20 @@ def _cluster(members, pairs):
                     copies=len(members), lines=end - start + 1, kinds=sorted({p['kind'] for p in pairs}),
                     similarity=min(similar, default=1.0), places=[{'path': p, 'line': s, 'end_line': e} for p, s, e in members],
                     home=f'{path}:{start}', fact_ids=[p['fact_id'] for p in pairs][:20])
+
+
+def _apart(start, end, other):
+    """Whether a pair's two places do not overlap (a block matched against itself is no copy)."""
+    return (end or start) < (other.get('line') or 0) or (other.get('end_line') or 0) < start
+
+
+def _kept(fact):
+    """Whether a pair is worth a home: alike as the law says, NEAR_COPY's lines or more, two places, neither set aside."""
+    value, path = fact['value'], fact['location']['path']
+    other = value.get('other') or {}
+    return ((value.get('lines') or 0) >= NEAR_COPY['min_lines'] and (value.get('similarity') or 1.0) >= NEAR_COPY['similarity']
+            and (path != other.get('path') or _apart(fact['location'].get('line') or 0, value.get('end_line'), other))
+            and not ASIDE.search(path) and not ASIDE.search(other.get('path') or ''))
 
 
 def near_copies(sets):
@@ -130,7 +150,8 @@ def ui_patterns(facts, folders):
     found = []
     for fact in facts:
         if fact['kind'] != 'ui_pattern': continue
-        members = fact['value']['members']
+        members = [m for m in fact['value']['members'] if not ASIDE.search(m['path'])]
+        if len(members) < PATTERN_REPEATS: continue
         found.append(_finding('ui_pattern', members[0]['path'], members[0]['line'], 'low', tag=members[0]['tag'],
                               count=len(members), elements=members[0]['elements'], similarity=fact['value']['similarity'],
                               places=members[:40], home=home_for('component', members, folders), fact_id=fact['id']))
@@ -169,6 +190,6 @@ def numbers(sets, out=None):
     patterns and idioms repeated; each counted as tools/quality.py records it for EAOS."""
     found, _ = findings(out, sets)
     count = Counter(f['kind'] for f in found)
-    look = next((f for f in found if f['kind'] == 'look'), None)
-    return {'near_copies': count['near_copy'], 'look': look['evidence']['written'] if look else 0,
+    written = sum(f['value']['count'] for f in (sets.get('patterns') or {}).get('facts') or [] if f['kind'] == 'look_value')
+    return {'near_copies': count['near_copy'], 'look': written,
             'ui_patterns': count['ui_pattern'], 'idioms': count['idiom']}

@@ -14,7 +14,7 @@ from collections import Counter
 from .. import tree_sitter_tree
 from ...core.contracts.code_laws import PATTERN_REPEATS, UI_SIMILARITY
 
-MIN_ELEMENTS, MAX_ELEMENTS, MAX_CANDIDATES = 4, 80, 6000
+MIN_ELEMENTS, MAX_ELEMENTS, MAX_CANDIDATES = 6, 80, 6000
 PRIMITIVES = re.compile(r'(^|/)(components/ui|ui/primitives|primitives)/')
 TAG = re.compile(r'<(/?)([A-Za-z][\w.-]*)((?:[^>"\']|"[^"]*"|\'[^\']*\')*?)(/?)>')
 CLASS = re.compile(r'\bclass(?:Name)?\s*=\s*(?:"([^"]*)"|\'([^\']*)\'|\{\s*[\'"`]([^\'"`]*)[\'"`]\s*\})')

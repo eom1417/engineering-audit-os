@@ -85,6 +85,10 @@ class TheLook(unittest.TestCase):
         claim = from_one_source.params(finding)
         self.assertIn('where 3 do', claim['en']); self.assertIn('وتكفي 3', claim['ar'])
 
+    def test_a_few_values_written_once_each_make_no_card(self):
+        once = [{'kind': 'look_value', 'value': {'kind': 'spacing', 'value': f'{n}px', 'count': 1, 'places': [{'path': 'a.css', 'line': n}]}} for n in range(5)]
+        self.assertIsNone(one_source_look.finding(once + [{'kind': 'look_home', 'value': {'paths': []}}], None))
+
     def test_two_colours_far_apart_and_a_clean_look_make_no_card(self):
         self.assertEqual(len(one_source_look.colour_groups({'#000000': 5, '#ffffff': 5, '#2a49c8': 3})), 3)
         self.assertIsNone(one_source_look.finding([{'kind': 'look_home', 'value': {'paths': ['src/tokens.css']}}], None))
@@ -94,8 +98,9 @@ class Cards(unittest.TestCase):
     def test_every_finding_is_one_card_in_both_languages_whose_probe_reads_the_code_again(self):
         idioms = [record(f'src/p{n}.js', 1, engine='ast-grep', record='idiom', form='json_read', rule='eaos.idiom.json-read') for n in range(3)]
         facts = sets(near(('a.py', 1), ('b.py', 1)), *idioms,
-                     patterns=[{'id': 'P1', 'kind': 'look_value', 'location': {'path': 'src/a.css'}, 'value': {'kind': 'color', 'value': '#fff', 'count': 2,
-                                'places': [{'path': 'src/a.css', 'line': 1}, {'path': 'src/b.css', 'line': 2}]}}])
+                     patterns=[{'id': f'P{n}', 'kind': 'look_value', 'location': {'path': 'src/a.css'}, 'value': {'kind': 'color', 'value': value, 'count': 3,
+                                'places': [{'path': 'src/a.css', 'line': n}, {'path': 'src/b.css', 'line': n}, {'path': 'src/c.css', 'line': n}]}}
+                               for n, value in enumerate(('#fff', '#111', '#2a49c8'))])
         claims = from_one_source.one_source_claims(None, facts, None, 0)
         self.assertEqual(sorted(c['render']['params']['kind'] for c in claims), ['idiom:json_read', 'look', 'near_copy'])
         self.assertTrue(all(c['render']['params']['ar'] and c['render']['params']['fix_ar'] for c in claims))

@@ -121,16 +121,14 @@ rule:
 id: eaos.idiom.validation
 language: JavaScript
 severity: info
-message: a field checked by hand
+message: an e-mail address checked by hand
 metadata: {record: idiom, form: validation}
 rule:
   any:
     - all:
         - pattern: $RE.test($V)
         - has: {stopBy: end, kind: regex, regex: '@'}
-    - pattern: if (!$V.trim()) $$$
-    - pattern: if ($V.trim() === '') $$$
-    - pattern: if (!$V.trim().length) $$$
+
 ---
 id: eaos.idiom.pagination
 language: JavaScript
@@ -244,16 +242,14 @@ rule:
 id: eaos.idiom.validation-tsx
 language: Tsx
 severity: info
-message: a field checked by hand
+message: an e-mail address checked by hand
 metadata: {record: idiom, form: validation}
 rule:
   any:
     - all:
         - pattern: $RE.test($V)
         - has: {stopBy: end, kind: regex, regex: '@'}
-    - pattern: if (!$V.trim()) $$$
-    - pattern: if ($V.trim() === '') $$$
-    - pattern: if (!$V.trim().length) $$$
+
 ---
 id: eaos.idiom.pagination-tsx
 language: Tsx
@@ -366,16 +362,14 @@ rule:
 id: eaos.idiom.validation-typescript
 language: TypeScript
 severity: info
-message: a field checked by hand
+message: an e-mail address checked by hand
 metadata: {record: idiom, form: validation}
 rule:
   any:
     - all:
         - pattern: $RE.test($V)
         - has: {stopBy: end, kind: regex, regex: '@'}
-    - pattern: if (!$V.trim()) $$$
-    - pattern: if ($V.trim() === '') $$$
-    - pattern: if (!$V.trim().length) $$$
+
 ---
 id: eaos.idiom.pagination-typescript
 language: TypeScript

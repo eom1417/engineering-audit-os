@@ -308,6 +308,9 @@ def _claims(request, inputs):
     coverage_set = _more_sets(request.out, inputs.sets)
     runtime = runtime_claims(inputs.verification, len(rows), (coverage_set or {}).get('facts'), excluded=_excluded(request.exclude))
     runtime += from_runs.run_claims(request.out, inputs.sets, request.target, len(rows) + len(runtime))   # they read what ran (M13, M14)
+    runtime, held = ledger.withhold(runtime)        # a detector under its measured bar is kept aside here too (M15)
+    for number, row in enumerate(held, start=len(withheld) + 1): row['id'] = 'WHD-%03d' % number
+    withheld = withheld + held
     for fact in (coverage_set or {}).get('facts', []): fact_index.setdefault(fact['id'], fact['location'].get('path'))
     for row in runtime:
         row['origin'] = origin_of(row, fact_index)

@@ -10,7 +10,7 @@ MAX_LINES = 600         # lines in one module
 MAX_FUNCTION_LINES = 50 # lines in one function
 MAX_PARAMETERS = 5      # parameters of one function, self and cls aside
 # One source per pattern (M15): what repeats lives once, in its home, and is called from everywhere else.
-NEAR_COPY = {'similarity': 0.85, 'max_gap_lines': 2, 'min_tokens': 40}   # a near copy of code, as jscpd measures it
+NEAR_COPY = {'similarity': 0.85, 'max_gap_lines': 2, 'min_tokens': 40, 'min_lines': 6}   # a near copy of code, as jscpd measures it
 PATTERN_REPEATS = 3     # a UI pattern or an idiom written this many times is one component or helper
 UI_SIMILARITY = 0.8     # two element trees this alike are one UI pattern
 LOOK = ('color', 'font_size', 'spacing', 'radius', 'shadow', 'z_index')   # written only in the tokens file
