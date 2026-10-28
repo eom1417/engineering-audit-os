@@ -161,12 +161,14 @@ def _holding_now(project, hook_only):
 
 def changed(project=None, base=None, staged=False, hook_only=False, gates=True):  # limits: parameters -- the change (its base or the index), the hook's own run, and the gates
     """The diff-scoped check: the rules that hold now (only the pinned ones from the hook) on what the change brought,
-    and the code laws' gates on its files (not from the hook: only the person's pinned rules refuse a commit); each
-    break recorded on its rule."""
+    and the code laws' gates on its files (from the hook, only when a pinned rule is guarded by them: only the person's
+    pinned rules refuse a commit); each break recorded on its rule."""
     from ..analysis.rules import changed as diff
     from ..analysis.rules.held import record
     project = Path(project or '.').resolve()
-    result = diff.check(project, _holding_now(project, hook_only), base, staged, gates and not hook_only)
+    rules = _holding_now(project, hook_only)
+    detected = any((r.get('guard') or {}).get('kind') == 'detector' for r in rules)
+    result = diff.check(project, rules, base, staged, gates and (detected or not hook_only))
     record(project, result['results'], 'hook' if hook_only else 'changed')
     return result
 

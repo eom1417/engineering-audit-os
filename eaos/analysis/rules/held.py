@@ -99,16 +99,22 @@ def brief(project, state, card=None, batch=None):
             for r in registry.holding(project, state, card, batch)]
 
 
+SAID = {'en': ('it breaks your rule {id}, said on {said_on}: "{words}" at {where}', '; this change brought it back ({returns} time(s) '
+              'it came back)', '; pin it so it holds for every change (eaos rules pin {id})'),
+        'ar': ('يكسر قاعدتك {id} اللي قلتها في {said_on}: «{words}» عند {where}', '؛ هذا التعديل رجّعها (رجعت تنكسر {returns} مرة)',
+               '؛ ثبّتها عشان تنطبق على كل تعديل (eaos rules pin {id})')}
+
+
 def refusal(broken, lang='en'):
-    """The sentence a refused change gives for each rule it breaks: the person's words, when they said it, where."""
+    """The sentence a refused change gives for each rule it breaks: the person's words, when they said them, where, how
+    often it came back (this change brought it back once more), and pinning offered when it is not pinned (M16.5)."""
+    first, back, pin = SAID['ar' if lang == 'ar' else 'en']
     said = []
     for item in broken:
-        where = ', '.join(item['places'][:4])
-        if lang == 'ar':
-            said.append(f"يكسر قاعدتك {item['id']} اللي قلتها في {item['said_on']}: «{item['words']}» عند {where}")
-        else:
-            said.append(f"it breaks your rule {item['id']}, said on {item['said_on']}: \"{item['words']}\" at {where}"
-                        + (f" ({item['found'][:200]})" if item['kind'] == 'test' else ''))
+        values = {**item, 'where': ', '.join(item['places'][:4]), 'returns': item['returns'] + 1}
+        text = first.format(**values) + (back.format(**values) if item['broken_before'] else '')
+        text += pin.format(**values) if item['scope']['kind'] != 'pinned' else ''
+        said.append(text + (f" ({item['found'][:200]})" if item['kind'] == 'test' and lang != 'ar' else ''))
     return said
 
 
@@ -131,3 +137,9 @@ def gate(owner, rules, root, changed, laws):
         results = on_change(rules, root, changed, before, found_of(laws))
     record(owner, results, 'gate')
     return refusal(broken(results))
+
+
+def as_gate(state, card, root, changed, laws):
+    """The gate's problems ({gate, where, what}) of the person's rules that hold for this card (a build's, M16.4)."""
+    rules = registry.holding(state['project'], state, card)
+    return [{'gate': 'rules', 'where': card or '', 'what': said} for said in gate(state['project'], rules, root, changed, laws)] if rules else []

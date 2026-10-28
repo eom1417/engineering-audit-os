@@ -124,6 +124,37 @@ class HeldOnAChange(Rules):
         self.assertFalse(result['refused'])
 
 
+class AtTheGate(Rules):
+    def test_a_fix_that_breaks_a_rule_is_refused_with_its_words_and_how_often_it_came_back(self):
+        rule, _ = registry.add(self.project, 'No records in the code', 'card', scope={'kind': 'card', 'ref': 'CLM-001'})
+        registry.guard(self.project, rule['id'], guards.checked(DATA_IN_CODE), 'person', 'card')
+        registry.broke(self.project, rule['id'], 'check:a', ['src/old.js:1'])
+        registry.held(self.project, rule['id'], 'check:b')
+        rules = registry.holding(self.project, {}, card='CLM-001')
+        (self.project / 'src/seed.js').write_text('export const users = [{ name: "Sara" }];\n')
+        self.commit('the fix')
+        said = held.gate(self.project, rules, self.project, ['src/seed.js'], [])
+        self.assertEqual(len(said), 1)
+        self.assertIn('"No records in the code" at src/seed.js:1; this change brought it back (1 time(s) it came back)', said[0])
+        self.assertIn('pin it', said[0], 'pinning is offered for a rule not pinned')
+        self.assertEqual(registry.came_back(registry.find(registry.load(self.project), 'R1')), 1)
+        self.assertEqual(registry.holding(self.project, {}, card='CLM-002'), [], 'a card\'s rule holds for that card only')
+
+
+class ThroughTheTools(Rules):
+    def test_saying_a_rule_is_the_assistants_to_do_and_pinning_it_the_persons_never_inside_a_studio_run(self):
+        from eaos.interfaces.mcp_server import rules as tools
+        added = tools.rule('add', words='Never send the whole state on every save', project=str(self.project))
+        self.assertEqual((added['rule']['id'], added['rule']['doors']), ('R1', ['mcp']))
+        self.assertEqual(tools.rule('pin', id='R1', project=str(self.project))['status'], 'needs_the_person')
+        with mock.patch.dict(os.environ, {'EAOS_STUDIO_RUN': 'r1'}), self.assertRaises(PermissionError):
+            tools.rule('pin', id='R1', person_agreed=True, project=str(self.project))
+        pinned = tools.rule('pin', id='R1', person_agreed=True, project=str(self.project))
+        self.assertIn('AGENTS.md', pinned['written_into'])
+        listed = tools.rules(project=str(self.project))
+        self.assertEqual((listed['pinned'], listed['rules'][0]['history'][-1]['what']), (1, 'pinned'))
+
+
 class Written(Rules):
     def test_pinned_rules_go_between_the_markers_and_unpinning_leaves_nothing_behind(self):
         (self.project / 'CLAUDE.md').write_text('# Mine\n@AGENTS.md\n')

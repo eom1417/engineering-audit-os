@@ -14,8 +14,10 @@ engineering-audit-os/
   eaos/                    the Python package (only __init__.py and __main__.py at its root)
     interfaces/            thin doors, all calling the same journeys: cli.py (the `eaos` command) with
                            command_groups.py, menu.py (`/eaos` alone), deep_checks.py (`eaos logic-flaws`),
-                           govern.py with govern_words.py (the governance core the terminal, MCP and the Studio share)
-      terminal/            the terminal's governance commands and its branch commands
+                           govern.py with govern_words.py (the governance core the terminal, MCP and the Studio share),
+                           rules.py (the person's own rules through every door: the terminal, MCP, the Studio, its chat
+                           and a card's note)
+      terminal/            the terminal's governance commands, its branch commands and `eaos rules`
       mcp_server/          `eaos mcp`: the server and its tools (build, fix, govern, the AI nodes as jobs) and
                            studio_parity.py (every Studio route has a tool or a written reason)
       studio_server/       the Studio's local server: the guard, the read API, the live stream, the built Studio
@@ -60,6 +62,10 @@ engineering-audit-os/
                            sustainability, the declared policy, the look
       readiness/           production readiness and the load model
       planning/            the plan: cards, order, documents, the plan the person brings, the roadmap, ranking
+      rules/               the person's own rules (M16): each one's machine guard (a pattern proved on its examples, a
+                           test of the project's own, EAOS's detectors, or none, said), held on a whole check and on a
+                           change (only what it brought), the diff-scoped check over the import graph, and the
+                           context block and commit hook written from the one registry
       repair/              how a card is fixed and proven: remediation, codemods, the move tool and its gate, the
                            context trim, gates (one_source_gate: no change adds a copy), finish line, acceptance, review
       presentation/        the one model of a report and the counts every view shows
@@ -91,7 +97,8 @@ engineering-audit-os/
                            beside what they share at the root (contract, tool, process, run, sarif); the registry is
                            eaos/data/toolchain.json
     core/                  what every layer reads; it imports nothing of EAOS
-      project/             a project's records: places, state, runs, ledger, jobs, branches, workspace, repo context
+      project/             a project's records: places, state, runs, ledger, jobs, branches, workspace, repo context, and
+                           rules.py (the person's own rules: their words, scope, history, breaks; one per project)
       contracts/           artifacts, documents, decisions, check paths, the code laws, the owner's share, untrusted text
       language/            the words in both languages, plain words, a person's intents, the language check
       system/              processes, resources, files (the one JSON reader), the clock (the time now, written once),
@@ -150,7 +157,7 @@ stages' real dependencies:
 
 | Loop (`loops.py`) | Stages | needs, rounds, on_fail |
 |---|---|---|
-| understand | facts, features, roles, intake, engines, policy | facts; 1; stop |
+| understand | facts, features, roles, intake, engines, policy, rules | facts; 1; stop |
 | run_and_see | setup, verify, session, crawl, lock, record, journeys, screens, baseline, layers, keeping | setup, screens; 2; explain |
 | try_layers (switch `layers`) | layers_trial | layers_trial; 1; explain |
 | try_experience (switch `experience`) | experience | experience; 1; explain |
@@ -202,6 +209,7 @@ for a reason the person did not choose) shows in red at the top of START-HERE.md
 | a stage or loop declaration | `pipeline/stages.py` and `pipeline/loops.py`; its runner in `pipeline/runners/` |
 | a journey's steps (check, fix batches, build, extend) | `journeys/` (`fix/` with `fix/waves/`, `build_from_plan/`, `guided/` the terminal's way in, `agent_tools/` what MCP calls; a check and an extension at its root) |
 | a CLI command, MCP tool, API route or Studio action | `interfaces/`: thin, calling a journey |
+| the person's own rules (M16) | the record in `core/project/rules.py`; a kind of guard in `analysis/rules/guards.py`, where it is held in `analysis/rules/held.py`; every door through `interfaces/rules.py`; the card in `analysis/claims/from_rules.py`, made last in the ledger (a detector's guard reads the other claims) |
 | a word naming a concept (a stage, a path, a kind of problem) | `eaos/data/words.json`, every form beside the others; the engine reads it through `core/language/words.py`, the Studio's build makes its keys from it |
 | a sentence composed with values | beside the code that composes it, Arabic and English together |
 | a Studio screen | `console/src/places/<place>/`, one of the places `console/README.md` lists |
@@ -214,7 +222,8 @@ for a reason the person did not choose) shows in red at the top of START-HERE.md
 | Path | What runs |
 |---|---|
 | Full check | every loop; the saved journeys replayed without AI after the lock's run (`record`), each a row of behavior-lock/results.json; the short simulation (try_experience beside `complete`) only when chosen in the check's preview, which shows its time and assistant calls |
-| A focused path (look, security, …) | only the loops it needs |
+| A focused path (look, security, …) | only the loops it needs; the person's own rules (the `rules` stage and their cards, `check_paths.HELD`) on every path |
+| What changed (`eaos check --changed`, M16.7) | no loop: the files a change touches and those importing them, each rule's guard on what the change brought and the code laws' gates over them, in seconds and without AI; the commit hook runs it on the staged files, the pinned rules alone refusing |
 | Try the layers (`layers`, beside `complete` an option of the full check) | L1-L2 as far as needed to run the app, then try_layers: the production build read, the migrations tried per table with pgTAP and the Supabase advisors, the API tried by Schemathesis with two test accounts (up to 15 minutes, said before it starts) |
 | Try the experience (`experience`, M10.9) | L1 and L2 as far as needed to run the app signed in, then try_experience's whole simulation (`eaos/pipeline/runners/experience.py`), L3 and the experience report |
 

@@ -112,7 +112,7 @@ def changed(args, lang):
         return 0
     from ...analysis.rules.held import refusal
     for line in refusal(found['rules'], lang): say(f'❌ {line}')
-    for problem in found['laws'][:20]: say(f"⚠️  {problem['what']}")
+    for problem in found['laws'][:20] if not args.hook else []: say(f"⚠️  {problem['what']}")
     if found['refused']: print(words('changed_broken', lang, count=len(found['rules'])), file=sys.stderr)
     if not args.hook: _changed_box(found, lang)        # git shows what a hook prints: no box, no next command
     return 1 if found['refused'] else 0

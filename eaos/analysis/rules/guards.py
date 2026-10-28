@@ -28,7 +28,7 @@ EXTENSIONS = {'python': '.py', 'javascript': '.js', 'typescript': '.ts', 'tsx': 
               'css': '.css', 'go': '.go', 'rust': '.rs', 'java': '.java', 'kotlin': '.kt', 'ruby': '.rb', 'php': '.php',
               'c': '.c', 'cpp': '.cpp', 'csharp': '.cs', 'swift': '.swift', 'bash': '.sh', 'json': '.json', 'yaml': '.yml'}
 TEST_SECONDS = 600
-PLACE = re.compile(r'([\w./-]+\.\w+):(\d+)')
+PLACE = re.compile(r'([\w./-]+\.\w+):(\d+|:\w+)')       # path:line, or path::function as a code law names one
 
 
 def _need(condition, why):
@@ -161,7 +161,7 @@ def _run_test(guard, root):
         return 'not_run', [], f'{type(problem).__name__}: {problem}'[:300]
     if done.returncode == 0: return 'held', [], 'its test passed'
     output = (done.stdout or '') + (done.stderr or '')
-    places = sorted({f'{p}:{n}' for p, n in PLACE.findall(output) if (Path(root) / p).is_file()})
+    places = sorted({f'{p}:{n.lstrip(":")}' for p, n in PLACE.findall(output) if (Path(root) / p).is_file()})
     return 'broken', places or [' '.join(guard['command'])], output.strip()[-600:]
 
 

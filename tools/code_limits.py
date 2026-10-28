@@ -166,6 +166,10 @@ def write(over):
 
 if __name__ == '__main__':
     current = measure()
+    if '--check' in sys.argv:      # the guard of the owner's pinned rule "the code laws" (M16): fails on any breach, each named
+        found = breaches(current, load())
+        print('\n'.join(found))
+        sys.exit(1 if found else 0)
     if '--tighten' in sys.argv:
         if found := breaches(current, load()): sys.exit('cannot tighten, over the limits:\n' + '\n'.join(found))
         write(current)

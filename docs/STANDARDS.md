@@ -56,6 +56,7 @@ for undefined names and unused imports (`console/eslint.config.js`).
 | A simulated user acts only in the isolated copy: external services stubbed, dummy data only, within step, time and cost budgets; what needs a real service is reported as not covered | `test_experience_data` (services stubbed or not covered), `test_experience_seed` (data only in the run's own database), `test_experience_actor` (budgets; the app's text kept as data) |
 | Fixes of EAOS are proved on trial apps and on the compatibility corpus, never on a person's real project | review |
 | Nothing destructive or outward-facing (push to `main`, delete a remote branch, publish) without the maintainers | `main`'s protection; review for the rest |
+| A person's own rule holds only for the work it was said for unless they pin it; pinning, unpinning, changing a rule and the commit hook are the person's (never inside a Studio run); a rule's guard is proved on its own examples before it is kept, and a rule EAOS cannot guard is said so; a change is refused only for what it brought; EAOS failing to run never stops a person's commit; unpinning leaves no copy (its context lines, its hook block) and never removes a test of the project's own (M16) | `tests/analysis/test_person_rules.py`; `tools/rules_proof.py` on the golden app |
 
 ## 4. Performance and disk
 

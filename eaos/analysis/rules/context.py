@@ -94,8 +94,12 @@ def hook_path(project):
 
 
 def hook_block(command, project):
+    """The hook's lines: the commit is refused only when a rule is broken (exit 1); EAOS failing to run (an older EAOS
+    without the command, a broken install) never stops the person's commit: it says so, and the commit goes on."""
     line = ' '.join(shlex.quote(part) for part in [*command, 'check', '--changed', '--staged', '--hook', '--project', str(project)])
-    return f'{HOOK_BEGIN}\n{line} || exit 1\n{HOOK_END}\n'
+    said = 'EAOS could not check your rules on this commit (exit $eaos); it goes on.'
+    return (f'{HOOK_BEGIN}\n{line}; eaos=$?\nif [ $eaos -eq 1 ]; then exit 1; fi\n'
+            f'if [ $eaos -ne 0 ]; then echo "{said}" >&2; fi\n{HOOK_END}\n')
 
 
 def hook(project, command, on, made=False):

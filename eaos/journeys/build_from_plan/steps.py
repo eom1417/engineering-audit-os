@@ -30,7 +30,6 @@ from .checks import _checks, _git, _milestone_tidy
 from .look import read as _read
 
 from ...core.project import state as project_state
-from ...core.project.state import waiting_batch
 from ...core.system.clock import now
 
 HOLDS = 3       # refused finishes of one milestone in a row; the next refusal hands it over with what stays unproven
@@ -183,6 +182,7 @@ def _gates(state, root, card=None, closing=False, progress=lambda *_: None):
     from ..fix.execute import GATE_ENGINES
     from ...facts.run import collect
     from ...analysis.repair.gates import found
+    from ...analysis.rules.held import as_gate as rules_gate
     rules = _read(Path(root) / 'eaos.policy.json') or _read(folder(state) / 'eaos.policy.json')
     problems, build = _checks(root, state['open_build'], progress, project_state.runtime_of(state) / 'browsers' if closing else None)
     state['open_build'] = build
@@ -191,6 +191,7 @@ def _gates(state, root, card=None, closing=False, progress=lambda *_: None):
         progress(3, 4, 'reading the structure and security: layers, cycles, copies, weaknesses' + (', dead code' if closing else ''))
         collect(Path(root).resolve(), out, engines=list(GATE_ENGINES) + (['codeql'] if closing else []))
         problems += found(None, out, changed, rules, dead=closing)
+        problems += rules_gate(state, card, root, changed, problems)       # the person's rules (M16.4): a change that breaks one is refused
         problems += [p for p in _milestone_tidy(root, out, card, closing) if p not in problems]
     if card and card != 'FIX': problems += _untested(state, root, card)
     return problems
@@ -376,7 +377,7 @@ def _next_step(state, plan, bp, build, done):
     if not bp.get('designed'): return 'blueprint_design', 'the target and the build plan are not drawn yet'
     if build: return 'build_edit, then build_finish', f"milestone {build['milestone']} is open"
     if plan and len(done) < len(plan['milestones']): return 'build_start', 'the next milestone is waiting'
-    if waiting_batch(state) is not None:
+    if project_state.waiting_batch(state) is not None:
         return 'accept', 'everything is built: the person decides whether to take the last branch in'
     return 'audit', 'everything is built and taken in: offer the check of the finished project'
 
