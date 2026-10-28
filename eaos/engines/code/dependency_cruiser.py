@@ -138,10 +138,8 @@ def _findings(found, summary):
     return findings, seen
 
 
-def analyze(target, workdir, exclude=(), formats=None):
-    declined, found = tool.started(NAME, BINARY, target)
-    if declined: return declined
-    target = Path(target).resolve()
+@tool.engine(NAME, BINARY, shared=True)
+def analyze(target, workdir, exclude, formats, found):
     rules, declared = configuration(target, workdir)
     workdir = tool.folder(workdir, NAME)
     if exclude: rules['options']['exclude']['path'] += '|' + '|'.join(glob_regex(p).lstrip('^') for p in exclude)

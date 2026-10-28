@@ -77,7 +77,6 @@ def _spans(single):
 
 @tool.engine(NAME, BINARY)
 def analyze(target, workdir, exclude, formats, found):
-    target = Path(target).resolve()
     output = workdir / 'ast-grep.jsonl'
     globs = [argument for name in EXCLUDED + tuple(exclude) for argument in ('--globs', f'!**/{name}/**')]
     command = [which(BINARY), 'scan', '--config', str(RULES / 'sgconfig.yml'), '--json=stream', '--include-metadata',

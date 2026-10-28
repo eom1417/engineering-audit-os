@@ -49,7 +49,6 @@ def findings(rows, found):
 
 @tool.engine(NAME, BINARY)
 def analyze(target, workdir, exclude, formats, found):
-    target = Path(target).resolve()
     files = migrations(target, exclude)
     if not files:
         return Report(NAME, found, PINNED, OBSERVED, coverage={'status': 'observed', 'files': 0, 'note': 'no migration folder'},

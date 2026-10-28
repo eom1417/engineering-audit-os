@@ -37,7 +37,6 @@ def sql_files(target, exclude=()):
 
 @tool.engine(NAME, BINARY)
 def analyze(target, workdir, exclude, formats, found):
-    target = Path(target).resolve()
     files = sql_files(target, exclude)
     output = workdir / 'sqlfluff.json'
     command = [which(BINARY), 'lint', '--format', 'json', '--dialect', 'postgres', '--nofail', '--disable-progress-bar',

@@ -2,7 +2,6 @@
 
 It applies only where a specification exists; elsewhere it is not applicable.
 """
-from pathlib import Path
 
 from . import openapi
 from .. import sarif, tool
@@ -20,7 +19,6 @@ def capabilities():
 
 @tool.engine(NAME, BINARY)
 def analyze(target, workdir, exclude, formats, found):
-    target = Path(target).resolve()
     ruleset = workdir / 'ruleset.yaml'
     ruleset.write_text('extends: ["spectral:oas"]\n', encoding='utf-8')
     specs = openapi.specifications(target, exclude)

@@ -90,15 +90,17 @@ def started(name, binary, target, probe=None):
     return None, found
 
 
-def engine(name, binary, fresh=False):
+def engine(name, binary, fresh=False, shared=False):
     """An adapter's analyze(target, workdir, exclude=(), formats=None), from its body(target, folder, exclude, formats,
-    version found): declined here when the tool cannot or need not run (`started`), else the body run in the engine's
-    own folder of the run's work folder (`folder`, emptied first when `fresh`)."""
+    version found): declined here when the tool cannot or need not run (`started`), else the body run on the resolved
+    target in the engine's own folder of the run's work folder (`folder`, emptied first when `fresh`), or in the whole
+    work folder when `shared` (it reads another engine's output there)."""
     def adapter(body):
         @functools.wraps(body)
         def analyze(target, workdir, exclude=(), formats=None):
             declined, found = started(name, binary, target)
-            return declined or body(target, folder(workdir, name, fresh), exclude, formats, found)
+            if declined: return declined
+            return body(Path(target).resolve(), Path(workdir) if shared else folder(workdir, name, fresh), exclude, formats, found)
         return analyze
     return adapter
 

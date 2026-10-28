@@ -74,7 +74,6 @@ def _issue_findings(issue, found):
 
 @tool.engine(NAME, BINARY)
 def analyze(target, workdir, exclude, formats, found):
-    target = Path(target).resolve()
     names = plugins(which(BINARY))
     if not names:
         return Report(NAME, found, PINNED, ERROR, reason='the plugin list of the installed knip was not found; '
