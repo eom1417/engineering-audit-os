@@ -11,6 +11,7 @@ there is no logic to give one home.
 It scans exactly what it is given. Without the declared analysis exclusions it counted our own
 report artifacts and reported 23.1% duplication where the source holds 1.85%; scope is our duty.
 """
+import hashlib
 import json
 import re
 from pathlib import Path
@@ -76,11 +77,18 @@ def _place(side):
     return {'path': side['name'], 'line': side.get('start'), 'end_line': side.get('end')}
 
 
+def fragment_digest(fragment):
+    """The identity of the code a pair copies, its spacing aside: the gate of one source per pattern
+    (eaos/analysis/repair/one_source_gate.py) tells a copy moved to another file from a new one by it."""
+    return hashlib.sha256(' '.join(fragment.split()).encode('utf-8')).hexdigest()[:16]
+
+
 def _record(clone):
-    """One pair of copies: where each is, its kind (exact, renamed, gap, similar), and how alike."""
+    """One pair of copies: where each is, its kind (exact, renamed, gap, similar), how alike, and the copied code's digest."""
     first, second = _place(clone['firstFile']), _place(clone['secondFile'])
     return {'path': first['path'], 'line': first['line'], 'symbol': None, 'granularity': 'file',
             'measurements': {'record': 'near_copy', 'kind': clone.get('kind') or 'exact', 'similarity': clone.get('similarity'),
+                             'digest': fragment_digest(clone.get('fragment') or ''),
                              'lines': clone.get('lines'), 'tokens': clone.get('tokens'), 'end_line': first['end_line'],
                              'format': clone.get('format'), 'other': second}}
 

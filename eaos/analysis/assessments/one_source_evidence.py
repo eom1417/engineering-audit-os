@@ -6,6 +6,11 @@ card). All three or it is a note, said in the report, never a card nor a breach 
    history extractor; or one of them was fixed and its twin was not), and the judge (the card triage) rules on it;
 2. the repetition costs upkeep or risks drift: the copies already differ, or their files keep changing;
 3. one source is simpler and safer: its home sits in the part the copies share, so no new coupling is made.
+
+These are signs to sort by, not proof of one contract: a card is a proposal, kept aside while its detector is under its
+measured bar, never a gate's refusal (eaos/analysis/repair/one_source_gate.py), and its repair proves itself by the
+behaviour lock and the project's tests. Known limit (M17): the third condition asks for one shared part, which the
+first already gives, so the history and a fix made apart decide no card today; they are said as reasons only.
 """
 from pathlib import Path, PurePosixPath
 

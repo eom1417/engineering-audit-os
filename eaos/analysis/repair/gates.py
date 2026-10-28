@@ -10,8 +10,8 @@ there, so everything found is the change's). A gate counts only what the change 
     cycle      files that import each other in a loop
     broken     a broken reference of high severity
   debt (the files the change touched, `paths`; the code laws, eaos/core/contracts/code_laws.py):
-    copy       one source per pattern (M15): a near copy, a value of the look outside the tokens file, a screen pattern or a
-               way of working written again, outside tests and configuration
+    copy       code copied word for word, outside tests and configuration; one source per pattern's detectors (M15) only
+               once their refusals are measured safe (eaos/analysis/repair/one_source_gate.py REFUSES)
     dead       code nothing uses (`dead` false for a build card: the later cards use what it made)
     complex    more decisions past the complexity limit, summed over those files (a split is less, a move is neither)
     size       a module grown past the line limit
@@ -44,7 +44,7 @@ def debt(before, after, paths, dead=True, had=None):
     """What a change adds against the code laws, from the facts `before` and `after` it; `had`: the changed files' sizes
     just before it, when the `before` facts are older (a batch's check on record)."""
     paths = set(paths)
-    rows = lambda folder: {**_copies(folder, paths), **(_dead(folder, paths) if dead else {})}
+    rows = lambda folder: {**_copies(folder, paths, before), **(_dead(folder, paths) if dead else {})}
     problems = _added(rows, before, after)
     was, now = (_excess(folder, paths) if folder else 0 for folder in (before, after))
     if now > was:
@@ -144,11 +144,12 @@ def _broken(folder):
 
 # ---------------------------------------------------------------- debt
 
-def _copies(folder, paths):
-    """Code copied, a value of the look outside the tokens file, a screen pattern or a way of working written again, at a
-    file in `paths` (eaos/analysis/repair/one_source_gate.py), tests and configuration aside."""
-    from .one_source_gate import rows
-    return rows(lambda name: _facts(folder, name), {path for path in paths if not ASIDE.search(path)})
+def _copies(folder, paths, before=None):
+    """Code copied word for word at a file in `paths`, tests and configuration aside, and what of one source per pattern
+    may refuse a change (eaos/analysis/repair/one_source_gate.py), as far as the check `before` measured it."""
+    from .one_source_gate import measured, rows
+    record = lambda where: (lambda name: read_json(Path(where) / 'facts' / f'{name}.json'))
+    return rows(record(folder), {path for path in paths if not ASIDE.search(path)}, measured(record(before)) if before else None)
 
 
 def _dead(folder, paths):

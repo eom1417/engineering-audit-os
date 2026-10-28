@@ -64,7 +64,7 @@ def _pairs(sets):
         if not _kept(fact): continue
         yield {'first': {'path': fact['location']['path'], 'line': fact['location'].get('line'), 'end_line': value.get('end_line')},
                'second': value.get('other') or {}, 'kind': value.get('kind'), 'similarity': value.get('similarity'),
-               'lines': value.get('lines') or 0, 'fact_id': fact['id']}
+               'lines': value.get('lines') or 0, 'digest': value.get('digest'), 'fact_id': fact['id']}
 
 
 def _cluster(members, pairs):
@@ -75,7 +75,8 @@ def _cluster(members, pairs):
     return _finding('near_copy', path, start, 'medium' if len(members) >= 3 or end - start >= 15 else 'low',
                     copies=len(members), lines=end - start + 1, kinds=sorted({p['kind'] for p in pairs}),
                     similarity=min(similar, default=1.0), places=[{'path': p, 'line': s, 'end_line': e} for p, s, e in members],
-                    home=f'{path}:{start}', fact_ids=[p['fact_id'] for p in pairs][:20])
+                    home=f'{path}:{start}', fact_ids=[p['fact_id'] for p in pairs][:20],
+                    digests=sorted({p['digest'] for p in pairs if p['digest']}))
 
 
 def _apart(start, end, other):

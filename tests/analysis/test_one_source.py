@@ -68,6 +68,40 @@ class ThreeConditions(unittest.TestCase):
         self.assertEqual(len(one_source.findings(None, busy)[0]), 1, 'two copies whose files keep changing cost upkeep')
 
 
+    def test_the_history_alone_decides_nothing_yet_copies_in_two_parts_stay_a_note(self):
+        # A known limit (M17): "simpler" asks for one shared part, so copies in two parts are a note even when they
+        # changed together; the history is said as a reason, never the verdict.
+        history = {'facts': [{'kind': 'history_cochange', 'location': {'path': 'src/billing/a.js', 'paired_path': 'src/orders/b.js'}, 'value': {}}]}
+        apart = {**sets(near(('src/billing/a.js', 1), ('src/orders/b.js', 1), 'similar')), 'history': history}
+        note = one_source.likenesses(None, apart)
+        self.assertEqual(one_source.findings(None, apart)[0], [])
+        self.assertEqual((note[0]['evidence']['why']['belongs'], note[0]['evidence']['why']['simpler']), ('they changed together in the history', None))
+
+    def test_copies_renamed_in_one_part_are_proposed_only_when_keeping_them_costs(self):
+        renamed = near(('src/billing/total.js', 1), ('src/billing/sum.js', 1), 'renamed')
+        self.assertEqual(one_source.findings(None, sets(renamed))[0], [], 'the same, never touched: a note')
+        churn = {'facts': [{'kind': 'history_churn', 'location': {'path': p}, 'value': {'commits': 4, 'fix_commits': 0}}
+                           for p in ('src/billing/total.js', 'src/billing/sum.js')]}
+        self.assertEqual(len(one_source.findings(None, {**sets(renamed), 'history': churn})[0]), 1)
+
+    def test_one_mass_commit_never_makes_files_change_together(self):
+        from eaos.facts.code import history
+        def commit(paths): return {'files': [(1, 1, p) for p in paths], 'fix': False, 'author': 'a', 'date': '2026-10-28'}
+        _, pairs = history._tally([commit([f'src/f{i}.js' for i in range(60)])], history.Settings().bulk_limit)
+        self.assertEqual(dict(pairs), {}, 'a reformat of sixty files is no pair')
+        _, pairs = history._tally([commit(['src/a.js', 'src/b.js'])], 50)
+        self.assertLess(pairs[('src/a.js', 'src/b.js')], history.Settings().min_support, 'one commit of two is under the support')
+
+    def test_a_proposal_from_shape_and_folder_is_kept_aside_by_the_packaged_verdicts(self):
+        # Two responsibilities alike in one folder: the rules propose a card, nobody is told to merge them.
+        import os
+        from unittest import mock
+        from eaos.analysis.claims import ledger
+        claims = from_one_source.one_source_claims(None, sets(near(('src/billing/tax.js', 1), ('src/billing/fee.js', 1), 'similar')), None, 0)
+        with mock.patch.dict(os.environ, {'EAOS_DETECTOR_VERDICTS': str(ledger.VERDICTS)}):
+            self.assertEqual(ledger.withhold(claims)[0], [])
+
+
 class Idioms(unittest.TestCase):
     def test_an_idiom_written_three_times_is_one_card_with_its_home_and_twice_is_none(self):
         def idiom(path, line, rule='eaos.idiom.date-format'):
@@ -148,6 +182,9 @@ class KeptAside(unittest.TestCase):
         with mock.patch.dict(os.environ, {'EAOS_DETECTOR_VERDICTS': str(verdicts)}):
             shown, withheld = ledger.withhold(claims)
         self.assertEqual((shown, withheld[0]['withheld']['detector']), ([], 'one_source:near_copy'))
+        said = ledger.withheld_said(withheld + withheld, ar=False)
+        self.assertEqual(said, ['an experimental detector kept aside until it is measured precise: one_source:near_copy '
+                                '(2 results not shown: precision under the bar)'], 'the report says what it kept aside and why')
 
 
 if __name__ == '__main__':
