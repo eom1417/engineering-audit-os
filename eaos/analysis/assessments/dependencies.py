@@ -6,28 +6,20 @@ default the project can turn off in eaos.engagement.json), the claim carries the
 needs. Its reviewer of record is that rule, never an invented person. Its check re-runs Syft and
 OSV-Scanner on the changed copy and passes only when none of the original advisories remain for the package.
 """
-import sys
-
-from ..repair.acceptance import fingerprint
+from ..repair.acceptance import fingerprint, recheck
 from ..understanding.engagement import rules_for
 from ..repair.remediation import PATTERNS, cited
 
 
 def _check_argv(ecosystem, name, advisories):
     """Re-scan into a private directory; exit 0 only when the package carries none of these advisories."""
-    code = (
-        "import json, subprocess, sys, tempfile\n"
-        "holder = tempfile.TemporaryDirectory(prefix='eaos-deps-'); tmp = holder.name\n"
-        "r = subprocess.run([sys.executable, '-m', 'eaos', 'facts', '.', '--out', tmp, '--engines', 'syft', 'osv-scanner'])\n"
-        "if r.returncode: sys.exit(r.returncode)\n"
-        "data = json.load(open(tmp + '/facts/external.json'))\n"
-        "if 'osv-scanner' not in (data.get('summary') or {}).get('engines_observed', []): sys.exit(2)\n"
-        f"prefix, wanted = {f'{ecosystem}:{name}@'!r}, set({sorted(advisories)!r})\n"
-        "left = [f for f in data['facts'] if f['kind'] == 'engine_finding' and f['value'].get('kind') == 'vulnerability'\n"
-        "        and str(f['location'].get('symbol', '')).startswith(prefix)\n"
-        "        and wanted & set(next((m['value'] for m in f['value']['measurements'] if m['name'] == 'advisory_ids'), []))]\n"
-        "sys.exit(1 if left else 0)\n")
-    return [sys.executable, '-B', '-c', code]
+    return recheck('eaos-deps-', "data = json.load(open(tmp + '/facts/external.json'))\n"
+                   "if 'osv-scanner' not in (data.get('summary') or {}).get('engines_observed', []): sys.exit(2)\n"
+                   f"prefix, wanted = {f'{ecosystem}:{name}@'!r}, set({sorted(advisories)!r})\n"
+                   "left = [f for f in data['facts'] if f['kind'] == 'engine_finding' and f['value'].get('kind') == 'vulnerability'\n"
+                   "        and str(f['location'].get('symbol', '')).startswith(prefix)\n"
+                   "        and wanted & set(next((m['value'] for m in f['value']['measurements'] if m['name'] == 'advisory_ids'), []))]\n"
+                   "sys.exit(1 if left else 0)\n", engines=('syft', 'osv-scanner'))
 
 
 def measured(fact, name):

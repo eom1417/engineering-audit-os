@@ -6,24 +6,16 @@ eaos.engagement.json), the claim carries the assessment a ready card needs. Its 
 and its source, never an invented person. Its check re-runs the detector on the changed copy and passes only
 when the candidate is gone.
 """
-import sys
-
-from ..repair.acceptance import fingerprint
+from ..repair.acceptance import fingerprint, recheck
 from ..understanding.engagement import rules_for
 from ..repair.remediation import PATTERNS, cited
 
 
 def _check_argv(path, symbol, rule):
     """Re-collect facts into a private directory; exit 0 only when the candidate is no longer reported."""
-    code = (
-        "import json, subprocess, sys, tempfile\n"
-        "holder = tempfile.TemporaryDirectory(prefix='eaos-deadcode-'); tmp = holder.name\n"
-        "r = subprocess.run([sys.executable, '-m', 'eaos', 'facts', '.', '--out', tmp])\n"
-        "if r.returncode: sys.exit(r.returncode)\n"
-        "facts = json.load(open(tmp + '/facts/deadcode.json'))['facts']\n"
-        f"left = [f for f in facts if (f['location']['path'], f['location']['symbol'], f['value']['rule']) == ({path!r}, {symbol!r}, {rule!r})]\n"
-        "sys.exit(1 if left else 0)\n")
-    return [sys.executable, '-B', '-c', code]
+    return recheck('eaos-deadcode-', "facts = json.load(open(tmp + '/facts/deadcode.json'))['facts']\n"
+                   f"left = [f for f in facts if (f['location']['path'], f['location']['symbol'], f['value']['rule']) == ({path!r}, {symbol!r}, {rule!r})]\n"
+                   "sys.exit(1 if left else 0)\n")
 
 
 def build_assessment(claim, fact_sets, target):
