@@ -74,7 +74,7 @@ def _cluster(members, pairs):
 def near_copies(sets):
     """One finding per cluster of near copies, not all in tests."""
     return [_cluster(members, pairs) for members, pairs in _clusters(list(_pairs(sets)))
-            if not all(TEST.search(path) for path, _, _ in members)]
+            if len(members) > 1 and not all(TEST.search(path) for path, _, _ in members)]
 
 
 def _places(records):
@@ -108,11 +108,14 @@ def _common(parts):
 
 
 def idioms(sets, folders):
-    """One finding per idiom written PATTERN_REPEATS times or more, with the ways it is written."""
+    """One finding per idiom written PATTERN_REPEATS times or more in one language (a Python helper cannot serve a
+    script), with the ways it is written."""
     by_form = {}
-    for fact in engine_records(sets, 'idiom'): by_form.setdefault(fact['value'].get('form'), []).append(fact)
+    for fact in engine_records(sets, 'idiom'):
+        python = fact['location']['path'].endswith('.py')
+        by_form.setdefault((fact['value'].get('form'), python), []).append(fact)
     found = []
-    for form, records in sorted(by_form.items()):
+    for (form, _), records in sorted(by_form.items()):
         places = _places(records)
         if len(places) < PATTERN_REPEATS: continue
         ways = sorted({p['rule'] for p in places})
