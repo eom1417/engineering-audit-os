@@ -794,6 +794,10 @@
   "no_layers": {
    "ar": "لم تُقرأ طبقات النظام في هذا الفحص، فلا شيء تُجرّب حدوده.",
    "en": "The layers were not read in this check, so there is nothing whose boundaries to try."
+  },
+  "unmeasured": {
+   "ar": "المرحلة اشتغلت لكن جزء منها ما انقاس (مثلًا ما فيه قاعدة بيانات خاصة بالنسخة، أو ما انفتحت صفحة تحفظ): هذا الجزء ما يُحسب سليم، وتفاصيله في RUN.md.",
+   "en": "The stage ran but part of it could not be measured (for example the copy has no database of its own, or no page that saves was opened): that part is never counted as clean; RUN.md says which."
   }
  }
 }

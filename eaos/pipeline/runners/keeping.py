@@ -7,6 +7,7 @@ from .live_app import _keep, _live, sessions
 from ...facts.store import facts
 from ...live.keeping import database, files, lost_update, restore, stored, synthetic, volume, writes
 from ...core.system.files import read_json
+from ...analysis.assessments.data_keeping import unmeasured
 
 PAGES = 5
 EDITS = ('PUT', 'PATCH')
@@ -58,4 +59,5 @@ def keeping(context):
     for heavy in ('writes_before', 'writes_at_volume'):
         if isinstance(record.get(heavy), dict): record[heavy] = {'pages': len(record[heavy].get('pages') or []), 'error': record[heavy].get('error')}
     _keep(context, 'keeping.json', record)
-    return {'saves': len(record['writes']), 'database': record['database'].get('kind'), 'files': len(record.get('files') or [])}
+    return {'saves': len(record['writes']), 'database': record['database'].get('kind'), 'files': len(record.get('files') or []),
+            'unmeasured': unmeasured(record)}       # what the copy could not read: a gap of the coverage ledger, in red (M15.0)
