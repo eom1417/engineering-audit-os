@@ -124,7 +124,8 @@ def _settle_claim(row, fact_index):
         row['disposition'] = {'kind': 'investigate', 'reason': 'Ranked for review; no owner assigned yet in this run.'}
 
 
-def _assess_mechanically(rows, sets, target):
+def assess_mechanically(rows, sets, target):
+    """Each confirmed product claim of a mechanical family given its ready repair (assessments/mechanical.py)."""
     from ..assessments.mechanical import build_assessment as mechanical
     for row in rows:
         built = mechanical(row, sets, target)
@@ -142,5 +143,5 @@ def build_claims(sets, records, load_record=None, target=None):
     for row in rows: _settle_claim(row, fact_index)
     # After numbering and origin are settled: a confirmed product observation whose evidence is mechanical
     # carries a ready repair under its family's engagement rule (eaos/analysis/assessments/mechanical.py).
-    if target is not None: _assess_mechanically(rows, sets, target)
+    if target is not None: assess_mechanically(rows, sets, target)
     return rows, fact_index, withheld
