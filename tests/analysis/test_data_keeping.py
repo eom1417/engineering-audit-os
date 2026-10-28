@@ -40,6 +40,13 @@ class FromTheCopy(unittest.TestCase):
 
 
 class FromTheCode(unittest.TestCase):
+    def test_squawk_s_pinned_output_keeps_the_risky_migrations_and_counts_its_style_rules(self):
+        from eaos.engines.code import squawk
+        rows = json.loads((Path(__file__).resolve().parents[1] / 'contracts/squawk.json').read_text(encoding='utf-8'))['squawk.json']
+        found = squawk.findings(rows, squawk.PINNED)
+        self.assertEqual(sorted(f['rule'] for f in found), ['adding-required-field', 'require-concurrent-index-creation'])
+        self.assertEqual(next(f for f in found if f['rule'] == 'adding-required-field')['sites'], [('migrations/001.sql', 2)])
+
     def test_the_baseline_s_saves_pictures_and_backup_are_found_and_what_must_stay_is_left(self):
         if ast_grep.version() != ast_grep.PINNED: self.skipTest('ast-grep is not installed at its pin')
         out = Path(scratch('eaos-keeping-facts-'))

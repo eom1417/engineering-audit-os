@@ -49,11 +49,13 @@ def keeping(context):
     def saves(): return writes.capture(base, _pages(context), state)
     record = {'schema_version': 1}
     _part(record, 'writes_before', saves)
-    db = database.open_run(live)
+    try: db = database.open_run(live)
+    except Exception as problem: db, record['database'] = None, {'why': f'its database could not be opened: {problem}'[:300]}  # noqa: BLE001
+
     if db: _database_parts(record, live, db, context, saves)
-    else: record['database'] = {'why': "the app runs on no database of the run's own (its PostgreSQL or an SQLite file)"}
+    else: record.setdefault('database', {'why': "the app runs on no database of the run's own (its PostgreSQL or an SQLite file)"})
     record['writes'] = writes.sorted_out(record.get('writes_before') or {}, record.get('writes_at_volume'))
-    _part(record, 'files', lambda: files.written(live.sandbox.copy, getattr(live, 'started_at', 0), getattr(db, 'path', None)))
+    _part(record, 'files', lambda: files.written(live.sandbox.copy, live.started_at, getattr(db, 'path', None)))
     _part(record, 'lost_update', lambda: lost_update.probe(base, edit_routes(context.out), lost_update.cookie_of(state)))
     for heavy in ('writes_before', 'writes_at_volume'):
         if isinstance(record.get(heavy), dict): record[heavy] = {'pages': len(record[heavy].get('pages') or []), 'error': record[heavy].get('error')}

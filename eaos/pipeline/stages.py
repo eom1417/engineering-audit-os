@@ -228,7 +228,7 @@ ORDER = tuple(stage.name for stage in STAGES)
 PHASES = {phase: tuple(sorted(names, key=ORDER.index)) for phase, names in {
           'read': ('facts', 'features', 'roles', 'intake', 'measure', 'architecture', 'policy', 'load'),
           'tools': ('engines', 'layers', 'layers_trial', 'claims', 'probe', 'sustainability', 'transform'),
-          'app': ('setup', 'verify', 'session', 'crawl', 'lock', 'record', 'journeys', 'screens', 'baseline', 'experience', 'readiness'),
+          'app': ('setup', 'verify', 'session', 'crawl', 'lock', 'record', 'journeys', 'screens', 'baseline', 'keeping', 'experience', 'readiness'),
           'assistant': ('semantic', 'triage', 'visual', 'ideal', 'pipeline_gaps'),
           'plan': ('plan', 'target', 'proposals', 'cards', 'reconcile', 'order', 'steps', 'reports', 'translate')}.items()}
 PHASE = {name: phase for phase, names in PHASES.items() for name in names}
