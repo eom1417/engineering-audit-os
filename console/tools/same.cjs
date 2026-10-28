@@ -5,10 +5,11 @@
    console's code (boot.js and assets/) from a build folder instead of the server's, the server and its data the same.
    Two drawings are compared without the strip of the run working now and with every number masked (steady()): a
    live server moves both on its own; the markup and the words must be the same.
-   --look compares what is seen instead of the markup: each element is its tag, its attributes (class and style
-   aside), its own words and its computed look (colours, borders, fonts, spacing, radii, shadow, layering, place and
-   size; ::before and ::after too), so moving a style from an attribute into a class leaves two drawings equal. A save
-   and its comparison are both made with --look or both without.
+   --look compares what is seen instead of the markup: each element is its tag, its own words and its computed look
+   (colours, borders, fonts, spacing, radii, shadow, layering, place and size; ::before and ::after too), so moving a
+   style from an attribute into a class, or a part into the one function that draws it, leaves two drawings equal. Its
+   attributes (class and style aside) are saved to read a difference by, not compared. A save and its comparison are
+   both made with --look or both without; --diff=FILE writes the two drawings of each address that differs.
    Usage: node console/tools/same.cjs --save=before.json [--assets=DIR] [--look]
           node console/tools/same.cjs --against=before.json --assets=../eaos/data/studio [--look] [--diff=FILE] */
 const fs = require('fs');
@@ -25,8 +26,9 @@ const SEEDS = ['/status', '/waiting', '/waiting/decided', '/waiting/questions', 
 const PER_KIND = 3, MOST = 400;
 
 /** What a screen draws, without what moves on its own between two drawings: the strips of the run working now (side and phone), and
- *  every number (times, durations, counts of a live server). Markup and words are compared as they are. */
-const steady = html => LOOK ? html : html.replace(/<a class="(side-live|live-strip)[^]*?<\/a>/g, '').replace(/\d+/g, '#');
+ *  every number (times, durations, counts of a live server). Markup and words are compared as they are; with --look,
+ *  each element's attributes are left out (seen() masked its numbers already). */
+const steady = html => LOOK ? html.replace(/^( *<[\w-]+) [^\n]*?> /gm, '$1> ') : html.replace(/<a class="(side-live|live-strip)[^]*?<\/a>/g, '').replace(/\d+/g, '#');
 
 /** The kind of an address: its first two parts, how many parts follow, and which query names it has. */
 function kind(route) {
