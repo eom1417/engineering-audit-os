@@ -18,8 +18,9 @@ engineering-audit-os/
                            rules.py (the person's own rules through every door: the terminal, MCP, the Studio, its chat
                            and a card's note)
       terminal/            the terminal's governance commands, its branch commands and `eaos rules`
-      mcp_server/          `eaos mcp`: the server and its tools (build, fix, govern, the AI nodes as jobs) and
-                           studio_parity.py (every Studio route has a tool or a written reason)
+      mcp_server/          `eaos mcp`: the server and its tools (build, fix, govern, the person's rules, the AI nodes as
+                           jobs), person.py (what only the person decides) and studio_parity.py (every Studio route has
+                           a tool or a written reason)
       studio_server/       the Studio's local server: the guard, the read API, the live stream, the built Studio
       studio_actions/      the Studio's actions (docs/studio-actions.json): runs, chat, lanes; branches/ its branch control
     journeys/              the person's journeys: check.py, check_choices.py, extend.py, handover.py, catalog.py

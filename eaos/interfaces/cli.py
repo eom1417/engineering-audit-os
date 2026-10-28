@@ -119,7 +119,7 @@ def policy_command(args):
 
 
 BRANCH_COMMANDS = ('accept', 'branch', 'branches', 'undo')    # in interfaces/terminal/branches.py
-RULE_COMMANDS = ('rules_command',)                           # in interfaces/terminal/rules.py
+RULE_COMMANDS = ('rules_command', 'check_or_changed')                           # in interfaces/terminal/rules.py
 
 
 def terminal(name):
@@ -148,7 +148,8 @@ def governance_commands(s):
 def _run_commands(command):
     """The check and the runs: start, follow, control, what waits for the person, the sign-in and the answer."""
     from .govern import CONTROLS
-    q = command('check', 'Check the project now, in the background: the time it takes first, then a new check (nothing in it changes)')
+    q = command('check', 'Check the project now, in the background: the time it takes first, then a new check (nothing in it changes)',
+                'check_or_changed')
     q.add_argument('--path', nargs='+', choices=sorted(PATHS), default=None, help='check only these paths')
     q.add_argument('--mode', choices=['normal', 'speed'], default=None)
     q.add_argument('--assistant', choices=['claude', 'codex', 'none'], default=None, help='the AI the check uses, or none')

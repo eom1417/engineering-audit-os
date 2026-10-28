@@ -130,7 +130,6 @@ def gate(owner, rules, root, changed, laws):
     """A fix's gate (eaos/journeys/fix/waves/batch.py edit_gates): the person's rules this change breaks, only what it
     brought against the copy just before it (the gate's commit is made), each recorded on its rule, as the refusal's
     sentences. `laws`: what the code laws' gates found the change added, for a detector guard."""
-    from .changed import found_of
     with at_commit(root, 'HEAD~1') as before:
         results = on_change(rules, root, changed, before, found_of(laws))
     record(owner, results, 'gate')
@@ -141,3 +140,9 @@ def as_gate(state, card, root, changed, laws):
     """The gate's problems ({gate, where, what}) of the person's rules that hold for this card (a build's, M16.4)."""
     rules = registry.holding(state['project'], state, card)
     return [{'gate': 'rules', 'where': card or '', 'what': said} for said in gate(state['project'], rules, root, changed, laws)] if rules else []
+
+
+def found_of(problems):
+    """The gates' problems as a detector guard reads them."""
+    return [{'detector': p['gate'], 'places': [part.strip() for part in p['where'].split(',') if part.strip()], 'said': p['what']}
+            for p in problems]

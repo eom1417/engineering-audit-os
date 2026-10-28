@@ -99,12 +99,6 @@ def laws(before, after, paths):
         return debt(folders['before'], folders['after'], [p for p in paths if (Path(after) / p).is_file()], dead=False)
 
 
-def found_of(problems):
-    """The gates' problems as a detector guard reads them."""
-    return [{'detector': p['gate'], 'places': [part.strip() for part in p['where'].split(',') if part.strip()], 'said': p['what']}
-            for p in problems]
-
-
 def _sides(project, files, since, scratch):
     """(after, before): `files` as the change leaves them (the index for a commit) and as they were (its base)."""
     base, staged = since
@@ -122,7 +116,7 @@ def _held(project, rules, change, since, gates):
         # the code laws read the changed files alone (what the change wrote); their importers are for the rules' guards
         problems = laws(*reversed(_sides(project, paths, since, Path(scratch) / 'laws')), paths) if gates else []
         tested = [r for r in rules if (r.get('guard') or {}).get('kind') == 'test']
-        results = held.on_change([r for r in rules if r not in tested], after, paths, before, found_of(problems))
+        results = held.on_change([r for r in rules if r not in tested], after, paths, before, held.found_of(problems))
         with held.at_commit(project, since[0] or 'HEAD') as earlier:
             results += held.on_change(tested, project, files, earlier)
     return results, problems

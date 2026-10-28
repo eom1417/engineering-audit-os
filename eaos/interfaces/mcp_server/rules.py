@@ -3,18 +3,17 @@
 too (server.build), so its "Your rules", its chat and a card's comment use the same ones.
 
 What only the person decides: pinning, unpinning, changing a rule and the commit hook take `person_agreed`, given
-only after their yes; inside a Studio run each is refused (server.PERSON_ONLY). Saying a rule is the person's words:
+only after their yes; inside a Studio run each is refused (person.PERSON_ONLY). Saying a rule is the person's words:
 `words` as they said them, never the assistant's summary of them.
 """
 from .. import rules as person_rules
-from .server import refuse_in_studio_run
+from .person import STUDIO, refuse_in_studio_run
 
 DECIDED = ('pin', 'unpin', 'change', 'hook')        # the person's: their yes first
 
 
 def _door(door):
     from ...journeys.handover import assistant
-    from .server import STUDIO
     return door if door in ('chat', 'card') else 'studio' if assistant() == STUDIO else 'mcp'
 
 

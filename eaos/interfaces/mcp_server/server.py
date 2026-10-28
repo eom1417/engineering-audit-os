@@ -14,6 +14,7 @@ from pathlib import Path
 
 from ... import __version__
 from ...core.contracts.code_laws import LAWS
+from .person import PERSON_ONLY, STUDIO, refuse_in_studio_run  # noqa: F401  (what only the person decides, read here by its callers)
 
 INSTRUCTIONS = """EAOS (Engineering Audit OS) checks a whole software project, finds its structural, security and
 performance problems with evidence, and fixes them safely: each fix is made in an isolated copy, checked (the
@@ -68,21 +69,6 @@ public function or class (its name, its parameters, the module it is defined in)
 what the tools returned.
 
 """ + LAWS
-
-
-# What only the person decides: these tools, and these operations of the governance tools and commands (eaos/interfaces/govern.py).
-# In a run the Studio started (EAOS_STUDIO_RUN set by eaos/interfaces/studio_actions), the assistant asks instead, and the person
-# answers in the Studio, which calls these itself.
-PERSON_ONLY = ('accept', 'undo', 'choose_branch', 'answer', 'branches merge', 'branches delete', 'branches protect', 'branches cleanup',
-               'branches restore', 'auto_accept', 'sign_in_forget', 'logic_flaws', 'rule pin', 'rule unpin', 'rule change', 'rule hook')
-STUDIO = 'EAOS Studio'           # the name the Studio's own calls are recorded under
-
-
-def refuse_in_studio_run(name):
-    """PermissionError for a decision only the person makes (PERSON_ONLY), asked inside a run the Studio started."""
-    if name in PERSON_ONLY and os.environ.get('EAOS_STUDIO_RUN'):
-        raise PermissionError(f"{name} is the person's decision, and they make it in the EAOS Studio: ask them with an "
-                              'eaos-question block and stop')
 
 
 def _status(project=None):

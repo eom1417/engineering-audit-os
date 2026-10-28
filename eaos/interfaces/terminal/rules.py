@@ -102,6 +102,12 @@ def _hook(args, lang):
     guided.box(lang, words('hook_on', lang, hook=done['hook']) if on else words('hook_off', lang), commands=['eaos rules'])
 
 
+def check_or_changed(args):
+    """`eaos check`: the diff-scoped check here and now with --changed (M16.7), else a check queued as always."""
+    from .commands import check
+    return command(changed)(args) if getattr(args, 'changed', False) else check(args)
+
+
 def changed(args, lang):
     """`eaos check --changed`: the diff-scoped check; exit 1 when a rule is broken (the hook refuses the commit). From
     the hook, EAOS's own failure never stops the person's commit: it is said, and the commit goes on."""

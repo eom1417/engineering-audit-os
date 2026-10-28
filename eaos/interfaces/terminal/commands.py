@@ -85,9 +85,6 @@ def _said(actions, record):
 
 @command
 def check(args, lang):
-    if getattr(args, 'changed', False):         # the diff-scoped check, here and now (M16.7)
-        from .rules import changed
-        return changed(args, lang)
     project = _project(args)
     inputs = govern.check_inputs(getattr(args, 'path', None), getattr(args, 'assistant', None), getattr(args, 'again_from', None),   # check, start
                                  **{name: getattr(args, name, None) for name in ('mode', 'sign_in', 'published', 'run_app')})
