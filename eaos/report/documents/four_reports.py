@@ -19,13 +19,9 @@ from ...core.system.files import read_json
 NAMES = ('CURRENT-STATE.md', 'TARGET-STATE.md', 'GAP-AND-STRATEGY.md', 'EXECUTION-PLAN.md')
 
 
-def _load(out, name, default=None):
-    return read_json(Path(out) / name, default)
-
-
 def _read(out, name, key, empty):
     """The `key` of the report's record `name`; `empty` when the record or the key is missing."""
-    return (_load(out, name, {}) or {}).get(key) or empty
+    return (read_json(Path(out) / name, {}) or {}).get(key) or empty
 
 
 def _labels(ar):
@@ -49,7 +45,7 @@ VERDICT_WORDS = {'keep': ('keep: already right, nothing changes', 'يبقى: ص�
 def aspects(out):
     """Every aspect of the program with its verdict: the final target's (target-architecture.json, written by the
     reconcile stage), else the rules' verdict from the records (eaos/analysis/understanding/aspects.py)."""
-    rows = (_load(out, 'target-architecture.json', {}) or {}).get('aspects')
+    rows = (read_json(Path(out) / 'target-architecture.json', {}) or {}).get('aspects')
     if rows: return rows
     from ...analysis.understanding.aspects import final
     return final(out)
@@ -112,9 +108,15 @@ def _feature_items(features, ar):
             + ([f"… {len(features) - 12} " + ('أخرى في features.json' if ar else 'more in features.json')] if len(features) > 12 else []))
 
 
-def _unexamined(coverage, external, ar):
-    return (list(coverage.get('not_examined') or [])[:8]
-            + [('محرك غير مثبت: ' if ar else 'engine not installed: ') + name for name in external.get('engines_unavailable') or []])
+def _unexamined(page, out, coverage, external, ar):
+    alike = [row['ar' if ar else 'en'] for row in _read(out, 'dossier.json', 'likenesses', [])[:10]]   # said, no card (M15)
+    if alike:
+        page.para('متشابهات في الشكل بس، ما صارت بطاقات (ما استوفت الشروط الثلاثة):' if ar else
+                  'Alike in shape only, not cards (they miss one of the three conditions):')
+        page.items(alike)
+    page.heading(_labels(ar)['unexamined'])
+    page.items(list(coverage.get('not_examined') or [])[:8]
+               + [('محرك غير مثبت: ' if ar else 'engine not installed: ') + name for name in external.get('engines_unavailable') or []])
 
 
 def _current_number_items(numbers, ar):
@@ -144,7 +146,7 @@ def _current_evidence(page, features, items, measured, ar):
 def current_state(out, ar):
     L = _labels(ar)
     coverage, features = _read(out, 'dossier.json', 'coverage', {}), _read(out, 'features.json', 'features', [])
-    register = _load(out, 'debt-register.json', {}) or {}
+    register = read_json(Path(out) / 'debt-register.json', {}) or {}
     items = register.get('items') or []
     severe = [i for i in items if i['severity'] in ('high', 'critical')]
     external, measured = _read(out, 'facts/external.json', 'summary', {}), _read(out, 'measurements.json', 'files', [])
@@ -164,8 +166,7 @@ def current_state(out, ar):
                'Every high item in the register has a deterministic witness or two tools; leaving one means a known risk ships in every release.'))
     page.heading(L['recommendation'])
     page.para(('ابدأ بمعلم التثبيت في EXECUTION-PLAN.md.' if ar else 'Start with the stabilize milestone in EXECUTION-PLAN.md.'))
-    page.heading(L['unexamined'])
-    page.items(_unexamined(coverage, external, ar))
+    _unexamined(page, out, coverage, external, ar)
     page.heading(L['appendices'])
     page.items(['`features.json`', '`measurements.json`', '`debt-register.json`', '`load-model.json`', '`facts/external.json`'])
     return page.text()
@@ -173,7 +174,7 @@ def current_state(out, ar):
 
 def target_state(out, ar):
     L = _labels(ar)
-    target = _load(out, 'target-architecture.json', {}) or {}
+    target = read_json(Path(out) / 'target-architecture.json', {}) or {}
     components = target.get('target_components') or []
     infrastructure = target.get('infrastructure') or []
     absent = [i for i in infrastructure if not i['present']]
@@ -307,9 +308,9 @@ def gap_and_strategy(out, ar):
 
 def execution_plan(out, ar):
     L = _labels(ar)
-    plan = _load(out, 'plan.json', {}) or {}
+    plan = read_json(Path(out) / 'plan.json', {}) or {}
     tasks = plan.get('tasks') or []
-    numbers = _plan_numbers(plan, tasks, _load(out, 'cards.json', {}) or {})
+    numbers = _plan_numbers(plan, tasks, read_json(Path(out) / 'cards.json', {}) or {})
     page = Page('خطة التنفيذ' if ar else 'Execution plan')
     page.heading(L['summary'])
     page.para(f"{L['decision']}: " + (f"تخصيص فريق للمعلم الأول ({(plan.get('milestones') or [{}])[0].get('name', '—')})." if ar else

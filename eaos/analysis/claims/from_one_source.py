@@ -5,7 +5,7 @@ layout; its acceptance is the detector finding none (its probe reads the code ag
 CONFIRMED (the code shows them); an idiom or a UI pattern is LIKELY, and the judge (the card triage) reads it.
 """
 from . import ledger
-from ..assessments.one_source import findings
+from ..assessments.one_source import findings, likenesses
 
 FORMS = {   # an idiom's form: (English, Arabic)
     'json_read': ('reading a JSON file or stored value', 'قراءة ملف JSON أو قيمة محفوظة'),
@@ -109,3 +109,19 @@ def present(specification, sets):
     if any(_same(finding, specification) for finding in found):
         return 'CONFIRMED', f"the {specification['kind'].replace('_', ' ')} is still there"
     return 'REFUTED', f"no {specification['kind'].replace('_', ' ')} left at its places"
+
+
+MISSING = {'belongs': ('nothing shows they carry one responsibility', 'ما فيه دليل إنها تحمل مسؤولية وحدة'),
+           'upkeep': ('they are not drifting and their files do not change', 'ما تباعدت وملفاتها ما تتغير'),
+           'simpler': ('one source would join two parts of the system', 'مصدر واحد بيربط جزأين من النظام')}
+
+
+def notes(out, sets):
+    """The likenesses said in the report, never cards: each with its places and the condition it lacks, in both languages."""
+    said = []
+    for finding in likenesses(out, sets)[:30]:
+        en, ar = (text.format(**_values(finding)) for text in WORDS[finding['kind']][:2])
+        lacks = [MISSING[name] for name, why in finding['evidence']['why'].items() if not why]
+        said.append({'en': en + ': alike in shape only, ' + '; '.join(e for e, _ in lacks),
+                     'ar': ar + ': متشابهة في الشكل بس، ' + '؛ '.join(a for _, a in lacks)})
+    return said

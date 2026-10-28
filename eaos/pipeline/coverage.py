@@ -22,13 +22,18 @@ def ledger(rows, settled=None):
 
 
 def _entry(loop, rows, settled):
-    state, behind = outcome(loop, rows) if all(name in rows for name in loop.stages) else ('running', [])
-    behind = behind + [name for name in _unmeasured(loop, rows) if name not in behind]
+    state, behind = _state(loop, rows)
     codes = [rows[name].get('reason_code') for name in behind]
     return {'loop': loop.name, 'name': _name(loop.name), 'state': state, 'rounds': settled.get('rounds', 1),
             'covered': [name for name in loop.stages if (rows.get(name) or {}).get('status') == 'ok'],
             'missed': _missed(loop, rows), 'behind': behind,
             'big': state == NOT_MET or any(code not in CHOSEN for code in codes)}
+
+
+def _state(loop, rows):
+    """(the loop's state, the stages behind it: those its outcome names, then those that could not measure their ground)."""
+    state, behind = outcome(loop, rows) if all(name in rows for name in loop.stages) else ('running', [])
+    return state, behind + [name for name in _unmeasured(loop, rows) if name not in behind]
 
 
 def _unmeasured(loop, rows):

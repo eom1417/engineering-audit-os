@@ -7,7 +7,7 @@ from collections import namedtuple
 from functools import partial
 from pathlib import Path
 from ... import __version__
-from ..claims import from_runs, ledger
+from ..claims import from_one_source, from_runs, ledger
 from ..claims.gather import REGISTER, build_claims, fact_index_of, needs_a_disposition, origin_of, runtime_claims
 from ...core import progress
 from ...core.contracts.document import Document, say
@@ -335,6 +335,7 @@ def _dossier(request, inputs, rows, withheld):
         'description': describe(sets, records),
         'claim_counts': ledger.claim_counts(rows),
         'claims': rows,
+        'likenesses': from_one_source.notes(request.out, sets),     # alike in shape only: said, never cards (M15)
         'withheld_claims': withheld,
         'questions': questions_of(records, sets),
         'tasks': tasks,

@@ -44,6 +44,24 @@ class NearCopies(unittest.TestCase):
         self.assertEqual((three['place'], three['severity'], three['evidence']['kinds']), ('a.py', 'medium', ['renamed', 'similar']))
 
 
+class ThreeConditions(unittest.TestCase):
+    """A likeness is a card only when its copies belong together, cost upkeep, and one source is simpler; else a note."""
+    def test_copies_in_one_part_that_already_differ_are_a_card_and_alike_shapes_apart_are_a_note(self):
+        drifted = sets(near(('src/billing/a.js', 1), ('src/billing/b.js', 1), 'similar'))
+        self.assertEqual(len(one_source.findings(None, drifted)[0]), 1)
+        self.assertTrue(all(one_source.findings(None, drifted)[0][0]['evidence']['why'].values()))
+        apart = sets(near(('src/billing/a.js', 1), ('src/reports/b.js', 1), 'similar'))
+        self.assertEqual((one_source.findings(None, apart)[0], len(one_source.likenesses(None, apart))), ([], 1))
+        idle = sets(near(('src/billing/a.js', 1), ('src/billing/b.js', 1)))      # the same, in one part, never touched
+        self.assertEqual(one_source.findings(None, idle)[0], [])
+
+    def test_the_history_says_which_copies_belong_together_and_keep_costing(self):
+        history = {'facts': [{'kind': 'history_churn', 'location': {'path': p}, 'value': {'commits': 5, 'fix_commits': 0}}
+                             for p in ('src/billing/a.js', 'src/billing/b.js')]}
+        busy = {**sets(near(('src/billing/a.js', 1), ('src/billing/b.js', 1))), 'history': history}
+        self.assertEqual(len(one_source.findings(None, busy)[0]), 1, 'two copies whose files keep changing cost upkeep')
+
+
 class Idioms(unittest.TestCase):
     def test_an_idiom_written_three_times_is_one_card_with_its_home_and_twice_is_none(self):
         def idiom(path, line, rule='eaos.idiom.date-format'):
@@ -97,7 +115,7 @@ class TheLook(unittest.TestCase):
 class Cards(unittest.TestCase):
     def test_every_finding_is_one_card_in_both_languages_whose_probe_reads_the_code_again(self):
         idioms = [record(f'src/p{n}.js', 1, engine='ast-grep', record='idiom', form='json_read', rule='eaos.idiom.json-read') for n in range(3)]
-        facts = sets(near(('a.py', 1), ('b.py', 1)), *idioms,
+        facts = sets(near(('a.py', 1), ('b.py', 1), 'similar'), *idioms,
                      patterns=[{'id': f'P{n}', 'kind': 'look_value', 'location': {'path': 'src/a.css'}, 'value': {'kind': 'color', 'value': value, 'count': 3,
                                 'places': [{'path': 'src/a.css', 'line': n}, {'path': 'src/b.css', 'line': n}, {'path': 'src/c.css', 'line': n}]}}
                                for n, value in enumerate(('#fff', '#111', '#2a49c8'))])
@@ -114,7 +132,7 @@ class KeptAside(unittest.TestCase):
         import os
         from unittest import mock
         from eaos.analysis.claims import ledger
-        claims = from_one_source.one_source_claims(None, sets(near(('a.py', 1), ('b.py', 1))), None, 0)
+        claims = from_one_source.one_source_claims(None, sets(near(('a.py', 1), ('b.py', 1), 'similar')), None, 0)
         verdicts = Path(scratch('eaos-verdicts-')) / 'verdicts.json'
         verdicts.write_text(json.dumps({'hidden': {'one_source:near_copy': 'precision under the bar'}, 'shown': []}), encoding='utf-8')
         with mock.patch.dict(os.environ, {'EAOS_DETECTOR_VERDICTS': str(verdicts)}):

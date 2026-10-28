@@ -15,7 +15,7 @@ from pathlib import PurePosixPath
 from ...core.contracts.code_laws import NEAR_COPY, PATTERN_REPEATS
 from ...facts.duplication.element_trees import PRIMITIVES
 from ...facts.engine_findings import engine_records
-from . import one_source_look
+from . import one_source_evidence, one_source_look
 
 TEST = re.compile(r'(^|/)(tests?|__tests__|spec|e2e)(/|$)|[._-](test|spec)\.[a-z]+$')
 # What is written alike on purpose or by a tool, never a copy to give one home: generated migrations and types, a
@@ -168,13 +168,27 @@ def folders_of(sets):
     return {parent.as_posix() for path in paths if path for parent in PurePosixPath(path).parents if parent.as_posix() != '.'}
 
 
+def _gated(out, sets, folders):
+    """(the near copies and screen patterns that earn a card, the others: likenesses said as notes), by the three
+    conditions (one_source_evidence.gate), each with its evidence."""
+    layers, history = one_source_evidence.layers_of(out), one_source_evidence.history_of(sets)
+    cards, notes = [], []
+    for finding in near_copies(sets) + ui_patterns((sets.get('patterns') or {}).get('facts') or [], folders):
+        card, finding['evidence']['why'] = one_source_evidence.gate(finding, layers, history)
+        (cards if card else notes).append(finding)
+    return cards, notes
+
+
 def findings(out, sets, root=None):
     """Every finding of one source per pattern, and what was not read (a tool that did not run)."""
-    patterns = (sets.get('patterns') or {}).get('facts') or []
     folders = folders_of(sets)
-    look = one_source_look.finding(patterns, out)
-    found = near_copies(sets) + idioms(sets, folders) + ui_patterns(patterns, folders) + ([look] if look else [])
-    return found, unmeasured(sets)
+    look = one_source_look.finding((sets.get('patterns') or {}).get('facts') or [], out)
+    return _gated(out, sets, folders)[0] + idioms(sets, folders) + ([look] if look else []), unmeasured(sets)
+
+
+def likenesses(out, sets):
+    """The near copies and screen patterns alike in shape only, missing a condition: notes for the report, never cards."""
+    return _gated(out, sets, folders_of(sets))[1]
 
 
 def unmeasured(sets):

@@ -43,8 +43,8 @@ def one_source_counts(workdir, sets):
     the Studio's tokens file, UI patterns and ways of working repeated."""
     from eaos.analysis.assessments.one_source import numbers
     from eaos.facts.run import collect
-    collect(ROOT, workdir, ['patterns'], exclude=EXCLUDE)
-    sets['patterns'] = json.loads((Path(workdir) / 'facts' / 'patterns.json').read_text(encoding='utf-8'))
+    collect(ROOT, workdir, ['patterns', 'history'], exclude=EXCLUDE)
+    for name in ('patterns', 'history'): sets[name] = json.loads((Path(workdir) / 'facts' / f'{name}.json').read_text(encoding='utf-8'))
     return Counter({f'one_source:{name}': count for name, count in numbers(sets).items()})
 
 
