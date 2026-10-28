@@ -125,7 +125,7 @@ function stepRow(s, next) {
     <div class="row__main">
       <a class="un-steprow__title" href="${href('/problems/plan/' + enc(s.id))}">${title(s)}</a>
       <div class="un-steprow__meta">${stateTag(s.state)}${s === next ? `<span class="tag tag--you">${t('un.plan.nexttag')}</span>` : ''}${s.sub_plan ? `<span class="tag tag--state">${t('un.plan.sub')}</span>` : ''}<span class="small muted">${esc(tn('pl.problem', s.ids.length))}${t('list.sep')}${esc(t('un.plan.open', { n: num(open) }))}</span></div>
-      <p class="small ink-2" style="margin-top:4px">${waits}</p>
+      <p class="small ink-2 mt-1">${waits}</p>
     </div>
     <div class="un-steprow__end">${s.state === 'blocked' || s.review || s.decision ? '' : fixBtn(s, 'btn--secondary btn--sm', t('verb.fix'))}</div>
   </li>`;
@@ -138,9 +138,9 @@ function plansFold() {
   return fold(t('un.plan.plans'), esc(tn('un.pl.plan', plans.length)), `<ul class="rows">${plans.map(p => `<li class="row" style="padding-inline:0;align-items:flex-start"><span class="row__main">
       <span class="row__title">${rich(L(p.title || p.id))}</span>
       <span class="row__meta" style="display:block">${esc(kind(p.kind))}${t('list.sep')}${esc(life(p.state))}${t('list.sep')}${esc(tn('un.pl.step', p.steps.length))}${p.parent ? `${t('list.sep')}${esc(t('un.plan.under', { id: p.parent }))}` : ''}</span>
-      ${p.goal ? `<span class="small ink-2" style="display:block;margin-top:4px">${rich(L(p.goal))}</span>` : ''}</span></li>`).join('')}</ul>
-    ${build ? `<a class="btn btn--secondary btn--sm" style="margin-top:8px" href="${href('/activity', { sheet: offline() ? 'open-live' : 'launcher' })}">${t('un.plan.buildnext')}</a>
-      <p class="small muted" style="margin-top:4px">${t('un.plan.buildnext.note')}</p>` : ''}`);
+      ${p.goal ? `<span class="small ink-2 block mt-1">${rich(L(p.goal))}</span>` : ''}</span></li>`).join('')}</ul>
+    ${build ? `<a class="btn btn--secondary btn--sm mt-2" href="${href('/activity', { sheet: offline() ? 'open-live' : 'launcher' })}">${t('un.plan.buildnext')}</a>
+      <p class="small muted mt-1">${t('un.plan.buildnext.note')}</p>` : ''}`);
 }
 const PLAN_STATES = ['draft', 'registered', 'approved', 'rejected', 'active', 'review', 'merged', 'closed', 'regressed', 'archived'];
 
@@ -227,13 +227,13 @@ function wavesPage(ctx) {
     const rows = list.slice(0, 12).map(x => { const p = model.problem(x.id); return p ? prow(p, waitText(x.id, true)) : ''; }).join('');
     picked = `<section class="section" aria-labelledby="wp-h"><div class="section-head"><h2 id="wp-h">${esc(heading)}</h2><a class="link" href="${href(r.path)}">${t('flt.clear')}</a></div>
       ${list.length ? `<div class="panel rows">${rows}</div>` : `<p class="small muted">${t('un.waves.none')}</p>`}
-      ${list.length > 12 ? `<p class="small muted" style="margin-top:8px">${esc(t('un.comp.andmore', { n: num(list.length - 12) }))}</p>` : ''}</section>`;
+      ${list.length > 12 ? `<p class="small muted mt-2">${esc(t('un.comp.andmore', { n: num(list.length - 12) }))}</p>` : ''}</section>`;
   }
   return `<div class="page page--wide">
     ${backLink}
     <h1 class="lede">${esc(t('un.waves.lede', { n: tn('un.pl.wave', W) }))}</h1>
     <p class="guide">${t('un.waves.guide')}</p>
-    <div class="section" style="margin-top:24px">${grid}${phone}</div>
+    <div class="section mt-6">${grid}${phone}</div>
     ${picked}
   </div>`;
 }
@@ -287,7 +287,7 @@ function stepPage(ctx) {
   const all = steps();
   const s = all.find(x => x.id === ctx.params.step);
   const backLink = back('/problems/plan', t('pb.view.plan'));
-  if (!s) return `<div class="page">${backLink}<div class="empty panel" style="margin-top:12px"><h1 class="empty__title">${esc(t('pd.notfound', { id: ctx.params.step }))}</h1><p class="small ink-2">${t('un.notfound.guide')}</p></div></div>`;
+  if (!s) return `<div class="page">${backLink}<div class="empty panel mt-3"><h1 class="empty__title">${esc(t('pd.notfound', { id: ctx.params.step }))}</h1><p class="small ink-2">${t('un.notfound.guide')}</p></div></div>`;
   const tasks = s.ids.map(id => model.problem(id) || Object.assign({ id, severity: 'info', paths: [] }, s.tasks.find(x => x.id === id), { state: 'open' }));
   const before = all.filter(x => x.waits.some(w => w[0] === s.id));
   const guide = t('un.step.guide', { n: tn('pl.problem', s.ids.length), waits: s.waits.length ? t('un.step.guide.waits', { list: s.waits.map(w => w[0]).join(t('list.sep')) }) : t('un.step.guide.free'), before: before.length ? t('un.step.guide.before', { list: before.map(x => x.id).join(t('list.sep')) }) : '' });

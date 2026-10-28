@@ -3,6 +3,7 @@
 import {
   t, L, num, esc, icon, code, href, sheet, act, rerenderSheet, local, parseHash, closeSheetThen, toast, refresh, offline, chk,
   S, store, model, client, contract, ActionError, has, ac,
+  terminalFold,
 } from 'eaos';
 import { metaOf, reading, said, alertLine } from './launch.js';
 
@@ -28,7 +29,7 @@ function fieldKind(type, enumOf, items) {
 const FIELDS = new Map(Object.entries({
   boolean: f => `<div class="toggle-row"><span>${esc(f.label)}</span><span class="switch"><input type="checkbox" id="${f.id}" data-fk="${f.id}" data-change="ac-field" data-f="${esc(f.name)}" ${f.v ? 'checked' : ''} aria-label="${esc(f.label)}"><span class="switch__track"></span><span class="switch__thumb"></span></span></div>`,
   choice: f => `<fieldset class="ac-fs"><legend class="ac-label">${esc(f.label)}</legend><div class="opts">${f.enumOf.map(x => `<label class="opt"><input type="radio" name="${f.id}" value="${esc(x)}" data-change="ac-field" data-f="${esc(f.name)}" data-fk="${f.id}-${esc(x)}" ${f.v === x ? 'checked' : ''}><span class="opt__dot" aria-hidden="true"></span><span class="opt__text">${esc(valText(x))}</span></label>`).join('')}</div></fieldset>`,
-  picks: f => `<fieldset class="ac-fs"><legend class="ac-label">${esc(f.label)}</legend><div class="panel rows">${f.items.enum.map(x => `<label class="row" style="min-height:48px;gap:12px">${chk(`data-change="ac-field" data-f="${esc(f.name)}" value="${esc(x)}" data-fk="${f.id}-${esc(x)}"`, (f.v || []).includes(x), valText(x))}<span class="row__main" style="margin-inline-start:8px">${esc(valText(x))}</span></label>`).join('')}</div></fieldset>`,
+  picks: f => `<fieldset class="ac-fs"><legend class="ac-label">${esc(f.label)}</legend><div class="panel rows">${f.items.enum.map(x => `<label class="row row--pick">${chk(`data-change="ac-field" data-f="${esc(f.name)}" value="${esc(x)}" data-fk="${f.id}-${esc(x)}"`, (f.v || []).includes(x), valText(x))}<span class="row__main pick__words">${esc(valText(x))}</span></label>`).join('')}</div></fieldset>`,
   integer: f => `${f.lab}<div class="field"><input type="number" inputmode="numeric" ${f.common} value="${esc(f.v == null ? '' : f.v)}" min="${f.schema.minimum != null ? f.schema.minimum : ''}" max="${f.schema.maximum != null ? f.schema.maximum : ''}"></div>`,
   json: f => `${f.lab}<textarea class="input mono" dir="ltr" ${f.common} placeholder="${f.type === 'object' ? '{ }' : '[ ]'}">${esc(f.v || '')}</textarea><p class="small muted">${t('ac.ax.json')}</p>`,
   list: f => `${f.lab}<textarea class="input mono" dir="ltr" ${f.common}>${esc(f.v || '')}</textarea><p class="small muted">${t('ac.ax.list')}</p>`,
@@ -110,7 +111,7 @@ function actionBody(a, own) {
         ${fields ? `<div class="ac-stack">${fields}</div>` : ''}
         <p class="small muted">${t('ac.ax.project', { name: code(model.project().name) })}</p>
         ${actionFacts(a, p)}${p && a.needs_assistant && p.assistant ? `<p class="small ink-2">${t('pv.cost')}</p>` : ''}${answerHTML(own)}
-        <details><summary class="link" style="cursor:pointer;min-height:44px;display:inline-flex;align-items:center;gap:6px">${icon('terminal', 'icon--sm')}${t('pv.terminal')}</summary><div class="code" style="padding:12px 16px;margin-top:8px;white-space:pre-wrap">${esc(actionCmd(a, own))}</div></details>`;
+        ${terminalFold(esc(actionCmd(a, own)), true)}`;
 }
 const blocked = (a, own, p) => missing(a, own) || !p || own.busy || (a.needs_assistant && !p.assistant && !(p.handoff && p.handoff.available));
 function startLabel(a, own) {

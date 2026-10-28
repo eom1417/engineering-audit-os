@@ -42,7 +42,7 @@ function sentPanel(codes) {
   const out = (codes && codes.output) || [], mails = (codes && codes.mail) || [];
   if (!out.length && !mails.length) return `<p class="small muted">${t('ac.si.sent.none')}</p><p class="small muted">${t('ac.si.sms')}</p>`;
   return `<div class="ac-stack">
-    ${out.length ? `<div><div class="block-title">${t('ac.si.output')}</div><div class="code" dir="ltr" style="padding:8px 12px;white-space:pre-wrap">${esc(out.slice(-12).join('\n'))}</div></div>` : ''}
+    ${out.length ? `<div><div class="block-title">${t('ac.si.output')}</div><div class="code pad-2-3 pre" dir="ltr">${esc(out.slice(-12).join('\n'))}</div></div>` : ''}
     ${mails.length ? `<div><div class="block-title">${t('ac.si.mails')}</div><ul class="panel rows">${mails.map(m => `<li class="row" style="align-items:flex-start"><span class="row__main" dir="auto"><span class="row__title small">${esc(m.subject || '')}</span>
       <span class="row__meta" style="display:block">${esc(t('ac.si.mail.to', { to: m.to || '' }))}${m.at ? ', ' + esc(fmtTime(m.at)) : ''}</span><span class="small ink-2" style="display:block;white-space:pre-wrap">${rich(m.text || '')}</span></span>
       <button class="btn btn--icon" data-act="copy" data-text="${esc(m.text || '')}" aria-label="${esc(t('ac.si.copy_text'))}">${icon('copy')}</button></li>`).join('')}</ul></div>` : ''}
@@ -100,12 +100,12 @@ function askedPage(q, st, back) {
     <div class="context"><span class="tag tag--owner">${icon('seal')}${t('owner.only')}</span>${until ? `<span class="tag tag--caution">${icon('clock')}${esc(t('ac.si.until', { time: until }))}</span>` : ''}</div>
     <h1 class="lede">${t('ac.si.lede')}</h1>
     <p class="guide">${t('ac.si.guide')}</p>
-    <p class="small ink-2" style="margin-top:8px">${why}${until ? ' ' + esc(t('ac.si.then', { time: until })) : ''}</p>
+    <p class="small ink-2 mt-2">${why}${until ? ' ' + esc(t('ac.si.then', { time: until })) : ''}</p>
     ${page.problem ? `<p class="small" role="alert">${icon('warn', 'icon--sm')} ${esc(page.problem)}</p>` : ''}
     <nav class="seg only-phone ac-si-tabs" aria-label="${esc(t('ac.si.tabs'))}"><a href="${href('/waiting/sign-in', Object.assign({}, q, { tab: null }))}" aria-current="${tab === 'pic'}">${t('ac.si.tab.pic')}</a><a href="${href('/waiting/sign-in', Object.assign({}, q, { tab: 'sent' }))}" aria-current="${tab === 'sent'}">${t('ac.si.tab.sent')}</a></nav>
     <div class="ac-si-grid">
       ${picSection(st, tab)}
-      <section class="panel panel__pad ac-si-sent ${tab === 'pic' ? 'ac-hide-phone' : ''}" aria-labelledby="sent-h"><h2 class="h2" id="sent-h" style="margin-bottom:12px">${t('ac.si.tab.sent')}</h2>${sentPanel(st.codes)}</section>
+      <section class="panel panel__pad ac-si-sent ${tab === 'pic' ? 'ac-hide-phone' : ''}" aria-labelledby="sent-h"><h2 class="h2 mb-3" id="sent-h">${t('ac.si.tab.sent')}</h2>${sentPanel(st.codes)}</section>
     </div>
     <div class="actions ac-si-acts">
       <button class="btn btn--primary" data-act="ac-si-done" data-fk="si-done" ${view && !page.busy ? '' : 'disabled'}>${t('ac.si.signed')}</button>

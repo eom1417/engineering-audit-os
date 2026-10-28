@@ -5,6 +5,7 @@
 import {
   t, tn, L, num, esc, rich, icon, code, has, sheet, act, rerenderSheet, local, parseHash, closeSheetThen, toast, refresh, href, offline,
   data, client, store, model, ActionError, ac, prefs,
+  terminalFold,
 } from 'eaos';
 
 /** A stage's name and what it does: the dictionary's words, else its own description. */
@@ -132,7 +133,7 @@ const failedTools = s => (s.raw.steps || []).filter(x => ['error', 'failed'].inc
 function fileRow(path, own) {
   const got = own.files && own.files[path];
   return `<li><details class="ac-ev-fold" data-file="${esc(path)}" ${got ? 'open' : ''}><summary><bdi class="mono">${esc(path)}</bdi>${icon('chev-down', 'icon--sm muted')}</summary>
-    ${got ? `<div class="code" style="padding:8px 12px;white-space:pre-wrap;margin-top:6px;max-height:320px;overflow:auto">${esc(got.slice(0, 20000))}</div><p class="small muted">${t('ac.stg.file.note')}</p>` : ''}</details></li>`;
+    ${got ? `<div class="code pad-2-3 pre mt-1-5 scroll-320">${esc(got.slice(0, 20000))}</div><p class="small muted">${t('ac.stg.file.note')}</p>` : ''}</details></li>`;
 }
 
 /** The programs a stage started, each name once: how many of it run, since the first of them began. */
@@ -196,7 +197,7 @@ sheet('stage', {
       sub: `${ac.mark(st)} <bdi class="mono muted">${esc(id)}</bdi>${run ? ` <span class="muted">${esc(ac.runLabel(run))}</span>` : ''}`,
       body: `<p>${esc(stageDoes(Object.assign({ description: raw.description }, s)))}</p>
         ${reason ? `<div class="${st === 'failed' ? 'ac-note ac-note--caution' : 'ac-note'}">${ac.glyph(st)}<span class="small">${rich(reason)}</span></div>` : ''}
-        ${s.ai ? `<div class="ai-block"><span class="ai-block__label">${icon('ai', 'icon--sm')}${t('ac.stg.ai')}</span><p class="small" style="margin-top:4px">${t('ac.stg.ai.note')}</p></div>` : ''}
+        ${s.ai ? `<div class="ai-block"><span class="ai-block__label">${icon('ai', 'icon--sm')}${t('ac.stg.ai')}</span><p class="small mt-1">${t('ac.stg.ai.note')}</p></div>` : ''}
         ${stagePrograms(raw, s)}
         <dl class="facts">
           ${stageFacts(s, f, id)}
@@ -290,8 +291,7 @@ sheet('redo', {
         </dl>
         <div><div class="block-title">${t('ac.redo.list')}</div><ul class="ac-chiplist">${rerun.map(x => `<li><span class="tag tag--state">${esc(stageTitle(x))}</span></li>`).join('')}</ul></div>
         <p class="small ink-2">${t('ac.redo.never')}</p>
-        <details><summary class="link" style="cursor:pointer;min-height:44px;display:inline-flex;align-items:center;gap:6px">${icon('terminal', 'icon--sm')}${t('pv.terminal')}</summary>
-          <div class="code" style="padding:12px 16px;margin-top:8px">${esc(cmd)}</div></details>`,
+        ${terminalFold(esc(cmd))}`,
       foot: redoStartFoot(own, p, cmd),
     };
   },

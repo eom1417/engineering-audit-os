@@ -1,6 +1,17 @@
 // What a decision of the report (list.js) and a run's question (questions.js) share: the person's own words typed,
 // and an answer sent.
-import { t, num, refresh, toast, S, store, ActionError } from 'eaos';
+import { t, num, esc, refresh, toast, S, store, ActionError, radio, smallFold } from 'eaos';
+
+/** The owner's own words for a decision or a question (`input` its typing act): the box, the note under it (what the
+ *  words do) and how many characters are written. */
+export const ownBox = (id, input, note) => `<div class="own stack-2"><label class="sr-only" for="own-${esc(id)}">${t('wt.own')}</label>
+      <textarea class="input" id="own-${esc(id)}" data-fk="own-${esc(id)}" data-input="${input}" data-id="${esc(id)}" maxlength="4000" placeholder="${esc(t('wt.own.ph'))}">${esc(S.own[id] || '')}</textarea>
+      <div class="small muted own__foot"><span>${note}</span><span class="num" id="own-count-${esc(id)}">${esc(t('wt.own.count', { n: num((S.own[id] || '').length) }))}</span></div></div>`;
+/** Why a card asks, folded at its foot. */
+export const whyFold = body => smallFold('info', t('wt.why'), body, { cls: 'bleed bleed--end line-top wcard__why', body: 'small ink-2' });
+/** One answer of a decision or a question `id`: never drawn off, only disabled where answers cannot be sent. */
+export const choice = (id, o, chosen, lock, text) => radio({ name: `opt-${id}`, value: o.id, 'data-change': 'choose', 'data-id': id, 'data-fk': `opt-${id}-${o.id}`,
+  checked: chosen === o.id, disabled: lock }, text, null, false);
 
 /** Send stays off while offline, while sending, or with nothing chosen or typed. */
 export const sendBlocked = (id, lock, chosen, ownOpen) => lock || S.sending[id] || !(chosen || (ownOpen && (S.own[id] || '').trim()));

@@ -43,17 +43,17 @@ function decisionHTML(p) {
   const d = p.decision;
   if (d && d.state === 'fixes') {
     return `<div class="ai-block"><span class="ai-block__label">${icon('ai', 'icon--sm')}${t('ai.label')}</span>${md(L(d.text))}
-      <p class="small muted" style="margin-top:4px">${t('ai.hypothesis')}</p></div>`;
+      <p class="small muted mt-1">${t('ai.hypothesis')}</p></div>`;
   }
   if (d && d.state === 'asks') {
     const asked = model.decisions().find(x => x.id === d.decision);
     const saved = asked && asked.state === 'answered';
     const answer = saved && asked.saved ? asked.saved.label || asked.saved.text : '';
     return `<div class="ai-block"><span class="ai-block__label">${icon('ai', 'icon--sm')}${t('ai.label')}</span>
-      <p style="margin-top:4px">${esc(saved ? t('pd.decision.answered', { when: fmtWhen(asked.saved && asked.saved.at) }) : t('pd.decision.asks'))}</p>
-      <p class="small ink-2" style="margin-top:4px">${rich(L(d.question))}</p>
-      ${saved ? `<p style="margin-top:8px"><span class="tag tag--ok">${icon('check')}${esc(L(answer))}</span></p>`
-        : asked ? `<div class="actions" style="margin-top:8px"><a class="btn btn--secondary btn--sm" href="${href('/waiting/' + enc(asked.id))}">${t('pd.decision.answer')}</a></div>` : ''}</div>`;
+      <p class="mt-1">${esc(saved ? t('pd.decision.answered', { when: fmtWhen(asked.saved && asked.saved.at) }) : t('pd.decision.asks'))}</p>
+      <p class="small ink-2 mt-1">${rich(L(d.question))}</p>
+      ${saved ? `<p class="mt-2"><span class="tag tag--ok">${icon('check')}${esc(L(answer))}</span></p>`
+        : asked ? `<div class="actions mt-2"><a class="btn btn--secondary btn--sm" href="${href('/waiting/' + enc(asked.id))}">${t('pd.decision.answer')}</a></div>` : ''}</div>`;
   }
   return `<p class="small ink-2">${t('pd.decision.none')}</p>`;
 }
@@ -68,7 +68,7 @@ function planHTML(p, all) {
   return `<div class="planline"><b>${esc(k ? t('pd.plan.task', { step: step.id, k: num(k), n: num(ids.length) }) : t('pd.plan.step', { step: step.id }))}</b>
       ${step.gate ? `<span>${esc(t('pd.plan.gate', { gate: L(step.gate) }))}</span>` : ''}
       <span>${waitsFor ? t('pd.plan.waits.on', { id: `<a class="link" href="${href('/problems/' + enc(waitsFor.id))}">${code(waitsFor.id)}</a>` }) : t('pd.plan.waits')}</span></div>
-    <div class="actions" style="margin-top:12px"><a class="btn btn--secondary btn--sm" href="${href('/problems/plan/' + enc(step.id))}">${t('pd.plan.open')}</a></div>`;
+    <div class="actions mt-3"><a class="btn btn--secondary btn--sm" href="${href('/problems/plan/' + enc(step.id))}">${t('pd.plan.open')}</a></div>`;
 }
 
 function noteHTML(p) {
@@ -90,11 +90,11 @@ export function detailHTML(p, ctx) {
   const facts = (p.evidence || []).map(model.fact);
   const known = facts.filter(Boolean);
   const evidence = known.length
-    ? `<div class="panel rows">${known.map((f, i) => factHTML(f, i === 0, known.slice(0, i))).join('')}</div>${facts.length > known.length ? `<p class="small muted" style="margin-top:8px">${esc(t('pd.ev.unread', { n: num(facts.length - known.length) }))}</p>` : ''}`
+    ? `<div class="panel rows">${known.map((f, i) => factHTML(f, i === 0, known.slice(0, i))).join('')}</div>${facts.length > known.length ? `<p class="small muted mt-2">${esc(t('pd.ev.unread', { n: num(facts.length - known.length) }))}</p>` : ''}`
     : `<p class="small muted">${t(p.evidence && p.evidence.length ? 'pd.ev.notloaded' : 'pd.ev.none')}</p>`;
   const places = p.paths.slice(0, 6).map(path => `<li class="place">${icon('file', 'icon--sm muted')}<bdi class="mono">${esc(path)}</bdi>
       <button class="btn btn--quiet btn--sm" data-act="sheet" data-sheet="impact:${esc(path)}">${t('pd.touches')}</button></li>`).join('')
-    + (p.paths.length > 6 ? `<li class="small muted" style="padding:8px 12px">${esc(tn('pl.file', p.paths.length - 6))} ${t('more')}</li>` : '');
+    + (p.paths.length > 6 ? `<li class="small muted pad-2-3">${esc(tn('pl.file', p.paths.length - 6))} ${t('more')}</li>` : '');
   return `<article class="pdetail" aria-labelledby="pd-title">
     <a class="back" href="${href('/problems', keepQuery(parseHash().query))}">${icon('back', 'icon--dir')}${t('pd.back')}</a>
     <header class="pdetail__head">
@@ -103,19 +103,19 @@ export function detailHTML(p, ctx) {
         <span class="tag tag--state">${t('state.' + p.state)}</span>${conf ? `<span class="tag tag--state">${t('pd.conf.' + conf)}</span>` : ''}${code(p.id)}</div>
       <h2 class="title" id="pd-title">${rich(L(p.title))}</h2>
       <div class="verbs">${verbs}</div>
-      <label class="small ink-2" style="display:inline-flex;align-items:center;gap:12px;margin-top:4px">${chk(`data-change="sel" value="${esc(p.id)}" data-fk="dsel-${esc(p.id)}"`, selection.picked.ids.has(p.id), t('pd.select'))}<span style="margin-inline-start:10px">${t('pd.select')}</span></label>
+      <label class="small ink-2 pick mt-1">${chk(`data-change="sel" value="${esc(p.id)}" data-fk="dsel-${esc(p.id)}"`, selection.picked.ids.has(p.id), t('pd.select'))}<span class="pick__label">${t('pd.select')}</span></label>
     </header>
     ${p.why ? `<section class="psec"><h2>${t('pd.why')}</h2><p>${rich(L(p.why))}</p></section>` : ''}
     <section class="psec" id="pd-decision"><h2>${t('pd.decision')}</h2>${decisionHTML(p)}</section>
     <section class="psec"><h2>${t('pd.where')}</h2><ul class="places">${places}</ul>
-      <dl class="facts" style="margin-top:12px"><dt>${t('pd.component')}</dt><dd>${code(component(p))}</dd><dt>${t('pd.area')}</dt><dd>${t('area.' + (p.category || 'none'))}</dd><dt>${t('pd.kind')}</dt><dd>${esc(kindWord(p.kind))}</dd></dl></section>
+      <dl class="facts mt-3"><dt>${t('pd.component')}</dt><dd>${code(component(p))}</dd><dt>${t('pd.area')}</dt><dd>${t('area.' + (p.category || 'none'))}</dd><dt>${t('pd.kind')}</dt><dd>${esc(kindWord(p.kind))}</dd></dl></section>
     <section class="psec"><h2>${t('pd.evidence')} <span class="muted small">${facts.length ? esc(tn('pl.fact', facts.length)) : ''}</span></h2>${evidence}</section>
     <section class="psec"><h2>${t('pd.plan')}</h2>${planHTML(p, all)}</section>
     <div class="panel">
       <details class="fold"><summary><span class="row__main"><span class="row__title">${t('pd.same')}</span><span class="row__meta" style="display:block">${esc(tn('pl.problem', sameFile.length))}</span></span>${icon('chev', 'chev')}</summary>
         <div class="fold__body">${sameFile.length ? `<ul class="rows">${sameFile.map(x => `<li><a class="row" style="padding-inline:0" href="${href('/problems/' + enc(x.id))}">${sev(x.severity, false)}<span class="row__main small">${code(x.id)} ${rich(L(x.title))}</span></a></li>`).join('')}</ul>` : `<p class="small muted">${t('pd.same.none')}</p>`}</div></details>
       <details class="fold" style="border-top:1px solid var(--line)" ${S.notes[p.id] ? 'open' : ''}><summary>${icon('note', 'muted')}<span class="row__main"><span class="row__title">${t('pd.note')}</span></span>${icon('chev', 'chev')}</summary>
-        <div class="fold__body" style="display:grid;gap:8px">${noteHTML(p)}</div></details>
+        <div class="fold__body stack-2">${noteHTML(p)}</div></details>
     </div>
   </article>`;
 }

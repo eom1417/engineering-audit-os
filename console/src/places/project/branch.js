@@ -55,14 +55,14 @@ const mainAction = (b, waits, primary, target) => (waits ? `<div class="actions"
 function clashNote(b, tries, target) {
   const trial = tries && b.kind === 'local' ? mergeTry(b) : null;
   const clash = trial && (trial.conflicts || []).length ? trial.conflicts : null;
-  return clash ? `<div class="ac-note ac-note--caution" style="margin-top:16px">${icon('warn', 'icon--sm ac-c-caution')}<span class="small">${esc(tn('ac.br1.clash', clash.length, { t: trial.target || target }))}</span>
+  return clash ? `<div class="ac-note ac-note--caution mt-4">${icon('warn', 'icon--sm ac-c-caution')}<span class="small">${esc(tn('ac.br1.clash', clash.length, { t: trial.target || target }))}</span>
       <button class="btn btn--secondary btn--sm" data-act="sheet" data-sheet="resolve:${esc(b.name)}">${icon('ai')}${t('ac.cmd.resolve')}</button></div>` : '';
 }
 /** The merge's warnings: the conflicts a trial merge found (`tries`: the merge is the page's press), or why it is blocked. */
 function mergeNotes(b, det, merge, tries, target) {
   const conflict = merge && conflictOf({ blocked: (det.commands.merge || {}).blocked });
   return `${clashNote(b, tries, target)}
-    ${conflict ? `<div style="margin-top:16px"><div class="ac-note ac-note--caution">${icon('warn', 'icon--sm ac-c-caution')}<span class="small">${esc(reasonsOf(det.commands.merge.blocked))}</span></div></div>` : ''}`;
+    ${conflict ? `<div class="mt-4"><div class="ac-note ac-note--caution">${icon('warn', 'icon--sm ac-c-caution')}<span class="small">${esc(reasonsOf(det.commands.merge.blocked))}</span></div></div>` : ''}`;
 }
 function whereFact(b) {
   if (b.kind !== 'local') return t('ac.br1.remote_only', { r: code(b.remote) });
@@ -89,7 +89,7 @@ function branchPage(ctx) {
   const det = client && detail(name, kind, remote);
   const problem = problemOf(name, kind, remote);
   if (problem) {
-    return `<div class="page">${back}<div class="panel empty" style="margin-top:12px"><h1 class="empty__title">${esc(t('ac.br.notfound', { name }))}</h1>
+    return `<div class="page">${back}<div class="panel empty mt-3"><h1 class="empty__title">${esc(t('ac.br.notfound', { name }))}</h1>
       <p class="small ink-2">${t('ac.br.notfound.guide')}</p><a class="btn btn--secondary" href="${href('/project/branches')}">${t('proj.branches')}</a></div></div>`;
   }
   if (!det) return `<div class="page" aria-busy="true">${back}<h1 class="lede">${t('ac.br.loading')}</h1>${loadingRows()}</div>`;

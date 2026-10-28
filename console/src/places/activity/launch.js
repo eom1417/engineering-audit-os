@@ -84,7 +84,7 @@ function assistantsHTML(c) {
   }).join('') + `<label class="opt"><input type="radio" name="ac-asst" value="rules" data-change="ac-asst" data-fk="asst-rules" ${c.asst === 'rules' ? 'checked' : ''}><span class="opt__dot" aria-hidden="true"></span>
         <span class="opt__text">${t('ac.chk.rules')}<span class="opt__note">${t('ac.chk.rules.note')}</span></span></label>`;
   const dec5 = live.assistants && live.assistants.length && !ready.length ? `<div class="ac-refuse" role="note"><p class="small"><b>${esc(t('ac.chk.dec5.q', { name: live.assistants.map(a => a.name).join(t('list.sep')) }))}</b> ${t('ac.chk.dec5.why', { cmd: code('claude login') })}</p>
-      <div class="actions" style="margin-top:8px"><button class="btn btn--secondary btn--sm" data-act="ac-ask-again" data-fk="ask-again" ${c.asking2 ? 'disabled' : ''}>${c.asking2 ? t('ac.as.asking') : t('ac.chk.dec5.fixed')}</button></div>
+      <div class="actions mt-2"><button class="btn btn--secondary btn--sm" data-act="ac-ask-again" data-fk="ask-again" ${c.asking2 ? 'disabled' : ''}>${c.asking2 ? t('ac.as.asking') : t('ac.chk.dec5.fixed')}</button></div>
       <p class="small ink-2">${t('ac.chk.dec5.noai.v')}</p></div>` : '';
   return `${dec5}<div class="opts">${asst}</div>`;
 }
@@ -97,7 +97,7 @@ function signinHTML(c, needed) {
   if (!needed) return `<p class="small muted">${t('ac.chk.si.notneeded')}</p>`;
   const offer = c.offer;
   const seen = offer && offer.sign_in_seen && offer.sign_in_seen[0] ? offer.sign_in_seen[0].split(':')[0] : null;
-  return `${seen ? `<p class="small ink-2" style="margin-bottom:8px">${t('ac.chk.si.found', { path: code(seen) })}</p>` : ''}
+  return `${seen ? `<p class="small ink-2 mb-2">${t('ac.chk.si.found', { path: code(seen) })}</p>` : ''}
       <div class="opts">${[['hand', 'ac.chk.si.hand'], ['test_user', 'ac.chk.si.test'], ['none', 'ac.chk.si.none']].map(([id, k]) => `<label class="opt"><input type="radio" name="ac-si" value="${id}" data-change="ac-si" data-fk="si-${id}" ${c.signin === id ? 'checked' : ''}><span class="opt__dot" aria-hidden="true"></span>
         <span class="opt__text">${t(k)}<span class="opt__note">${t(k + '.note')}</span></span></label>`).join('')}</div>
       ${c.signin === 'hand' && live.signIn && live.signIn.kept ? `<p class="small ink-2 ac-iline">${icon('check', 'icon--sm ac-c-ok')}<span>${t('ac.chk.si.kept')}</span></p>` : ''}`;
@@ -156,9 +156,9 @@ sheet('check', {
       body: `<p>${t('ac.chk.does')}</p>
         ${checkFacts(p)}
         <fieldset class="ac-fs"><legend class="block-title">${t('ac.chk.paths')}</legend><div class="opts">${pathsHTML(c)}</div>
-          <p class="small muted" style="margin-top:8px">${t('ac.chk.paths.note')}</p></fieldset>
+          <p class="small muted mt-2">${t('ac.chk.paths.note')}</p></fieldset>
         <fieldset class="ac-fs"><legend class="block-title">${t('ac.chk.asst')}</legend>${assistantsHTML(c)}
-          <p class="small muted" style="margin-top:8px">${t('ac.chk.asst.checked')} <button class="link ac-inline" data-act="ac-ask-again">${t('ac.asst.again')}</button></p></fieldset>
+          <p class="small muted mt-2">${t('ac.chk.asst.checked')} <button class="link ac-inline" data-act="ac-ask-again">${t('ac.asst.again')}</button></p></fieldset>
         ${runAppHTML(c)}
         ${c.runAppAsked && !c.runApp ? '' : `<fieldset class="ac-fs"><legend class="block-title">${t('ac.chk.si')}</legend>${signinHTML(c, needsSignin)}</fieldset>`}
         ${toolsHTML(c)}

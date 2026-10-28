@@ -5,6 +5,7 @@
 import {
   t, tn, num, esc, icon, href, fmtWhen, screen, sheet, act, refresh, toast, announce, setQuery, searchTyped, parseHash, closeSheetThen, offline, local, rerenderSheet,
   live, store, client, ActionError, normalize, model, ac,
+  skeletonRows,
 } from 'eaos';
 import { stagesOf, stageButton, counts, finished, stageTitle } from './stages.js';
 import { clockHTML } from './clock.js';
@@ -82,7 +83,7 @@ function otherFlows() {
   const flows = (live.progress && live.progress.flows) || {};
   const rows = Object.keys(FLOW_PAGE).map(id => [id, flows[id]]).filter(([, f]) => f && f.state && f.state !== 'none');
   if (!rows.length) return '';
-  return `<div class="panel rows" style="margin-top:12px">${rows.map(([id, f]) => {
+  return `<div class="panel rows mt-3">${rows.map(([id, f]) => {
     const st = f.state === 'done' ? (f.status === 'COMPLETE' ? 'ok' : 'partial') : f.state;
     const stages = f.stages || [];
     const sub = f.state === 'running' ? t('ac.flow.running', { done: num(stages.filter(s => s.state === 'ok').length), total: num(stages.length) })
@@ -129,7 +130,7 @@ function runRow(r) {
 
 function loadingPage() {
   return `<div class="page" aria-busy="true"><h1 class="lede">${t('ac.act.loading')}</h1><div class="actions"><span class="btn skel" style="width:200px"></span></div>
-    <ul class="panel rows section">${[1, 2, 3, 4].map(() => `<li class="row"><span class="skel" style="width:20px;height:20px;border-radius:50%"></span><span style="flex:1;display:grid;gap:8px"><span class="skel-line" style="width:55%"></span><span class="skel-line" style="width:35%"></span></span></li>`).join('')}</ul></div>`;
+    ${skeletonRows(4, [55, 35], { cls: 'section', mark: 'dot' })}</div>`;
 }
 
 function emptyPage(off) {

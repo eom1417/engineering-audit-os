@@ -14,7 +14,7 @@ function folder() {
   return `<h1 class="lede">${esc(tn('ac.op.folder.n', projects.length))}</h1><p class="guide">${t('ac.op.folder.guide')}</p>
     <ul class="panel rows section">${projects.map(p => `<li><a class="row" href="${href(p.current ? '/status' : '/open', p.current ? {} : { kind: 'switch', p: p.workspace })}"><span class="project-btn__mark" aria-hidden="true">${esc((p.name || '?')[0].toUpperCase())}</span>
       <span class="row__main"><span class="row__title"><bdi class="mono">${esc(p.name)}</bdi>${p.current ? ` <span class="tag tag--state">${t('proj.current')}</span>` : ''}</span><span class="row__meta" style="display:block">${p.score != null ? esc(t('proj.score', { score: num(Math.round(p.score * 100)) })) + ', ' : ''}${esc(p.checked ? t('ac.op.checked', { when: fmtWhen(p.checked) }) : t('ac.op.never'))}</span></span>${icon('chev', 'icon--dir muted')}</a></li>`).join('')}</ul>
-    <p class="small muted" style="margin-top:12px">${t('ac.op.folder.later')}</p>`;
+    <p class="small muted mt-3">${t('ac.op.folder.later')}</p>`;
 }
 
 function switchTo(q) {
@@ -62,7 +62,7 @@ function exported() {
 // opened without its key
 function nokey() {
   return `<h1 class="lede">${t('ac.op.nokey')}</h1><p class="guide">${t('ac.op.nokey.guide')}</p>
-      <div class="panel panel__pad section ac-stack"><div class="code" style="padding:12px 16px">eaos studio</div>
+      <div class="panel panel__pad section ac-stack"><div class="code pad-3-4">eaos studio</div>
         <div><button class="btn btn--primary" data-act="copy" data-text="eaos studio">${icon('copy')}${t('copy')}</button></div><p class="small muted">${t('ac.op.nokey.why')}</p></div>`;
 }
 // read-only

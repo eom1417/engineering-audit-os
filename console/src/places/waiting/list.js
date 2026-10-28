@@ -4,9 +4,9 @@
 // saved in the live console, the sign-in a check waits for and the questions runs ask (their own screens, builder A).
 import {
   t, tn, L, num, esc, rich, md, icon, code, diffLines, href, fmtWhen, expiresAt, screen, sheet, act, refresh, toast, closeSheetThen, rerenderSheet, local, offline, parseHash,
-  S, live, store, model, client, ActionError, derive, chk,
+  S, live, store, model, client, ActionError, derive, chk, ac, rowWords, smallFold, terminalFold, toggleRow,
 } from 'eaos';
-import { ownTyped, sendAnswer, sendBlocked } from './answer.js';
+import { ownTyped, sendAnswer, sendBlocked, ownBox, whyFold, choice } from './answer.js';
 
 const NEEDS = ['decisions', 'cards'];
 const enc = encodeURIComponent;
@@ -40,13 +40,6 @@ function recoHTML(d) {
     ? `<div class="ai-block"><span class="ai-block__label">${icon('ai', 'icon--sm')}${t('wt.reco')}</span>${md(L(d.recommendation))}</div>`
     : `<div class="small ink-2"><b class="ink-2">${t('wt.reco')}:</b> ${rich(L(d.recommendation))}</div>`;
 }
-// the owner's own words for a decision
-function ownHTML(d) {
-  return `<div class="own" style="display:grid;gap:8px">
-      <label class="sr-only" for="own-${esc(d.id)}">${t('wt.own')}</label>
-      <textarea class="input" id="own-${esc(d.id)}" data-fk="own-${esc(d.id)}" data-input="own" data-id="${esc(d.id)}" maxlength="4000" placeholder="${esc(t('wt.own.ph'))}">${esc(S.own[d.id] || '')}</textarea>
-      <div class="small muted" style="display:flex;justify-content:space-between;gap:12px"><span>${t('wt.own.note')}</span><span class="num" id="own-count-${esc(d.id)}">${esc(t('wt.own.count', { n: num((S.own[d.id] || '').length) }))}</span></div></div>`;
-}
 // Send, the own-words button, and offline the command that answers instead
 function cardActions(d, lock, chosen, ownOpen) {
   const recommended = d.recommended;
@@ -68,20 +61,16 @@ function decisionCard(d, full) {
   const opts = d.options.slice().sort((a, b) => (a.id === recommended ? -1 : b.id === recommended ? 1 : 0));
   const chosen = S.chosen[d.id];
   const reco = recoHTML(d);
-  const radios = opts.map(o => `<label class="opt">
-      <input type="radio" name="opt-${esc(d.id)}" value="${esc(o.id)}" data-change="choose" data-id="${esc(d.id)}" data-fk="opt-${esc(d.id)}-${esc(o.id)}" ${chosen === o.id ? 'checked' : ''} ${lock ? 'disabled' : ''}>
-      <span class="opt__dot" aria-hidden="true"></span>
-      <span class="opt__text">${rich(L(o.label))}${o.id === recommended ? `<span class="tag tag--you">${t('wt.recommended')}</span>` : ''}</span></label>`).join('');
+  const radios = opts.map(o => choice(d.id, o, chosen, lock, rich(L(o.label)) + (o.id === recommended ? `<span class="tag tag--you">${t('wt.recommended')}</span>` : ''))).join('');
   const ownOpen = S.ownOpen[d.id];
-  const own = ownOpen ? ownHTML(d) : '';
+  const own = ownOpen ? ownBox(d.id, 'own', t('wt.own.note')) : '';
   return `<article class="panel wcard" id="w-${esc(d.id)}" aria-labelledby="wq-${esc(d.id)}">
     ${head}${reco}
     <fieldset class="opts" style="border:0;padding:0;margin:0"><legend class="sr-only">${rich(L(d.question))}</legend>${radios}</fieldset>
     ${own}
     ${lock ? `<p class="small muted">${icon('lock', 'icon--sm')} ${t('wt.offline')}</p>` : ''}
     ${cardActions(d, lock, chosen, ownOpen)}
-    <details class="fold" style="margin:0 -16px -16px;border-top:1px solid var(--line);border-radius:0 0 12px 12px"><summary>${icon('info', 'muted')}<span class="row__main small">${t('wt.why')}</span>${icon('chev', 'chev icon--sm')}</summary>
-      <div class="fold__body small ink-2">${t('wt.why.' + d.source)}${d.asked_at ? ' ' + esc(t('wt.asked', { when: fmtWhen(d.asked_at) })) + '.' : ''}</div></details>
+    ${whyFold(t('wt.why.' + d.source) + (d.asked_at ? ' ' + esc(t('wt.asked', { when: fmtWhen(d.asked_at) })) + '.' : ''))}
   </article>`;
 }
 
@@ -94,7 +83,7 @@ function diffHTML(run) {
   if (got.error) return `<p class="small muted">${esc(got.error)}</p>`;
   const lines = got.diff ? got.diff.split('\n').slice(0, 400) : [];
   return `<ul class="rows">${got.files.map(f => `<li class="row small" style="min-height:40px">${code(f.status)} ${code(f.path)}</li>`).join('')}</ul>
-    ${lines.length ? `<div class="code diff" style="margin-top:8px">${diffLines(lines)}</div>` : ''}
+    ${lines.length ? `<div class="code diff mt-2">${diffLines(lines)}</div>` : ''}
     ${got.diff_cut || (got.diff && got.diff.split('\n').length > 400) ? `<p class="small muted">${t('wt.fix.cut')}</p>` : ''}`;
 }
 
@@ -115,12 +104,11 @@ function branchCard(run, full) {
       <span class="muted small">${esc(t('wt.fix.by', { who: model.assistantName(run.assistant) || 'EAOS', when: fmtWhen(run.ended || run.created), minutes: took ? tn('pl.minute', took) : '' }))}</span></div>
     <div>
       <h3 class="${full ? 'sr-only' : 'wcard__q'}" id="wq-${esc(run.id)}">${full ? '' : `<a href="${href('/waiting/' + enc(run.id))}" style="color:inherit;text-decoration:none">`}${t('wt.fix.title')}${full ? '' : '</a>'}</h3>
-      <div style="margin-top:2px">${code(run.result.branch)}</div>
+      <div class="mt-0-5">${code(run.result.branch)}</div>
     </div>
     ${facts(run)}
     <p class="small ink-2">${t('wt.fix.unchanged')}</p>
-    <details class="fold" data-diff="${esc(run.id)}" ${opened.has(run.id) ? 'open' : ''} style="margin:0 -16px;border-top:1px solid var(--line);border-bottom:1px solid var(--line)"><summary>${icon('code', 'muted')}<span class="row__main small">${t('wt.fix.see')}</span>${icon('chev', 'chev icon--sm')}</summary>
-      <div class="fold__body">${diffHTML(run)}</div></details>
+    ${smallFold('code', t('wt.fix.see'), diffHTML(run), { cls: 'bleed line-top line-bottom', attrs: `data-diff="${esc(run.id)}" ${opened.has(run.id) ? 'open' : ''}` })}
     <div class="wcard__actions">
       ${lock ? `<p class="small muted">${icon('lock', 'icon--sm')} ${t('wt.offline')}</p>`
         : `<button class="btn btn--primary" data-act="sheet" data-sheet="accept:${esc(run.id)}">${icon('seal')}${t('wt.accept')}</button>
@@ -135,20 +123,18 @@ function outcomeLine(run) {
 }
 
 function decided() {
-  const rows = decidedRuns().slice(0, 10).map(run => `<li class="row"><span class="row__main"><span class="row__title">${code(run.result.branch)}</span>
-      <span class="row__meta" style="display:block">${esc(outcomeLine(run))}</span></span></li>`);
+  const rows = decidedRuns().slice(0, 10).map(run => `<li class="row">${rowWords(code(run.result.branch), esc(outcomeLine(run)))}</li>`);
   model.decisions().filter(d => d.state === 'answered').forEach(d => {
     const opt = d.options.find(o => o.id === (d.saved ? d.saved.option : d.answer));
     const answer = opt ? L(opt.label) : d.saved ? d.saved.text || '' : '';
-    rows.push(`<li class="row"><span class="row__main"><span class="row__title">${rich(L(d.question))}</span>
-      <span class="row__meta" style="display:block">${esc(t('wt.decided.row', { answer }))}${d.saved && d.saved.at ? `. ${esc(t('wt.decided.by', { when: fmtWhen(d.saved.at) }))}` : ''}</span></span>
+    rows.push(`<li class="row">${rowWords(rich(L(d.question)), esc(t('wt.decided.row', { answer })) + (d.saved && d.saved.at ? `. ${esc(t('wt.decided.by', { when: fmtWhen(d.saved.at) }))}` : ''))}
       <button class="btn btn--icon" data-act="copy" data-text="${esc(`"${L(d.question)}" — ${answer} (eaos answer ${d.id} ${opt ? opt.id : ''})`)}" aria-label="${esc(t('wt.decided.copy'))}">${icon('copy')}</button></li>`);
   });
   // nothing decided: a plain row, no arrow promising details that are not there
-  if (!rows.length) return `<section class="section"><div class="panel rows" id="decided"><div class="row"><span class="row__main"><span class="row__title">${t('wt.decided')}</span><span class="row__meta" style="display:block">${t('wt.decided.none')}</span></span></div></div></section>`;
+  if (!rows.length) return `<section class="section"><div class="panel rows" id="decided"><div class="row">${rowWords(t('wt.decided'), t('wt.decided.none'))}</div></div></section>`;
   return `<section class="section"><details class="panel fold" id="decided" ${parseHash().path === '/waiting/decided' ? 'open' : ''}>
-    <summary><span class="row__main"><span class="row__title">${t('wt.decided')}</span><span class="row__meta" style="display:block">${esc(tn('pl.decided', rows.length))}</span></span>${icon('chev', 'chev')}</summary>
-    <ul class="rows" style="margin:0 -16px -16px">${rows.join('')}</ul></details></section>`;
+    ${ac.foldHead(t('wt.decided'), esc(tn('pl.decided', rows.length)))}
+    <ul class="rows bleed bleed--end">${rows.join('')}</ul></details></section>`;
 }
 
 function group(id, title, count, body) {
@@ -165,18 +151,17 @@ function listPage(ctx) {
       <h3 class="wcard__q">${t('wt.signin.q')}</h3><p class="small ink-2">${t('wt.signin.sub.live')}</p>
       <div class="wcard__actions"><a class="btn btn--primary" href="${href('/waiting/sign-in')}">${t('wt.signin.act')}</a></div></article>`));
   }
-  if (branches.length) groups.push(group('fixes', t('wt.g.fixes'), branches.length, `<div style="display:grid;gap:12px">${branches.map(run => branchCard(run, false)).join('')}</div>`));
-  if (open.length) groups.push(group('dec', t('wt.g.decisions'), open.length, `<div style="display:grid;gap:12px">${open.map(d => decisionCard(d, false)).join('')}</div>`));
+  if (branches.length) groups.push(group('fixes', t('wt.g.fixes'), branches.length, `<div class="stack-3">${branches.map(run => branchCard(run, false)).join('')}</div>`));
+  if (open.length) groups.push(group('dec', t('wt.g.decisions'), open.length, `<div class="stack-3">${open.map(d => decisionCard(d, false)).join('')}</div>`));
   const asked = live.questions.length;
-  const qRow = `${icon(asked ? 'waiting' : 'info', 'muted')}<span class="row__main"><span class="row__title">${esc(asked ? tn('pl.question_waits', asked) : t('wt.q.none'))}</span>
-      <span class="row__meta" style="display:block">${t(asked ? 'wt.q.row.sub.live' : 'wt.q.row.sub')}</span></span>`;
+  const qRow = `${icon(asked ? 'waiting' : 'info', 'muted')}${rowWords(esc(asked ? tn('pl.question_waits', asked) : t('wt.q.none')), t(asked ? 'wt.q.row.sub.live' : 'wt.q.row.sub'))}`;
   // only a waiting question opens; "no question" is a plain line without an arrow
   const questions = group('q', t('wt.g.questions'), asked, `<div class="panel rows">${asked ? `<a class="row" href="${href('/waiting/questions')}">${qRow}${icon('chev', 'icon--dir muted')}</a>` : `<div class="row">${qRow}</div>`}</div>`);
   return `<div class="page">
     <h1 class="lede">${esc(tn('pl.thing_waits', wc))}.</h1>
     <p class="guide">${t(wc ? 'wt.guide' : 'wt.empty.guide')}</p>
-    ${groups.length ? `<div style="margin-top:32px">${groups.join('')}</div>` : ''}
-    <div style="margin-top:32px">${questions}</div>
+    ${groups.length ? `<div class="mt-8">${groups.join('')}</div>` : ''}
+    <div class="mt-8">${questions}</div>
     ${decided()}
   </div>`;
 }
@@ -213,9 +198,9 @@ screen({
     if (!card) card = `<div class="empty panel"><p class="empty__title">${esc(t(live.loaded || offline() ? 'pd.notfound' : 'st.loading', { id }))}</p><a class="btn btn--secondary" href="${href('/waiting')}">${t('wt.item.back')}</a></div>`;
     return `<div class="page">
       <a class="back" href="${href('/waiting')}">${icon('back', 'icon--dir')}${t('wt.item.back')}</a>
-      <h1 class="lede" style="margin-top:8px">${lede}</h1>
+      <h1 class="lede mt-2">${lede}</h1>
       ${waits ? `<p class="guide">${t(run ? 'wt.item.guide.b' : 'wt.item.guide.q')}</p>` : ''}
-      <div style="margin-top:20px">${card}</div></div>`;
+      <div class="mt-5">${card}</div></div>`;
   },
 });
 
@@ -304,13 +289,11 @@ sheet('accept', {
         <p>${t('cf.accept.lede', { branch: code(run.result.branch), target: code(target) })}</p>
         ${local.preview ? `<div><div class="block-title">${t('cf.into')}</div>${into}</div>
         ${blocked ? `<p class="small" role="note">${icon('lock', 'icon--sm')} ${esc(L(blocked))}</p>` : ''}
-        <div class="toggle-row"><span><span style="display:block">${t('cf.delete')}</span><span class="small muted">${t('cf.delete.note')}</span></span>
-          <span class="switch"><input type="checkbox" data-change="accept-remove" ${local.remove ? 'checked' : ''} aria-label="${esc(t('cf.delete'))}" data-fk="del-after"><span class="switch__track"></span><span class="switch__thumb"></span></span></div>`
+        ${toggleRow(t('cf.delete'), t('cf.delete.note'), { 'data-change': 'accept-remove', checked: local.remove, 'data-fk': 'del-after' })}`
           : local.problem ? '' : `<p class="small muted" aria-busy="true">${t('cf.previewing')}</p>`}
         ${d ? `<div><div class="block-title">${t('cf.files')}</div><div class="wcard__fact">${icon('file')}<span>${esc(tn('pl.file_changed', d.files))} <bdi dir="ltr" class="num">+${num(d.insertions)} −${num(d.deletions)}</bdi></span></div></div>` : ''}
         ${run.result.tests ? `<div><div class="block-title">${t('cf.checks')}</div><div class="wcard__fact ${run.result.tests.passed ? 'wcard__fact--ok' : ''}">${icon(run.result.tests.passed ? 'check' : 'warn')}<span>${esc(run.result.tests.passed ? t('wt.fix.tests.ok') : t('wt.fix.tests.no'))}</span></div></div>` : ''}
-        <details><summary class="link" style="cursor:pointer;min-height:44px;display:inline-flex;align-items:center;gap:6px">${icon('terminal', 'icon--sm')}${t('pv.terminal')}</summary>
-          <div class="code" style="padding:12px 16px;margin-top:8px">eaos accept${target ? ` --into ${esc(target)}` : ''}</div></details>`,
+        ${terminalFold('eaos accept' + (target ? ` --into ${esc(target)}` : ''))}`,
       foot: foot('accept', local, false),
     };
   },
@@ -328,8 +311,7 @@ sheet('reject', {
         <p>${t('cf.reject.lede', { branch: code(run.result.branch), files: esc(tn('pl.file', d ? d.files : 0)) })}</p>
         <p class="small ink-2">${t('cf.reject.kept')}</p>
         ${local.preview || local.problem ? '' : `<p class="small muted" aria-busy="true">${t('cf.previewing')}</p>`}
-        <details><summary class="link" style="cursor:pointer;min-height:44px;display:inline-flex;align-items:center;gap:6px">${icon('terminal', 'icon--sm')}${t('pv.terminal')}</summary>
-          <div class="code" style="padding:12px 16px;margin-top:8px">eaos undo</div></details>`,
+        ${terminalFold('eaos undo')}`,
       foot: foot('reject', local, true),
     };
   },

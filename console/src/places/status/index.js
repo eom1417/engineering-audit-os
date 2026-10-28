@@ -2,6 +2,7 @@
 // report and the live command state. Its sheets: freshness (PRJ-04) and health on the phone (PRJ-02).
 import {
   t, tn, L, num, esc, icon, code, sev, href, band, fmtWhen, exactTime, screen, sheet, liveNow, freshness, live, model, data, contract, prefs, derive, has,
+  smallFold,
 } from 'eaos';
 import { buildStep } from '../kit/kit.js';
 
@@ -35,7 +36,7 @@ function notRun() {
   if (!rows.length) return '';
   const DID = { fixed: 'st.notrun.fixed', failed: 'st.notrun.failed', needs_person: 'st.notrun.you' };
   const list = rows.map(r => `<li><b>${esc(has('ac.stage.' + r.stage) ? t('ac.stage.' + r.stage) : r.stage)}</b>: ${esc(r.reason)}${r.did ? ` <span class="muted">${t(DID[r.did] || 'st.notrun.failed')}</span>` : ''}</li>`).join('');
-  return `<details class="fold panel" style="margin-top:8px"><summary>${icon('info', 'muted')}<span class="row__main small">${esc(tn('st.notrun', rows.length))}</span>${icon('chev', 'chev icon--sm')}</summary>
+  return `<details class="fold panel mt-2"><summary>${icon('info', 'muted')}<span class="row__main small">${esc(tn('st.notrun', rows.length))}</span>${icon('chev', 'chev icon--sm')}</summary>
     <ul class="fold__body small ink-2">${list}</ul></details>`;
 }
 
@@ -132,10 +133,9 @@ function healthBody() {
       <div class="meter__track" role="img" aria-label="${esc(t('area.' + a.id))}: ${a.score}">${ticks}<span class="meter__fill" style="width:${a.score}%"></span></div></div>`;
   }).join('');
   return `<div class="health-card__top"><span class="figure">${h.score}</span><span class="health-card__band">${t('band.' + band(h.score, h.unchecked.length > 0))}</span></div>
-    <p class="small ink-2" style="margin-top:4px">${esc(trend(h))}</p>
-    <div class="meters" style="margin-top:20px">${meters}</div>
-    <details class="fold" style="margin-top:16px;border-top:1px solid var(--line)"><summary style="padding-inline:0;min-height:48px">${icon('info', 'muted')}<span class="row__main small">${t('st.health.formula.title')}</span>${icon('chev', 'chev icon--sm')}</summary>
-      <div class="fold__body small ink-2" style="padding-inline:0">${t('st.health.formula')}</div></details>`;
+    <p class="small ink-2 mt-1">${esc(trend(h))}</p>
+    <div class="meters mt-5">${meters}</div>
+    ${smallFold('info', t('st.health.formula.title'), t('st.health.formula'), { cls: 'fold--flush mt-4 line-top', body: 'small ink-2' })}`;
 }
 
 function healthRow() {
@@ -168,10 +168,10 @@ function standHTML(ctx, { p, tot, n, lastFix, waiting }) {
       <dt>${t('st.stand.checked')}</dt><dd>${t('st.stand.checked.v', { commit: code(p.commit.slice(0, 7)) })}</dd>
       ${tot.all_cards ? `<dt>${t('st.stand.progress')}</dt><dd>${esc(t('st.stand.progress.v', { closed: num(tot.closed), all: num(tot.all_cards) }))}</dd>` : ''}
       ${lastFix ? `<dt>${t('st.stand.batch')}</dt><dd>${esc(t('st.stand.batch.v', { state: L(contract.STATE_WORDS[lastFix.state]), label: derive.labelOf(lastFix.label, prefs.lang) }))}
-        ${lastFix.state === 'stopped' && !lastFix.outcome && !ctx.offline ? `<div style="margin-top:4px"><button class="btn btn--secondary btn--sm" data-act="sheet" data-sheet="action:fix_abandon">${t('st.stand.close')}</button></div>` : ''}</dd>` : ''}
+        ${lastFix.state === 'stopped' && !lastFix.outcome && !ctx.offline ? `<div class="mt-1"><button class="btn btn--secondary btn--sm" data-act="sheet" data-sheet="action:fix_abandon">${t('st.stand.close')}</button></div>` : ''}</dd>` : ''}
       ${waiting.map(run => `<dt>${t('st.stand.branch')}</dt><dd><a class="link" href="${href('/waiting/' + encodeURIComponent(run.id))}">${code(run.result.branch)}</a></dd>`).join('')}
     </dl>
-    ${ctx.offline ? '' : `<div class="actions" style="margin-top:12px"><a class="btn btn--secondary btn--sm" href="${href('/ask', { note: 'project' })}">${icon('note')}${t('st.stand.note')}</a></div>`}`;
+    ${ctx.offline ? '' : `<div class="actions mt-3"><a class="btn btn--secondary btn--sm" href="${href('/ask', { note: 'project' })}">${icon('note')}${t('st.stand.note')}</a></div>`}`;
 }
 // the journey's steps, each done, running now, or to come
 function journeyHTML(steps) {
@@ -194,20 +194,20 @@ function aboutHTML(p, sz) {
       <dt>${t('st.about.scan')}</dt><dd>${code(p.branch)} ${code(p.commit.slice(0, 7))}</dd>
       <dt>${t('st.about.eaos')}</dt><dd>${code('EAOS ' + p.eaos_version)}</dd>
     </dl>
-    ${notDone.length ? `<div class="block-title" style="margin-top:16px">${t('st.about.notdone')}</div>
+    ${notDone.length ? `<div class="block-title mt-4">${t('st.about.notdone')}</div>
     <ul class="panel rows">${notDone.map(x => `<li><button class="row" data-act="sheet" data-sheet="stage:${esc(x.id)}">${icon(x.state === 'skipped' ? 'dash' : 'warn', 'muted')}
         <span class="row__main"><span class="row__title">${code(x.id)}</span><span class="row__meta" style="display:block">${t(STAGE_WORD[x.state] || 'st.about.partial')}</span></span>
         ${icon('chev', 'icon--sm icon--dir muted')}</button></li>`).join('')}</ul>
-    <p class="small muted" style="margin-top:8px">${t('st.about.redo')}</p>` : ''}`;
+    <p class="small muted mt-2">${t('st.about.redo')}</p>` : ''}`;
 }
 // the areas the check did not measure, and how to measure them; then what this version of EAOS does not check at all
 function measuredHTML(unmeasured, unchecked) {
   return `<p class="small ink-2">${unmeasured.length ? t('st.measured.v', { n: tn('pl.area', unmeasured.length) }) : t('st.measured.all')}</p>
-    ${unmeasured.map(a => `<div class="nm" style="margin-top:12px"><div class="nm__title"><span class="tag tag--nm">${t('nm')}</span>${t('area.' + a.id)}</div>
+    ${unmeasured.map(a => `<div class="nm mt-3"><div class="nm__title"><span class="tag tag--nm">${t('nm')}</span>${t('area.' + a.id)}</div>
       <p class="small ink-2">${a.id === 'performance' ? t('st.measured.why') : t('st.nm.other')}</p>
       ${a.id === 'performance' ? `<div><a class="btn btn--secondary btn--sm" href="${href('/activity', { sheet: 'check', path: 'speed' })}">${t('st.nm.act')}</a></div>` : ''}</div>`).join('')}
-    ${unchecked.length ? `<div class="block-title" style="margin-top:16px">${t('st.unchecked')}</div>
-    ${unchecked.map(k => `<div class="nm" style="margin-top:12px"><div class="nm__title"><span class="tag tag--nm">${t('st.unchecked.tag')}</span>${t('unchecked.' + k.id)}</div>
+    ${unchecked.length ? `<div class="block-title mt-4">${t('st.unchecked')}</div>
+    ${unchecked.map(k => `<div class="nm mt-3"><div class="nm__title"><span class="tag tag--nm">${t('st.unchecked.tag')}</span>${t('unchecked.' + k.id)}</div>
       <p class="small ink-2">${t('unchecked.' + k.id + '.why')}</p></div>`).join('')}` : ''}`;
 }
 

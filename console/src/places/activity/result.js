@@ -9,7 +9,7 @@ function errorHTML(e) {
       <dl class="facts"><dt>${t('ac.run.what')}</dt><dd>${rich(L(e.text))}${e.reason ? ` <span class="small muted">${rich(e.reason)}</span>` : ''}</dd>
         ${e.what_now ? `<dt>${t('ac.run.todo')}</dt><dd>${rich(L(e.what_now))}</dd>` : ''}
         <dt>${t('ac.run.recoverable')}</dt><dd>${t(e.recoverable ? 'ac.run.recoverable.yes' : 'ac.run.recoverable.no')}</dd></dl>
-      ${e.detail ? `<details class="ac-ev-fold"><summary>${t('ac.run.tech')}${icon('chev-down', 'icon--sm muted')}</summary><div class="code" style="padding:8px 12px;white-space:pre-wrap">${esc(e.detail)}</div></details>` : ''}</section>`;
+      ${e.detail ? `<details class="ac-ev-fold"><summary>${t('ac.run.tech')}${icon('chev-down', 'icon--sm muted')}</summary><div class="code pad-2-3 pre">${esc(e.detail)}</div></details>` : ''}</section>`;
 }
 /** The checks' verdict: changes kept and left out. */
 function testsHTML(tests) {
@@ -75,7 +75,7 @@ export function fixProgress(r, rs, view) {
   const shown = cards.slice(0, 12);
   return `<section class="section" aria-labelledby="fp-h"><div class="section-head"><h2 id="fp-h">${t('ac.fix.progress')}</h2><span class="small muted num">${esc(t('ac.now.fix.sub', { done: num(tried), total: num(cards.length) }))}</span></div>
     ${ac.progressBar(tried / cards.length, t('ac.fix.progress'))}
-    <ul class="panel rows" style="margin-top:12px">${shown.map(row).join('')}${cards.length > shown.length ? `<li class="row small muted" style="min-height:44px">+ ${esc(tn('pl.problem', cards.length - shown.length))}</li>` : ''}</ul></section>`;
+    <ul class="panel rows mt-3">${shown.map(row).join('')}${cards.length > shown.length ? `<li class="row small muted" style="min-height:44px">+ ${esc(tn('pl.problem', cards.length - shown.length))}</li>` : ''}</ul></section>`;
 }
 
 /** RUN-09: the request that waits for the person's assistant elsewhere, to copy. */
@@ -84,6 +84,6 @@ export function handoffHTML(r) {
   if (!req) return '';
   return `<section class="section" aria-labelledby="ho-h"><div class="section-head"><h2 id="ho-h">${t('ac.ho.title')}</h2></div>
     <div class="panel panel__pad ac-stack"><p class="small ink-2">${t('ac.ho.why')}</p>
-      ${['ar', 'en'].filter(l => req[l]).map(l => `<div class="ac-req"><span class="block-title">${t('lang.' + l)}</span><div class="code ac-req__text" dir="${l === 'ar' ? 'rtl' : 'ltr'}" style="white-space:pre-wrap">${esc(req[l])}</div>
+      ${['ar', 'en'].filter(l => req[l]).map(l => `<div class="ac-req"><span class="block-title">${t('lang.' + l)}</span><div class="code ac-req__text pre" dir="${l === 'ar' ? 'rtl' : 'ltr'}">${esc(req[l])}</div>
         <button class="btn btn--secondary btn--sm" data-act="copy" data-text="${esc(req[l])}">${icon('copy')}${t('copy')}</button></div>`).join('')}</div></section>`;
 }

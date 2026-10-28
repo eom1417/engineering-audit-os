@@ -5,13 +5,14 @@
 import {
   t, L, num, esc, icon, code, href, has, fmtWhen, exactTime, screen, sheet, act, refresh, toast, closeSheetThen, setTimeZone, offline,
   prefs, live, store, model, client, ActionError, ac,
+  skeletonRows, displayToggles,
 } from 'eaos';
 import { projBack, protectedNames } from './git.js';
 
 const said = e => (e instanceof ActionError ? e.message : String(e));
 const flows = () => (live.progress && live.progress.flows) || {};
 const offlinePage = (lede, guide) => `<div class="page">${projBack()}<h1 class="lede">${t(lede)}</h1><p class="guide">${t(guide)}</p><div class="actions"><button class="btn btn--primary" data-act="sheet" data-sheet="open-live">${t('offline.how')}</button></div></div>`;
-const busyPage = lede => `<div class="page" aria-busy="true">${projBack()}<h1 class="lede">${t(lede)}</h1><div class="panel rows section">${[1, 2].map(() => `<div class="row"><span style="flex:1;display:grid;gap:8px"><span class="skel-line" style="width:40%"></span><span class="skel-line" style="width:70%"></span></span></div>`).join('')}</div></div>`;
+const busyPage = lede => `<div class="page" aria-busy="true">${projBack()}<h1 class="lede">${t(lede)}</h1>${skeletonRows(2, [40, 70], { cls: 'section', tag: 'div' })}</div>`;
 
 /** A reading tool's answer, asked once per visit (and again on demand). */
 const answers = {};
@@ -138,7 +139,7 @@ function assistantRow(a, k) {
   const meta = [a.version, a.model || (a.ready ? t('ac.as.model.default') : ''), a.seconds != null && a.ready ? t('ac.as.answered', { s: num(a.seconds) }) : ''].filter(Boolean).join(' · ');
   return `<li class="row ac-arow">${ac.glyph(a.ready ? 'ok' : a.installed ? 'notin' : 'unavailable')}<span class="row__main"><span class="row__title">${esc(a.name)} ${tag}</span>
           <span class="row__meta" style="display:block">${esc(meta)}${a.reason ? ` ${esc(L(a.reason))}` : ''}</span>
-          <span style="display:block;margin-top:8px"><button class="btn btn--secondary btn--sm" data-act="ac-asst-one" data-id="${esc(a.id)}" ${k ? 'disabled' : ''}>${esc(t('ac.as.one.v', { name: a.name }))}</button></span></span></li>`;
+          <span class="block mt-2"><button class="btn btn--secondary btn--sm" data-act="ac-asst-one" data-id="${esc(a.id)}" ${k ? 'disabled' : ''}>${esc(t('ac.as.one.v', { name: a.name }))}</button></span></span></li>`;
 }
 
 /** The last check's cost, stage by stage, costliest first: rows on the phone, a table on the desktop. */
@@ -155,7 +156,7 @@ function lastCheck(check) {
     <tbody>${stages.map(([id, s]) => `<tr><th scope="row">${esc(stageName(id))}</th>${['input', 'cache_write', 'cache_read', 'output', 'thinking'].map(k => `<td class="num">${esc(tok(s[k] || 0))}</td>`).join('')}<td class="num">${esc(mins(s.duration_ms))}</td><td class="num">${money(s.cost_usd, '—')}</td></tr>`).join('')}</tbody>
     <tfoot><tr><th scope="row">${t('ac.as.total')}</th><td colspan="5" class="num">${esc(tok(all(T)))}</td><td class="num">${esc(mins(T.duration_ms))}</td><td class="num">${money(T.cost_usd, '—')}</td></tr></tfoot></table></div>`;
   return `${head}
-      <p class="small ink-2" style="margin-bottom:12px">${t('ac.as.bill')}</p><ul class="panel rows only-phone">${rows}</ul>${table}</section>`;
+      <p class="small ink-2 mb-3">${t('ac.as.bill')}</p><ul class="panel rows only-phone">${rows}</ul>${table}</section>`;
 }
 
 /** The runs that used an assistant, the ten newest. */
@@ -209,7 +210,7 @@ function asstPage(ctx) {
       <ul class="panel rows">${rows.map(a => assistantRow(a, k)).join('')}</ul></section>
     ${lastCheck(u.check)}
     <section class="section" aria-labelledby="ru-h"><div class="section-head"><h2 id="ru-h">${t('ac.as.runs')}</h2></div>
-      ${runsUsed(u.runs)}<p class="small muted" style="margin-top:8px">${t('ac.as.runs.note')}</p></section>
+      ${runsUsed(u.runs)}<p class="small muted mt-2">${t('ac.as.runs.note')}</p></section>
     <section class="section" aria-labelledby="im-h"><div class="section-head"><h2 id="im-h">${t('ac.as.improve')}</h2></div>
       <div class="panel panel__pad">${improveFacts(u)}</div></section>
     <section class="section panel">${chatFold(u.chat)}</section>
@@ -256,8 +257,8 @@ const toolsLeft = (f, installing) => (installing && f.estimate && f.estimate.low
 function toolsLists(list, needed, attention, ready) {
   return `${attention.length ? `<section class="section" aria-labelledby="ta-h"><div class="section-head"><h2 id="ta-h">${t('ac.tl.attention')}</h2></div><ul class="panel rows">${attention.map(toolRow).join('')}</ul></section>` : ''}
     <div class="section panel">
-      ${ac.fold('check', t('ac.tl.g.all'), esc(t('ac.tl.of', { n: num(ready), t: num(needed.length) })) + ' ' + t('ac.tl.ready_word'), list.length ? `<ul class="rows" style="margin:0 -16px">${needed.map(toolRow).join('')}</ul>` : `<p class="small muted">${t('ac.tl.lede.none')}</p>`)}
-      ${list.length > needed.length ? ac.fold('other', t('ac.tl.g.other'), esc(t('ac.tl.g.other.sum', { n: num(list.length - needed.length) })), `<ul class="rows" style="margin:0 -16px">${list.filter(s => s.requested === false).map(toolRow).join('')}</ul>`) : ''}
+      ${ac.fold('check', t('ac.tl.g.all'), esc(t('ac.tl.of', { n: num(ready), t: num(needed.length) })) + ' ' + t('ac.tl.ready_word'), list.length ? `<ul class="rows bleed">${needed.map(toolRow).join('')}</ul>` : `<p class="small muted">${t('ac.tl.lede.none')}</p>`)}
+      ${list.length > needed.length ? ac.fold('other', t('ac.tl.g.other'), esc(t('ac.tl.g.other.sum', { n: num(list.length - needed.length) })), `<ul class="rows bleed">${list.filter(s => s.requested === false).map(toolRow).join('')}</ul>`) : ''}
     </div>`;
 }
 function toolsPage(ctx) {
@@ -320,7 +321,7 @@ function keptRows(o, st, protectedList) {
   ]);
 }
 const keptSection = kept => `<section class="section" aria-labelledby="kp-h"><div class="section-head"><h2 id="kp-h">${t('ac.set.kept')}</h2></div>
-      <p class="small ink-2" style="margin-bottom:12px">${t('ac.set.kept.sub')}</p>
+      <p class="small ink-2 mb-3">${t('ac.set.kept.sub')}</p>
       <ul class="panel rows">${kept.map(([label, v, path, q]) => `<li>${path ? `<a class="row" href="${href(path, q)}">` : '<div class="row">'}<span class="row__main"><span class="row__title small">${label}</span><span class="row__meta" style="display:block">${v}</span></span>${path ? `<span class="small link">${t('ac.set.change')}</span>${icon('chev', 'icon--sm icon--dir muted')}</a>` : '</div>'}</li>`).join('')}</ul></section>`;
 /** Which EAOS drew this copy and whether it is the one running now. */
 function versionSection() {
@@ -335,7 +336,7 @@ function keysSection() {
   const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
   return `<section class="section" aria-labelledby="kb-h"><div class="section-head"><h2 id="kb-h">${t('ac.set.kb')}</h2></div>
       <div class="panel panel__pad"><dl class="facts ac-keys">${keys.map(([k2, w]) => `<dt><kbd class="ac-kbd">${esc(k2)}</kbd></dt><dd>${t(w)}</dd>`).join('')}</dl>
-        <p class="small ink-2" style="margin-top:12px">${t('ac.set.kb.more')} ${t(reduce ? 'ac.set.kb.reduce.on' : 'ac.set.kb.reduce.off')}</p></div></section>`;
+        <p class="small ink-2 mt-3">${t('ac.set.kb.more')} ${t(reduce ? 'ac.set.kb.reduce.on' : 'ac.set.kb.reduce.off')}</p></div></section>`;
 }
 /** Where the Studio is reached from: this computer, another one, or a saved copy. */
 function accessSection(offline) {
@@ -357,16 +358,10 @@ function settingsPage(ctx) {
     <h1 class="lede">${t('ac.set.lede')}</h1>
     <p class="guide">${t('ac.set.guide')}</p>
     <section class="section" aria-labelledby="tz-h"><div class="section-head"><h2 id="tz-h">${t('ac.set.tz')}</h2></div>
-      <p class="small ink-2" style="margin-bottom:12px">${esc(t('ac.set.tz.example', { rel: fmtWhen(sample), exact: exactTime(sample) }))}</p>
+      <p class="small ink-2 mb-3">${esc(t('ac.set.tz.example', { rel: fmtWhen(sample), exact: exactTime(sample) }))}</p>
       <div class="opts" role="radiogroup" aria-labelledby="tz-h">${tzOptions()}</div></section>
     <section class="section" aria-labelledby="lg-h"><div class="section-head"><h2 id="lg-h">${t('ac.set.display')}</h2></div>
-      <div class="panel panel__pad toggles">
-        <div class="toggle-row"><span>${t('lang.label')}</span><div class="seg" role="group" aria-label="${esc(t('lang.label'))}" style="min-width:180px">
-          <button type="button" data-act="lang" data-lang="ar" data-fk="s-lang-ar" aria-pressed="${prefs.lang === 'ar'}" lang="ar">${t('lang.ar')}</button><button type="button" data-act="lang" data-lang="en" data-fk="s-lang-en" aria-pressed="${prefs.lang === 'en'}" lang="en">${t('lang.en')}</button></div></div>
-        <p class="muted small">${t('lang.note')}</p>
-        <div class="toggle-row"><span>${t('theme.label')}</span><div class="seg" role="group" aria-label="${esc(t('theme.label'))}" style="min-width:180px">
-          <button type="button" data-act="theme-set" data-theme="light" data-fk="s-th-l" aria-pressed="${prefs.theme === 'light'}">${icon('sun', 'icon--sm')}${t('theme.light')}</button><button type="button" data-act="theme-set" data-theme="dark" data-fk="s-th-d" aria-pressed="${prefs.theme === 'dark'}">${icon('moon', 'icon--sm')}${t('theme.dark')}</button></div></div>
-      </div></section>
+      <div class="panel panel__pad toggles">${displayToggles('s-')}</div></section>
     ${ctx.offline ? '' : keptSection(keptRows(o, st, protectedList))}
     ${versionSection()}
     ${keysSection()}

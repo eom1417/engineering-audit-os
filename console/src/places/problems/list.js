@@ -4,6 +4,7 @@
 import {
   t, tn, L, num, esc, rich, icon, code, sev, chk, href, screen, sheet, act, tickAct, refresh, setQuery, searchTyped, parseHash, announce, closeSheetThen, setSelbar,
   S, model, selection, data,
+  skeletonRows,
 } from 'eaos';
 import { NEEDS, SEV, AREAS, STATES, FACETS, component, who, steps, value, list, filterProblems, activeFilters, facetLabel, keepQuery } from './shared.js';
 import { detailHTML } from './detail.js';
@@ -94,7 +95,7 @@ function listColumn(q, openId) {
       </div>
       ${chips}
     </div>
-    ${S.newcheck ? `<div class="panel row row--you" role="status" style="margin-top:16px">${icon('info')}<span class="row__main small">${t('pb.newcheck')}</span>
+    ${S.newcheck ? `<div class="panel row row--you mt-4" role="status">${icon('info')}<span class="row__main small">${t('pb.newcheck')}</span>
       <button class="btn btn--quiet btn--sm" data-act="newcheck-show">${t('pb.newcheck.show')}</button></div>` : ''}
     ${band}
     <div class="listhead">
@@ -105,7 +106,7 @@ function listColumn(q, openId) {
       </span>
     </div>
     ${listHTML(visible, q, openId)}
-    ${more > 0 ? `<div class="actions" style="justify-content:center;margin-top:12px"><a class="btn btn--secondary" href="${href(parseHash().path, keepQuery(q, { n: limit + PAGE }))}" data-fk="more">${esc(t('pb.more', { n: num(Math.min(PAGE, more)), left: num(more) }))}</a></div>` : ''}
+    ${more > 0 ? `<div class="actions actions--center mt-3"><a class="btn btn--secondary" href="${href(parseHash().path, keepQuery(q, { n: limit + PAGE }))}" data-fk="more">${esc(t('pb.more', { n: num(Math.min(PAGE, more)), left: num(more) }))}</a></div>` : ''}
   </div>`;
 }
 
@@ -116,7 +117,7 @@ function page(ctx) {
   const p = id ? shown().find(x => x.id === id) : null;
   const detail = id
     ? (p ? detailHTML(p, ctx) : `<div class="empty"><p class="empty__title">${esc(t('pd.notfound', { id }))}</p><p class="small ink-2">${t('pd.notfound.guide')}</p><a class="btn btn--secondary" href="${href('/problems')}">${t('pd.back')}</a></div>`)
-    : `<div class="empty" style="justify-items:center;text-align:center;padding:64px 16px">${icon('problems', 'icon--lg muted')}<p class="muted">${t('pd.none')}</p></div>`;
+    : `<div class="empty empty--none">${icon('problems', 'icon--lg muted')}<p class="muted">${t('pd.none')}</p></div>`;
   return `<div class="page page--wide">
     <div class="psplit ${id ? 'psplit--detail' : ''}">
       ${listColumn(q, id)}
@@ -126,7 +127,7 @@ function page(ctx) {
 
 function loading() {
   return `<div class="page page--wide" aria-busy="true"><h1 class="lede">${t('st.loading')}</h1>
-    <ul class="panel rows" style="margin-top:24px">${[1, 2, 3, 4, 5].map(() => `<li class="prow"><span class="skel" style="width:22px;height:22px"></span><span style="flex:1;display:grid;gap:8px"><span class="skel-line" style="width:40%"></span><span class="skel-line" style="width:90%"></span><span class="skel-line" style="width:60%"></span></span></li>`).join('')}</ul></div>`;
+    ${skeletonRows(5, [40, 90, 60], { cls: 'mt-6', row: 'prow', mark: 'square' })}</div>`;
 }
 
 screen({ id: 'S-06', path: '/problems', place: 'problems', needs: NEEDS, loading, title: () => t('pb.place'), render: page });
@@ -178,9 +179,9 @@ sheet('filters', {
         const n = base.filter(p => value(p, f) === v).length;
         const on = sel.includes(v);
         const hide = vals.length > 12 && i >= 8 && !on ? 'data-more hidden' : '';
-        return `<label class="row" style="min-height:48px;padding-inline:4px;gap:12px" ${hide}>
+        return `<label class="row row--pick row--facet" ${hide}>
           ${chk(`data-change="facet" data-facet="${f}" value="${esc(v)}" data-fk="f-${f}-${esc(v)}" ${n || on ? '' : 'disabled'}`, on, facetLabel(f, v))}
-          <span class="row__main" style="margin-inline-start:8px;${n ? '' : 'color:var(--ink-3)'}">${f === 'sev' ? sev(v) : f === 'comp' ? code(v) : esc(facetLabel(f, v))}</span>
+          <span class="row__main pick__words${n ? '' : ' muted'}">${f === 'sev' ? sev(v) : f === 'comp' ? code(v) : esc(facetLabel(f, v))}</span>
           <span class="num ${n ? '' : 'muted'}">${num(n)}</span></label>`;
       }).join('');
       const more = vals.length > 12 ? `<button class="btn btn--quiet btn--sm" data-act="facet-more">${t('facet.more', { n: num(vals.length) })}</button>` : '';

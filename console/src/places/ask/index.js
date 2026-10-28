@@ -8,6 +8,7 @@
 import {
   t, num, L, esc, rich, icon, code, href, fmtTime, screen, act, refresh, refreshSoon, redrawAssist, toast, announce, parseHash, setQuery, searchTyped, openSheet, offline,
   S, live, store, client, contract, ActionError, prefs, ac, md,
+  toggleRow,
 } from 'eaos';
 
 const KEY = 'eaos.chat';
@@ -48,7 +49,7 @@ function pendingTurn(x, i, who) {
 // an answer that failed, with a retry
 function failedTurn(x, i) {
   return `<li class="ac-turn ac-turn--ai"><div class="ac-note ac-note--fail">${icon('fail', 'icon--sm ac-c-danger')}<span class="small">${esc(t('ac.ask.failed', { why: x.error }))}</span></div>
-      <div class="actions" style="margin-top:8px"><button class="btn btn--secondary btn--sm" data-act="ac-ask-retry" data-i="${i}">${icon('retry')}${t('ac.ctl.retry')}</button></div></li>`;
+      <div class="actions mt-2"><button class="btn btn--secondary btn--sm" data-act="ac-ask-retry" data-i="${i}">${icon('retry')}${t('ac.ctl.retry')}</button></div></li>`;
 }
 function turnHTML(x, i) {
   if (x.who === 'you') return youTurn(x);
@@ -65,8 +66,8 @@ function answerTurn(x, i, who) {
   return `<li class="ac-turn ac-turn--ai"><div class="ai-block"><span class="ai-block__label">${icon('ai', 'icon--sm')}${esc(who)}</span>
       ${(x.reading || []).length ? `<details class="ac-ev-fold"><summary class="small muted">${esc(t('ac.ask.read', { n: num(x.reading.length) }))}${icon('chev-down', 'icon--sm muted')}</summary><p class="small muted">${x.reading.map(code).join(' ')}</p></details>` : ''}
       ${md(x.answer)}
-      ${done ? `<p class="small" style="margin-top:8px">${done}</p>` : ''}
-      ${props ? `<div class="block-title" style="margin-top:12px">${t('ac.ask.props')}</div><ul class="ac-props">${props}</ul>` : ''}</div>
+      ${done ? `<p class="small mt-2">${done}</p>` : ''}
+      ${props ? `<div class="block-title mt-3">${t('ac.ask.props')}</div><ul class="ac-props">${props}</ul>` : ''}</div>
     <span class="ac-turn__meta small muted">${esc(fmtTime(x.at))}, ${t('as.depth.' + (x.depth || 'quick'))}${c != null ? `, ${ac.money(c)}` : ''}</span></li>`;
 }
 
@@ -115,11 +116,9 @@ function readControl() {
 function control() {
   readControl();
   const on = dc.on;
-  return `<details class="panel fold" ${on ? 'open' : ''}><summary>${icon('seal', 'muted')}<span class="row__main"><span class="row__title">${t('ac.ask.dc')}</span>
-      <span class="row__meta" style="display:block">${on ? t('ac.ask.dc.on') : t('ac.ask.dc.off')}</span></span>${icon('chev', 'chev')}</summary>
+  return `<details class="panel fold" ${on ? 'open' : ''}>${ac.foldHead(t('ac.ask.dc'), on ? t('ac.ask.dc.on') : t('ac.ask.dc.off'), icon('seal', 'muted'))}
     <div class="fold__body ac-stack">
-      <div class="toggle-row"><span><span style="display:flex;gap:8px;align-items:center">${icon('seal', 'icon--sm')}${t('ac.ask.dc.switch')}</span><span class="small muted">${t('owner.only')}</span></span>
-        <span class="switch"><input type="checkbox" data-change="ac-direct" data-fk="direct" ${on ? 'checked' : ''} ${offline() ? 'disabled' : ''} aria-label="${esc(t('ac.ask.dc.switch'))}"><span class="switch__track"></span><span class="switch__thumb"></span></span></div>
+      ${toggleRow(t('ac.ask.dc.switch'), t('owner.only'), { 'data-change': 'ac-direct', 'data-fk': 'direct', checked: on, disabled: offline() }, { icon: 'seal' })}
       <p class="small ink-2">${t('ac.ask.dc.may')}</p>
       <p class="small ink-2"><b>${t('ac.ask.dc.never.t')}</b> ${t('ac.ask.dc.never')}</p>
       <p class="small muted">${t('ac.ask.dc.note')}</p></div></details>`;

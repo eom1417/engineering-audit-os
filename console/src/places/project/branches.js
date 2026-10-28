@@ -48,8 +48,8 @@ function fourPanel(c, w, f) {
       <dt>${t('ac.br.four.analysed')}</dt><dd>${code(w.analysed)}${c.analysis && c.analysis.selected ? ` <span class="small muted">${t('ac.br.four.chosen')}</span>` : ''}</dd>
       <dt>${t('ac.br.four.report')}</dt><dd>${c.report ? `${headOf(c.report)} <span class="small muted">${esc(fmtWhen(c.report.at))}</span>` : none}</dd>
       <dt>${t('ac.br.four.scan')}</dt><dd>${c.scan ? headOf(c.scan) : none}</dd></dl>
-      ${w.differ ? `<p class="ac-note ac-note--caution small" style="margin-top:12px">${icon('warn', 'icon--sm ac-c-caution')}<span>${t('ac.br.four.differ.todo', { folder: code(w.folder), analysed: code(w.analysed) })}</span></p>`
-        : `<p class="small ink-2" style="margin-top:12px">${t(f.state === 'fresh' ? 'ac.br.four.agree' : 'ac.br.four.agree.stale')}</p>`}</div>`;
+      ${w.differ ? `<p class="ac-note ac-note--caution small mt-3">${icon('warn', 'icon--sm ac-c-caution')}<span>${t('ac.br.four.differ.todo', { folder: code(w.folder), analysed: code(w.analysed) })}</span></p>`
+        : `<p class="small ink-2 mt-3">${t(f.state === 'fresh' ? 'ac.br.four.agree' : 'ac.br.four.agree.stale')}</p>`}</div>`;
 }
 const isYours = b => b.work || (b.roles || []).some(r => r === 'checkout' || r === 'analysis');
 const found = (b, q) => normalize.matches([b.name, b.remote || '', b.upstream || '', b.subject || ''].join(' '), q);

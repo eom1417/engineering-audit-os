@@ -8,6 +8,7 @@
 import {
   t, tn, L, num, esc, rich, icon, code, sev, href, assistantPicker, estimate, expiresAt, sheet, act, rerenderSheet, local, parseHash, closeSheetThen, toast, refresh, offline,
   model, selection, store, client, ActionError, contract, prefs,
+  terminalFold, toggleRow,
 } from 'eaos';
 
 const enc = encodeURIComponent;
@@ -58,7 +59,7 @@ function cardsHTML(p) {
 }
 
 function radios(name, rows, picked, act) {
-  return `<div class="opts" style="margin-top:8px">${rows.map(b => `<label class="opt ${b.blocked ? 'opt--off' : ''}"><input type="radio" name="${name}" value="${esc(b.name)}" data-change="${act}" data-fk="${name}-${esc(b.name)}" ${b.name === picked ? 'checked' : ''} ${b.blocked ? 'disabled' : ''}>
+  return `<div class="opts mt-2">${rows.map(b => `<label class="opt ${b.blocked ? 'opt--off' : ''}"><input type="radio" name="${name}" value="${esc(b.name)}" data-change="${act}" data-fk="${name}-${esc(b.name)}" ${b.name === picked ? 'checked' : ''} ${b.blocked ? 'disabled' : ''}>
     <span class="opt__dot"></span><span class="opt__text"><span class="opt__line">${code(b.name)}${b.blocked ? icon('lock', 'icon--sm muted') : ''}</span>
     <span class="opt__note">${esc(b.blocked ? L(b.blocked) : b.note || b.short || '')}</span></span></label>`).join('')}</div>`;
 }
@@ -73,7 +74,7 @@ function whereHTML(w, own) {
       <dt>${t('pv.deliver')}</dt><dd>${deliverFact(w, mode, base)}</dd>
       ${mode === 'direct' ? '' : mergeFact(w)}</dl>
     ${w.problem ? `<p class="small" role="note">${icon('warn', 'icon--sm')} ${esc(L(w.problem))}</p>` : ''}
-    <details style="margin-top:8px" ${own.whereOpen ? 'open' : ''} data-where><summary class="link" style="cursor:pointer;min-height:44px;display:inline-flex;align-items:center">${t('pv.change')}</summary>
+    <details class="mt-2" ${own.whereOpen ? 'open' : ''} data-where><summary class="link" style="cursor:pointer;min-height:44px;display:inline-flex;align-items:center">${t('pv.change')}</summary>
       ${changeHTML(w, own, base, mode)}
     </details></div></div>`;
 }
@@ -98,17 +99,17 @@ function mergeFact(w) {
 
 /** The place's choices, folded: the base, the delivery mode (with the new branch's name) and the branch to merge into. */
 function changeHTML(w, own, base, mode) {
-  return `<div class="block-title" style="margin-top:8px">${t('pv.base')}</div>${radios('base', w.branches, base, 'pv-base')}
-      <div class="block-title" style="margin-top:12px">${t('pv.deliver')}</div>
+  return `<div class="block-title mt-2">${t('pv.base')}</div>${radios('base', w.branches, base, 'pv-base')}
+      <div class="block-title mt-3">${t('pv.deliver')}</div>
       <div class="opts">${modesOf(w, base).map(([id, label]) => `<label class="opt"><input type="radio" name="mode" value="${id}" data-change="pv-mode" data-fk="mode-${id}" ${id === mode ? 'checked' : ''}><span class="opt__dot"></span><span class="opt__text">${esc(label)}</span></label>`).join('')}</div>
       ${mode === 'new' ? nameHTML(w, own) : ''}
       ${mode === 'continue' ? radios('cont', w.continuable, w.deliver_as, 'pv-continue') : ''}
-      ${mode === 'direct' ? `<p class="small ink-2">${esc(t('pv.direct.note', { branch: base }))}</p>` : `<div class="block-title" style="margin-top:12px">${t('pv.merge')}</div>${radios('into', w.branches, w.merge_into, 'pv-into')}`}`;
+      ${mode === 'direct' ? `<p class="small ink-2">${esc(t('pv.direct.note', { branch: base }))}</p>` : `<div class="block-title mt-3">${t('pv.merge')}</div>${radios('into', w.branches, w.merge_into, 'pv-into')}`}`;
 }
 
 function nameHTML(w, own) {
-  return `<label class="field" style="margin-top:8px"><span class="sr-only">${t('pv.deliver.name')}</span><input class="input mono" dir="ltr" id="pv-name" data-fk="pv-name" value="${esc(own.name != null ? own.name : w.deliver_as || '')}" data-input="pv-name"></label>
-        ${own.name && own.name !== w.deliver_as ? `<button class="btn btn--secondary btn--sm" data-act="pv-name-go" style="margin-top:8px">${t('pv.update')}</button>` : ''}`;
+  return `<label class="field mt-2"><span class="sr-only">${t('pv.deliver.name')}</span><input class="input mono" dir="ltr" id="pv-name" data-fk="pv-name" value="${esc(own.name != null ? own.name : w.deliver_as || '')}" data-input="pv-name"></label>
+        ${own.name && own.name !== w.deliver_as ? `<button class="btn btn--secondary btn--sm mt-2" data-act="pv-name-go">${t('pv.update')}</button>` : ''}`;
 }
 
 function assistantsHTML(p, own) {
@@ -125,7 +126,7 @@ function speedHTML(s, own) {
   const on = own.speed != null ? own.speed : s.on, n = Math.min(s.assistants, s.lanes);
   return `<div><div class="toggle-row panel panel__pad"><span><span style="display:block">${t('pv.speed')}</span><span class="small muted">${t(n > 1 ? 'pv.speed.note' : 'pv.speed.one', { n: num(n) })}</span></span>
       <span class="switch"><input type="checkbox" data-change="pv-speed" data-fk="speed" ${on ? 'checked' : ''} aria-label="${esc(t('pv.speed'))}"><span class="switch__track"></span><span class="switch__thumb"></span></span></div>
-    ${on && n > 1 ? `<p class="ac-note ac-note--caution small" style="margin-top:8px">${icon('warn', 'icon--sm')}<span>${t('pv.speed.warn', { n: num(n) })}</span></p>` : ''}</div>`;
+    ${on && n > 1 ? `<p class="ac-note ac-note--caution small mt-2">${icon('warn', 'icon--sm')}<span>${t('pv.speed.warn', { n: num(n) })}</span></p>` : ''}</div>`;
 }
 
 function command(verb, sel) {
@@ -137,7 +138,7 @@ function command(verb, sel) {
 function snapshotSheet(verb) {
   return {
     title: esc(contract.verbOf(verb) ? L(contract.verbOf(verb).label) : verb),
-    body: `<p>${esc(L(contract.SNAPSHOT.text))}</p><div class="code" style="padding:12px 16px">${esc(contract.SNAPSHOT.command)}</div>
+    body: `<p>${esc(L(contract.SNAPSHOT.text))}</p><div class="code pad-3-4">${esc(contract.SNAPSHOT.command)}</div>
       <button class="btn btn--secondary" data-act="copy" data-text="${esc(contract.SNAPSHOT.command)}">${icon('copy')}${t('copy')}</button>`,
   };
 }
@@ -179,8 +180,7 @@ function choicesHTML(fix, p, own) {
 }
 
 function autoHTML(own) {
-  return `<div class="toggle-row panel panel__pad"><span><span style="display:flex;gap:8px;align-items:center">${icon('seal', 'icon--sm')}${t('pv.auto')}</span><span class="small muted">${t('pv.auto.note')}</span></span>
-            <span class="switch"><input type="checkbox" data-change="pv-auto" data-fk="auto" ${own.auto ? 'checked' : ''} aria-label="${esc(t('pv.auto'))}"><span class="switch__track"></span><span class="switch__thumb"></span></span></div>`;
+  return toggleRow(t('pv.auto'), t('pv.auto.note'), { 'data-change': 'pv-auto', 'data-fk': 'auto', checked: own.auto }, { icon: 'seal', cls: 'panel panel__pad' });
 }
 
 /** Start is off without a token or problems, while the place has a problem, while starting, or without an assistant
@@ -218,8 +218,7 @@ sheet('verb', {
         ${cardsHTML(p)}
         ${factsHTML(p)}
         ${choicesHTML(verb === 'fix', p, own)}
-        <details><summary class="link" style="cursor:pointer;min-height:44px;display:inline-flex;align-items:center;gap:6px">${icon('terminal', 'icon--sm')}${t('pv.terminal')}</summary>
-          <div class="code" style="padding:12px 16px;margin-top:8px">${esc(cmd)}</div></details>`,
+        ${terminalFold(esc(cmd))}`,
       foot: footHTML(verb, p, own, title, cmd),
     };
   },
