@@ -12,7 +12,8 @@ from ..assistant import tiers
 from ...core.language.check import foreign_texts, restate
 from ...core.system.process import Stuck, check_cancelled
 from .framework import (WORDS, answer_schema, cached, check, check_shape, critique_prompt, critique_schema, digest,
-                        fallback, folder_of, keep, launcher_of, now, record, rules_decisions, short, spent)
+                        fallback, folder_of, keep, launcher_of, record, rules_decisions, short, spent)
+from ...core.system.clock import now
 
 
 # A run's settings, with their defaults; every other option of run_node is the node's own input.

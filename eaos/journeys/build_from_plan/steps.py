@@ -92,7 +92,7 @@ def build_start(project=None, person_agreed=False):
     if not person_agreed and not (state.get('consent') or {}).get('build'):
         return {'status': 'needs_agreement', 'ask_the_person': CONSENT,
                 'what_now': 'Ask the person this, in their language. Only if they say yes, call build_start with person_agreed=true.'}
-    state['consent'] = {**(state.get('consent') or {}), 'build': True, 'at': agent_tools._now()}
+    state['consent'] = {**(state.get('consent') or {}), 'build': True, 'at': now()}
     started = _ensure_git(state)
     milestone = _next_milestone(state, plan)
     if milestone is None:
