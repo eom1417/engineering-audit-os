@@ -88,8 +88,13 @@
   --fs-caption: 13px; --lh-caption: 20px;                      /* tab labels on phone, badges: the floor */
   --fs-mono: 13px;   --lh-mono: 20px;                          /* ids, paths, branches, commits */
   --fs-code: 13px;   --lh-code: 21px;                          /* evidence excerpts, diffs */
+  --fs-question: 18px;                                         /* a waiting card's question */
+  --fs-nav: 15px;                                              /* the sidebar's places and project name */
+  --fs-mini: 12px;                                             /* inside a drawn picture (the app on the screen) */
+  --fs-tick-big: 1.75rem; --fs-tick-mid: 1.125rem; --fs-tick-sm: .8125rem; /* a run's clocks, large to small */
 
   /* ---------- Space (4 base) ---------- */
+  --s0-25: 1px; --s0-5: 2px; --s0-75: 3px; --s1-5: 6px; --s2-5: 10px;  /* quarter and half steps, inside small marks */
   --s1: 4px; --s2: 8px; --s3: 12px; --s4: 16px; --s5: 20px; --s6: 24px; --s8: 32px; --s10: 40px; --s12: 48px; --s16: 64px;
   --gutter: 16px;                    /* phone page padding; desktop 32 */
   --target: 44px;                    /* minimum touch target */
@@ -100,6 +105,7 @@
   --r-md: 12px;  /* panels, cards, code blocks */
   --r-lg: 18px;  /* sheets and dialogs (phone sheets: top corners only) */
   --r-full: 999px;
+  --r-1: 1px; --r-2: 2px; --r-3: 3px; --r-6: 6px;  /* marks inside a control: bars, edges, a segment's choice */
 
   /* ---------- Motion: only opacity and transform move ---------- */
   --t-press: 100ms ease-out;
@@ -111,6 +117,13 @@
 
   /* ---------- Layers ---------- */
   --z-sticky: 10; --z-strip: 20; --z-nav: 30; --z-popover: 40; --z-sheet: 50; --z-toast: 60; --z-confirm: 70;
+  --z-raise: 1;      /* an input laid over its own drawing (checkbox, switch, option) */
+  --z-fab: 35; --z-assist-scrim: 44; --z-assist: 45;  /* the assistant's button, its scrim and its panel */
+  --z-skip: 100;     /* the skip link, above everything */
+
+  /* ---------- Edges and rings (a box-shadow's shape; its colour is the caller's) ---------- */
+  --edge-start: inset 3px 0 0; --edge-end: inset -3px 0 0;   /* a bar at the start side, LTR and RTL */
+  --ring-1: 0 0 0 1px; --ring-2: 0 0 0 2px; --ring-in-1: inset 0 0 0 1px; --ring-in-1-5: inset 0 0 0 1.5px;
 
   /* ---------- Layout ---------- */
   --topbar-h: 56px; --tabbar-h: 64px; --strip-h: 48px; --sidebar-w: 256px;
@@ -119,6 +132,10 @@
   --panel-w: 520px; /* detail panel on desktop */
   --drawer-w: 480px;
   --dialog-w: 540px;
+  --assist-w: 400px;    /* the assistant's side panel on desktop */
+  --selbar-h: 132px;    /* the room the selection bar takes on the phone */
+  --main-end: 104px;    /* the room under a desktop page (the assistant's pill) */
+  --detail-end: 80px;   /* the room under a desktop detail panel */
 }
 
 /* ---------- Dark: lift by tone (surface ladder), shadows only deepen ---------- */

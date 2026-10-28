@@ -12,8 +12,8 @@
 }
 .ok-ic { color: var(--ok); } .caution-ic { color: var(--caution); }
 
-.un-to { display: inline-flex; align-items: center; gap: 2px; }
-.un-num { display: inline-grid; place-items: center; min-width: 32px; height: 28px; padding-inline: 6px; border-radius: var(--r-sm); background: var(--sunken); color: var(--ink-2); font-size: var(--fs-small); font-weight: 600; flex: none; align-self: flex-start; margin-top: 2px; }
+.un-to { display: inline-flex; align-items: center; gap: var(--s0-5); }
+.un-num { display: inline-grid; place-items: center; min-width: 32px; height: 28px; padding-inline: var(--s1-5); border-radius: var(--r-sm); background: var(--sunken); color: var(--ink-2); font-size: var(--fs-small); font-weight: 600; flex: none; align-self: flex-start; margin-top: var(--s0-5); }
 .un-itemtags { display: flex; flex-wrap: wrap; align-items: center; gap: var(--s2) var(--s3); margin-top: var(--s3); margin-bottom: var(--s2); }
 .un-lede-sm { font-size: var(--fs-title); line-height: var(--lh-title); }
 .un-more { margin: var(--s3) auto 0; display: flex; width: fit-content; }
@@ -79,14 +79,14 @@
 .un-stepgrid { display: grid; gap: var(--s6); margin-top: var(--s6); }
 .un-stepgrid > * { min-width: 0; }
 .un-stepfacts { display: grid; gap: var(--s3); align-content: start; }
-.un-share { display: flex; gap: 2px; height: 10px; border-radius: var(--r-full); overflow: hidden; background: var(--sunken); }
+.un-share { display: flex; gap: var(--s0-5); height: 10px; border-radius: var(--r-full); overflow: hidden; background: var(--sunken); }
 .un-share__s--done, .un-share__dot--done { background: var(--ok); }
 .un-share__s--active, .un-share__dot--active { background: var(--live); }
 .un-share__s--todo, .un-share__dot--todo { background: var(--ink-3); }
 .un-share__s--left, .un-share__dot--left { background: var(--line-strong); opacity: .5; }
-.un-share__dot { display: inline-block; width: 10px; height: 10px; border-radius: 3px; margin-inline-end: 6px; }
+.un-share__dot { display: inline-block; width: 10px; height: 10px; border-radius: var(--r-3); margin-inline-end: var(--s1-5); }
 .un-stepfacts .legend span { display: inline-flex; align-items: center; min-height: 32px; font-size: var(--fs-small); color: var(--ink-2); }
-.un-stepfacts .legend b { margin-inline-start: 4px; }
+.un-stepfacts .legend b { margin-inline-start: var(--s1); }
 .prow input:disabled + .check__box { opacity: .5; }
 /* Waves */
 .un-wgrid-wrap { padding: var(--s4); overflow-x: auto; display: grid; gap: var(--s2); }
@@ -108,7 +108,7 @@ a.un-wcell:hover { outline: 2px solid var(--ink-3); }
 .un-wrow__head.is-on b { text-decoration: underline; text-decoration-color: var(--accent); text-decoration-thickness: 2px; }
 .un-wrow__steps { display: flex; flex-wrap: wrap; gap: var(--s2); }
 .un-wrow__steps .fchip.is-on { background: var(--accent-soft); color: var(--accent-ink); }
-.un-together { display: block; height: 4px; border-radius: 2px; background: var(--sunken); margin-top: 6px; overflow: hidden; }
+.un-together { display: block; height: 4px; border-radius: var(--r-2); background: var(--sunken); margin-top: var(--s1-5); overflow: hidden; }
 .un-together i { display: block; height: 100%; background: var(--ink-3); transform-origin: left; }
 [dir="rtl"] .un-together i { transform-origin: right; }
 @media (min-width: 1024px) {
@@ -136,7 +136,7 @@ h1.empty__title { font-size: var(--fs-body); line-height: var(--lh-body); }
 .un-picwrap { position: relative; width: 100%; background: var(--sunken); border: 1px solid var(--line); border-radius: var(--r-sm); overflow: hidden; display: grid; place-items: center; }
 .un-picwrap img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; object-position: top; }
 .un-picwait { padding: var(--s4); text-align: center; }
-.un-pin { position: absolute; border: 2px solid var(--caution); border-radius: 6px; background: transparent; }
-.un-pin b { position: absolute; top: -12px; inset-inline-end: -12px; min-width: 24px; height: 24px; border-radius: 12px; display: grid; place-items: center; background: var(--caution); color: var(--surface); font: 600 13px var(--font); }
+.un-pin { position: absolute; border: 2px solid var(--caution); border-radius: var(--r-6); background: transparent; }
+.un-pin b { position: absolute; top: -12px; inset-inline-end: -12px; min-width: 24px; height: 24px; border-radius: var(--r-md); display: grid; place-items: center; background: var(--caution); color: var(--surface); font: 600 13px var(--font); }
 .un-pin.is-on { border-color: var(--accent); border-width: 3px; }
 .un-pin.is-on b { background: var(--accent); }
