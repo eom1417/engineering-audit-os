@@ -1,6 +1,6 @@
 """Rendered-screen checks through pinned tools that run as separate processes.
 
-Three runners, each returning a plain dict with a `status` ('observed', 'unavailable' or 'error') and a `reason`
+Two runners, each returning a plain dict with a `status` ('observed', 'unavailable' or 'error') and a `reason`
 when it did not observe; a missing tool is reported as unavailable, it is not raised:
 
     page_audit(urls, viewports, variants, out)   Playwright + axe (eaos/templates/screens/audit.mjs): per page,
@@ -10,8 +10,8 @@ when it did not observe; a missing tool is reported as unavailable, it is not ra
                                                  Arabic, the page's script errors, the page height and a
                                                  full-page screenshot.
     lighthouse(url, out)                         Lighthouse, mobile profile: category scores, LCP and CLS.
-    css_stats(folder)                            @projectwallace/css-analyzer (eaos/templates/screens/css.mjs):
-                                                 distinct colors, font sizes, spacings and selector specificity.
+The audit's wide pictures also count the look the page shows (its style census, M15.4), read by
+eaos/analysis/assessments/one_source_look.py.
 
 `failures(row)` names what fails the gate in one audited row. The browser is allowed the tested URL's origin
 only (file:// pages: file:// only); every other request is aborted and listed in the row.

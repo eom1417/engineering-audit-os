@@ -8,10 +8,9 @@ its gap or the gap's rule. The steps are written to nodes/pipeline_gap_planner/p
 reads them.
 """
 import json
-import sys
 from pathlib import Path
 
-from . import framework as core, runner
+from . import framework as core
 from ..ideal import planner as ideal
 from ...core.system.files import read_json
 
@@ -85,10 +84,6 @@ def check(data, decision):
     return None if {gap['id'], gap['rule']} & set(decision['evidence']) else 'it cites neither its gap nor its rule'
 
 
-def prompt(data):
-    return core.prompt(TASK, data)
-
-
 def finish(report, record, data):
     route = {s: r['decision'] for r in record['routes'] for s in r['subjects']}
     steps = [{'gap': d['subject'], 'decision': route[d['subject']], 'operation': (d.get('detail') or {}).get('operation'),
@@ -98,7 +93,3 @@ def finish(report, record, data):
     folder.mkdir(parents=True, exist_ok=True)
     (folder / 'plan.json').write_text(json.dumps({'schema_version': 1, 'at': record['at'], 'method': record['method'], 'steps': steps},
                                                  ensure_ascii=False, indent=1) + '\n', encoding='utf-8')
-
-
-def run(node, report, **options):
-    return runner.run_node(node, sys.modules[__name__], report, **options)

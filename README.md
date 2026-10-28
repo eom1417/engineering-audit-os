@@ -267,7 +267,7 @@ version with its checksum and licence ([`eaos/data/toolchain.json`](eaos/data/to
 | Complexity, duplication, dead code | Lizard · jscpd · scc · knip, beside EAOS's own counts |
 | Security and dependencies | Semgrep and its rules · Bandit · Gitleaks · CodeQL¹ · OSV-Scanner · Syft · Trivy · Checkov |
 | Contracts and data | Spectral · oasdiff · SQLFluff · Schemathesis · the Supabase CLI's advisors · pgTAP |
-| Your running app | Playwright · rrweb · Lighthouse · axe-core · css-analyzer · pytest · k6 · Mailpit (catches the app's e-mail) |
+| Your running app | Playwright · rrweb · Lighthouse · axe-core · pytest · k6 · Mailpit (catches the app's e-mail) |
 | Automatic changes | jscodeshift, beside EAOS's own move tool |
 | Design (the look of a build or a redesign) | UI UX Pro Max · awesome-design-md · tweakcn themes · Anthropic's frontend-design; a built app gets shadcn/ui and Fontsource |
 

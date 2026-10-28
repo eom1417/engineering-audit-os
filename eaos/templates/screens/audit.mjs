@@ -11,12 +11,11 @@
 // {press: 'Control+k'}, {type: 'text'}, {click: 'css selector'} (its first visible match), {wait: ms}.
 // `viewports` and `variants` name the subset the page is audited in; `wait_for` is a selector to wait for
 // (config.wait_for for every page).
-import { readFileSync, mkdirSync } from 'node:fs';
+import { mkdirSync } from 'node:fs';
 import { join } from 'node:path';
-import { fromFolder, playwrightFrom } from './pinned.mjs';
+import { configured, fromFolder } from './pinned.mjs';
 
-const config = JSON.parse(readFileSync(process.argv[2], 'utf8'));
-const playwright = playwrightFrom(config.modules.playwright);
+const { config, playwright } = configured();
 const { AxeBuilder } = fromFolder(config.modules.axe)('@axe-core/playwright');
 
 const AXE_TAGS = ['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'wcag22a', 'wcag22aa'];

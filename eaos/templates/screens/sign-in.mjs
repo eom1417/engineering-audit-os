@@ -8,12 +8,11 @@
 //   {do: 'done'}    the browser's storage state saved to config.state (its owner only), the browser closed -> {saved}
 //   {do: 'close'}   the browser closed, nothing saved -> {closed}
 // The picture is a JPEG of the page as it is now (none when headed). Nothing typed is written anywhere.
-import { chmodSync, readFileSync } from 'node:fs';
+import { chmodSync } from 'node:fs';
 import { createInterface } from 'node:readline';
-import { playwrightFrom } from './pinned.mjs';
+import { configured } from './pinned.mjs';
 
-const config = JSON.parse(readFileSync(process.argv[2], 'utf8'));
-const playwright = playwrightFrom(config.modules.playwright);
+const { config, playwright } = configured();
 const say = (answer) => process.stdout.write(JSON.stringify(answer) + '\n');
 
 const browser = await playwright.chromium.launch({ headless: !config.headed });

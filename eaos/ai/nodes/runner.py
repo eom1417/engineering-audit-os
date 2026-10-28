@@ -12,7 +12,7 @@ from ..assistant import tiers
 from ...core.language.check import foreign_texts, restate
 from ...core.system.process import Stuck, check_cancelled
 from .framework import (WORDS, answer_schema, cached, check, check_shape, critique_prompt, critique_schema, digest,
-                        fallback, folder_of, keep, launcher_of, record, rules_decisions, short, spent)
+                        fallback, folder_of, keep, launcher_of, prompt, record, rules_decisions, short, spent)
 from ...core.system.clock import now
 
 
@@ -24,6 +24,17 @@ RUN_OPTIONS = {'launcher': None, 'adapters': None, 'project': None, 'lang': 'en'
 def settings_of(options):
     """A node's settings out of its options, each at its default when not given (RUN_OPTIONS); `options` is left as it is."""
     return {name: options.get(name, default) for name, default in RUN_OPTIONS.items()}
+
+
+def _prompt(spec, data):
+    """A node's question: its own `prompt`, else its TASK with the rules every answer keeps (framework.prompt)."""
+    own = getattr(spec, 'prompt', None)
+    return own(data) if own else prompt(spec.TASK, data)
+
+
+def by_rules_and_answer(spec):
+    """The run of a node that is its spec and nothing more (run_node over it), as the pipeline calls a node."""
+    return lambda node, report, **options: run_node(node, spec, report, **options)
 
 
 def run_node(node, spec, report, **options):
@@ -103,7 +114,7 @@ class Run:
         # A long list is asked in batches (spec.batches), one question each; a planning node, whose critique reviews the
         # whole draft, is asked at once.
         parts = [] if left is None else spec.batches(left) if hasattr(spec, 'batches') and 'critique' not in node.passes else [left]
-        return [(part, answer_schema(node, spec.subjects(part), detail), spec.prompt(part)) for part in parts]
+        return [(part, answer_schema(node, spec.subjects(part), detail), _prompt(spec, part)) for part in parts]
 
     def _key(self, asks, before):
         """The cache key of a run: the node, its version, what is asked and the decisions kept from before."""
@@ -117,7 +128,7 @@ class Run:
         or changed. A fresh check clears them with the other caches (eaos/pipeline/run.py BULKY)."""
         field = getattr(self.spec, 'LIST', None)
         if not field or self.settings['fresh']: return [], self.data
-        self.frame = digest(self.spec.prompt({**self.data, field: []}))     # the task itself: new words ask every subject again
+        self.frame = digest(_prompt(self.spec, {**self.data, field: []}))     # the task itself: new words ask every subject again
         before, left = [], []
         for item in self.data[field]:
             hit = cached(self.report, self.node, self._item_key(item))

@@ -12,10 +12,9 @@ dropped. The assistant may open the listed pictures and nothing else. The findin
 nodes/visual_reviewer/findings.json, where the cards stage turns them into design cards.
 """
 import json
-import sys
 from pathlib import Path
 
-from . import framework as core, runner
+from . import framework as core
 
 VERSION = '3'
 BATCH = 4                       # pages per question: their phone and desktop pictures, 8 at most
@@ -216,7 +215,3 @@ def finish(report, record, data):
                                                                 if d['subject'] == page['id'] and d['source'] == 'model' and d['decision'] == 'clean'],
                                                       'findings': findings}, ensure_ascii=False, indent=1) + '\n',
                                           encoding='utf-8')
-
-
-def run(node, report, **options):
-    return runner.run_node(node, sys.modules[__name__], report, **options)

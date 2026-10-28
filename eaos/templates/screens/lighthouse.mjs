@@ -3,10 +3,9 @@ import { readFileSync, writeFileSync, mkdirSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { createServer } from 'node:net';
-import { fromFolder, playwrightFrom } from './pinned.mjs';
+import { configured, fromFolder } from './pinned.mjs';
 
-const config = JSON.parse(readFileSync(process.argv[2], 'utf8'));
-const { chromium } = playwrightFrom(config.modules.playwright);
+const { config, playwright: { chromium } } = configured();
 const resolve = fromFolder(config.modules.lighthouse);
 const { default: lighthouse } = await import(pathToFileURL(resolve.resolve('lighthouse')).href);
 const state = JSON.parse(readFileSync(config.storage_state, 'utf8'));

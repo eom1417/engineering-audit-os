@@ -10,7 +10,7 @@ The proposal is written to nodes/plan_orderer/order.json; the plan itself is nev
 import json
 from pathlib import Path
 
-from . import framework as core, runner
+from . import framework as core
 from ..ideal import planner as ideal
 
 VERSION = '1'
@@ -149,10 +149,6 @@ def _before_prerequisite(place, tasks):
                  for need in tasks[task]['prerequisites'] if need in place and place[need] > index), None)
 
 
-def prompt(data):
-    return core.prompt(TASK, data)
-
-
 def _steps(decision, data):
     """The assistant's order when it reordered, else the rules'; the cards it left out follow in the rules' order."""
     chosen = (decision.get('detail') or {}).get('steps') if decision['decision'] == 'reorder' else None
@@ -179,8 +175,3 @@ def finish(report, record, data):
                                                    'decision': decision['decision'], 'source': decision['source'], 'steps': steps,
                                                    'set_aside': rejected, 'why': decision['why']}, ensure_ascii=False, indent=1) + '\n',
                                        encoding='utf-8')
-
-
-def run(node, report, **options):
-    import sys
-    return runner.run_node(node, sys.modules[__name__], report, **options)

@@ -1,12 +1,10 @@
 """The AI nodes declared in their order, each with its router's branches, and the run of the named ones."""
 from typing import NamedTuple
 
-from .fix_reviewer import run as review_fix
+from . import fix_reviewer, pipeline_gap_planner, plan_orderer, visual_reviewer
 from .ideal_planner import run as plan_ideal
-from .pipeline_gap_planner import run as plan_pipeline_gaps
-from .plan_orderer import run as order_plan
+from .runner import by_rules_and_answer
 from .triage import run as triage_cards
-from .visual_reviewer import run as review_screens
 
 
 class Route(NamedTuple):
@@ -63,8 +61,9 @@ NODES = (
                  Route('rules only', 'gates', "no assistant decided: the gates' verdict stands"))),
 )
 
-NODE_RUNNERS = {'card_triage': triage_cards, 'visual_reviewer': review_screens, 'ideal_planner': plan_ideal, 'pipeline_gap_planner': plan_pipeline_gaps,
-                'plan_orderer': order_plan, 'fix_reviewer': review_fix}
+NODE_RUNNERS = {'card_triage': triage_cards, 'ideal_planner': plan_ideal,
+                **{module.__name__.rsplit('.', 1)[-1]: by_rules_and_answer(module)
+                   for module in (visual_reviewer, pipeline_gap_planner, plan_orderer, fix_reviewer)}}
 
 # Where the work leaves the AI nodes, in the person's language.
 SINKS = {'plan': ('The plan', 'الخطة'), 'probe': ('A probe', 'فحص يحسمها'), 'library_feedback': ("The library's feedback", 'ملاحظات للمكتبة'),

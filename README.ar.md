@@ -282,7 +282,7 @@ TASK-001  7 دوال منسوخة كاملة باختلاف الأسماء فق�
 | التعقيد والتكرار والكود الميت | Lizard · jscpd · scc · knip، مع عدّ EAOS الخاص |
 | الأمان والمكتبات | Semgrep وقواعده · Bandit · Gitleaks · CodeQL¹ · OSV-Scanner · Syft · Trivy · Checkov |
 | العقود والبيانات | Spectral · oasdiff · SQLFluff · Schemathesis · مستشارو Supabase CLI · pgTAP |
-| تطبيقك وهو يعمل | Playwright · rrweb · Lighthouse · axe-core · css-analyzer · pytest · k6 · Mailpit (يلتقط بريد التطبيق) |
+| تطبيقك وهو يعمل | Playwright · rrweb · Lighthouse · axe-core · pytest · k6 · Mailpit (يلتقط بريد التطبيق) |
 | التغييرات الآلية | jscodeshift، مع أداة النقل الخاصة بـ EAOS |
 | التصميم (شكل البناء أو إعادة التصميم) | UI UX Pro Max · awesome-design-md · tweakcn themes · frontend-design من Anthropic؛ ويأخذ التطبيق المبني shadcn/ui وFontsource |
 
