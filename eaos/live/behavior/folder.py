@@ -5,6 +5,7 @@ import json
 import os
 import shutil
 from pathlib import Path
+from ...core.system.files import read_json
 
 # ── NS26: the lock, run on the original code ────────────────────────────────────────────────────────────
 # The browser reaches loopback only: Chromium sends every other host to a proxy nobody answers on, so a
@@ -84,8 +85,7 @@ def _page_specs(report):
 
 def passes(lock):
     """[(kind, spec files)] the lock runs: the run's one session over every spec (kind None), then each kind's own."""
-    try: kinds = json.loads((lock / '.auth/kinds.json').read_text(encoding='utf-8'))
-    except (OSError, ValueError): kinds = []
+    kinds = read_json(lock / '.auth/kinds.json', [])
     return [(None, [])] + [(kind, files) for kind, files in kinds]
 
 

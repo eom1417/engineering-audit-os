@@ -1,0 +1,193 @@
+id: eaos.idiom.json-read-python
+valid:
+  - "def f(p):\n    return json.loads(p.read_text())"
+  - "try:\n    x = json.loads(body)\nexcept ValueError:\n    x = None"
+  - "try:\n    record = json.loads(p.read_text())\n    run(record)\nexcept BaseException:\n    log()"
+invalid:
+  - "try:\n    x = json.loads(Path(p).read_text(encoding='utf-8'))\nexcept (OSError, ValueError):\n    x = {}"
+---
+id: eaos.idiom.date-now-python
+valid:
+  - "stamp = now()"
+invalid:
+  - "stamp = datetime.now(timezone.utc).isoformat(timespec='seconds')"
+---
+id: eaos.idiom.route-guard-python
+valid:
+  - "if not form.is_valid():\n    abort(400)"
+invalid:
+  - "if 'user_id' not in session:\n    return redirect('/login')"
+---
+id: eaos.idiom.json-read
+valid:
+  - "const x = JSON.parse(body);"
+invalid:
+  - "const x = JSON.parse(fs.readFileSync('a.json', 'utf8'));"
+  - "const prefs = JSON.parse(localStorage.getItem('prefs'));"
+  - "const prefs = JSON.parse(localStorage.getItem('prefs') || '{}');"
+  - "const list = JSON.parse(await readFile(new URL('./a.json', import.meta.url), 'utf8'));"
+---
+id: eaos.idiom.date-format
+valid:
+  - "const label = formatDate(order.created);"
+invalid:
+  - "const label = new Date(order.created).toLocaleDateString('ar-SA');"
+---
+id: eaos.idiom.money-format
+valid:
+  - "const label = formatMoney(total);"
+invalid:
+  - "const label = total.toFixed(2) + ' SAR';"
+  - "const label = new Intl.NumberFormat('ar-SA', { style: 'currency', currency: 'SAR' }).format(total);"
+---
+id: eaos.idiom.request-state
+valid:
+  - "async function load() { const r = await api.orders(); setOrders(r); }"
+invalid:
+  - "async function load() { setLoading(true); try { const r = await fetch('/api/orders'); setOrders(await r.json()); } catch (e) { setError(e.message); } finally { setLoading(false); } }"
+---
+id: eaos.idiom.popup-escape
+valid:
+  - "if (e.key === 'Enter') submit();"
+invalid:
+  - "if (e.key === 'Escape') setOpen(false);"
+---
+id: eaos.idiom.drag-start
+valid:
+  - "el.addEventListener('click', onClick);"
+invalid:
+  - "el.addEventListener('dragstart', (e) => e.dataTransfer.setData('id', id));"
+---
+id: eaos.idiom.validation
+valid:
+  - "if (!user) return;"
+invalid:
+  - "if (!/^[^@]+@[^@]+$/.test(email)) setError('email');"
+---
+id: eaos.idiom.pagination
+valid:
+  - "const first = items.slice(0, 3);"
+invalid:
+  - "const shown = items.slice((page - 1) * size, page * size);"
+---
+id: eaos.idiom.route-guard
+valid:
+  - "if (!body.name) return res.status(400).end();"
+invalid:
+  - "app.get('/orders', (req, res) => { if (!req.user) return res.status(401).end(); res.json(orders); });"
+---
+id: eaos.idiom.json-read-tsx
+valid:
+  - "const x = JSON.parse(body);"
+invalid:
+  - "const x = JSON.parse(fs.readFileSync('a.json', 'utf8'));"
+  - "const prefs = JSON.parse(localStorage.getItem('prefs'));"
+  - "const prefs = JSON.parse(localStorage.getItem('prefs') || '{}');"
+  - "const list = JSON.parse(await readFile(new URL('./a.json', import.meta.url), 'utf8'));"
+---
+id: eaos.idiom.date-format-tsx
+valid:
+  - "const label = formatDate(order.created);"
+invalid:
+  - "const label = new Date(order.created).toLocaleDateString('ar-SA');"
+---
+id: eaos.idiom.money-format-tsx
+valid:
+  - "const label = formatMoney(total);"
+invalid:
+  - "const label = total.toFixed(2) + ' SAR';"
+  - "const label = new Intl.NumberFormat('ar-SA', { style: 'currency', currency: 'SAR' }).format(total);"
+---
+id: eaos.idiom.request-state-tsx
+valid:
+  - "async function load() { const r = await api.orders(); setOrders(r); }"
+invalid:
+  - "async function load() { setLoading(true); try { const r = await fetch('/api/orders'); setOrders(await r.json()); } catch (e) { setError(e.message); } finally { setLoading(false); } }"
+---
+id: eaos.idiom.popup-escape-tsx
+valid:
+  - "if (e.key === 'Enter') submit();"
+invalid:
+  - "if (e.key === 'Escape') setOpen(false);"
+---
+id: eaos.idiom.drag-start-tsx
+valid:
+  - "const Row = () => <li onClick={pick}>row</li>;"
+invalid:
+  - "const Row = () => <li draggable onDragStart={start}>row</li>;"
+---
+id: eaos.idiom.validation-tsx
+valid:
+  - "if (!user) return;"
+invalid:
+  - "if (!/^[^@]+@[^@]+$/.test(email)) setError('email');"
+---
+id: eaos.idiom.pagination-tsx
+valid:
+  - "const first = items.slice(0, 3);"
+invalid:
+  - "const shown = items.slice((page - 1) * size, page * size);"
+---
+id: eaos.idiom.route-guard-tsx
+valid:
+  - "if (!body.name) return res.status(400).end();"
+invalid:
+  - "app.get('/orders', (req, res) => { if (!req.user) return res.status(401).end(); res.json(orders); });"
+---
+id: eaos.idiom.json-read-typescript
+valid:
+  - "const x = JSON.parse(body);"
+invalid:
+  - "const x = JSON.parse(fs.readFileSync('a.json', 'utf8'));"
+  - "const prefs = JSON.parse(localStorage.getItem('prefs'));"
+  - "const prefs = JSON.parse(localStorage.getItem('prefs') || '{}');"
+  - "const list = JSON.parse(await readFile(new URL('./a.json', import.meta.url), 'utf8'));"
+---
+id: eaos.idiom.date-format-typescript
+valid:
+  - "const label = formatDate(order.created);"
+invalid:
+  - "const label = new Date(order.created).toLocaleDateString('ar-SA');"
+---
+id: eaos.idiom.money-format-typescript
+valid:
+  - "const label = formatMoney(total);"
+invalid:
+  - "const label = total.toFixed(2) + ' SAR';"
+  - "const label = new Intl.NumberFormat('ar-SA', { style: 'currency', currency: 'SAR' }).format(total);"
+---
+id: eaos.idiom.request-state-typescript
+valid:
+  - "async function load() { const r = await api.orders(); setOrders(r); }"
+invalid:
+  - "async function load() { setLoading(true); try { const r = await fetch('/api/orders'); setOrders(await r.json()); } catch (e) { setError(e.message); } finally { setLoading(false); } }"
+---
+id: eaos.idiom.popup-escape-typescript
+valid:
+  - "if (e.key === 'Enter') submit();"
+invalid:
+  - "if (e.key === 'Escape') setOpen(false);"
+---
+id: eaos.idiom.drag-start-typescript
+valid:
+  - "el.addEventListener('click', onClick);"
+invalid:
+  - "el.addEventListener('dragstart', (e) => e.dataTransfer.setData('id', id));"
+---
+id: eaos.idiom.validation-typescript
+valid:
+  - "if (!user) return;"
+invalid:
+  - "if (!/^[^@]+@[^@]+$/.test(email)) setError('email');"
+---
+id: eaos.idiom.pagination-typescript
+valid:
+  - "const first = items.slice(0, 3);"
+invalid:
+  - "const shown = items.slice((page - 1) * size, page * size);"
+---
+id: eaos.idiom.route-guard-typescript
+valid:
+  - "if (!body.name) return res.status(400).end();"
+invalid:
+  - "app.get('/orders', (req, res) => { if (!req.user) return res.status(401).end(); res.json(orders); });"

@@ -1,6 +1,7 @@
 """The Branches page's reading: every branch with its roles and how it compares with the base, and one branch in detail."""
-from ....core.project.runs import now
+
 from .common import COMMITS_SHOWN, DIFF_LIMIT, FILES_SHOWN, REFS_SHOWN, _out, _roles, git, say, valid_name
+from ....core.system.clock import now
 
 
 class Inventory:
@@ -28,7 +29,7 @@ class Inventory:
                 'default': default, 'remotes': self.remotes(), 'has_origin': 'origin' in self.remotes(),
                 'last_fetch': self.last_fetch(), 'worktrees': worktrees, 'protected': policy['protected'],
                 'branches': rows, 'truncated': len(refs) > REFS_SHOWN, 'recovery': self.recoveries(),
-                'missing_linked': _missing_linked(links, rows), 'checked_at': now()}
+                'missing_linked': _missing_linked(links, rows), 'checked_at': now('milliseconds')}
 
     def _branch_row(self, ref_row, known):
         """One branch as the inventory shows it: its tip, roles, protection, owner, how it compares with the base, its
@@ -80,7 +81,7 @@ class Inventory:
                 'runs': row['runs'], 'lineage': {'parent': owner.get('base'), 'parent_commit': owner.get('base_commit'), 'evidence': owner.get('evidence'),
                                                   'recorded_at': owner.get('recorded_at')}
                 if owner['owner'] != 'unknown' else None,
-                'destination': {'recommended': owner.get('base'), 'confirmed': confirmed}, 'commands': commands, 'checked_at': now()}
+                'destination': {'recommended': owner.get('base'), 'confirmed': confirmed}, 'commands': commands, 'checked_at': now('milliseconds')}
 
     def _against_base(self, base_tip, tip, path):
         """(the commits ahead of the base, the files changed, the diff (of `path` alone when given) cut to DIFF_LIMIT,

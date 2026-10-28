@@ -25,9 +25,6 @@ def capabilities():
     return [Capability('sql_quality', 'AM*,ST*,CV*,RF01,RF02,RF04,PRS')]
 
 
-def version(): return tool.version(BINARY)
-
-
 def style(code):
     return code.startswith(STYLE_FAMILIES) or code in STYLE_CODES
 
@@ -40,7 +37,6 @@ def sql_files(target, exclude=()):
 
 @tool.engine(NAME, BINARY)
 def analyze(target, workdir, exclude, formats, found):
-    target = Path(target).resolve()
     files = sql_files(target, exclude)
     output = workdir / 'sqlfluff.json'
     command = [which(BINARY), 'lint', '--format', 'json', '--dialect', 'postgres', '--nofail', '--disable-progress-bar',

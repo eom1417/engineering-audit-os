@@ -1,5 +1,5 @@
-"""Every law of docs/STANDARDS.md §1-2 in one command (tools/quality.sh): code limits, layers, duplication, dead code
-and security, measured on EAOS's own code by the same engines EAOS runs on any project.
+"""Every law of docs/STANDARDS.md §1-2 in one command (tools/quality.sh): code limits, layers, one source per pattern, dead
+code and security, measured on EAOS's own code by the same engines and detectors EAOS runs on any project.
 
 Code limits, written-once and layers hold as tools/code_limits.json and pyproject.toml say. Every other number is
 recorded in tools/quality.json and may only go down: one that grew, or a finding of a kind not recorded, fails. After a
@@ -20,7 +20,7 @@ from eaos.engines.process import which  # noqa: E402
 
 BASELINE = ROOT / 'tools' / 'quality.json'
 # enola is not one of them: its dead-code count moves with the words of the documents (CHANGELOG, METRICS), not the code.
-ENGINES = ('jscpd', 'bandit', 'semgrep', 'gitleaks', 'osv-scanner')
+ENGINES = ('jscpd', 'ast-grep', 'bandit', 'semgrep', 'gitleaks', 'osv-scanner')
 # Not what EAOS ships: the tests and their fixtures, the developer tools (tools/, console/tools: the code limits still
 # hold them), an assistant's worktrees (.claude), the built Studio, the examples beside EAOS's semgrep rules, and what is vendored or generated.
 EXCLUDE = ('tests', 'tools', '.claude', 'node_modules', 'eaos/data/studio', 'eaos/rules', 'upstreams', 'acceptance', 'build')
@@ -28,12 +28,24 @@ CODE = ('python', 'javascript', 'css')  # what jscpd compares: the code, not dat
 
 
 def engine_counts(workdir):
-    """({'engine:rule': findings}, [engines that did not run]) over the repository."""
+    """({'engine:rule': findings}, [engines that did not run], the engines' records as fact sets) over the repository."""
+    from eaos.facts.engine_findings import metric_facts
     manifest = engines.analyze(ROOT, workdir, exclude=EXCLUDE, only=ENGINES, formats=CODE)
     failed = [f'{name} did not run: {row["status"]} {row["reason"]}'.strip()
               for name, row in manifest['coverage'].items() if row['status'] != 'observed']
     counts = Counter(f"{row['engine']}:{row['rule']}" for row in manifest['findings'])
-    return counts, failed
+    return counts, failed, {'external': {'facts': metric_facts(manifest, ''), 'summary': {'engines_observed': engines.observed(manifest)}}}
+
+
+def one_source_counts(workdir, sets):
+    """{'one_source:<number>': count}: the four numbers of the law of one source per pattern (docs/STANDARDS.md §1) by
+    the detectors every check runs (eaos/analysis/assessments/one_source.py): near copies, the look written outside
+    the Studio's tokens file, UI patterns and ways of working repeated."""
+    from eaos.analysis.assessments.one_source import numbers
+    from eaos.facts.run import collect
+    collect(ROOT, workdir, ['patterns', 'history'], exclude=EXCLUDE)
+    for name in ('patterns', 'history'): sets[name] = json.loads((Path(workdir) / 'facts' / f'{name}.json').read_text(encoding='utf-8'))
+    return Counter({f'one_source:{name}': count for name, count in numbers(sets).items()})
 
 
 def dead_counts(workdir):
@@ -77,6 +89,22 @@ def repository_craft():
     return [f"repository: {f['rule']} {f['path']}" for f in read.findings(Source(ROOT), [], ROOT)]
 
 
+def kept_on_purpose():
+    """(the copies EAOS keeps on purpose, the markers that say no why): every `jscpd:ignore-start` (a near copy) and
+    `ast-grep-ignore` (a way of working) in what EAOS ships names its reason after ` -- ` (docs/STANDARDS.md §1, one
+    source per pattern)."""
+    listed = subprocess.run(['git', 'ls-files', 'eaos', 'console'], cwd=ROOT, capture_output=True, text=True, check=True).stdout.split()
+    kept, silent = 0, []
+    for rel in listed:
+        if not rel.endswith(('.py', '.js', '.mjs', '.css')) or any(f'/{part}/' in f'/{rel}' for part in (*EXCLUDE, 'console/tools')): continue
+        for number, line in enumerate((ROOT / rel).read_text(encoding='utf-8').splitlines(), 1):
+            marker = next((m for m in ('jscpd:ignore-start', 'ast-grep-ignore') if m in line), None)
+            if not marker: continue
+            kept += 1
+            if ' -- ' not in line: silent.append(f'one source: {rel}:{number} keeps a copy without saying why ({marker} -- <why>)')
+    return kept, silent
+
+
 def law_problems():
     """What breaks a law that has no recorded number: a limit passed, logic written twice, a leftover (in the Studio too), a
     layer crossed."""
@@ -84,6 +112,7 @@ def law_problems():
     problems += [f'written twice: {", ".join(group)}' for group in code_limits.duplicates()]
     problems += [f'leftover: {message}' for message in code_limits.leftovers()]
     problems += studio_lint()
+    problems += kept_on_purpose()[1]
     problems += repository_craft()
     layers = subprocess.run([str(Path(sys.executable).parent / 'lint-imports')], cwd=ROOT, capture_output=True, text=True)
     problems += [f'layers: {line.strip()}' for line in layers.stdout.splitlines() if line.rstrip().endswith('BROKEN')]
@@ -99,9 +128,12 @@ def worse(now, recorded):
 def measure():
     counts = Counter({f'code:{kind}': len(over) for kind, over in code_limits.measure().items()})
     with tempfile.TemporaryDirectory() as workdir:
-        found, failed = engine_counts(workdir)
+        found, failed, sets = engine_counts(workdir)
         dead = dead_counts(workdir)
-    return +(counts + found + dead + knip_counts()), law_problems() + failed
+        now = +(counts + found + dead + knip_counts())
+        now.update(one_source_counts(workdir, sets))      # the four numbers of the law are said even at zero
+        now['one_source:kept_on_purpose'] = kept_on_purpose()[0]
+    return now, law_problems() + failed
 
 
 def main(record=False):

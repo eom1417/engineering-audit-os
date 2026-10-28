@@ -4,11 +4,11 @@ plain words.
 import json
 import re
 import sys
-from datetime import datetime, timezone
 from pathlib import Path
 
 from ...core.language import plain
 from .project import save
+from ...core.system.clock import now
 
 
 ERRORS = Path(__file__).resolve().parents[2] / 'data/errors.json'
@@ -97,7 +97,7 @@ def ask(state, qid, text, yes=False, kind='yes_no'):
         answer = reply in ('y', 'yes', 'نعم', 'ن', 'ايوه', 'ايوة', 'اي', 'اه', 'أيوه')
     else:
         raise NeedsAnswer(question)
-    asked.append({**question, 'answer': answer, 'at': datetime.now(timezone.utc).isoformat(timespec='seconds')})
+    asked.append({**question, 'answer': answer, 'at': now()})
     save(state)
     if not answer: raise Declined(qid)
     return answer

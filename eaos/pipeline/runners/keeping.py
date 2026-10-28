@@ -2,11 +2,12 @@
 send, the copy's database filled to a real size and the saves read again, how that database stores its data, the
 restore drill, the files the server wrote, and two edits of one record. Each part is its own: one that fails says why
 in live/keeping.json and the others still run."""
-import json
 
 from .live_app import _keep, _live, sessions
 from ...facts.store import facts
 from ...live.keeping import database, files, lost_update, restore, stored, synthetic, volume, writes
+from ...core.system.files import read_json
+from ...analysis.assessments.data_keeping import unmeasured
 
 PAGES = 5
 EDITS = ('PUT', 'PATCH')
@@ -14,9 +15,7 @@ EDITS = ('PUT', 'PATCH')
 
 def _pages(context):
     """The pages to read the saves of: the crawl's, one per template, PAGES at most; else the entry."""
-    try:
-        pages = json.loads((context.out / 'live/crawl.json').read_text(encoding='utf-8')).get('pages') or []
-    except (OSError, ValueError): pages = []
+    pages = (read_json(context.out / 'live/crawl.json') or {}).get('pages') or []
     return pages[:PAGES] or ['/']
 
 
@@ -60,4 +59,5 @@ def keeping(context):
     for heavy in ('writes_before', 'writes_at_volume'):
         if isinstance(record.get(heavy), dict): record[heavy] = {'pages': len(record[heavy].get('pages') or []), 'error': record[heavy].get('error')}
     _keep(context, 'keeping.json', record)
-    return {'saves': len(record['writes']), 'database': record['database'].get('kind'), 'files': len(record.get('files') or [])}
+    return {'saves': len(record['writes']), 'database': record['database'].get('kind'), 'files': len(record.get('files') or []),
+            'unmeasured': unmeasured(record)}       # what the copy could not read: a gap of the coverage ledger, in red (M15.0)

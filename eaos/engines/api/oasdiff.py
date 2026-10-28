@@ -22,12 +22,8 @@ def capabilities():
     return [Capability('api_contract', 'oasdiff.breaking')]
 
 
-def version(): return tool.version(BINARY)
-
-
 @tool.engine(NAME, BINARY)
 def analyze(target, workdir, exclude, formats, found):
-    target = Path(target).resolve()
     findings, compared, seconds = [], {}, 0.0
     for index, spec in enumerate(openapi.specifications(target, exclude)):
         commit, text = openapi.previous(target, spec)

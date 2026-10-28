@@ -12,7 +12,7 @@ from eaos.analysis.repair.canonical_home import suggest
 from eaos.facts.run import collect
 from shared_fixture import scratch
 
-SETS = ['syntax', 'structure', 'fingerprint', 'sequences', 'redundancy', 'domain', 'graph', 'metrics', 'flows', 'resolve']
+SETS = ['syntax', 'structure', 'fingerprint', 'redundancy', 'domain', 'graph', 'metrics', 'flows', 'resolve']
 FIXTURE = Path(__file__).resolve().parents[1] / 'fixtures/sustainability'
 
 

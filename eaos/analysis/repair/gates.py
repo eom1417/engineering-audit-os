@@ -10,7 +10,8 @@ there, so everything found is the change's). A gate counts only what the change 
     cycle      files that import each other in a loop
     broken     a broken reference of high severity
   debt (the files the change touched, `paths`; the code laws, eaos/core/contracts/code_laws.py):
-    copy       a block or function written twice outside tests and configuration
+    copy       one source per pattern (M15): a near copy, a value of the look outside the tokens file, a screen pattern or a
+               way of working written again, outside tests and configuration
     dead       code nothing uses (`dead` false for a build card: the later cards use what it made)
     complex    more decisions past the complexity limit, summed over those files (a split is less, a move is neither)
     size       a module grown past the line limit
@@ -20,11 +21,11 @@ there, so everything found is the change's). A gate counts only what the change 
 
 Each problem is {'gate', 'where', 'what'}; `what` is the sentence the assistant reads, with its place.
 """
-import json
 import re
 from pathlib import Path
 
 from ...core.contracts.code_laws import MAX_COMPLEXITY, MAX_LINES
+from ...core.system.files import read_json
 
 ASIDE = re.compile(r'(\.test\.|\.spec\.|/tests?/|^tests?/|e2e/|\.config\.)')     # a copy here is not the code's
 
@@ -91,8 +92,7 @@ def _added(rows, before, after):
 
 def _facts(folder, name):
     file = Path(folder) / 'facts' / f'{name}.json'
-    try: return json.loads(file.read_text(encoding='utf-8'))['facts'] if file.is_file() else []
-    except (OSError, ValueError, KeyError): return []
+    return (read_json(file) or {}).get('facts') or []
 
 
 # ---------------------------------------------------------------- structure
@@ -144,25 +144,11 @@ def _broken(folder):
 
 # ---------------------------------------------------------------- debt
 
-def _clusters(folder):
-    """(key, occurrences) of every clone cluster and of every duplicate cluster big enough to hold a rule."""
-    from ..claims.duplicates import SHARED_SIZE_FOR_UI, worth_a_claim
-    clusters = [(f['input_sha'], f['value']['occurrences']) for f in _facts(folder, 'metrics') if f['kind'] == 'clone_cluster']
-    # a shape too small to hold a rule (`() => x.y()` in four files, a real build) is how code reads, not a copy
-    return clusters + [(f['value']['shape_sha'], f['value']['occurrences']) for f in _facts(folder, 'fingerprint')
-                       if f['kind'] == 'duplicate_cluster' and f['value'].get('shared_size', 0) >= SHARED_SIZE_FOR_UI
-                       and worth_a_claim(f['value']['occurrences'], f['value'].get('shared_size', 0))]
-
-
 def _copies(folder, paths):
-    """The blocks and functions written twice or more outside tests and configuration, with a place in `paths`."""
-    rows = {}
-    for key, places in _clusters(folder):
-        places = [o for o in places if not ASIDE.search(o['path'])]
-        if len(places) >= 2 and paths & {o['path'] for o in places}:
-            rows[('copy', key)] = {'gate': 'copy', 'where': places[0]['path'], 'what': 'the same code is written in '
-                                   + ', '.join(f"{o['path']}:{o.get('start_line') or 1}" for o in places[:4]) + ': give it one home and call it'}
-    return rows
+    """Code copied, a value of the look outside the tokens file, a screen pattern or a way of working written again, at a
+    file in `paths` (eaos/analysis/repair/one_source_gate.py), tests and configuration aside."""
+    from .one_source_gate import rows
+    return rows(lambda name: _facts(folder, name), {path for path in paths if not ASIDE.search(path)})
 
 
 def _dead(folder, paths):

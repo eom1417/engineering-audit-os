@@ -3,11 +3,10 @@
 A fact is produced by an extractor and is reproducible. A claim is an interpretation and must name
 what would disprove it. A question is an admitted gap. Nothing rendered may exist outside this ledger.
 """
-from datetime import datetime, timezone
 import json
 import os
 from pathlib import Path
-from .duplicates import duplicated_rules, redundant_work, sequences, structural_duplicates
+from .duplicates import duplicated_rules, redundant_work
 from .engine_measures import engine_measurement
 from .from_experience import experience
 from .from_layers import layer_findings
@@ -20,12 +19,13 @@ from ..assessments.weaknesses import SECURITY, claims as weaknesses
 from ...core.contracts.vocabulary import schema_errors
 from ...core.language.words import IMPACTS
 from ...core.project.workspace import DATA, read, write
+from ...core.system.clock import now
 
 CONFIDENCE = ['CONFIRMED', 'LIKELY', 'HYPOTHESIS', 'REFUTED']
 PROVING_METHODS = {'runtime_probe', 'test_evidence', 'static_fact', 'history_fact'}
 # The builders of the claims facts earn (eaos/analysis/claims/from_facts.py), in ledger order: the claims are numbered in it.
 BUILDERS = (cycles, cochanges, duplicated_rules, hotspots, large_modules, mutable_globals, external_writes,
-            structural_duplicates, sequences, redundant_work, policy_violations, trace_gaps, dead_code, broken_code,
+            redundant_work, policy_violations, trace_gaps, dead_code, broken_code,
             vulnerable_dependencies, weaknesses, layer_findings, logic_flaws, repository_findings,
             experience, real_data)
 TYPES = ['structure', 'responsibility', 'contract', 'business_rule', 'flow_step', 'risk', 'cause', 'capability_gap', 'cost']
@@ -34,10 +34,14 @@ TYPES = ['structure', 'responsibility', 'contract', 'business_rule', 'flow_step'
 def schema(): return read(DATA / 'schemas/claim.schema.json')
 
 
-def now(): return datetime.now(timezone.utc).isoformat()
-
-
 def claim_id(index): return 'CLM-%03d' % index
+
+
+def claim_counts(claims):
+    """{confidence: claims}: a dossier's claim_counts, counted again whenever its claims change."""
+    tally = {}
+    for claim in claims: tally[claim.get('confidence', '?')] = tally.get(claim.get('confidence', '?'), 0) + 1
+    return tally
 
 
 STATEMENT_LIMIT = 600
@@ -51,7 +55,7 @@ VERDICTS = DATA / 'detector-verdicts.json'
 DETECTED_BY = {'engine_cluster': ('engine_cluster', 'kind'), 'layer_finding': ('layer', 'rule'),
                'repository_finding': ('repository', 'rule'), 'logic_flaw': ('logic', 'class'),
                'experience_difficulty': ('experience', 'kind'), 'real_data': ('real_data', 'kind'),
-               'old_engine': ('old_engine', 'kind'), 'data_keeping': ('data_keeping', 'kind')}
+               'old_engine': ('old_engine', 'kind'), 'data_keeping': ('data_keeping', 'kind'), 'one_source': ('one_source', 'kind')}
 
 
 def detector_of(claim):
@@ -99,7 +103,7 @@ def make(index, statement, claim_type, confidence, method, evidence_ids, falsifi
     if len(statement) > STATEMENT_LIMIT: statement = statement[:STATEMENT_LIMIT - 1].rstrip() + '…'
     row = {'id': claim_id(index), 'statement': statement, 'claim_type': claim_type, 'confidence': confidence,
            'method': list(method), 'evidence_ids': list(evidence_ids), 'falsifier': falsifier,
-           'status': extra.pop('status', 'open'), 'created_at': extra.pop('created_at', now())}
+           'status': extra.pop('status', 'open'), 'created_at': extra.pop('created_at', now('auto'))}
     row.update({k: v for k, v in extra.items() if v is not None})
     return row
 
@@ -195,8 +199,13 @@ def one_card_per_hotspot(claims):
     return kept
 
 
+def _named(kind, detail):
+    """(the engines that assert a kind, the kind in words) of one cluster's detail."""
+    return ', '.join(detail['asserted_by']), kind.replace('_', ' ')
+
+
 def _corroborated(kind, detail, cluster, fact_sets):
-    engines, word = ', '.join(detail['asserted_by']), kind.replace('_', ' ')
+    engines, word = _named(kind, detail)
     impact_key, measured = engine_measurement(kind, cluster, fact_sets)
     return {'statement': f"{len(detail['asserted_by'])} independent engines ({engines}) report {word} in {cluster['place']}",
             'confidence': 'LIKELY',
@@ -207,13 +216,13 @@ def _corroborated(kind, detail, cluster, fact_sets):
 
 def _counted(kind, detail, cluster, fact_sets):
     """One engine counting exactly: too many parameters, nesting too deep, a function too long (finish_line.EXACT)."""
-    engines, word = ', '.join(detail['asserted_by']), kind.replace('_', ' ')
+    engines, word = _named(kind, detail)
     return {**_corroborated(kind, detail, cluster, fact_sets), 'statement': f"{engines} counts {word} in {cluster['place']}",
             'falsifier': 'Show that the count the engine states (parameters, nesting depth, lines) is within its threshold.'}
 
 
 def _granularity_gap(kind, detail, cluster, fact_sets):
-    engines, word = ', '.join(detail['asserted_by']), kind.replace('_', ' ')
+    engines, word = _named(kind, detail)
     elsewhere = ', '.join(detail['silent_at_another_resolution'])
     level = ', '.join(detail['asserted_at']) or 'unknown'
     return {'statement': (f"{engines} reports {word} in {cluster['place']} at the {level} level, "
@@ -226,7 +235,7 @@ def _granularity_gap(kind, detail, cluster, fact_sets):
 
 
 def _contested(kind, detail, cluster, fact_sets):
-    engines, word = ', '.join(detail['asserted_by']), kind.replace('_', ' ')
+    engines, word = _named(kind, detail)
     denied = ', '.join(detail['denied_by'])
     return {'statement': (f"{engines} reports {word} in {cluster['place']}, and {denied} checked the same property and did not find it"),
             'confidence': 'HYPOTHESIS',

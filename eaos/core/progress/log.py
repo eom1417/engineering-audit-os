@@ -41,12 +41,13 @@ import shutil
 import socket
 import threading
 import time
-from datetime import datetime, timezone
 from pathlib import Path
 
 from .context import bounded
 from .fold import fold_file
 from .liveness import ALIVE_EVERY
+from ...core.system.files import json_rows, read_json
+from ...core.system.clock import now, stamp
 
 PROGRESS = 'run-progress.jsonl'
 FOLDER = 'progress'
@@ -65,10 +66,6 @@ def enabled():
     return os.environ.get('EAOS_PROGRESS', '').strip().lower() not in ('0', 'off', 'no', 'false')
 
 
-def now():
-    return datetime.now(timezone.utc).isoformat(timespec='milliseconds')
-
-
 def _at(at):
     """An event's own time, when it is not now (a run drawn again from a state)."""
     return {'at': at} if at else {}
@@ -84,12 +81,7 @@ def read(folder, flow='check'):
     """The rows of a flow's progress file, in order; [] when there is none. A line still being written is left."""
     try: raw = path_for(folder, flow).read_bytes()
     except OSError: return []
-    rows = []
-    for line in raw[:raw.rfind(b'\n') + 1].decode('utf-8', 'replace').splitlines():
-        try: row = json.loads(line)
-        except ValueError: continue
-        if isinstance(row, dict): rows.append(row)
-    return rows
+    return json_rows(raw[:raw.rfind(b'\n') + 1])
 
 
 def history_folder(folder, flow='check'):
@@ -141,8 +133,7 @@ def stage_rows(stages):
 def previous_seconds(out):
     """{stage: seconds} of the last run of this report that reached an end, for a rough estimate; a stage it could not
     run keeps the time it took the last time it ran ok (the manifest's `measured`); {} on a first run."""
-    try: manifest = json.loads((Path(out) / 'run-manifest.json').read_text(encoding='utf-8'))
-    except (OSError, ValueError): return {}
+    manifest = read_json(Path(out) / 'run-manifest.json', {})
     return {**{name: s for name, s in (manifest.get('measured') or {}).items() if isinstance(s, (int, float))},
             **{name: row.get('seconds') for name, row in (manifest.get('stages') or {}).items()
                if isinstance(row, dict) and row.get('status') == 'ok' and isinstance(row.get('seconds'), (int, float))}}
@@ -171,7 +162,7 @@ class ProgressLog:
         self.path = path_for(out, flow)
         self.seq = 0
         self.lock = threading.RLock()
-        self.run = datetime.now(timezone.utc).strftime('%Y%m%dT%H%M%S') + '-' + secrets.token_hex(3)
+        self.run = stamp('%Y%m%dT%H%M%S', utc=True) + '-' + secrets.token_hex(3)
         self.enabled = enabled()
         self.broken = not self.enabled              # turned off: every line is left unwritten, as if it failed
         self.clock = clock
@@ -200,7 +191,7 @@ class ProgressLog:
     def emit(self, event, **fields):
         with self.lock:
             self.seq += 1
-            row = {'seq': self.seq, 'at': now(), 'event': event, 'run': self.run, **fields}
+            row = {'seq': self.seq, 'at': now('milliseconds'), 'event': event, 'run': self.run, **fields}
             self.wrote_at = self.clock()
             if event == 'stage.started':
                 self.current, self.sampled_at = fields.get('stage'), self.wrote_at

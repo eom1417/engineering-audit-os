@@ -9,6 +9,7 @@ import { href, navigate, parseHash, setQuery } from './address.js';
 import { a11yRegions, hold } from './a11y.js';
 import { bundleOfSheet, loadBundle } from './places.js';
 import { need, pendingOf } from '../data/source.js';
+import { said } from '../data/actions.js';
 
 const sheets = {};
 let open = null;
@@ -110,6 +111,13 @@ export function rerenderSheet() {
   if (st.def.after) st.def.after(st.el, st.arg, st.local);
   a11yRegions(st.el);
   back();
+}
+
+/** A sheet's call to the server: the sheet busy while `work` runs; refused, it says why, with what `cleared` names
+ *  cleared (a spent preview, its consents). */
+export async function sheetCall(own, work, cleared) {
+  own.busy = true; rerenderSheet();
+  try { await work(); } catch (e) { Object.assign(own, cleared, { busy: false, refused: said(e) }); rerenderSheet(); }
 }
 
 function destroy() {

@@ -5,8 +5,9 @@ import threading
 
 from ...journeys import guided
 from ...ai.assistant import prompts
-from ...core.project.runs import ACTIVE, now
+from ...core.project.runs import ACTIVE
 from .lane_assistants import alive
+from ...core.system.clock import now
 
 
 def holds_slot(row):
@@ -32,7 +33,7 @@ class Answers:
     def _ask(self, run, question):
         record = self.store.load(run)
         number = len(record.get('questions') or []) + 1
-        question = {**question, 'id': f'{run}-q{number}', 'run': run, 'asked': now()}
+        question = {**question, 'id': f'{run}-q{number}', 'run': run, 'asked': now('milliseconds')}
         self.store.append(run, 'question', question['text'], question)
         self.set_state(run, 'waiting_for_person', 'a question', question=question, answer_waiting=None, questions=(record.get('questions') or []) + [question['id']])
 
@@ -53,14 +54,14 @@ class Answers:
         label = self._label_of(question, option, text)
         self.store.append(run, 'answer', {'en': f"You answered {prompts.WHERE[via]['en']}: {label['en']}", 'ar': f"جاوبت {prompts.WHERE[via]['ar']}: {label['ar']}"},
                           {'question': question_id, 'option': option, 'text': text, 'by': 'person', 'via': via})
-        self.store.update(run, question=None, answered=(record.get('answered') or []) + [{'id': question_id, 'option': option, 'text': text, 'at': now()}])
+        self.store.update(run, question=None, answered=(record.get('answered') or []) + [{'id': question_id, 'option': option, 'text': text, 'at': now('milliseconds')}])
         answer = {'question': question, 'option': option, 'text': text, 'via': via}
         if self._slot_taken(run):
             # a run waiting for the person released its slot (runs.py `_next_run`): its answer is kept, and the
             # dispatcher goes on with it once the run now going ends, so two runs never work on the project at once
             self.store.append(run, 'step', {'en': 'Your answer is kept: this run goes on as soon as the work running now ends.',
                                             'ar': 'جوابك محفوظ: هذا التشغيل يكمل أول ما يخلص الشغل اللي شغال الحين.'}, {'tool': None})
-            self.store.update(run, answer_waiting={**answer, 'at': now()})
+            self.store.update(run, answer_waiting={**answer, 'at': now('milliseconds')})
             return self.store.load(run)
         return self._go_on(run, record, answer)
 

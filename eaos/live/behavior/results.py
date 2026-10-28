@@ -9,6 +9,7 @@ import threading
 from pathlib import Path
 
 from ...core import progress
+from ...core.system.files import read_json
 
 SCREENSHOT = re.compile(r'toHaveScreenshot.*?Snapshot: ([\w.-]+)\.png', re.S)
 WORDS = re.compile(r'([\w.-]+)\.text\.txt')      # a screen's words differ (specs.py): a design card may change them too
@@ -26,8 +27,8 @@ def failing_tests(runtime, name):
 
 
 def _failed_titles(path):
-    try: report = json.loads(path.read_text(encoding='utf-8'))
-    except (OSError, ValueError): return set()
+    report = read_json(path)
+    if report is None: return set()
     found = set()
 
     def walk(suite):

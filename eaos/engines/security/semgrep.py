@@ -43,9 +43,6 @@ def capabilities():
             Capability('secret', 'generic.secrets.*')]
 
 
-def version(): return tool.version(BINARY)
-
-
 def official_checkout():
     """The pinned official library on this machine, or None when `eaos tools install` has not fetched it."""
     from ...core.toolchain import found_version, registry

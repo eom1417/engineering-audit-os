@@ -27,9 +27,6 @@ def capabilities():
     return [Capability('secret', '<secret rule>'), Capability('misconfiguration', 'AVD-*')]
 
 
-def version(): return tool.version(BINARY)
-
-
 def redact(path):
     """Drop everything from `Match:` on in every message, and every secret rule's description, in place: the
     rule, the file and the line are enough to act on, and the raw file kept in the report holds no more."""

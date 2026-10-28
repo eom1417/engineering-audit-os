@@ -3,19 +3,20 @@ import contextvars
 import json
 import time
 from concurrent.futures import FIRST_COMPLETED, ThreadPoolExecutor, wait
-from datetime import datetime, timezone
 from pathlib import Path
 from typing import NamedTuple
 
 from .code import ast_grep, codegraph, dependency_cruiser, enola, gitnexus, jscpd, knip, lizard, react_docgen, reforge, scc, sqlfluff, squawk
 from .security import bandit, checkov, codeql, gitleaks, osv_scanner, presidio, semgrep, syft, trivy
 from .api import oasdiff, spectral
-from . import sarif
+from . import sarif, tool
 from .contract import NOT_APPLICABLE, OBSERVED, UNAVAILABLE
 from .process import state_digest
 from ..core import progress
 from ..core.system import resources
 from ..core.toolchain import registry
+from ..core.system.files import read_json
+from ..core.system.clock import now
 
 # The engines are the registry's (eaos/data/toolchain.json): every tool the engines stage runs (`check: engines`) with a
 # command of its own has its adapter here, by its NAME; an added tool that declares an `engine` runs through sarif.py.
@@ -33,7 +34,7 @@ def health():
     """What is installed, at what version, and whether it matches the pin. Runs no analysis."""
     report = {}
     for name, adapter in sorted(ADAPTERS.items()):
-        found = adapter.version()
+        found = tool.version_of(adapter)
         report[name] = {'installed': found is not None, 'version': found, 'pinned': adapter.PINNED,
                         'version_matches_pin': found == adapter.PINNED,
                         'capabilities': [{'kind': c.kind, 'rule': c.rule, 'method': c.method}
@@ -131,7 +132,7 @@ def analyze(target, workdir, exclude=(), only=None, formats=None, keep=False):  
     findings, justified = _split(selected, reports)
     manifest = {
         'contract_version': 1,
-        'generated_at': datetime.now(timezone.utc).isoformat(timespec='seconds'),
+        'generated_at': now(),
         'target': str(target), 'exclude': sorted(exclude), 'formats': sorted(formats) if formats else None,
         'requested': selected, 'unknown_engines': unknown,
         'target_unchanged': before == after, 'target_digest': before,
@@ -165,8 +166,8 @@ def _selected(only):
 
 def _with_kept(workdir, selected, reports):
     """(every engine, every report): the ones run now and the others of the check's last engines.json."""
-    try: previous = json.loads((workdir / 'engines.json').read_text(encoding='utf-8'))
-    except (OSError, ValueError): return selected, reports
+    previous = read_json(workdir / 'engines.json')
+    if previous is None: return selected, reports
     kept = {name: row for name, row in (previous.get('engines') or {}).items() if name in ADAPTERS and name not in reports}
     return ordered([*kept, *selected]), {**kept, **reports}
 

@@ -5,13 +5,14 @@ import json
 import os
 import shutil
 import traceback
-from datetime import datetime, timezone
 from pathlib import Path
 
 from ...core.project import branches, state as project_state
 from ...core.project.state import runtime_of
 from ..fix import waves
 from ...core.project.places import outputs_root, second_name
+from ...core.system.files import read_json
+from ...core.system.clock import now, stamp
 
 
 OUTPUTS_README = {
@@ -79,7 +80,7 @@ def language(requested=None, state=None):
 def log_failure(where, problem):
     logs = Path(where) / 'logs'
     logs.mkdir(parents=True, exist_ok=True)
-    path = logs / f"{datetime.now().strftime('%Y%m%d-%H%M%S')}.log"
+    path = logs / f"{stamp('%Y%m%d-%H%M%S')}.log"
     path.write_text(''.join(traceback.format_exception(type(problem), problem, problem.__traceback__)), encoding='utf-8')
     return path
 
@@ -117,8 +118,7 @@ RESUME = []
 def report_stamp(state):
     """What the last REPORT.html of the branch was made from: {version, commit, digest, built, scanned_commit (the project
     commit the check read), errors}; {} when none."""
-    try: return json.loads((branches.home(state) / '.report.json').read_text(encoding='utf-8'))
-    except (OSError, ValueError): return {}
+    return read_json(branches.home(state) / '.report.json', {})
 
 
 def publish(state, lang=None, event=None):
@@ -128,7 +128,7 @@ def publish(state, lang=None, event=None):
     never a reason for a step to fail: without it, the technical report is still there."""
     from ...core.system.version_info import stamp
     report, home_folder = report_of(state), branches.home(state)
-    target, made = home_folder / 'REPORT.html', datetime.now(timezone.utc).isoformat(timespec='seconds')
+    target, made = home_folder / 'REPORT.html', now()
     errors, progress = [], {'waves': state.get('waves') or []}
 
     def part(name, build):
@@ -170,8 +170,7 @@ def _human_page(state, report, lang, progress, errors):
     try:
         from ...report.human_report import write
         write(report, lang or state.get('lang') or 'en', Path(state['project']).name, progress=progress)
-        try: errors += [f"{e.get('section')}: {e.get('error')}"[:300] for e in json.loads((report / 'human/errors.json').read_text(encoding='utf-8'))]
-        except (OSError, ValueError): pass
+        errors += [f"{e.get('section')}: {e.get('error')}"[:300] for e in read_json(report / 'human/errors.json', [])]
     except Exception as problem:            # the page itself could not be made: say so on it, never leave the old one
         errors.append(f'page: {type(problem).__name__}: {problem}'[:300])
         log_failure(outputs(state), problem)

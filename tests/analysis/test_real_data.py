@@ -8,6 +8,7 @@ from eaos.analysis.assessments import real_data
 from eaos.analysis.claims import from_real_data
 from eaos.engines.code import ast_grep
 from eaos.engines.security import presidio
+from eaos.engines.tool import version_of
 from shared_fixture import scratch
 
 BASELINE = Path(__file__).resolve().parents[1] / 'fixtures/baseline-app'
@@ -84,7 +85,7 @@ class SortedOnEvidence(unittest.TestCase):
 
 
 def _installed(module):
-    return module.version() == module.PINNED
+    return version_of(module) == module.PINNED
 
 
 class TheBaselineApp(unittest.TestCase):

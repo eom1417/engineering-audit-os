@@ -8,7 +8,6 @@ here are the run of them all, its manifest, and the checks a person asks for (ch
 import json
 import threading
 import time
-from datetime import datetime, timezone
 from pathlib import Path
 
 from ..core.progress import ProgressLog, previous_seconds
@@ -23,6 +22,8 @@ from .rounds import Rounds
 from .schedule import LimitedProvider, assistants, run_ready
 from .stage_run import CHECKPOINT, FAILED, NOT_REACHED, OK, SKIPPED, UNAVAILABLE, Context, _stage, _write
 from .stages import BY_NAME, ORDER, STAGES, dependents
+from ..core.system.files import read_json
+from ..core.system.clock import now
 
 MANIFEST = 'run-manifest.json'
 
@@ -64,7 +65,7 @@ def execute(target, out, *, only=(), skip=(), language='ar', exclude=(), engines
     requested = _requested(only, (*skip, *switched_off(paths or ['complete'])))
     completed = _completed or {}
     context['again'] = bool(completed)          # within a check run before: a tool run again joins the others' results
-    started_at = datetime.now(timezone.utc).isoformat(timespec='seconds')
+    started_at = now()
     began = time.monotonic()
     todo = _todo(requested, completed)
     head = _head(context, started_at, requested)
@@ -170,8 +171,7 @@ def _counts(results):
 def _measured(path, results):
     """{stage: seconds} each stage took the last time it ran ok, in this run or an earlier one: a stage this run could
     not run (its assistant lost midway) keeps its earlier time, so the estimate of running it again is not zero."""
-    try: before = json.loads(path.read_text(encoding='utf-8'))
-    except (OSError, ValueError): before = {}
+    before = read_json(path, {})
     kept = {**(before.get('measured') or {}), **{name: row['seconds'] for name, row in (before.get('stages') or {}).items() if _timed(row)}}
     return {**kept, **{name: row['seconds'] for name, row in results.items() if _timed(row)}}
 

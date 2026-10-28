@@ -10,6 +10,7 @@ Only calls whose receiver is a known HTTP client are reported: `axios` itself, a
 calls to third-party hosts with a literal domain stay integration targets, not the app's own data.
 """
 import re
+from .bindings import by_stem, stem
 
 LANGUAGES = ('javascript', 'typescript', 'tsx')
 FACT_KIND = 'data_access'
@@ -26,13 +27,6 @@ FETCH_BODY = re.compile(r'''\bbody\s*:\s*JSON\.stringify\s*\(\s*''')
 PROPERTY = re.compile(r'''\s*(?:(?P<spread>\.\.\.)|(?P<q>['"])(?P<quoted>[^'"\n]+)(?P=q)|(?P<name>[A-Za-z_$][\w$]*))''')
 WRITES = ('post', 'put', 'patch')
 SCAN = 4000  # characters an object literal may span before it is left unread
-GENERIC_STEMS = {'index', 'types', 'utils', 'constants', 'config', 'helpers'}
-
-
-def _stem(path):
-    return path.rstrip('/').rsplit('/', 1)[-1].split('.')[0]
-
-
 def clients(text, inherited=()):
     """HTTP client names this file can call: axios, factory results, and names it imports that are clients."""
     names = set(inherited) | set(FACTORY.findall(text))
@@ -42,10 +36,7 @@ def clients(text, inherited=()):
 
 def prepare(texts):
     """{file: client names}. A name a file makes with axios.create reaches every file that imports it by name."""
-    made = {rel: set(FACTORY.findall(text)) for rel, text in texts.items()}
-    exported = {}
-    for rel, names in made.items():
-        if names and _stem(rel) not in GENERIC_STEMS: exported.setdefault(_stem(rel), set()).update(names)
+    exported = by_stem({rel: set(FACTORY.findall(text)) for rel, text in texts.items()})
     bound = {}
     for rel, text in texts.items():
         names = clients(text, _inherited(text, exported))
@@ -57,7 +48,7 @@ def _inherited(text, exported):
     """The client names a file imports by name (or as a default export) from a file that makes them."""
     inherited = set()
     for default, listed, spec in IMPORT.findall(text):
-        offered = exported.get(_stem(spec), set())
+        offered = exported.get(stem(spec), set())
         for part in listed.split(','):
             original, _, alias = part.strip().partition(' as ')
             if original.strip() in offered: inherited.add((alias or original).strip())

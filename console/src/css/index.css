@@ -1,5 +1,6 @@
-/* The one stylesheet: the tokens, the shell and the lead's screens (core.css), then each builder's own styles. */
+/* The one stylesheet: the tokens, the shell and the lead's screens (core.css), each builder's own styles, then the shared parts. */
 @import "./tokens.css";
 @import "./core.css";
 @import "./activity.css";
 @import "./places.css";
+@import "./parts.css";

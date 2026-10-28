@@ -25,7 +25,8 @@ import threading
 import time
 import traceback
 from contextlib import contextmanager
-from datetime import datetime, timezone
+from ...core.system.files import read_json
+from ...core.system.clock import now, stamp
 
 
 KEEP = 30           # the jobs a project keeps; older ended ones go with their logs
@@ -35,10 +36,6 @@ LEGACY_DAYS = 1     # the one folder older EAOS versions shared between projects
 def folder(project):
     from .places import workspace
     return workspace(project) / 'jobs'
-
-
-def _now():
-    return datetime.now(timezone.utc).isoformat(timespec='seconds')
 
 
 def cache(project):
@@ -65,7 +62,7 @@ def read(job, project):
     if not path.is_file(): raise ValueError(f'no job named {job!r} in this project')
     record = json.loads(path.read_text(encoding='utf-8'))
     if record['status'] == 'running' and not _alive(record.get('pid')):
-        record.update(status='failed', ended=_now(), error='the job stopped before it finished (the computer slept or the process was '
+        record.update(status='failed', ended=now(), error='the job stopped before it finished (the computer slept or the process was '
                       'killed); start it again' + (': the batch keeps every change it kept, and fix_finish goes on from them'
                                                    if record.get('kind') == 'fix_finish' else ''))
         _write(record)
@@ -86,8 +83,7 @@ def _alive(pid):
 def running(project, kind=None):
     """The job still running for this project (and kind), if any: one piece of work at a time per project."""
     for path in sorted(folder(project).glob('*.json'), reverse=True):
-        try: record = json.loads(path.read_text(encoding='utf-8'))
-        except (OSError, ValueError): continue
+        record = read_json(path, {})
         if record.get('status') == 'running' and (kind is None or record['kind'] == kind):
             record = read(record['id'], project)
             if record['status'] == 'running': return record
@@ -102,8 +98,7 @@ def fixing(project):
 def _prune(project):
     """Keep the project's last KEEP jobs (a running one always), and drop the shared folder of older versions."""
     for path in sorted(folder(project).glob('*.json'), key=lambda found: found.stat().st_mtime)[:-KEEP]:
-        try: running = json.loads(path.read_text(encoding='utf-8')).get('status') == 'running'
-        except (OSError, ValueError): running = False
+        running = read_json(path, {}).get('status') == 'running'
         if not running:
             path.unlink(missing_ok=True)
             path.with_suffix('.log').unlink(missing_ok=True)
@@ -135,10 +130,10 @@ def alone(project, wait=0):
 
 
 def start(kind, project, arguments, runner='eaos.journeys.agent_tools'):
-    job = f"{kind}-{datetime.now().strftime('%Y%m%d-%H%M%S')}-{os.urandom(2).hex()}"
+    job = f"{kind}-{stamp('%Y%m%d-%H%M%S')}-{os.urandom(2).hex()}"
     log = folder(project) / f'{job}.log'
     record = {'id': job, 'kind': kind, 'runner': runner, 'project': str(project), 'arguments': arguments, 'status': 'running',
-              'progress': None, 'result': None, 'error': None, 'log': str(log), 'started': _now(), 'ended': None, 'pid': None}
+              'progress': None, 'result': None, 'error': None, 'log': str(log), 'started': now(), 'ended': None, 'pid': None}
     _write(record)
     pid = _launch(job, project, log)
     record = json.loads(_path(job, project).read_text(encoding='utf-8'))
@@ -195,11 +190,11 @@ def run(job, project):
         work = importlib.import_module(runner).JOBS[record['kind']]  # nosemgrep: python.lang.security.audit.non-literal-import -- the runner EAOS wrote in its own job record, one of eaos's modules (checked above)
         result = work(record['project'], record['arguments'], lambda *step: progress(job, project, *step))
         record = json.loads(path.read_text(encoding='utf-8'))
-        record.update(status='done', result=result, ended=_now())
+        record.update(status='done', result=result, ended=now())
     except BaseException as problem:        # every ending is written down, so the assistant is never left waiting
         traceback.print_exc()
         record = json.loads(path.read_text(encoding='utf-8'))
-        record.update(status='failed', error=f'{type(problem).__name__}: {problem}'[-3000:], ended=_now())
+        record.update(status='failed', error=f'{type(problem).__name__}: {problem}'[-3000:], ended=now())
     shutil.rmtree(cache(project), ignore_errors=True)
     _write(record)
     return 0 if record['status'] == 'done' else 1

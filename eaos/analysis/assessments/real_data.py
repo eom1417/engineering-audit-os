@@ -22,6 +22,7 @@ from pathlib import Path, PurePosixPath
 
 from ...core.contracts.vocabulary import classify
 from ...facts.engine_findings import engine_records
+from ...core.system.files import read_json
 
 RULES = json.loads((Path(__file__).resolve().parents[2] / 'rules/personal-data.json').read_text(encoding='utf-8'))
 LINE_WINDOW = 3
@@ -181,8 +182,7 @@ def _json_imports(sets):
 
 def _json_rows(root, path):
     """The records of a JSON file that is an array of objects, else none."""
-    try: data = json.loads((Path(root) / path).read_text(encoding='utf-8'))
-    except (OSError, ValueError, TypeError): return []
+    data = read_json(Path(root) / path) if root and path else None
     return [row for row in data if isinstance(row, dict)] if isinstance(data, list) else []
 
 

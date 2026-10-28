@@ -1,15 +1,14 @@
 // Lighthouse in the same signed-in browser state as the crawl and screenshots, never on the sign-in page instead.
-import { readFileSync, writeFileSync, mkdirSync } from 'node:fs';
+import { writeFileSync, mkdirSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { createServer } from 'node:net';
-import { fromFolder, playwrightFrom } from './pinned.mjs';
+import { configured, fromFolder, readJson } from './pinned.mjs';
 
-const config = JSON.parse(readFileSync(process.argv[2], 'utf8'));
-const { chromium } = playwrightFrom(config.modules.playwright);
+const { config, playwright: { chromium } } = configured();
 const resolve = fromFolder(config.modules.lighthouse);
 const { default: lighthouse } = await import(pathToFileURL(resolve.resolve('lighthouse')).href);
-const state = JSON.parse(readFileSync(config.storage_state, 'utf8'));
+const state = readJson(config.storage_state);
 const listener = createServer();
 await new Promise((ok, fail) => { listener.once('error', fail); listener.listen(0, '127.0.0.1', ok); });
 const port = listener.address().port;

@@ -61,6 +61,14 @@ to fix, clean or improve it; where things stand; or to accept or undo fixes.
    Never merge, delete a branch, or edit the report or the progress by hand. Then tell them the progress it
    returns (closed of total, and the percent), and go on with the next batch (`fix_start`).
 
+## One source per pattern, in every change
+
+Whatever you write in a project, write each pattern once and call it: no near copy of code; every colour, font size,
+spacing, radius, shadow and z-index only in the tokens file; a screen pattern (a pop-up, a card, a table) or a way of
+working (reading a file, a date, money, a request with its loading and error, drag and drop, validation, an
+endpoint's guard) written three times is one component, helper, hook or middleware. EAOS's gates refuse a change that
+adds one more copy, and say where the one home is.
+
 ## The Studio's work, without the Studio
 
 When the person works in a terminal, or asks for what the Studio shows, use the governance tools; they drive the

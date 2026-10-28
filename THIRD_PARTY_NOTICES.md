@@ -66,7 +66,6 @@ All run on the app's isolated copy on the person's computer, with a database of 
 | `jscodeshift` ([jscodeshift](https://github.com/facebook/jscodeshift)) | Meta Platforms, Inc. and affiliates | MIT | runs the codemods of mechanical cards on an isolated copy; it parses code, never runs it | kept |
 | `axe-core` ([axe-core](https://github.com/dequelabs/axe-core) and [@axe-core/playwright](https://github.com/dequelabs/axe-core-npm)) | Deque Systems, Inc. | MPL-2.0 | injected unmodified into the page under test, which MPL-2.0 permits without further obligation; WCAG violations read as JSON | kept |
 | `lighthouse` ([Lighthouse](https://github.com/GoogleChrome/lighthouse)) | Google LLC | Apache-2.0 | mobile JSON report of one address read (`eaos/live/screens/audit.py`) | kept |
-| `css-analyzer` ([@projectwallace/css-analyzer](https://github.com/projectwallace/css-analyzer)) | Bart Veneman | MIT | imported by `eaos/templates/screens/css.mjs` in a separate Node.js process; CSS statistics read as JSON | kept |
 | `rrweb` ([rrweb](https://github.com/rrweb-io/rrweb) and rrweb-player) | rrweb contributors | MIT | recorder injected unmodified into each page a journey opens; its player replays the events beside the report | kept |
 
 ### Design sources

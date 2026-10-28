@@ -11,11 +11,10 @@
 // The result is one JSON object on stdout: {routes: [{path, depth, status}]}. With config.coverage (a file), the
 // JavaScript each page ran is written there, every script's functions with whether any page ran them (M13.2,
 // eaos/live/testing/ran.py browser).
-import { readFileSync, writeFileSync } from 'node:fs';
-import { playwrightFrom } from './pinned.mjs';
+import { writeFileSync } from 'node:fs';
+import { configured } from './pinned.mjs';
 
-const config = JSON.parse(readFileSync(process.argv[2], 'utf8'));
-const playwright = playwrightFrom(config.modules.playwright);
+const { config, playwright } = configured();
 const base = new URL(config.base);
 const leaves = config.leaves ? new RegExp(config.leaves, 'i') : null;
 

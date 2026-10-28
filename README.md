@@ -11,7 +11,7 @@
 </p>
 
 <p align="center">
-  <a href="CHANGELOG.md"><img alt="Version 0.0.87" src="https://img.shields.io/badge/version-0.0.87-3987e5"></a>
+  <a href="CHANGELOG.md"><img alt="Version 0.0.88" src="https://img.shields.io/badge/version-0.0.88-3987e5"></a>
   <img alt="Status: pilot" src="https://img.shields.io/badge/status-pilot-f2a33a">
   <img alt="Python 3.10+" src="https://img.shields.io/badge/python-3.10%2B-3776ab">
   <a href="LICENSE"><img alt="License: MIT" src="https://img.shields.io/badge/license-MIT-2ea44f"></a>
@@ -267,7 +267,7 @@ version with its checksum and licence ([`eaos/data/toolchain.json`](eaos/data/to
 | Complexity, duplication, dead code | Lizard · jscpd · scc · knip, beside EAOS's own counts |
 | Security and dependencies | Semgrep and its rules · Bandit · Gitleaks · CodeQL¹ · OSV-Scanner · Syft · Trivy · Checkov |
 | Contracts and data | Spectral · oasdiff · SQLFluff · Schemathesis · the Supabase CLI's advisors · pgTAP |
-| Your running app | Playwright · rrweb · Lighthouse · axe-core · css-analyzer · pytest · k6 · Mailpit (catches the app's e-mail) |
+| Your running app | Playwright · rrweb · Lighthouse · axe-core · pytest · k6 · Mailpit (catches the app's e-mail) |
 | Automatic changes | jscodeshift, beside EAOS's own move tool |
 | Design (the look of a build or a redesign) | UI UX Pro Max · awesome-design-md · tweakcn themes · Anthropic's frontend-design; a built app gets shadcn/ui and Fontsource |
 

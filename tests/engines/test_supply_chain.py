@@ -8,6 +8,7 @@ from shared_fixture import Workspace
 from eaos.engines import ordered
 from eaos.engines.security import osv_scanner, syft
 from eaos.engines.contract import KINDS
+from eaos.engines.tool import version_of
 
 CONTRACTS = Path(__file__).resolve().parents[1] / 'contracts'
 
@@ -73,7 +74,7 @@ class UpgradeCheckTests(Workspace):
                          'node_modules/picomatch': {'version': '2.3.1', 'license': 'MIT'}}}
 
     def test_the_check_fails_before_the_upgrade_and_passes_after(self):
-        if osv_scanner.version() is None or syft.version() is None: self.skipTest('syft and osv-scanner are not installed')
+        if version_of(osv_scanner) is None or version_of(syft) is None: self.skipTest('syft and osv-scanner are not installed')
         from eaos.analysis.assessments.dependencies import _check_argv
         root = Path(self.tmp)
         (root / 'package.json').write_text(json.dumps({'name': 'f', 'dependencies': {'picomatch': '2.3.1'}}))

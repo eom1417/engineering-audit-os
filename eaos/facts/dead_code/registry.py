@@ -23,20 +23,17 @@ _IMPORTLIB = _re.compile(r"""importlib\.import_module\(\s*['\"](?P<name>[A-Za-z_
 _DYNAMIC_IMPORT = _re.compile(r"""\bimport\s*\(\s*['\"](?P<name>[A-Za-z_@/][\w./@-]*)['\"]""")
 
 
+def _names_in(listing, name, text, group=0):
+    """The names `name` finds in each list `listing` matches in the text (the match's `group`)."""
+    return {token for match in listing.finditer(text) for token in _re.findall(name, match.group(group))}
+
+
 def _module_names_in_list(text):
-    found = set()
-    for match in _MODULE_LIST.finditer(text):
-        for token in _re.findall(r"\b[A-Za-z_][\w.]*\b", match.group(0)):
-            found.add(token)
-    return found
+    return _names_in(_MODULE_LIST, r"\b[A-Za-z_][\w.]*\b", text)
 
 
 def _all_names(text):
-    names = set()
-    for match in __ALL__.finditer(text):
-        for token in _re.findall(r"""['\"]([A-Za-z_]\w*)['\"]""", match.group('names')):
-            names.add(token)
-    return names
+    return _names_in(__ALL__, r"""['\"]([A-Za-z_]\w*)['\"]""", text, 'names')
 
 
 def _dynamic_import_names(text):

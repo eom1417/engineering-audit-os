@@ -61,6 +61,7 @@ def _milestone_tools(server, reading, working, _answer):
     """One milestone of the build in its isolated copy: open, read, write, leave out, close."""
     from ...journeys.build_from_plan import steps as build
 
+    # jscpd:ignore-start -- each MCP tool is its own decorated signature: the server reads its schema and words from it
     @server.tool(annotations=working, description='Open the next milestone of the build in an isolated copy (the first time it asks '
                  'the person\'s agreement: person_agreed=true only after their yes). Returns the cards to build.')
     @_answer
@@ -91,3 +92,4 @@ def _milestone_tools(server, reading, working, _answer):
     @_answer
     def build_finish(project: str | None = None) -> str:
         return build.build_finish(project)
+    # jscpd:ignore-end

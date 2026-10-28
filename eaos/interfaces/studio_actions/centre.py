@@ -4,7 +4,6 @@ import functools
 import json
 import os
 import time
-from datetime import datetime
 from pathlib import Path
 from urllib.parse import parse_qs, urlsplit
 
@@ -18,8 +17,9 @@ from .decisions import Decisions
 from .previews import Previews, _auto_accept, _bound, _group_name, _where_of
 from .runs import PLANNERS, Manager
 from ...core.system.studio_access import Locks
-from ...core.project.runs import BRIEF_ONLY, TERMINAL, Scrubber, Store, contract, now
+from ...core.project.runs import BRIEF_ONLY, TERMINAL, Scrubber, Store, contract
 from ...core.project import state as project_state
+from ...core.system.clock import now, stamp
 
 HEARTBEAT = 15
 
@@ -56,7 +56,7 @@ def _cards_of_run(cards, left):
 
 
 def _run_id():
-    return 'r' + datetime.now().strftime('%Y%m%d-%H%M%S-') + os.urandom(3).hex()
+    return 'r' + stamp('%Y%m%d-%H%M%S-') + os.urandom(3).hex()
 
 
 # The GET routes that take nothing from the path: /api/<route> -> (actions, query) -> answer.
@@ -312,8 +312,8 @@ class Actions(Previews, Decisions):
                 'mode': _mode(action, needed, assistant),
                 'owner_answers': self._owner_answers(),
                 'context': self.branches.run_context(), **({'where': {**where, **helpers.speed_of(self.project, body)}} if where else {}), **({'auto_accept': True} if auto else {}),
-                'state': 'running' if reading else 'queued', 'attempt': 1, 'created': now(), 'queued_at': now(), 'read': reading,
-                **({'started': now()} if reading else {})}
+                'state': 'running' if reading else 'queued', 'attempt': 1, 'created': now('milliseconds'), 'queued_at': now('milliseconds'), 'read': reading,
+                **({'started': now('milliseconds')} if reading else {})}
 
     def _owner_answers(self):
         """The owner's answers to the report's questions, which every run is given."""

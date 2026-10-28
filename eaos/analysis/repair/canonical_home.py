@@ -12,6 +12,7 @@ the project may need a layer rule change before unification is safe.
 from collections import defaultdict, deque
 from pathlib import Path
 from ...facts.store import read_set
+from ...core.system.files import read_json
 
 
 def _read_sets(out):
@@ -80,11 +81,7 @@ def _would_cycle(candidate, target, adjacency):
 
 def _policy(policy_path):
     if not policy_path or not Path(policy_path).is_file(): return {}, []
-    import json
-    try:
-        policy = json.loads(Path(policy_path).read_text())
-    except ValueError:
-        return {}, []
+    policy = read_json(policy_path, {})
     return policy.get('layers', {}), policy.get('rules', [])
 
 

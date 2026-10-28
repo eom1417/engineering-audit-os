@@ -6,7 +6,6 @@ table by table; without one, the database's own dump, so the drill still says wh
     drill(live, db)      {how, source?, file?, tables: [{table, rows, restored, same}], missing, differ, why?}
 """
 import hashlib
-import json
 import re
 import sqlite3
 import subprocess
@@ -16,6 +15,7 @@ from pathlib import Path
 
 from .database import SEPARATOR, Postgres, Sqlite, ident
 from ...core.system.local_db import binaries
+from ...core.system.files import read_json
 
 NAMED = re.compile(r'backup|dump|export[-_:]?(db|data)', re.I)
 RUNNERS = {'.sh': ['bash'], '.js': ['node'], '.mjs': ['node'], '.cjs': ['node'], '.ts': ['npx', 'tsx'], '.py': ['python3']}
@@ -23,8 +23,7 @@ OUTPUTS = ('*.sql', '*.dump', '*.backup', '*.json', '*.sql.gz', '*.db')
 
 
 def _package_scripts(target):
-    try: scripts = json.loads((Path(target) / 'package.json').read_text(encoding='utf-8')).get('scripts') or {}
-    except (OSError, ValueError): return []
+    scripts = read_json(Path(target) / 'package.json', {}).get('scripts') or {}
     return [{'argv': ['npm', 'run', name], 'source': f'package.json scripts.{name}', 'text': text}
             for name, text in scripts.items() if NAMED.search(name)]
 

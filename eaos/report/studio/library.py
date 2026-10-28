@@ -13,6 +13,7 @@ opens each from the report page's files; the screens and the user's journeys pla
 """
 import re
 from pathlib import Path
+from ...core.system.files import read_json
 
 DOC_GROUPS = (('START-HERE.md', 'start'), ('README.md', 'start'), ('CURRENT-STATE.md', 'story'),
               ('TARGET-STATE.md', 'story'), ('GAP-AND-STRATEGY.md', 'story'), ('EXECUTION-PLAN.md', 'plan'))
@@ -106,8 +107,8 @@ def _pictured(report):
     """{picture path: (route, viewport)} of the check's screen pictures (live/screens.json): the route is the page's
     address without its host or query (/#/system for a hash route), so a picture belongs to its screen."""
     from urllib.parse import urlsplit
-    from ...analysis.presentation.model import _load
-    rows = (_load(Path(report) / 'live/screens.json', {}) or {}).get('rows') or []
+
+    rows = (read_json(Path(report) / 'live/screens.json', {}) or {}).get('rows') or []
     out = {}
     for row in rows:
         if not row.get('screenshot'): continue

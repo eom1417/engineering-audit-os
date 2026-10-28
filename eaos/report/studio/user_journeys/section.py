@@ -4,6 +4,7 @@ from collections import defaultdict
 
 from .layout import BOX_H, BOX_W, COL_W, PAD, ROW_H, curve, xy
 from .routes import _norm, _segments
+from ....analysis.presentation.counts import measured
 
 MAX_TASKS = 40
 SRC = {
@@ -19,10 +20,6 @@ SRC = {
     'without_target': 'screens with no screen-level decision in target-architecture.json',
     'shots': 'media.json#images[kind=screen] with the screen\'s route',
 }
-
-
-def _measure(value, src):
-    return {'value': value if isinstance(value, int) and value >= 0 else None, 'src': src, 'unit': 'count'}
 
 
 def _group_of(route, prefix, public=False):
@@ -72,15 +69,15 @@ def _missing(pages, shot_count, relative):
     """What the journeys do not measure yet: each screen's own decision, the shots, the relative links."""
     missing = []
     if pages:
-        missing.append({'id': 'screen_target', 'state': 'not_measured', 'step': 'NS44.T1', 'count': _measure(len(pages), SRC['without_target']),
+        missing.append({'id': 'screen_target', 'state': 'not_measured', 'step': 'NS44.T1', 'count': measured(len(pages), SRC['without_target']),
                      'detail': {'ar': 'البنية المستهدفة تقرر المجلدات لا الشاشات: لا قرار لكل شاشة (تبقى، تُدمج، تُحذف).',
                                 'en': 'The target architecture decides folders, not screens: no screen has its own decision (keep, merge, delete).'}})
     if pages and not shot_count:
-        missing.append({'id': 'shots', 'state': 'not_measured', 'step': 'NS41.T1', 'count': _measure(None, SRC['shots']),
+        missing.append({'id': 'shots', 'state': 'not_measured', 'step': 'NS41.T1', 'count': measured(None, SRC['shots']),
                      'detail': {'ar': 'لا صور للشاشات بعد: تصويرها يحتاج تشغيل التطبيق بموافقتك.',
                                 'en': 'No screen shots yet: capturing them needs the app running, with your agreement.'}})
     if relative:
-        missing.append({'id': 'relative_links', 'state': 'partial', 'step': 'NS40.T1', 'count': _measure(len(relative), SRC['relative']),
+        missing.append({'id': 'relative_links', 'state': 'partial', 'step': 'NS40.T1', 'count': measured(len(relative), SRC['relative']),
                      'detail': {'ar': 'روابط نسبية لم تُربط بشاشة.', 'en': 'Relative links not resolved to a screen.'}})
     return missing
 
@@ -107,19 +104,19 @@ def _journey_counts(out_screens, out_edges, journey, tasks):
     count = lambda flag: sum(flag in s['flags'] for s in pages)
     links = [e for e in out_edges if e['via'] != 'menu_of']
     return {
-        'screens': _measure(len(pages), SRC['screens'] + ', kind page'),
-        'hidden_screens': _measure(len(out_screens) - len(pages), SRC['screens'] + ', kind layout, redirect or fallback'),
-        'links': _measure(len(links), SRC['links'] + ' (screen pairs)'),
-        'link_sites': _measure(sum(e['count'] for e in links), SRC['links']),
-        'broken': _measure(len(broken), SRC['broken']),
-        'no_way_in': _measure(count('no_way_in'), SRC['no_way_in']),
-        'dead_ends': _measure(count('dead_end'), SRC['dead_ends']),
-        'duplicates': _measure(count('duplicate'), SRC['duplicates']),
-        'tasks': _measure(len(tasks), SRC['tasks']),
-        'unowned_links': _measure(len(unowned), SRC['unowned_links']),
-        'unowned_dead': _measure(sum(u['dead'] for u in unowned), SRC['unowned_links'] + ', in an unreachable module'),
-        'without_target': _measure(len(pages), SRC['without_target']),
-        'shots': _measure(shot_count, SRC['shots']),
+        'screens': measured(len(pages), SRC['screens'] + ', kind page'),
+        'hidden_screens': measured(len(out_screens) - len(pages), SRC['screens'] + ', kind layout, redirect or fallback'),
+        'links': measured(len(links), SRC['links'] + ' (screen pairs)'),
+        'link_sites': measured(sum(e['count'] for e in links), SRC['links']),
+        'broken': measured(len(broken), SRC['broken']),
+        'no_way_in': measured(count('no_way_in'), SRC['no_way_in']),
+        'dead_ends': measured(count('dead_end'), SRC['dead_ends']),
+        'duplicates': measured(count('duplicate'), SRC['duplicates']),
+        'tasks': measured(len(tasks), SRC['tasks']),
+        'unowned_links': measured(len(unowned), SRC['unowned_links']),
+        'unowned_dead': measured(sum(u['dead'] for u in unowned), SRC['unowned_links'] + ', in an unreachable module'),
+        'without_target': measured(len(pages), SRC['without_target']),
+        'shots': measured(shot_count, SRC['shots']),
     }
 
 

@@ -41,9 +41,6 @@ def capabilities():
     return [Capability('vulnerability', '*/security/*'), Capability('secret', '*/credentials*')]
 
 
-def version(): return tool.version(BINARY)
-
-
 def license_of(target):
     """The open-source license the project's license file declares, or None."""
     for name in LICENSE_FILES:

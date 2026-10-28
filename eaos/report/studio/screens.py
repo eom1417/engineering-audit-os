@@ -23,9 +23,9 @@ pictures of it and, on each picture, the visual reviewer's findings with their r
 A page the reviewer looked at and found nothing on is kept, marked clean; one it did not decide (no assistant, or its
 answer was dropped) is not_reviewed.
 """
-import json
 from pathlib import Path
 from urllib.parse import urlsplit
+from ...core.system.files import read_json
 
 CAPTURE_STEP = 'NS41.T1'   # capturing the app's screens (needs the app running, with the person's agreement)
 INPUTS_STEP = 'NS40.T2'    # the UI extractor: forms, fields and their labels
@@ -43,11 +43,6 @@ def _count(value, key):
 SEVERITIES = ('critical', 'high', 'medium', 'low', 'info')
 
 
-def _load(path):
-    try: return json.loads(Path(path).read_text(encoding='utf-8'))
-    except (OSError, ValueError): return None
-
-
 def _address(url):
     """A page's address without the app's host: /#/tasks/TASK-001."""
     parts = urlsplit(str(url or ''))
@@ -58,8 +53,8 @@ def gallery(report):
     """The pictured pages of this check (live/screens.json) with the visual reviewer's findings on each picture
     (nodes/visual_reviewer/findings.json); [] when nothing was pictured."""
     report = Path(report)
-    body = _load(report / 'live/screens.json') or {}
-    review = _load(report / 'nodes/visual_reviewer/findings.json') or {}
+    body = read_json(report / 'live/screens.json') or {}
+    review = read_json(report / 'nodes/visual_reviewer/findings.json') or {}
     clean, on = _review(review)
     known = _known_pages(body)
     pages = {}
@@ -91,7 +86,7 @@ def _pictured(report, row):
 
 def _covered(report):
     """Which kinds of users of the code the check saw (eaos/live/access/roles.py), None when they are not known."""
-    return (_load(Path(report) / 'live/screens.json') or {}).get('coverage') if report else None
+    return (read_json(Path(report) / 'live/screens.json') or {}).get('coverage') if report else None
 
 
 def _findings_on(findings):

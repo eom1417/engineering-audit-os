@@ -6,8 +6,10 @@
 // preview again, since the token is bound to it. Address: ?sheet=verb:<verb>[:fixable | :assistant | :<problem> |
 // :step:<id>]; without a target, the current selection.
 import {
-  t, tn, L, num, esc, rich, icon, code, sev, href, assistantPicker, estimate, expiresAt, sheet, act, rerenderSheet, local, parseHash, closeSheetThen, toast, refresh, offline,
-  model, selection, store, client, ActionError, contract, prefs,
+  said, t, tn, L, num, esc, rich, icon, code, sev, href, assistantPicker, estimate, expiresAt, sheet, act, rerenderSheet, local, parseHash, closeSheetThen,
+  toast, refresh, offline, model, selection, store, client, ActionError, contract, prefs, terminalFold, toggleRow, lockLine, radio, facts,
+  titledBlock,
+  switchBox,
 } from 'eaos';
 
 const enc = encodeURIComponent;
@@ -40,7 +42,7 @@ function ask(verb, own) {
   const mine = own.ticket = (own.ticket || 0) + 1; // an answer to an older choice is dropped
   own.asking = true; own.problem = null;
   client.preview(verb, body(verb, own)).then(p => { if (mine !== own.ticket) return; own.preview = p; own.asking = false; rerenderSheet(); },
-    e => { if (mine !== own.ticket) return; own.asking = false; own.preview = null; own.problem = e instanceof ActionError ? e.message : String(e); rerenderSheet(); });
+    e => { if (mine !== own.ticket) return; own.asking = false; own.preview = null; own.problem = said(e); rerenderSheet(); });
 }
 /** The choice changed: the preview is asked again (the old one's token no longer matches). */
 function again(change) {
@@ -51,16 +53,15 @@ function again(change) {
 
 function cardsHTML(p) {
   const shown = p.cards.slice(0, 6);
-  return `<div><div class="block-title">${t('pv.included')} (${num(p.cards.length)})</div>
+  return `${titledBlock(`${t('pv.included')} (${num(p.cards.length)})`, `
     <div class="panel rows">${shown.map(c => `<div class="row" style="min-height:48px">${c.severity ? sev(c.severity, false) : ''}<span class="row__main small">${code(c.id)} ${rich(L(c.title || ''))}</span></div>`).join('')}
-    ${p.cards.length > 6 ? `<div class="row small muted" style="min-height:44px">+ ${esc(tn('pl.problem', p.cards.length - 6))}</div>` : ''}</div></div>
-    ${p.left_out.length ? `<div><div class="block-title">${t('pv.left')} (${num(p.left_out.length)})</div><div class="panel rows">${p.left_out.slice(0, 8).map(r => `<div class="row small" style="min-height:44px">${code(r.id)}<span class="row__main muted">${esc(prefs.lang === 'ar' && r.why_ar ? r.why_ar : r.why)}</span></div>`).join('')}</div></div>` : ''}`;
+    ${p.cards.length > 6 ? `<div class="row small muted" style="min-height:44px">+ ${esc(tn('pl.problem', p.cards.length - 6))}</div>` : ''}</div>`)}
+    ${p.left_out.length ? titledBlock(`${t('pv.left')} (${num(p.left_out.length)})`, `<div class="panel rows">${p.left_out.slice(0, 8).map(r => `<div class="row small" style="min-height:44px">${code(r.id)}<span class="row__main muted">${esc(prefs.lang === 'ar' && r.why_ar ? r.why_ar : r.why)}</span></div>`).join('')}</div>`) : ''}`;
 }
 
 function radios(name, rows, picked, act) {
-  return `<div class="opts" style="margin-top:8px">${rows.map(b => `<label class="opt ${b.blocked ? 'opt--off' : ''}"><input type="radio" name="${name}" value="${esc(b.name)}" data-change="${act}" data-fk="${name}-${esc(b.name)}" ${b.name === picked ? 'checked' : ''} ${b.blocked ? 'disabled' : ''}>
-    <span class="opt__dot"></span><span class="opt__text"><span class="opt__line">${code(b.name)}${b.blocked ? icon('lock', 'icon--sm muted') : ''}</span>
-    <span class="opt__note">${esc(b.blocked ? L(b.blocked) : b.note || b.short || '')}</span></span></label>`).join('')}</div>`;
+  return `<div class="opts mt-2">${rows.map(b => radio({ name, value: b.name, 'data-change': act, 'data-fk': `${name}-${b.name}`, checked: b.name === picked, disabled: !!b.blocked },
+    lockLine(code(b.name), b.blocked), esc(b.blocked ? L(b.blocked) : b.note || b.short || ''))).join('')}</div>`;
 }
 
 /** Where a Fix is built, the branch its fixes arrive on and the branch Accept merges them into (a protected branch is
@@ -68,14 +69,15 @@ function radios(name, rows, picked, act) {
 function whereHTML(w, own) {
   const base = w.base ? w.base.branch : '';
   const mode = w.mode || 'new';
-  return `<div><div class="block-title">${t('pv.where')}</div><div class="panel panel__pad"><dl class="facts">
-      <dt>${t('pv.base')}</dt><dd>${baseFact(w, base)}</dd>
-      <dt>${t('pv.deliver')}</dt><dd>${deliverFact(w, mode, base)}</dd>
-      ${mode === 'direct' ? '' : mergeFact(w)}</dl>
+  return titledBlock(t('pv.where'), `<div class="panel panel__pad">${facts([
+      [t('pv.base'), baseFact(w, base)],
+      [t('pv.deliver'), deliverFact(w, mode, base)],
+      mode === 'direct' ? '' : mergeFact(w),
+    ])}
     ${w.problem ? `<p class="small" role="note">${icon('warn', 'icon--sm')} ${esc(L(w.problem))}</p>` : ''}
-    <details style="margin-top:8px" ${own.whereOpen ? 'open' : ''} data-where><summary class="link" style="cursor:pointer;min-height:44px;display:inline-flex;align-items:center">${t('pv.change')}</summary>
+    <details class="mt-2" ${own.whereOpen ? 'open' : ''} data-where><summary class="link" style="cursor:pointer;min-height:44px;display:inline-flex;align-items:center">${t('pv.change')}</summary>
       ${changeHTML(w, own, base, mode)}
-    </details></div></div>`;
+    </details></div>`);
 }
 
 /** The delivery modes this place offers: a new branch, continuing one, or straight onto the base when allowed. */
@@ -98,17 +100,17 @@ function mergeFact(w) {
 
 /** The place's choices, folded: the base, the delivery mode (with the new branch's name) and the branch to merge into. */
 function changeHTML(w, own, base, mode) {
-  return `<div class="block-title" style="margin-top:8px">${t('pv.base')}</div>${radios('base', w.branches, base, 'pv-base')}
-      <div class="block-title" style="margin-top:12px">${t('pv.deliver')}</div>
-      <div class="opts">${modesOf(w, base).map(([id, label]) => `<label class="opt"><input type="radio" name="mode" value="${id}" data-change="pv-mode" data-fk="mode-${id}" ${id === mode ? 'checked' : ''}><span class="opt__dot"></span><span class="opt__text">${esc(label)}</span></label>`).join('')}</div>
+  return `<div class="block-title mt-2">${t('pv.base')}</div>${radios('base', w.branches, base, 'pv-base')}
+      <div class="block-title mt-3">${t('pv.deliver')}</div>
+      <div class="opts">${modesOf(w, base).map(([id, label]) => radio({ name: 'mode', value: id, 'data-change': 'pv-mode', 'data-fk': `mode-${id}`, checked: id === mode }, esc(label))).join('')}</div>
       ${mode === 'new' ? nameHTML(w, own) : ''}
       ${mode === 'continue' ? radios('cont', w.continuable, w.deliver_as, 'pv-continue') : ''}
-      ${mode === 'direct' ? `<p class="small ink-2">${esc(t('pv.direct.note', { branch: base }))}</p>` : `<div class="block-title" style="margin-top:12px">${t('pv.merge')}</div>${radios('into', w.branches, w.merge_into, 'pv-into')}`}`;
+      ${mode === 'direct' ? `<p class="small ink-2">${esc(t('pv.direct.note', { branch: base }))}</p>` : `<div class="block-title mt-3">${t('pv.merge')}</div>${radios('into', w.branches, w.merge_into, 'pv-into')}`}`;
 }
 
 function nameHTML(w, own) {
-  return `<label class="field" style="margin-top:8px"><span class="sr-only">${t('pv.deliver.name')}</span><input class="input mono" dir="ltr" id="pv-name" data-fk="pv-name" value="${esc(own.name != null ? own.name : w.deliver_as || '')}" data-input="pv-name"></label>
-        ${own.name && own.name !== w.deliver_as ? `<button class="btn btn--secondary btn--sm" data-act="pv-name-go" style="margin-top:8px">${t('pv.update')}</button>` : ''}`;
+  return `<label class="field mt-2"><span class="sr-only">${t('pv.deliver.name')}</span><input class="input mono" dir="ltr" id="pv-name" data-fk="pv-name" value="${esc(own.name != null ? own.name : w.deliver_as || '')}" data-input="pv-name"></label>
+        ${own.name && own.name !== w.deliver_as ? `<button class="btn btn--secondary btn--sm mt-2" data-act="pv-name-go">${t('pv.update')}</button>` : ''}`;
 }
 
 function assistantsHTML(p, own) {
@@ -123,9 +125,8 @@ function assistantsHTML(p, own) {
  *  it costs. Its switch keeps the preview (the token is not bound to it). */
 function speedHTML(s, own) {
   const on = own.speed != null ? own.speed : s.on, n = Math.min(s.assistants, s.lanes);
-  return `<div><div class="toggle-row panel panel__pad"><span><span style="display:block">${t('pv.speed')}</span><span class="small muted">${t(n > 1 ? 'pv.speed.note' : 'pv.speed.one', { n: num(n) })}</span></span>
-      <span class="switch"><input type="checkbox" data-change="pv-speed" data-fk="speed" ${on ? 'checked' : ''} aria-label="${esc(t('pv.speed'))}"><span class="switch__track"></span><span class="switch__thumb"></span></span></div>
-    ${on && n > 1 ? `<p class="ac-note ac-note--caution small" style="margin-top:8px">${icon('warn', 'icon--sm')}<span>${t('pv.speed.warn', { n: num(n) })}</span></p>` : ''}</div>`;
+  return `<div>${toggleRow(t('pv.speed'), t(n > 1 ? 'pv.speed.note' : 'pv.speed.one', { n: num(n) }), { 'data-change': 'pv-speed', 'data-fk': 'speed', checked: on }, { cls: 'panel panel__pad' })}
+    ${on && n > 1 ? `<p class="ac-note ac-note--caution small mt-2">${icon('warn', 'icon--sm')}<span>${t('pv.speed.warn', { n: num(n) })}</span></p>` : ''}</div>`;
 }
 
 function command(verb, sel) {
@@ -137,7 +138,7 @@ function command(verb, sel) {
 function snapshotSheet(verb) {
   return {
     title: esc(contract.verbOf(verb) ? L(contract.verbOf(verb).label) : verb),
-    body: `<p>${esc(L(contract.SNAPSHOT.text))}</p><div class="code" style="padding:12px 16px">${esc(contract.SNAPSHOT.command)}</div>
+    body: `<p>${esc(L(contract.SNAPSHOT.text))}</p><div class="code pad-3-4">${esc(contract.SNAPSHOT.command)}</div>
       <button class="btn btn--secondary" data-act="copy" data-text="${esc(contract.SNAPSHOT.command)}">${icon('copy')}${t('copy')}</button>`,
   };
 }
@@ -158,13 +159,13 @@ function waitingSheet(verb, own, title, cmd) {
 }
 
 function factsHTML(p) {
-  return `<dl class="facts">
-          <dt>${t('pv.files')}</dt><dd>${esc(tn('pl.file', p.files.length))}</dd>
-          ${p.batches.length ? `<dt>${t('pv.batches')}</dt><dd>${esc(t('pv.batches.v', { batches: tn('pl.batch', p.batches.length) }))}</dd>` : ''}
-          <dt>${t('pv.estimate')}</dt><dd>${esc(estimate(p))}<span class="small muted" style="display:block">${esc(L(p.estimate.basis))}</span></dd>
-          <dt>${t('pv.risk')}</dt><dd><span class="tag ${p.risk.level === 'high' ? 'tag--caution' : 'tag--state'}">${t('pv.risk.' + p.risk.level)}</span> <span class="small ink-2">${esc(L(p.risk.why))}</span></dd>
-          <dt>${t('pv.fail')}</dt><dd class="small">${esc(L(p.on_failure))}</dd>
-        </dl>`;
+  return facts([
+      [t('pv.files'), esc(tn('pl.file', p.files.length))],
+      p.batches.length ? [t('pv.batches'), esc(t('pv.batches.v', { batches: tn('pl.batch', p.batches.length) }))] : '',
+      [t('pv.estimate'), `${esc(estimate(p))}<span class="small muted" style="display:block">${esc(L(p.estimate.basis))}</span>`],
+      [t('pv.risk'), `<span class="tag ${p.risk.level === 'high' ? 'tag--caution' : 'tag--state'}">${t('pv.risk.' + p.risk.level)}</span> <span class="small ink-2">${esc(L(p.risk.why))}</span>`],
+      [t('pv.fail'), esc(L(p.on_failure)), 'small'],
+    ]);
 }
 
 /** The choices and notes under the facts: a Fix's place, the assistant, a Fix's speed and accept-by-itself. */
@@ -179,8 +180,8 @@ function choicesHTML(fix, p, own) {
 }
 
 function autoHTML(own) {
-  return `<div class="toggle-row panel panel__pad"><span><span style="display:flex;gap:8px;align-items:center">${icon('seal', 'icon--sm')}${t('pv.auto')}</span><span class="small muted">${t('pv.auto.note')}</span></span>
-            <span class="switch"><input type="checkbox" data-change="pv-auto" data-fk="auto" ${own.auto ? 'checked' : ''} aria-label="${esc(t('pv.auto'))}"><span class="switch__track"></span><span class="switch__thumb"></span></span></div>`;
+  return `<div class="toggle-row panel panel__pad"><span><span class="toggle-row__icon">${icon('seal', 'icon--sm')}${t('pv.auto')}</span><span class="small muted">${t('pv.auto.note')}</span></span>
+            ${switchBox({ 'data-change': 'pv-auto', 'data-fk': 'auto', checked: own.auto }, t('pv.auto'))}</div>`;
 }
 
 /** Start is off without a token or problems, while the place has a problem, while starting, or without an assistant
@@ -218,8 +219,7 @@ sheet('verb', {
         ${cardsHTML(p)}
         ${factsHTML(p)}
         ${choicesHTML(verb === 'fix', p, own)}
-        <details><summary class="link" style="cursor:pointer;min-height:44px;display:inline-flex;align-items:center;gap:6px">${icon('terminal', 'icon--sm')}${t('pv.terminal')}</summary>
-          <div class="code" style="padding:12px 16px;margin-top:8px">${esc(cmd)}</div></details>`,
+        ${terminalFold(esc(cmd))}`,
       foot: footHTML(verb, p, own, title, cmd),
     };
   },
@@ -270,7 +270,7 @@ function started(run, verb, p) {
 
 function startRefused(e, own) {
   if (e instanceof ActionError && e.needs === 'preview') { again({ moved: true }); return; }
-  Object.assign(own, { busy: false, refused: e instanceof ActionError ? e.message : String(e) });
+  Object.assign(own, { busy: false, refused: said(e) });
   rerenderSheet();
 }
 

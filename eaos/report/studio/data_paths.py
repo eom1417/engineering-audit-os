@@ -28,6 +28,8 @@ from pathlib import Path
 from ...analysis.maps import architecture as arch_map
 from .data_paths_layout import FAMILIES, MAX_LANE, view  # noqa: F401  (MAX_LANE: a lane's limit, read here by the tests)
 from .system import owner_of
+from ...core.system.files import read_json
+from .infra import site_of
 
 WRITES = {'post', 'put', 'patch', 'delete', 'insert', 'update', 'upsert', 'rpc', 'storage'}
 READS = {'get', 'select'}
@@ -103,14 +105,9 @@ def _endpoint_of(value):
     return f'ep:{client}:{op} {target}', f'{op} {target}'
 
 
-def _site(fact):
-    location = fact.get('location') or {}
-    return {'path': location.get('path') or '', 'line': location.get('start_line'), 'fact': fact.get('id')}
-
-
 def _component_of(report):
     """(owner(path) -> current component name | None, {current name: target name}, target known)."""
-    record = arch_map._load(Path(report) / 'target-architecture.json', {}) or {}
+    record = read_json(Path(report) / 'target-architecture.json', {}) or {}
     comps = [c for c in record.get('current_components') or [] if isinstance(c, dict) and c.get('name')]
     owner = owner_of([c['name'] for c in comps]) if comps else (lambda path: None)
     goes = {c['name']: c.get('target_component') for c in comps}
@@ -152,7 +149,7 @@ def _servers(report):
         if value.get('surface') != 'http' or not value.get('route') or value.get('category') == 'test': continue
         key = (str(value.get('http_method') or 'GET').upper(), route_key(value['route']))
         flow_id, files = touched.get(key, (None, [arch_map.path_of(fact)]))
-        out.setdefault(key, {'handler': value.get('handler'), **_site(fact), 'flow': flow_id, 'writes': _table_writes(files, access_by_file)})
+        out.setdefault(key, {'handler': value.get('handler'), **site_of(fact), 'flow': flow_id, 'writes': _table_writes(files, access_by_file)})
     return out
 
 
@@ -225,13 +222,13 @@ class _Inventory:
                                      'declared': self.declared.get(sid), 'endpoints': [], 'sites': 0})
         self.stores[sid]['sites'] += 1
         endpoint = self.endpoint(value, sid, op)
-        endpoint['sites'].append(_site(fact))
+        endpoint['sites'].append(site_of(fact))
         writes = op in WRITES
         (endpoint['writers'] if writes else endpoint['readers']).add(module)
         (self.writers_of if writes else self.readers_of)[sid].add(module)
         if not writes: return
         if value.get('keys'): endpoint['keys'].update(value['keys'])
-        self.paths.append({'store': sid, 'endpoint': endpoint['id'], 'site': _site(fact), 'steps': _steps(value, kind, module, self.context)})
+        self.paths.append({'store': sid, 'endpoint': endpoint['id'], 'site': site_of(fact), 'steps': _steps(value, kind, module, self.context)})
 
 
 def _declared(report):
@@ -240,7 +237,7 @@ def _declared(report):
     for fact in arch_map.facts(report, 'domain', 'data_table'):
         value = fact.get('value') or {}
         if value.get('dropped'): continue
-        declared.setdefault(f"table:{table_name(value.get('name'))}", {**_site(fact), 'rls': value.get('rls_enabled')})
+        declared.setdefault(f"table:{table_name(value.get('name'))}", {**site_of(fact), 'rls': value.get('rls_enabled')})
     return declared
 
 

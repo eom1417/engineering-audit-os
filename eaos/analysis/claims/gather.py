@@ -89,18 +89,20 @@ def fact_index_of(sets):
     return index
 
 
+def _paths_of(rows):
+    return [row['path'] if isinstance(row, dict) else row for row in rows or [] if row]
+
+
 def _covered(value):
-    """The several paths one fact covers (a rule's definitions, a cycle's members, a cluster's occurrences), else None."""
-    paths = None
-    definitions = value.get('definitions')
-    if definitions: paths = [row['path'] for row in definitions]
-    members = value.get('members')
-    if members: paths = list(members)
-    # A cluster spans several files; without them the claim looks like it names none.
+    """The several paths one fact covers (a rule's definitions, a cycle's or a UI pattern's members, a cluster's occurrences,
+    a near copy's other side), else None. A cluster spans several files; without them the claim looks like it names none."""
+    other = value.get('other')
     occurrences = value.get('occurrences')
-    if isinstance(occurrences, list) and occurrences and isinstance(occurrences[0], dict):
-        paths = sorted({row['path'] for row in occurrences if row.get('path')}) or paths
-    return paths
+    found = {'definitions': _paths_of(value.get('definitions')), 'members': _paths_of(value.get('members')),
+             'other': [other['path']] if isinstance(other, dict) and other.get('path') else [],
+             'occurrences': sorted({row['path'] for row in occurrences if row.get('path')})
+             if isinstance(occurrences, list) and occurrences and isinstance(occurrences[0], dict) else []}
+    return next((found[name] for name in ('occurrences', 'other', 'members', 'definitions') if found[name]), None)
 
 
 def _gathered_claims(sets, records, load_record, target):

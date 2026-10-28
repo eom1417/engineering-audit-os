@@ -6,6 +6,7 @@ import ast
 import json
 import re
 from pathlib import Path
+from ...core.system.files import read_json
 
 PAGE, HTTP = 'page', 'http'
 # A route no browser holding a session calls (the lock, the probe, the crawl): it would end the session, or change data.
@@ -68,8 +69,7 @@ def slug(text, limit=80):
 
 def surfaces(out):
     """{route: (surface kind, http method, file)} from the entry-point facts."""
-    try: facts = json.loads((Path(out) / 'facts/entrypoints.json').read_text(encoding='utf-8'))['facts']
-    except (OSError, ValueError, KeyError): return {}
+    facts = read_json(Path(out) / 'facts/entrypoints.json', {}).get('facts') or []
     found = {}
     for fact in facts:
         value = fact.get('value') or {}
@@ -93,16 +93,14 @@ def crawled_pages(out):
     blueprint builds) has no page in its entry-point facts, yet its running pages were found and pictured; a real
     check then locked, walked and loaded nothing. [] otherwise, or before the crawl ran."""
     if PAGE in {row[0] for row in surfaces(out).values()}: return []
-    try: return list(json.loads((Path(out) / 'live/crawl.json').read_text(encoding='utf-8')).get('pages') or [])
-    except (OSError, ValueError): return []
+    return list((read_json(Path(out) / 'live/crawl.json') or {}).get('pages') or [])
 
 
 def features_of(out):
     """features.json's features, plus one per crawled page standing in for the code's (crawled_pages): what the lock,
     the journeys and the load read as the program's surfaces. One each, so a page that differs between two recordings
     (a clock, a random tip) is refused alone: in one shared spec it failed every page, and the safety net locked none."""
-    try: features = json.loads((Path(out) / 'features.json').read_text(encoding='utf-8'))['features']
-    except (OSError, ValueError, KeyError): features = []
+    features = (read_json(Path(out) / 'features.json') or {}).get('features') or []
     return features + [{'name': f'page {page}', 'description': 'A page of the running app, found by the crawl', 'critical': False,
                         'surfaces': [page], 'tables': [], 'files': []} for page in crawled_pages(out)]
 

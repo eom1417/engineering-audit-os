@@ -3,10 +3,10 @@
 the run, the judging); beside `complete` it is the short one (eaos/analysis/experience/simulation.py short). Either way
 the experience report is written. The replays of the saved journeys are not here: every full check runs them with the
 behaviour lock (eaos/pipeline/runners/by_rules.py record)."""
-import json
 
 from .by_assistant import _absent
 from .live_app import _live, sessions
+from ...core.system.files import read_json
 
 
 def app_of(context):
@@ -45,8 +45,7 @@ def _joined(context):
     """The `experience` set the judging indexed joins the facts stage's list, which the claims read (as the engines' sets
     do, by_rules._index_engines): without it the confirmed difficulties were on disk and never became cards."""
     collected = context.get('collected')
-    try: index = json.loads((context.out / 'facts' / 'index.json').read_text(encoding='utf-8'))['sets']
-    except (OSError, ValueError, KeyError): return
+    index = (read_json(context.out / 'facts' / 'index.json') or {}).get('sets') or []
     entry = next((row for row in index if row.get('set') == 'experience'), None)
     if collected is not None and entry:
         collected['sets'] = [row for row in collected['sets'] if row['set'] != 'experience'] + [entry]

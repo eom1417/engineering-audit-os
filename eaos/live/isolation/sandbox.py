@@ -36,6 +36,7 @@ from pathlib import Path
 
 from ...core.system.web import opened
 from .disk import _launcher, _own, _view_refusal, _within, hidden, mounts, named
+from ...core.system.files import read_json
 
 PYTHON = ('python', 'python3', 'pip', 'pip3', 'uv', 'poetry', 'uvicorn', 'gunicorn')     # also what a run profile may start with
 
@@ -56,8 +57,8 @@ def refusal(path, stage, commit=None, target=None):
     from ...core.contracts.artifact_rules import contracts, validate
     path = Path(path)
     if not path.is_file(): return f'authorization: {path} is missing; the owner writes it (docs/MASTER-BLUEPRINT.md, section 10)'
-    try: grant = json.loads(path.read_text(encoding='utf-8'))
-    except ValueError as error: return f'authorization: {path} is not JSON: {error}'
+    grant = read_json(path)
+    if not isinstance(grant, dict): return f'authorization: {path} is not a JSON object'
     problems = validate(grant, contracts()['authorization'])
     if problems: return f'authorization: {path} breaks schemas/artifacts/authorization.schema.json: {problems[0]}'
     expires = grant['expires']

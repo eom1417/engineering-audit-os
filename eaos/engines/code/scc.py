@@ -19,12 +19,8 @@ def capabilities():
     return []
 
 
-def version(): return tool.version(BINARY)
-
-
 @tool.engine(NAME, BINARY)
 def analyze(target, workdir, exclude, formats, found):
-    target = Path(target)
     output = workdir / 'scc.json'
     command = [which(BINARY), '--by-file', '--format', 'json', '--no-cocomo', '--output', str(output),
                '--exclude-dir', ','.join(EXCLUDED + tuple(exclude)), str(target)]

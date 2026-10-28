@@ -8,8 +8,9 @@ import time
 from ...ai.assistant import headless as adapters, prompts, tiers
 from ...core.language.check import foreign, restate
 from . import lane_assistants as helpers
-from ...core.project.runs import now
+
 from ...core.project import state as project_state
+from ...core.system.clock import now
 
 SAID = {'type': 'object', 'additionalProperties': False, 'required': ['text'], 'properties': {'text': {'type': 'string'}}}
 
@@ -57,7 +58,7 @@ class Turns:
         with open(stream, 'ab') as out, open(folder / 'stderr.log', 'ab') as err:
             process = subprocess.Popen(argv, cwd=self.project, stdout=out, stderr=err, stdin=subprocess.DEVNULL, env=env, start_new_session=True)  # nosemgrep: python.lang.security.audit.dangerous-subprocess-use-audit -- an argument list, no shell: the adapter's own command
         self.children[run] = process
-        self.store.update(run, pid=process.pid, offset=offset, turn_started=now(), turns=(record.get('turns') or 0) + 1)
+        self.store.update(run, pid=process.pid, offset=offset, turn_started=now('milliseconds'), turns=(record.get('turns') or 0) + 1)
         self._follow_assistant(run, adapter)
 
     def _follow_assistant(self, run, adapter):

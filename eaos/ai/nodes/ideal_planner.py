@@ -14,6 +14,7 @@ from . import framework as core
 from ..assistant import tiers
 from .runner import settings_of
 from ..ideal import planner as ideal, prompts as ideal_prompts
+from ...core.system.clock import now
 
 SUBJECT = 'ideal'
 
@@ -79,7 +80,7 @@ def run(node, report, **options):
     project, lang, launcher = o['project'], o['lang'], o['launcher']
     report = Path(report)
     data = ideal.bundle(report, project, lang)
-    prompt, at, began = ideal_prompts.prompt_plan(data), core.now(), time.monotonic()
+    prompt, at, began = ideal_prompts.prompt_plan(data), now(), time.monotonic()
     base = {'at': at, 'inputs': core.digest(data), 'passes': list(node.passes), 'summary': ''}
     asked = core.digest([prompt])
     schema = core.digest([ideal_prompts.IDEAL_SCHEMA, ideal_prompts.CRITIQUE_SCHEMA])

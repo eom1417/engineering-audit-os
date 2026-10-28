@@ -13,7 +13,7 @@ from pathlib import Path
 from urllib.parse import urlsplit
 
 PROBLEMS = Path(__file__).resolve().parents[1] / 'tests' / 'fixtures' / 'baseline-problems.json'
-LEVELS = ('missed', 'finding', 'card')    # a finding is recorded by an engine or a screen; a card is shown to the person
+LEVELS = ('missed', 'finding', 'card')    # a finding is recorded (an engine, a screen, a claim kept aside); a card is shown to the person
 NEAR = 3                                  # lines between a finding and the planted line that still name it
 
 
@@ -30,13 +30,24 @@ def _route(url):
 def evidence(technical):
     """(level, text, place, line) for everything the check recorded: its cards, engine findings, screen errors and
     whether the pages need a sign-in (place '*': the app as a whole)."""
-    rows = _cards(technical) + _engine_findings(technical) + _screen_errors(technical)
+    rows = _cards(technical) + _withheld(technical) + _engine_findings(technical) + _screen_errors(technical)
     return rows + ([('finding', 'sign_in', '*', None)] if _read(technical / 'live' / 'sign-in.json').get('needed') else [])
 
 
 def _cards(technical):
     return [('card', f"{task.get('pattern')} {task.get('title')}".lower(), path, None)
             for task in _read(technical / 'plan.json').get('tasks') or [] for path in task.get('paths') or []]
+
+
+def _withheld(technical):
+    """The claims of a detector under its measured bar (eaos/data/detector-verdicts.json): found, kept aside from the
+    cards; a finding here, at every file it names."""
+    rows = []
+    for claim in _read(technical / 'dossier.json').get('withheld_claims') or []:
+        params = (claim.get('render') or {}).get('params') or {}
+        paths = {params.get('place'), *(str(place).rsplit(':', 1)[0] for place in params.get('places') or [])}
+        rows += [('finding', str(claim.get('statement') or '').lower(), path, None) for path in paths if path]
+    return rows
 
 
 def _engine_findings(technical):

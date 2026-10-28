@@ -18,10 +18,8 @@ from ..repair.remediation import cited
 
 # render key (or probe query) -> (engagement rule, invariant, what "after" looks like)
 FAMILIES = {
-    'copied_function': ('consolidate_duplicates', 'One behaviour has one definition that every caller uses.',
-                        'the copies are one function every former copy calls; the audit finds no such cluster.'),
-    'structural_duplicate': ('consolidate_duplicates', 'One behaviour has one definition that every caller uses.',
-                             'the shared shape lives in one function every former copy calls; the audit finds no such cluster.'),
+    'one_source': ('consolidate_duplicates', 'One pattern has one source that every place uses.',
+                   'the pattern lives once in its home and every former place calls it; its detector finds it no more.'),
     'duplicated_rule': ('consolidate_duplicates', 'A rule value is defined once and imported where it is used.',
                         'one module defines the value and every other place imports it.'),
     'hotspot': ('reduce_hotspots', 'No function carries more branches than its declared threshold.',

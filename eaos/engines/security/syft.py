@@ -25,9 +25,6 @@ def capabilities():
     return []
 
 
-def version(): return tool.version(BINARY)
-
-
 REQUIREMENT = re.compile(r'^\s*([A-Za-z0-9][A-Za-z0-9._-]*)\s*(\[[^\]]*\])?\s*([^;#]*)')
 
 

@@ -1,15 +1,17 @@
 // S-15 one run's result (RUN-07, RUN-09, FIX-07): the error or the facts of what it made, a fix batch's progress
 // problem by problem, and the request waiting for the person's assistant elsewhere.
-import { t, tn, L, num, esc, rich, icon, code, href, fmtWhen, has, model, derive, ac } from 'eaos';
+import { t, tn, L, num, esc, rich, icon, code, href, fmtWhen, has, model, derive, ac, rowWords, facts, titledSection } from 'eaos';
 
 const enc = encodeURIComponent;
 const pathName = p => (has('ac.path.' + p) ? t('ac.path.' + p) : p);
 function errorHTML(e) {
   return `<section class="panel ac-result ac-result--fail" aria-label="${esc(t('ac.run.error'))}">
-      <dl class="facts"><dt>${t('ac.run.what')}</dt><dd>${rich(L(e.text))}${e.reason ? ` <span class="small muted">${rich(e.reason)}</span>` : ''}</dd>
-        ${e.what_now ? `<dt>${t('ac.run.todo')}</dt><dd>${rich(L(e.what_now))}</dd>` : ''}
-        <dt>${t('ac.run.recoverable')}</dt><dd>${t(e.recoverable ? 'ac.run.recoverable.yes' : 'ac.run.recoverable.no')}</dd></dl>
-      ${e.detail ? `<details class="ac-ev-fold"><summary>${t('ac.run.tech')}${icon('chev-down', 'icon--sm muted')}</summary><div class="code" style="padding:8px 12px;white-space:pre-wrap">${esc(e.detail)}</div></details>` : ''}</section>`;
+      ${facts([
+          [t('ac.run.what'), `${rich(L(e.text))}${e.reason ? ` <span class="small muted">${rich(e.reason)}</span>` : ''}`],
+          e.what_now ? [t('ac.run.todo'), rich(L(e.what_now))] : '',
+          [t('ac.run.recoverable'), t(e.recoverable ? 'ac.run.recoverable.yes' : 'ac.run.recoverable.no')],
+        ])}
+      ${e.detail ? `<details class="ac-ev-fold"><summary>${t('ac.run.tech')}${icon('chev-down', 'icon--sm muted')}</summary><div class="code pad-2-3 pre">${esc(e.detail)}</div></details>` : ''}</section>`;
 }
 /** The checks' verdict: changes kept and left out. */
 function testsHTML(tests) {
@@ -56,7 +58,7 @@ export function resultHTML(r, rs, view) {
   const words = wordsOf(r, res);
   if (!rows.length && !words) return '';
   return `<section class="panel ac-result ${r.outcome === 'undone' ? '' : 'ac-result--ok'}" aria-label="${esc(t('ac.run.result'))}">
-    ${rows.length ? `<dl class="facts">${rows.map(([k, v]) => `<dt>${k}</dt><dd>${v}</dd>`).join('')}</dl>` : ''}${words}</section>`;
+    ${rows.length ? facts(rows) : ''}${words}</section>`;
 }
 
 /** FIX-07: the batches' progress and every problem of the batch, kept or taken back, from the edit events. */
@@ -69,21 +71,20 @@ export function fixProgress(r, rs, view) {
     const k = byCard[id];
     const st = k === true ? 'ok' : k === false ? 'unchanged' : rs === 'running' ? 'waiting' : ac.ended(r) ? 'notreached' : 'waiting';
     const word = k === true ? t('ac.fix.p.kept') : k === false ? t('ac.ev.back') : ac.stateWord(st);
-    return `<li class="row">${ac.glyph(st)}<span class="row__main"><span class="row__title small"><a class="link" href="${href('/problems/' + enc(id))}">${code(id)}</a> ${p ? rich(L(p.title)) : ''}</span>
-      <span class="row__meta" style="display:block">${esc(word)}</span></span></li>`;
+    return `<li class="row">${ac.glyph(st)}${rowWords(`<a class="link" href="${href('/problems/' + enc(id))}">${code(id)}</a> ${p ? rich(L(p.title)) : ''}`, esc(word), { title: 'small' })}</li>`;
   };
   const shown = cards.slice(0, 12);
-  return `<section class="section" aria-labelledby="fp-h"><div class="section-head"><h2 id="fp-h">${t('ac.fix.progress')}</h2><span class="small muted num">${esc(t('ac.now.fix.sub', { done: num(tried), total: num(cards.length) }))}</span></div>
+  return titledSection('fp-h', t('ac.fix.progress'), `
     ${ac.progressBar(tried / cards.length, t('ac.fix.progress'))}
-    <ul class="panel rows" style="margin-top:12px">${shown.map(row).join('')}${cards.length > shown.length ? `<li class="row small muted" style="min-height:44px">+ ${esc(tn('pl.problem', cards.length - shown.length))}</li>` : ''}</ul></section>`;
+    <ul class="panel rows mt-3">${shown.map(row).join('')}${cards.length > shown.length ? `<li class="row small muted" style="min-height:44px">+ ${esc(tn('pl.problem', cards.length - shown.length))}</li>` : ''}</ul>`, `<span class="small muted num">${esc(t('ac.now.fix.sub', { done: num(tried), total: num(cards.length) }))}</span>`);
 }
 
 /** RUN-09: the request that waits for the person's assistant elsewhere, to copy. */
 export function handoffHTML(r) {
   const req = r.handoff;
   if (!req) return '';
-  return `<section class="section" aria-labelledby="ho-h"><div class="section-head"><h2 id="ho-h">${t('ac.ho.title')}</h2></div>
+  return titledSection('ho-h', t('ac.ho.title'), `
     <div class="panel panel__pad ac-stack"><p class="small ink-2">${t('ac.ho.why')}</p>
-      ${['ar', 'en'].filter(l => req[l]).map(l => `<div class="ac-req"><span class="block-title">${t('lang.' + l)}</span><div class="code ac-req__text" dir="${l === 'ar' ? 'rtl' : 'ltr'}" style="white-space:pre-wrap">${esc(req[l])}</div>
-        <button class="btn btn--secondary btn--sm" data-act="copy" data-text="${esc(req[l])}">${icon('copy')}${t('copy')}</button></div>`).join('')}</div></section>`;
+      ${['ar', 'en'].filter(l => req[l]).map(l => `<div class="ac-req"><span class="block-title">${t('lang.' + l)}</span><div class="code ac-req__text pre" dir="${l === 'ar' ? 'rtl' : 'ltr'}">${esc(req[l])}</div>
+        <button class="btn btn--secondary btn--sm" data-act="copy" data-text="${esc(req[l])}">${icon('copy')}${t('copy')}</button></div>`).join('')}</div>`);
 }

@@ -7,22 +7,21 @@ Each project keeps a Studio server of its own (eaos/core/system/launch.py), itse
 the other project's server, never this one on the other's data. Read from each project's state.json, its report's score
 and its Studio record; nothing is asked of the other servers.
 """
-import json
 from pathlib import Path
 
 from ...journeys import guided
 from ...core.system import launch
 from ...core.project import state as project_state
+from ...core.system.files import read_json
 
 
 def _score(state):
-    try: return json.loads((guided.report_of(state) / 'studio/health.json').read_text(encoding='utf-8'))['score']['value']
-    except (OSError, ValueError, KeyError, TypeError): return None
+    return ((read_json(guided.report_of(state) / 'studio/health.json') or {}).get('score') or {}).get('value')
 
 
 def _studio_runs(state):
-    try: return launch._alive(json.loads(launch.record_path(state).read_text(encoding='utf-8'))['pid'])
-    except (OSError, ValueError, KeyError): return False
+    pid = (read_json(launch.record_path(state)) or {}).get('pid')
+    return bool(pid) and launch._alive(pid)
 
 
 def known():

@@ -7,10 +7,10 @@ module is never run when an entry point reaches it (the graph), runs of its lang
 it. Each is a suspect, not a verdict: a screen no page opened, an error no test raised, run nowhere here. What ran around
 it is said: the functions of its file that ran, and for a module, the modules that import it that ran.
 """
-import json
 from pathlib import Path, PurePosixPath
 
 from ...core.contracts.vocabulary import classify
+from ...core.system.files import read_json
 
 KINDS = ('tests', 'server', 'browser')
 FAMILIES = {'.py': 'python', '.js': 'js', '.jsx': 'js', '.mjs': 'js', '.cjs': 'js', '.ts': 'js', '.tsx': 'js', '.vue': 'js', '.svelte': 'js'}
@@ -19,11 +19,8 @@ AROUND = 4
 
 def records(out):
     """{kind: its record} of the runs that left one."""
-    found = {}
-    for kind in KINDS:
-        try: found[kind] = json.loads((Path(out) / 'live' / f'ran-{kind}.json').read_text(encoding='utf-8'))
-        except (OSError, ValueError): continue
-    return found
+    found = {kind: read_json(Path(out) / 'live' / f'ran-{kind}.json') for kind in KINDS}
+    return {kind: record for kind, record in found.items() if record is not None}
 
 
 def ran_files(found):

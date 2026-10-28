@@ -11,6 +11,7 @@ from pathlib import Path
 from ..core import progress
 from ..core.progress.flow import Stage
 from ..core.project import state as project_state
+from ..core.system.files import read_json
 
 DATA = Path(__file__).resolve().parents[1] / 'data' / 'journeys.json'
 BUILD = 'build'                 # the flow a build draws (draw_build)
@@ -72,14 +73,9 @@ def _blueprint(state):
     return guided.outputs(state) / 'blueprint'
 
 
-def _read(path):
-    try: return json.loads(Path(path).read_text(encoding='utf-8'))
-    except (OSError, ValueError): return None
-
-
 def _built(state):
     """Every milestone of the blueprint is delivered."""
-    plan = _read(_blueprint(state) / 'plan.json')
+    plan = read_json(_blueprint(state) / 'plan.json')
     return bool(plan) and {m['id'] for m in plan['milestones']} <= {r['milestone'] for r in state.get('built') or []}
 
 
@@ -102,7 +98,7 @@ def _rechecked(state):
     cards = _extension(state)
     if not cards or not all(cards.values()): return False
     landed = max(int(guided._git(state['project'], 'show', '-s', '--format=%ct', sha).stdout.strip() or 0) for sha in cards.values())
-    began = (_read(guided.report_of(state) / 'run-manifest.json') or {}).get('started_at')
+    began = (read_json(guided.report_of(state) / 'run-manifest.json') or {}).get('started_at')
     return bool(began) and datetime.fromisoformat(began).timestamp() >= landed
 
 
@@ -126,7 +122,7 @@ def draw_build(state):
     """The build's progress as the flow `build`, drawn again from the state after each of its steps: a stage per
     milestone, a step per card (kept, or set aside with why). A build lives across many calls of the assistant, so no
     process holds it: it reads as running until its last milestone is delivered, then it ends."""
-    plan = _read(_blueprint(state) / 'plan.json')
+    plan = read_json(_blueprint(state) / 'plan.json')
     if not plan: return None
     runtime = project_state.runtime_of(state)
     progress.path_for(runtime, BUILD).unlink(missing_ok=True)     # a drawing, not a run: none of them goes to the history

@@ -3,8 +3,8 @@
 // the batches' progress, the question it waits on, the result or the error and the timeline (derive.deriveRun); a
 // check's stages by layer from /api/progress, and the replay of a finished check at x10 or x30.
 import {
-  t, tn, L, num, esc, rich, icon, code, diffLines, href, fmtWhen, screen, act, refresh, refreshSoon, afterRender, parseHash, offline, has,
-  live, store, model, client, derive, ac, md,
+  t, tn, L, num, esc, rich, icon, code, diffLines, href, fmtWhen, screen, act, refresh, refreshSoon, afterRender, parseHash, offline, has, live,
+  store, model, client, derive, ac, md, inlineSwitch, facts, titledSection, notFound,
 } from 'eaos';
 import { controls, byOf } from './activity.js';
 import { stagesOf, board, counts, finished, summary, span, lostOf, stageTitle } from './stages.js';
@@ -92,10 +92,10 @@ function lostHTML(r, rs, list) {
   if (!lost.length) return '';
   const first = lostOf(lost[0]), who = first.assistant || t('ac.run.lost.who');
   const why = /_limit$/.test(first.code) ? t('ac.run.lost.limit', { who }) : t('ac.run.lost.failed', { who });
-  return `<div class="panel ac-refuse" role="note" style="margin:12px 0">
+  return `<div class="panel ac-refuse my-3" role="note">
     <p><b>${esc(t('ac.run.lost.q', { stages: tn('pl.stage', lost.length) }))}</b> ${esc(why)}${first.resets ? ' ' + esc(t('ac.run.lost.resets', { at: first.resets })) : ''}</p>
     <p class="small ink-2">${esc(lost.map(s => stageTitle(s.id)).join(t('list.sep')))}</p>
-    <div class="actions" style="margin-top:8px"><button class="btn btn--primary" data-act="sheet" data-sheet="redo:${esc(lost[0].id)}" data-fk="lost-redo">${t('ac.run.lost.act')}</button></div>
+    <div class="actions mt-2"><button class="btn btn--primary" data-act="sheet" data-sheet="redo:${esc(lost[0].id)}" data-fk="lost-redo">${t('ac.run.lost.act')}</button></div>
     <p class="small ink-2">${t('ac.run.lost.how')}</p></div>`;
 }
 function doneGuide(list) {
@@ -175,7 +175,7 @@ function diffHTML(diff) {
   return `<div class="code diff">${diffLines(String(diff).split('\n').slice(0, 300))}</div>`;
 }
 /** A run's technical words, folded. */
-const techFold = e => (e.detail ? `<details class="ac-ev-fold"><summary>${t('ac.run.tech')}${icon('chev-down', 'icon--sm muted')}</summary><div class="code" style="padding:8px 12px;white-space:pre-wrap">${esc(e.detail)}</div></details>` : '');
+const techFold = e => (e.detail ? `<details class="ac-ev-fold"><summary>${t('ac.run.tech')}${icon('chev-down', 'icon--sm muted')}</summary><div class="code pad-2-3 pre">${esc(e.detail)}</div></details>` : '');
 /** An edit: its problem, its files, whether it was kept, and its diff folded. */
 function editBody(d, tx) {
   return `<div>${d.card ? `<a class="link" href="${href('/problems/' + enc(d.card))}">${code(d.card)}</a> ` : ''}${tx}</div>
@@ -219,9 +219,9 @@ function itemHTML(item) {
 function timeline(r, view, events, all) {
   const items = view.items;
   const shown = all || items.length <= SHOWN ? items : items.slice(-SHOWN);
-  return `<section class="section" aria-labelledby="tl-h"><div class="section-head"><h2 id="tl-h">${t('ac.run.happened')}</h2>
-      ${shown.length < items.length ? `<a class="link small" href="${href('/activity/run/' + enc(r.id), { all: '1' })}">${esc(t('ac.run.happened.trim', { n: num(shown.length), total: num(items.length) }))}</a>` : ''}</div>
-    <div class="panel panel__pad">${!client ? `<p class="small muted">${t('ac.run.live_only')}</p>` : !events.length && followOver(r) ? `<p class="small muted">${t('ac.run.trimmed')}</p>` : !events.length ? `<p class="small muted" aria-busy="true">${t('st.loading')}</p>` : `<ol class="ac-tl">${shown.map(itemHTML).join('')}</ol>`}</div></section>`;
+  return titledSection('tl-h', t('ac.run.happened'), `
+    <div class="panel panel__pad">${!client ? `<p class="small muted">${t('ac.run.live_only')}</p>` : !events.length && followOver(r) ? `<p class="small muted">${t('ac.run.trimmed')}</p>` : !events.length ? `<p class="small muted" aria-busy="true">${t('st.loading')}</p>` : `<ol class="ac-tl">${shown.map(itemHTML).join('')}</ol>`}</div>`, `
+      ${shown.length < items.length ? `<a class="link small" href="${href('/activity/run/' + enc(r.id), { all: '1' })}">${esc(t('ac.run.happened.trim', { n: num(shown.length), total: num(items.length) }))}</a>` : ''}`);
 }
 
 /* ---------- its facts (RUN-04, RUN-11, AST-03) ---------- */
@@ -260,13 +260,13 @@ function factsHTML(r, rs, events) {
   const u = r.usage, tok = ac.usedTokens(u);
   rows.push([t('ac.f.used'), usedValue(r, u, tok)]);
   if (events.length) rows.push([t('ac.f.record'), esc(t('ac.f.record.ok', { n: num(events.length) }))]);
-  return `<dl class="facts ac-facts">${rows.map(([k, v]) => `<dt>${k}</dt><dd>${v}</dd>`).join('')}</dl>
-    ${tok ? `<p class="small muted" style="margin-top:8px">${t('ac.f.used.note')} <a class="link" href="${href('/project/assistants')}">${t('proj.assistants')}</a></p>` : ''}`;
+  return `${facts(rows, 'ac-facts')}
+    ${tok ? `<p class="small muted mt-2">${t('ac.f.used.note')} <a class="link" href="${href('/project/assistants')}">${t('proj.assistants')}</a></p>` : ''}`;
 }
 
-function notFound(id) {
-  return `<div class="page">${ac.back('/activity', t('nav.activity'))}<div class="panel empty" style="margin-top:12px"><h1 class="empty__title">${esc(t(offline() ? 'ac.run.offline' : 'ac.run.notfound', { id }))}</h1>
-    <p class="small ink-2">${t(offline() ? 'ac.act.guide.offline' : 'ac.run.notfound.guide')}</p><a class="btn btn--secondary" href="${href('/activity/runs')}">${t('ac.runs.title')}</a></div></div>`;
+function missingRun(id) {
+  return `<div class="page">${ac.back('/activity', t('nav.activity'))}${notFound(esc(t(offline() ? 'ac.run.offline' : 'ac.run.notfound', { id })), t(offline() ? 'ac.act.guide.offline' : 'ac.run.notfound.guide'),
+    `<a class="btn btn--secondary" href="${href('/activity/runs')}">${t('ac.runs.title')}</a>`)}</div>`;
 }
 
 /** The run's state, kind and id, and whether it came from the terminal. */
@@ -278,16 +278,16 @@ const stampHTML = (r, replaying, list) => (replaying ? `<div class="ac-stamp" ro
 const progressHTML = (r, rs, list) => (r.action === 'audit' && list.length && rs !== 'done' ? `${ac.progressBar(finished(list) / list.length, '')}<p class="small ink-2 ac-under">${esc(t(rs === 'stopped' ? 'ac.run.check.stopped.at' : 'ac.run.check.at', { done: num(finished(list)), total: num(list.length), running: num(list.filter(s => ['running', 'you', 'paused'].includes(s.state)).length) }))}</p>` : '');
 /** A check's stages on their board, with the switch that follows the running one. */
 function stagesHTML(r, rs, list) {
-  return r.action === 'audit' ? `<section class="section" aria-labelledby="stg-h"><div class="section-head"><h2 id="stg-h">${t('ac.run.stages')}</h2>
-      ${rs === 'running' ? `<label class="ac-inline-switch small ink-2"><span class="switch"><input type="checkbox" data-change="ac-follow" data-fk="follow" ${follow ? 'checked' : ''} aria-label="${esc(t('ac.run.follow'))}"><span class="switch__track"></span><span class="switch__thumb"></span></span>${t('ac.run.follow')}</label>` : ''}</div>
-      ${list.length ? `<p class="small ink-2" style="margin-bottom:12px"><span id="ac-stage-sum">${esc(summary(counts(list)))}</span> ${t('ac.run.stages.help')}</p>
+  return r.action === 'audit' ? titledSection('stg-h', t('ac.run.stages'), `
+      ${list.length ? `<p class="small ink-2 mb-3"><span id="ac-stage-sum">${esc(summary(counts(list)))}</span> ${t('ac.run.stages.help')}</p>
       <div id="ac-board">${board(list, rs !== 'running' || follow)}</div>
-      <p class="small muted ac-iline" style="margin-top:8px">${icon('ai', 'icon--sm ac-c-ai')}<span>${t('ac.run.stages.ai')}</span></p>` : `<p class="small muted">${t(rs === 'queued' ? 'ac.run.stages.later' : 'ac.run.stages.older')}</p>`}</section>` : '';
+      <p class="small muted ac-iline mt-2">${icon('ai', 'icon--sm ac-c-ai')}<span>${t('ac.run.stages.ai')}</span></p>` : `<p class="small muted">${t(rs === 'queued' ? 'ac.run.stages.later' : 'ac.run.stages.older')}</p>`}`, `
+      ${rs === 'running' ? inlineSwitch({ 'data-change': 'ac-follow', 'data-fk': 'follow', checked: follow }, t('ac.run.follow')) : ''}`) : '';
 }
 /** What the run does now, while it runs. */
 const nowHTML = (view, rs) => (view.now && ['running', 'paused'].includes(rs) ? `<p class="small ink-2" role="status">${rich(L(view.now))}</p>` : '');
 /** The question a waiting run asks, with the way to answer it. */
-const questionHTML = (view, rs) => (view.question && rs === 'you' ? `<div class="panel row row--you" role="status" style="margin-top:16px">${icon('waiting')}<span class="row__main small">${rich(L(view.question.text))}</span><a class="btn btn--secondary btn--sm" href="${href('/waiting/questions')}">${t('ac.now.answer')}</a></div>` : '');
+const questionHTML = (view, rs) => (view.question && rs === 'you' ? `<div class="panel row row--you mt-4" role="status">${icon('waiting')}<span class="row__main small">${rich(L(view.question.text))}</span><a class="btn btn--secondary btn--sm" href="${href('/waiting/questions')}">${t('ac.now.answer')}</a></div>` : '');
 /** A check's stages as they stood at the replay's second, else as they are. */
 const listOf = (flow, r, replaying) => (flow ? stagesOf(flow, r, replaying ? replay.at || 0 : null) : []);
 const clockOf = (r, rs, flow, list, replaying) => (r.action === 'audit' && !replaying && rs !== 'queued' ? clockHTML(r, flow, list) : '');
@@ -295,7 +295,7 @@ const clockOf = (r, rs, flow, list, replaying) => (r.action === 'audit' && !repl
 function runPage(ctx) {
   const id = ctx.params.id;
   const r = ac.runOf(id);
-  if (!r) return live.loaded || offline() ? notFound(id) : `<div class="page" aria-busy="true"><h1 class="lede">${t('st.loading')}</h1></div>`;
+  if (!r) return live.loaded || offline() ? missingRun(id) : `<div class="page" aria-busy="true"><h1 class="lede">${t('st.loading')}</h1></div>`;
   const events = eventsOf(r);
   const view = derive.deriveRun(events, r);
   const rs = ac.runState(r);
@@ -307,7 +307,7 @@ function runPage(ctx) {
   const clock = clockOf(r, rs, flow, list, replaying);
   const progress = progressHTML(r, rs, list);
   const stages = stagesHTML(r, rs, list);
-  const facts = factsHTML(r, rs, events);
+  const factList = factsHTML(r, rs, events);
   const said = guide(r, rs, list);
   return `<div class="page ac-page--run">
     ${ac.back('/activity', t('nav.activity'))}
@@ -328,9 +328,9 @@ function runPage(ctx) {
         ${r.mode === 'handoff' ? handoffHTML(r) : ''}
         ${stages}
         ${timeline(r, view, events, ctx.query.all === '1')}
-        <div class="panel only-phone section">${ac.fold('facts', t('ac.run.facts'), esc(t('ac.run.facts.sum', { who: ac.whoWord(r), when: fmtWhen(r.created) })), facts)}</div>
+        <div class="panel only-phone section">${ac.fold('facts', t('ac.run.facts'), esc(t('ac.run.facts.sum', { who: ac.whoWord(r), when: fmtWhen(r.created) })), factList)}</div>
       </div>
-      <aside class="ac-run-aside only-desk" aria-labelledby="facts-h"><div class="panel panel__pad"><h2 class="h2" id="facts-h" style="margin-bottom:12px">${t('ac.run.facts')}</h2>${facts}</div></aside>
+      <aside class="ac-run-aside only-desk" aria-labelledby="facts-h"><div class="panel panel__pad"><h2 class="h2 mb-3" id="facts-h">${t('ac.run.facts')}</h2>${factList}</div></aside>
     </div>
   </div>`;
 }

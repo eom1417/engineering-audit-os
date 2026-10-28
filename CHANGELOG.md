@@ -1,5 +1,52 @@
 # Changelog
 
+## 0.0.88 (2026-10-28)
+
+M15, one source per pattern. Every system repeats things (colours, sizes, screen patterns, pop-ups, the way it reads a
+file or checks a sign-in); a change made in one copy and not the others makes the program disagree with itself, and
+EAOS saw only functions copied whole. EAOS's own code read the same: the tolerant JSON reader written 176 times, the time
+now 40 times, 43 clusters of near copies, the Studio's look written 290 times outside its tokens. Now:
+- **A law with four numbers** (`docs/STANDARDS.md` §1, `core/contracts/code_laws.py`), recorded in
+  `tools/quality.json` and only ever lower: near copies of code, the look written outside the tokens file, screen
+  patterns and ways of working written three times or more; a copy kept on purpose says why
+  (`jscpd:ignore-start -- <why>`, a way of working `ast-grep-ignore: <rule> -- <why>`, counted). The same law is in
+  every prompt (its words no longer than before), in the person's assistant's guide, in the build journey's foundations, and in every fix gate: a change that adds one more
+  copy is refused with the one home to use (`analysis/repair/one_source_gate.py`).
+- **Near copies**: jscpd 5.4.2 with its near modes (renamed, two lines apart, 85% alike by syntax tree, Python
+  included), read from inside the project (a project under a folder named `fixtures` was skipped whole), JSX included;
+  the pairs joined into one cluster per pattern with its fullest copy as the source. A pair of imports only, a block
+  matched against itself, generated migrations and types, examples and documentation are no copy.
+  `structural_duplicate`, `copied_function` and `sequence_duplicate` retired (the near copies find them); the
+  sequences extractor removed.
+- **The look, as written and as seen** (`facts/duplication/look.py`, `analysis/assessments/one_source_look.py`): every
+  colour, font size, spacing, radius, shadow and z-index outside the tokens file, in a stylesheet, a `<style>`, a style
+  attribute, a JSX style or a Tailwind arbitrary value; and the style census of the pages the screens stage already
+  opens (one evaluate a page): near colours joined by CIEDE2000 (tested against its published pairs), sizes read against
+  one scale, the tokens it calls for in the W3C Design Tokens format. css-analyzer removed (pinned, never called).
+- **Screen patterns** (`facts/duplication/element_trees.py`): the element trees of JSX, Vue, Svelte, HTML and the HTML a
+  template string builds, alike at 80% in three places or more, primitives alike on purpose set aside.
+- **Ways of working** (`eaos/rules/ast-grep/rules/idioms.yml`): reading a JSON file, a date, money, a request with its
+  loading and error, a pop-up closed on Escape, drag and drop, an e-mail checked, paging, a sign-in check inside a route.
+- **One card per pattern** (`one_source`), with every place and its home by the project's own layout; a confirmed one
+  is a ready repair; the fix proof merges the baseline's near copies written once, the behaviour lock green.
+- **EAOS brought to it first**: one JSON reader (`core/system/files.py`), one clock (`core/system/clock.py`), an engine's
+  version and opening read once (`tool.version_of`, `tool.engine`), a card's recheck written once, and every other
+  near copy merged into its home; the Studio's look moved into `tokens.css` and its screen patterns into helpers
+  (`core/parts.js`), a sheet's call to the server (`sheetCall`), a refusal's words (`said`) and the way back written
+  once. A list of imports alike, or the helpers of one idiom in its own file, are no copy.
+- **Likeness alone is no card** (owner, after three reviews): a near copy or a screen pattern is a card, and counts in
+  the law, only with all three conditions: its copies carry one responsibility (the rules propose it: one part of the
+  system, changed together in the history, or fixed apart), keeping them costs upkeep or risks drift, and one source is
+  simpler with no new coupling (`analysis/assessments/one_source_evidence.py`); otherwise the report says it as a
+  likeness. A card names its three conditions.
+- **What was not measured is said**: what the keeping stage could not read (no database of the run's own, no page
+  opened) was computed and dropped; it is now a gap of the coverage ledger, in red at the top of `RUN.md` and
+  START-HERE.
+- **Measured from outside**: on the corpus an independent judge found the near copies right 64% of the time with the
+  three conditions (46% before) and the screen patterns never (9% before); under the bar of 0.8 their cards are kept
+  aside with the reason (`eaos/data/detector-verdicts.json`) while EAOS holds itself and every fix to the law; the ones
+  planted in the detection baseline are all found. The detectors take under a second a project, no token.
+
 ## 0.0.87 (2026-10-28)
 
 M14, how the data is saved, travels and is kept. A real project was called fast and clean while every save sent its

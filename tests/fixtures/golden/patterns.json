@@ -1,0 +1,33 @@
+{
+  "schema_version": 1,
+  "extractor": "patterns",
+  "extractor_version": "1",
+  "available": true,
+  "input_sha": "44c1c7d3ec751b412d110bd599de042ab706622f3e40ed95456639642d34c593",
+  "limitations": [
+    "The look is read where it is written: a value a script computes at run time is seen only by the style census of the pictured pages (live/screens.json).",
+    "An element tree is its tags and static classes; two trees alike in structure can still differ in what they mean."
+  ],
+  "summary": {
+    "files_read": 10,
+    "look_values": 0,
+    "tokens_files": [],
+    "element_trees": 0,
+    "ui_patterns": 0
+  },
+  "facts": [
+    {
+      "id": "FACT-e96d28c01345154a",
+      "kind": "look_home",
+      "input_sha": "44c1c7d3ec751b412d110bd599de042ab706622f3e40ed95456639642d34c593",
+      "location": {
+        "path": null
+      },
+      "value": {
+        "paths": []
+      },
+      "extractor": "patterns",
+      "extractor_version": "1"
+    }
+  ]
+}

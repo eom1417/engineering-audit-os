@@ -9,8 +9,9 @@ Each kept batch waits on a branch of its own for the person's accept or undo, li
 from .. import guided
 from ...core.project import branches, state as project_state
 from ...core.project.state import waiting_batch
-from .project import _head, _now, _report, _start, state_of
+from .project import _head, _report, _start, state_of
 from .running import CONSENT, _consented
+from ...core.system.clock import now
 
 SAID = {'moves': ('the moves passed the move gate (the same public surface, every test back with its name and result, the '
                   'build and every screen)'),
@@ -122,7 +123,7 @@ def _own_batch(project, kind, made):
     state.setdefault('waves', []).append({
         'number': len(state.get('waves') or []) + 1, 'kind': kind, 'cards': [], 'kept': summary['kept'], 'failed': {},
         'items': summary['items'], 'base': summary['base'], 'branch': summary['branch'], 'stat': summary['stat'], 'status': 'applied',
-        'opened': _now(), 'merge_into': working, 'base_branch': working,
+        'opened': now(), 'merge_into': working, 'base_branch': working,
         'tip': guided._git(state['project'], 'rev-parse', summary['branch']).stdout.strip()})
     guided.save(state)
     return {'batch': number, 'branch': summary['branch'], 'kept': summary['kept'], 'changes': summary['stat'],

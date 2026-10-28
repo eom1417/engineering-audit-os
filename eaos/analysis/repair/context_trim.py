@@ -17,7 +17,7 @@ from collections import Counter
 from pathlib import Path, PurePosixPath
 
 from ...facts.repository.catalog import limits as craft_limits
-from ...facts.repository.context import DONE, IMPORT, files as context_files
+from ...facts.repository.context import DONE, IMPORT, files as context_files, followed
 from ...facts.repository.craft import BACKTICKED
 from .moves import files as repository_files
 
@@ -30,14 +30,7 @@ class Untrimmable(ValueError):
 
 def read(root, known, rules):
     """{path: text} of every context file a session reads (CLAUDE.md's @imports among them), inside the repository."""
-    out, queue = {}, context_files(known, rules)
-    while queue:
-        path = queue.pop(0)
-        if path in out or path not in known: continue
-        out[path] = (Path(root) / path).read_text(encoding='utf-8', errors='replace')
-        if PurePosixPath(path).name == 'CLAUDE.md':
-            queue += [posixpath.normpath(posixpath.join(posixpath.dirname(path), name)) for name in IMPORT.findall(out[path])]
-    return out
+    return followed(context_files(known, rules), known, lambda path: (Path(root) / path).read_text(encoding='utf-8', errors='replace'))
 
 
 def imported(texts):

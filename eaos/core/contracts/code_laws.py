@@ -9,19 +9,23 @@ MAX_COMPLEXITY = 15     # decisions in one function
 MAX_LINES = 600         # lines in one module
 MAX_FUNCTION_LINES = 50 # lines in one function
 MAX_PARAMETERS = 5      # parameters of one function, self and cls aside
+# One source per pattern (M15): what repeats lives once, in its home, and is called from everywhere else.
+NEAR_COPY = {'similarity': 0.85, 'max_gap_lines': 2, 'min_tokens': 40, 'min_lines': 6}   # a near copy of code, as jscpd measures it
+PATTERN_REPEATS = 3     # a UI pattern or an idiom written this many times is one component or helper
+UI_SIMILARITY = 0.8     # two element trees this alike are one UI pattern
+LOOK = ('color', 'font_size', 'spacing', 'radius', 'shadow', 'z_index')   # written only in the tokens file
 
-LAWS = '''THE CODE LAWS (the target of every plan and every fix, always under one condition: the program keeps doing its job,
-as well as it can):
-1. Least code for the best result: the shortest, most direct code that does the job best. No layer, option,
-   abstraction or indirection the project does not need. A plan or a fix that adds code must earn every line;
-   one that does the same with less is better.
-2. One source of truth: a rule, calculation or function needed in several places is written once, clearly, in its
-   home, and called from everywhere else; never copied, never re-exported from a second home. A change then happens
-   in one place. Merging copies into their home is a goal of the plan, not a side effect.
-3. Clean: no dead code, no unused import or variable; small functions with one job; modules with one
-   responsibility and clear boundaries, so the program is easy to read and to extend.
-A fix never adds a copy, dead code or a new complex function, and never makes the project bigger or harder to read
-than the problem requires.'''
+LAWS = '''THE CODE LAWS (the target of every plan and fix, the program still doing its job well):
+1. Least code for the best result: no layer, option or abstraction the project does not need; a change that adds code
+   must earn every line.
+2. One source of truth: a rule, calculation or function needed in several places is written once, in its home, and
+   called from everywhere else, never copied; merging copies into their home is a goal of the plan.
+3. One source per pattern: no near copy of code (renamed, a line or two apart, 85% alike); no colour, font size,
+   spacing, radius, shadow or z-index outside the tokens file; a screen pattern (pop-up, card, table) or a way of
+   working (reading a file, a date, money, a request with its loading and error, drag and drop, validation, an
+   endpoint's guard) written three times or more is one component, helper, hook or middleware.
+4. Clean: no dead code or unused import; small functions with one job, modules with one responsibility.
+A fix never adds a copy, dead code or a new complex function.'''
 
 BRANCHES = (ast.If, ast.For, ast.AsyncFor, ast.While, ast.IfExp, ast.ExceptHandler, ast.match_case, ast.comprehension)
 FUNCTIONS = (ast.FunctionDef, ast.AsyncFunctionDef, ast.Lambda)

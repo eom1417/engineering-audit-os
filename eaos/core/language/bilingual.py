@@ -26,6 +26,7 @@ from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
 from .words import LABELS
+from ...core.system.files import read_json
 
 LANGS = ('ar', 'en')
 NAMES = {'ar': 'Arabic (Modern Standard, plain)', 'en': 'English'}
@@ -134,8 +135,7 @@ def documents(report):
 
 
 def _load(path):
-    try: value = json.loads(Path(path).read_text(encoding='utf-8'))
-    except (OSError, ValueError): return {}
+    value = read_json(path)
     return value if isinstance(value, dict) else {}
 
 

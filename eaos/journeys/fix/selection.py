@@ -3,10 +3,10 @@
 The cards come from the Studio data of the latest check (`studio/cards.json`, and `gaps.json` and `operations.json` for
 those groups): the same data the page showed, so the preview names what the person saw. Only open cards run.
 """
-import json
 from pathlib import Path
 from ...core.project import state as project_state
 from ...analysis.target_state.repair_or_rebuild import fix_minutes
+from ...core.system.files import read_json
 
 BATCH = 10                                  # fix_start's default batch size
 OPEN = ('open',)
@@ -26,8 +26,7 @@ class SelectionError(ValueError):
 
 
 def _load(folder, name):
-    try: return json.loads((Path(folder) / f'{name}.json').read_text(encoding='utf-8'))
-    except (OSError, ValueError, TypeError): return None
+    return read_json(Path(folder) / f'{name}.json') if folder else None
 
 
 def studio_folder(project):

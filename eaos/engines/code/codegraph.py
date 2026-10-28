@@ -22,6 +22,7 @@ from pathlib import Path
 from ...core import toolchain
 from .codegraph_payloads import CONVERTERS, _complexity_facts, _parse_payload
 from ..contract import OBSERVED, Report, SYMBOL, UNAVAILABLE, finding, measurement, subject
+from ...core.system.files import read_json
 
 NAME, VERSION, PINNED = 'codegraph', '1', 'v0.20.1'
 
@@ -335,10 +336,7 @@ def files_of_interest(workdir):
 
 
 def _facts_in(source):
-    if not source.is_file(): return []
-    try: payload = json.loads(source.read_text(encoding='utf-8'))
-    except (ValueError, OSError): return []
-    return payload.get('facts', [])
+    return (read_json(source) or {}).get('facts', [])
 
 
 def _paths_of(fact, kind):
@@ -355,5 +353,4 @@ def read_graph_facts(workdir):
     """The edges and metrics this adapter already produced, so nothing runs the tools twice."""
     source = Path(workdir) / 'codegraph' / GRAPH_FACTS
     if not source.is_file(): return {'facts': [], 'summary': {}}
-    try: return json.loads(source.read_text(encoding='utf-8'))
-    except (ValueError, OSError): return {'facts': [], 'summary': {}}
+    return read_json(source, {'facts': [], 'summary': {}})

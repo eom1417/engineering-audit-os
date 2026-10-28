@@ -32,6 +32,7 @@ from pathlib import Path
 
 from ...analysis.maps import architecture as arch_map
 from . import user_journeys as J
+from ...analysis.presentation.counts import measured
 
 GROUPS = ('triggers', 'screens', 'server', 'writes', 'outside', 'config', 'build', 'dead')
 LINKABLE = ('triggers', 'server', 'writes', 'outside', 'config')
@@ -53,10 +54,6 @@ SRC = {
     'dialogs': 'facts/graph.json#graph_node named …Dialog, …Form, …Modal, …Sheet, …Drawer, rendered by a screen',
     'no_screen': 'items of triggers, server, writes, outside and config no screen reaches by three import steps',
 }
-
-
-def _measure(value, src):
-    return {'value': value if isinstance(value, int) and value >= 0 else None, 'src': src, 'unit': 'count'}
 
 
 def _resource(target):
@@ -242,7 +239,7 @@ def _place(item, area_files, owners, card_of):
 def _group(g, items):
     mine = [i for i in items if i['group'] == g]
     mine.sort(key=lambda i: (not i['no_screen'], not i['card'], i['kind'], i['name']))
-    return {'id': g, 'count': _measure(len(mine), SRC[g]), 'kinds': dict(sorted(_count(i['kind'] for i in mine).items())),
+    return {'id': g, 'count': measured(len(mine), SRC[g]), 'kinds': dict(sorted(_count(i['kind'] for i in mine).items())),
             'no_screen': sum(i['no_screen'] for i in mine), 'items': [i['id'] for i in mine[:MAX_ITEMS]],
             'capped': max(len(mine) - MAX_ITEMS, 0)}
 
@@ -295,7 +292,7 @@ def _shown(groups, items):
 
 def _missing_controls(screens):
     """What is not measured yet: the buttons and inputs of the screens; nothing when there is no screen."""
-    return [{'id': 'controls', 'state': 'not_measured', 'step': 'NS40.T1', 'count': _measure(None, 'screens.json#screens[].inputs'),
+    return [{'id': 'controls', 'state': 'not_measured', 'step': 'NS40.T1', 'count': measured(None, 'screens.json#screens[].inputs'),
              'detail': {'ar': 'الأزرار والحقول على كل شاشة لم تُقرأ بعد.', 'en': 'The buttons and inputs on each screen are not read yet.'}}] if screens else []
 
 
@@ -303,10 +300,10 @@ def _counts(screens, seen, items, groups):
     """The section's counts: the screens seen and their dialogs, the items unseen and those on no screen, and each
     group's."""
     return {
-        'seen': _measure(len(screens), SRC['seen']),
-        'dialogs': _measure(sum(a['dialog_count'] for a in seen), SRC['dialogs']),
-        'unseen': _measure(len(items), 'every item of the unseen groups'),
-        'no_screen': _measure(sum(i['no_screen'] for i in items), SRC['no_screen']),
+        'seen': measured(len(screens), SRC['seen']),
+        'dialogs': measured(sum(a['dialog_count'] for a in seen), SRC['dialogs']),
+        'unseen': measured(len(items), 'every item of the unseen groups'),
+        'no_screen': measured(sum(i['no_screen'] for i in items), SRC['no_screen']),
         **{g['id']: g['count'] for g in groups},
     }
 

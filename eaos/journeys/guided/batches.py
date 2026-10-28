@@ -2,12 +2,12 @@
 branch chosen.
 """
 import shutil
-from datetime import datetime, timezone
 from pathlib import Path
 
 from ...core.project import branches, jobs
 from ...core.project.state import runtime_of, waiting_batch
 from .project import PUBLISHERS, _branch_exists, _git, publish, report_of, same_code, save, tip
+from ...core.system.clock import now
 
 
 def close_batch(state, status, why='', via='assistant'):
@@ -79,7 +79,7 @@ def _settle(state, wave):
     if drop and inside: _git(state['project'], 'branch', '-D', branch)       # merged: its branch goes
     if status == 'accepted': return False
     if inside:                                          # merged into the branch EAOS works on
-        wave.update(status='accepted', merged_at=datetime.now(timezone.utc).isoformat(timespec='seconds'), tip=last)
+        wave.update(status='accepted', merged_at=now(), tip=last)
         return True
     if exists or status != 'applied': return False
     wave['status'] = 'undone'

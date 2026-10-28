@@ -13,6 +13,7 @@ person's plan is a subscription, so the cost is the API's price for the same tok
 import json
 from datetime import datetime
 from pathlib import Path
+from ...core.system.files import read_json
 
 TOKENS = ('input', 'cache_write', 'cache_read', 'output', 'thinking')
 CLAUDE = {'input_tokens': 'input', 'cache_creation_input_tokens': 'cache_write', 'cache_read_input_tokens': 'cache_read',
@@ -96,8 +97,9 @@ def of_run(folder):
 
 
 def _started(report):
-    try: return datetime.fromisoformat(json.loads((report / 'run-manifest.json').read_text(encoding='utf-8'))['started_at']).timestamp()
-    except (OSError, ValueError, KeyError, TypeError): return None
+    started = (read_json(report / 'run-manifest.json') or {}).get('started_at')
+    try: return datetime.fromisoformat(started).timestamp()
+    except (ValueError, TypeError): return None
 
 
 def _lines(path):

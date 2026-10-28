@@ -1,9 +1,8 @@
 """Build an acceptance assessment for a declared-policy violation."""
 import hashlib
-import sys
 from pathlib import Path
 
-from ..repair.acceptance import fingerprint
+from ..repair.acceptance import fingerprint, recheck
 from ..target_state.policy import FILENAME as POLICY_FILENAME
 from ..repair.remediation import PATTERNS, cited
 
@@ -25,15 +24,7 @@ def _checks_command():
     collects its own facts into a private temp dir, so a runner does not have to
     stage the audit output to a known path.
     """
-    code = (
-        "import subprocess, sys, tempfile\n"
-        "holder = tempfile.TemporaryDirectory(prefix='eaos-policy-'); tmp = holder.name\n"
-        "r1 = subprocess.run([sys.executable, '-m', 'eaos', 'facts', '.', '--out', tmp])\n"
-        "if r1.returncode != 0:\n"
-        "    sys.exit(r1.returncode)\n"
-        "sys.exit(subprocess.call([sys.executable, '-m', 'eaos', 'policy', 'check', '.', '--out', tmp]))\n"
-    )
-    return [sys.executable, '-B', '-c', code]
+    return recheck('eaos-policy-', "sys.exit(subprocess.call([sys.executable, '-m', 'eaos', 'policy', 'check', '.', '--out', tmp]))\n")
 
 
 def build_assessment(claim, fact_sets, target):

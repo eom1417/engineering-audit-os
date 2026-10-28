@@ -42,9 +42,6 @@ def capabilities():
     return [Capability(kind, rule, granularity=SYMBOL) for rule, kind in rules() if kind in KINDS]
 
 
-def version(): return tool.version(BINARY)
-
-
 def records(lines):
     """The parsed matches of a `--json=stream` run, one JSON object per line."""
     return [json.loads(line) for line in lines.splitlines() if line.strip()]
@@ -80,7 +77,6 @@ def _spans(single):
 
 @tool.engine(NAME, BINARY)
 def analyze(target, workdir, exclude, formats, found):
-    target = Path(target).resolve()
     output = workdir / 'ast-grep.jsonl'
     globs = [argument for name in EXCLUDED + tuple(exclude) for argument in ('--globs', f'!**/{name}/**')]
     command = [which(BINARY), 'scan', '--config', str(RULES / 'sgconfig.yml'), '--json=stream', '--include-metadata',

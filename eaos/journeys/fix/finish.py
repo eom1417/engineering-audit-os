@@ -6,10 +6,10 @@ them, a fix_edit on the card REPAIR, and fix_finish runs again; only after REPAI
 them out, halving finds the cards responsible. A batch that passes becomes a branch waiting for the person, or lands
 on its base branch when the person chose so.
 """
-from datetime import datetime, timezone
 
 from .. import guided
 from ...core.project import state as project_state
+from ...core.system.clock import now
 
 REPAIR = 'REPAIR'        # the card of a repair on top of the batch
 REPAIRS = 3             # repairs tried before the cards responsible are left out
@@ -73,7 +73,7 @@ def _phase(project, kind, progress):
     if kind not in STEPS: return
     progress(STEPS[kind][0], 3, STEPS[kind][1])
     state = project_state.load(project)
-    state['open_wave'].setdefault('phases', {}).setdefault(kind, datetime.now(timezone.utc).isoformat(timespec='milliseconds'))
+    state['open_wave'].setdefault('phases', {}).setdefault(kind, now('milliseconds'))
     guided.save(state)
 
 

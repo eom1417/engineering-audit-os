@@ -10,8 +10,8 @@ rebuilds or deletes most of today's files (REBUILD_SHARE); else repair, the rebu
 the plan says. The minutes are a rough rule until this project's own fix runs measure it (`FIX_MINUTES`, also the fix
 preview's, eaos/journeys/fix/selection.py estimate); they are said as such, never as a measure.
 """
-import json
 from pathlib import Path
+from ...core.system.files import read_json
 
 # minutes a card takes to fix behind every gate, low and high, and the safe copy prepared once (the rough rule)
 FIX_MINUTES, PREPARE_MINUTES = (3, 8), (5, 15)
@@ -26,16 +26,11 @@ def fix_minutes(count, factor=1):
     return (PREPARE_MINUTES[0] + factor * FIX_MINUTES[0] * count, PREPARE_MINUTES[1] + factor * FIX_MINUTES[1] * count)
 
 
-def _read(path, empty):
-    try: return json.loads(Path(path).read_text(encoding='utf-8'))
-    except (OSError, ValueError): return empty
-
-
 def decide(report):
     """{recommend, share_gone, options: {repair, rebuild}, why: {ar, en}, basis: {ar, en}} of a report; None when it
     has no target yet."""
     report = Path(report)
-    components = (_read(report / 'target-architecture.json', {}) or {}).get('current_components') or []
+    components = (read_json(report / 'target-architecture.json', {}) or {}).get('current_components') or []
     if not components: return None
     files, gone = _files(components), _files(c for c in components if c.get('relation') in GONE)
     share = round(gone / files, 2) if files else 0.0
@@ -52,7 +47,7 @@ def _files(components):
 
 def _repair(report):
     """The repair option: the plan's open cards, their sizes, the files they touch and the minutes of fixing them."""
-    tasks = [t for t in (_read(report / 'plan.json', {}) or {}).get('tasks') or [] if t.get('state', 'open') == 'open']
+    tasks = [t for t in (read_json(report / 'plan.json', {}) or {}).get('tasks') or [] if t.get('state', 'open') == 'open']
     sizes = [t.get('effort') for t in tasks]
     return {'cards': len(tasks), 'sizes': {size: sizes.count(size) for size in ('S', 'M', 'L')},
             'files': len({p for t in tasks for p in t.get('paths') or []}), 'minutes': fix_minutes(len(tasks))}

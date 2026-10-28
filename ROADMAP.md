@@ -26,6 +26,7 @@ and its numbers in `docs/METRICS.md`. This page is updated at each milestone's e
 | M12 Real data in the code | personal values in string literals (Presidio with Saudi and Arabic patterns, placeholders kept), tables written as code (ast-grep), each sorted on its evidence into one card that says where the data goes and the screens it feeds | 0.0.85 |
 | M13 Old engines | switches fixed to one value and the functions only their closed branch calls; what the tests, the server and the pages ran, and the code none of them ran; two engines doing one job; one card each with what replaced it and the proof nothing runs it | 0.0.86 |
 | M14 How the data is saved and kept | the saves the pages send measured before and after the copy is filled to a real size; how its database stores the data; the project's backup restored and compared; files the server writes; two edits of one record; the saving code and risky migrations read (Squawk) | 0.0.87 |
+| M15 One source per pattern | near copies, the look written outside its tokens, screen patterns and ways of working written three times; a card only when the copies carry one responsibility, cost upkeep and one source is simpler, else a likeness said; EAOS at zero on its own law | 0.0.88 |
 
 ## Next
 
@@ -34,5 +35,5 @@ and the model only for doubt; adding each tool is measured, so EAOS proves it gr
 
 | Milestone | What it adds |
 |---|---|
-| M15 The person's rules | a requirement said once is kept for its work, pinned only on request, guarded by a check, its repeats counted |
-| M16 Strangers' projects | ten open-source projects never seen, in two rounds of five, judged from outside EAOS |
+| M16 The person's rules | a requirement said once is kept for its work, pinned only on request, guarded by a check, its repeats counted; a check of what a change touches, in seconds |
+| M17 Strangers' projects | ten open-source projects never seen, judged from outside EAOS; a fair comparison with the plain assistant; real people of three kinds |

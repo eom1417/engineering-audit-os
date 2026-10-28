@@ -5,6 +5,7 @@ import json
 import os
 from collections import defaultdict
 from pathlib import Path
+from ...core.system.files import read_json
 
 # Per-test measurements, read from the runners' own reports and Coverage.py's "who tests what" (dynamic contexts):
 # how long each test takes, and which tests run no line another test does not run too (redundant).
@@ -25,8 +26,7 @@ def with_timing(argv, app):
 
 def _npm_test_runner(app):
     """The runner (vitest or jest) the app's npm test script calls, or None."""
-    try: script = json.loads((Path(app) / 'package.json').read_text(encoding='utf-8'))['scripts']['test']
-    except (OSError, ValueError, KeyError, TypeError): script = ''
+    script = str(((read_json(Path(app) / 'package.json') or {}).get('scripts') or {}).get('test') or '')
     return next((r for r in ('vitest', 'jest') if r in script), None)
 
 

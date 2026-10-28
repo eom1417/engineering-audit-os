@@ -16,10 +16,10 @@ A field with no source stays null and its reason is written in `missing`: an unk
 The rows are the files the audit parsed, so the table and dossier.coverage.files_parsed agree; files it
 could not parse are listed under not_measured with their reason.
 """
-import json
 from pathlib import Path
 
 from ...core.project.workspace import write
+from ...core.system.files import read_json
 
 FUNCTION_SCOPES = ('function', 'method')
 
@@ -28,16 +28,12 @@ def _facts(out):
     rows = []
     for path in sorted((Path(out) / 'facts').glob('*.json')):
         if path.stem == 'boundaries': continue          # the layers' findings (M6), the claims'; they measure no file
-        try: data = json.loads(path.read_text(encoding='utf-8'))
-        except (OSError, ValueError): continue
-        rows += [row for row in data.get('facts') or [] if isinstance(row, dict)]
+        rows += [row for row in (read_json(path) or {}).get('facts') or [] if isinstance(row, dict)]
     return rows
 
 
 def _engines_observed(out):
-    try: data = json.loads((Path(out) / 'facts/external.json').read_text(encoding='utf-8'))
-    except (OSError, ValueError): return set()
-    return set((data.get('summary') or {}).get('engines_observed') or [])
+    return set(((read_json(Path(out) / 'facts/external.json') or {}).get('summary') or {}).get('engines_observed') or [])
 
 
 def _path_of(fact):
@@ -48,9 +44,8 @@ def _coverage(out):
     """{path: covered fraction 0..1} from verification.json, which holds percents."""
     verification = out / 'verification.json'
     if not verification.is_file(): return {}
-    try: return {path: round(value['percent'] / 100, 4)
-                 for path, value in (json.loads(verification.read_text(encoding='utf-8')).get('coverage') or {}).items()}
-    except (ValueError, KeyError, TypeError): return {}
+    coverage = (read_json(verification) or {}).get('coverage') or {}
+    return {path: round(value['percent'] / 100, 4) for path, value in coverage.items() if isinstance(value, dict) and 'percent' in value}
 
 
 class _Indexes:
@@ -63,7 +58,7 @@ class _Indexes:
         self.codegraph = self._codegraph(metric_external)
         self.own_file, self.own_symbols = self._own(by_kind.get('metric', []))
         self.jscpd_seen = 'jscpd' in _engines_observed(out)
-        self.duplicated = self._duplicated(by_kind.get('engine_finding', []))
+        self.duplicated = self._duplicated(metric_external)
         self.churn = {_path_of(f): f['value'] for f in by_kind.get('history_churn', [])}
         self.ownership = {_path_of(f): f['value'] for f in by_kind.get('history_ownership', [])}
         self.graph = {_path_of(f): f['value'] for f in by_kind.get('graph_node', [])}
@@ -90,14 +85,14 @@ class _Indexes:
         return own_file, own_symbols
 
     @staticmethod
-    def _duplicated(findings):
+    def _duplicated(records):
+        """{path: lines} of the near copies jscpd recorded (eaos/engines/code/jscpd.py), each side of a pair counted."""
         duplicated = {}
-        for fact in findings:
+        for fact in records:
             value = fact['value']
-            if value.get('engine') != 'jscpd': continue
-            lines = next((m['value'] for m in value.get('measurements') or [] if m['name'] == 'duplicated_lines'), None) or 0
-            for site in value.get('sites') or []:
-                duplicated[site['path']] = duplicated.get(site['path'], 0) + lines
+            if value.get('engine') != 'jscpd' or value.get('record') != 'near_copy': continue
+            for path in (fact['location']['path'], (value.get('other') or {}).get('path')):
+                if path: duplicated[path] = duplicated.get(path, 0) + (value.get('lines') or 0)
         return duplicated
 
     def loc(self, path, row, used, missing):

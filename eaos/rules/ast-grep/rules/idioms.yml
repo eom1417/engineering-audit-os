@@ -1,0 +1,401 @@
+# Ways of working written by hand (M15.6): records, not verdicts (eaos/analysis/assessments/one_source.py decides). An
+# idiom written PATTERN_REPEATS times or more (eaos/core/contracts/code_laws.py), in one way or several, is one card:
+# one helper, hook or middleware. A helper that holds the idiom once, called from everywhere, records it once.
+# ast-grep binds a rule to one language: each idiom is written once per language it reads.
+---
+id: eaos.idiom.json-read-python
+language: Python
+severity: info
+message: a JSON file read and parsed with its own fallback
+metadata: {record: idiom, form: json_read}
+rule:
+  kind: try_statement
+  all:
+    - has: {stopBy: end, any: [{pattern: json.loads($P.read_text($$$))}, {pattern: json.load($F)}, {pattern: json.loads(open($$$).read())}]}
+    - has: {kind: except_clause, regex: '\b(ValueError|JSONDecodeError|Exception)\b'}
+---
+id: eaos.idiom.date-now-python
+language: Python
+severity: info
+message: the time now written in place
+metadata: {record: idiom, form: date_format}
+rule:
+  any:
+    - pattern: datetime.now($$$).isoformat($$$)
+    - pattern: datetime.utcnow().isoformat($$$)
+    - pattern: datetime.now($$$).strftime($$$)
+    - pattern: datetime.datetime.now($$$).isoformat($$$)
+---
+id: eaos.idiom.route-guard-python
+language: Python
+severity: info
+message: a sign-in check written inside a route
+metadata: {record: idiom, form: route_guard}
+rule:
+  any:
+    - pattern: "if $K not in session: $$$"
+    - pattern: "if not session.get($$$): $$$"
+    - pattern: "if not current_user.is_authenticated: $$$"
+    - pattern: "if not request.user.is_authenticated: $$$"
+---
+id: eaos.idiom.json-read
+language: JavaScript
+severity: info
+message: a JSON file or stored value read and parsed in place
+metadata: {record: idiom, form: json_read}
+rule:
+  pattern: JSON.parse($$$)
+  has:
+    stopBy: end
+    any:
+      - pattern: readFileSync($$$)
+      - pattern: $FS.readFileSync($$$)
+      - pattern: readFile($$$)
+      - pattern: $FS.readFile($$$)
+      - pattern: localStorage.getItem($$$)
+      - pattern: $W.localStorage.getItem($$$)
+---
+id: eaos.idiom.date-format
+language: JavaScript
+severity: info
+message: a date formatted in place
+metadata: {record: idiom, form: date_format}
+rule:
+  any:
+    - pattern: $D.toLocaleDateString($$$)
+    - pattern: $D.toLocaleTimeString($$$)
+    - pattern: new Intl.DateTimeFormat($$$)
+    - pattern: $D.toISOString().slice($$$)
+    - pattern: $D.toISOString().split($$$)
+    - pattern: moment($$$).format($$$)
+    - pattern: dayjs($$$).format($$$)
+---
+id: eaos.idiom.money-format
+language: JavaScript
+severity: info
+message: an amount of money formatted in place
+metadata: {record: idiom, form: money_format}
+rule:
+  any:
+    - pattern: $N.toFixed(2)
+    - all:
+        - any: [{pattern: new Intl.NumberFormat($$$)}, {pattern: $N.toLocaleString($$$)}]
+        - has: {stopBy: end, kind: string, regex: currency}
+---
+id: eaos.idiom.request-state
+language: JavaScript
+severity: info
+message: a request written with its own loading and error state
+metadata: {record: idiom, form: request_state}
+rule:
+  kind: statement_block
+  all:
+    - has: {stopBy: end, any: [{pattern: fetch($$$)}, {pattern: axios.$M($$$)}, {pattern: axios($$$)}]}
+    - has: {stopBy: end, kind: call_expression, all: [{has: {field: function, regex: '^set(Is)?Loading$'}}, {has: {field: arguments, has: {kind: 'true'}}}]}
+    - has: {stopBy: end, kind: call_expression, has: {field: function, regex: '^set(Has)?Error$'}}
+  not: {inside: {stopBy: end, kind: statement_block, all: [{has: {stopBy: end, any: [{pattern: fetch($$$)}, {pattern: axios.$M($$$)}]}}, {has: {stopBy: end, kind: call_expression, has: {field: function, regex: '^set(Is)?Loading$'}}}]}}
+---
+id: eaos.idiom.popup-escape
+language: JavaScript
+severity: info
+message: a pop-up closed on Escape by hand
+metadata: {record: idiom, form: popup_close}
+rule:
+  any:
+    - pattern: $E.key === 'Escape'
+    - pattern: $E.key == 'Escape'
+    - pattern: $E.key === "Escape"
+    - pattern: $E.keyCode === 27
+---
+id: eaos.idiom.drag-start
+language: JavaScript
+severity: info
+message: a drag and drop written by hand
+metadata: {record: idiom, form: drag_drop}
+rule:
+  any:
+    - pattern: $T.addEventListener('dragstart', $$$)
+    - kind: jsx_attribute
+      has: {kind: property_identifier, regex: '^onDragStart$'}
+---
+id: eaos.idiom.validation
+language: JavaScript
+severity: info
+message: an e-mail address checked by hand
+metadata: {record: idiom, form: validation}
+rule:
+  any:
+    - all:
+        - pattern: $RE.test($V)
+        - has: {stopBy: end, kind: regex, regex: '@'}
+
+---
+id: eaos.idiom.pagination
+language: JavaScript
+severity: info
+message: a list paged by hand
+metadata: {record: idiom, form: pagination}
+rule:
+  any:
+    - pattern: $A.slice(($P - 1) * $S, $P * $S)
+    - pattern: $A.slice($P * $S, ($P + 1) * $S)
+    - pattern: $A.slice($O, $O + $S)
+    - pattern: const $OFF = ($P - 1) * $S
+constraints:
+  OFF: {regex: '(?i)^(offset|skip|start)$'}
+---
+id: eaos.idiom.route-guard
+language: JavaScript
+severity: info
+message: a sign-in check written inside a route
+metadata: {record: idiom, form: route_guard}
+rule:
+  any:
+    - pattern: if (!$R.user) $$$
+    - pattern: if (!$R.session.$U) $$$
+    - pattern: if (!$R.headers.authorization) $$$
+    - pattern: $R.headers.authorization
+    - pattern: $R.headers['authorization']
+constraints:
+  R: {regex: '^req(uest)?$'}
+---
+id: eaos.idiom.json-read-tsx
+language: Tsx
+severity: info
+message: a JSON file or stored value read and parsed in place
+metadata: {record: idiom, form: json_read}
+rule:
+  pattern: JSON.parse($$$)
+  has:
+    stopBy: end
+    any:
+      - pattern: readFileSync($$$)
+      - pattern: $FS.readFileSync($$$)
+      - pattern: readFile($$$)
+      - pattern: $FS.readFile($$$)
+      - pattern: localStorage.getItem($$$)
+      - pattern: $W.localStorage.getItem($$$)
+---
+id: eaos.idiom.date-format-tsx
+language: Tsx
+severity: info
+message: a date formatted in place
+metadata: {record: idiom, form: date_format}
+rule:
+  any:
+    - pattern: $D.toLocaleDateString($$$)
+    - pattern: $D.toLocaleTimeString($$$)
+    - pattern: new Intl.DateTimeFormat($$$)
+    - pattern: $D.toISOString().slice($$$)
+    - pattern: $D.toISOString().split($$$)
+    - pattern: moment($$$).format($$$)
+    - pattern: dayjs($$$).format($$$)
+---
+id: eaos.idiom.money-format-tsx
+language: Tsx
+severity: info
+message: an amount of money formatted in place
+metadata: {record: idiom, form: money_format}
+rule:
+  any:
+    - pattern: $N.toFixed(2)
+    - all:
+        - any: [{pattern: new Intl.NumberFormat($$$)}, {pattern: $N.toLocaleString($$$)}]
+        - has: {stopBy: end, kind: string, regex: currency}
+---
+id: eaos.idiom.request-state-tsx
+language: Tsx
+severity: info
+message: a request written with its own loading and error state
+metadata: {record: idiom, form: request_state}
+rule:
+  kind: statement_block
+  all:
+    - has: {stopBy: end, any: [{pattern: fetch($$$)}, {pattern: axios.$M($$$)}, {pattern: axios($$$)}]}
+    - has: {stopBy: end, kind: call_expression, all: [{has: {field: function, regex: '^set(Is)?Loading$'}}, {has: {field: arguments, has: {kind: 'true'}}}]}
+    - has: {stopBy: end, kind: call_expression, has: {field: function, regex: '^set(Has)?Error$'}}
+  not: {inside: {stopBy: end, kind: statement_block, all: [{has: {stopBy: end, any: [{pattern: fetch($$$)}, {pattern: axios.$M($$$)}]}}, {has: {stopBy: end, kind: call_expression, has: {field: function, regex: '^set(Is)?Loading$'}}}]}}
+---
+id: eaos.idiom.popup-escape-tsx
+language: Tsx
+severity: info
+message: a pop-up closed on Escape by hand
+metadata: {record: idiom, form: popup_close}
+rule:
+  any:
+    - pattern: $E.key === 'Escape'
+    - pattern: $E.key == 'Escape'
+    - pattern: $E.key === "Escape"
+    - pattern: $E.keyCode === 27
+---
+id: eaos.idiom.drag-start-tsx
+language: Tsx
+severity: info
+message: a drag and drop written by hand
+metadata: {record: idiom, form: drag_drop}
+rule:
+  any:
+    - pattern: $T.addEventListener('dragstart', $$$)
+    - kind: jsx_attribute
+      has: {kind: property_identifier, regex: '^onDragStart$'}
+---
+id: eaos.idiom.validation-tsx
+language: Tsx
+severity: info
+message: an e-mail address checked by hand
+metadata: {record: idiom, form: validation}
+rule:
+  any:
+    - all:
+        - pattern: $RE.test($V)
+        - has: {stopBy: end, kind: regex, regex: '@'}
+
+---
+id: eaos.idiom.pagination-tsx
+language: Tsx
+severity: info
+message: a list paged by hand
+metadata: {record: idiom, form: pagination}
+rule:
+  any:
+    - pattern: $A.slice(($P - 1) * $S, $P * $S)
+    - pattern: $A.slice($P * $S, ($P + 1) * $S)
+    - pattern: $A.slice($O, $O + $S)
+    - pattern: const $OFF = ($P - 1) * $S
+constraints:
+  OFF: {regex: '(?i)^(offset|skip|start)$'}
+---
+id: eaos.idiom.route-guard-tsx
+language: Tsx
+severity: info
+message: a sign-in check written inside a route
+metadata: {record: idiom, form: route_guard}
+rule:
+  any:
+    - pattern: if (!$R.user) $$$
+    - pattern: if (!$R.session.$U) $$$
+    - pattern: if (!$R.headers.authorization) $$$
+    - pattern: $R.headers.authorization
+    - pattern: $R.headers['authorization']
+constraints:
+  R: {regex: '^req(uest)?$'}
+---
+id: eaos.idiom.json-read-typescript
+language: TypeScript
+severity: info
+message: a JSON file or stored value read and parsed in place
+metadata: {record: idiom, form: json_read}
+rule:
+  pattern: JSON.parse($$$)
+  has:
+    stopBy: end
+    any:
+      - pattern: readFileSync($$$)
+      - pattern: $FS.readFileSync($$$)
+      - pattern: readFile($$$)
+      - pattern: $FS.readFile($$$)
+      - pattern: localStorage.getItem($$$)
+      - pattern: $W.localStorage.getItem($$$)
+---
+id: eaos.idiom.date-format-typescript
+language: TypeScript
+severity: info
+message: a date formatted in place
+metadata: {record: idiom, form: date_format}
+rule:
+  any:
+    - pattern: $D.toLocaleDateString($$$)
+    - pattern: $D.toLocaleTimeString($$$)
+    - pattern: new Intl.DateTimeFormat($$$)
+    - pattern: $D.toISOString().slice($$$)
+    - pattern: $D.toISOString().split($$$)
+    - pattern: moment($$$).format($$$)
+    - pattern: dayjs($$$).format($$$)
+---
+id: eaos.idiom.money-format-typescript
+language: TypeScript
+severity: info
+message: an amount of money formatted in place
+metadata: {record: idiom, form: money_format}
+rule:
+  any:
+    - pattern: $N.toFixed(2)
+    - all:
+        - any: [{pattern: new Intl.NumberFormat($$$)}, {pattern: $N.toLocaleString($$$)}]
+        - has: {stopBy: end, kind: string, regex: currency}
+---
+id: eaos.idiom.request-state-typescript
+language: TypeScript
+severity: info
+message: a request written with its own loading and error state
+metadata: {record: idiom, form: request_state}
+rule:
+  kind: statement_block
+  all:
+    - has: {stopBy: end, any: [{pattern: fetch($$$)}, {pattern: axios.$M($$$)}, {pattern: axios($$$)}]}
+    - has: {stopBy: end, kind: call_expression, all: [{has: {field: function, regex: '^set(Is)?Loading$'}}, {has: {field: arguments, has: {kind: 'true'}}}]}
+    - has: {stopBy: end, kind: call_expression, has: {field: function, regex: '^set(Has)?Error$'}}
+  not: {inside: {stopBy: end, kind: statement_block, all: [{has: {stopBy: end, any: [{pattern: fetch($$$)}, {pattern: axios.$M($$$)}]}}, {has: {stopBy: end, kind: call_expression, has: {field: function, regex: '^set(Is)?Loading$'}}}]}}
+---
+id: eaos.idiom.popup-escape-typescript
+language: TypeScript
+severity: info
+message: a pop-up closed on Escape by hand
+metadata: {record: idiom, form: popup_close}
+rule:
+  any:
+    - pattern: $E.key === 'Escape'
+    - pattern: $E.key == 'Escape'
+    - pattern: $E.key === "Escape"
+    - pattern: $E.keyCode === 27
+---
+id: eaos.idiom.drag-start-typescript
+language: TypeScript
+severity: info
+message: a drag and drop written by hand
+metadata: {record: idiom, form: drag_drop}
+rule:
+  any:
+    - pattern: $T.addEventListener('dragstart', $$$)
+
+---
+id: eaos.idiom.validation-typescript
+language: TypeScript
+severity: info
+message: an e-mail address checked by hand
+metadata: {record: idiom, form: validation}
+rule:
+  any:
+    - all:
+        - pattern: $RE.test($V)
+        - has: {stopBy: end, kind: regex, regex: '@'}
+
+---
+id: eaos.idiom.pagination-typescript
+language: TypeScript
+severity: info
+message: a list paged by hand
+metadata: {record: idiom, form: pagination}
+rule:
+  any:
+    - pattern: $A.slice(($P - 1) * $S, $P * $S)
+    - pattern: $A.slice($P * $S, ($P + 1) * $S)
+    - pattern: $A.slice($O, $O + $S)
+    - pattern: const $OFF = ($P - 1) * $S
+constraints:
+  OFF: {regex: '(?i)^(offset|skip|start)$'}
+---
+id: eaos.idiom.route-guard-typescript
+language: TypeScript
+severity: info
+message: a sign-in check written inside a route
+metadata: {record: idiom, form: route_guard}
+rule:
+  any:
+    - pattern: if (!$R.user) $$$
+    - pattern: if (!$R.session.$U) $$$
+    - pattern: if (!$R.headers.authorization) $$$
+    - pattern: $R.headers.authorization
+    - pattern: $R.headers['authorization']
+constraints:
+  R: {regex: '^req(uest)?$'}

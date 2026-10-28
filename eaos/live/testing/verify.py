@@ -29,8 +29,9 @@ from .python_suite import DEFAULT_COMMANDS, INTERPRETER, command as _python_suit
 NAME = 'verification'
 VERSION = '1'
 from ...core.project.workspace import SKIP_DIRS, write
-from .ran import merged, python_report, record, v8 as v8_functions
+from .ran import merged, own, python_report, record, v8 as v8_functions
 from .suite import COVERAGERC, suite_health, with_timing
+from ...core.system.files import read_json
 
 LIMITATIONS = [
     'An isolated copy is not an operating-system sandbox; do not run untrusted projects here.',
@@ -216,26 +217,14 @@ def declared(target, out, reason, source=None):
 def v8_coverage(folder, root):
     """{path: {functions, functions_hit, percent}} from Node's V8 coverage files in `folder`, for the project's own
     source files under `root` (the sandbox copy): a function counts as run when its outermost range ran."""
-    root = Path(root).resolve().as_posix().rstrip('/') + '/'
     files = {}
     for path in sorted(Path(folder).glob('*.json')):
-        try: scripts = json.loads(path.read_text(encoding='utf-8')).get('result') or []
-        except (OSError, ValueError): continue
+        scripts = read_json(path, {}).get('result') or []
         for script in scripts:
-            relative = _own_source(script, root)
+            relative = own(script.get('url') or '', root)
             if relative: _count_functions(files.setdefault(relative, {'functions': 0, 'functions_hit': 0}), script)
     return {path: {**row, 'percent': round(100 * row['functions_hit'] / row['functions'], 1) if row['functions'] else 100.0}
             for path, row in files.items()}
-
-
-def _own_source(script, root):
-    """The script's path relative to `root` when it is one of the project's own source files, else None."""
-    from ...core.contracts.vocabulary import classify
-    url = str(script.get('url') or '')
-    name = url[len('file://'):] if url.startswith('file://') else url
-    if not name.startswith(root) or '/node_modules/' in name: return None
-    relative = name[len(root):].split('?')[0]
-    return relative if classify(relative) == 'source' else None
 
 
 def _count_functions(row, script):

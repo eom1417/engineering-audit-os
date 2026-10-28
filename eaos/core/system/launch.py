@@ -21,6 +21,7 @@ from pathlib import Path
 from ... import __version__
 from ..project.places import home
 from .web import opened
+from ...core.system.files import read_json
 
 STARTUP = 15.0       # seconds `start` waits for the server it started to answer
 HEADLESS = 'EAOS_HEADLESS'   # set in the headless host (eaos/interfaces/govern.py) and the runs it starts: their steps open no Studio
@@ -54,8 +55,8 @@ def answers(record, timeout=2.0):
 def running(state):
     """The record of the project's live server when it is up and answering, else None (a stale record is removed)."""
     path = record_path(state)
-    try: record = json.loads(path.read_text(encoding='utf-8'))
-    except (OSError, ValueError): return None
+    record = read_json(path)
+    if record is None: return None
     if _alive(record.get('pid')) and answers(record): return record
     path.unlink(missing_ok=True)
     return None

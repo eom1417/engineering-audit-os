@@ -12,18 +12,17 @@ replays of the saved journeys. The judging of what the personas met is judging.p
 `app`: {'base': the copy's address, 'sessions': {kind of user: its browser state or None}, 'runtime': the run's folder
 or None (its database is seeded only then), 'database': the copy's SQLite file, if any}.
 """
-import json
 from contextlib import contextmanager
 from pathlib import Path
 
 from ...live.agent import Browser
 from ...live.experience import actor, cast, replay, second, seed, support
 from . import domain_data, judging, scenario as scenarios
+from ...core.system.files import read_json
 
 
 def _read(report, name):
-    try: return json.loads((Path(report) / 'experience' / name).read_text(encoding='utf-8'))
-    except (OSError, ValueError): return None
+    return read_json(Path(report) / 'experience' / name)
 
 
 def prepare(report, provider=None):

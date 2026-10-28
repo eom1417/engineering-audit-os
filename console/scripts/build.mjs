@@ -34,6 +34,7 @@ const fail = message => { console.error(message); process.exit(1); };
  *  title and what it does, each path's name, each kind of problem's name for one card. */
 const CATALOG = path.resolve(HERE, '../eaos/data/words.json');
 function catalogWords() {
+  // ast-grep-ignore: eaos.idiom.json-read -- the build's own Node program, apart from the Studio and the screens' scripts
   const catalog = JSON.parse(fs.readFileSync(CATALOG, 'utf8'));
   const table = {};
   for (const [id, stage] of Object.entries(catalog.stages)) { table[`ac.stage.${id}`] = stage.title; table[`ac.stage.${id}.does`] = stage.does; }

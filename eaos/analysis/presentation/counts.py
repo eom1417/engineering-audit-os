@@ -3,6 +3,11 @@ view counts on its own (eaos/analysis/presentation/model.py holds the problems, 
 """
 
 
+def measured(value, src):
+    """A count a view shows with the record it comes from; None when it was not measured (never a zero for unknown)."""
+    return {'value': value if isinstance(value, int) and value >= 0 else None, 'src': src, 'unit': 'count'}
+
+
 def remaining(items, shown):
     return max(0, len(items) - shown)
 

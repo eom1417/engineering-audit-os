@@ -8,6 +8,7 @@ from eaos.analysis.claims import from_old_engines
 from eaos.engines.code import ast_grep
 from eaos.facts.run import collect, read_available
 from eaos.live.testing import ran
+from eaos.engines.tool import version_of
 from shared_fixture import scratch
 
 APP = {
@@ -36,7 +37,7 @@ export function other() { return sharedStep() + helper(); }
 class TheCode(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        if ast_grep.version() != ast_grep.PINNED: raise unittest.SkipTest('ast-grep is not installed at its pin')
+        if version_of(ast_grep) != ast_grep.PINNED: raise unittest.SkipTest('ast-grep is not installed at its pin')
         cls.root, out = Path(scratch('eaos-old-')), Path(scratch('eaos-old-facts-'))
         for path, text in APP.items():
             (cls.root / path).parent.mkdir(parents=True, exist_ok=True)

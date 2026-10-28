@@ -5,8 +5,9 @@ from collections import Counter
 import json
 from pathlib import Path
 import re
-from ..core.project.workspace import read, write, load_run, fresh, safe_file, digest, now
+from ..core.project.workspace import read, write, load_run, fresh, safe_file, digest
 from ..core.contracts.vocabulary import classify
+from ..core.system.clock import now
 
 
 
@@ -55,7 +56,7 @@ def scan(path):
     if not fresh(state,inv)[0]:raise ValueError('Snapshot changed or incomplete; create a new run before discovery')
     records=[_observe_file(Path(state['target']),item) for item in inv['files']]
     if not fresh(state,inv)[0]:raise ValueError('Snapshot changed during scan; observations discarded')
-    result={'schema_version':1,'revision':state['revision'],'created_at':now(),'files':records,'counts':dict(Counter(r['parse_status'] for r in records)), 'limitations':['Static observations only. No architecture, responsibility or finding is inferred automatically.','Unsupported and blocked files remain in the review denominator.','Filename-based secret exclusion is not a comprehensive secret scanner. Do not upload unreviewed source packets.']}
+    result={'schema_version':1,'revision':state['revision'],'created_at':now('auto'),'files':records,'counts':dict(Counter(r['parse_status'] for r in records)), 'limitations':['Static observations only. No architecture, responsibility or finding is inferred automatically.','Unsupported and blocked files remain in the review denominator.','Filename-based secret exclusion is not a comprehensive secret scanner. Do not upload unreviewed source packets.']}
     write(run/'discovery.json',result)
     return result
 

@@ -38,9 +38,6 @@ def capabilities():
             Capability('coupling', f'gitnexus.fan_in>={FAN_IN}', granularity=FILE)]
 
 
-def version(): return tool.version(BINARY)
-
-
 def table(markdown):
     """Rows of the markdown table `gitnexus cypher` prints, as lists of cell strings."""
     lines = [line.strip() for line in (markdown or '').splitlines() if line.strip().startswith('|')]

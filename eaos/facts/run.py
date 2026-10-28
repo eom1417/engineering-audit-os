@@ -7,7 +7,7 @@ from .code import config, entrypoints, flows, graph, history, metrics, resolve, 
 from .dead_code import detect as deadcode
 from .domain import model as domain
 from . import engine_findings as external
-from .duplication import fingerprint, redundancy, sequences
+from .duplication import fingerprint, patterns, redundancy
 from .declared_pipelines import detect as pipeline
 from .runtime import operations as runtime
 from .repository import read as repository
@@ -15,14 +15,17 @@ from .source import Source
 from ..core import progress
 from .store import write_index, write_set
 from hashlib import sha256 as _sha256
+from ..core.system.files import read_json
+
+
 def digest(data): return _sha256(data).hexdigest()
 
 EXTRACTORS = {'history': history, 'syntax': syntax, 'structure': structure, 'resolve': resolve, 'entrypoints': entrypoints,
               'config': config, 'metrics': metrics, 'graph': graph, 'flows': flows, 'domain': domain,
-              'fingerprint': fingerprint, 'sequences': sequences, 'redundancy': redundancy, 'runtime': runtime,
+              'fingerprint': fingerprint, 'patterns': patterns, 'redundancy': redundancy, 'runtime': runtime,
               'leftovers': leftovers, 'deadcode': deadcode, 'broken': broken,
               'secrets': secrets, 'pipeline': pipeline, 'repository': repository}
-ORDER = ['syntax', 'resolve', 'structure', 'fingerprint', 'sequences', 'runtime', 'entrypoints', 'redundancy', 'config', 'metrics', 'domain', 'history', 'graph', 'flows', 'leftovers', 'deadcode', 'broken', 'secrets', 'pipeline', 'repository']
+ORDER = ['syntax', 'resolve', 'structure', 'fingerprint', 'patterns', 'runtime', 'entrypoints', 'redundancy', 'config', 'metrics', 'domain', 'history', 'graph', 'flows', 'leftovers', 'deadcode', 'broken', 'secrets', 'pipeline', 'repository']
 
 
 # Every fact set the tool can read, in one place. Three modules used to keep their own copy of
@@ -124,7 +127,7 @@ EXTRACTOR_ARGS = {
     'history': lambda produced, context: {'max_commits': context['max_commits']},
     'resolve': _resolve_args,
     'redundancy': _redundancy_args,
-    'structure': _symbols_or_none, 'fingerprint': _symbols_or_none, 'sequences': _symbols_or_none,
+    'structure': _symbols_or_none, 'fingerprint': _symbols_or_none,
     'runtime': _symbols_or_none, 'entrypoints': _symbols_or_none, 'metrics': _symbols_or_none,
     'flows': _flows_args,
     'graph': _graph_args,
@@ -146,8 +149,7 @@ def _checked_paths(target, out):
 
 def _load_cache(cache_path):
     if not cache_path.is_file(): return {}
-    try: return json.loads(cache_path.read_text(encoding='utf-8'))
-    except ValueError: return {}
+    return read_json(cache_path, {})
 
 
 def _run_extractor(name, target, source, produced, context):

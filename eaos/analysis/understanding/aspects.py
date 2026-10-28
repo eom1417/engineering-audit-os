@@ -14,8 +14,8 @@ aspect a verdict:
 
 Nothing here runs or measures; it only reads the records the stages wrote.
 """
-import json
 from pathlib import Path
+from ...core.system.files import read_json
 
 ASPECTS = ('structure', 'sustainability', 'canonical_homes', 'tests', 'journeys', 'performance', 'resilience',
            'security', 'observability', 'screens', 'findings')
@@ -37,8 +37,7 @@ LIMIT = {'rows': 8, 'members': 6}
 
 
 def _load(out, name, default=None):
-    try: return json.loads((Path(out) / name).read_text(encoding='utf-8'))
-    except (OSError, ValueError): return default
+    return read_json(Path(out) / name, default)
 
 
 def _verdict(verdict, why):

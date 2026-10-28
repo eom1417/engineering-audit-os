@@ -1,7 +1,7 @@
 // S-07 One problem with its evidence (PRB-06..10, PRB-15, PLN-05, FIX-01): why it matters, what the assistant
 // decided, where it is, the facts it rests on with their lines of code, its place in the plan, the other problems of the
 // same file and a note for whoever goes on after. Its sheet: one evidence fact (PRB-09).
-import { t, tn, L, num, esc, rich, icon, code, sev, chk, href, fmtWhen, sheet, act, refresh, toast, parseHash, offline, S, md, model, selection, client, ActionError } from 'eaos';
+import { ac, said, t, tn, L, num, esc, rich, icon, code, sev, chk, href, fmtWhen, sheet, act, refresh, toast, parseHash, offline, S, md, model, selection, client, rowWords, facts, titledBlock } from 'eaos';
 import { component, who, keepQuery, kindWord } from './shared.js';
 
 const enc = encodeURIComponent;
@@ -43,17 +43,17 @@ function decisionHTML(p) {
   const d = p.decision;
   if (d && d.state === 'fixes') {
     return `<div class="ai-block"><span class="ai-block__label">${icon('ai', 'icon--sm')}${t('ai.label')}</span>${md(L(d.text))}
-      <p class="small muted" style="margin-top:4px">${t('ai.hypothesis')}</p></div>`;
+      <p class="small muted mt-1">${t('ai.hypothesis')}</p></div>`;
   }
   if (d && d.state === 'asks') {
     const asked = model.decisions().find(x => x.id === d.decision);
     const saved = asked && asked.state === 'answered';
     const answer = saved && asked.saved ? asked.saved.label || asked.saved.text : '';
     return `<div class="ai-block"><span class="ai-block__label">${icon('ai', 'icon--sm')}${t('ai.label')}</span>
-      <p style="margin-top:4px">${esc(saved ? t('pd.decision.answered', { when: fmtWhen(asked.saved && asked.saved.at) }) : t('pd.decision.asks'))}</p>
-      <p class="small ink-2" style="margin-top:4px">${rich(L(d.question))}</p>
-      ${saved ? `<p style="margin-top:8px"><span class="tag tag--ok">${icon('check')}${esc(L(answer))}</span></p>`
-        : asked ? `<div class="actions" style="margin-top:8px"><a class="btn btn--secondary btn--sm" href="${href('/waiting/' + enc(asked.id))}">${t('pd.decision.answer')}</a></div>` : ''}</div>`;
+      <p class="mt-1">${esc(saved ? t('pd.decision.answered', { when: fmtWhen(asked.saved && asked.saved.at) }) : t('pd.decision.asks'))}</p>
+      <p class="small ink-2 mt-1">${rich(L(d.question))}</p>
+      ${saved ? `<p class="mt-2"><span class="tag tag--ok">${icon('check')}${esc(L(answer))}</span></p>`
+        : asked ? `<div class="actions mt-2"><a class="btn btn--secondary btn--sm" href="${href('/waiting/' + enc(asked.id))}">${t('pd.decision.answer')}</a></div>` : ''}</div>`;
   }
   return `<p class="small ink-2">${t('pd.decision.none')}</p>`;
 }
@@ -68,7 +68,7 @@ function planHTML(p, all) {
   return `<div class="planline"><b>${esc(k ? t('pd.plan.task', { step: step.id, k: num(k), n: num(ids.length) }) : t('pd.plan.step', { step: step.id }))}</b>
       ${step.gate ? `<span>${esc(t('pd.plan.gate', { gate: L(step.gate) }))}</span>` : ''}
       <span>${waitsFor ? t('pd.plan.waits.on', { id: `<a class="link" href="${href('/problems/' + enc(waitsFor.id))}">${code(waitsFor.id)}</a>` }) : t('pd.plan.waits')}</span></div>
-    <div class="actions" style="margin-top:12px"><a class="btn btn--secondary btn--sm" href="${href('/problems/plan/' + enc(step.id))}">${t('pd.plan.open')}</a></div>`;
+    <div class="actions mt-3"><a class="btn btn--secondary btn--sm" href="${href('/problems/plan/' + enc(step.id))}">${t('pd.plan.open')}</a></div>`;
 }
 
 function noteHTML(p) {
@@ -87,35 +87,39 @@ export function detailHTML(p, ctx) {
   const conf = confidence(p.confidence);
   const primary = (p.decision && p.decision.state === 'fixes') || (p.fixable && !p.needs_decision) ? 'fix' : 'explain';
   const verbs = ['fix', 'verify', 'explain', 'plan'].map(v => `<button class="btn ${v === primary ? 'btn--primary' : 'btn--secondary'}" data-act="sheet" data-sheet="${ctx.offline ? 'open-live' : `verb:${v}:${esc(p.id)}`}">${t('verb.' + v)}</button>`).join('');
-  const facts = (p.evidence || []).map(model.fact);
-  const known = facts.filter(Boolean);
+  const read = (p.evidence || []).map(model.fact);
+  const known = read.filter(Boolean);
   const evidence = known.length
-    ? `<div class="panel rows">${known.map((f, i) => factHTML(f, i === 0, known.slice(0, i))).join('')}</div>${facts.length > known.length ? `<p class="small muted" style="margin-top:8px">${esc(t('pd.ev.unread', { n: num(facts.length - known.length) }))}</p>` : ''}`
+    ? `<div class="panel rows">${known.map((f, i) => factHTML(f, i === 0, known.slice(0, i))).join('')}</div>${read.length > known.length ? `<p class="small muted mt-2">${esc(t('pd.ev.unread', { n: num(read.length - known.length) }))}</p>` : ''}`
     : `<p class="small muted">${t(p.evidence && p.evidence.length ? 'pd.ev.notloaded' : 'pd.ev.none')}</p>`;
   const places = p.paths.slice(0, 6).map(path => `<li class="place">${icon('file', 'icon--sm muted')}<bdi class="mono">${esc(path)}</bdi>
       <button class="btn btn--quiet btn--sm" data-act="sheet" data-sheet="impact:${esc(path)}">${t('pd.touches')}</button></li>`).join('')
-    + (p.paths.length > 6 ? `<li class="small muted" style="padding:8px 12px">${esc(tn('pl.file', p.paths.length - 6))} ${t('more')}</li>` : '');
+    + (p.paths.length > 6 ? `<li class="small muted pad-2-3">${esc(tn('pl.file', p.paths.length - 6))} ${t('more')}</li>` : '');
   return `<article class="pdetail" aria-labelledby="pd-title">
-    <a class="back" href="${href('/problems', keepQuery(parseHash().query))}">${icon('back', 'icon--dir')}${t('pd.back')}</a>
+    ${ac.back('/problems', t('pd.back'), keepQuery(parseHash().query))}
     <header class="pdetail__head">
       <div class="pdetail__tags">${sev(p.severity)}
         ${who(p) === 'you' ? `<span class="tag tag--you">${t('who.you')}</span>` : `<span class="tag tag--eaos">${t('who.eaos')}</span>`}
         <span class="tag tag--state">${t('state.' + p.state)}</span>${conf ? `<span class="tag tag--state">${t('pd.conf.' + conf)}</span>` : ''}${code(p.id)}</div>
       <h2 class="title" id="pd-title">${rich(L(p.title))}</h2>
       <div class="verbs">${verbs}</div>
-      <label class="small ink-2" style="display:inline-flex;align-items:center;gap:12px;margin-top:4px">${chk(`data-change="sel" value="${esc(p.id)}" data-fk="dsel-${esc(p.id)}"`, selection.picked.ids.has(p.id), t('pd.select'))}<span style="margin-inline-start:10px">${t('pd.select')}</span></label>
+      <label class="small ink-2 pick mt-1">${chk(`data-change="sel" value="${esc(p.id)}" data-fk="dsel-${esc(p.id)}"`, selection.picked.ids.has(p.id), t('pd.select'))}<span class="pick__label">${t('pd.select')}</span></label>
     </header>
     ${p.why ? `<section class="psec"><h2>${t('pd.why')}</h2><p>${rich(L(p.why))}</p></section>` : ''}
     <section class="psec" id="pd-decision"><h2>${t('pd.decision')}</h2>${decisionHTML(p)}</section>
     <section class="psec"><h2>${t('pd.where')}</h2><ul class="places">${places}</ul>
-      <dl class="facts" style="margin-top:12px"><dt>${t('pd.component')}</dt><dd>${code(component(p))}</dd><dt>${t('pd.area')}</dt><dd>${t('area.' + (p.category || 'none'))}</dd><dt>${t('pd.kind')}</dt><dd>${esc(kindWord(p.kind))}</dd></dl></section>
-    <section class="psec"><h2>${t('pd.evidence')} <span class="muted small">${facts.length ? esc(tn('pl.fact', facts.length)) : ''}</span></h2>${evidence}</section>
+      ${facts([
+          [t('pd.component'), code(component(p))],
+          [t('pd.area'), t('area.' + (p.category || 'none'))],
+          [t('pd.kind'), esc(kindWord(p.kind))],
+        ], 'mt-3')}</section>
+    <section class="psec"><h2>${t('pd.evidence')} <span class="muted small">${read.length ? esc(tn('pl.fact', read.length)) : ''}</span></h2>${evidence}</section>
     <section class="psec"><h2>${t('pd.plan')}</h2>${planHTML(p, all)}</section>
     <div class="panel">
-      <details class="fold"><summary><span class="row__main"><span class="row__title">${t('pd.same')}</span><span class="row__meta" style="display:block">${esc(tn('pl.problem', sameFile.length))}</span></span>${icon('chev', 'chev')}</summary>
+      <details class="fold"><summary>${rowWords(t('pd.same'), esc(tn('pl.problem', sameFile.length)))}${icon('chev', 'chev')}</summary>
         <div class="fold__body">${sameFile.length ? `<ul class="rows">${sameFile.map(x => `<li><a class="row" style="padding-inline:0" href="${href('/problems/' + enc(x.id))}">${sev(x.severity, false)}<span class="row__main small">${code(x.id)} ${rich(L(x.title))}</span></a></li>`).join('')}</ul>` : `<p class="small muted">${t('pd.same.none')}</p>`}</div></details>
-      <details class="fold" style="border-top:1px solid var(--line)" ${S.notes[p.id] ? 'open' : ''}><summary>${icon('note', 'muted')}<span class="row__main"><span class="row__title">${t('pd.note')}</span></span>${icon('chev', 'chev')}</summary>
-        <div class="fold__body" style="display:grid;gap:8px">${noteHTML(p)}</div></details>
+      <details class="fold" style="border-top:1px solid var(--line)" ${S.notes[p.id] ? 'open' : ''}><summary>${icon('note', 'muted')}${rowWords(t('pd.note'))}${icon('chev', 'chev')}</summary>
+        <div class="fold__body stack-2">${noteHTML(p)}</div></details>
     </div>
   </article>`;
 }
@@ -131,10 +135,13 @@ sheet('fact', {
       title: `${f.engine ? esc(f.engine) + ' ' : ''}${code(f.kind)}`,
       sub: code(id),
       body: `<p>${rich(L(f.summary))}</p>
-        <dl class="facts"><dt>${t('pd.kind')}</dt><dd>${code(f.kind)}</dd>${f.path ? `<dt>${t('pd.where')}</dt><dd>${code(f.path + (f.line != null ? ':' + f.line : ''))}</dd>` : ''}</dl>
+        ${facts([
+            [t('pd.kind'), code(f.kind)],
+            f.path ? [t('pd.where'), code(f.path + (f.line != null ? ':' + f.line : ''))] : '',
+          ])}
         ${f.code ? codeBlock(f.code) : `<p class="small muted">${noCode(f, [])}</p>`}
         ${others(f)}
-        <div><div class="block-title">${t('pd.ev.rests')}</div><div class="panel rows">${f.cards.map(c => { const p = model.problem(c); return p ? `<a class="row" href="${href('/problems/' + enc(c))}" data-act="go" data-href="${href('/problems/' + enc(c))}">${sev(p.severity, false)}<span class="row__main small">${code(c)} ${rich(L(p.title))}</span></a>` : ''; }).join('')}</div></div>`,
+        ${titledBlock(t('pd.ev.rests'), `<div class="panel rows">${f.cards.map(c => { const p = model.problem(c); return p ? `<a class="row" href="${href('/problems/' + enc(c))}" data-act="go" data-href="${href('/problems/' + enc(c))}">${sev(p.severity, false)}<span class="row__main small">${code(c)} ${rich(L(p.title))}</span></a>` : ''; }).join('')}</div>`)}`,
     };
   },
 });
@@ -153,6 +160,6 @@ act('note-save', async el => {
     toast(t('pd.note.saved'));
   } catch (e) {
     el.disabled = false;
-    toast(e instanceof ActionError ? e.message : String(e), { refusal: true });
+    toast(said(e), { refusal: true });
   }
 });

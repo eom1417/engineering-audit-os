@@ -33,8 +33,10 @@ class SampleTests(unittest.TestCase):
         for name, adapter in ADAPTERS.items():
             with self.subTest(engine=name):
                 self.assertEqual((adapter.__name__.rsplit('.', 1)[-1], importlib.import_module(adapter.__name__)), (name.replace('-', '_'), adapter))
-                for method in ('analyze', 'capabilities', 'version'):
+                for method in ('analyze', 'capabilities'):
                     self.assertTrue(callable(getattr(adapter, method, None)), f'{name} has no {method}')
+                # its version is read from its binary (tool.version_of), or by its own reader
+                self.assertTrue(callable(getattr(adapter, 'version', None)) or getattr(adapter, 'BINARY', None), f'{name} has no version reader')
                 pin = 'v' + tool.pinned(name) if name in TAGGED else tool.pinned(name)
                 self.assertEqual(adapter.PINNED, pin, 'the adapter and the registry pin one version')
                 if name not in UNSAMPLED:

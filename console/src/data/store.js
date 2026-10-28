@@ -5,16 +5,15 @@
 // progress of the work), which also tells the report's sections to reload. Listeners hear only real changes.
 import { ACTIVE, TERMINAL, client } from './actions.js';
 import { follow } from './sse.js';
-import { mode, reload } from './source.js';
+import { listeners, mode, reload } from './source.js';
 
 export const live = {
   loaded: false, runs: [], queue: [], questions: [], decisions: [], signIn: null, assistants: null, progress: null,
   freshness: null, context: null, feed: mode === 'live' ? 'connecting' : null, heard: null, last: null, version: null,
 };
-const listeners = new Set();
+const [onLive, tell] = listeners();
 /** `fn(what)` after a change: 'runs', 'progress', 'feed', 'assistants', 'freshness' or 'event' (live.last). */
-export function onLive(fn) { listeners.add(fn); return () => listeners.delete(fn); }
-const tell = what => listeners.forEach(fn => fn(what));
+export { onLive };
 
 /** The run holding the project's one slot (running, paused or waiting for the person), if any. */
 export const active = () => live.runs.find(r => ACTIVE.includes(r.state)) || null;

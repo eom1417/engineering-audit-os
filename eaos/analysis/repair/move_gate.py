@@ -22,6 +22,8 @@ from collections import Counter
 from pathlib import Path, PurePosixPath
 
 from .move_python import dotted
+from ...core.system.files import read_json
+from ...facts.repository.craft import normal_path
 
 PUBLISHED = ('This project publishes a package (pyproject [project] or package.json without "private"): a moved module '
              'keeps its names under a new import path, and code outside this repository that imports the old path breaks. '
@@ -49,8 +51,7 @@ def _entries(root):
     from ...facts.run import collect
     with tempfile.TemporaryDirectory(prefix='eaos-move-gate-') as out:
         collect(Path(root).resolve(), out, ['syntax', 'resolve', 'entrypoints'])
-        try: facts = json.loads((Path(out) / 'facts/entrypoints.json').read_text(encoding='utf-8'))['facts']
-        except (OSError, ValueError, KeyError): return []
+        facts = (read_json(Path(out) / 'facts/entrypoints.json') or {}).get('facts') or []
     rows = {(v.get('surface'), v.get('http_method'), v.get('route')) for v in (f.get('value') or {} for f in facts)
             if v.get('surface') in SURFACES and v.get('route')}
     return sorted(rows, key=str)
@@ -92,17 +93,9 @@ def _node_commands(text, folder):
     base = '' if folder in ('', '.') else folder + '/'
     binaries = data.get('bin') or {}
     binaries = {data.get('name') or 'bin': binaries} if isinstance(binaries, str) else binaries
-    out = {f'bin:{base}{name}': _normal(base + str(target)) for name, target in binaries.items()}
+    out = {f'bin:{base}{name}': normal_path(base + str(target)) for name, target in binaries.items()}
     out.update({f'npm:{base}{name}': name for name in (data.get('scripts') or {})})
     return out
-
-
-def _normal(path):
-    parts = []
-    for part in PurePosixPath(path).parts:
-        if part == '..' and parts: parts.pop()
-        elif part not in ('.', ''): parts.append(part)
-    return '/'.join(parts)
 
 
 def published(root, known):

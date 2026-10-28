@@ -223,7 +223,8 @@ def _foundations(cards, stack, look, standard):
 
 
 def _shell(cards, look, foundations):
-    """The app shell, the shared look and the one server client: the last foundation, after every other one."""
+    """The app shell, the shared look, the shared helpers and the one server client: the last foundation, after every
+    other one, so every module's screens start from one source per pattern (M15.9)."""
     tokens = ', '.join(f'{name} {value}' for name, value in (look.get('colors') or {}).items())
     return cards.add('M02', 'foundation', 'The app shell, the shared look and the one server client', None,
                      ['web/src/app/', 'web/src/ui/', 'web/src/api/'],
@@ -234,8 +235,12 @@ def _shell(cards, look, foundations):
                       'every screen uses the shared components in web/src/ui (' + ', '.join(look.get('components') or
                       ['buttons', 'inputs', 'forms', 'tables', 'messages']) + ')',
                       f"the one {look.get('theme') or 'light'} theme is design tokens in web/src/ui/theme.css" + (f' ({tokens})' if tokens else '')
-                      + (f" with the fonts {', '.join(look['fonts'])}" if look.get('fonts') else '') + '; no screen sets its own colour or font',
-                      'every call to the server goes through web/src/api'],
+                      + (f" with the fonts {', '.join(look['fonts'])}" if look.get('fonts') else '') + '; no colour, font size, spacing, radius, '
+                      'shadow or z-index is written outside it',
+                      'every call to the server goes through web/src/api, its loading and error state in one hook of web/src/lib',
+                      'dates and money are each formatted by one helper of web/src/lib; a pop-up, a card or a table used twice is '
+                      'one component of web/src/ui (one source per pattern: the check finds no near copy, no value of the look '
+                      'outside the tokens, no screen pattern and no way of working written three times)'],
                      ['web/src/ui/ui.test.tsx'], foundations)
 
 

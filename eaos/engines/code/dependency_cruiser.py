@@ -18,6 +18,7 @@ from pathlib import Path
 from .. import tool
 from ..contract import ERROR, FILE, OBSERVED, Report, finding, subject
 from ..process import run, which
+from ...core.system.files import read_json
 
 NAME = 'dependency-cruiser'
 BINARY = 'depcruise'
@@ -29,9 +30,6 @@ LAYERS = 'layers-depcruise.json'
 def capabilities():
     from ..contract import Capability
     return [Capability('cycle', 'no-circular', granularity=FILE), Capability('boundary', 'policy.deny', granularity=FILE)]
-
-
-def version(): return tool.version(BINARY)
 
 
 def glob_regex(pattern):
@@ -76,15 +74,13 @@ def _layer_rules(workdir):
     """The rules the layer map wrote for this check, or none."""
     path = Path(workdir) / LAYERS if workdir else None
     if not (path and path.is_file()): return []
-    try: return json.loads(path.read_text(encoding='utf-8'))
-    except ValueError: return []
+    return read_json(path, [])
 
 
 def _policy(policy):
     """What eaos.policy.json declares; {} when there is none or it is not JSON."""
     if not policy.is_file(): return {}
-    try: return json.loads(policy.read_text(encoding='utf-8'))
-    except ValueError: return {}
+    return read_json(policy, {})
 
 
 def cycles(summary):
@@ -142,10 +138,8 @@ def _findings(found, summary):
     return findings, seen
 
 
-def analyze(target, workdir, exclude=(), formats=None):
-    declined, found = tool.started(NAME, BINARY, target)
-    if declined: return declined
-    target = Path(target).resolve()
+@tool.engine(NAME, BINARY, shared=True)
+def analyze(target, workdir, exclude, formats, found):
     rules, declared = configuration(target, workdir)
     workdir = tool.folder(workdir, NAME)
     if exclude: rules['options']['exclude']['path'] += '|' + '|'.join(glob_regex(p).lstrip('^') for p in exclude)

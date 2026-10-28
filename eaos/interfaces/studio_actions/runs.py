@@ -26,8 +26,9 @@ from .lane_assistants import alive
 from .run_answers import Answers, holds_slot
 from .run_outcome import Outcomes
 from .run_turns import Turns
-from ...core.project.runs import RETRYABLE, TERMINAL, contract, now
+from ...core.project.runs import RETRYABLE, TERMINAL, contract
 from ...core.project import state as project_state
+from ...core.system.clock import now
 
 STUDIO = 'EAOS Studio'                      # eaos/interfaces/mcp_server/server.py STUDIO
 
@@ -80,8 +81,8 @@ class Manager(Turns, Answers, Outcomes):
             record = self.store.load(run)
             before = record.get('state')
             record.update(fields, state=to)
-            if to == 'running' and not record.get('started'): record['started'] = now()
-            if to in TERMINAL: record['ended'] = now()
+            if to == 'running' and not record.get('started'): record['started'] = now('milliseconds')
+            if to in TERMINAL: record['ended'] = now('milliseconds')
             # the event first: a stream that ends when it sees a final state has then already read its last event
             if before != to:
                 said = contract()['lifecycle']['states'][to]
@@ -356,13 +357,13 @@ class Manager(Turns, Answers, Outcomes):
         pid = record.get('pid') or self._job_pid(record)
         if not pid: raise LookupError('this step cannot be paused; it finishes in a moment')
         _signal(pid, signal.SIGSTOP)
-        return self.set_state(run, 'paused', paused_pid=pid, paused_at=now())     # resume keeps it a span the clocks leave out
+        return self.set_state(run, 'paused', paused_pid=pid, paused_at=now('milliseconds'))     # resume keeps it a span the clocks leave out
 
     def resume(self, run):
         record = self.store.load(run)
         if record.get('state') != 'paused': raise LookupError('only a paused run can be resumed')
         _signal(record.get('paused_pid') or record.get('pid'), signal.SIGCONT)
-        return self.set_state(run, 'running', 'resumed', paused_pid=None, paused_at=None, paused=(record.get('paused') or []) + [[record.get('paused_at') or now(), now()]])
+        return self.set_state(run, 'running', 'resumed', paused_pid=None, paused_at=None, paused=(record.get('paused') or []) + [[record.get('paused_at') or now('milliseconds'), now('milliseconds')]])
 
     def _job_pid(self, record):
         """The pid of a run's job; a direct run stopped before its job was known: the project's running one (one at a time)."""
@@ -383,7 +384,7 @@ class Manager(Turns, Answers, Outcomes):
         record = self.store.load(run)
         if record.get('state') not in RETRYABLE: raise LookupError('only a run that failed, was stopped or changed nothing can be tried again')
         record = self.set_state(run, 'queued', 'tried again', inputs={**(record.get('inputs') or {}), **({'go_on': True} if record.get('action') == 'audit' else {})}, attempt=(record.get('attempt') or 1) + 1, session=None, pid=None, job=None, resumes=0, usage=None,
-                                question=None, queued_at=now(), mode='assistant' if record.get('assistant') else record.get('mode'),
+                                question=None, queued_at=now('milliseconds'), mode='assistant' if record.get('assistant') else record.get('mode'),
                                 branches_before=None, waves_before=None)
         self.store.set_queue(self.store.queue())
         return record

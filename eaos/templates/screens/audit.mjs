@@ -11,12 +11,11 @@
 // {press: 'Control+k'}, {type: 'text'}, {click: 'css selector'} (its first visible match), {wait: ms}.
 // `viewports` and `variants` name the subset the page is audited in; `wait_for` is a selector to wait for
 // (config.wait_for for every page).
-import { readFileSync, mkdirSync } from 'node:fs';
+import { mkdirSync } from 'node:fs';
 import { join } from 'node:path';
-import { fromFolder, playwrightFrom } from './pinned.mjs';
+import { configured, fromFolder } from './pinned.mjs';
 
-const config = JSON.parse(readFileSync(process.argv[2], 'utf8'));
-const playwright = playwrightFrom(config.modules.playwright);
+const { config, playwright } = configured();
 const { AxeBuilder } = fromFolder(config.modules.axe)('@axe-core/playwright');
 
 const AXE_TAGS = ['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'wcag22a', 'wcag22aa'];
@@ -147,6 +146,31 @@ function trackingOf() {
     && hasText(el, (t) => /[؀-ۿ]/.test(t))).map(selector);
 }
 
+// Runs inside the page: the style census (M15.4), what the screen really shows whatever wrote it (CSS, Tailwind,
+// CSS-in-JS, inline styles): every visible element's computed colours, font size and family, spacing, radius, shadow
+// and stacking, each value counted. eaos/analysis/assessments/one_source_look.py groups near colours and reads the
+// sizes against one scale.
+function stylesOf() {
+  const { visible, all, hasText } = window.__eaosAudit;
+  const kinds = { color: {}, font_size: {}, font_family: {}, spacing: {}, radius: {}, shadow: {}, z_index: {} };
+  const add = (kind, value) => { if (value) kinds[kind][value] = (kinds[kind][value] || 0) + 1; };
+  const clear = (value) => !value || value === 'none' || value === 'auto' || value === 'normal' || /^rgba\(0, 0, 0, 0\)$|^0px$/.test(value);
+  for (const el of all()) {
+    if (!visible(el)) continue;
+    const s = getComputedStyle(el);
+    if (hasText(el, (t) => t.trim())) { add('color', s.color); add('font_size', s.fontSize); add('font_family', s.fontFamily.split(',')[0].trim()); }
+    if (!clear(s.backgroundColor)) add('color', s.backgroundColor);
+    if (parseFloat(s.borderTopWidth) > 0 && !clear(s.borderTopColor)) add('color', s.borderTopColor);
+    for (const side of ['paddingTop', 'paddingRight', 'paddingBottom', 'paddingLeft', 'marginTop', 'marginRight', 'marginBottom', 'marginLeft', 'rowGap', 'columnGap']) {
+      if (!clear(s[side])) add('spacing', s[side]);
+    }
+    if (!clear(s.borderTopLeftRadius)) add('radius', s.borderTopLeftRadius);
+    if (!clear(s.boxShadow)) add('shadow', s.boxShadow);
+    if (s.position !== 'static' && !clear(s.zIndex)) add('z_index', s.zIndex);
+  }
+  return kinds;
+}
+
 // Runs inside the page: its widths, scroll, direction, language, height and root attributes.
 function pageFacts(width) {
   const scroller = document.scrollingElement || document.documentElement;
@@ -178,6 +202,7 @@ async function measure(page, { phoneWidth, targetMin, viewportWidth }) {
     truncated: truncated.slice(0, 20), truncated_count: truncated.length,
     small_targets: small.slice(0, 30), small_target_count: small.length,
     arabic_tracking: tracking.slice(0, 10), arabic_tracking_count: tracking.length,
+    ...(viewportWidth > phoneWidth ? { styles: await page.evaluate(stylesOf) } : {}),   // once a page: its wide picture
   };
 }
 
@@ -197,6 +222,7 @@ function seedStorage(pairs) {
     for (const [key, value] of Object.entries(pairs)) {
       if (value && typeof value === 'object') {
         let held = {};
+        // ast-grep-ignore: eaos.idiom.json-read -- runs inside the checked app's page, where no module of EAOS can be imported
         try { held = JSON.parse(window.localStorage.getItem(key) || '{}') || {}; } catch {}
         window.localStorage.setItem(key, JSON.stringify({ ...(typeof held === 'object' ? held : {}), ...value }));
       } else window.localStorage.setItem(key, value);

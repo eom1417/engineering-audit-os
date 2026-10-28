@@ -22,7 +22,7 @@ def ledger(rows, settled=None):
 
 
 def _entry(loop, rows, settled):
-    state, behind = outcome(loop, rows) if all(name in rows for name in loop.stages) else ('running', [])
+    state, behind = _state(loop, rows)
     codes = [rows[name].get('reason_code') for name in behind]
     return {'loop': loop.name, 'name': _name(loop.name), 'state': state, 'rounds': settled.get('rounds', 1),
             'covered': [name for name in loop.stages if (rows.get(name) or {}).get('status') == 'ok'],
@@ -30,10 +30,21 @@ def _entry(loop, rows, settled):
             'big': state == NOT_MET or any(code not in CHOSEN for code in codes)}
 
 
+def _state(loop, rows):
+    """(the loop's state, the stages behind it: those its outcome names, then those that could not measure their ground)."""
+    state, behind = outcome(loop, rows) if all(name in rows for name in loop.stages) else ('running', [])
+    return state, behind + [name for name in _unmeasured(loop, rows) if name not in behind]
+
+
+def _unmeasured(loop, rows):
+    """The stages of `loop` that ran and said what they could not read (M15.0): a gap, never taken for clean."""
+    return [name for name in loop.stages if (rows.get(name) or {}).get('reason_code') == 'unmeasured']
+
+
 def _missed(loop, rows):
-    """The stages of `loop` that ended but not ok, with why."""
+    """The stages of `loop` that ended but not ok, or ok with ground they could not measure, with why."""
     return [{'stage': name, **{key: rows[name].get(key) for key in ('status', 'reason_code', 'reason')}}
-            for name in loop.stages if name in rows and rows[name].get('status') != 'ok']
+            for name in loop.stages if name in rows and (rows[name].get('status') != 'ok' or name in _unmeasured(loop, rows))]
 
 
 def _name(loop):

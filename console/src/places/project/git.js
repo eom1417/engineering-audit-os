@@ -1,12 +1,11 @@
 // What the branch pages and their confirm sheets share (builder A): what git says, read once per base and again after
 // any change (GET /api/branches, GET /api/branches/detail, the free merge preview), and the marks they draw a branch
 // and a confirm sheet with.
-import { t, L, num, esc, icon, code, href, refresh, rerenderSheet, local, act, chk, expiresAt, store, client, ActionError, ac } from 'eaos';
+import { said, t, L, num, esc, icon, code, href, refresh, rerenderSheet, local, act, chk, expiresAt, store, client, ac, skeletonRows } from 'eaos';
 
 export const enc = encodeURIComponent;
-export const said = e => (e instanceof ActionError ? e.message : String(e));
 export const reasonsOf = list => (list || []).map(r => L(r)).join(' ');
-export const projBack = () => `<a class="back" href="${href('/status', { sheet: 'project' })}">${icon('back', 'icon--dir')}${t('proj.title')}</a>`;
+export const projBack = () => ac.back('/status', t('proj.title'), { sheet: 'project' });
 
 /* ---------- what git says, read once per base and again after any change ---------- */
 export const inv = { base: null, data: null, reading: false, problem: null, details: {} };
@@ -101,7 +100,7 @@ export function ack(kind, text, on) { return `<label class="ack">${chk(`data-cha
 act('ac-ack', el => { local()['ack_' + el.dataset.kind] = el.checked; rerenderSheet(); });
 export const valid = c => (c ? `<p class="sheet__fine">${esc(t('cf.valid', { time: expiresAt(c.expires) }))}</p>` : '');
 export const alert = text => (text ? `<p class="small" role="alert" style="color:var(--danger)">${icon('warn', 'icon--sm')} ${esc(text)}</p>` : '');
-export const loadingRows = () => `<ul class="panel rows section">${[1, 2, 3].map(() => `<li class="row"><span style="flex:1;display:grid;gap:8px"><span class="skel-line" style="width:45%"></span><span class="skel-line" style="width:70%"></span></span></li>`).join('')}</ul>`;
+export const loadingRows = () => skeletonRows(3, [45, 70], { cls: 'section' });
 /** A sheet's one closing button: `word` is close or cancel. */
 export const closeFoot = word => `<button class="btn btn--secondary btn--block" data-act="sheet-close" data-autofocus>${t(word)}</button>`;
 /** While the free preview is asked: why it could not be, or that it is being asked. */

@@ -6,11 +6,12 @@ The journeys save it through eaos/journeys/guided/ save, which first tidies the 
 """
 import json
 import os
-from datetime import datetime, timezone
 from pathlib import Path
 
 from .branches import suffix
 from .places import home, workspace
+from ...core.system.files import read_json
+from ...core.system.clock import now
 
 FILE = 'state.json'
 # A folder with one of these is a project; the person's home and a drive's root never are.
@@ -25,14 +26,13 @@ def load(project):
 
 def of_workspace(folder):
     """The state kept in an EAOS workspace folder, or None (none there, or one that does not read)."""
-    try: return json.loads((Path(folder) / FILE).read_text(encoding='utf-8'))
-    except FileNotFoundError: return None
+    return read_json(Path(folder) / FILE)
 
 
 def write(state):
     """The state written whole, stamped: an assistant beside it never reads half of it."""
     (where := Path(state['workspace'])).mkdir(parents=True, exist_ok=True)
-    state['updated'] = datetime.now(timezone.utc).isoformat(timespec='seconds')
+    state['updated'] = now()
     (new := where / f'.state-{os.urandom(4).hex()}.json').write_text(json.dumps(state, ensure_ascii=False, indent=1) + '\n', encoding='utf-8')
     new.replace(where / FILE)
 
@@ -41,9 +41,8 @@ def every():
     """Every project's state on this computer that reads, in the order of their folders."""
     out = []
     for record in sorted((home() / 'projects').glob(f'*/{FILE}')):
-        try: out.append(json.loads(record.read_text(encoding='utf-8')))
-        except (OSError, ValueError): continue
-    return out
+        out.append(read_json(record))
+    return [row for row in out if row is not None]
 
 
 def looks_like_project(folder):

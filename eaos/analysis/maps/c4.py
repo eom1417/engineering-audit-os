@@ -10,19 +10,13 @@ architecture/*/diagram.mmd           the component view as a Mermaid flowchart, 
 The model is text EAOS writes; no Structurizr library or CLI is used (the person may render the workspace with
 their own). Names are the records' names, quoted and escaped; identifiers are generated, so none is named twice.
 """
-import json
 import re
 from pathlib import Path
-
+from ...core.system.files import read_json
 
 
 def quote(text):
     return '"' + str(text).replace('\\', '\\\\').replace('"', '\\"') + '"'
-
-
-def _load(path, default):
-    try: return json.loads(Path(path).read_text(encoding='utf-8'))
-    except (OSError, ValueError): return default
 
 
 def _stack(target):
@@ -159,9 +153,9 @@ def write(report):
     """Write both models; returns the files written. Nothing is written without a target record.
     Beside them, architecture/system.mmd: pages, APIs, server handlers and data (eaos/analysis/maps/system.py)."""
     report = Path(report)
-    target = _load(report / 'target-architecture.json', None)
+    target = read_json(report / 'target-architecture.json')
     if not target: return []
-    project = ((_load(report / 'dossier.json', {}) or {}).get('provenance') or {}).get('target') or report.name
+    project = ((read_json(report / 'dossier.json', {}) or {}).get('provenance') or {}).get('target') or report.name
     project = Path(project).name
     externals = _externals(report)
     written = []

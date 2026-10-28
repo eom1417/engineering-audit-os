@@ -49,9 +49,6 @@ def capabilities():
             + [Capability('dataflow', f'reforge.dataflow.{rule}') for rule in FLOW_RULES])
 
 
-def version(): return tool.version(BINARY)
-
-
 def _configuration(exclude):
     enabled = [f'reforge.codebase.{rule}' for rule in RULES] + [f'reforge.dataflow.{rule}' for rule in FLOW_RULES]
     ignored = ''.join(f'  "{pattern}",\n' for pattern in exclude)
@@ -132,7 +129,7 @@ def _coverage(report):
 
 
 def analyze(target, workdir, exclude=(), formats=None):
-    found = version()
+    found = tool.version(BINARY)
     if found is None:
         return Report(NAME, None, PINNED, UNAVAILABLE, reason='reforge is not installed')
     code, error, seconds, report_path = _run_report(target, workdir, exclude)

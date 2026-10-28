@@ -13,7 +13,7 @@
 </p>
 
 <p align="center">
-  <a href="CHANGELOG.md"><img alt="الإصدار 0.0.87" src="https://img.shields.io/badge/version-0.0.87-3987e5"></a>
+  <a href="CHANGELOG.md"><img alt="الإصدار 0.0.88" src="https://img.shields.io/badge/version-0.0.88-3987e5"></a>
   <img alt="الحالة: تجريبي" src="https://img.shields.io/badge/status-pilot-f2a33a">
   <img alt="Python 3.10+" src="https://img.shields.io/badge/python-3.10%2B-3776ab">
   <a href="LICENSE"><img alt="الرخصة: MIT" src="https://img.shields.io/badge/license-MIT-2ea44f"></a>
@@ -282,7 +282,7 @@ TASK-001  7 دوال منسوخة كاملة باختلاف الأسماء فق�
 | التعقيد والتكرار والكود الميت | Lizard · jscpd · scc · knip، مع عدّ EAOS الخاص |
 | الأمان والمكتبات | Semgrep وقواعده · Bandit · Gitleaks · CodeQL¹ · OSV-Scanner · Syft · Trivy · Checkov |
 | العقود والبيانات | Spectral · oasdiff · SQLFluff · Schemathesis · مستشارو Supabase CLI · pgTAP |
-| تطبيقك وهو يعمل | Playwright · rrweb · Lighthouse · axe-core · css-analyzer · pytest · k6 · Mailpit (يلتقط بريد التطبيق) |
+| تطبيقك وهو يعمل | Playwright · rrweb · Lighthouse · axe-core · pytest · k6 · Mailpit (يلتقط بريد التطبيق) |
 | التغييرات الآلية | jscodeshift، مع أداة النقل الخاصة بـ EAOS |
 | التصميم (شكل البناء أو إعادة التصميم) | UI UX Pro Max · awesome-design-md · tweakcn themes · frontend-design من Anthropic؛ ويأخذ التطبيق المبني shadcn/ui وFontsource |
 

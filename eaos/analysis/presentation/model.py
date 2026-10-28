@@ -47,7 +47,6 @@ A priority (eaos/analysis/planning/ranking.py: reach x confidence x origin / cos
 in words: "very high, in the top 7%". The raw value is kept in a data attribute, not in the text.
 The counts and scales the views show beside them are in eaos/analysis/presentation/counts.py.
 """
-import json
 import math
 from pathlib import Path
 
@@ -59,12 +58,22 @@ from .counts import (all_card_count, architecture_counts, collection_count, dens
                      system_counts, unparsed_count)
 from .counts import drill_counts, system_details
 from ..planning.ranking import CONFIDENCE_WEIGHT
+from ...core.system.files import read_json
 
 # The language of a source file by its suffix: the Studio's languages bar and the coverage of function facts.
 LANGUAGES = {'.py': 'Python', '.ts': 'TypeScript', '.tsx': 'TypeScript', '.js': 'JavaScript', '.jsx': 'JavaScript',
              '.mjs': 'JavaScript', '.cjs': 'JavaScript', '.go': 'Go', '.rb': 'Ruby', '.java': 'Java', '.kt': 'Kotlin',
              '.cs': 'C#', '.php': 'PHP', '.rs': 'Rust', '.swift': 'Swift', '.vue': 'Vue', '.svelte': 'Svelte',
              '.sql': 'SQL', '.dart': 'Dart', '.scala': 'Scala', '.c': 'C', '.cpp': 'C++', '.h': 'C'}
+
+
+def language_counts(rows):
+    """{language: facts} of fact rows, each by the suffix of its file (LANGUAGES); a file of no known language aside."""
+    counts = {}
+    for row in rows:
+        name = LANGUAGES.get(Path(str((row.get('location') or {}).get('path') or '')).suffix.lower())
+        if name: counts[name] = counts.get(name, 0) + 1
+    return counts
 
 SEVERITIES = ('critical', 'high', 'medium', 'low')
 SEVERITY_WEIGHT = {'critical': 10, 'high': 5, 'medium': 2, 'low': 1}
@@ -84,7 +93,7 @@ PATTERNS = {
     'untested_path': ('maintainability', 'medium'), 'generic': ('maintainability', 'medium'),
     'design_review': ('ux', 'medium'), 'investigation': ('maintainability', 'low'),
     'repository_craft': ('maintainability', 'low'), 'real_data': ('security', 'high'),
-    'old_engine': ('quality', 'medium'), 'data_keeping': ('performance', 'medium'),
+    'old_engine': ('quality', 'medium'), 'data_keeping': ('performance', 'medium'), 'one_source': ('maintainability', 'medium'),
 }
 CATEGORY_AREA = {'security': 'security', 'supply_chain': 'security', 'architecture': 'structure', 'data': 'structure',
                  'dead_code': 'quality', 'reliability': 'maintainability', 'maintainability': 'maintainability'}
@@ -98,11 +107,6 @@ GRADES = ((90, 'excellent'), (75, 'good'), (60, 'fair'), (40, 'weak'), (0, 'crit
 CLOSED = ('done',)
 # eaos/core/project/ledger.py; 'resolved' is an older ledger's state (a problem no longer found), counted nowhere and shown nowhere.
 CARD_STATES = ('done', 'resolved', 'on_branch', 'in_batch', 'open', 'skipped')
-
-
-def _load(path, default):
-    try: return json.loads(Path(path).read_text(encoding='utf-8'))
-    except (OSError, ValueError): return default
 
 
 def classify(task, debt=None, category=None):
@@ -119,8 +123,8 @@ def classify(task, debt=None, category=None):
 
 def _ledger(report):
     """({claim id: claim}, {claim id: debt register item}) of a report."""
-    dossier = _load(report / 'dossier.json', {}) or {}
-    register = _load(report / 'debt-register.json', {}) or {}
+    dossier = read_json(report / 'dossier.json', {}) or {}
+    register = read_json(report / 'debt-register.json', {}) or {}
     return ({c.get('id'): c for c in dossier.get('claims') or [] if isinstance(c, dict)},
             {i.get('claim_id'): i for i in register.get('items') or [] if isinstance(i, dict) and i.get('claim_id')})
 
@@ -128,7 +132,7 @@ def _ledger(report):
 def problems(report):
     """One row per plan card, with its area, severity, confidence and plain words."""
     report = Path(report)
-    plan = _load(report / 'plan.json', {}) or {}
+    plan = read_json(report / 'plan.json', {}) or {}
     ledger = _ledger(report)
     rows = [_row_of(task, task.get('claim_id'), ledger) for task in plan.get('tasks') or [] if isinstance(task, dict)]
     ranked = sorted((r['priority'] for r in rows), reverse=True)
@@ -141,7 +145,7 @@ def problems(report):
 def accepted_risks(report):
     """The security cards the assistant closed, as problem rows of the score only (module docstring)."""
     report = Path(report)
-    closed = [c for c in (_load(report / 'cards.json', {}) or {}).get('closed') or [] if isinstance(c, dict)]
+    closed = [c for c in (read_json(report / 'cards.json', {}) or {}).get('closed') or [] if isinstance(c, dict)]
     ledger = _ledger(report) if closed else ({}, {})
     rows = [_row_of({'id': c.get('card'), 'title': c.get('title')}, c.get('claim_id'), ledger) for c in closed]
     return [{**row, 'accepted': True} for row in rows if row['area'] == 'security']
@@ -175,7 +179,7 @@ def _problem_row(task, claim, item):
 
 
 def stage_status(report):
-    manifest = _load(Path(report) / 'run-manifest.json', {}) or {}
+    manifest = read_json(Path(report) / 'run-manifest.json', {}) or {}
     return {name: (row or {}).get('status') for name, row in (manifest.get('stages') or {}).items()}
 
 
@@ -231,17 +235,17 @@ def _area_score(area, rows, size, measured):
 def records(report, progress=None):
     """Every record the views read, with the cards and the score computed once."""
     report = Path(report)
-    dossier = _load(report / 'dossier.json', {}) or {}
+    dossier = read_json(report / 'dossier.json', {}) or {}
     rows = problems(report)
     statuses = stage_status(report)
     coverage = dossier.get('coverage') or {}
-    plan = _load(report / 'plan.json', {}) or {}
+    plan = read_json(report / 'plan.json', {}) or {}
     known = isinstance(plan.get('tasks'), list)
-    target = _load(report / 'target-architecture.json', {}) or {}
+    target = read_json(report / 'target-architecture.json', {}) or {}
     return {'rows': rows, 'statuses': statuses, 'coverage': coverage,
             'score': score(rows + accepted_risks(report), coverage.get('source_files'), statuses, known), 'plan': plan, 'target': target,
-            'gap_matrix': {'rows': target.get('gap_matrix') or []}, 'manifest': _load(report / 'run-manifest.json', {}) or {},
-            'dossier': dossier, 'progress': progress or {}, 'layers': _load(report / 'layers.json', None)}
+            'gap_matrix': {'rows': target.get('gap_matrix') or []}, 'manifest': read_json(report / 'run-manifest.json', {}) or {},
+            'dossier': dossier, 'progress': progress or {}, 'layers': read_json(report / 'layers.json')}
 
 
 # ---------------------------------------------------------------- progress: the ledger and every task card

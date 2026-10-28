@@ -16,6 +16,7 @@ from eaos.engines.code import ast_grep, knip, lizard, react_docgen
 from eaos.engines import tool
 from eaos.engines.contract import OBSERVED, UNAVAILABLE
 from eaos.engines.process import run, which
+from eaos.engines.tool import version_of
 
 CONTRACTS = Path(__file__).resolve().parents[1] / 'contracts'
 FIXTURE = Path(__file__).resolve().parents[1] / 'fixtures/code_engines'
@@ -27,7 +28,7 @@ def sample(name):
 
 
 def installed(module):
-    return module.version() == module.PINNED
+    return version_of(module) == module.PINNED
 
 
 def rules_of(report):
@@ -39,7 +40,7 @@ class EveryEngineTests(Workspace):
         # registered, pinned and sampled: test_engine_contracts, for every engine
         with mock.patch.object(tool, 'which', return_value=None):
             for name, module in ENGINES.items():
-                self.assertIsNone(module.version(), name)
+                self.assertIsNone(version_of(module), name)
                 report = module.analyze(FIXTURE, Path(self.tmp) / 'work')
                 self.assertEqual(report.status, UNAVAILABLE, name)
                 self.assertIn(f'--only {name}', report.reason)

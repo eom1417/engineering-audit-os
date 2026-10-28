@@ -8,11 +8,23 @@ import subprocess
 import tempfile
 import os
 import signal
+import sys
 from ...core.contracts.decisions import check_errors
 
 
 SKIPPED = {'.git', '.venv', '__pycache__', 'node_modules'}
 _FINGERPRINTS = {}
+
+
+def recheck(prefix, test, engines=()):
+    """The argv of a card's check, bound to `cwd='.'` (the changed copy): its facts collected into a private folder (with
+    `engines`), then `test`, Python lines that read them under `tmp` and exit 0 only when the candidate is gone."""
+    asked = ''.join(f', {word!r}' for word in ('--engines', *engines)) if engines else ''
+    code = ("import json, subprocess, sys, tempfile\n"
+            f"holder = tempfile.TemporaryDirectory(prefix={prefix!r}); tmp = holder.name\n"
+            f"r = subprocess.run([sys.executable, '-m', 'eaos', 'facts', '.', '--out', tmp{asked}])\n"
+            "if r.returncode: sys.exit(r.returncode)\n" + test)
+    return [sys.executable, '-B', '-c', code]
 
 
 def _files(root):

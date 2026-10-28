@@ -16,6 +16,7 @@ Branches page writes it). This module reads git, the state and that policy only;
 import re
 import subprocess
 from pathlib import Path
+from ...core.system.files import read_json
 
 NOT_THE_PERSONS = ('eaos/', 'dependabot/', 'renovate/', 'snyk-', 'greenkeeper/', 'gh-pages', 'HEAD')
 # Branches kept only for the record: never a choice of where the work goes on.
@@ -280,9 +281,9 @@ def policy(project, default=None):
     """{protected: {name: reason}, saved: {...}}: the remote's default branch, main and master, every branch the project's
     policy protects, minus the ones the owner explicitly unprotected; EAOS's own main always."""
     from .places import workspace
-    from .runs import _read_json
+
     default = default or remote_default(project)
-    saved = _read_json(workspace(project) / 'runs' / POLICY, {}) or {}
+    saved = read_json(workspace(project) / 'runs' / POLICY, {}) or {}
     protected = {}
     if default['name']: protected[default['name']] = _words(f"the default branch ({default['source']})", f"الفرع الافتراضي ({default['source']})", 'default')
     for name in MAIN_NAMES:

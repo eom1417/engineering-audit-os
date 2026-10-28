@@ -25,6 +25,7 @@ from collections import defaultdict
 from pathlib import Path
 
 from ...analysis.maps import architecture as arch_map
+from ...core.system.files import read_json
 
 LANES = ('hosting', 'ci', 'environments', 'databases', 'queues', 'services', 'observability')
 RELATION = {'hosting': 'deployed_to', 'ci': 'built_by', 'environments': 'configured_by', 'databases': 'stores_in',
@@ -77,7 +78,8 @@ def _measure(value, src, unit='count'):
     return {'value': value, 'src': src, 'unit': unit}
 
 
-def _site(fact):
+def site_of(fact):
+    """Where a fact is: its file, line and id, as the Studio's maps cite it."""
     location = fact.get('location') or {}
     return {'path': location.get('path') or '', 'line': location.get('start_line'), 'fact': fact.get('id')}
 
@@ -108,7 +110,7 @@ class _Lanes:
                                                   'items': [], 'sites': [], 'evidence': 0})
         if fact is not None:
             entry['evidence'] += 1
-            if len(entry['sites']) < SHOWN: entry['sites'].append(_site(fact))
+            if len(entry['sites']) < SHOWN: entry['sites'].append(site_of(fact))
         for key, value in (more.get('detail') or {}).items(): _merge(entry['detail'], key, value)
         item = more.get('item')
         if item and item not in entry['items']: entry['items'].append(item)
@@ -228,7 +230,7 @@ def _tables(report, lanes, live):
     keys = {str((f.get('value') or {}).get('name') or '').lower() for f in tables if not (f.get('value') or {}).get('dropped')}
     node = lanes.add('databases', ('db:schema', 'Tables declared in code', 'schema'), None,
                      detail={'tables': len(keys), 'row_level_security': _row_level_security(tables, keys)})
-    for fact in tables[:SHOWN]: node['sites'].append(_site(fact))
+    for fact in tables[:SHOWN]: node['sites'].append(site_of(fact))
     node['evidence'] = len(tables)
 
 
@@ -303,7 +305,7 @@ def infra(report, lang='ar'):
     for read in (_hosting, _ci, _environments, _hosts, _supabase_calls, _packages, _tables, _databases, _observability):
         read(report, lanes, live)
     out_lanes = [_lane(lane, lanes) for lane in LANES]
-    record = arch_map._load(report / 'target-architecture.json', {}) or {}
+    record = read_json(report / 'target-architecture.json', {}) or {}
     target = _target(record) if record else None
     total = sum(len(lanes.nodes[lane]) for lane in LANES)
     return {

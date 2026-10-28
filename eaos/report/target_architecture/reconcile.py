@@ -6,6 +6,7 @@ from pathlib import Path
 
 from .decisions import decisions
 from .gaps import current_gap
+from ...core.system.files import read_json
 
 # The ideal planner's operations as the target's relations; "new" names no component of today's code.
 RELATION_OF = {'retain': 'retain', 'refactor': 'modify', 'merge': 'modify', 'rebuild': 'rebuild', 'delete': 'delete'}
@@ -21,36 +22,28 @@ def protected_paths(out, policy_path=None):
     from fnmatch import fnmatch
     out = Path(out)
     files = _critical_files(out)
-    policy = _load(policy_path) if policy_path else {}
+    policy = read_json(policy_path, {}) if policy_path else {}
     globs = [g for paths in (policy.get('layers') or {}).values() for g in paths or []]
     return lambda path: path in files or any(fnmatch(path, g) for g in globs)
 
 
-def _load(path):
-    """A JSON record; {} when it is missing or broken."""
-    import json
-    try: return json.loads(Path(path).read_text(encoding='utf-8'))
-    except (OSError, ValueError): return {}
-
-
 def _critical_names(out):
     """The features the owner named critical in the intake's answer."""
-    named = {q.get('id'): q.get('answer') for q in _load(out / 'intake.json').get('questions') or [] if isinstance(q, dict)}
+    named = {q.get('id'): q.get('answer') for q in read_json(out / 'intake.json', {}).get('questions') or [] if isinstance(q, dict)}
     return set(named.get('critical_features') or []) if isinstance(named.get('critical_features'), list) else set()
 
 
 def _critical_files(out):
     """The files of the critical features: marked so in features.json, or named in the intake."""
     critical = _critical_names(out)
-    return {f for feature in _load(out / 'features.json').get('features') or [] if isinstance(feature, dict)
+    return {f for feature in read_json(out / 'features.json', {}).get('features') or [] if isinstance(feature, dict)
             and (feature.get('critical') or feature.get('name') in critical) for f in feature.get('files') or []}
 
 
 def _view(out):
     """The system view of this check's planned ideal, with the departures that say why: ([elements], {id: why})."""
-    import json
-    try: record = json.loads((Path(out) / 'ideal/plan.json').read_text(encoding='utf-8'))
-    except (OSError, ValueError): return [], {}
+    record = read_json(Path(out) / 'ideal/plan.json')
+    if record is None: return [], {}
     ideal = record.get('ideal') or {}
     because = {str(d.get('element')): d.get('because') for d in ideal.get('departures') or []
                if isinstance(d, dict) and d.get('view') == 'system'}
@@ -142,11 +135,9 @@ def _added(elements, known, because):
 def _redraw_gaps(out, record, current):
     """The gap rows of today's components drawn again from their final relation, the confirmed cards and the claims
     the triage did not set aside; the rows of introduced components stay as proposed."""
-    import json
     out = Path(out)
     def load(name, default):
-        try: return json.loads((out / name).read_text(encoding='utf-8'))
-        except (OSError, ValueError): return default
+        return read_json(out / name, default)
     aside = {row.get('claim_id') for row in load('cards.json', {}).get('set_aside') or []}
     claims = [c for c in load('dossier.json', {}).get('claims', []) if c.get('id') not in aside]
     tasks = load('plan.json', {}).get('tasks', [])
@@ -171,9 +162,7 @@ def _elements_on(elements, known):
 
 def _set_aside(out):
     """The cards and claims the triage set aside (cards.json)."""
-    import json
-    try: set_aside = json.loads((Path(out) / 'cards.json').read_text(encoding='utf-8')).get('set_aside') or []
-    except (OSError, ValueError): set_aside = []
+    set_aside = (read_json(Path(out) / 'cards.json') or {}).get('set_aside') or []
     return {row.get(key) for row in set_aside for key in ('card', 'claim_id') if row.get(key)}
 
 

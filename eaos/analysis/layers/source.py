@@ -1,6 +1,5 @@
 """What every layer check reads of one project, read once: its files by kind, their imports, its resolved import edges
 and its packages, from the facts of the check (syntax, resolve) and the project's own files."""
-import json
 import re
 from collections import defaultdict
 from functools import cached_property
@@ -8,6 +7,7 @@ from pathlib import Path
 
 from ...core.contracts.vocabulary import classify
 from ...facts.store import read_set
+from ...core.system.files import read_json
 
 TYPE_ONLY = re.compile(r'^\s*(import|export)\s+type\b')
 LIMIT = 400_000          # characters of one file a check reads: a larger file is generated or data
@@ -90,8 +90,7 @@ class Project:
         """The names in every package.json of the project (its root and the app folders)."""
         names = set()
         for manifest in [self.root / 'package.json', *self.root.glob('*/package.json'), *self.root.glob('apps/*/package.json')]:
-            try: data = json.loads(manifest.read_text(encoding='utf-8'))
-            except (OSError, ValueError): continue
+            data = read_json(manifest, {})
             names |= set(data.get('dependencies') or {}) | set(data.get('devDependencies') or {})
         return names
 

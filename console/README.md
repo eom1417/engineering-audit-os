@@ -45,6 +45,8 @@ src/core/                       the runtime every place shares (one bundle)
   assist.js      the floating assistant (the conversation itself comes from the Ask place: EAOS.askAPI)
   marks.js       the marks several places draw (EAOS.ac): a state's glyph and word, times, money, the runs
   markdown.js    Markdown an assistant writes, drawn without a library and escaped
+  parts.js       the parts every screen repeats, written once: a page's opening, a section, a row's words, a switch,
+                 a radio option, a list of facts, the loading rows… (their look: css/parts.css)
   i18n.js prefs.js settings.js format.js notices.js events.js state.js outline.js loading.js a11y.js
 src/data/                       the data layer: the report, the live API and its feed
   source.js      the report's sections: live API or the read-only copy's .js twins; need(), section(), reload()
@@ -58,7 +60,8 @@ src/data/                       the data layer: the report, the live API and its
 src/places/<place>/             one bundle per place (status, waiting, problems, plan, activity, project, ask, open,
                                 report); src/places/kit/ the helpers several places share
 src/words/<file>.js             the dictionary: every key as [Arabic, English]
-src/css/                        tokens.css, core.css (shell and the lead's screens), activity.css (A), places.css (B)
+src/css/                        tokens.css (every colour, size, space, radius, shadow and layer), core.css (shell and the
+                                lead's screens), activity.css (A), places.css (B), parts.css (the shared parts, spacing)
 src/fonts/                      IBM Plex Sans Arabic and IBM Plex Mono (OFL-1.1, its licence beside them)
 scripts/build.mjs               the build and its budgets
 tools/                          checks of a served console (below)

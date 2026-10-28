@@ -1,7 +1,6 @@
 """The user commands of the guided way in, each ending with the next-step box, and the steps `eaos next` walks."""
 import json
 import shutil
-from datetime import datetime, timezone
 from pathlib import Path
 
 from ...core.project import branches
@@ -13,6 +12,7 @@ from .doctor import doctor, doctor_rows
 from .person import Declined, NeedsAnswer, box, explain, say, show_error
 from .project import RESUME, language, log_failure, outputs, report_of, save, scan_done
 from .running import fix, fix_done, ready, ready_done, safety, safety_done
+from ...core.system.clock import now
 
 
 
@@ -87,7 +87,7 @@ def start(args):
     if not project.is_dir(): raise ValueError(f'project folder not found: {project}')
     if not looks_like_project(project): raise ValueError(f'not a project folder: {project}')
     state = load(project) or {'schema_version': 1, 'project': str(project), 'workspace': str(workspace(project)),
-                              'started': datetime.now(timezone.utc).isoformat(timespec='seconds'), 'questions': []}
+                              'started': now(), 'questions': []}
     state['lang'] = language(args.lang, state if not args.lang else None)
     save(state)
     _keep_assistant(state, getattr(args, 'assistant', None))

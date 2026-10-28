@@ -3,7 +3,6 @@ and the inbox (decisions), each built from the one model (eaos/analysis/presenta
 and what was not measured is null, never 0."""
 import hashlib
 import json
-from pathlib import Path
 
 from ...core.contracts import owner_share
 from ...facts.store import facts as facts_of
@@ -17,7 +16,6 @@ from . import inbox
 from ...ai.nodes import view as ai_nodes
 from ...analysis.presentation import model as M
 
-LANGUAGES = M.LANGUAGES
 LANGUAGES_SHOWN = ('ar', 'en')     # the Studio's two languages: a sentence written for both, shown in the person's
 SEVERITY_OF_CONFIDENCE = {'CONFIRMED': 1.0, 'LIKELY': 0.7, 'HYPOTHESIS': 0.4}
 TASK_STATE = {'done': 'done', 'resolved': 'done', 'on_branch': 'active', 'in_batch': 'active', 'open': 'todo',
@@ -43,16 +41,8 @@ def _in(lang, ar, en):
     return ar if lang == 'ar' else en
 
 
-def _language_counts(nodes):
-    counts = {}
-    for row in nodes:
-        name = LANGUAGES.get(Path(str((row.get('location') or {}).get('path') or '')).suffix.lower())
-        if name: counts[name] = counts.get(name, 0) + 1
-    return counts
-
-
 def meta(report, m):
-    counts = _language_counts(facts_of(report, 'graph_node'))
+    counts = M.language_counts(facts_of(report, 'graph_node'))
     total = sum(counts.values())
     stages = [{'id': name, 'title': name, 'state': STAGE_STATE.get((row or {}).get('status'), 'partial')}
               for name, row in (m['manifest'].get('stages') or {}).items()]

@@ -2,10 +2,11 @@
 import hashlib
 import json
 import secrets
-from datetime import datetime, timezone
 
-from ....core.project.runs import _read_json, _write_json, now
+from ....core.project.runs import _write_json
 from .common import Blocked, COMMITS_SHOWN, RECOVERY, _out, git, say, valid_name
+from ....core.system.files import read_json
+from ....core.system.clock import now, stamp
 
 
 class Deleting:
@@ -87,7 +88,7 @@ class Deleting:
         plan = self._cleanup_plan()
         empty = not plan['branches'] and not plan['worktrees']
         return {**self._public(plan), 'confirm': None if empty or self._busy([]) else self.locks.confirm('branch_cleanup', {'digest': plan['digest']}, self.project),
-                'blocked': self._busy([]), 'checked_at': now()}
+                'blocked': self._busy([]), 'checked_at': now('milliseconds')}
 
     def cleanup(self, body):
         """Remove the merged branches and the clean worktrees the preview listed, only if git still says exactly that:
@@ -133,29 +134,35 @@ class Deleting:
         if out: done['worktrees_removed'].append({'worktree': out['path']})
         gone = git(self.project, 'update-ref', '-m', f"EAOS Studio: clean up {branch['branch']} (run {run})", '-d', f"refs/heads/{branch['branch']}", branch['tip'])
         if gone.returncode: return done['failed'].append({'branch': branch['branch'], 'reason': 'the branch moved', 'recovery': kept['id']})
-        self.record(branch['branch'], history={'at': now(), 'event': 'deleted', 'where': 'local', 'run': run, 'recovery': kept['id'], 'via': 'cleanup'})
+        self.record(branch['branch'], history={'at': now('milliseconds'), 'event': 'deleted', 'where': 'local', 'run': run, 'recovery': kept['id'], 'via': 'cleanup'})
         done['deleted'].append({'branch': branch['branch'], 'tip': branch['tip'], 'merged_into': branch['merged_into'], 'recovery': kept['id']})
 
     def recoveries(self):
-        return _read_json(self.store.folder / 'branch-recovery.json', []) or []
+        return read_json(self.store.folder / 'branch-recovery.json', []) or []
 
     def _keep(self, name, where, remote, tip, run):
         """A recovery ref for the commit about to lose its branch, written before anything is deleted."""
-        ident = datetime.now(timezone.utc).strftime('%Y%m%dT%H%M%SZ') + '-' + secrets.token_hex(3)
+        ident = stamp('%Y%m%dT%H%M%SZ', utc=True) + '-' + secrets.token_hex(3)
         ref = RECOVERY + ident
         if git(self.project, 'update-ref', ref, tip, '0' * 40).returncode: raise RuntimeError('could not keep a recovery ref')
         rows = self.recoveries()
-        entry = {'id': ident, 'ref': ref, 'branch': name, 'where': where, 'remote': remote, 'tip': tip, 'at': now(), 'run': run, 'restored': None}
+        entry = {'id': ident, 'ref': ref, 'branch': name, 'where': where, 'remote': remote, 'tip': tip, 'at': now('milliseconds'), 'run': run, 'restored': None}
         _write_json(self.store.folder / 'branch-recovery.json', rows + [entry])
         return entry
+
+    def _local_or(self, body, remote):
+        """(the branch named, None) when the body asks for the local branch, else (None, what `remote(name, body)` gives)."""
+        where = body.get('where') or 'local'
+        name = valid_name(self.project, body.get('branch'))
+        if where == 'remote': return None, remote(name, body)
+        if where != 'local': raise ValueError('where must be local or remote')
+        return name, None
 
     def preview_delete(self, body):
         """What deleting would do: whether the branch is merged, the commits only it holds (which the recovery ref keeps),
         why it is blocked, and the confirm token(s): one for the deletion, and a second one when commits would be lost."""
-        where = body.get('where') or 'local'
-        name = valid_name(self.project, body.get('branch'))
-        if where == 'remote': return self._preview_remote(name, body)
-        if where != 'local': raise ValueError('where must be local or remote')
+        name, remote = self._local_or(body, self._preview_remote)
+        if name is None: return remote
         row, inventory = self._row(name)
         reasons = self._delete_blocks(row, inventory)
         holders = self._holders(row, name)
@@ -171,7 +178,7 @@ class Deleting:
                 'lost_commits': commits, 'lost_truncated': len(lost) > COMMITS_SHOWN, 'blocked': reasons, 'remote_kept': True,
                 'confirm': None if reasons else self.locks.confirm('branch_delete', bound, self.project),
                 'confirm_unmerged': None if reasons or not unmerged else self.locks.confirm('branch_delete_unmerged', bound, self.project),
-                'checked_at': now()}
+                'checked_at': now('milliseconds')}
 
     def _preview_remote(self, name, body):
         """What deleting the branch on one remote would do, why it is blocked, and its confirm token."""
@@ -180,7 +187,7 @@ class Deleting:
         bound = {'branch': name, 'remote': row['remote'], 'tip': row['tip']}
         return {'branch': name, 'where': 'remote', 'remote': row['remote'], 'tip': row['tip'], 'as_of': row['remote_as_of'],
                 'whose': self.whose(row), 'blocked': reasons, 'local_kept': bool(self.tip(f'refs/heads/{name}')),
-                'confirm': None if reasons else self.locks.confirm('branch_delete_remote', bound, self.project), 'checked_at': now()}
+                'confirm': None if reasons else self.locks.confirm('branch_delete_remote', bound, self.project), 'checked_at': now('milliseconds')}
 
     def _holders(self, row, name):
         """The other local branches that hold the branch's last commit."""
@@ -195,10 +202,8 @@ class Deleting:
     def delete(self, body):
         """Delete one branch, locally or on one remote (two separate operations, each with its own consent): a recovery ref
         first, then the ref removed only if it is still at the commit the preview showed. Never a force deletion."""
-        where = body.get('where') or 'local'
-        name = valid_name(self.project, body.get('branch'))
-        if where == 'remote': return self._delete_remote(name, body)
-        if where != 'local': raise ValueError('where must be local or remote')
+        name, remote = self._local_or(body, self._delete_remote)
+        if name is None: return remote
         bound = {'branch': name, 'tip': body.get('tip'), 'unmerged': bool(body.get('unmerged')), 'worktree': bool(body.get('worktree'))}
         self._spend(body, 'branch_delete', bound)
         if bound['unmerged'] and not self.locks.spend(body.get('confirm_unmerged'), 'branch_delete_unmerged', bound, self.project):
@@ -228,7 +233,7 @@ class Deleting:
         if gone.returncode:
             return self._finish(run, False, {'en': 'Not deleted: the branch moved.', 'ar': 'ما انحذف: الفرع تغيّر.'},
                                 {'reason': 'the branch moved', 'branch': name, 'recovery': kept['id'], 'branches': [name]})
-        self.record(name, history={'at': now(), 'event': 'deleted', 'where': 'local', 'run': run, 'recovery': kept['id']})
+        self.record(name, history={'at': now('milliseconds'), 'event': 'deleted', 'where': 'local', 'run': run, 'recovery': kept['id']})
         return self._finish(run, True, {'en': f'Deleted {name}; it can be restored ({kept["id"]}). The remote copy, if any, is untouched.',
                                         'ar': f'حُذف {name}، ويمكن استرجاعه ({kept["id"]}). والنسخة البعيدة، إن وُجدت، لم تُمس.'},
                             {'branch': name, 'where': 'local', 'tip': bound['tip'], 'recovery': kept['id'], 'unmerged': bound['unmerged'],
@@ -254,7 +259,7 @@ class Deleting:
                                                          'ar': f'ما انحذف من {remote}: {pushed.stderr.strip()[-200:] or "رفض المستودع البعيد"}'},
                                             {'reason': 'the remote refused or could not be reached', 'branch': name, 'remote': remote, 'recovery': kept['id'],
                                              'branches': [name]})}
-            self.record(name, history={'at': now(), 'event': 'deleted', 'where': 'remote', 'remote': remote, 'run': run, 'recovery': kept['id']})
+            self.record(name, history={'at': now('milliseconds'), 'event': 'deleted', 'where': 'remote', 'remote': remote, 'run': run, 'recovery': kept['id']})
             return {'run': self._finish(run, True, {'en': f'Deleted {name} on {remote}; the commit is kept ({kept["id"]}). Your local branch, if any, is untouched.',
                                                     'ar': f'حُذف {name} من {remote}، والـcommit محفوظ ({kept["id"]}). وفرعك المحلي، إن وُجد، لم يُمس.'},
                                         {'branch': name, 'where': 'remote', 'remote': remote, 'tip': bound['tip'], 'recovery': kept['id'], 'branches': [name]},
@@ -278,9 +283,9 @@ class Deleting:
                 return {'run': self._finish(run, False, {'en': 'Not restored.', 'ar': 'ما استُرجع.'}, {'reason': made.stderr.strip()[-200:], 'branches': [name]})}
             rows = self.recoveries()
             for row in rows:
-                if row['id'] == entry['id']: row['restored'] = {'at': now(), 'as': name, 'run': run}
+                if row['id'] == entry['id']: row['restored'] = {'at': now('milliseconds'), 'as': name, 'run': run}
             _write_json(self.store.folder / 'branch-recovery.json', rows)
-            self.record(name, history={'at': now(), 'event': 'restored', 'run': run, 'recovery': entry['id']}, tip=entry['tip'])
+            self.record(name, history={'at': now('milliseconds'), 'event': 'restored', 'run': run, 'recovery': entry['id']}, tip=entry['tip'])
             return {'run': self._finish(run, True, {'en': f'Restored {name} at {entry["tip"][:12]}.', 'ar': f'استُرجع {name} عند {entry["tip"][:12]}.'},
                                         {'branch': name, 'tip': entry['tip'], 'recovery': entry['id'], 'branches': [name]}, outcome='restored')}
         finally:

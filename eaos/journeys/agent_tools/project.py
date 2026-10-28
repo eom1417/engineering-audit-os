@@ -3,7 +3,6 @@ returns a job (eaos/core/project/jobs.py) that `wait` follows; the Studio opened
 """
 import json
 import os
-from datetime import datetime, timezone
 from pathlib import Path
 
 from .. import guided
@@ -11,6 +10,7 @@ from ...core.project import jobs
 from ...core.system import launch
 from ...core import toolchain
 from ...core.project import state as project_state
+from ...core.system.clock import now
 
 
 # A person's answer comes at least this long after the question: sooner, nobody was asked (EAOS_ANSWER_SECONDS: tests).
@@ -71,14 +71,10 @@ def state_of(project=None, new=False):
     state = project_state.load(folder)
     if not state:
         state = {'schema_version': 1, 'project': str(folder), 'workspace': str(guided.workspace(folder)),
-                 'started': _now(), 'questions': [], 'lang': guided.language()}
+                 'started': now(), 'questions': [], 'lang': guided.language()}
     # its report's folder kept from the start: a run of its app is shown only that folder (eaos/live/isolation/sandbox.py _own)
     if not state.get('outputs') and guided.outputs(state): guided.save(state)
     return state
-
-
-def _now():
-    return datetime.now(timezone.utc).isoformat(timespec='seconds')
 
 
 def _head(state):

@@ -26,9 +26,6 @@ HOLDS = {'require-concurrent-index-creation', 'require-concurrent-index-deletion
 def capabilities(): return [Capability('sql_quality', '*')]
 
 
-def version(): return tool.version(BINARY)
-
-
 def migrations(target, exclude=()):
     """The project's migration files: .sql files under a folder named migrations (or migrate)."""
     root = Path(target)
@@ -52,7 +49,6 @@ def findings(rows, found):
 
 @tool.engine(NAME, BINARY)
 def analyze(target, workdir, exclude, formats, found):
-    target = Path(target).resolve()
     files = migrations(target, exclude)
     if not files:
         return Report(NAME, found, PINNED, OBSERVED, coverage={'status': 'observed', 'files': 0, 'note': 'no migration folder'},

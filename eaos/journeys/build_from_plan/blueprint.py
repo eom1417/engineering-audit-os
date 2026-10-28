@@ -9,6 +9,7 @@ from ...report.blueprint import design as blueprint, view as blueprint_view
 from ...analysis.target_state import look as design
 from .look import read as _read
 from ...analysis.planning.plan_input import read_plan
+from ...core.system.clock import now
 
 
 def folder(state):
@@ -111,7 +112,7 @@ def blueprint_design(stack=None, project=None):
     _write(where / 'plan.json', built['plan'])
     (where / 'BLUEPRINT.md').write_text(blueprint_view.document(spec, chosen, built) + '\n', encoding='utf-8')
     publish(state, spec, chosen, built)
-    state['blueprint'] = {**(state.get('blueprint') or {}), 'designed': agent_tools._now(),
+    state['blueprint'] = {**(state.get('blueprint') or {}), 'designed': now(),
                           'cards': len(built['plan']['tasks']), 'milestones': [m['id'] for m in built['plan']['milestones']]}
     state.setdefault('built', [])
     guided.save(state)

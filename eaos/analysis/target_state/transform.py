@@ -9,8 +9,9 @@ from pathlib import Path
 import json
 import sys
 from ...core import progress
-from ...facts.store import read_set
+from ...facts.store import Sets
 from .sustainability import compute, _transformations
+from ...core.system.files import read_json
 
 
 NAME = 'transform-plan'
@@ -25,11 +26,7 @@ LIMITATIONS = [
 
 
 def _gather(out):
-    sets = {}
-    for name in ['fingerprint', 'redundancy', 'graph', 'resolve', 'syntax']:
-        path = Path(out) / 'facts' / f'{name}.json'
-        if path.is_file(): sets[name] = read_set(Path(out), name)
-    return sets
+    return dict(Sets(out, ['fingerprint', 'redundancy', 'graph', 'resolve', 'syntax']))
 
 
 def _canonical_home_for(out, cluster, policy_path=None):
@@ -44,9 +41,7 @@ MANIFEST_TESTS = (('go.mod', ['go', 'test', './...']), ('Cargo.toml', ['cargo', 
 def _npm_test(target):
     """True when package.json declares a real test script, not npm's placeholder."""
     package = target / 'package.json'
-    if not package.is_file(): return False
-    try: scripts = json.loads(package.read_text(encoding='utf-8')).get('scripts', {})
-    except (ValueError, OSError): scripts = {}
+    scripts = read_json(package, {}).get('scripts', {})
     return bool(scripts.get('test')) and 'no test specified' not in scripts['test'].lower()
 
 

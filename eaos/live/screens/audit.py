@@ -1,6 +1,6 @@
 """Rendered-screen checks through pinned tools that run as separate processes.
 
-Three runners, each returning a plain dict with a `status` ('observed', 'unavailable' or 'error') and a `reason`
+Two runners, each returning a plain dict with a `status` ('observed', 'unavailable' or 'error') and a `reason`
 when it did not observe; a missing tool is reported as unavailable, it is not raised:
 
     page_audit(urls, viewports, variants, out)   Playwright + axe (eaos/templates/screens/audit.mjs): per page,
@@ -10,8 +10,8 @@ when it did not observe; a missing tool is reported as unavailable, it is not ra
                                                  Arabic, the page's script errors, the page height and a
                                                  full-page screenshot.
     lighthouse(url, out)                         Lighthouse, mobile profile: category scores, LCP and CLS.
-    css_stats(folder)                            @projectwallace/css-analyzer (eaos/templates/screens/css.mjs):
-                                                 distinct colors, font sizes, spacings and selector specificity.
+The audit's wide pictures also count the look the page shows (its style census, M15.4), read by
+eaos/analysis/assessments/one_source_look.py.
 
 `failures(row)` names what fails the gate in one audited row. The browser is allowed the tested URL's origin
 only (file:// pages: file:// only); every other request is aborted and listed in the row.
@@ -32,6 +32,7 @@ from urllib.parse import urlsplit
 
 from ...core import toolchain
 from ...core.system.process import run_command
+from ...core.system.files import read_json
 
 TEMPLATES = Path(__file__).resolve().parents[2] / 'templates/screens'
 VIEWPORTS = ({'name': 'phone', 'width': 390, 'height': 844},
@@ -284,9 +285,9 @@ def _run_lighthouse(url, report, chrome, folder, timeout):
                               env={**os.environ, 'CHROME_PATH': chrome, 'TMPDIR': folder})
     except (OSError, subprocess.TimeoutExpired) as problem:
         return None, f'lighthouse: {problem}'
-    try: return json.loads(report.read_text(encoding='utf-8')), ''
-    except (OSError, ValueError):
-        return None, f'lighthouse exited {done.returncode}: {(done.stderr or done.stdout)[-800:]}'
+    found = read_json(report)
+    if found is not None: return found, ''
+    return None, f'lighthouse exited {done.returncode}: {(done.stderr or done.stdout)[-800:]}'
 
 
 def _lighthouse_result(data, url, kept):

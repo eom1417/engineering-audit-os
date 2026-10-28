@@ -12,8 +12,8 @@ A goal: {name, persona, wanted, status: reached|stuck|stopped|blocked|not_run, w
 target (the control's name), value, why, landed, picture (relative to the report, or None), error}], friction}. A file
 that is missing or unreadable is named in `missing`; the story is still told from the rest.
 """
-import json
 from pathlib import Path
+from ...core.system.files import read_json
 
 FOLDER = 'experience'
 RECORDS = ('scenario.json', 'data.json', 'run.json', 'replays.json', 'tickets.json', 'difficulties.json')
@@ -23,8 +23,7 @@ SEVERITY = {'high': 0, 'medium': 1, 'low': 2}
 
 
 def _load(path):
-    try: body = json.loads(Path(path).read_text(encoding='utf-8'))
-    except (OSError, ValueError): return None
+    body = read_json(path)
     return body if isinstance(body, dict) else None
 
 

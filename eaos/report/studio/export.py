@@ -14,7 +14,6 @@ import json
 import os
 import subprocess
 from dataclasses import dataclass, field
-from datetime import datetime, timezone
 from pathlib import Path
 
 from ...core.contracts import artifact_rules as artifact_contracts
@@ -37,6 +36,7 @@ from ...analysis.maps import pipeline as pipeline_map
 from . import screens as screens_gallery
 from . import system as system_map
 from .export_sections import TASK_STATE, cards, decision_rows, decisions, head, health, meta, plans, story, why_of  # noqa: F401  (TASK_STATE, decisions, why_of: read here by the tests and tools/studio_synthetic.py)
+from ...core.system.clock import now
 
 CONTRACT = 1
 REVISION = 2           # contract v2: sections added without breaking a v1 reader
@@ -103,7 +103,7 @@ def export(report, lang='ar', name=None, project=None, progress=None, state=None
         (folder / 'errors.json').write_text(json.dumps(errors, ensure_ascii=False, indent=1) + '\n', encoding='utf-8')
         return {'written': [], 'errors': errors}
     m['build'] = build
-    stamp = {**build_info.stamp(datetime.now(timezone.utc).isoformat(timespec='seconds')), 'studio_digest': build_info.studio_digest()}
+    stamp = {**build_info.stamp(now()), 'studio_digest': build_info.studio_digest()}
     scan = scan_of(project, state)
     if not scan['at']: scan['at'] = str((m['manifest'] or {}).get('started_at') or '')
     run = _Build(report, folder, m, lang, name, project, progress, state, scan, stamp)

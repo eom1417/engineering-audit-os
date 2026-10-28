@@ -10,6 +10,7 @@ import subprocess
 from pathlib import Path
 
 from ...core.contracts.artifact_rules import contracts, validate
+from ...core.system.clock import now
 
 def git(where, *args):
     return subprocess.run(['git', '-C', str(where), *args], capture_output=True, text=True)
@@ -56,14 +57,13 @@ def commit_all(root, message, paths=None):
 def record_batch(batch, root, base, kept, refused):
     """A batch of its own (batch['kind']: moves, context) recorded beside the run, runtime/<kind>/<kind>-N/ with its
     patch and summary.json; the summary: its branch, what it kept (empty when refused) and why it refused."""
-    from datetime import datetime, timezone
     kind, number = batch['kind'], batch['number']
     folder = Path(batch['runtime']) / kind / f'{kind}-{number}'
     folder.mkdir(parents=True, exist_ok=True)
     if kept: git(root, 'format-patch', '--quiet', '-o', str(folder), f'{base}..HEAD')
     summary = {'batch': number, 'kind': kind, 'branch': batch.get('deliver_as') or f'eaos/{kind}-{number}', 'root': str(root),
                'base': base, 'kept': kept, 'items': batch['items'], 'refused': refused, **(batch.get('extra') or {}),
-               'at': datetime.now(timezone.utc).isoformat(timespec='seconds'),
+               'at': now(),
                'stat': git(root, 'diff', '--shortstat', f'{base}..HEAD').stdout.strip() if kept else ''}
     (folder / 'summary.json').write_text(json.dumps(summary, ensure_ascii=False, indent=1) + '\n', encoding='utf-8')
     return summary
@@ -119,8 +119,9 @@ def _layers_broken(report, root, out):
     return layers.introduced(before, layers.check(root, out)) if before else []
 
 
-# The security engines that answer in seconds: they run on every change a batch makes (eaos/journeys/fix/waves edit_gates).
-GATE_ENGINES = ('bandit', 'gitleaks')
+# The engines that answer in seconds: they run on every change a batch makes (eaos/journeys/fix/waves edit_gates): the
+# security ones, and jscpd and ast-grep for one source per pattern (M15.9).
+GATE_ENGINES = ('bandit', 'gitleaks', 'jscpd', 'ast-grep')
 
 
 def app_breakage(project, runtime, root, changed):

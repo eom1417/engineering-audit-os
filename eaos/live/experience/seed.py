@@ -20,14 +20,14 @@ import tempfile
 from pathlib import Path
 
 from ...core.system.process import run_command
+from ...core.system.files import read_json
 
 INSERTED = re.compile(r'^INSERT 0 (\d+)$', re.M)
 SEEDED = 'experience-seeded.json'          # in the run's folder: {database: {seeded}}, each database seeded once
 
 
 def _profile(runtime):
-    try: return json.loads((Path(runtime) / 'run.json').read_text(encoding='utf-8'))
-    except (OSError, ValueError): return {}
+    return read_json(Path(runtime) / 'run.json', {})
 
 
 def _text(value):
@@ -100,8 +100,7 @@ def _sqlite(seed, runtime, file):
 
 
 def _marks(runtime):
-    try: return json.loads((Path(runtime) / SEEDED).read_text(encoding='utf-8'))
-    except (OSError, ValueError): return {}
+    return read_json(Path(runtime) / SEEDED, {})
 
 
 def _once(runtime, which, seeding):

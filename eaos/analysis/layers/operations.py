@@ -9,12 +9,12 @@ Tests: the project's own tests for every stack (Vitest, Jest, Mocha, Node's runn
 pass rate when the check ran them in the isolated copy (verification.json), which layers no test reaches, and every
 endpoint that writes which no test reaches: no test names its route or its handler.
 """
-import json
 import re
 
 from .endpoints import PARAM
 
 from ..target_state import projection as target_projection
+from ...core.system.files import read_json
 
 RUNNERS = (('vitest', 'Vitest'), ('jest', 'Jest'), ('mocha', 'Mocha'), ('@playwright/test', 'Playwright'), ('cypress', 'Cypress'),
            ('ava', 'AVA'), ('node --test', "Node's test runner"))
@@ -40,8 +40,8 @@ def operations_findings(rows):
 
 
 def _node_runners(manifest):
-    try: data = json.loads(manifest.read_text(encoding='utf-8'))
-    except (OSError, ValueError): return []
+    data = read_json(manifest)
+    if data is None: return []
     names = set(data.get('dependencies') or {}) | set(data.get('devDependencies') or {})
     scripts = ' '.join((data.get('scripts') or {}).values())
     return [label for key, label in RUNNERS if key in names or key in scripts]

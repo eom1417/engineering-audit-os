@@ -61,27 +61,19 @@ def _relative(path, root):
     except (ValueError, OSError): return str(path)
 
 
+def _edge(path, caller, callee, other, call):
+    """One call edge of the call graph; `other` names whose path the call carries (the callee's or the caller's)."""
+    return {'kind': 'call_edge_external', 'location': {'path': path},
+            'value': {'caller': caller, 'callee': callee, f'{other}_path': call.get('path', ''), 'line': call.get('line_start', 0),
+                      'tool': 'codegraph_get_call_graph'}}
+
+
 def _call_edges_from_call_graph(payload, root):
-    facts = []
     symbol = payload.get('symbol', {}) if isinstance(payload, dict) else {}
     path = symbol.get('path', root) if isinstance(symbol, dict) else root
-    for call in payload.get('callees', []) or []:
-        facts.append({'kind': 'call_edge_external',
-                      'location': {'path': path},
-                      'value': {'caller': symbol.get('name', ''),
-                                 'callee': call.get('name', ''),
-                                 'callee_path': call.get('path', ''),
-                                 'line': call.get('line_start', 0),
-                                 'tool': 'codegraph_get_call_graph'}})
-    for call in payload.get('callers', []) or []:
-        facts.append({'kind': 'call_edge_external',
-                      'location': {'path': path},
-                      'value': {'caller': call.get('name', ''),
-                                 'callee': symbol.get('name', ''),
-                                 'caller_path': call.get('path', ''),
-                                 'line': call.get('line_start', 0),
-                                 'tool': 'codegraph_get_call_graph'}})
-    return facts
+    name = symbol.get('name', '')
+    return ([_edge(path, name, call.get('name', ''), 'callee', call) for call in payload.get('callees', []) or []]
+            + [_edge(path, call.get('name', ''), name, 'caller', call) for call in payload.get('callers', []) or []])
 
 
 def _complexity_facts(payload, root, path=None):

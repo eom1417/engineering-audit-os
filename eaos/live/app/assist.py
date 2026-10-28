@@ -3,13 +3,9 @@ proposal, the project's own setup documents, the code that raised the failure, a
 import json
 import re
 from pathlib import Path
+from ...core.system.files import read_json
 
 ENV_EXAMPLES = ('.env.example', '.env.sample', '.env.template', '.env.local.example', '.env.development.example', 'example.env')
-
-
-def read_json(path):
-    try: return json.loads(Path(path).read_text(encoding='utf-8'))
-    except (OSError, ValueError): return {}
 
 
 ASSIST_SYSTEM = """You set up a web app to run on this computer for automated checks, in an isolated copy, with a
@@ -111,7 +107,7 @@ def assist_messages(run, failure, needs, mode='lock'):
     """The messages that ask the assistant for a change to setup `run` (eaos/live/app/setup.py SetupRun)."""
     project, detected = run.project, run.detected
     folder = detected['profile']['app']
-    package = read_json(Path(project) / folder / 'package.json')
+    package = read_json(Path(project) / folder / 'package.json', {})
     profile = json.loads((Path(run.runtime) / 'run.json').read_text(encoding='utf-8'))
     if mode == 'baseline': profile = {**{k: v for k, v in profile.items() if k != 'baseline'}, **(profile.get('baseline') or {})}
     brief = {'what_failed': failure, 'current_profile': profile,

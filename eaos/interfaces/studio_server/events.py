@@ -27,16 +27,17 @@ Studio is followed alike. What the files held when the feed started is the state
 a page reads it whole from /api/progress (read.py) and then applies the events after it. A new run replaces its file;
 the feed sees the new inode, or a file it did not know, and reads it from its start.
 """
-import json
 import secrets
 import threading
 from collections import deque
-from datetime import datetime, timezone
 from pathlib import Path
 
 from ...core import toolchain
 from ...core.progress import PROGRESS, path_for
 from ...core.progress.log import FOLDER
+from ...core.system.files import read_json
+from ...core.system.clock import now
+from ...core.system.files import json_rows
 
 KEEP = 2000
 EVENT_LOG = 'events.jsonl'
@@ -64,10 +65,6 @@ STEP_TEXT = {
 BATCH, MERGED = {'in_batch', 'on_branch'}, {'done'}
 
 
-def now():
-    return datetime.now(timezone.utc).isoformat(timespec='milliseconds')
-
-
 def _stat(path):
     """(inode, size) of a file, or (None, 0) when it is not there."""
     try: found = path.stat()
@@ -77,27 +74,7 @@ def _stat(path):
 
 def _rows(chunk):
     """The progress events in whole lines of bytes; a line that is not one is left out."""
-    rows = []
-    for line in chunk.decode('utf-8', 'replace').splitlines():
-        try: row = json.loads(line)
-        except ValueError: continue
-        if isinstance(row, dict) and row.get('event'): rows.append(row)
-    return rows
-
-
-def _read(path):
-    try: return json.loads(Path(path).read_text(encoding='utf-8'))
-    except (OSError, ValueError): return None
-
-
-def _log_rows(chunk):
-    """The JSON objects in whole lines of the event log; a line that is not one is left out."""
-    rows = []
-    for line in chunk.decode('utf-8', 'replace').splitlines():
-        try: row = json.loads(line)
-        except ValueError: continue
-        if isinstance(row, dict): rows.append(row)
-    return rows
+    return [row for row in json_rows(chunk) if row.get('event')]
 
 
 def _changed_sections(before, current):
@@ -172,7 +149,7 @@ class Feed:
         en, ar = TEXT.get(kind, (kind, kind))
         with self.lock:
             self.seq += 1
-            event = {'seq': self.seq, 'id': f'{self.epoch}-{self.seq}', 'at': now(), 'kind': kind, 'source': source,
+            event = {'seq': self.seq, 'id': f'{self.epoch}-{self.seq}', 'at': now('milliseconds'), 'kind': kind, 'source': source,
                      'sections': sorted(sections), 'text': text or {'en': en, 'ar': ar}, 'data': data or {}}
             self.events.append(event)
             return event
@@ -231,12 +208,12 @@ class Feed:
             return added
         complete = chunk[:chunk.rfind(b'\n') + 1]       # a line still being written waits for the next look
         self.log_at += len(complete)
-        added += [self.publish(str(row.get('kind') or row.get('type') or 'event'), data=row, source='events') for row in _log_rows(complete)]
+        added += [self.publish(str(row.get('kind') or row.get('type') or 'event'), data=row, source='events') for row in json_rows(complete)]
         self._poll_manifest(quiet=True)                 # the manifest still tells the Studio which sections to reload
         return added
 
     def snapshot(self):
-        manifest = _read(self.folder / 'manifest.json')
+        manifest = read_json(self.folder / 'manifest.json')
         if not isinstance(manifest, dict) or not isinstance(manifest.get('sections'), list): return None
         sections = {s.get('name'): s.get('sha256') for s in manifest['sections'] if isinstance(s, dict)}
         return {'digest': '|'.join(f'{k}:{v}' for k, v in sorted(sections.items(), key=lambda kv: str(kv[0]))),
@@ -248,7 +225,7 @@ class Feed:
         before = self.seen or {}
         if before.get('sections', {}).get(name) == sections.get(name) and name in before.get('states', {}):
             return before['states'][name]
-        body = _read(self.folder / f'{name}.json') if name in sections else None
+        body = read_json(self.folder / f'{name}.json') if name in sections else None
         rows = (body or {}).get(name) if isinstance(body, dict) else None
         return {str(r.get('id')): r.get('state') for r in rows or [] if isinstance(r, dict)}
 

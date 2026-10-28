@@ -15,10 +15,10 @@ PATHS = {
              'kinds': ('boundary', 'complexity', 'coupling', 'cycle', 'dataflow', 'dead_code', 'duplication', 'literal_duplication',
                        'surface', 'unused_dependency', 'call_edge_external', 'module_edge_external', 'symbol_metric_external',
                        'sql_quality', 'api_contract'),
-             'engines': ('scc', 'ast-grep', 'react-docgen'),
+             'engines': ('scc', 'ast-grep', 'react-docgen', 'jscpd'),
              'patterns': ('import_cycle', 'duplicated_rule', 'hidden_coupling', 'trace_gap', 'untested_path', 'hotspot', 'split_module',
                           'mutable_state', 'external_write', 'policy_violation', 'layer_boundary', 'canonicalize', 'dead_code', 'remove_dead',
-                          'broken_code', 'repository_craft', 'old_engine', 'data_keeping', 'generic')},
+                          'broken_code', 'repository_craft', 'old_engine', 'data_keeping', 'one_source', 'generic')},
     'speed': {'stages': ('engines', 'setup', 'baseline', 'session', 'keeping'), 'kinds': ('hot_path_external', 'call_edge_external'),
               'patterns': ('load_blocker', 'redundant_work', 'data_keeping')},
     # the layers tried on the running app (M6.6, M6.7): beside `complete` it is an option of the full check

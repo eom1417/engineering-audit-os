@@ -8,6 +8,7 @@ from . import boundaries, browser, data, endpoints, operations, rules_split
 from .catalog import BOUNDARIES, RULES, fix, sentence
 from .placement import layer_map
 from .source import Project
+from ...core.system.files import read_json
 
 NAME = 'boundaries'
 VERSION = '1'
@@ -19,8 +20,7 @@ LIMITATIONS = ['Read from the code, the migrations and the built output; a guard
 
 def _policy_layers(target):
     path = Path(target) / 'eaos.policy.json'
-    try: return json.loads(path.read_text(encoding='utf-8')).get('layers') if path.is_file() else None
-    except ValueError: return None
+    return (read_json(path) or {}).get('layers')
 
 
 def _said(row, live=False):
@@ -41,8 +41,7 @@ def _layers(drawn):
 
 
 def read(path):
-    try: return json.loads(Path(path).read_text(encoding='utf-8'))
-    except (OSError, ValueError): return None
+    return read_json(path)
 
 
 def check(target, out, verification=None):

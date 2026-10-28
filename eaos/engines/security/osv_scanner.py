@@ -27,9 +27,6 @@ def capabilities():
     return [Capability('vulnerability', 'osv.vulnerable_dependency', method=DETERMINISTIC)]
 
 
-def version(): return tool.version(BINARY)
-
-
 def _key(text):
     """A version as comparable parts: 1.10.0 > 1.9.2; a pre-release sorts before its release."""
     main, _, pre = str(text).partition('-')
@@ -136,11 +133,9 @@ def _scan(target, workdir):
     return code, error, seconds, output, sbom
 
 
-def analyze(target, workdir, exclude=(), formats=None):
-    declined, found = tool.started(NAME, BINARY, target)
-    if declined: return declined
-    target = Path(target)
-    code, error, seconds, output, sbom = _scan(target, Path(workdir))
+@tool.engine(NAME, BINARY, shared=True)
+def analyze(target, workdir, exclude, formats, found):
+    code, error, seconds, output, sbom = _scan(target, workdir)
     # 0: nothing vulnerable; 1: vulnerabilities found; 128: no package source at all. Anything else failed.
     if code == 128:
         return Report(NAME, found, PINNED, OBSERVED, seconds=seconds,

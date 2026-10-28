@@ -4,17 +4,17 @@ Everything a reader sees is derived from `dossier.json`. Nothing is written into
 that does not exist in the ledger, and no claim reaches a reader without its confidence and source (claims: gather.py).
 """
 from collections import namedtuple
-from datetime import datetime, timezone
 from functools import partial
 from pathlib import Path
 from ... import __version__
-from ..claims import from_runs, ledger
+from ..claims import from_one_source, from_runs, ledger
 from ..claims.gather import REGISTER, build_claims, fact_index_of, needs_a_disposition, origin_of, runtime_claims
 from ...core import progress
 from ...core.contracts.document import Document, say
 from ...core.contracts.document_rules import validate
 from ...facts.store import read_set
 from ...core.project.workspace import read, write
+from ...core.system.clock import stamp
 
 # What the dossier was asked for (assemble's arguments) and what it is built from: each travels whole to every step.
 _Request = namedtuple('_Request', 'target out run language version exclude')
@@ -187,7 +187,7 @@ def refresh_views(out, language='ar'):
     from ..planning.ranking import rank
     for claim in dossier['claims']: _settle_disposition(claim)
     dossier['claims'] = rank(dossier['claims'], sets, fact_index_of(sets))
-    dossier['claim_counts'] = _counts(dossier['claims'])
+    dossier['claim_counts'] = ledger.claim_counts(dossier['claims'])
     if verification and verification.get('executed'):
         dossier['coverage']['runtime_confirmation'] = sum(
             1 for claim in dossier['claims'] if {'test_evidence', 'runtime_probe'} & set(claim.get('method', [])))
@@ -291,7 +291,7 @@ def _excluded(exclude):
 def _more_sets(out, sets):
     """The fact sets the runtime claims and the ranking read beside the collected ones, into `sets`; the coverage set,
     or None when the tests were not run."""
-    for extra in ['fingerprint', 'sequences', 'redundancy', 'structure']:
+    for extra in ['fingerprint', 'redundancy', 'structure']:
         if (out / 'facts' / (extra + '.json')).is_file(): sets[extra] = read_set(out, extra)
     coverage_set = read_set(out, 'verification') if (out / 'facts/verification.json').is_file() else None
     if coverage_set: sets['verification'] = coverage_set
@@ -308,6 +308,9 @@ def _claims(request, inputs):
     coverage_set = _more_sets(request.out, inputs.sets)
     runtime = runtime_claims(inputs.verification, len(rows), (coverage_set or {}).get('facts'), excluded=_excluded(request.exclude))
     runtime += from_runs.run_claims(request.out, inputs.sets, request.target, len(rows) + len(runtime))   # they read what ran (M13, M14)
+    runtime, held = ledger.withhold(runtime)        # a detector under its measured bar is kept aside here too (M15)
+    for number, row in enumerate(held, start=len(withheld) + 1): row['id'] = 'WHD-%03d' % number
+    withheld = withheld + held
     for fact in (coverage_set or {}).get('facts', []): fact_index.setdefault(fact['id'], fact['location'].get('path'))
     for row in runtime:
         row['origin'] = origin_of(row, fact_index)
@@ -323,15 +326,16 @@ def _dossier(request, inputs, rows, withheld):
     return {
         'schema_version': 1,
         'provenance': {'target': str(target), 'tool_version': request.version or __version__,
-                       'generated_at': datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M UTC'), 'snapshot_fingerprint': sets['syntax']['input_sha'],
+                       'generated_at': stamp('%Y-%m-%d %H:%M UTC', utc=True), 'snapshot_fingerprint': sets['syntax']['input_sha'],
                        'audit_run': str(run) if run else None,
                        'model_calls': 0 if not run else (records['state'] or {}).get('model_calls', 'see engine-state.json'),
                        'extractors': {name: data['extractor_version'] for name, data in sorted(sets.items())},
                        'excluded_patterns': inputs.map_result.get('exclude_patterns', list(request.exclude or []))},
         'coverage': _dossier_coverage(sets, records, verification, rows),
         'description': describe(sets, records),
-        'claim_counts': _counts(rows),
+        'claim_counts': ledger.claim_counts(rows),
         'claims': rows,
+        'likenesses': from_one_source.notes(request.out, sets),     # alike in shape only: said, never cards (M15)
         'withheld_claims': withheld,
         'questions': questions_of(records, sets),
         'tasks': tasks,
@@ -370,7 +374,7 @@ def write_verdict(out, dossier, violations, target=None, facts=None):
     result = {'target': target or provenance.get('target'), 'out': str(out),
               'artifacts': dossier.get('artifacts', []),
               'claims': len(dossier.get('claims', [])),
-              'claim_counts': dossier.get('claim_counts') or _counts(dossier.get('claims', [])),
+              'claim_counts': dossier.get('claim_counts') or ledger.claim_counts(dossier.get('claims', [])),
               'questions': len(dossier.get('questions', [])),
               'facts': facts if facts is not None else _fact_count(out),
               'model_calls': provenance.get('model_calls', 0),
@@ -391,10 +395,3 @@ def _fact_count(out):
         return sum(entry.get('facts', 0) for entry in read(index)['sets'])
     except (ValueError, KeyError, OSError):
         return None
-
-
-def _counts(claims):
-    tally = {}
-    for claim in claims:
-        tally[claim.get('confidence', '?')] = tally.get(claim.get('confidence', '?'), 0) + 1
-    return tally

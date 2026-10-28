@@ -7,7 +7,6 @@ column order is pinned by the contract sample in tests/contracts/lizard.json.
 """
 import csv
 import io
-from pathlib import Path
 
 from .. import tool
 from ..contract import OBSERVED, SYMBOL, Capability, Report, finding, measurement, subject
@@ -22,9 +21,6 @@ COLUMNS = ('nloc', 'ccn', 'tokens', 'parameters', 'length', 'location', 'file', 
 
 def capabilities():
     return [Capability('complexity', 'lizard.ccn', granularity=SYMBOL)]
-
-
-def version(): return tool.version(BINARY)
 
 
 def rows(text):
@@ -55,7 +51,6 @@ def normalise(parsed, found):
 
 @tool.engine(NAME, BINARY)
 def analyze(target, workdir, exclude, formats, found):
-    target = Path(target).resolve()
     output = workdir / 'lizard.csv'
     patterns = [argument for name in EXCLUDED + tuple(exclude) for argument in ('-x', f'*/{name}/*')]
     # -i -1: the exit code stays 0 however many functions pass the threshold; a warning is a result. One process: its

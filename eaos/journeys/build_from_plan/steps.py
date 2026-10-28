@@ -28,9 +28,10 @@ from .blueprint import (_plan, _state, answered, blueprint_answer, blueprint_des
                         folder, open_blueprint, publish, studio_build)
 from .checks import _checks, _git, _milestone_tidy
 from .look import read as _read
-from ...core.progress.log import now
+
 from ...core.project import state as project_state
 from ...core.project.state import waiting_batch
+from ...core.system.clock import now
 
 HOLDS = 3       # refused finishes of one milestone in a row; the next refusal hands it over with what stays unproven
 CONSENT = ('May I build your project from its blueprint in a separate copy, milestone by milestone, checking every '
@@ -91,7 +92,7 @@ def build_start(project=None, person_agreed=False):
     if not person_agreed and not (state.get('consent') or {}).get('build'):
         return {'status': 'needs_agreement', 'ask_the_person': CONSENT,
                 'what_now': 'Ask the person this, in their language. Only if they say yes, call build_start with person_agreed=true.'}
-    state['consent'] = {**(state.get('consent') or {}), 'build': True, 'at': agent_tools._now()}
+    state['consent'] = {**(state.get('consent') or {}), 'build': True, 'at': now()}
     started = _ensure_git(state)
     milestone = _next_milestone(state, plan)
     if milestone is None:
@@ -104,7 +105,7 @@ def build_start(project=None, person_agreed=False):
     number = len(state.get('built') or []) + 1
     root = _milestone_copy(state, runtime, number)
     build = {'number': number, 'milestone': milestone['id'], 'root': str(root), 'base': _git(root, 'rev-parse', 'HEAD').stdout.strip(),
-             'cards': milestone['tasks'], 'kept': {}, 'skipped': {}, 'installed': None, 'began': now()}
+             'cards': milestone['tasks'], 'kept': {}, 'skipped': {}, 'installed': None, 'began': now('milliseconds')}
     state['open_build'] = build
     guided.save(state)
     publish(state)
@@ -304,7 +305,7 @@ def _record_built(state, build, branch, root, unproven=()):
     milestones before it), with what stays `unproven` when it was handed over refused (HOLDS); its record."""
     record = {'number': build['number'], 'milestone': build['milestone'], 'branch': branch, 'base': build['base'],
               'kept': list(build['kept']), 'skipped': build['skipped'], 'stat': _git(root, 'diff', '--shortstat', f"{build['base']}..HEAD").stdout.strip(),
-              'began': build.get('began'), 'ended': now(), **({'unproven': list(unproven)} if unproven else {})}
+              'began': build.get('began'), 'ended': now('milliseconds'), **({'unproven': list(unproven)} if unproven else {})}
     state.setdefault('built', []).append(record)
     state.setdefault('waves', []).append({'number': build['number'], 'branch': branch, 'base': build['base'], 'kept': record['kept'],
                                           'failed': build['skipped'], 'stat': record['stat'], 'status': 'applied', 'via': 'build',

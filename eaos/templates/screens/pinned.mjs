@@ -12,7 +12,10 @@ export function playwrightFrom(folder) {
 }
 
 // A helper's config (the JSON file named by its first argument) and the pinned Playwright it names.
+/** A JSON file of the run, read and parsed. */
+export const readJson = file => JSON.parse(readFileSync(file, 'utf8'));
+
 export function configured() {
-  const config = JSON.parse(readFileSync(process.argv[2], 'utf8'));
+  const config = readJson(process.argv[2]);
   return { config, playwright: playwrightFrom(config.modules.playwright) };
 }

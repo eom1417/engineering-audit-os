@@ -240,6 +240,18 @@ class LoopTests(unittest.TestCase):
         manifest = execute('.', scratch(), runners=fake_runners(facts=RuntimeError('boom')))
         self.assertEqual(manifest['loops']['understand'], {'state': 'not_met', 'stages': ['facts'], 'rounds': 1, 'on_fail': 'stop'})
 
+    def test_what_a_stage_could_not_measure_is_a_gap_in_red_never_dropped(self):
+        # M15.0: the keeping stage said what it could not read (no database of the run's own) and the ledger dropped it
+        runners = fake_runners()
+        keeping = runners['keeping']
+        runners['keeping'] = lambda context: {**keeping(context), 'unmeasured': ["the app runs on no database of the run's own"]}
+        directory = scratch()
+        manifest = execute('.', directory, runners=runners)
+        entry = next(e for e in manifest['coverage'] if e['loop'] == 'run_and_see')
+        self.assertTrue(entry['big'])
+        self.assertEqual([(row['stage'], row['reason_code']) for row in entry['missed']], [('keeping', 'unmeasured')])
+        self.assertIn('🔴', (Path(directory) / 'RUN.md').read_text(encoding='utf-8').split('##')[0])
+
     def test_an_optional_loop_runs_only_when_the_check_switches_it_on(self):
         from eaos.pipeline.path_choice import resolve
         declared, loops.LOOPS = loops.LOOPS, (*loops.LOOPS, loops.Loop('try', ('visual',), switch='look'))

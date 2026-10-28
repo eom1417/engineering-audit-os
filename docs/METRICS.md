@@ -214,6 +214,16 @@ The simulated users on three corpus apps of different kinds (`tools/experience_p
 The short simulation adds 11-62 s and 1-7 light calls to a complete check and confirmed nothing on these runs; the whole
 simulation found one real failure a person would meet. The replays cost nothing and are green.
 
+## After M15: 0.0.88 (2026-10-28), one source per pattern
+
+| Measure | Value |
+|---|---|
+| EAOS by its own law (`tools/quality.json`) | near copies **43 to 0**, the look written outside `tokens.css` **290 to 0**, screen patterns **26 to 0**, ways of working **2 to 0**; the tolerant JSON reader once (`core/system/files.py`, 176 places), the time once (`core/system/clock.py`, 40 places); 5 copies kept on purpose, each with its reason (the MCP tools' signatures, and a JSON read in three programs that cannot import one another) |
+| Detection baseline | 35 planted problems, the near copy, the JSON read three ways, the pop-up on three screens, the colour a shade off, the sizes off the scale, the date three ways and the repeated guard among them; 9 examples that must stay, two parts alike that change apart among them |
+| Precision on the corpus, judged from outside by an independent judge, with the three conditions | near copies **0.643** on 14 (0.459 on 85 before the conditions); screen patterns **0.0** on 6 (0.091 on 11); the look 4 judged, the ways of working 1 (the bar is 5): every one kept aside, its cards hidden and the reason said (`eaos/data/detector-verdicts.json`) |
+| What was alike in shape only | said in the report as a likeness, never a card nor a breach of the law |
+| Cost | no token; the sorting 0.04-0.41 s an app on the corpus; jscpd's near modes ride on the code stage already running |
+
 ## After M14: 0.0.87 (2026-10-28), how the data is saved and kept
 
 | Measure | Value |

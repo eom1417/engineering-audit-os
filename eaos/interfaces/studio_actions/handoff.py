@@ -8,15 +8,12 @@ connected to EAOS at all.
 import json
 import os
 import threading
-from datetime import datetime, timezone
 from pathlib import Path
+from ...core.system.files import read_json
+from ...core.system.clock import now
 
 _lock = threading.Lock()
 DONE = 'studio-request {id} done'
-
-
-def _now():
-    return datetime.now(timezone.utc).isoformat(timespec='seconds')
 
 
 def _path(project):
@@ -25,8 +22,7 @@ def _path(project):
 
 
 def _read(project):
-    try: return json.loads(_path(project).read_text(encoding='utf-8'))
-    except (OSError, ValueError): return []
+    return read_json(_path(project), [])
 
 
 def _write(project, rows, create=False):
@@ -49,7 +45,7 @@ def add(project, run, prompt, label):
     with _lock:
         rows = [row for row in _read(project) if row.get('run') != run]
         rows.append({'id': run, 'run': run, 'label': label, 'request': request_text(prompt, run), 'state': 'waiting',
-                     'created': _now(), 'taken_by': None, 'taken_at': None, 'done': None})
+                     'created': now(), 'taken_by': None, 'taken_at': None, 'done': None})
         _write(project, rows, create=True)
 
 
@@ -72,7 +68,7 @@ def take(project, by):
         rows = _read(project)
         row = next((r for r in rows if r.get('state') == 'waiting'), None)
         if row is None: return None
-        row.update(state='taken', taken_by=by, taken_at=_now())
+        row.update(state='taken', taken_by=by, taken_at=now())
         _write(project, rows)
         return row
 
@@ -83,7 +79,7 @@ def close(project, text):
         rows = _read(project)
         for row in rows:
             if row.get('state') in ('waiting', 'taken') and str(text or '').strip().startswith(DONE.format(id=row['id'])):
-                row.update(state='done', done=str(text)[len(DONE.format(id=row['id'])):].lstrip(' :')[:4000], closed_at=_now())
+                row.update(state='done', done=str(text)[len(DONE.format(id=row['id'])):].lstrip(' :')[:4000], closed_at=now())
                 _write(project, rows)
                 return row['run']
     return None

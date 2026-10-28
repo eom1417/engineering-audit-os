@@ -12,6 +12,7 @@ holds nothing usable, the plan is made by rules alone: one persona per kind of u
 import json
 import re
 from pathlib import Path
+from ...core.system.files import read_json
 
 VERSION = 1
 LIMIT = {'personas': 6, 'goals': 5, 'features': 30, 'roles': 10, 'pages': 40, 'surfaces': 6, 'text': 300}
@@ -62,12 +63,6 @@ Invent a role, a page or a feature that is not given. Make a goal wait on itself
 a real message sent to a real person, or anything outside the app.'''
 
 
-def _load(path):
-    """The JSON at `path`, or {} when it is missing or unreadable."""
-    try: return json.loads(Path(path).read_text(encoding='utf-8'))
-    except (OSError, ValueError): return {}
-
-
 def _short(text, limit=LIMIT['text']):
     return str(text or '').strip()[:limit]
 
@@ -83,14 +78,14 @@ def _slug(text):
 
 def _roles(report):
     """The kinds of users of roles.json, each {id, name, pages}."""
-    rows = (_load(Path(report) / 'roles.json') or {}).get('roles') or []
+    rows = (read_json(Path(report) / 'roles.json', {}) or {}).get('roles') or []
     return [{'id': row['id'], 'name': _name(row.get('name')) or row['id'], 'pages': (row.get('pages') or [])[:LIMIT['pages']]}
             for row in rows[:LIMIT['roles']] if isinstance(row, dict) and row.get('id')]
 
 
 def _features(report):
     """The features of features.json, the critical ones first, each cut short."""
-    rows = [f for f in (_load(Path(report) / 'features.json') or {}).get('features') or [] if isinstance(f, dict) and f.get('name')]
+    rows = [f for f in (read_json(Path(report) / 'features.json', {}) or {}).get('features') or [] if isinstance(f, dict) and f.get('name')]
     rows.sort(key=lambda f: not f.get('critical'))
     return [{'name': f['name'], 'description': _short(f.get('description')), 'surfaces': (f.get('surfaces') or [])[:LIMIT['surfaces']],
              'writes': (f.get('writes') or [])[:LIMIT['surfaces']], 'critical': bool(f.get('critical'))}
@@ -99,14 +94,14 @@ def _features(report):
 
 def _pages(report):
     """The page addresses live/screens.json holds, each once."""
-    screens = _load(Path(report) / 'live/screens.json') or {}
+    screens = read_json(Path(report) / 'live/screens.json', {}) or {}
     paths = [row.get('path') for row in screens.get('pages') or [] if isinstance(row, dict)]
     return list(dict.fromkeys(p for p in paths if isinstance(p, str)))[:LIMIT['pages']]
 
 
 def brief(report):
     """What the planner reads, bounded: the features, the kinds of users, the pages and how they were opened."""
-    sign_in = _load(Path(report) / 'live/sign-in.json') or {}
+    sign_in = read_json(Path(report) / 'live/sign-in.json', {}) or {}
     return {'features': _features(report), 'roles': _roles(report), 'pages': _pages(report),
             'sign_in': {key: sign_in[key] for key in ('needed', 'how') if key in sign_in}}
 

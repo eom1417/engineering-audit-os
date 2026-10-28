@@ -7,10 +7,9 @@ judge: a card they failed cannot be accepted, whatever the answer says. "accept"
 still takes the branch in (accept) or throws it away (undo). The review is written to nodes/fix_reviewer/review.json.
 """
 import json
-import sys
 from pathlib import Path
 
-from . import framework as core, runner
+from . import framework as core
 from ..ideal import planner as ideal
 
 VERSION = '1'
@@ -83,10 +82,6 @@ def check(data, decision):
     return None
 
 
-def prompt(data):
-    return core.prompt(TASK, data)
-
-
 def finish(report, record, data):
     route = {s: r['decision'] for r in record['routes'] for s in r['subjects']}
     cards = {c['id']: c for c in data['cards']}
@@ -97,7 +92,3 @@ def finish(report, record, data):
     (folder / 'review.json').write_text(json.dumps({'schema_version': 1, 'at': record['at'], 'method': record['method'], 'wave': data['wave'],
                                                     'branch': data['branch'], 'cards': rows}, ensure_ascii=False, indent=1) + '\n',
                                         encoding='utf-8')
-
-
-def run(node, report, **options):
-    return runner.run_node(node, sys.modules[__name__], report, **options)

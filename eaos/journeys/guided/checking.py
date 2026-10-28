@@ -1,13 +1,13 @@
 """Step 1, the check: the assistant the check asks and whether it is ready, the tools it waits for, then
 eaos/journeys/check.py runs it.
 """
-from datetime import datetime, timezone
 
 from ...core.project.state import runtime_of, waiting_batch
 from .. import check_choices
 from ...report.documents.start_here import summary_counts
 from .person import AI_QUESTION, Declined, WITHOUT_AI_QUESTION, WITHOUT_QUESTION, answered, ask, box, progress_printer, say
 from .project import chosen_assistant, report_of, save, source
+from ...core.system.clock import now
 
 
 def choose_assistant(state, use, name=None, via='person'):
@@ -16,7 +16,7 @@ def choose_assistant(state, use, name=None, via='person'):
     from ...ai import ADAPTERS
     if name is not None and name not in ADAPTERS: raise ValueError(f'no assistant named {name}: claude or codex')
     state['questions'] = [q for q in state.get('questions') or [] if q['id'] != 'use_assistant'] + [
-        {'id': 'use_assistant', 'kind': 'yes_no', 'answer': bool(use), 'via': via, 'at': datetime.now(timezone.utc).isoformat(timespec='seconds')}]
+        {'id': 'use_assistant', 'kind': 'yes_no', 'answer': bool(use), 'via': via, 'at': now()}]
     if name: state['assistant'] = name
     save(state)
     return state

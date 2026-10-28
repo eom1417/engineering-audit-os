@@ -7,12 +7,12 @@ candidate the running copy confirms when it ran (a whole state saved, both seen)
 that run. What the copy could not read (no database of the run's own, no page that saves on its own) is said in
 `unmeasured`, never taken for clean.
 """
-import json
 import re
 from pathlib import Path
 
 from ...facts.engine_findings import engine_records
 from ...live.keeping.restore import commands
+from ...core.system.files import read_json
 
 # kind: severity. A missing backup is low: a hosted database may be backed up by its provider, which the code does not show.
 KINDS = {
@@ -122,15 +122,14 @@ def _lost(record):
 
 def from_copy(out):
     """What the running copy showed (live/keeping.json)."""
-    try: record = json.loads((Path(out) / 'live/keeping.json').read_text(encoding='utf-8'))
-    except (OSError, ValueError): return [], None
+    record = read_json(Path(out) / 'live/keeping.json')
+    if record is None: return [], None
     return _writes(record) + _stored(record) + _restore(record) + _places(record) + _lost(record), record
 
 
 def _audits(path):
     """(the page's address, its Lighthouse audits) of one report, or None."""
-    try: report = json.loads(path.read_text(encoding='utf-8'))
-    except (OSError, ValueError): return None
+    report = read_json(path)
     return (report.get('finalUrl') or path.parent.name, report.get('audits') or {}) if isinstance(report, dict) else None
 
 

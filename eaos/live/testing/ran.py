@@ -12,7 +12,6 @@ NODE_V8_COVERAGE is set (a preload makes a SIGTERM end it through process.exit, 
 run by its interpreter runs under Coverage.py when that interpreter has it (its data saved on SIGTERM). Any other
 server is not measured, and its record says so.
 """
-import json
 import shutil
 from itertools import takewhile
 import sqlite3
@@ -23,13 +22,14 @@ import eaos
 
 from ...core.contracts.vocabulary import classify
 from ...core.project.workspace import write
+from ...core.system.files import read_json
 
 PRELOAD = Path(eaos.__path__[0]).resolve() / 'templates/coverage/exit-on-term.cjs'
 INTERPRETERS = {'python', 'python3', 'py'}
 RC = '.eaos-ran-coveragerc'
 
 
-def _own(path, root):
+def own(path, root):
     """`path` relative to the project root when it is one of its own source files, else None."""
     name = str(path)
     if name.startswith('file://'): name = name[len('file://'):]
@@ -56,9 +56,8 @@ def v8(folder, root):
     """The project's functions in Node's V8 coverage files of `folder` (NODE_V8_COVERAGE)."""
     scripts = []
     for path in sorted(Path(folder).glob('*.json')):
-        try: scripts += json.loads(path.read_text(encoding='utf-8')).get('result') or []
-        except (OSError, ValueError): continue
-    return _functions(scripts, lambda url: _own(url, root))
+        scripts += read_json(path, {}).get('result') or []
+    return _functions(scripts, lambda url: own(url, root))
 
 
 def browser(entries, root):
@@ -68,7 +67,7 @@ def browser(entries, root):
 
     def place(url):
         path = urlsplit(url).path
-        if path.startswith('/@fs/'): return _own(path[len('/@fs'):], root)
+        if path.startswith('/@fs/'): return own(path[len('/@fs'):], root)
         relative = path.lstrip('/')
         return relative if relative and (root / relative).is_file() and classify(relative) == 'source' else None
     return _functions(entries, place)
@@ -96,7 +95,7 @@ def python_data(files, root):
             with sqlite3.connect(f'file:{data}?mode=ro', uri=True) as db:
                 names = dict(db.execute('select id, path from file'))
                 for file_id, blob in db.execute('select file_id, numbits from line_bits'):
-                    path = _own(names.get(file_id, ''), root)
+                    path = own(names.get(file_id, ''), root)
                     if path: lines.setdefault(path, set()).update(_numbits(blob))
         except sqlite3.Error: continue
     return {path: {'lines': _ranges(found)} for path, found in lines.items()}
@@ -104,8 +103,7 @@ def python_data(files, root):
 
 def python_report(report, prefix=''):
     """{path: {'lines': ranges}} from a Coverage.py JSON report (the tests' `.eaos-coverage.json`)."""
-    try: files = json.loads(Path(report).read_text(encoding='utf-8')).get('files') or {}
-    except (OSError, ValueError): return {}
+    files = (read_json(report) or {}).get('files') or {}
     out = {}
     for name, entry in files.items():
         relative = PurePosixPath(prefix, Path(name).as_posix().removeprefix('./')).as_posix()

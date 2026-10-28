@@ -1,7 +1,9 @@
 """Fetching the remotes, the project's protection policy, and how fresh each branch is."""
 from ....core.project import branches as reading
-from ....core.project.runs import _read_json, _write_json, now
+from ....core.project.runs import _write_json
 from .common import Blocked, git, say, valid_name
+from ....core.system.files import read_json
+from ....core.system.clock import now
 
 
 class Remotes:
@@ -46,18 +48,18 @@ class Remotes:
     def _save_protection(self, name, protect):
         """The project's policy file with `name` protected (`protect`) or unprotected."""
         path = self.store.folder / reading.POLICY
-        saved = _read_json(path, {}) or {}
+        saved = read_json(path, {}) or {}
         protected, unprotected = set(saved.get('protected') or []), set(saved.get('unprotected') or [])
         (protected.add if protect else protected.discard)(name)
         (unprotected.discard if protect else unprotected.add)(name)
-        _write_json(path, {'protected': sorted(protected), 'unprotected': sorted(unprotected), 'at': now()})
+        _write_json(path, {'protected': sorted(protected), 'unprotected': sorted(unprotected), 'at': now('milliseconds')})
 
     # ------------------------------------------------------------------ freshness
     def freshness(self):
         """The live answer to "is the check current?" for the branch EAOS works on (eaos/core/project/branches.py freshness)."""
         from ....core.system.version_info import digest
         state = self.state()
-        if not state: return {'state': 'unknown', 'reason': 'not_scanned', 'checked_at': now(), 'eaos_updated': False}
+        if not state: return {'state': 'unknown', 'reason': 'not_scanned', 'checked_at': now('milliseconds'), 'eaos_updated': False}
         found = reading.freshness(state)
         if found['reason'] == 'not_scanned':
             # the analysis branch has no scan of its own yet, but the report on screen is another branch's: say so
@@ -72,4 +74,4 @@ class Remotes:
         except Exception:
             pass
         return {**found, 'eaos_updated': bool(state.get('scanned_with')) and state.get('scanned_with') != digest(),
-                'report_built': stamp.get('built'), 'checked_at': now(), 'project': self.project.name, 'project_path': str(self.project)}
+                'report_built': stamp.get('built'), 'checked_at': now('milliseconds'), 'project': self.project.name, 'project_path': str(self.project)}
