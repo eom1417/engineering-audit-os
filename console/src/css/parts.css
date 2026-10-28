@@ -40,6 +40,8 @@
 /* ---------- rows to pick from, and a few layouts said once ---------- */
 .row--pick { min-height: 48px; gap: var(--s3); }
 .row--facet { padding-inline: var(--s1); }
+.row--flush { padding-inline: 0; }
+.row--top { align-items: flex-start; }
 .pick__words { margin-inline-start: var(--s2); }
 .pick { display: inline-flex; align-items: center; gap: var(--s3); }
 .pick__label { margin-inline-start: var(--s2-5); }

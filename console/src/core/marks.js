@@ -34,7 +34,7 @@ export function back(path, label, query) { return `<a class="back" href="${href(
 /** A fold's summary: an optional lead (an icon), its title and the line under it, and the chevron. */
 export const foldHead = (title, sum, lead) => `<summary>${lead || ''}${rowWords(title, sum)}${icon('chev', 'chev')}</summary>`;
 export function fold(id, title, sum, body, open, cls) {
-  return `<details class="fold ${cls || ''}" id="fold-${id}" ${open ? 'open' : ''}>${foldHead(title, sum)}
+  return `<details class="fold ${cls || ''}" id="fold-${id}" ${open ? 'open' : ''}>${foldHead(title, sum || null)}
     <div class="fold__body">${body}</div></details>`;
 }
 /** A time the person can tap for the exact moment, written by `format`. */

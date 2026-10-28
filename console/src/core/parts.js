@@ -8,15 +8,23 @@ import { prefs } from './prefs.js';
 
 const attrs = o => Object.entries(o).filter(([, v]) => v != null && v !== false).map(([k, v]) => (v === true ? k : `${k}="${esc(v)}"`)).join(' ');
 
-/** A row's words: its title and, when given, the meta line under it. `o.title`: the title's extra classes; `o.meta`:
- *  the meta's own classes (a laid-out meta, ac-meta), else a meta line of its own; `o.more`: markup after them. */
+/** A row's words: its title and, unless null, the meta line under it. `o.title`: the title's extra classes, or false
+ *  for a title that is its own element (a name in code); `o.meta`: the meta's own classes (a laid-out meta, ac-meta),
+ *  else a meta line of its own; `o.more`: markup after them. */
 export function rowWords(title, meta, o = {}) {
   const line = o.meta ? `<span class="row__meta ${o.meta}">` : '<span class="row__meta" style="display:block">';
-  return `<span class="row__main"><span class="row__title${o.title ? ' ' + o.title : ''}">${title}</span>${meta ? `${line}${meta}</span>` : ''}${o.more || ''}</span>`;
+  const head = o.title === false ? title : `<span class="row__title${o.title ? ' ' + o.title : ''}">${title}</span>`;
+  return `<span class="row__main">${head}${meta != null ? `${line}${meta}</span>` : ''}${o.more || ''}</span>`;
 }
+
+/** A laid-out meta's pieces (each its own span), the empty ones left out. */
+export const bitsOf = bits => bits.filter(b => b != null && b !== false && b !== '').map(b => `<span>${b}</span>`).join('');
 
 /** A switch (a checkbox drawn as one): `input` its attributes ({name: value}, true for a bare one), `label` its name. */
 export const switchBox = (input, label) => `<span class="switch"><input type="checkbox" ${attrs(input)} aria-label="${esc(label)}"><span class="switch__track"></span><span class="switch__thumb"></span></span>`;
+
+/** A switch with its words after it, inside a line of other controls. */
+export const inlineSwitch = (input, label) => `<label class="ac-inline-switch small ink-2">${switchBox(input, label)}${label}</label>`;
 
 /** A switch's row: its words (and the note under them), then the switch. `o.icon`: an icon before the words; `o.cls`:
  *  the row's extra classes. */
@@ -34,8 +42,10 @@ export function radio(input, text, note, off) {
 /** An option's first line: a name, and a lock when it cannot be chosen. */
 export const lockLine = (name, locked) => `<span class="opt__line">${name}${locked ? icon('lock', 'icon--sm muted') : ''}</span>`;
 
-/** A list of facts: [term, value, the value's class] pairs (falsy ones left out); `cls` the list's extra classes. */
-export const facts = (pairs, cls) => `<dl class="facts${cls ? ' ' + cls : ''}">${pairs.filter(Boolean).map(([k, v, c]) => `<dt>${k}</dt><dd${c ? ` class="${c}"` : ''}>${v}</dd>`).join('')}</dl>`;
+/** A list of facts: [term, value, the value's class] pairs, or markup of pairs already drawn (falsy ones left out);
+ *  `cls` the list's extra classes. */
+export const facts = (pairs, cls) => `<dl class="facts${cls ? ' ' + cls : ''}">${pairs.filter(Boolean).map(p => (typeof p === 'string' ? p
+  : `<dt>${p[0]}</dt><dd${p[2] ? ` class="${p[2]}"` : ''}>${p[1]}</dd>`)).join('')}</dl>`;
 
 /** A section: its head (a title, with `id` for the section to be named by, and a note beside it) and its body. */
 export const titledSection = (id, title, body, note) => `<section class="section" aria-labelledby="${id}"><div class="section-head"><h2 id="${id}">${title}</h2>${note ? `<span class="small muted">${note}</span>` : ''}</div>${body}</section>`;

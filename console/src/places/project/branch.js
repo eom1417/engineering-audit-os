@@ -5,6 +5,9 @@
 import {
   t, tn, L, num, esc, icon, code, rich, diffLines, href, fmtWhen, screen, sheet, act, rerenderSheet, local, toast, closeSheetThen,
   live, store, client, ActionError, ac,
+  rowWords,
+  lockLine, radio,
+  facts,
 } from 'eaos';
 import {
   enc, said, reasonsOf, inv, inventory, detail, mergeTry, problemOf, changed, liveName, waitingRun, aheadBehind, whoLine, roleTags,
@@ -40,11 +43,11 @@ function cmdButton(b, cmd, det) {
   const target = targetOf(det);
   const label = t('ac.cmd.' + id, { t: target, r: b.remote || '' });
   const ic = CMD_ICON[id] || 'minus';
-  if (!ok) return `<li class="row ac-cmd">${icon(ic === 'seal' ? 'lock' : ic, 'muted')}<span class="row__main"><span class="row__title ac-c-muted">${esc(label)}</span><span class="row__meta" style="display:block">${esc(t('ac.cmd.not', { why }))}</span></span></li>`;
+  if (!ok) return `<li class="row ac-cmd">${icon(ic === 'seal' ? 'lock' : ic, 'muted')}${rowWords(esc(label), esc(t('ac.cmd.not', { why })), { title: 'ac-c-muted' })}</li>`;
   const arg = b.kind === 'remote' ? `${b.remote}/${b.name}` : b.name;
   const attrs = id === 'check' ? `data-act="ac-analyse" data-name="${esc(b.name)}"` : `data-act="sheet" data-sheet="${esc(id + ':' + arg)}"`;
   return `<li><button class="row ac-cmd" ${attrs}>${icon(ic, id.startsWith('delete') ? 'ac-c-danger' : 'ac-c-accent')}
-    <span class="row__main"><span class="row__title">${esc(label)}</span><span class="row__meta" style="display:block">${esc(t('ac.cmd.' + id + '.sub', { t: target, r: b.remote || '' }))}</span></span>${icon('chev', 'icon--sm icon--dir muted')}</button></li>`;
+    ${rowWords(esc(label), esc(t('ac.cmd.' + id + '.sub', { t: target, r: b.remote || '' })))}${icon('chev', 'icon--sm icon--dir muted')}</button></li>`;
 }
 const branchLede = (b, det, waits) => (waits ? t('ac.br1.lede.eaos', { b: code(b.name) }) : b.protected ? t('ac.br1.lede.protected', { b: code(liveName(b)) })
   : (b.roles || []).includes('analysis') ? t('ac.br1.lede.analysed', { b: code(b.name) }) : b.compare && b.compare.merged && !b.compare.ahead ? t('ac.br1.lede.merged', { b: code(liveName(b)), t: code(b.compare.base) })
@@ -70,17 +73,7 @@ function whereFact(b) {
 }
 function branchFacts(b, det, target) {
   return `<section class="section" aria-labelledby="bf-h"><div class="section-head"><h2 id="bf-h">${t('ac.br1.facts')}</h2></div>
-      <div class="panel panel__pad"><dl class="facts ac-facts">
-        <dt>${t('ac.br1.tip')}</dt><dd>${code(String(b.tip).slice(0, 7))} <span class="small ink-2">${rich(b.subject || '')}</span> <span class="small muted">${esc(fmtWhen(b.last_commit))}</span></dd>
-        <dt>${t('ac.br1.where')}</dt><dd>${whereFact(b)}</dd>
-        <dt>${t('ac.br1.vs')}</dt><dd>${aheadBehind(b)}</dd>
-        <dt>${t('ac.br1.who')}</dt><dd>${whoLine(b)}</dd>
-        ${b.protected ? `<dt>${t('ac.br.r.protected')}</dt><dd>${esc(L(b.protected))}</dd>` : ''}
-        <dt>${t('ac.br1.wt')}</dt><dd>${b.worktree ? `${code(b.worktree.path)} ${t(b.worktree.current ? 'ac.br.wt.here' : 'ac.br.wt.other')}` : t('ac.br1.wt.none')}</dd>
-        <dt>${t('ac.br1.checks')}</dt><dd>${checksLine(det.checks)}</dd>
-        ${det.lineage && det.lineage.parent ? `<dt>${t('ac.br1.lineage')}</dt><dd>${t('ac.br1.lineage.v', { p: code(det.lineage.parent), c: code(String(det.lineage.parent_commit || '').slice(0, 7)) })}</dd>` : ''}
-        <dt>${t('ac.br1.dest')}</dt><dd>${target ? t('ac.br1.dest.v', { t: code(target) }) : '—'}</dd>
-      </dl></div></section>`;
+      <div class="panel panel__pad">${facts([[t('ac.br1.tip'), `${code(String(b.tip).slice(0, 7))} <span class="small ink-2">${rich(b.subject || '')}</span> <span class="small muted">${esc(fmtWhen(b.last_commit))}</span>`], [t('ac.br1.where'), whereFact(b)], [t('ac.br1.vs'), aheadBehind(b)], [t('ac.br1.who'), whoLine(b)], b.protected ? `<dt>${t('ac.br.r.protected')}</dt><dd>${esc(L(b.protected))}</dd>` : '', [t('ac.br1.wt'), b.worktree ? `${code(b.worktree.path)} ${t(b.worktree.current ? 'ac.br.wt.here' : 'ac.br.wt.other')}` : t('ac.br1.wt.none')], [t('ac.br1.checks'), checksLine(det.checks)], det.lineage && det.lineage.parent ? `<dt>${t('ac.br1.lineage')}</dt><dd>${t('ac.br1.lineage.v', { p: code(det.lineage.parent), c: code(String(det.lineage.parent_commit || '').slice(0, 7)) })}</dd>` : '', [t('ac.br1.dest'), target ? t('ac.br1.dest.v', { t: code(target) }) : '—']], 'ac-facts')}</div></section>`;
 }
 function branchPage(ctx) {
   const name = ctx.params.name, kind = ctx.query.kind || 'local', remote = ctx.query.remote || null;
@@ -143,22 +136,14 @@ screen({ id: 'S-47', path: '/project/branches/:name', place: 'project', title: c
 function mergeInto(name, p) {
   const d = inventory(inv.base);
   const targets = d ? d.branches.filter(b => b.kind === 'local' && b.name !== name) : [];
-  return `<div class="opts" role="radiogroup" aria-labelledby="mg-into">${targets.slice(0, 12).map(b => `<label class="opt ${b.protected ? 'opt--off' : ''}"><input type="radio" name="mg-into" value="${esc(b.name)}" data-change="ac-mg-into" data-fk="mg-${esc(b.name)}" ${b.name === p.target ? 'checked' : ''} ${b.protected ? 'disabled' : ''}><span class="opt__dot" aria-hidden="true"></span>
-      <span class="opt__text"><span class="opt__line">${code(b.name)}${b.protected ? icon('lock', 'icon--sm muted') : ''}</span><span class="opt__note">${esc(b.protected ? L(b.protected) : b.name === p.recommended_target ? t('ac.mg.recommended') : '')}</span></span></label>`).join('')}</div>`;
+  return `<div class="opts" role="radiogroup" aria-labelledby="mg-into">${targets.slice(0, 12).map(b => radio({ name: 'mg-into', value: b.name, 'data-change': 'ac-mg-into', 'data-fk': `mg-${b.name}`, checked: b.name === p.target, disabled: !!b.protected },
+      lockLine(code(b.name), b.protected), esc(b.protected ? L(b.protected) : b.name === p.recommended_target ? t('ac.mg.recommended') : ''))).join('')}</div>`;
 }
 function mergeBody(name, p, into) {
   return `${owner()}<p>${t('ac.mg.lede', { b: code(name), t: code(p.target) })}</p>
         ${p.blocked.length ? `<div class="ac-refuse" role="alert"><p><b>${t('ac.mg.refused')}</b></p><p class="small">${esc(reasonsOf(p.blocked))}</p>${p.conflicts.length ? `<p class="small">${p.conflicts.map(code).join(' ')}</p>` : ''}</div>` : ''}
         <div><div class="block-title" id="mg-into">${t('cf.into')}</div>${into}</div>
-        <dl class="facts">
-          <dt>${t('ac.mg.how')}</dt><dd>${t(p.path === 'accept' ? 'ac.mg.how.accept' : 'ac.mg.how.v')}</dd>
-          <dt>${t('ac.mg.ff')}</dt><dd>${t(p.fast_forward ? 'ac.mg.ff.yes' : 'ac.mg.ff.merge')}</dd>
-          <dt>${t('ac.mg.heads')}</dt><dd>${code(String(p.source_head).slice(0, 7))} → ${code(String(p.target_head).slice(0, 7))}</dd>
-          <dt>${t('ac.mg.commits')}</dt><dd>${esc(tn('ac.pl.commit', p.commits.length))}</dd>
-          <dt>${t('cf.files')}</dt><dd>${esc(tn('pl.file', p.files.length))}</dd>
-          <dt>${t('ac.mg.conflicts')}</dt><dd>${p.conflicts.length ? ac.mark('failed', esc(tn('pl.file', p.conflicts.length))) : ac.mark('ok', t('ac.mg.conflicts.none'))}</dd>
-          <dt>${t('cf.checks')}</dt><dd>${checksLine(p.checks)}</dd>
-        </dl>`;
+        ${facts([[t('ac.mg.how'), t(p.path === 'accept' ? 'ac.mg.how.accept' : 'ac.mg.how.v')], [t('ac.mg.ff'), t(p.fast_forward ? 'ac.mg.ff.yes' : 'ac.mg.ff.merge')], [t('ac.mg.heads'), `${code(String(p.source_head).slice(0, 7))} → ${code(String(p.target_head).slice(0, 7))}`], [t('ac.mg.commits'), esc(tn('ac.pl.commit', p.commits.length))], [t('cf.files'), esc(tn('pl.file', p.files.length))], [t('ac.mg.conflicts'), p.conflicts.length ? ac.mark('failed', esc(tn('pl.file', p.conflicts.length))) : ac.mark('ok', t('ac.mg.conflicts.none'))], [t('cf.checks'), checksLine(p.checks)]])}`;
 }
 const mergeReady = (p, own) => !p.blocked.length && p.confirm && own.ack_merge && (!p.needs_unchecked_ack || own.ack_merge2) && !own.busy;
 function mergeFoot(name, p, own) {
@@ -210,9 +195,8 @@ function localLoss(p, lost) {
 }
 function deleteBody(remote, br, p, lost) {
   return `${owner()}<p>${t(remote ? 'ac.dl.lede.remote' : 'ac.dl.lede', { b: code(br.name), r: code(br.remote || 'origin') })}</p>
-          <dl class="facts"><dt>${t('ac.br1.who')}</dt><dd>${esc(L(p.whose))}</dd>
-            ${remote ? `<dt>${t('ac.dl.other')}</dt><dd>${t(p.local_kept ? 'ac.dl.other.local' : 'ac.dl.other.nolocal')}</dd>`
-              : localLoss(p, lost)}</dl>
+          ${facts([[t('ac.br1.who'), esc(L(p.whose))], remote ? `<dt>${t('ac.dl.other')}</dt><dd>${t(p.local_kept ? 'ac.dl.other.local' : 'ac.dl.other.nolocal')}</dd>`
+              : localLoss(p, lost)])}
           ${lost.length ? `<div><div class="block-title">${t('ac.dl.only.list')}</div><ul class="panel rows">${lost.map(c => `<li class="row small" style="min-height:44px">${code(String(c.commit).slice(0, 7))}<span class="row__main">${rich(c.subject || '')}</span></li>`).join('')}</ul></div>` : ''}
           <p class="small ink-2">${t('ac.dl.recovery')}</p>`;
 }
@@ -289,7 +273,7 @@ function pickOf(own, assistants) {
 }
 function asstOption(a, pick) {
   const ok = a.installed && a.logged_in;
-  return `<label class="opt ${ok ? '' : 'opt--off'}"><input type="radio" name="rv-asst" value="${esc(a.id)}" data-change="ac-rv-asst" data-fk="rv-${esc(a.id)}" ${pick === a.id ? 'checked' : ''} ${ok ? '' : 'disabled'}><span class="opt__dot"></span><span class="opt__text">${esc(a.name)}<span class="opt__note">${t(ok ? 'pv.ready' : a.installed ? 'pv.notsigned' : 'pv.notinstalled')}</span></span></label>`;
+  return radio({ name: 'rv-asst', value: a.id, 'data-change': 'ac-rv-asst', 'data-fk': `rv-${a.id}`, checked: pick === a.id, disabled: !ok }, esc(a.name), t(ok ? 'pv.ready' : a.installed ? 'pv.notsigned' : 'pv.notinstalled'));
 }
 function resolveFiles(p, own, conflicts) {
   if (!p) return previewing(own);
@@ -308,9 +292,9 @@ sheet('resolve', {
       sub: `<span class="free-band">${icon('check', 'icon--sm')}${t('free')}</span>`,
       body: `<p>${t('ac.rv.does', { t: code(p ? p.target : '') })}</p>
         ${resolveFiles(p, own, conflicts)}
-        <dl class="facts"><dt>${t('pv.risk')}</dt><dd><span class="tag tag--state">${t('pv.risk.low')}</span> <span class="small ink-2">${t('ac.rv.risk')}</span></dd></dl>
+        ${facts([[t('pv.risk'), `<span class="tag tag--state">${t('pv.risk.low')}</span> <span class="small ink-2">${t('ac.rv.risk')}</span>`]])}
         <div><div class="block-title">${t('pv.who')}</div><div class="opts">${assistants.map(a => asstOption(a, pick)).join('')}
-          <label class="opt"><input type="radio" name="rv-asst" value="handoff" data-change="ac-rv-asst" data-fk="rv-handoff" ${pick === 'handoff' ? 'checked' : ''}><span class="opt__dot"></span><span class="opt__text">${t('ac.who.handoff')}<span class="opt__note">${t('pv.handoff')}</span></span></label></div></div>
+          ${radio({ name: 'rv-asst', value: 'handoff', 'data-change': 'ac-rv-asst', 'data-fk': 'rv-handoff', checked: pick === 'handoff' }, t('ac.who.handoff'), t('pv.handoff'))}</div></div>
         ${pick !== 'handoff' ? `<p class="small ink-2">${t('pv.cost')}</p>` : ''}`,
       foot: `${alert(own.refused)}<button class="btn btn--primary btn--block" data-act="ac-resolve" data-name="${esc(name)}" data-fk="rv-do" ${p && conflicts.length && !own.busy ? '' : 'disabled'}>${esc(t('pv.start', { title: t('ac.cmd.resolve') }))}</button>`,
     };

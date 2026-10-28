@@ -3,6 +3,9 @@
 import {
   t, tn, L, num, esc, icon, code, sev, href, band, fmtWhen, exactTime, screen, sheet, liveNow, freshness, live, model, data, contract, prefs, derive, has,
   smallFold,
+  rowWords,
+  ac,
+  facts,
 } from 'eaos';
 import { buildStep } from '../kit/kit.js';
 
@@ -62,7 +65,7 @@ function nextStep(ctx) {
 }
 
 const rowLink = (to, lead, title, meta) => `<a class="row" href="${href(to)}">${lead}
-  <span class="row__main"><span class="row__title">${esc(title)}</span>${meta ? `<span class="row__meta" style="display:block">${esc(meta)}</span>` : ''}</span>${icon('chev', 'icon--dir muted')}</a>`;
+  ${rowWords(esc(title), meta ? esc(meta) : null)}${icon('chev', 'icon--dir muted')}</a>`;
 
 // the row of what waits for the owner, with what it is made of
 function waitingRow(wc) {
@@ -144,14 +147,8 @@ function healthRow() {
   const weakest = h.areas.filter(a => a.score != null).sort((a, b) => a.score - b.score)[0];
   return `<section class="section only-phone"><div class="panel rows">
     <button class="row" data-act="sheet" data-sheet="health">
-      <span class="row__main"><span class="row__title">${esc(t('st.health', { score: h.score, band: t('band.' + band(h.score, h.unchecked.length > 0)) }))}</span>
-      <span class="row__meta" style="display:block">${weakest ? esc(t('st.health.weakest', { area: t('area.' + weakest.id), score: weakest.score })) + '. ' : ''}${esc(trend(h))}</span></span>
+      ${rowWords(esc(t('st.health', { score: h.score, band: t('band.' + band(h.score, h.unchecked.length > 0)) })), `${weakest ? esc(t('st.health.weakest', { area: t('area.' + weakest.id), score: weakest.score })) + '. ' : ''}${esc(trend(h))}`)}
       ${icon('chev', 'icon--dir muted')}</button></div></section>`;
-}
-
-function fold(id, title, sum, body) {
-  return `<details class="fold" id="fold-${id}"><summary><span class="row__main"><span class="row__title">${title}</span><span class="row__meta" style="display:block">${sum}</span></span>${icon('chev', 'chev')}</summary>
-    <div class="fold__body">${body}</div></details>`;
 }
 
 /** The journey's steps (live: /api/progress journey), else the check alone, which this report proves done. */
@@ -163,14 +160,8 @@ function journeySteps() {
 
 // where the project stands: what is next, the last check and fix batch, the branches waiting
 function standHTML(ctx, { p, tot, n, lastFix, waiting }) {
-  return `<dl class="facts">
-      ${n.short ? `<dt>${t('st.stand.next')}</dt><dd>${esc(n.short)}</dd>` : ''}
-      <dt>${t('st.stand.checked')}</dt><dd>${t('st.stand.checked.v', { commit: code(p.commit.slice(0, 7)) })}</dd>
-      ${tot.all_cards ? `<dt>${t('st.stand.progress')}</dt><dd>${esc(t('st.stand.progress.v', { closed: num(tot.closed), all: num(tot.all_cards) }))}</dd>` : ''}
-      ${lastFix ? `<dt>${t('st.stand.batch')}</dt><dd>${esc(t('st.stand.batch.v', { state: L(contract.STATE_WORDS[lastFix.state]), label: derive.labelOf(lastFix.label, prefs.lang) }))}
-        ${lastFix.state === 'stopped' && !lastFix.outcome && !ctx.offline ? `<div class="mt-1"><button class="btn btn--secondary btn--sm" data-act="sheet" data-sheet="action:fix_abandon">${t('st.stand.close')}</button></div>` : ''}</dd>` : ''}
-      ${waiting.map(run => `<dt>${t('st.stand.branch')}</dt><dd><a class="link" href="${href('/waiting/' + encodeURIComponent(run.id))}">${code(run.result.branch)}</a></dd>`).join('')}
-    </dl>
+  return `${facts([n.short ? `<dt>${t('st.stand.next')}</dt><dd>${esc(n.short)}</dd>` : '', [t('st.stand.checked'), t('st.stand.checked.v', { commit: code(p.commit.slice(0, 7)) })], tot.all_cards ? `<dt>${t('st.stand.progress')}</dt><dd>${esc(t('st.stand.progress.v', { closed: num(tot.closed), all: num(tot.all_cards) }))}</dd>` : '', lastFix ? `<dt>${t('st.stand.batch')}</dt><dd>${esc(t('st.stand.batch.v', { state: L(contract.STATE_WORDS[lastFix.state]), label: derive.labelOf(lastFix.label, prefs.lang) }))}
+        ${lastFix.state === 'stopped' && !lastFix.outcome && !ctx.offline ? `<div class="mt-1"><button class="btn btn--secondary btn--sm" data-act="sheet" data-sheet="action:fix_abandon">${t('st.stand.close')}</button></div>` : ''}</dd>` : '', waiting.map(run => `<dt>${t('st.stand.branch')}</dt><dd><a class="link" href="${href('/waiting/' + encodeURIComponent(run.id))}">${code(run.result.branch)}</a></dd>`).join('')])}
     ${ctx.offline ? '' : `<div class="actions mt-3"><a class="btn btn--secondary btn--sm" href="${href('/ask', { note: 'project' })}">${icon('note')}${t('st.stand.note')}</a></div>`}`;
 }
 // the journey's steps, each done, running now, or to come
@@ -185,18 +176,11 @@ function aboutHTML(p, sz) {
   const lastCheck = live.runs.find(r => r.action === 'audit');
   const langs = sz.languages.map(l => `${esc(l.name)} ${Math.round(l.share * 100)}%`).join(t('list.sep'));
   const notDone = st.filter(x => x.state !== 'done');
-  return `<dl class="facts">
-      <dt>${t('st.about.langs')}</dt><dd>${langs}</dd>
-      <dt>${t('st.about.files')}</dt><dd class="num">${num(sz.files)}</dd>
-      <dt>${t('st.about.lines')}</dt><dd class="num">${num(sz.lines)}</dd>
-      <dt>${t('st.about.stages')}</dt><dd>${t('st.about.stages.v', { done: num(count('done')), partial: num(count('partial')), skipped: num(count('skipped')) })}
-        ${lastCheck ? `<a class="link" href="${href('/activity/run/' + encodeURIComponent(lastCheck.id))}">${t('st.about.stages.open')}</a>` : ''}</dd>
-      <dt>${t('st.about.scan')}</dt><dd>${code(p.branch)} ${code(p.commit.slice(0, 7))}</dd>
-      <dt>${t('st.about.eaos')}</dt><dd>${code('EAOS ' + p.eaos_version)}</dd>
-    </dl>
+  return `${facts([[t('st.about.langs'), langs], [t('st.about.files'), num(sz.files), 'num'], [t('st.about.lines'), num(sz.lines), 'num'], [t('st.about.stages'), `${t('st.about.stages.v', { done: num(count('done')), partial: num(count('partial')), skipped: num(count('skipped')) })}
+        ${lastCheck ? `<a class="link" href="${href('/activity/run/' + encodeURIComponent(lastCheck.id))}">${t('st.about.stages.open')}</a>` : ''}`], [t('st.about.scan'), `${code(p.branch)} ${code(p.commit.slice(0, 7))}`], [t('st.about.eaos'), code('EAOS ' + p.eaos_version)]])}
     ${notDone.length ? `<div class="block-title mt-4">${t('st.about.notdone')}</div>
     <ul class="panel rows">${notDone.map(x => `<li><button class="row" data-act="sheet" data-sheet="stage:${esc(x.id)}">${icon(x.state === 'skipped' ? 'dash' : 'warn', 'muted')}
-        <span class="row__main"><span class="row__title">${code(x.id)}</span><span class="row__meta" style="display:block">${t(STAGE_WORD[x.state] || 'st.about.partial')}</span></span>
+        ${rowWords(code(x.id), t(STAGE_WORD[x.state] || 'st.about.partial'))}
         ${icon('chev', 'icon--sm icon--dir muted')}</button></li>`).join('')}</ul>
     <p class="small muted mt-2">${t('st.about.redo')}</p>` : ''}`;
 }
@@ -228,10 +212,10 @@ function folds(ctx) {
   const measured = measuredHTML(unmeasured, health.unchecked);
   const standSum = waiting.length ? tn('pl.fix_branch_waits', waiting.length) : n.short || '';
   return `<div class="section panel">
-    ${fold('stand', t('st.fold.stand'), esc(standSum), stand)}
-    ${fold('journey', t('st.fold.journey'), esc(journeySum), journey)}
-    ${fold('about', t('st.fold.about'), esc(t('st.fold.about.sum', { files: tn('pl.file', sz.files || 0), lines: tn('pl.line', sz.lines || 0), stages: tn('pl.stage', st.length) })), about)}
-    ${fold('measured', t('st.fold.measured'), esc([...unmeasured.map(a => t('area.' + a.id)), ...health.unchecked.map(k => t('unchecked.' + k.id))].join(t('list.sep')) || t('st.measured.all')), measured)}
+    ${ac.fold('stand', t('st.fold.stand'), esc(standSum), stand)}
+    ${ac.fold('journey', t('st.fold.journey'), esc(journeySum), journey)}
+    ${ac.fold('about', t('st.fold.about'), esc(t('st.fold.about.sum', { files: tn('pl.file', sz.files || 0), lines: tn('pl.line', sz.lines || 0), stages: tn('pl.stage', st.length) })), about)}
+    ${ac.fold('measured', t('st.fold.measured'), esc([...unmeasured.map(a => t('area.' + a.id)), ...health.unchecked.map(k => t('unchecked.' + k.id))].join(t('list.sep')) || t('st.measured.all')), measured)}
   </div>`;
 }
 
@@ -257,7 +241,7 @@ function emptyState(ctx) {
     <p class="guide">${t('st.empty.guide')}</p>
     <div class="actions">${ctx.offline ? '' : `<a class="btn btn--primary" href="${href('/activity', { sheet: 'check' })}">${t('st.empty.act')}</a>`}
       <button class="btn btn--quiet" data-act="copy" data-text="eaos check">${icon('copy')}${t('st.copy_request')}</button></div>
-    ${steps.length ? `<div class="section panel">${fold('journey', t('st.fold.journey'), esc(L(steps[0].title)), `<ol class="rows">${steps.map(s => `<li class="row" style="padding-inline:0;min-height:44px">${icon('circle', 'muted')}<span class="row__main">${esc(L(s.title))}</span></li>`).join('')}</ol>`)}</div>` : ''}
+    ${steps.length ? `<div class="section panel">${ac.fold('journey', t('st.fold.journey'), esc(L(steps[0].title)), `<ol class="rows">${steps.map(s => `<li class="row" style="padding-inline:0;min-height:44px">${icon('circle', 'muted')}<span class="row__main">${esc(L(s.title))}</span></li>`).join('')}</ol>`)}</div>` : ''}
   </div>`;
 }
 
@@ -314,14 +298,7 @@ sheet('freshness', {
     return {
       title: esc(t('st.fresh.title')),
       body: `<p class="h2">${esc(lede)}</p>
-        <dl class="facts">
-          <dt>${t('st.fresh.checked')}</dt><dd>${p.checked_at ? esc(exactTime(p.checked_at)) : ''}</dd>
-          <dt>${t('st.fresh.branch')}</dt><dd>${code(p.branch)}</dd>
-          <dt>${t('st.fresh.commit')}</dt><dd>${code(p.commit)}</dd>
-          <dt>${t('st.fresh.dirty')}</dt><dd>${t(p.dirty ? 'st.fresh.dirty.yes' : 'st.fresh.dirty.v')}</dd>
-          ${fresh.tip ? `<dt>${t('st.fresh.head')}</dt><dd>${fresh.tip === p.commit ? t('st.fresh.head.v', { commit: code(fresh.tip.slice(0, 7)) }) : code(fresh.tip.slice(0, 7))}</dd>` : ''}
-          ${fresh.checked_at ? `<dt>${t('st.fresh.looked')}</dt><dd>${esc(fmtWhen(fresh.checked_at))}</dd>` : ''}
-        </dl>
+        ${facts([[t('st.fresh.checked'), p.checked_at ? esc(exactTime(p.checked_at)) : ''], [t('st.fresh.branch'), code(p.branch)], [t('st.fresh.commit'), code(p.commit)], [t('st.fresh.dirty'), t(p.dirty ? 'st.fresh.dirty.yes' : 'st.fresh.dirty.v')], fresh.tip ? `<dt>${t('st.fresh.head')}</dt><dd>${fresh.tip === p.commit ? t('st.fresh.head.v', { commit: code(fresh.tip.slice(0, 7)) }) : code(fresh.tip.slice(0, 7))}</dd>` : '', fresh.checked_at ? `<dt>${t('st.fresh.looked')}</dt><dd>${esc(fmtWhen(fresh.checked_at))}</dd>` : ''])}
         ${files.length ? `<div><div class="block-title">${t('st.fresh.files')}</div><ul class="panel rows">${files.slice(0, 12).map(x => `<li class="row small">${code(x)}</li>`).join('')}</ul></div>` : ''}`,
       foot: `<a class="btn btn--primary btn--block" href="${href('/activity', { sheet: 'check' })}" data-act="go" data-href="${href('/activity', { sheet: 'check' })}">${t('st.fresh.check')}</a>
         <button class="btn btn--quiet btn--block" data-act="copy" data-text="eaos branch ${esc(p.branch)} && eaos check">${icon('copy')}${t('st.fresh.copy')}</button>`,

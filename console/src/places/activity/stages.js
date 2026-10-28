@@ -6,6 +6,8 @@ import {
   t, tn, L, num, esc, rich, icon, code, has, sheet, act, rerenderSheet, local, parseHash, closeSheetThen, toast, refresh, href, offline,
   data, client, store, model, ActionError, ac, prefs,
   terminalFold,
+  rowWords,
+  facts,
 } from 'eaos';
 
 /** A stage's name and what it does: the dictionary's words, else its own description. */
@@ -96,8 +98,7 @@ const stepWord = st => (has('ac.step.' + st) ? t('ac.step.' + st) : st);
 function stepRow(x) {
   const prog = x.total ? t('ac.stg.of', { done: num(x.done || 0), total: num(x.total) }) : '';
   const bar = x.kind === 'count' && x.total ? ac.progressBar((x.done || 0) / x.total, x.name) : '';
-  return `<li class="row ac-step" style="min-height:48px">${ac.glyph(stepGlyph(x.status))}<span class="row__main"><bdi class="mono">${esc(x.name)}</bdi>
-    <span class="row__meta" style="display:block">${esc(stepWord(x.status))}${x.reason ? `: ${rich(x.reason)}` : ''}</span>${x.status === 'running' ? bar : ''}</span><span class="num small muted">${x.seconds ? ac.ticker(null, x.seconds) : esc(prog)}</span></li>`;
+  return `<li class="row ac-step" style="min-height:48px">${ac.glyph(stepGlyph(x.status))}${rowWords(code(x.name), esc(stepWord(x.status)) + (x.reason ? `: ${rich(x.reason)}` : ''), { title: false, more: x.status === 'running' ? bar : '' })}<span class="num small muted">${x.seconds ? ac.ticker(null, x.seconds) : esc(prog)}</span></li>`;
 }
 /** A reported value a person reads: numbers and words, never a path of this computer. */
 const shown = v => (v != null && typeof v !== 'object' && !/^\//.test(String(v)));
@@ -167,7 +168,7 @@ function stageFacts(s, f, id) {
 /** The values a stage reported, as numbers and words. */
 function stageReported(raw) {
   const reported = Object.entries(raw.detail || {}).filter(([, v]) => shown(v));
-  return reported.length ? `<div><div class="block-title">${t('ac.stg.reported')}</div><dl class="facts">${reported.map(([k, v]) => `<dt>${esc(k.replace(/_/g, ' '))}</dt><dd class="num">${esc(typeof v === 'number' ? num(v) : v)}</dd>`).join('')}</dl></div>` : '';
+  return reported.length ? `<div><div class="block-title">${t('ac.stg.reported')}</div>${facts(reported.map(([k, v]) => [esc(k.replace(/_/g, ' ')), esc(typeof v === 'number' ? num(v) : v), 'num']))}</div>` : '';
 }
 /** The redo button, or why a stage cannot be redone now. */
 function redoFoot(s, query, ended) {
@@ -199,9 +200,7 @@ sheet('stage', {
         ${reason ? `<div class="${st === 'failed' ? 'ac-note ac-note--caution' : 'ac-note'}">${ac.glyph(st)}<span class="small">${rich(reason)}</span></div>` : ''}
         ${s.ai ? `<div class="ai-block"><span class="ai-block__label">${icon('ai', 'icon--sm')}${t('ac.stg.ai')}</span><p class="small mt-1">${t('ac.stg.ai.note')}</p></div>` : ''}
         ${stagePrograms(raw, s)}
-        <dl class="facts">
-          ${stageFacts(s, f, id)}
-        </dl>
+        ${facts([stageFacts(s, f, id)])}
         <div><div class="block-title">${t('ac.stg.steps')}</div>${stageSteps(raw, st)}</div>
         <div><div class="block-title">${t('ac.stg.files')}</div>${stageFiles(raw, st, own)}</div>
         ${stageReported(raw)}`,
@@ -230,7 +229,7 @@ sheet('redo-pick', {
       title: esc(t('ac.pick.title')),
       sub: run ? `<span class="muted">${esc(ac.runLabel(run))}</span>` : '',
       body: !ended || !list.length ? `<p class="small ink-2">${t(ended ? 'ac.pick.none' : 'ac.stg.redo.running')}</p>`
-        : `<p class="small ink-2">${t('ac.pick.guide')}</p><ul class="panel rows">${list.map(x => `<li><button class="row" data-act="sheet" data-sheet="redo:${esc(x.id)}">${ac.glyph(x.state)}<span class="row__main"><span class="row__title">${esc(stageTitle(x.id))}</span><span class="row__meta" style="display:block">${esc(t('ac.part.' + PARTS[x.part]))}</span></span>${icon('chev', 'icon--dir muted')}</button></li>`).join('')}</ul>`,
+        : `<p class="small ink-2">${t('ac.pick.guide')}</p><ul class="panel rows">${list.map(x => `<li><button class="row" data-act="sheet" data-sheet="redo:${esc(x.id)}">${ac.glyph(x.state)}${rowWords(esc(stageTitle(x.id)), esc(t('ac.part.' + PARTS[x.part])))}${icon('chev', 'icon--dir muted')}</button></li>`).join('')}</ul>`,
     };
   },
 });
@@ -281,14 +280,7 @@ sheet('redo', {
       title: esc(title),
       sub: `<span class="free-band">${icon('check', 'icon--sm')}${t('free')}</span>`,
       body: `<p>${esc(failed ? t('ac.redo.does.failed', { tools: (inputs.engines || []).join(t('list.sep')) }) : t('ac.redo.does', { n: num(rerun.length - 1) }))}</p>
-        <dl class="facts">
-          <dt>${t('ac.redo.code')}</dt><dd>${t('ac.redo.code.v', { branch: code(model.project().branch), commit: code((model.project().commit || '').slice(0, 7)) })}</dd>
-          <dt>${t('ac.redo.runs')}</dt><dd>${esc(tn('pl.stage', rerun.length))}</dd>
-          <dt>${t('ac.redo.kept')}</dt><dd>${esc(tn('pl.stage', kept))}</dd>
-          <dt>${t('pv.estimate')}</dt><dd>${redoEstimate(p, own)}</dd>
-          <dt>${t('pv.risk')}</dt><dd><span class="tag tag--state">${t('pv.risk.low')}</span> <span class="small ink-2">${t('ac.redo.risk')}</span></dd>
-          <dt>${t('pv.fail')}</dt><dd class="small">${t('ac.redo.fail')}</dd>
-        </dl>
+        ${facts([[t('ac.redo.code'), t('ac.redo.code.v', { branch: code(model.project().branch), commit: code((model.project().commit || '').slice(0, 7)) })], [t('ac.redo.runs'), esc(tn('pl.stage', rerun.length))], [t('ac.redo.kept'), esc(tn('pl.stage', kept))], [t('pv.estimate'), redoEstimate(p, own)], [t('pv.risk'), `<span class="tag tag--state">${t('pv.risk.low')}</span> <span class="small ink-2">${t('ac.redo.risk')}</span>`], [t('pv.fail'), t('ac.redo.fail'), 'small']])}
         <div><div class="block-title">${t('ac.redo.list')}</div><ul class="ac-chiplist">${rerun.map(x => `<li><span class="tag tag--state">${esc(stageTitle(x))}</span></li>`).join('')}</ul></div>
         <p class="small ink-2">${t('ac.redo.never')}</p>
         ${terminalFold(esc(cmd))}`,

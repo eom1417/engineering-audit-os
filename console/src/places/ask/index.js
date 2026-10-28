@@ -9,6 +9,7 @@ import {
   t, num, L, esc, rich, icon, code, href, fmtTime, screen, act, refresh, refreshSoon, redrawAssist, toast, announce, parseHash, setQuery, searchTyped, openSheet, offline,
   S, live, store, client, contract, ActionError, prefs, ac, md,
   toggleRow,
+  rowWords,
 } from 'eaos';
 
 const KEY = 'eaos.chat';
@@ -33,7 +34,7 @@ function proposalHTML(p, i, k) {
   const btn = sent || (p.kind === 'action'
     ? `<button class="btn btn--secondary btn--sm" data-act="ac-ask-prop" data-i="${i}" data-k="${k}">${t('ac.ask.preview')}</button>`
     : `<button class="btn btn--secondary btn--sm" data-act="ac-ask-control" data-i="${i}" data-k="${k}">${t('ac.ask.send_control')}</button>`);
-  return `<li class="ac-prop"><span class="row__main"><span class="row__title small">${esc(title)}</span><span class="row__meta" style="display:block">${rich(p.why || '')}</span></span>${btn}</li>`;
+  return `<li class="ac-prop">${rowWords(esc(title), rich(p.why || ''), { title: 'small' })}${btn}</li>`;
 }
 // the owner's own question
 function youTurn(x) {
@@ -166,7 +167,7 @@ function recordsPage(q) {
         : records.problem ? `<p class="small" role="alert">${icon('warn', 'icon--sm')} ${esc(records.problem)}</p>`
           : records.busy ? `<p class="small muted" aria-busy="true">${t('st.loading')}</p>`
             : `<div class="listhead"><span class="listhead__count" aria-live="polite">${esc(t('ac.rec.count', { n: num(hits.length) }))}</span></div>
-        ${hits.length ? `<ul class="panel rows">${hits.slice(0, 40).map(h => `<li class="row" style="align-items:flex-start">${icon('book', 'muted')}<span class="row__main"><span class="row__title small">${rich(h.text || h.id)}</span><span class="row__meta" style="display:block">${esc(h.kind || '')}${h.citation ? ' · ' : ''}<bdi class="mono">${esc(h.citation || '')}</bdi></span></span></li>`).join('')}</ul>`
+        ${hits.length ? `<ul class="panel rows">${hits.slice(0, 40).map(h => `<li class="row row--top">${icon('book', 'muted')}${rowWords(rich(h.text || h.id), `${esc(h.kind || '')}${h.citation ? ' · ' : ''}${code(h.citation || '')}`, { title: 'small' })}</li>`).join('')}</ul>`
           : `<div class="panel empty"><p class="small ink-2">${t('ac.rec.none')}</p></div>`}`}
     <div class="actions"><a class="btn btn--secondary" href="${href('/ask', qq ? { q: qq } : {})}">${icon('ask')}${t('ac.rec.ask')}</a></div>
   </div>`;

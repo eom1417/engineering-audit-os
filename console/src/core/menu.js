@@ -12,7 +12,7 @@ import { rowWords, displayToggles } from './parts.js';
 let projects = null;
 
 function row(ic, label, sub, path) {
-  return `<a class="row" href="${href(path)}" data-act="go" data-href="${href(path)}">${icon(ic)}${rowWords(esc(label), sub && esc(sub))}${icon('chev', 'icon--sm icon--dir muted')}</a>`;
+  return `<a class="row" href="${href(path)}" data-act="go" data-href="${href(path)}">${icon(ic)}${rowWords(esc(label), sub ? esc(sub) : null)}${icon('chev', 'icon--sm icon--dir muted')}</a>`;
 }
 
 function assistantsSub() {

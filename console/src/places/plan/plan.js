@@ -6,8 +6,10 @@
 import {
   t, tn, L, num, esc, icon, code, sev, chk, rich, href, screen, act, tickAct, refresh, parseHash, announce, setSelbar, offline,
   model, selection, data,
+  ac, rowWords,
+  facts,
 } from 'eaos';
-import { loading, nm, fold, facts, prow, enc, back, empty, ticks, page } from '../kit/kit.js';
+import { loading, nm, prow, enc, back, empty, ticks, page } from '../kit/kit.js';
 import { buildPage } from './build.js';
 
 const NEEDS = ['plans', 'cards', 'paths', 'operations', 'history'];
@@ -135,10 +137,9 @@ function plansFold() {
   const kind = k => t(['fix', 'build', 'product', 'owner', 'extend'].includes(k) ? 'un.plan.kind.' + k : 'un.plan.kind.other', { kind: k });
   const life = s => t(PLAN_STATES.includes(s) ? 'un.plan.life.' + s : 'un.plan.life.other', { state: s });
   const build = plans.some(p => p.kind === 'build' || p.kind === 'extend');
-  return fold(t('un.plan.plans'), esc(tn('un.pl.plan', plans.length)), `<ul class="rows">${plans.map(p => `<li class="row" style="padding-inline:0;align-items:flex-start"><span class="row__main">
-      <span class="row__title">${rich(L(p.title || p.id))}</span>
-      <span class="row__meta" style="display:block">${esc(kind(p.kind))}${t('list.sep')}${esc(life(p.state))}${t('list.sep')}${esc(tn('un.pl.step', p.steps.length))}${p.parent ? `${t('list.sep')}${esc(t('un.plan.under', { id: p.parent }))}` : ''}</span>
-      ${p.goal ? `<span class="small ink-2 block mt-1">${rich(L(p.goal))}</span>` : ''}</span></li>`).join('')}</ul>
+  return ac.fold('plans', t('un.plan.plans'), esc(tn('un.pl.plan', plans.length)), `<ul class="rows">${plans.map(p => `<li class="row row--flush row--top">${rowWords(rich(L(p.title || p.id)),
+      [esc(kind(p.kind)), esc(life(p.state)), esc(tn('un.pl.step', p.steps.length)), p.parent && esc(t('un.plan.under', { id: p.parent }))].filter(Boolean).join(t('list.sep')),
+      { more: p.goal ? `<span class="small ink-2 block mt-1">${rich(L(p.goal))}</span>` : '' })}</li>`).join('')}</ul>
     ${build ? `<a class="btn btn--secondary btn--sm mt-2" href="${href('/activity', { sheet: offline() ? 'open-live' : 'launcher' })}">${t('un.plan.buildnext')}</a>
       <p class="small muted mt-1">${t('un.plan.buildnext.note')}</p>` : ''}`);
 }
@@ -158,7 +159,7 @@ function planCard(fix) {
       <div class="un-plancard__head"><h2 class="h2" id="pc-h">${rich(L(fix.title || ''))}</h2>${stateTag(fix.state)}<span class="small muted">${t('un.plan.kind.fix')}</span></div>
       ${fix.goal ? `<p class="small ink-2">${rich(L(fix.goal))}</p>` : ''}
       ${progressHTML(tot, share)}
-      ${indicators.length ? `<dl class="facts">${indicators.map(i => `<dt>${esc(L(i.name || i.id || ''))}</dt><dd class="un-arrowval"><span class="num">${esc(i.today == null ? '—' : String(i.today))}</span>${icon('chev', 'icon--sm icon--dir muted')}<span class="num">${esc(i.target == null ? '—' : String(i.target))}</span><span class="small muted">${t('un.plan.target')}</span></dd>`).join('')}</dl>` : `<p class="small muted">${t('un.plan.noind')}</p>`}
+      ${indicators.length ? facts(indicators.map(i => [esc(L(i.name || i.id || '')), `<span class="num">${esc(i.today == null ? '—' : String(i.today))}</span>${icon('chev', 'icon--sm icon--dir muted')}<span class="num">${esc(i.target == null ? '—' : String(i.target))}</span><span class="small muted">${t('un.plan.target')}</span>`, 'un-arrowval'])) : `<p class="small muted">${t('un.plan.noind')}</p>`}
       <p class="small muted">${t('un.plan.rule')}</p>
     </section>`;
 }

@@ -5,6 +5,7 @@
 import {
   t, tn, L, num, esc, rich, md, icon, code, diffLines, href, fmtWhen, expiresAt, screen, sheet, act, refresh, toast, closeSheetThen, rerenderSheet, local, offline, parseHash,
   S, live, store, model, client, ActionError, derive, chk, ac, rowWords, smallFold, terminalFold, toggleRow,
+  lockLine, radio,
 } from 'eaos';
 import { ownTyped, sendAnswer, sendBlocked, ownBox, whyFold, choice } from './answer.js';
 
@@ -279,9 +280,8 @@ sheet('accept', {
     const blocked = blockedOf(local);
     const d = run.result.diff_stat;
     const into = merge && merge.targets.length > 1
-      ? `<div class="opts">${merge.targets.map(x => `<label class="opt ${x.blocked ? 'opt--off' : ''}"><input type="radio" name="into" value="${esc(x.name)}" data-change="accept-into" data-fk="into-${esc(x.name)}" ${x.name === target ? 'checked' : ''} ${x.blocked ? 'disabled' : ''}>
-          <span class="opt__dot"></span><span class="opt__text"><span class="opt__line">${code(x.name)}${x.blocked ? icon('lock', 'icon--sm muted') : ''}</span>
-          <span class="opt__note">${esc(x.blocked ? L(x.blocked) : x.name === merge.target ? t('cf.into.own') : x.short)}</span></span></label>`).join('')}</div>`
+      ? `<div class="opts">${merge.targets.map(x => radio({ name: 'into', value: x.name, 'data-change': 'accept-into', 'data-fk': `into-${x.name}`, checked: x.name === target, disabled: !!x.blocked },
+          lockLine(code(x.name), x.blocked), esc(x.blocked ? L(x.blocked) : x.name === merge.target ? t('cf.into.own') : x.short))).join('')}</div>`
       : `<div class="panel panel__pad"><span class="opt__line">${code(target)}${icon('lock', 'icon--sm muted')}</span><span class="opt__note">${t('cf.into.own')}</span></div>`;
     return {
       title: t('cf.accept.title', { target: code(target) }),

@@ -1,14 +1,12 @@
 // S-15 one run's result (RUN-07, RUN-09, FIX-07): the error or the facts of what it made, a fix batch's progress
 // problem by problem, and the request waiting for the person's assistant elsewhere.
-import { t, tn, L, num, esc, rich, icon, code, href, fmtWhen, has, model, derive, ac } from 'eaos';
+import { t, tn, L, num, esc, rich, icon, code, href, fmtWhen, has, model, derive, ac, rowWords, facts } from 'eaos';
 
 const enc = encodeURIComponent;
 const pathName = p => (has('ac.path.' + p) ? t('ac.path.' + p) : p);
 function errorHTML(e) {
   return `<section class="panel ac-result ac-result--fail" aria-label="${esc(t('ac.run.error'))}">
-      <dl class="facts"><dt>${t('ac.run.what')}</dt><dd>${rich(L(e.text))}${e.reason ? ` <span class="small muted">${rich(e.reason)}</span>` : ''}</dd>
-        ${e.what_now ? `<dt>${t('ac.run.todo')}</dt><dd>${rich(L(e.what_now))}</dd>` : ''}
-        <dt>${t('ac.run.recoverable')}</dt><dd>${t(e.recoverable ? 'ac.run.recoverable.yes' : 'ac.run.recoverable.no')}</dd></dl>
+      ${facts([[t('ac.run.what'), `${rich(L(e.text))}${e.reason ? ` <span class="small muted">${rich(e.reason)}</span>` : ''}`], e.what_now ? `<dt>${t('ac.run.todo')}</dt><dd>${rich(L(e.what_now))}</dd>` : '', [t('ac.run.recoverable'), t(e.recoverable ? 'ac.run.recoverable.yes' : 'ac.run.recoverable.no')]])}
       ${e.detail ? `<details class="ac-ev-fold"><summary>${t('ac.run.tech')}${icon('chev-down', 'icon--sm muted')}</summary><div class="code pad-2-3 pre">${esc(e.detail)}</div></details>` : ''}</section>`;
 }
 /** The checks' verdict: changes kept and left out. */
@@ -56,7 +54,7 @@ export function resultHTML(r, rs, view) {
   const words = wordsOf(r, res);
   if (!rows.length && !words) return '';
   return `<section class="panel ac-result ${r.outcome === 'undone' ? '' : 'ac-result--ok'}" aria-label="${esc(t('ac.run.result'))}">
-    ${rows.length ? `<dl class="facts">${rows.map(([k, v]) => `<dt>${k}</dt><dd>${v}</dd>`).join('')}</dl>` : ''}${words}</section>`;
+    ${rows.length ? `${facts(rows)}` : ''}${words}</section>`;
 }
 
 /** FIX-07: the batches' progress and every problem of the batch, kept or taken back, from the edit events. */
@@ -69,8 +67,7 @@ export function fixProgress(r, rs, view) {
     const k = byCard[id];
     const st = k === true ? 'ok' : k === false ? 'unchanged' : rs === 'running' ? 'waiting' : ac.ended(r) ? 'notreached' : 'waiting';
     const word = k === true ? t('ac.fix.p.kept') : k === false ? t('ac.ev.back') : ac.stateWord(st);
-    return `<li class="row">${ac.glyph(st)}<span class="row__main"><span class="row__title small"><a class="link" href="${href('/problems/' + enc(id))}">${code(id)}</a> ${p ? rich(L(p.title)) : ''}</span>
-      <span class="row__meta" style="display:block">${esc(word)}</span></span></li>`;
+    return `<li class="row">${ac.glyph(st)}${rowWords(`<a class="link" href="${href('/problems/' + enc(id))}">${code(id)}</a> ${p ? rich(L(p.title)) : ''}`, esc(word), { title: 'small' })}</li>`;
   };
   const shown = cards.slice(0, 12);
   return `<section class="section" aria-labelledby="fp-h"><div class="section-head"><h2 id="fp-h">${t('ac.fix.progress')}</h2><span class="small muted num">${esc(t('ac.now.fix.sub', { done: num(tried), total: num(cards.length) }))}</span></div>

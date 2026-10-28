@@ -1,7 +1,7 @@
 // S-07 One problem with its evidence (PRB-06..10, PRB-15, PLN-05, FIX-01): why it matters, what the assistant
 // decided, where it is, the facts it rests on with their lines of code, its place in the plan, the other problems of the
 // same file and a note for whoever goes on after. Its sheet: one evidence fact (PRB-09).
-import { t, tn, L, num, esc, rich, icon, code, sev, chk, href, fmtWhen, sheet, act, refresh, toast, parseHash, offline, S, md, model, selection, client, ActionError } from 'eaos';
+import { t, tn, L, num, esc, rich, icon, code, sev, chk, href, fmtWhen, sheet, act, refresh, toast, parseHash, offline, S, md, model, selection, client, ActionError, rowWords, facts } from 'eaos';
 import { component, who, keepQuery, kindWord } from './shared.js';
 
 const enc = encodeURIComponent;
@@ -87,10 +87,10 @@ export function detailHTML(p, ctx) {
   const conf = confidence(p.confidence);
   const primary = (p.decision && p.decision.state === 'fixes') || (p.fixable && !p.needs_decision) ? 'fix' : 'explain';
   const verbs = ['fix', 'verify', 'explain', 'plan'].map(v => `<button class="btn ${v === primary ? 'btn--primary' : 'btn--secondary'}" data-act="sheet" data-sheet="${ctx.offline ? 'open-live' : `verb:${v}:${esc(p.id)}`}">${t('verb.' + v)}</button>`).join('');
-  const facts = (p.evidence || []).map(model.fact);
-  const known = facts.filter(Boolean);
+  const read = (p.evidence || []).map(model.fact);
+  const known = read.filter(Boolean);
   const evidence = known.length
-    ? `<div class="panel rows">${known.map((f, i) => factHTML(f, i === 0, known.slice(0, i))).join('')}</div>${facts.length > known.length ? `<p class="small muted mt-2">${esc(t('pd.ev.unread', { n: num(facts.length - known.length) }))}</p>` : ''}`
+    ? `<div class="panel rows">${known.map((f, i) => factHTML(f, i === 0, known.slice(0, i))).join('')}</div>${read.length > known.length ? `<p class="small muted mt-2">${esc(t('pd.ev.unread', { n: num(read.length - known.length) }))}</p>` : ''}`
     : `<p class="small muted">${t(p.evidence && p.evidence.length ? 'pd.ev.notloaded' : 'pd.ev.none')}</p>`;
   const places = p.paths.slice(0, 6).map(path => `<li class="place">${icon('file', 'icon--sm muted')}<bdi class="mono">${esc(path)}</bdi>
       <button class="btn btn--quiet btn--sm" data-act="sheet" data-sheet="impact:${esc(path)}">${t('pd.touches')}</button></li>`).join('')
@@ -108,13 +108,13 @@ export function detailHTML(p, ctx) {
     ${p.why ? `<section class="psec"><h2>${t('pd.why')}</h2><p>${rich(L(p.why))}</p></section>` : ''}
     <section class="psec" id="pd-decision"><h2>${t('pd.decision')}</h2>${decisionHTML(p)}</section>
     <section class="psec"><h2>${t('pd.where')}</h2><ul class="places">${places}</ul>
-      <dl class="facts mt-3"><dt>${t('pd.component')}</dt><dd>${code(component(p))}</dd><dt>${t('pd.area')}</dt><dd>${t('area.' + (p.category || 'none'))}</dd><dt>${t('pd.kind')}</dt><dd>${esc(kindWord(p.kind))}</dd></dl></section>
-    <section class="psec"><h2>${t('pd.evidence')} <span class="muted small">${facts.length ? esc(tn('pl.fact', facts.length)) : ''}</span></h2>${evidence}</section>
+      ${facts([[t('pd.component'), code(component(p))], [t('pd.area'), t('area.' + (p.category || 'none'))], [t('pd.kind'), esc(kindWord(p.kind))]], 'mt-3')}</section>
+    <section class="psec"><h2>${t('pd.evidence')} <span class="muted small">${read.length ? esc(tn('pl.fact', read.length)) : ''}</span></h2>${evidence}</section>
     <section class="psec"><h2>${t('pd.plan')}</h2>${planHTML(p, all)}</section>
     <div class="panel">
-      <details class="fold"><summary><span class="row__main"><span class="row__title">${t('pd.same')}</span><span class="row__meta" style="display:block">${esc(tn('pl.problem', sameFile.length))}</span></span>${icon('chev', 'chev')}</summary>
+      <details class="fold"><summary>${rowWords(t('pd.same'), esc(tn('pl.problem', sameFile.length)))}${icon('chev', 'chev')}</summary>
         <div class="fold__body">${sameFile.length ? `<ul class="rows">${sameFile.map(x => `<li><a class="row" style="padding-inline:0" href="${href('/problems/' + enc(x.id))}">${sev(x.severity, false)}<span class="row__main small">${code(x.id)} ${rich(L(x.title))}</span></a></li>`).join('')}</ul>` : `<p class="small muted">${t('pd.same.none')}</p>`}</div></details>
-      <details class="fold" style="border-top:1px solid var(--line)" ${S.notes[p.id] ? 'open' : ''}><summary>${icon('note', 'muted')}<span class="row__main"><span class="row__title">${t('pd.note')}</span></span>${icon('chev', 'chev')}</summary>
+      <details class="fold" style="border-top:1px solid var(--line)" ${S.notes[p.id] ? 'open' : ''}><summary>${icon('note', 'muted')}${rowWords(t('pd.note'))}${icon('chev', 'chev')}</summary>
         <div class="fold__body stack-2">${noteHTML(p)}</div></details>
     </div>
   </article>`;
@@ -131,7 +131,7 @@ sheet('fact', {
       title: `${f.engine ? esc(f.engine) + ' ' : ''}${code(f.kind)}`,
       sub: code(id),
       body: `<p>${rich(L(f.summary))}</p>
-        <dl class="facts"><dt>${t('pd.kind')}</dt><dd>${code(f.kind)}</dd>${f.path ? `<dt>${t('pd.where')}</dt><dd>${code(f.path + (f.line != null ? ':' + f.line : ''))}</dd>` : ''}</dl>
+        ${facts([[t('pd.kind'), code(f.kind)], f.path ? `<dt>${t('pd.where')}</dt><dd>${code(f.path + (f.line != null ? ':' + f.line : ''))}</dd>` : ''])}
         ${f.code ? codeBlock(f.code) : `<p class="small muted">${noCode(f, [])}</p>`}
         ${others(f)}
         <div><div class="block-title">${t('pd.ev.rests')}</div><div class="panel rows">${f.cards.map(c => { const p = model.problem(c); return p ? `<a class="row" href="${href('/problems/' + enc(c))}" data-act="go" data-href="${href('/problems/' + enc(c))}">${sev(p.severity, false)}<span class="row__main small">${code(c)} ${rich(L(p.title))}</span></a>` : ''; }).join('')}</div></div>`,

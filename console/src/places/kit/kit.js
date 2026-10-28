@@ -1,7 +1,7 @@
-// What the plan, Status, Problems and the report page share: rows, folds, facts, segmented controls whose choices are
+// What the plan, Status, Problems and the report page share: rows, segmented controls whose choices are
 // addresses, a list's own search, lists 50 at a time, the loading, empty and not-measured states, a problem's row and
 // the build's next step. A kit: stateless helpers bundled into each place that imports them (scripts/build.mjs).
-import { t, num, esc, icon, code, sev, rich, L, href, parseHash, searchTyped, act, offline, model, normalize, skeletonRows } from 'eaos';
+import { t, num, esc, icon, code, sev, rich, L, href, parseHash, searchTyped, act, offline, model, normalize, skeletonRows, rowWords } from 'eaos';
 
 const q = () => parseHash().query;
 export const enc = encodeURIComponent;
@@ -9,11 +9,7 @@ export const matches = normalize.matches;
 
 export const back = (path, label, query) => `<a class="back" href="${href(path, query)}">${icon('back', 'icon--dir')}${esc(label)}</a>`;
 
-/* ---------- rows, folds, facts ---------- */
-export const facts = pairs => `<dl class="facts">${pairs.filter(Boolean).map(([k, v]) => `<dt>${k}</dt><dd>${v}</dd>`).join('')}</dl>`;
-export const fold = (title, sum, body, opts) => `<details class="fold" ${opts && opts.open ? 'open' : ''} ${opts && opts.id ? `id="${opts.id}"` : ''}>
-    <summary>${opts && opts.icon ? icon(opts.icon, 'muted') : ''}<span class="row__main"><span class="row__title">${title}</span>${sum ? `<span class="row__meta" style="display:block">${sum}</span>` : ''}</span>${icon('chev', 'chev')}</summary>
-    <div class="fold__body">${body}</div></details>`;
+/* ---------- rows ---------- */
 
 /** A segmented control whose choices are addresses (LNK-01): [value, label, count]. */
 export function seg(param, items, cur, label, opts) {
@@ -51,7 +47,7 @@ const checkAct = cls => (offline() ? `<button class="btn ${cls}" data-act="sheet
   : `<a class="btn ${cls}" href="${href('/activity', { sheet: 'check' })}">${t('st.empty.act')}</a>`);
 
 /* ---------- a problem's row ---------- */
-export const prow = (p, extra) => `<a class="row" href="${href('/problems/' + enc(p.id))}">${sev(p.severity, false)}<span class="row__main"><span class="row__title small">${code(p.id)} ${rich(L(p.title))}</span>${extra ? `<span class="row__meta" style="display:block">${extra}</span>` : ''}</span>${p.state !== 'open' ? `<span class="tag tag--state">${t('state.' + p.state)}</span>` : ''}</a>`;
+export const prow = (p, extra) => `<a class="row" href="${href('/problems/' + enc(p.id))}">${sev(p.severity, false)}${rowWords(`${code(p.id)} ${rich(L(p.title))}`, extra || null, { title: 'small' })}${p.state !== 'open' ? `<span class="tag tag--state">${t('state.' + p.state)}</span>` : ''}</a>`;
 
 /** `code` spans of a report sentence (already escaped) drawn as code. */
 export const ticks = h => h.replace(/`([^`]+)`/g, '<bdi class="mono">$1</bdi>');

@@ -9,6 +9,8 @@ import {
   t, tn, L, num, esc, rich, icon, code, sev, href, assistantPicker, estimate, expiresAt, sheet, act, rerenderSheet, local, parseHash, closeSheetThen, toast, refresh, offline,
   model, selection, store, client, ActionError, contract, prefs,
   terminalFold, toggleRow,
+  lockLine, radio,
+  facts,
 } from 'eaos';
 
 const enc = encodeURIComponent;
@@ -59,9 +61,8 @@ function cardsHTML(p) {
 }
 
 function radios(name, rows, picked, act) {
-  return `<div class="opts mt-2">${rows.map(b => `<label class="opt ${b.blocked ? 'opt--off' : ''}"><input type="radio" name="${name}" value="${esc(b.name)}" data-change="${act}" data-fk="${name}-${esc(b.name)}" ${b.name === picked ? 'checked' : ''} ${b.blocked ? 'disabled' : ''}>
-    <span class="opt__dot"></span><span class="opt__text"><span class="opt__line">${code(b.name)}${b.blocked ? icon('lock', 'icon--sm muted') : ''}</span>
-    <span class="opt__note">${esc(b.blocked ? L(b.blocked) : b.note || b.short || '')}</span></span></label>`).join('')}</div>`;
+  return `<div class="opts mt-2">${rows.map(b => radio({ name, value: b.name, 'data-change': act, 'data-fk': `${name}-${b.name}`, checked: b.name === picked, disabled: !!b.blocked },
+    lockLine(code(b.name), b.blocked), esc(b.blocked ? L(b.blocked) : b.note || b.short || ''))).join('')}</div>`;
 }
 
 /** Where a Fix is built, the branch its fixes arrive on and the branch Accept merges them into (a protected branch is
@@ -69,10 +70,7 @@ function radios(name, rows, picked, act) {
 function whereHTML(w, own) {
   const base = w.base ? w.base.branch : '';
   const mode = w.mode || 'new';
-  return `<div><div class="block-title">${t('pv.where')}</div><div class="panel panel__pad"><dl class="facts">
-      <dt>${t('pv.base')}</dt><dd>${baseFact(w, base)}</dd>
-      <dt>${t('pv.deliver')}</dt><dd>${deliverFact(w, mode, base)}</dd>
-      ${mode === 'direct' ? '' : mergeFact(w)}</dl>
+  return `<div><div class="block-title">${t('pv.where')}</div><div class="panel panel__pad">${facts([[t('pv.base'), baseFact(w, base)], [t('pv.deliver'), deliverFact(w, mode, base)], mode === 'direct' ? '' : mergeFact(w)])}
     ${w.problem ? `<p class="small" role="note">${icon('warn', 'icon--sm')} ${esc(L(w.problem))}</p>` : ''}
     <details class="mt-2" ${own.whereOpen ? 'open' : ''} data-where><summary class="link" style="cursor:pointer;min-height:44px;display:inline-flex;align-items:center">${t('pv.change')}</summary>
       ${changeHTML(w, own, base, mode)}
@@ -101,7 +99,7 @@ function mergeFact(w) {
 function changeHTML(w, own, base, mode) {
   return `<div class="block-title mt-2">${t('pv.base')}</div>${radios('base', w.branches, base, 'pv-base')}
       <div class="block-title mt-3">${t('pv.deliver')}</div>
-      <div class="opts">${modesOf(w, base).map(([id, label]) => `<label class="opt"><input type="radio" name="mode" value="${id}" data-change="pv-mode" data-fk="mode-${id}" ${id === mode ? 'checked' : ''}><span class="opt__dot"></span><span class="opt__text">${esc(label)}</span></label>`).join('')}</div>
+      <div class="opts">${modesOf(w, base).map(([id, label]) => radio({ name: 'mode', value: id, 'data-change': 'pv-mode', 'data-fk': `mode-${id}`, checked: id === mode }, esc(label))).join('')}</div>
       ${mode === 'new' ? nameHTML(w, own) : ''}
       ${mode === 'continue' ? radios('cont', w.continuable, w.deliver_as, 'pv-continue') : ''}
       ${mode === 'direct' ? `<p class="small ink-2">${esc(t('pv.direct.note', { branch: base }))}</p>` : `<div class="block-title mt-3">${t('pv.merge')}</div>${radios('into', w.branches, w.merge_into, 'pv-into')}`}`;
@@ -124,8 +122,7 @@ function assistantsHTML(p, own) {
  *  it costs. Its switch keeps the preview (the token is not bound to it). */
 function speedHTML(s, own) {
   const on = own.speed != null ? own.speed : s.on, n = Math.min(s.assistants, s.lanes);
-  return `<div><div class="toggle-row panel panel__pad"><span><span style="display:block">${t('pv.speed')}</span><span class="small muted">${t(n > 1 ? 'pv.speed.note' : 'pv.speed.one', { n: num(n) })}</span></span>
-      <span class="switch"><input type="checkbox" data-change="pv-speed" data-fk="speed" ${on ? 'checked' : ''} aria-label="${esc(t('pv.speed'))}"><span class="switch__track"></span><span class="switch__thumb"></span></span></div>
+  return `<div>${toggleRow(t('pv.speed'), t(n > 1 ? 'pv.speed.note' : 'pv.speed.one', { n: num(n) }), { 'data-change': 'pv-speed', 'data-fk': 'speed', checked: on }, { cls: 'panel panel__pad' })}
     ${on && n > 1 ? `<p class="ac-note ac-note--caution small mt-2">${icon('warn', 'icon--sm')}<span>${t('pv.speed.warn', { n: num(n) })}</span></p>` : ''}</div>`;
 }
 
@@ -159,13 +156,7 @@ function waitingSheet(verb, own, title, cmd) {
 }
 
 function factsHTML(p) {
-  return `<dl class="facts">
-          <dt>${t('pv.files')}</dt><dd>${esc(tn('pl.file', p.files.length))}</dd>
-          ${p.batches.length ? `<dt>${t('pv.batches')}</dt><dd>${esc(t('pv.batches.v', { batches: tn('pl.batch', p.batches.length) }))}</dd>` : ''}
-          <dt>${t('pv.estimate')}</dt><dd>${esc(estimate(p))}<span class="small muted" style="display:block">${esc(L(p.estimate.basis))}</span></dd>
-          <dt>${t('pv.risk')}</dt><dd><span class="tag ${p.risk.level === 'high' ? 'tag--caution' : 'tag--state'}">${t('pv.risk.' + p.risk.level)}</span> <span class="small ink-2">${esc(L(p.risk.why))}</span></dd>
-          <dt>${t('pv.fail')}</dt><dd class="small">${esc(L(p.on_failure))}</dd>
-        </dl>`;
+  return `${facts([[t('pv.files'), esc(tn('pl.file', p.files.length))], p.batches.length ? `<dt>${t('pv.batches')}</dt><dd>${esc(t('pv.batches.v', { batches: tn('pl.batch', p.batches.length) }))}</dd>` : '', [t('pv.estimate'), `${esc(estimate(p))}<span class="small muted" style="display:block">${esc(L(p.estimate.basis))}</span>`], [t('pv.risk'), `<span class="tag ${p.risk.level === 'high' ? 'tag--caution' : 'tag--state'}">${t('pv.risk.' + p.risk.level)}</span> <span class="small ink-2">${esc(L(p.risk.why))}</span>`], [t('pv.fail'), esc(L(p.on_failure)), 'small']])}`;
 }
 
 /** The choices and notes under the facts: a Fix's place, the assistant, a Fix's speed and accept-by-itself. */

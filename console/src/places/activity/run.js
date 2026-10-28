@@ -5,6 +5,8 @@
 import {
   t, tn, L, num, esc, rich, icon, code, diffLines, href, fmtWhen, screen, act, refresh, refreshSoon, afterRender, parseHash, offline, has,
   live, store, model, client, derive, ac, md,
+  inlineSwitch,
+  facts,
 } from 'eaos';
 import { controls, byOf } from './activity.js';
 import { stagesOf, board, counts, finished, summary, span, lostOf, stageTitle } from './stages.js';
@@ -260,7 +262,7 @@ function factsHTML(r, rs, events) {
   const u = r.usage, tok = ac.usedTokens(u);
   rows.push([t('ac.f.used'), usedValue(r, u, tok)]);
   if (events.length) rows.push([t('ac.f.record'), esc(t('ac.f.record.ok', { n: num(events.length) }))]);
-  return `<dl class="facts ac-facts">${rows.map(([k, v]) => `<dt>${k}</dt><dd>${v}</dd>`).join('')}</dl>
+  return `${facts(rows, 'ac-facts')}
     ${tok ? `<p class="small muted mt-2">${t('ac.f.used.note')} <a class="link" href="${href('/project/assistants')}">${t('proj.assistants')}</a></p>` : ''}`;
 }
 
@@ -279,7 +281,7 @@ const progressHTML = (r, rs, list) => (r.action === 'audit' && list.length && rs
 /** A check's stages on their board, with the switch that follows the running one. */
 function stagesHTML(r, rs, list) {
   return r.action === 'audit' ? `<section class="section" aria-labelledby="stg-h"><div class="section-head"><h2 id="stg-h">${t('ac.run.stages')}</h2>
-      ${rs === 'running' ? `<label class="ac-inline-switch small ink-2"><span class="switch"><input type="checkbox" data-change="ac-follow" data-fk="follow" ${follow ? 'checked' : ''} aria-label="${esc(t('ac.run.follow'))}"><span class="switch__track"></span><span class="switch__thumb"></span></span>${t('ac.run.follow')}</label>` : ''}</div>
+      ${rs === 'running' ? inlineSwitch({ 'data-change': 'ac-follow', 'data-fk': 'follow', checked: follow }, t('ac.run.follow')) : ''}</div>
       ${list.length ? `<p class="small ink-2 mb-3"><span id="ac-stage-sum">${esc(summary(counts(list)))}</span> ${t('ac.run.stages.help')}</p>
       <div id="ac-board">${board(list, rs !== 'running' || follow)}</div>
       <p class="small muted ac-iline mt-2">${icon('ai', 'icon--sm ac-c-ai')}<span>${t('ac.run.stages.ai')}</span></p>` : `<p class="small muted">${t(rs === 'queued' ? 'ac.run.stages.later' : 'ac.run.stages.older')}</p>`}</section>` : '';
@@ -307,7 +309,7 @@ function runPage(ctx) {
   const clock = clockOf(r, rs, flow, list, replaying);
   const progress = progressHTML(r, rs, list);
   const stages = stagesHTML(r, rs, list);
-  const facts = factsHTML(r, rs, events);
+  const factList = factsHTML(r, rs, events);
   const said = guide(r, rs, list);
   return `<div class="page ac-page--run">
     ${ac.back('/activity', t('nav.activity'))}
@@ -328,9 +330,9 @@ function runPage(ctx) {
         ${r.mode === 'handoff' ? handoffHTML(r) : ''}
         ${stages}
         ${timeline(r, view, events, ctx.query.all === '1')}
-        <div class="panel only-phone section">${ac.fold('facts', t('ac.run.facts'), esc(t('ac.run.facts.sum', { who: ac.whoWord(r), when: fmtWhen(r.created) })), facts)}</div>
+        <div class="panel only-phone section">${ac.fold('facts', t('ac.run.facts'), esc(t('ac.run.facts.sum', { who: ac.whoWord(r), when: fmtWhen(r.created) })), factList)}</div>
       </div>
-      <aside class="ac-run-aside only-desk" aria-labelledby="facts-h"><div class="panel panel__pad"><h2 class="h2 mb-3" id="facts-h">${t('ac.run.facts')}</h2>${facts}</div></aside>
+      <aside class="ac-run-aside only-desk" aria-labelledby="facts-h"><div class="panel panel__pad"><h2 class="h2 mb-3" id="facts-h">${t('ac.run.facts')}</h2>${factList}</div></aside>
     </div>
   </div>`;
 }

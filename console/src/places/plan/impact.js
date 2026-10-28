@@ -1,7 +1,7 @@
 // S-54 What changing a file touches (PRB-14), the sheet one problem opens beside its files: EAOS's impact action
 // (a free read, eaos/analysis/maps/impact.py) on the check's facts: who imports it directly and further, the code paths and entry
 // points through it, the tests that reach it, and the files that change with it in the history. Nothing is estimated.
-import { t, tn, num, esc, icon, code, sheet } from 'eaos';
+import { t, tn, num, esc, icon, code, sheet, rowWords } from 'eaos';
 import { read } from '../kit/reads.js';
 import { nm } from '../kit/kit.js';
 
@@ -26,7 +26,7 @@ sheet('impact', {
         <div><div class="block-title">${esc(t('un.imp.importers', { n: num(direct.length) }))}</div>
           ${direct.length ? `<ul class="panel rows">${direct.slice(0, 8).map(fileRow).join('')}${more(direct.length, 8)}</ul>` : `<p class="small muted">${t('un.imp.noimporters')}</p>`}
           ${further.length ? `<p class="small muted mt-1">${esc(t('un.imp.further', { n: tn('un.pl.file2', further.length), depth: num(im.depth || 3) }))}</p>` : ''}</div>
-        <div><div class="block-title">${t('un.imp.flows')}</div>${flows.length || entries.length ? `<div class="panel rows">${flows.map(f => `<div class="row">${icon('code', 'icon--sm muted')}<span class="row__main"><span class="row__title small">${code(f.route || f.flow_id)}</span><span class="row__meta" style="display:block">${code(f.entry)}</span></span></div>`).join('')}${entries.map(e => `<div class="row">${icon('external', 'icon--sm muted')}<span class="row__main"><span class="row__title small">${code(e.route || e.surface)}</span><span class="row__meta" style="display:block">${code(e.location)}</span></span></div>`).join('')}</div>`
+        <div><div class="block-title">${t('un.imp.flows')}</div>${flows.length || entries.length ? `<div class="panel rows">${flows.map(f => `<div class="row">${icon('code', 'icon--sm muted')}${rowWords(code(f.route || f.flow_id), code(f.entry), { title: 'small' })}</div>`).join('')}${entries.map(e => `<div class="row">${icon('external', 'icon--sm muted')}${rowWords(code(e.route || e.surface), code(e.location), { title: 'small' })}</div>`).join('')}</div>`
           : `<p class="small muted">${t('un.imp.noflows')}</p>`}</div>
         <div><div class="block-title">${t('un.imp.tests')}</div>${tests.length ? `<ul class="panel rows">${tests.slice(0, 8).map(f => `<li class="row" style="min-height:44px">${icon('check', 'icon--sm ok-ic')}<span class="row__main">${code(f)}</span></li>`).join('')}${more(tests.length, 8)}</ul>` : `<p class="small muted">${t('un.imp.notests')}</p>`}</div>
         <div><div class="block-title">${t('un.imp.together')}</div>${partners.length ? `<ul class="panel rows">${partners.map(x => `<li class="row" style="min-height:48px"><span class="row__main">${code(x.path)}<span class="un-together" aria-hidden="true"><i style="transform:scaleX(${Math.min(1, x.confidence || 0)})"></i></span></span><span class="small num">${esc(t('un.imp.pct', { p: Math.round((x.confidence || 0) * 100) }))}</span></li>`).join('')}</ul>

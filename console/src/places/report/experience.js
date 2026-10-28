@@ -3,8 +3,8 @@
 // pictures (?goal=, so only the goal opened reads its pictures), the difficulties ranked with their steps to reproduce
 // and their fix card, the time per task, the support tickets and the replays. A check that did not try the experience
 // says how to run it. Every text from the story is the app's or an assistant's: escaped (esc, rich), never trusted.
-import { t, tn, num, esc, rich, code, icon, sev, href, prefs, data, refresh, offline } from 'eaos';
-import { nm, facts } from '../kit/kit.js';
+import { t, tn, num, esc, rich, code, icon, sev, href, prefs, data, refresh, offline, rowWords, facts } from 'eaos';
+import { nm } from '../kit/kit.js';
 import { figure } from '../kit/pictures.js';
 
 const STORY = 'experience/story.json';
@@ -62,8 +62,7 @@ function goalStory(g) {
 function persona(p, query) {
   const goals = p.goals.map(g => {
     const open = query.goal === g.name;
-    return `<li><a class="row" href="${goalHref(query, g.name)}" ${open ? 'aria-current="true"' : ''}><span class="row__main"><span class="row__title small">${code(g.name)}</span>
-      <span class="row__meta" style="display:block">${seconds(g.seconds)} · ${esc(tn('rp.ex.steps', g.steps.length))}</span></span>${status(g.status)}${icon('chev', 'icon--sm icon--dir muted')}</a>
+    return `<li><a class="row" href="${goalHref(query, g.name)}" ${open ? 'aria-current="true"' : ''}>${rowWords(code(g.name), `${seconds(g.seconds)} · ${esc(tn('rp.ex.steps', g.steps.length))}`, { title: 'small' })}${status(g.status)}${icon('chev', 'icon--sm icon--dir muted')}</a>
       ${open ? goalStory(g) : ''}</li>`;
   }).join('');
   return `<article class="panel panel__pad"><h3 class="h2">${rich(p.name)}${p.role ? ` <span class="small muted">(${rich(p.role)})</span>` : ''}</h3>
@@ -82,20 +81,17 @@ function difficulty(d) {
 }
 
 function times(s) {
-  return `<ul class="panel rows">${s.time.map(g => `<li class="row"><span class="row__main"><span class="row__title small">${code(g.name)}</span>
-    <span class="row__meta" style="display:block">${rich(g.persona)} · ${seconds(g.seconds)}${g.calls != null ? ' · ' + esc(tn('rp.ex.calls', g.calls)) : ''}</span></span>${status(g.status)}</li>`).join('')}</ul>`;
+  return `<ul class="panel rows">${s.time.map(g => `<li class="row">${rowWords(code(g.name), `${rich(g.persona)} · ${seconds(g.seconds)}${g.calls != null ? ' · ' + esc(tn('rp.ex.calls', g.calls)) : ''}`, { title: 'small' })}${status(g.status)}</li>`).join('')}</ul>`;
 }
 
 function tickets(s) {
-  return `<ul class="panel rows">${s.tickets.map(k => `<li class="row"><span class="row__main"><span class="row__title small">${code(k.id)} ${code(k.goal)}${k.escalated ? ` <span class="tag tag--caution">${t('rp.ex.escalated')}</span>` : ''}</span>
-    <span class="row__meta" style="display:block"><b>${t('rp.ex.asked')}</b> ${rich(k.asked)}</span>
-    <span class="row__meta" style="display:block"><b>${t('rp.ex.answer')}</b> ${k.answer ? rich(k.answer) : '-'}</span></span>${k.after ? status(k.after) : ''}</li>`).join('')}</ul>`;
+  return `<ul class="panel rows">${s.tickets.map(k => `<li class="row">${rowWords(`${code(k.id)} ${code(k.goal)}${k.escalated ? ` <span class="tag tag--caution">${t('rp.ex.escalated')}</span>` : ''}`, `<b>${t('rp.ex.asked')}</b> ${rich(k.asked)}`,
+      { title: 'small', more: `<span class="row__meta" style="display:block"><b>${t('rp.ex.answer')}</b> ${k.answer ? rich(k.answer) : '-'}</span>` })}${k.after ? status(k.after) : ''}</li>`).join('')}</ul>`;
 }
 
 function replays(s) {
   const sum = s.replays.summary || {};
-  const red = s.replays.red.map(r => `<li class="row"><span class="row__main"><span class="row__title small">${code(r.goal)}</span>
-    <span class="row__meta" style="display:block">${rich(r.error || r.broken_at || '')}</span></span><span class="tag tag--danger">${t('rp.ex.red')}</span></li>`).join('');
+  const red = s.replays.red.map(r => `<li class="row">${rowWords(code(r.goal), rich(r.error || r.broken_at || ''), { title: 'small' })}<span class="tag tag--danger">${t('rp.ex.red')}</span></li>`).join('');
   return `<p class="small"><span class="tag tag--ok">${esc(t('rp.ex.green.n', { n: num(sum.green || 0) }))}</span> <span class="tag tag--danger">${esc(t('rp.ex.red.n', { n: num(sum.red || 0) }))}</span></p>
     ${red ? `<ul class="panel rows">${red}</ul>` : ''}`;
 }

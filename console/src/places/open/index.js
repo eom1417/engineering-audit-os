@@ -2,7 +2,7 @@
 // folder (the projects on this computer, GET /api/projects), switch (that project's own Studio started and opened,
 // POST /api/projects/open), export (the read-only copy), nokey, readonly, oldlink (?what=), partial (the parts of the
 // report the check could not write), contract (data of another contract) and connection (the live feed's state).
-import { t, tn, num, esc, icon, code, href, fmtWhen, fmtTime, screen, refresh, data, live, client, model, ActionError } from 'eaos';
+import { t, tn, num, esc, icon, code, href, fmtWhen, fmtTime, screen, refresh, data, live, client, model, ActionError, rowWords, facts } from 'eaos';
 
 const KINDS = ['folder', 'switch', 'export', 'nokey', 'readonly', 'oldlink', 'partial', 'contract', 'connection'];
 let projects = null, switching = null;
@@ -13,7 +13,7 @@ function folder() {
   if (!projects) return `<h1 class="lede" aria-busy="true">${t('st.loading')}</h1>`;
   return `<h1 class="lede">${esc(tn('ac.op.folder.n', projects.length))}</h1><p class="guide">${t('ac.op.folder.guide')}</p>
     <ul class="panel rows section">${projects.map(p => `<li><a class="row" href="${href(p.current ? '/status' : '/open', p.current ? {} : { kind: 'switch', p: p.workspace })}"><span class="project-btn__mark" aria-hidden="true">${esc((p.name || '?')[0].toUpperCase())}</span>
-      <span class="row__main"><span class="row__title"><bdi class="mono">${esc(p.name)}</bdi>${p.current ? ` <span class="tag tag--state">${t('proj.current')}</span>` : ''}</span><span class="row__meta" style="display:block">${p.score != null ? esc(t('proj.score', { score: num(Math.round(p.score * 100)) })) + ', ' : ''}${esc(p.checked ? t('ac.op.checked', { when: fmtWhen(p.checked) }) : t('ac.op.never'))}</span></span>${icon('chev', 'icon--dir muted')}</a></li>`).join('')}</ul>
+      ${rowWords(code(p.name) + (p.current ? ` <span class="tag tag--state">${t('proj.current')}</span>` : ''), (p.score != null ? esc(t('proj.score', { score: num(Math.round(p.score * 100)) })) + ', ' : '') + esc(p.checked ? t('ac.op.checked', { when: fmtWhen(p.checked) }) : t('ac.op.never')))}${icon('chev', 'icon--dir muted')}</a></li>`).join('')}</ul>
     <p class="small muted mt-3">${t('ac.op.folder.later')}</p>`;
 }
 
@@ -36,7 +36,7 @@ function partial() {
   const names = [...new Set(missing.concat(unread))];
   if (!names.length) return `<h1 class="lede">${t('ac.op.partial.none')}</h1><p class="guide">${t('ac.op.partial.none.guide')}</p><div class="actions"><a class="btn btn--primary" href="${href('/status')}">${t('ac.op.partial.see')}</a></div>`;
   return `<h1 class="lede">${esc(tn('ac.op.partial.n', names.length))}</h1><p class="guide">${t('ac.op.partial.guide')}</p>
-    <ul class="panel rows section">${names.map(n => `<li class="row"><span class="row__main"><span class="row__title">${code(n)}</span><span class="row__meta" style="display:block">${t('ac.op.partial.row')}</span></span></li>`).join('')}</ul>
+    <ul class="panel rows section">${names.map(n => `<li class="row">${rowWords(code(n), t('ac.op.partial.row'))}</li>`).join('')}</ul>
     <div class="actions"><a class="btn btn--primary" href="${href('/activity', { sheet: 'check' })}">${t('stale.act')}</a><a class="btn btn--quiet" href="${href('/status')}">${t('ac.op.partial.see')}</a></div>`;
 }
 
@@ -75,8 +75,7 @@ function readonly() {
 function oldlink(q) {
   const what = q.what || '';
   return `<h1 class="lede">${esc(t('ac.op.old', { what }))}</h1><p class="guide">${t('ac.op.old.guide')}</p>
-      <div class="panel panel__pad section"><dl class="facts"><dt>${t('ac.op.old.missing')}</dt><dd>${code(what)}</dd>
-        <dt>${t('ac.op.old.why')}</dt><dd>${t('ac.op.old.why.v')}</dd></dl></div>
+      <div class="panel panel__pad section">${facts([[t('ac.op.old.missing'), code(what)], [t('ac.op.old.why'), t('ac.op.old.why.v')]])}</div>
       <div class="actions"><a class="btn btn--primary" href="${href('/problems')}">${t('ac.op.old.back')}</a></div>`;
 }
 // data of another contract
