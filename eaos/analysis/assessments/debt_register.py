@@ -29,7 +29,6 @@ KEYS = {
     'load_blocker': ('reliability', 'medium'), 'trace_gap': ('reliability', 'low'), 'mutable_global': ('reliability', 'medium'),
     'cycle': ('architecture', 'medium'), 'cochange': ('architecture', 'low'), 'hotspot': ('maintainability', 'medium'),
     'large_module': ('maintainability', 'medium'),
-    'structural_duplicate': ('maintainability', 'low'), 'copied_function': ('maintainability', 'medium'), 'sequence_duplicate': ('maintainability', 'low'),
     'duplicated_rule': ('maintainability', 'medium'), 'redundant_work': ('reliability', 'medium'),
     'policy': ('architecture', 'medium'), 'untested': ('reliability', 'medium'),
 }
@@ -54,8 +53,8 @@ RECOMMENDATIONS = {
     'dead_code': 'Delete it in one commit; the audit shows nothing reaches it.',
 }
 CREDENTIAL_SEVERITY = {'public': 'low', 'test': 'low'}
-# The debt category of a card kind that carries its own severity (M13, M14).
-OWN_CATEGORY = {'old_engine': 'dead_code', 'data_keeping': 'data'}
+# The debt category of a card kind that carries its own severity (M13, M14, M15).
+OWN_CATEGORY = {'old_engine': 'dead_code', 'data_keeping': 'data', 'one_source': 'maintainability'}
 # Personal values whose check digits were verified (an IBAN, a Saudi national id, a card number): a lookup, not a guess.
 CHECKED_VALUES = ('IBAN_CODE', 'SA_NATIONAL_ID', 'CREDIT_CARD')
 

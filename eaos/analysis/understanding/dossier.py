@@ -291,7 +291,7 @@ def _excluded(exclude):
 def _more_sets(out, sets):
     """The fact sets the runtime claims and the ranking read beside the collected ones, into `sets`; the coverage set,
     or None when the tests were not run."""
-    for extra in ['fingerprint', 'sequences', 'redundancy', 'structure']:
+    for extra in ['fingerprint', 'redundancy', 'structure']:
         if (out / 'facts' / (extra + '.json')).is_file(): sets[extra] = read_set(out, extra)
     coverage_set = read_set(out, 'verification') if (out / 'facts/verification.json').is_file() else None
     if coverage_set: sets['verification'] = coverage_set

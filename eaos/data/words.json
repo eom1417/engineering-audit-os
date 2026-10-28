@@ -1040,6 +1040,20 @@
     "ميزة طلبتها ولم تُبنَ بعد كاملة: بطاقاتها في الخطة.",
     "A feature you asked for that is not built in full yet: its cards are in the plan."
    ]
+  },
+  "one_source": {
+   "one": [
+    "شي مكتوب في أكثر من مكان بدل مصدر واحد",
+    "Something written in several places instead of one source"
+   ],
+   "group": [
+    "مصدر واحد لكل نمط",
+    "One source per pattern"
+   ],
+   "why": [
+    "نسخ متقاربة من نفس الكود، وألوان وأحجام ومسافات مكتوبة خارج ملف الـ tokens، وشاشات تكرر نفس البنية، وطرق عمل مكتوبة يدويًا في كل مكان: كل تعديل يتكرر، وأول تعديل ينسى مكان يخلّي البرنامج يختلف عن نفسه.",
+    "Near copies of the same code, colours, sizes and spacing written outside the tokens file, screens repeating one structure, ways of working written by hand in every place: each change is made many times, and the first one that misses a place makes the program disagree with itself."
+   ]
   }
  },
  "loops": {

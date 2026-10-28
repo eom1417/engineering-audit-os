@@ -63,7 +63,7 @@ class _Indexes:
         self.codegraph = self._codegraph(metric_external)
         self.own_file, self.own_symbols = self._own(by_kind.get('metric', []))
         self.jscpd_seen = 'jscpd' in _engines_observed(out)
-        self.duplicated = self._duplicated(by_kind.get('engine_finding', []))
+        self.duplicated = self._duplicated(metric_external)
         self.churn = {_path_of(f): f['value'] for f in by_kind.get('history_churn', [])}
         self.ownership = {_path_of(f): f['value'] for f in by_kind.get('history_ownership', [])}
         self.graph = {_path_of(f): f['value'] for f in by_kind.get('graph_node', [])}
@@ -90,14 +90,14 @@ class _Indexes:
         return own_file, own_symbols
 
     @staticmethod
-    def _duplicated(findings):
+    def _duplicated(records):
+        """{path: lines} of the near copies jscpd recorded (eaos/engines/code/jscpd.py), each side of a pair counted."""
         duplicated = {}
-        for fact in findings:
+        for fact in records:
             value = fact['value']
-            if value.get('engine') != 'jscpd': continue
-            lines = next((m['value'] for m in value.get('measurements') or [] if m['name'] == 'duplicated_lines'), None) or 0
-            for site in value.get('sites') or []:
-                duplicated[site['path']] = duplicated.get(site['path'], 0) + lines
+            if value.get('engine') != 'jscpd' or value.get('record') != 'near_copy': continue
+            for path in (fact['location']['path'], (value.get('other') or {}).get('path')):
+                if path: duplicated[path] = duplicated.get(path, 0) + (value.get('lines') or 0)
         return duplicated
 
     def loc(self, path, row, used, missing):

@@ -6,8 +6,6 @@
     "judged": 5
   },
   "hidden": {
-    "structural_duplicate": "precision 0.375 < 0.8 on 24 judged outputs",
-    "sequence_duplicate": "precision 0.071 < 0.8 on 14 judged outputs",
     "duplicated_rule": "precision 0.714 < 0.8 on 7 judged outputs",
     "engine_cluster:literal_duplication": "only 3 judged outputs (bar 5)",
     "engine_cluster:duplication": "it produced no output on the set",

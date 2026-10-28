@@ -147,6 +147,31 @@ function trackingOf() {
     && hasText(el, (t) => /[؀-ۿ]/.test(t))).map(selector);
 }
 
+// Runs inside the page: the style census (M15.4), what the screen really shows whatever wrote it (CSS, Tailwind,
+// CSS-in-JS, inline styles): every visible element's computed colours, font size and family, spacing, radius, shadow
+// and stacking, each value counted. eaos/analysis/assessments/one_source_look.py groups near colours and reads the
+// sizes against one scale.
+function stylesOf() {
+  const { visible, all, hasText } = window.__eaosAudit;
+  const kinds = { color: {}, font_size: {}, font_family: {}, spacing: {}, radius: {}, shadow: {}, z_index: {} };
+  const add = (kind, value) => { if (value) kinds[kind][value] = (kinds[kind][value] || 0) + 1; };
+  const clear = (value) => !value || value === 'none' || value === 'auto' || value === 'normal' || /^rgba\(0, 0, 0, 0\)$|^0px$/.test(value);
+  for (const el of all()) {
+    if (!visible(el)) continue;
+    const s = getComputedStyle(el);
+    if (hasText(el, (t) => t.trim())) { add('color', s.color); add('font_size', s.fontSize); add('font_family', s.fontFamily.split(',')[0].trim()); }
+    if (!clear(s.backgroundColor)) add('color', s.backgroundColor);
+    if (parseFloat(s.borderTopWidth) > 0 && !clear(s.borderTopColor)) add('color', s.borderTopColor);
+    for (const side of ['paddingTop', 'paddingRight', 'paddingBottom', 'paddingLeft', 'marginTop', 'marginRight', 'marginBottom', 'marginLeft', 'rowGap', 'columnGap']) {
+      if (!clear(s[side])) add('spacing', s[side]);
+    }
+    if (!clear(s.borderTopLeftRadius)) add('radius', s.borderTopLeftRadius);
+    if (!clear(s.boxShadow)) add('shadow', s.boxShadow);
+    if (s.position !== 'static' && !clear(s.zIndex)) add('z_index', s.zIndex);
+  }
+  return kinds;
+}
+
 // Runs inside the page: its widths, scroll, direction, language, height and root attributes.
 function pageFacts(width) {
   const scroller = document.scrollingElement || document.documentElement;
@@ -178,6 +203,7 @@ async function measure(page, { phoneWidth, targetMin, viewportWidth }) {
     truncated: truncated.slice(0, 20), truncated_count: truncated.length,
     small_targets: small.slice(0, 30), small_target_count: small.length,
     arabic_tracking: tracking.slice(0, 10), arabic_tracking_count: tracking.length,
+    ...(viewportWidth > phoneWidth ? { styles: await page.evaluate(stylesOf) } : {}),   // once a page: its wide picture
   };
 }
 

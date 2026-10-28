@@ -1,139 +1,192 @@
 {
   "engine": "jscpd",
-  "pinned_version": "5.3.0",
+  "pinned_version": "5.4.2",
   "captured_from": "eaos/facts",
   "jscpd-report.json": {
     "statistics": {
+      "formats": {
+        "python": {
+          "clones": 4,
+          "duplicatedLines": 28,
+          "duplicatedTokens": 203,
+          "lines": 10926,
+          "newClones": 0,
+          "newDuplicatedLines": 0,
+          "percentage": 0.2562694490206846,
+          "percentageTokens": 0.1886266493216874,
+          "sources": 66,
+          "tokens": 107620
+        }
+      },
       "total": {
-        "clones": 14,
-        "duplicatedLines": 110,
-        "duplicatedTokens": 839,
-        "lines": 3413,
+        "clones": 4,
+        "duplicatedLines": 28,
+        "duplicatedTokens": 203,
+        "lines": 10926,
         "newClones": 0,
         "newDuplicatedLines": 0,
-        "percentage": 3.222970993261061,
-        "percentageTokens": 2.490131481316594,
-        "sources": 29,
-        "tokens": 33693
-      },
-      "formats": {
-        "python": {}
+        "percentage": 0.2562694490206846,
+        "percentageTokens": 0.1886266493216874,
+        "sources": 66,
+        "tokens": 107620
       }
     },
     "duplicates": [
       {
         "firstFile": {
-          "end": 73,
+          "end": 133,
           "endLoc": {
-            "column": 39,
-            "line": 73,
-            "position": 3235
+            "column": 21,
+            "line": 133,
+            "position": 6730
           },
-          "name": "fingerprint.py",
-          "start": 65,
+          "name": "code/entrypoints.py",
+          "start": 127,
           "startLoc": {
-            "column": 12,
-            "line": 65,
-            "position": 2893
+            "column": 84,
+            "line": 127,
+            "position": 6533
           }
         },
         "format": "python",
-        "fragment": "            scope.append(node.name)\n            for child in ast.iter_child_nodes(node):\n                yield from visit(child, qualified)\n            scope.pop()\n            return\n        if isinstance(node, ast.ClassDef):\n            scope.append(node.name)\n            for child in ast.iter_child_nodes(node):\n                yield from visit(child, parent_qual)",
+        "fragment": "        tally['facts'].append(_entry_point_fact(item, rel, language, entry, category))\n\n\ndef _record_data_access(module, context, file, tally):\n    for _offset, line, call in module.detect(context):\n        tally['fingerprints'].append(file['item']['sha256'])\n        _count(tally['data_access_by_client'], call['client'])",
         "isNew": false,
-        "kind": "exact",
-        "lines": 9,
+        "kind": "renamed",
+        "lines": 7,
         "secondFile": {
-          "end": 263,
+          "end": 140,
           "endLoc": {
-            "column": 39,
-            "line": 263,
-            "position": 13238
+            "column": 21,
+            "line": 140,
+            "position": 7071
           },
-          "name": "redundancy.py",
-          "start": 255,
+          "name": "code/entrypoints.py",
+          "start": 134,
           "startLoc": {
-            "column": 12,
-            "line": 255,
-            "position": 12896
+            "column": 103,
+            "line": 134,
+            "position": 6875
           }
         },
-        "tokens": 66
+        "tokens": 47
       },
       {
         "firstFile": {
-          "end": 150,
+          "end": 104,
           "endLoc": {
             "column": 19,
-            "line": 150,
-            "position": 6000
+            "line": 104,
+            "position": 4473
           },
-          "name": "fingerprint.py",
-          "start": 138,
+          "name": "code/structure.py",
+          "start": 99,
           "startLoc": {
-            "column": 69,
-            "line": 138,
-            "position": 5659
+            "column": 95,
+            "line": 99,
+            "position": 4285
           }
         },
         "format": "python",
-        "fragment": "    \"\"\"Fingerprint every function-shaped node in a tree-sitter file.\"\"\"\n    try:\n        from tree_sitter_language_pack import get_parser\n    except ImportError:\n        return None\n    try:\n        parser = get_parser('c_sharp' if language == 'csharp' else language)\n    except Exception:\n        return None\n    try:\n        tree = parser.parse(text.encode('utf-8'))\n    except Exception:\n        return None",
+        "fragment": "    walk = {'scopes': [], 'calls': [], 'loops': [], 'branches': [], 'call_sites': [], 'parents': [(tree, '<module>')]}\n    for node in tree.body: _py_visit(node, walk)\n    return walk['scopes'], walk['calls'], walk['loops'], walk['branches'], walk['call_sites']\n\n\ndef _python_callee(node):",
         "isNew": false,
-        "kind": "exact",
-        "lines": 13,
+        "kind": "renamed",
+        "lines": 6,
         "secondFile": {
-          "end": 307,
+          "end": 179,
           "endLoc": {
-            "column": 33,
-            "line": 307,
-            "position": 15329
+            "column": 13,
+            "line": 179,
+            "position": 8403
           },
-          "name": "redundancy.py",
-          "start": 300,
+          "name": "code/structure.py",
+          "start": 174,
           "startLoc": {
-            "column": 98,
-            "line": 300,
-            "position": 15028
+            "column": 93,
+            "line": 174,
+            "position": 8216
           }
         },
-        "tokens": 52
+        "tokens": 50
       },
       {
         "firstFile": {
-          "end": 155,
+          "end": 37,
           "endLoc": {
-            "column": 39,
-            "line": 155,
-            "position": 6253
+            "column": 6,
+            "line": 37,
+            "position": 2123
           },
-          "name": "fingerprint.py",
-          "start": 138,
+          "name": "frameworks/http_access.py",
+          "start": 29,
           "startLoc": {
-            "column": 69,
-            "line": 138,
-            "position": 5659
+            "column": 0,
+            "line": 29,
+            "position": 1924
           }
         },
         "format": "python",
-        "fragment": "    \"\"\"Fingerprint every function-shaped node in a tree-sitter file.\"\"\"\n    try:\n        from tree_sitter_language_pack import get_parser\n    except ImportError:\n        return None\n    try:\n        parser = get_parser('c_sharp' if language == 'csharp' else language)\n    except Exception:\n        return None\n    try:\n        tree = parser.parse(text.encode('utf-8'))\n    except Exception:\n        return None\n    root = tree.root_node\n\n    function_types = {'function_declaration', 'function_definition', 'function_item',\n                      'method_declaration', 'method_definition', 'function', 'function_expression',\n                      'arrow_function', 'generator_function_declaration', 'singleton_method',",
+        "fragment": "GENERIC_STEMS = {'index', 'types', 'utils', 'constants', 'config', 'helpers'}\n\n\ndef _stem(path):\n    return path.rstrip('/').rsplit('/', 1)[-1].split('.')[0]\n\n\ndef clients(text, inherited=()):\n    \"\"\"HTTP client names this file can call: axios, factory results, and names it imports that are clients.\"\"\"",
         "isNew": false,
-        "kind": "exact",
-        "lines": 18,
+        "kind": "renamed",
+        "lines": 9,
         "secondFile": {
-          "end": 186,
+          "end": 39,
           "endLoc": {
-            "column": 95,
-            "line": 186,
-            "position": 8382
+            "column": 6,
+            "line": 39,
+            "position": 2452
           },
-          "name": "structure.py",
-          "start": 170,
+          "name": "frameworks/supabase_access.py",
+          "start": 31,
           "startLoc": {
-            "column": 107,
-            "line": 170,
-            "position": 7810
+            "column": 0,
+            "line": 31,
+            "position": 2248
           }
         },
-        "tokens": 76
+        "tokens": 59
+      },
+      {
+        "firstFile": {
+          "end": 31,
+          "endLoc": {
+            "column": 16,
+            "line": 31,
+            "position": 1629
+          },
+          "name": "dead_code/registry.py",
+          "nodes": 78,
+          "start": 26,
+          "startLoc": {
+            "column": 0,
+            "line": 26,
+            "position": 1413
+          }
+        },
+        "format": "python",
+        "fragment": "def _module_names_in_list(text):\n    found = set()\n    for match in _MODULE_LIST.finditer(text):\n        for token in _re.findall(r\"\\b[A-Za-z_][\\w.]*\\b\", match.group(0)):\n            found.add(token)\n    return found",
+        "isNew": false,
+        "kind": "similar",
+        "lines": 6,
+        "method": "ast",
+        "secondFile": {
+          "end": 39,
+          "endLoc": {
+            "column": 16,
+            "line": 39,
+            "position": 1847
+          },
+          "name": "dead_code/registry.py",
+          "nodes": 78,
+          "start": 34,
+          "startLoc": {
+            "column": 0,
+            "line": 34,
+            "position": 1632
+          }
+        },
+        "similarity": 1.0,
+        "tokens": 47
       }
     ]
   }

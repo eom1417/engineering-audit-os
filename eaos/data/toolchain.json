@@ -143,8 +143,8 @@
    "check": "engines",
    "license": "MIT",
    "repository": "https://github.com/kucherenko/jscpd",
-   "version": "5.3.0",
-   "source_commit": "91e4444de1de68ff3ef27c0b5084c53f0b3b11b5",
+   "version": "5.4.2",
+   "source_commit": "db415b5d7cc34d72a324fe5eae2147646dc3558b",
    "binary": "jscpd",
    "install": {
     "method": "pip",

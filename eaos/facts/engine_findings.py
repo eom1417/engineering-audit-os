@@ -67,7 +67,7 @@ def _merge_codegraph(target, workdir, input_sha, facts):
                 'call_edges': 0, 'module_edges': 0}
 
 
-def _engine_metric_facts(manifest, input_sha):
+def metric_facts(manifest, input_sha):
     return [make('symbol_metric_external', NAME, VERSION, input_sha,
                  {'path': row['path'], 'line': row.get('line'), 'symbol': row.get('symbol')},
                  {'engine': name, 'engine_version': report.get('version'),
@@ -162,7 +162,7 @@ def run(target, source, out=None, only=None, keep=False):
     facts = []
     present, absent = observed(manifest), missing(manifest)
     edge_merge = _merge_codegraph(target, workdir, input_sha, facts) if 'codegraph' in present else dict(NO_CODEGRAPH)
-    facts += _engine_metric_facts(manifest, input_sha)
+    facts += metric_facts(manifest, input_sha)
     facts += [_finding_fact(item, input_sha) for item in manifest['findings'] + manifest.get('justified', [])]
     summary = _summary(manifest, facts, present, absent, edge_merge)
     _drop_scratch(Path(workdir) / 'engines')

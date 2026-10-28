@@ -28,8 +28,6 @@ QUERY_PATTERNS = {
     'mutable_global_present': 'mutable_state',
     'external_write_present': 'external_write',
     'policy_violation_present': 'policy_violation',
-    'duplicate_cluster_present': 'canonicalize',
-    'sequence_cluster_present': 'canonicalize',
     'redundancy_present': 'redundant_work',
     'load_blocker_present': 'load_blocker',
     'broken_code_present': 'broken_code',
@@ -40,11 +38,12 @@ QUERY_PATTERNS = {
     'real_data_present': 'real_data',
     'old_engine_present': 'old_engine',
     'data_keeping_present': 'data_keeping',
+    'one_source_present': 'one_source',
 }
 
 
-# Card keys that are their own pattern, with or without a probe (M13, M14).
-OWN_PATTERN = ('old_engine', 'data_keeping')
+# Card keys that are their own pattern, with or without a probe (M13, M14, M15).
+OWN_PATTERN = ('old_engine', 'data_keeping', 'one_source')
 
 
 def _by_query(claim, specification):
@@ -280,6 +279,14 @@ PATTERNS = {
         ],
         'rollback': 'revert واحد يعيد الكود كما كان.',
     },
+    'one_source': {
+        'change': 'اكتب المصدر الواحد مرة في مكانه كما تقول البطاقة (ملف الـ tokens، أو مكوّن، أو دالة مساعدة، أو أكمل نسخة)، وانقل كل الأماكن له بأداة النقل، خلف قفل السلوك (ما تتغير أي شاشة)؛ ثم أعد الفحص: الكاشف ما يلقى شي.',
+        'options': [
+            {'option': 'مصدر واحد تناديه كل الأماكن', 'cost': 'متوسطة', 'verdict': 'مختار افتراضيًا'},
+            {'option': 'إبقاء نسخة مع سبب مكتوب حين تختلف لسبب حقيقي', 'cost': 'صفر', 'verdict': 'حين يثبته الكود أو المالك'},
+        ],
+        'rollback': 'revert واحد يعيد الكود كما كان.',
+    },
     'generic': {
         'change': '⧗ لا نمط معالجة معروف لهذه الفئة: صمّم التغيير يدويًا، واذكر البديل «لا نفعل شيئًا» صراحة قبل الاعتماد.',
         'options': [{'option': 'تصميم يدوي بعد قراءة الدليل', 'cost': 'غير محددة', 'verdict': 'مطلوب'}],
@@ -341,6 +348,7 @@ def cost_of_inaction(name):
         'layer_boundary': 'يبقى الحد مفتوحًا: سرّ أو بيانات أو قاعدة يصل إليها من لا يملكها',
         'repository_craft': 'يبقى الوصول لأي شي في الريبو أبطأ وأصعب على كل مهندس ومساعد، وتكلّف كل جلسة توكنز أكثر',
         'real_data': 'تبقى بيانات الناس أو سجلات البرنامج تنتقل مع كل نسخة من الكود، وتطلع في الشاشات حتى لو قاعدة البيانات فاضية',
+        'one_source': 'يبقى الشي الواحد مكتوب في أكثر من مكان: كل تعديل يتكرر، وأول تعديل ينسى مكان يخلّي الشاشات أو السلوك يختلف',
         'data_keeping': 'يكبر كل حفظ مع البيانات، أو تضيع بيانات أو تعديلات أو صور، ولا تنفع النسخة الاحتياطية يوم تحتاجها',
         'old_engine': 'يبقى كود قديم يُقرأ ويُصان ويُختبر بلا فائدة، ويرجع يشتغل لو انقلب المفتاح بالغلط',
         'generic': '⧗ غير محددة',

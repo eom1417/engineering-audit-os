@@ -14,7 +14,7 @@ from eaos.facts.store import read_set
 ROOT = Path(__file__).resolve().parents[1]
 FIXTURE = ROOT / 'fixtures/polyglot'
 GOLDEN = ROOT / 'fixtures/golden'
-SETS = ['syntax', 'resolve', 'structure', 'fingerprint', 'sequences', 'redundancy', 'runtime', 'entrypoints', 'config', 'metrics', 'domain', 'graph', 'flows', 'leftovers', 'deadcode', 'broken', 'secrets', 'pipeline', 'repository']
+SETS = ['syntax', 'resolve', 'structure', 'fingerprint', 'patterns', 'redundancy', 'runtime', 'entrypoints', 'config', 'metrics', 'domain', 'graph', 'flows', 'leftovers', 'deadcode', 'broken', 'secrets', 'pipeline', 'repository']
 
 
 class GoldenFactTests(TemporaryWorkspace):
