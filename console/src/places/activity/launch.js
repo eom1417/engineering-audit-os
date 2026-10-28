@@ -4,8 +4,8 @@
 // (PRJ-08: composed from the data), then every action of the contract (RUN-13), then the expert steps (FIX-16); each
 // action opens its own preview with its form (action.js).
 import {
-  t, tn, L, num, esc, rich, icon, code, href, sheet, act, rerenderSheet, local, closeSheetThen, toast, refresh, offline,
-  S, live, store, model, client, contract, normalize, ActionError, ac,
+  t, tn, L, num, esc, rich, icon, code, href, sheet, act, rerenderSheet, local, closeSheetThen, toast, refresh, offline, S, live, store, model,
+  client, contract, normalize, ActionError, ac, rowWords, toggleRow, radio, facts, titledBlock,
 } from 'eaos';
 
 const enc = encodeURIComponent;
@@ -63,11 +63,11 @@ function initCheck(c, q) {
 function checkFacts(p) {
   const first = !ac.lastCheck();
   const est = p && p.estimate && p.estimate.minutes_low != null ? t('pv.estimate.v', { lo: num(p.estimate.minutes_low), hi: num(p.estimate.minutes_high) }) : t('ac.chk.est.none');
-  return `<dl class="facts">
-          <dt>${t('pv.estimate')}</dt><dd>${p ? esc(est) : `<span class="muted" aria-busy="true">${t('pv.updating')}</span>`}<span class="small muted" style="display:block">${p && p.estimate ? esc(L(p.estimate.basis)) : t(first ? 'ac.chk.est.basis.none' : 'ac.chk.est.basis.wait')}</span></dd>
-          <dt>${t('pv.risk')}</dt><dd><span class="tag tag--state">${t('pv.risk.low')}</span> <span class="small ink-2">${t('ac.chk.risk')}</span></dd>
-          <dt>${t('pv.fail')}</dt><dd class="small">${p ? esc(L(p.on_failure)) : t('ac.chk.fail')}</dd>
-        </dl>`;
+  return facts([
+      [t('pv.estimate'), `${p ? esc(est) : `<span class="muted" aria-busy="true">${t('pv.updating')}</span>`}<span class="small muted" style="display:block">${p && p.estimate ? esc(L(p.estimate.basis)) : t(first ? 'ac.chk.est.basis.none' : 'ac.chk.est.basis.wait')}</span>`],
+      [t('pv.risk'), `<span class="tag tag--state">${t('pv.risk.low')}</span> <span class="small ink-2">${t('ac.chk.risk')}</span>`],
+      [t('pv.fail'), p ? esc(L(p.on_failure)) : t('ac.chk.fail'), 'small'],
+    ]);
 }
 function pathsHTML(c) {
   const pathCard = (id, on, name, looks) => `<label class="opt ac-path"><input type="checkbox" data-change="ac-path" value="${esc(id)}" data-fk="path-${esc(id)}" ${on ? 'checked' : ''}><span class="ac-path__box" aria-hidden="true">${icon('tick')}</span>
@@ -79,39 +79,36 @@ function assistantsHTML(c) {
   const ready = readyOnes();
   const asst = (live.assistants || []).map(a => {
     const ok = a.installed && a.logged_in;
-    return `<label class="opt ${ok ? '' : 'opt--off'}"><input type="radio" name="ac-asst" value="${esc(a.id)}" data-change="ac-asst" data-fk="asst-${esc(a.id)}" ${c.asst === a.id ? 'checked' : ''} ${ok ? '' : 'disabled'}><span class="opt__dot" aria-hidden="true"></span>
-        <span class="opt__text">${esc(a.name)}${ok ? `<span class="tag tag--ok">${icon('check')}${t('pv.ready')}</span>` : ''}<span class="opt__note">${esc(ok ? t('ac.chk.asst.ready', { version: a.version || '' }) : !a.installed ? t('pv.notinstalled') : t('ac.chk.asst.notsigned', { cmd: a.id + ' login' }))}</span></span></label>`;
-  }).join('') + `<label class="opt"><input type="radio" name="ac-asst" value="rules" data-change="ac-asst" data-fk="asst-rules" ${c.asst === 'rules' ? 'checked' : ''}><span class="opt__dot" aria-hidden="true"></span>
-        <span class="opt__text">${t('ac.chk.rules')}<span class="opt__note">${t('ac.chk.rules.note')}</span></span></label>`;
+    return radio({ name: 'ac-asst', value: a.id, 'data-change': 'ac-asst', 'data-fk': `asst-${a.id}`, checked: c.asst === a.id, disabled: !ok },
+      esc(a.name) + (ok ? `<span class="tag tag--ok">${icon('check')}${t('pv.ready')}</span>` : ''),
+      esc(ok ? t('ac.chk.asst.ready', { version: a.version || '' }) : !a.installed ? t('pv.notinstalled') : t('ac.chk.asst.notsigned', { cmd: a.id + ' login' })));
+  }).join('') + radio({ name: 'ac-asst', value: 'rules', 'data-change': 'ac-asst', 'data-fk': 'asst-rules', checked: c.asst === 'rules' }, t('ac.chk.rules'), t('ac.chk.rules.note'));
   const dec5 = live.assistants && live.assistants.length && !ready.length ? `<div class="ac-refuse" role="note"><p class="small"><b>${esc(t('ac.chk.dec5.q', { name: live.assistants.map(a => a.name).join(t('list.sep')) }))}</b> ${t('ac.chk.dec5.why', { cmd: code('claude login') })}</p>
-      <div class="actions" style="margin-top:8px"><button class="btn btn--secondary btn--sm" data-act="ac-ask-again" data-fk="ask-again" ${c.asking2 ? 'disabled' : ''}>${c.asking2 ? t('ac.as.asking') : t('ac.chk.dec5.fixed')}</button></div>
+      <div class="actions mt-2"><button class="btn btn--secondary btn--sm" data-act="ac-ask-again" data-fk="ask-again" ${c.asking2 ? 'disabled' : ''}>${c.asking2 ? t('ac.as.asking') : t('ac.chk.dec5.fixed')}</button></div>
       <p class="small ink-2">${t('ac.chk.dec5.noai.v')}</p></div>` : '';
   return `${dec5}<div class="opts">${asst}</div>`;
 }
 function runAppHTML(c) {
   if (!c.runAppAsked) return '';
-  return `<div class="toggle-row"><span><span style="display:block">${t('ac.chk.run')}</span><span class="small muted">${t(c.runApp ? 'ac.chk.run.note' : 'ac.chk.run.off')}</span></span>
-      <span class="switch"><input type="checkbox" data-change="ac-run" data-fk="run-app" ${c.runApp ? 'checked' : ''} aria-label="${esc(t('ac.chk.run'))}"><span class="switch__track"></span><span class="switch__thumb"></span></span></div>`;
+  return toggleRow(t('ac.chk.run'), t(c.runApp ? 'ac.chk.run.note' : 'ac.chk.run.off'), { 'data-change': 'ac-run', 'data-fk': 'run-app', checked: c.runApp });
 }
 function signinHTML(c, needed) {
   if (!needed) return `<p class="small muted">${t('ac.chk.si.notneeded')}</p>`;
   const offer = c.offer;
   const seen = offer && offer.sign_in_seen && offer.sign_in_seen[0] ? offer.sign_in_seen[0].split(':')[0] : null;
-  return `${seen ? `<p class="small ink-2" style="margin-bottom:8px">${t('ac.chk.si.found', { path: code(seen) })}</p>` : ''}
-      <div class="opts">${[['hand', 'ac.chk.si.hand'], ['test_user', 'ac.chk.si.test'], ['none', 'ac.chk.si.none']].map(([id, k]) => `<label class="opt"><input type="radio" name="ac-si" value="${id}" data-change="ac-si" data-fk="si-${id}" ${c.signin === id ? 'checked' : ''}><span class="opt__dot" aria-hidden="true"></span>
-        <span class="opt__text">${t(k)}<span class="opt__note">${t(k + '.note')}</span></span></label>`).join('')}</div>
+  return `${seen ? `<p class="small ink-2 mb-2">${t('ac.chk.si.found', { path: code(seen) })}</p>` : ''}
+      <div class="opts">${[['hand', 'ac.chk.si.hand'], ['test_user', 'ac.chk.si.test'], ['none', 'ac.chk.si.none']].map(([id, k]) => radio({ name: 'ac-si', value: id, 'data-change': 'ac-si', 'data-fk': `si-${id}`, checked: c.signin === id }, t(k), t(k + '.note'))).join('')}</div>
       ${c.signin === 'hand' && live.signIn && live.signIn.kept ? `<p class="small ink-2 ac-iline">${icon('check', 'icon--sm ac-c-ok')}<span>${t('ac.chk.si.kept')}</span></p>` : ''}`;
 }
 function toolsHTML(c) {
   const tools = toolsLine();
   return `<a class="row panel" href="${href('/project/tools')}" data-act="go" data-href="${href('/project/tools')}" style="min-height:52px">${ac.glyph(tools.failed.length ? 'failed' : 'ok')}<span class="row__main small">${esc(tools.total ? t(tools.failed.length ? 'ac.chk.tools.failed' : 'ac.chk.tools', { n: num(tools.ready), total: num(tools.total), failed: tools.failed.map(s => s.name).join(t('list.sep')) }) : t('ac.chk.tools.none'))}</span>${icon('chev', 'icon--sm icon--dir muted')}</a>
-        ${tools.failed.length ? `<div class="toggle-row"><span>${t('ac.chk.without')}</span><span class="switch"><input type="checkbox" data-change="ac-without" data-fk="without" ${c.withoutTools ? 'checked' : ''} aria-label="${esc(t('ac.chk.without'))}"><span class="switch__track"></span><span class="switch__thumb"></span></span></div>` : ''}`;
+        ${tools.failed.length ? toggleRow(t('ac.chk.without'), null, { 'data-change': 'ac-without', 'data-fk': 'without', checked: c.withoutTools }) : ''}`;
 }
 function optionsHTML(c, pubErr) {
-  return `<details class="panel fold" ${c.speed || c.published ? 'open' : ''}><summary><span class="row__main"><span class="row__title">${t('ac.chk.options')}</span><span class="row__meta" style="display:block">${t('ac.chk.options.sum')}</span></span>${icon('chev', 'chev')}</summary>
+  return `<details class="panel fold" ${c.speed || c.published ? 'open' : ''}><summary>${rowWords(t('ac.chk.options'), t('ac.chk.options.sum'))}${icon('chev', 'chev')}</summary>
           <div class="fold__body ac-stack">
-            <div class="toggle-row"><span><span style="display:block">${t('ac.chk.speed')}</span><span class="small muted">${t('ac.chk.speed.note')}</span></span>
-              <span class="switch"><input type="checkbox" data-change="ac-speed" data-fk="speed" ${c.speed ? 'checked' : ''} aria-label="${esc(t('ac.chk.speed'))}"><span class="switch__track"></span><span class="switch__thumb"></span></span></div>
+            ${toggleRow(t('ac.chk.speed'), t('ac.chk.speed.note'), { 'data-change': 'ac-speed', 'data-fk': 'speed', checked: c.speed })}
             ${c.speed ? `<p class="ac-note ac-note--caution small">${icon('warn', 'icon--sm ac-c-caution')}<span>${t('ac.chk.speed.warn')}</span></p>` : ''}
             <label class="ac-label" for="ac-pub">${t('ac.chk.pub')}</label>
             <div class="field">${icon('globe')}<input id="ac-pub" type="url" inputmode="url" dir="ltr" data-fk="ac-pub" data-input="ac-pub" value="${esc(c.published)}" placeholder="app.example.com" autocomplete="off" aria-describedby="ac-pub-note"></div>
@@ -156,9 +153,9 @@ sheet('check', {
       body: `<p>${t('ac.chk.does')}</p>
         ${checkFacts(p)}
         <fieldset class="ac-fs"><legend class="block-title">${t('ac.chk.paths')}</legend><div class="opts">${pathsHTML(c)}</div>
-          <p class="small muted" style="margin-top:8px">${t('ac.chk.paths.note')}</p></fieldset>
+          <p class="small muted mt-2">${t('ac.chk.paths.note')}</p></fieldset>
         <fieldset class="ac-fs"><legend class="block-title">${t('ac.chk.asst')}</legend>${assistantsHTML(c)}
-          <p class="small muted" style="margin-top:8px">${t('ac.chk.asst.checked')} <button class="link ac-inline" data-act="ac-ask-again">${t('ac.asst.again')}</button></p></fieldset>
+          <p class="small muted mt-2">${t('ac.chk.asst.checked')} <button class="link ac-inline" data-act="ac-ask-again">${t('ac.asst.again')}</button></p></fieldset>
         ${runAppHTML(c)}
         ${c.runAppAsked && !c.runApp ? '' : `<fieldset class="ac-fs"><legend class="block-title">${t('ac.chk.si')}</legend>${signinHTML(c, needsSignin)}</fieldset>`}
         ${toolsHTML(c)}
@@ -240,20 +237,20 @@ function actionRow(a) {
   const m = metaOf(a);
   const attrs = m.opens ? `data-act="go" data-href="${href('/activity', { sheet: m.opens })}"` : m.link && !contract.personInputs(a).some(([, v]) => v) ? `data-act="go" data-href="${href(m.link)}"` : `data-act="sheet" data-sheet="action:${esc(a.id)}"`;
   const sub = m.link && !m.opens ? t('ac.lc.goes') : reading(a) ? t('ac.lc.answers_now') : t('ac.lc.preview_first');
-  return `<button class="row" ${m.link && m.link.startsWith('/waiting') ? `data-act="go" data-href="${href(m.link)}"` : attrs} data-fk="a-${esc(a.id)}">${icon(m.icon || 'dash', 'muted')}<span class="row__main"><span class="row__title">${esc(L(a.label))}</span><span class="row__meta" style="display:block">${esc(sub)}</span></span>${icon('chev', 'icon--sm icon--dir muted')}</button>`;
+  return `<button class="row" ${m.link && m.link.startsWith('/waiting') ? `data-act="go" data-href="${href(m.link)}"` : attrs} data-fk="a-${esc(a.id)}">${icon(m.icon || 'dash', 'muted')}${rowWords(esc(L(a.label)), esc(sub))}${icon('chev', 'icon--sm icon--dir muted')}</button>`;
 }
 function launcherList(qv) {
   const all = actions().filter(a => !qv || normalize.matches([a.id, a.label.ar, a.label.en, a.description.ar, a.description.en].join(' '), qv));
   const verbs = !qv || normalize.matches([t('ac.lc.x.verbs'), 'fix verify explain plan'].join(' '), qv);
   if (qv && !all.length && !verbs) return `<p class="small muted">${t('ac.lc.none')}</p>`;
-  const verbRow = `<button class="row" data-act="go" data-href="${href('/problems')}" data-fk="a-verbs">${icon('problems', 'muted')}<span class="row__main"><span class="row__title">${t('ac.lc.x.verbs')}</span><span class="row__meta" style="display:block">${t('ac.lc.x.verbs.sub')}</span></span>${icon('chev', 'icon--sm icon--dir muted')}</button>`;
+  const verbRow = `<button class="row" data-act="go" data-href="${href('/problems')}" data-fk="a-verbs">${icon('problems', 'muted')}${rowWords(t('ac.lc.x.verbs'), t('ac.lc.x.verbs.sub'))}${icon('chev', 'icon--sm icon--dir muted')}</button>`;
   const groups = GROUPS.map(g => {
     const items = all.filter(a => metaOf(a).group === g);
     const extra = g === 'check' && verbs ? verbRow : '';
-    return items.length || extra ? `<div><div class="block-title">${t('ac.lc.g.' + g)}</div><div class="panel rows">${extra}${items.map(actionRow).join('')}</div></div>` : '';
+    return items.length || extra ? titledBlock(t('ac.lc.g.' + g), `<div class="panel rows">${extra}${items.map(actionRow).join('')}</div>`) : '';
   }).join('');
   const ex = all.filter(a => metaOf(a).group === 'expert');
-  const expert = ex.length ? `<details class="panel fold" ${qv ? 'open' : ''}><summary><span class="row__main"><span class="row__title">${t('ac.lc.g.expert')}</span><span class="row__meta" style="display:block">${esc(t('ac.lc.expert.sum', { n: num(ex.length) }))}</span></span>${icon('chev', 'chev')}</summary>
+  const expert = ex.length ? `<details class="panel fold" ${qv ? 'open' : ''}><summary>${rowWords(t('ac.lc.g.expert'), esc(t('ac.lc.expert.sum', { n: num(ex.length) })))}${icon('chev', 'chev')}</summary>
     <div class="rows" style="border-top:1px solid var(--line)">${ex.map(actionRow).join('')}</div></details>` : '';
   return groups + expert;
 }
@@ -261,7 +258,7 @@ function launcherList(qv) {
  *  it delivered, the high problems, a new check. */
 function recommended() {
   const o = a => (offline() ? 'data-act="sheet" data-sheet="open-live"' : a);
-  const opt = (ic, title, sub, attrs, primary) => `<button class="row" ${attrs}>${icon(ic, primary ? 'ac-c-accent' : 'muted')}<span class="row__main"><span class="row__title">${esc(title)}</span><span class="row__meta" style="display:block">${esc(sub)}</span></span>${icon('chev', 'icon--dir muted')}</button>`;
+  const opt = (ic, title, sub, attrs, primary) => `<button class="row" ${attrs}>${icon(ic, primary ? 'ac-c-accent' : 'muted')}${rowWords(esc(title), esc(sub))}${icon('chev', 'icon--dir muted')}</button>`;
   const tot = model.totals(), wc = model.waitingCount(), branch = store.awaiting()[0];
   const high = (tot.by_severity.critical || 0) + (tot.by_severity.high || 0);
   const rows = [];
@@ -278,7 +275,7 @@ sheet('launcher', {
     return {
       title: esc(t('st.opt.title')),
       sub: esc(t('st.opt.sub')),
-      body: `<div><div class="block-title">${t('ac.lc.reco')}</div><div class="panel rows">${recommended()}</div></div>
+      body: `${titledBlock(t('ac.lc.reco'), `<div class="panel rows">${recommended()}</div>`)}
         <div class="ac-lc-search"><div class="block-title" id="lc-h">${t('ac.lc.all')}</div>
           <label class="field">${icon('search')}<span class="sr-only">${t('ac.lc.search')}</span><input type="search" id="lc-q" data-fk="lc-q" placeholder="${esc(t('ac.lc.search'))}" autocomplete="off" aria-describedby="lc-h"></label></div>
         <div id="lc-list" class="ac-stack">${launcherList('')}</div>`,

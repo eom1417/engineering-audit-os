@@ -2,8 +2,8 @@
 // LNK-01). The address carries the view (who, sev, area, pstate, step, comp, q, group, n); the list shows 50 problems
 // at a time. A new check that lands while the person reads leaves the list as it was until they ask (PRB-11).
 import {
-  t, tn, L, num, esc, rich, icon, code, sev, chk, href, screen, sheet, act, tickAct, refresh, setQuery, searchTyped, parseHash, announce, closeSheetThen, setSelbar,
-  S, model, selection, data,
+  t, tn, L, num, esc, rich, icon, code, sev, chk, href, screen, sheet, act, tickAct, refresh, setQuery, searchTyped, parseHash, announce,
+  closeSheetThen, setSelbar, S, model, selection, data, skeletonRows, titledBlock, pageHead,
 } from 'eaos';
 import { NEEDS, SEV, AREAS, STATES, FACETS, component, who, steps, value, list, filterProblems, activeFilters, facetLabel, keepQuery } from './shared.js';
 import { detailHTML } from './detail.js';
@@ -83,8 +83,7 @@ function listColumn(q, openId) {
   return `<div class="psplit__list">
     <div class="context"><div class="seg" role="group" aria-label="${esc(t('pb.place'))}" style="min-width:200px">
       <a href="${href('/problems')}" aria-current="true">${t('pb.view.list')}</a><a href="${href('/problems/plan')}">${t('pb.view.plan')}</a></div></div>
-    <h1 class="lede">${esc(t('pb.lede', { total: tn('pl.problem', tot.problems), fixable: num(tot.fixable), you: num(tot.needs_you) }))}</h1>
-    <p class="guide">${t('pb.guide')}</p>
+    ${pageHead(esc(t('pb.lede', { total: tn('pl.problem', tot.problems), fixable: num(tot.fixable), you: num(tot.needs_you) })), t('pb.guide'))}
     <div class="ptools">
       <nav class="seg seg--count" aria-label="${esc(t('facet.who'))}">${whoSeg}</nav>
       <div class="ptools__row">
@@ -94,7 +93,7 @@ function listColumn(q, openId) {
       </div>
       ${chips}
     </div>
-    ${S.newcheck ? `<div class="panel row row--you" role="status" style="margin-top:16px">${icon('info')}<span class="row__main small">${t('pb.newcheck')}</span>
+    ${S.newcheck ? `<div class="panel row row--you mt-4" role="status">${icon('info')}<span class="row__main small">${t('pb.newcheck')}</span>
       <button class="btn btn--quiet btn--sm" data-act="newcheck-show">${t('pb.newcheck.show')}</button></div>` : ''}
     ${band}
     <div class="listhead">
@@ -105,7 +104,7 @@ function listColumn(q, openId) {
       </span>
     </div>
     ${listHTML(visible, q, openId)}
-    ${more > 0 ? `<div class="actions" style="justify-content:center;margin-top:12px"><a class="btn btn--secondary" href="${href(parseHash().path, keepQuery(q, { n: limit + PAGE }))}" data-fk="more">${esc(t('pb.more', { n: num(Math.min(PAGE, more)), left: num(more) }))}</a></div>` : ''}
+    ${more > 0 ? `<div class="actions actions--center mt-3"><a class="btn btn--secondary" href="${href(parseHash().path, keepQuery(q, { n: limit + PAGE }))}" data-fk="more">${esc(t('pb.more', { n: num(Math.min(PAGE, more)), left: num(more) }))}</a></div>` : ''}
   </div>`;
 }
 
@@ -116,7 +115,7 @@ function page(ctx) {
   const p = id ? shown().find(x => x.id === id) : null;
   const detail = id
     ? (p ? detailHTML(p, ctx) : `<div class="empty"><p class="empty__title">${esc(t('pd.notfound', { id }))}</p><p class="small ink-2">${t('pd.notfound.guide')}</p><a class="btn btn--secondary" href="${href('/problems')}">${t('pd.back')}</a></div>`)
-    : `<div class="empty" style="justify-items:center;text-align:center;padding:64px 16px">${icon('problems', 'icon--lg muted')}<p class="muted">${t('pd.none')}</p></div>`;
+    : `<div class="empty empty--none">${icon('problems', 'icon--lg muted')}<p class="muted">${t('pd.none')}</p></div>`;
   return `<div class="page page--wide">
     <div class="psplit ${id ? 'psplit--detail' : ''}">
       ${listColumn(q, id)}
@@ -126,7 +125,7 @@ function page(ctx) {
 
 function loading() {
   return `<div class="page page--wide" aria-busy="true"><h1 class="lede">${t('st.loading')}</h1>
-    <ul class="panel rows" style="margin-top:24px">${[1, 2, 3, 4, 5].map(() => `<li class="prow"><span class="skel" style="width:22px;height:22px"></span><span style="flex:1;display:grid;gap:8px"><span class="skel-line" style="width:40%"></span><span class="skel-line" style="width:90%"></span><span class="skel-line" style="width:60%"></span></span></li>`).join('')}</ul></div>`;
+    ${skeletonRows(5, [40, 90, 60], { cls: 'mt-6', row: 'prow', mark: 'square' })}</div>`;
 }
 
 screen({ id: 'S-06', path: '/problems', place: 'problems', needs: NEEDS, loading, title: () => t('pb.place'), render: page });
@@ -178,9 +177,9 @@ sheet('filters', {
         const n = base.filter(p => value(p, f) === v).length;
         const on = sel.includes(v);
         const hide = vals.length > 12 && i >= 8 && !on ? 'data-more hidden' : '';
-        return `<label class="row" style="min-height:48px;padding-inline:4px;gap:12px" ${hide}>
+        return `<label class="row row--pick row--facet" ${hide}>
           ${chk(`data-change="facet" data-facet="${f}" value="${esc(v)}" data-fk="f-${f}-${esc(v)}" ${n || on ? '' : 'disabled'}`, on, facetLabel(f, v))}
-          <span class="row__main" style="margin-inline-start:8px;${n ? '' : 'color:var(--ink-3)'}">${f === 'sev' ? sev(v) : f === 'comp' ? code(v) : esc(facetLabel(f, v))}</span>
+          <span class="row__main pick__words${n ? '' : ' muted'}">${f === 'sev' ? sev(v) : f === 'comp' ? code(v) : esc(facetLabel(f, v))}</span>
           <span class="num ${n ? '' : 'muted'}">${num(n)}</span></label>`;
       }).join('');
       const more = vals.length > 12 ? `<button class="btn btn--quiet btn--sm" data-act="facet-more">${t('facet.more', { n: num(vals.length) })}</button>` : '';
@@ -188,7 +187,7 @@ sheet('filters', {
     }).join('');
     return {
       title: esc(t('flt.title')), sub: esc(t('flt.sub')),
-      body: `<div><div class="block-title">${t('grp.title')}</div><div class="seg" role="group" aria-label="${esc(t('grp.title'))}">${groups}</div></div>${facets}`,
+      body: `${titledBlock(t('grp.title'), `<div class="seg" role="group" aria-label="${esc(t('grp.title'))}">${groups}</div>`)}${facets}`,
       foot: `<div class="sheet__foot-row"><button class="btn btn--secondary" data-act="facet-clear">${t('flt.clear')}</button>
         <button class="btn btn--primary" data-act="sheet-close" data-fk="flt-show">${esc(t('flt.show', { problems: tn('pl.problem', count) }))}</button></div>`,
     };
@@ -218,7 +217,7 @@ sheet('groups', {
     const kinds = [['severity', v => sev(v)], ['area', v => esc(t('area.' + v))], ['step', v => code(v)], ['component', v => code(v)]];
     const body = kinds.map(([k, label]) => {
       const rows = groups[k].map(g => `<button class="row" data-act="select-group" data-by="${k}" data-value="${esc(g.value)}"><span class="row__main">${label(g.value)}</span><span class="num muted">${num(g.ids.length)}</span>${icon('chev', 'icon--sm icon--dir muted')}</button>`).join('');
-      return rows ? `<div><div class="block-title">${t('facet.' + k)}</div><div class="panel rows">${rows}</div></div>` : '';
+      return rows ? titledBlock(t('facet.' + k), `<div class="panel rows">${rows}</div>`) : '';
     }).join('');
     return { title: esc(t('sg.title')), sub: esc(t('sg.sub')), body };
   },

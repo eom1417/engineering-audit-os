@@ -3,8 +3,9 @@
 // controls (pause, resume, stop with its question, retry, move up and down, remove from the line) on the live
 // action API (POST /api/runs/<id>/<op>, /api/runs/reorder). Everything comes from the live command state (EAOS.live).
 import {
-  t, tn, num, esc, icon, href, fmtWhen, screen, sheet, act, refresh, toast, announce, setQuery, searchTyped, parseHash, closeSheetThen, offline, local, rerenderSheet,
-  live, store, client, ActionError, normalize, model, ac,
+  t, tn, num, esc, icon, href, fmtWhen, screen, sheet, act, refresh, toast, announce, setQuery, searchTyped, parseHash, closeSheetThen, offline,
+  local, rerenderSheet, live, store, client, ActionError, normalize, model, ac, skeletonRows, rowWords, bitsOf, inlineSwitch, titledSection,
+  pageHead,
 } from 'eaos';
 import { stagesOf, stageButton, counts, finished, stageTitle } from './stages.js';
 import { clockHTML } from './clock.js';
@@ -50,8 +51,7 @@ function checkNow(r) {
   const title = signin ? t('ac.now.check.you') : you ? t('ac.now.check.q') : rs === 'paused' ? t('ac.now.check.paused') : t('ac.now.check');
   const sub = checkSub(flow, list, running, signin, you);
   return `<div class="panel ac-now ${you ? 'ac-now--you' : ''}">
-    <a class="ac-now__head" href="${runHref(r)}">${ac.glyph(rs)}<span class="row__main"><span class="row__title">${esc(title)}</span>
-      <span class="row__meta" style="display:block">${sub}</span></span>${icon('chev', 'icon--dir muted')}</a>
+    <a class="ac-now__head" href="${runHref(r)}">${ac.glyph(rs)}${rowWords(esc(title), sub)}${icon('chev', 'icon--dir muted')}</a>
     ${clockHTML(r, flow, list)}
     ${ac.progressBar(list.length ? done / list.length : 0, title)}
     ${nowStages(r, rs, you, running, list)}
@@ -69,8 +69,7 @@ function otherNow(r) {
   const title = r.verb === 'fix' ? t(rs === 'paused' ? 'ac.now.fix.paused' : 'ac.now.fix', { problems: tn('pl.problem', (r.cards || []).length) }) : ac.runLabel(r);
   const sub = rs === 'you' ? t('ac.now.you') : doing ? (doing.description || doing.name) : ac.stateWord(rs);
   return `<div class="panel ac-now ${rs === 'you' ? 'ac-now--you' : ''}">
-    <a class="ac-now__head" href="${runHref(r)}">${ac.glyph(rs)}<span class="row__main"><span class="row__title">${esc(title)}</span>
-      <span class="row__meta" style="display:block">${esc(sub)}</span></span>${icon('chev', 'icon--dir muted')}</a>
+    <a class="ac-now__head" href="${runHref(r)}">${ac.glyph(rs)}${rowWords(esc(title), esc(sub))}${icon('chev', 'icon--dir muted')}</a>
     ${share != null ? ac.progressBar(share, title) : ''}
     <div class="ac-now__foot">${rs === 'you' ? `<a class="btn btn--primary" href="${r.question ? href('/waiting/questions') : runHref(r)}">${t('ac.now.answer')}</a>` : `<span class="small muted">${t('ac.now.started', { when: ac.when(r.started || r.created) })}</span>`}
       <span class="ac-now__ctl">${controls(r, true)}</span></div></div>`;
@@ -82,12 +81,12 @@ function otherFlows() {
   const flows = (live.progress && live.progress.flows) || {};
   const rows = Object.keys(FLOW_PAGE).map(id => [id, flows[id]]).filter(([, f]) => f && f.state && f.state !== 'none');
   if (!rows.length) return '';
-  return `<div class="panel rows" style="margin-top:12px">${rows.map(([id, f]) => {
+  return `<div class="panel rows mt-3">${rows.map(([id, f]) => {
     const st = f.state === 'done' ? (f.status === 'COMPLETE' ? 'ok' : 'partial') : f.state;
     const stages = f.stages || [];
     const sub = f.state === 'running' ? t('ac.flow.running', { done: num(stages.filter(s => s.state === 'ok').length), total: num(stages.length) })
       : t('ac.flow.ended', { when: fmtWhen(f.ended_at) });
-    return `<a class="row" href="${href(FLOW_PAGE[id])}">${ac.glyph(st)}<span class="row__main"><span class="row__title">${t('ac.flow.' + id)}</span><span class="row__meta" style="display:block">${esc(sub)}</span></span>${icon('chev', 'icon--dir muted')}</a>`;
+    return `<a class="row" href="${href(FLOW_PAGE[id])}">${ac.glyph(st)}${rowWords(t('ac.flow.' + id), esc(sub))}${icon('chev', 'icon--dir muted')}</a>`;
   }).join('')}</div>`;
 }
 
@@ -123,20 +122,18 @@ function runRow(r) {
   /* a run that ended badly asks the assistant why from its own row (RUN-12), without opening it first */
   const why = !offline() && ['failed', 'stopped', 'unchanged'].includes(rs)
     ? `<a class="ac-runline__why" href="${href('/ask', { run: r.id })}" aria-label="${esc(t('ac.run.ask_why') + ': ' + ac.runLabel(r))}">${icon('ask', 'icon--sm')}<span class="ac-runline__word">${t('ac.run.ask_why')}</span></a>` : '';
-  return `<li${why ? ' class="ac-runline"' : ''}><a class="row" href="${runHref(r)}">${ac.glyph(rs)}<span class="row__main"><span class="row__title">${esc(ac.runLabel(r))}</span>
-    <span class="row__meta ac-meta"><span>${esc(ac.stateWord(rs))}</span>${bits.map(b => `<span>${esc(b)}</span>`).join('')}${outcome(r)}</span></span>${icon('chev', 'icon--dir muted')}</a>${why}</li>`;
+  return `<li${why ? ' class="ac-runline"' : ''}><a class="row" href="${runHref(r)}">${ac.glyph(rs)}${rowWords(esc(ac.runLabel(r)), bitsOf([esc(ac.stateWord(rs)), ...bits.map(esc)]) + outcome(r), { meta: 'ac-meta' })}${icon('chev', 'icon--dir muted')}</a>${why}</li>`;
 }
 
 function loadingPage() {
-  return `<div class="page" aria-busy="true"><h1 class="lede">${t('ac.act.loading')}</h1><div class="actions"><span class="btn skel" style="width:200px"></span></div>
-    <ul class="panel rows section">${[1, 2, 3, 4].map(() => `<li class="row"><span class="skel" style="width:20px;height:20px;border-radius:50%"></span><span style="flex:1;display:grid;gap:8px"><span class="skel-line" style="width:55%"></span><span class="skel-line" style="width:35%"></span></span></li>`).join('')}</ul></div>`;
+  return `<div class="page" aria-busy="true">${pageHead(t('ac.act.loading'), null, `<span class="btn skel" style="width:200px"></span>`)}
+    ${skeletonRows(4, [55, 35], { cls: 'section', mark: 'dot' })}</div>`;
 }
 
 function emptyPage(off) {
-  return `<div class="page"><h1 class="lede">${t('ac.act.empty')}</h1><p class="guide">${t('ac.act.empty.guide')}</p>
-      <div class="actions"><button class="btn btn--primary" data-act="sheet" data-sheet="${off ? 'open-live' : 'check'}" data-fk="act-check">${t('st.empty.act')}</button>
-        <button class="btn btn--quiet" data-act="sheet" data-sheet="${off ? 'open-live' : 'launcher'}">${t('st.other')}</button></div>
-      <section class="section"><div class="section-head"><h2>${t('ac.act.recent')}</h2></div><div class="panel empty"><p class="small ink-2">${t('ac.act.recent.empty')}</p></div></section></div>`;
+  return `<div class="page">${pageHead(t('ac.act.empty'), t('ac.act.empty.guide'), `<button class="btn btn--primary" data-act="sheet" data-sheet="${off ? 'open-live' : 'check'}" data-fk="act-check">${t('st.empty.act')}</button>
+        <button class="btn btn--quiet" data-act="sheet" data-sheet="${off ? 'open-live' : 'launcher'}">${t('st.other')}</button>`)}
+      ${titledSection(null, t('ac.act.recent'), `<div class="panel empty"><p class="small ink-2">${t('ac.act.recent.empty')}</p></div>`)}</div>`;
 }
 /** What the running run is at, in one sentence. */
 function runLede(lr, flow) {
@@ -168,8 +165,8 @@ function actionsHTML(off, busy, last, flow) {
 function recentHTML(all) {
   const done = all.filter(r => ac.ended(r));
   const recent = done.filter(r => store.awaitsApproval(r)).concat(done.filter(r => !store.awaitsApproval(r) && r.action !== 'branch_fetch')).slice(0, 4);
-  return `<section class="section" aria-labelledby="recent-h"><div class="section-head"><h2 id="recent-h">${t('ac.act.recent')}</h2><a class="link" href="${href('/activity/runs')}">${esc(t('ac.act.all', { n: num(all.length) }))}</a></div>
-      ${recent.length ? `<ul class="panel rows">${recent.map(runRow).join('')}</ul>` : `<div class="panel empty"><p class="small ink-2">${t('ac.act.recent.empty')}</p></div>`}</section>`;
+  return titledSection('recent-h', t('ac.act.recent'), `
+      ${recent.length ? `<ul class="panel rows">${recent.map(runRow).join('')}</ul>` : `<div class="panel empty"><p class="small ink-2">${t('ac.act.recent.empty')}</p></div>`}`, `<a class="link" href="${href('/activity/runs')}">${esc(t('ac.act.all', { n: num(all.length) }))}</a>`);
 }
 function activityPage(ctx) {
   const off = ctx.offline;
@@ -179,13 +176,12 @@ function activityPage(ctx) {
   const lr = ac.liveRun(), last = ac.lastCheck(), flow = ac.checkFlow();
   const busy = !!lr;
   return `<div class="page">
-    <h1 class="lede">${activityLede(off, lr, last, flow)}</h1>
-    <p class="guide">${t(off ? 'ac.act.guide.offline' : busy ? 'ac.act.guide.busy' : 'ac.act.guide')}</p>
+    ${pageHead(activityLede(off, lr, last, flow), t(off ? 'ac.act.guide.offline' : busy ? 'ac.act.guide.busy' : 'ac.act.guide'))}
     ${actionsHTML(off, busy, last, flow)}
-    ${lr ? `<section class="section" aria-labelledby="now-h"><div class="section-head"><h2 id="now-h">${t('ac.act.now')}</h2></div>${lr.action === 'audit' ? checkNow(lr) : otherNow(lr)}${otherFlows()}</section>` : ''}
-    <section class="section" aria-labelledby="line-h"><div class="section-head"><h2 id="line-h">${t('ac.act.line')}</h2><span class="small muted">${t('ac.act.line.sub')}</span></div>${queueRows()}</section>
+    ${lr ? titledSection('now-h', t('ac.act.now'), `${lr.action === 'audit' ? checkNow(lr) : otherNow(lr)}${otherFlows()}`) : ''}
+    ${titledSection('line-h', t('ac.act.line'), queueRows(), `<span class="small muted">${t('ac.act.line.sub')}</span>`)}
     ${recentHTML(all)}
-    ${lr ? '' : `<section class="section" aria-labelledby="flows-h"><div class="section-head"><h2 id="flows-h">${t('ac.flow.title')}</h2></div>${otherFlows() || `<p class="small muted">${t('ac.flow.none')}</p>`}</section>`}
+    ${lr ? '' : titledSection('flows-h', t('ac.flow.title'), otherFlows() || `<p class="small muted">${t('ac.flow.none')}</p>`)}
   </div>`;
 }
 screen({ id: 'S-11', path: '/activity', place: 'activity', needs: ['cards', 'history'], title: () => t('nav.activity'), render: activityPage, loading: loadingPage });
@@ -272,18 +268,17 @@ function runsPage(ctx) {
     .map(([k, label]) => `<a href="${href('/activity/runs', Object.assign({}, q, { show: k || null }))}" aria-current="${(q.show || '') === k}">${label}</a>`).join('');
   const chips = ['queued', 'running', 'done', 'stopped', 'failed', 'unchanged'].map(s => `<a class="fchip ${q.st === s ? 'is-on' : ''}" href="${href('/activity/runs', Object.assign({}, q, { st: q.st === s ? null : s }))}" ${q.st === s ? 'aria-current="true"' : ''}>${ac.glyph(s)}${esc(ac.stateWord(s))}</a>`).join('');
   const answers = ac.quickAnswers().slice(0, 20);
-  const quick = q.quick ? `<div class="section"><div class="block-title">${t('ac.runs.quick.title')}</div>${answers.length ? `<ul class="panel rows">${answers.map(x => `<li class="row">${icon('book', 'icon--sm muted')}<span class="row__main"><span class="row__title">${esc(ac.runLabel(x))}</span><span class="row__meta" style="display:block">${t('ac.runs.quick.row')} ${esc(fmtWhen(x.created))}</span></span></li>`).join('')}</ul>` : `<p class="small muted">${t('ac.runs.quick.none')}</p>`}</div>` : '';
+  const quick = q.quick ? `<div class="section"><div class="block-title">${t('ac.runs.quick.title')}</div>${answers.length ? `<ul class="panel rows">${answers.map(x => `<li class="row">${icon('book', 'icon--sm muted')}${rowWords(esc(ac.runLabel(x)), `${t('ac.runs.quick.row')} ${esc(fmtWhen(x.created))}`)}</li>`).join('')}</ul>` : `<p class="small muted">${t('ac.runs.quick.none')}</p>`}</div>` : '';
   return `<div class="page">
     ${ac.back('/activity', t('nav.activity'))}
-    <h1 class="lede">${esc(t('ac.runs.lede', { runs: tn('ac.pl.run', all.length) }))}</h1>
-    <p class="guide">${t('ac.runs.guide')}</p>
+    ${pageHead(esc(t('ac.runs.lede', { runs: tn('ac.pl.run', all.length) })), t('ac.runs.guide'))}
     <div class="ptools">
       <label class="field">${icon('search')}<span class="sr-only">${t('ac.runs.search')}</span><input type="search" id="rq" data-fk="rq" data-input="ac-rq" value="${esc(q.q || '')}" placeholder="${esc(t('ac.runs.search'))}" autocomplete="off"></label>
       <nav class="seg" aria-label="${esc(t('ac.runs.filter'))}">${seg}</nav>
       <div class="fchips" role="group" aria-label="${esc(t('facet.state'))}">${chips}</div>
     </div>
     <div class="listhead"><span class="listhead__count" aria-live="polite">${esc(t('ac.runs.count', { shown: num(list.length), total: num(all.length) }))}</span>
-      <label class="ac-inline-switch small ink-2"><span class="switch"><input type="checkbox" data-change="ac-quick" data-fk="quick" ${q.quick ? 'checked' : ''} aria-label="${esc(t('ac.runs.quick'))}"><span class="switch__track"></span><span class="switch__thumb"></span></span>${t('ac.runs.quick')}</label></div>
+      ${inlineSwitch({ 'data-change': 'ac-quick', 'data-fk': 'quick', checked: q.quick }, t('ac.runs.quick'))}</div>
     ${list.length ? `<ul class="panel rows">${list.map(runRow).join('')}</ul>` : `<div class="panel empty"><p class="empty__title">${t('ac.runs.none')}</p><a class="btn btn--secondary" href="${href('/activity/runs')}">${t('pb.clear')}</a></div>`}
     ${quick}
     <p class="list-foot">${t('ac.runs.kept')}</p>

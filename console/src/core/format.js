@@ -2,6 +2,7 @@
 // now; paths, symbols and settings inside report texts are isolated left to right (SET-04).
 import { prefs } from './prefs.js';
 import { t, num } from './i18n.js';
+import { radio } from './parts.js';
 
 export function esc(s) {
   return String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -32,8 +33,8 @@ export function chk(attrs, checked, label) {
 export function assistantPicker(all, picked, prefix) {
   return `<div class="block-title">${t('pv.who')}</div><div class="opts">${all.map(a => {
     const ready = a.installed && a.logged_in;
-    return `<label class="opt ${ready ? '' : 'opt--off'}"><input type="radio" name="${prefix}asst" value="${esc(a.id)}" data-change="${prefix}pv-asst" data-fk="${prefix}asst-${esc(a.id)}" ${a.id === picked ? 'checked' : ''} ${ready ? '' : 'disabled'}>
-      <span class="opt__dot"></span><span class="opt__text">${esc(a.name)}<span class="opt__note">${t(!a.installed ? 'pv.notinstalled' : !a.logged_in ? 'pv.notsigned' : 'pv.ready')}${a.version ? ' · ' + esc(a.version) : ''}</span></span></label>`;
+    return radio({ name: prefix + 'asst', value: a.id, 'data-change': prefix + 'pv-asst', 'data-fk': `${prefix}asst-${a.id}`, checked: a.id === picked, disabled: !ready },
+      esc(a.name), t(!a.installed ? 'pv.notinstalled' : !a.logged_in ? 'pv.notsigned' : 'pv.ready') + (a.version ? ' · ' + esc(a.version) : ''));
   }).join('')}</div>`;
 }
 /** An action preview's estimate in words: minutes, hours past three, or that none could be made. */

@@ -4,10 +4,10 @@
 // (`verb:fix:step:<id>`, the server resolves its open problems). States: loading, empty (no check), not measured
 // (no waves), offline (every action opens "Open it live").
 import {
-  t, tn, L, num, esc, icon, code, sev, chk, rich, href, screen, act, tickAct, refresh, parseHash, announce, setSelbar, offline,
-  model, selection, data,
+  t, tn, L, num, esc, icon, code, sev, chk, rich, href, screen, act, tickAct, refresh, parseHash, announce, setSelbar, offline, model, selection,
+  data, ac, rowWords, facts, titledSection, notFound, pageHead,
 } from 'eaos';
-import { loading, nm, fold, facts, prow, enc, back, empty, ticks, page } from '../kit/kit.js';
+import { loading, nm, prow, enc, back, empty, ticks, page } from '../kit/kit.js';
 import { buildPage } from './build.js';
 
 const NEEDS = ['plans', 'cards', 'paths', 'operations', 'history'];
@@ -125,7 +125,7 @@ function stepRow(s, next) {
     <div class="row__main">
       <a class="un-steprow__title" href="${href('/problems/plan/' + enc(s.id))}">${title(s)}</a>
       <div class="un-steprow__meta">${stateTag(s.state)}${s === next ? `<span class="tag tag--you">${t('un.plan.nexttag')}</span>` : ''}${s.sub_plan ? `<span class="tag tag--state">${t('un.plan.sub')}</span>` : ''}<span class="small muted">${esc(tn('pl.problem', s.ids.length))}${t('list.sep')}${esc(t('un.plan.open', { n: num(open) }))}</span></div>
-      <p class="small ink-2" style="margin-top:4px">${waits}</p>
+      <p class="small ink-2 mt-1">${waits}</p>
     </div>
     <div class="un-steprow__end">${s.state === 'blocked' || s.review || s.decision ? '' : fixBtn(s, 'btn--secondary btn--sm', t('verb.fix'))}</div>
   </li>`;
@@ -135,12 +135,11 @@ function plansFold() {
   const kind = k => t(['fix', 'build', 'product', 'owner', 'extend'].includes(k) ? 'un.plan.kind.' + k : 'un.plan.kind.other', { kind: k });
   const life = s => t(PLAN_STATES.includes(s) ? 'un.plan.life.' + s : 'un.plan.life.other', { state: s });
   const build = plans.some(p => p.kind === 'build' || p.kind === 'extend');
-  return fold(t('un.plan.plans'), esc(tn('un.pl.plan', plans.length)), `<ul class="rows">${plans.map(p => `<li class="row" style="padding-inline:0;align-items:flex-start"><span class="row__main">
-      <span class="row__title">${rich(L(p.title || p.id))}</span>
-      <span class="row__meta" style="display:block">${esc(kind(p.kind))}${t('list.sep')}${esc(life(p.state))}${t('list.sep')}${esc(tn('un.pl.step', p.steps.length))}${p.parent ? `${t('list.sep')}${esc(t('un.plan.under', { id: p.parent }))}` : ''}</span>
-      ${p.goal ? `<span class="small ink-2" style="display:block;margin-top:4px">${rich(L(p.goal))}</span>` : ''}</span></li>`).join('')}</ul>
-    ${build ? `<a class="btn btn--secondary btn--sm" style="margin-top:8px" href="${href('/activity', { sheet: offline() ? 'open-live' : 'launcher' })}">${t('un.plan.buildnext')}</a>
-      <p class="small muted" style="margin-top:4px">${t('un.plan.buildnext.note')}</p>` : ''}`);
+  return ac.fold('plans', t('un.plan.plans'), esc(tn('un.pl.plan', plans.length)), `<ul class="rows">${plans.map(p => `<li class="row row--flush row--top">${rowWords(rich(L(p.title || p.id)),
+      [esc(kind(p.kind)), esc(life(p.state)), esc(tn('un.pl.step', p.steps.length)), p.parent && esc(t('un.plan.under', { id: p.parent }))].filter(Boolean).join(t('list.sep')),
+      { more: p.goal ? `<span class="small ink-2 block mt-1">${rich(L(p.goal))}</span>` : '' })}</li>`).join('')}</ul>
+    ${build ? `<a class="btn btn--secondary btn--sm mt-2" href="${href('/activity', { sheet: offline() ? 'open-live' : 'launcher' })}">${t('un.plan.buildnext')}</a>
+      <p class="small muted mt-1">${t('un.plan.buildnext.note')}</p>` : ''}`);
 }
 const PLAN_STATES = ['draft', 'registered', 'approved', 'rejected', 'active', 'review', 'merged', 'closed', 'regressed', 'archived'];
 
@@ -158,7 +157,7 @@ function planCard(fix) {
       <div class="un-plancard__head"><h2 class="h2" id="pc-h">${rich(L(fix.title || ''))}</h2>${stateTag(fix.state)}<span class="small muted">${t('un.plan.kind.fix')}</span></div>
       ${fix.goal ? `<p class="small ink-2">${rich(L(fix.goal))}</p>` : ''}
       ${progressHTML(tot, share)}
-      ${indicators.length ? `<dl class="facts">${indicators.map(i => `<dt>${esc(L(i.name || i.id || ''))}</dt><dd class="un-arrowval"><span class="num">${esc(i.today == null ? '—' : String(i.today))}</span>${icon('chev', 'icon--sm icon--dir muted')}<span class="num">${esc(i.target == null ? '—' : String(i.target))}</span><span class="small muted">${t('un.plan.target')}</span></dd>`).join('')}</dl>` : `<p class="small muted">${t('un.plan.noind')}</p>`}
+      ${indicators.length ? facts(indicators.map(i => [esc(L(i.name || i.id || '')), `<span class="num">${esc(i.today == null ? '—' : String(i.today))}</span>${icon('chev', 'icon--sm icon--dir muted')}<span class="num">${esc(i.target == null ? '—' : String(i.target))}</span><span class="small muted">${t('un.plan.target')}</span>`, 'un-arrowval'])) : `<p class="small muted">${t('un.plan.noind')}</p>`}
       <p class="small muted">${t('un.plan.rule')}</p>
     </section>`;
 }
@@ -180,16 +179,14 @@ function planPage(ctx) {
   const fix = ((data.section('plans') || {}).plans || []).find(p => p.kind === 'fix') || {};
   return `<div class="page page--wide">
     ${planSeg()}
-    <h1 class="lede">${esc(next ? t('un.plan.lede', { n: tn('un.pl.step', all.length), next: next.id }) : t('un.plan.lede.none', { n: tn('un.pl.step', all.length) }))}</h1>
-    <p class="guide">${t('un.plan.guide')}</p>
-    <div class="actions">${next ? fixBtn(next, 'btn--primary', t('un.plan.fixnext', { id: next.id })) : ''}
+    ${pageHead(esc(next ? t('un.plan.lede', { n: tn('un.pl.step', all.length), next: next.id }) : t('un.plan.lede.none', { n: tn('un.pl.step', all.length) })), t('un.plan.guide'), `${next ? fixBtn(next, 'btn--primary', t('un.plan.fixnext', { id: next.id })) : ''}
       <a class="btn btn--quiet" href="${href('/problems/plan/waves')}">${icon('layers', 'icon--sm')}${t('un.plan.waves')}</a>
-      <p class="actions__note">${t('st.next.note')}</p></div>
+      <p class="actions__note">${t('st.next.note')}</p>`)}
     ${planCard(fix)}
-    <section class="section" aria-labelledby="st-h"><div class="section-head"><h2 id="st-h">${t('un.plan.steps')}</h2><span class="small muted">${t('un.plan.order')}</span></div>
-      <ol class="panel un-steps">${all.map(s => stepRow(s, next)).join('')}</ol></section>
-    <section class="section" aria-labelledby="dp-h"><div class="section-head"><h2 id="dp-h">${t('un.plan.deps')}</h2></div>
-      ${depsHTML(all)}</section>
+    ${titledSection('st-h', t('un.plan.steps'), `
+      <ol class="panel un-steps">${all.map(s => stepRow(s, next)).join('')}</ol>`, `<span class="small muted">${t('un.plan.order')}</span>`)}
+    ${titledSection('dp-h', t('un.plan.deps'), `
+      ${depsHTML(all)}`)}
     <div class="panel section">${plansFold()}</div>
   </div>`;
 }
@@ -225,15 +222,14 @@ function wavesPage(ctx) {
     const list = tl.tasks.filter(x => (!wave || x.wave === wave) && (!step || x.step === step));
     const heading = wave && step ? t('un.waves.pick.both', { w: wave, s: step }) : wave ? t('un.waves.w', { w: wave }) : t('un.step.group', { id: step });
     const rows = list.slice(0, 12).map(x => { const p = model.problem(x.id); return p ? prow(p, waitText(x.id, true)) : ''; }).join('');
-    picked = `<section class="section" aria-labelledby="wp-h"><div class="section-head"><h2 id="wp-h">${esc(heading)}</h2><a class="link" href="${href(r.path)}">${t('flt.clear')}</a></div>
+    picked = titledSection('wp-h', esc(heading), `
       ${list.length ? `<div class="panel rows">${rows}</div>` : `<p class="small muted">${t('un.waves.none')}</p>`}
-      ${list.length > 12 ? `<p class="small muted" style="margin-top:8px">${esc(t('un.comp.andmore', { n: num(list.length - 12) }))}</p>` : ''}</section>`;
+      ${list.length > 12 ? `<p class="small muted mt-2">${esc(t('un.comp.andmore', { n: num(list.length - 12) }))}</p>` : ''}`, `<a class="link" href="${href(r.path)}">${t('flt.clear')}</a>`);
   }
   return `<div class="page page--wide">
     ${backLink}
-    <h1 class="lede">${esc(t('un.waves.lede', { n: tn('un.pl.wave', W) }))}</h1>
-    <p class="guide">${t('un.waves.guide')}</p>
-    <div class="section" style="margin-top:24px">${grid}${phone}</div>
+    ${pageHead(esc(t('un.waves.lede', { n: tn('un.pl.wave', W) })), t('un.waves.guide'))}
+    <div class="section mt-6">${grid}${phone}</div>
     ${picked}
   </div>`;
 }
@@ -273,21 +269,21 @@ function stepFacts(s, all, before, tasks) {
   return `<section class="panel panel__pad un-stepfacts" aria-label="${esc(t('un.gap.props'))}">
         ${shareHTML(tasks)}
         ${facts([
-          [t('un.step.gate'), s.gate ? rich(L(s.gate)) : `<span class="muted">${t('un.none')}</span>`],
-          [t('un.step.weight'), weights ? Math.round((s.weight || 0) / weights * 100) + '%' : '—'],
-          [t('un.step.waves'), s.first == null ? `<span class="muted">${t('un.waves.nowave')}</span>` : `<a class="link" href="${href('/problems/plan/waves', { step: s.id })}">${esc(s.first === s.last ? t('un.waves.one', { w: s.first }) : t('un.waves.span', { a: s.first, b: s.last }))}</a>`],
-          [t('un.step.waitsfor'), waitsLine],
-          [t('un.step.comesbefore'), before.length ? before.map(x => `<a class="link" href="${href('/problems/plan/' + enc(x.id))}">${code(x.id)}</a>`).join(' ') : t('un.none')],
-          [t('un.step.subplan'), s.sub_plan ? code(s.sub_plan) : t('un.none')],
-          [t('un.gap.ops'), ops.map(o => '#' + num(o.order)).join(' ') || t('un.none')],
-        ])}
+            [t('un.step.gate'), s.gate ? rich(L(s.gate)) : `<span class="muted">${t('un.none')}</span>`],
+            [t('un.step.weight'), weights ? Math.round((s.weight || 0) / weights * 100) + '%' : '—'],
+            [t('un.step.waves'), s.first == null ? `<span class="muted">${t('un.waves.nowave')}</span>` : `<a class="link" href="${href('/problems/plan/waves', { step: s.id })}">${esc(s.first === s.last ? t('un.waves.one', { w: s.first }) : t('un.waves.span', { a: s.first, b: s.last }))}</a>`],
+            [t('un.step.waitsfor'), waitsLine],
+            [t('un.step.comesbefore'), before.length ? before.map(x => `<a class="link" href="${href('/problems/plan/' + enc(x.id))}">${code(x.id)}</a>`).join(' ') : t('un.none')],
+            [t('un.step.subplan'), s.sub_plan ? code(s.sub_plan) : t('un.none')],
+            [t('un.gap.ops'), ops.map(o => '#' + num(o.order)).join(' ') || t('un.none')],
+          ])}
       </section>`;
 }
 function stepPage(ctx) {
   const all = steps();
   const s = all.find(x => x.id === ctx.params.step);
   const backLink = back('/problems/plan', t('pb.view.plan'));
-  if (!s) return `<div class="page">${backLink}<div class="empty panel" style="margin-top:12px"><h1 class="empty__title">${esc(t('pd.notfound', { id: ctx.params.step }))}</h1><p class="small ink-2">${t('un.notfound.guide')}</p></div></div>`;
+  if (!s) return `<div class="page">${backLink}${notFound(esc(t('pd.notfound', { id: ctx.params.step })), t('un.notfound.guide'))}</div>`;
   const tasks = s.ids.map(id => model.problem(id) || Object.assign({ id, severity: 'info', paths: [] }, s.tasks.find(x => x.id === id), { state: 'open' }));
   const before = all.filter(x => x.waits.some(w => w[0] === s.id));
   const guide = t('un.step.guide', { n: tn('pl.problem', s.ids.length), waits: s.waits.length ? t('un.step.guide.waits', { list: s.waits.map(w => w[0]).join(t('list.sep')) }) : t('un.step.guide.free'), before: before.length ? t('un.step.guide.before', { list: before.map(x => x.id).join(t('list.sep')) }) : '' });

@@ -5,7 +5,7 @@ import { t } from './i18n.js';
 import { screen } from './router.js';
 import { sheet } from './sheets.js';
 
-const body = features => `<p class="guide">${t('todo.next')}</p>${features ? `<div class="block-title" style="margin-top:24px">${t('todo.covers')}</div><p class="small mono">${esc(features)}</p>` : ''}`;
+const body = features => `<p class="guide">${t('todo.next')}</p>${features ? `<div class="block-title mt-6">${t('todo.covers')}</div><p class="small mono">${esc(features)}</p>` : ''}`;
 
 /** The outline of a screen: {id, path, place, title: dictionary key, features: 'PRJ-01, …'}. */
 export function outline(def) {

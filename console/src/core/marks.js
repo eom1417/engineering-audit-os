@@ -13,6 +13,7 @@ import { labelOf, seconds } from '../data/derive.js';
 import { actionOf } from '../data/contract.js';
 import { md } from './markdown.js';
 import { TERMINAL } from '../data/actions.js';
+import { rowWords, facts } from './parts.js';
 
 const GLYPH = {
   queued: ['circle', 'muted'], waiting: ['circle', 'muted'], paused: ['pause', 'ink-2'], done: ['check', 'ok'], ok: ['check', 'ok'],
@@ -30,8 +31,10 @@ export function glyph(st) {
 export const stateWord = st => (has('ac.st.' + st) ? t('ac.st.' + st) : st);
 export function mark(st, word) { return `<span class="state ac-state">${glyph(st)}<span>${word || esc(stateWord(st))}</span></span>`; }
 export function back(path, label, query) { return `<a class="back" href="${href(path, query)}">${icon('back', 'icon--dir')}${esc(label)}</a>`; }
+/** A fold's summary: an optional lead (an icon), its title and the line under it, and the chevron. */
+export const foldHead = (title, sum, lead) => `<summary>${lead || ''}${rowWords(title, sum)}${icon('chev', 'chev')}</summary>`;
 export function fold(id, title, sum, body, open, cls) {
-  return `<details class="fold ${cls || ''}" id="fold-${id}" ${open ? 'open' : ''}><summary><span class="row__main"><span class="row__title">${title}</span>${sum ? `<span class="row__meta" style="display:block">${sum}</span>` : ''}</span>${icon('chev', 'chev')}</summary>
+  return `<details class="fold ${cls || ''}" id="fold-${id}" ${open ? 'open' : ''}>${foldHead(title, sum)}
     <div class="fold__body">${body}</div></details>`;
 }
 /** A time the person can tap for the exact moment, written by `format`. */
@@ -141,8 +144,8 @@ export function answerHTML(answer) {
   if (typeof answer !== 'object') return `<div class="ai-block"><span class="ai-block__label">${icon('ai', 'icon--sm')}${t('ai.label')}</span>${md(answer)}</div>`;
   const plain = v => v != null && typeof v !== 'object' && !/^\//.test(String(v));
   const rows = Object.entries(answer).filter(([, v]) => plain(v) || (Array.isArray(v) && v.every(plain))).slice(0, 14);
-  return `${rows.length ? `<dl class="facts">${rows.map(([k, v]) => `<dt>${esc(k.replace(/_/g, ' '))}</dt><dd><bdi dir="auto">${esc(Array.isArray(v) ? v.slice(0, 12).join(', ') : typeof v === 'number' ? num(v) : v)}</bdi></dd>`).join('')}</dl>` : ''}
-    <details class="ac-ev-fold"><summary>${t('ac.run.answer')}${icon('chev-down', 'icon--sm muted')}</summary><div class="code" style="padding:8px 12px;white-space:pre-wrap;max-height:320px;overflow:auto">${esc(JSON.stringify(answer, null, 2).slice(0, 20000))}</div></details>`;
+  return `${rows.length ? facts(rows.map(([k, v]) => [esc(k.replace(/_/g, ' ')), `<bdi dir="auto">${esc(Array.isArray(v) ? v.slice(0, 12).join(', ') : typeof v === 'number' ? num(v) : v)}</bdi>`])) : ''}
+    <details class="ac-ev-fold"><summary>${t('ac.run.answer')}${icon('chev-down', 'icon--sm muted')}</summary><div class="code pad-2-3 pre scroll-320">${esc(JSON.stringify(answer, null, 2).slice(0, 20000))}</div></details>`;
 }
 /** The branch a run's delivered branch was merged into. */
 export const mergedInto = r => (r.result && (r.result.target || r.result.landed_on)) || (r.where && r.where.merge_into) || (r.context && r.context.analysis_branch) || '';

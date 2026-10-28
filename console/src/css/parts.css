@@ -1,0 +1,52 @@
+/* The parts of core/parts.js and the spacing a screen adds around a block, last so that one class sets them (never a
+   style attribute: every value is a token). */
+
+/* ---------- parts ---------- */
+.toggle-row__icon { display: flex; gap: var(--s2); align-items: center; }
+.skel-lines { flex: 1; display: grid; gap: var(--s2); }
+.skel--dot { width: 20px; height: 20px; border-radius: 50%; }
+.skel--square { width: 22px; height: 22px; }
+.fold-link { cursor: pointer; min-height: var(--target); display: inline-flex; align-items: center; }
+.fold-link--icon { gap: var(--s1-5); }
+.pad-3-4 { padding: var(--s3) var(--s4); }
+.pad-2-3 { padding: var(--s2) var(--s3); }
+.scroll-320 { max-height: 320px; overflow: auto; }
+.pre { white-space: pre-wrap; }
+
+/* ---------- space around a block ---------- */
+.mt-0-5 { margin-top: var(--s0-5); }
+.mt-1 { margin-top: var(--s1); }
+.mt-1-5 { margin-top: var(--s1-5); }
+.mt-2 { margin-top: var(--s2); }
+.mt-3 { margin-top: var(--s3); }
+.mt-4 { margin-top: var(--s4); }
+.mt-5 { margin-top: var(--s5); }
+.mt-6 { margin-top: var(--s6); }
+.mt-8 { margin-top: var(--s8); }
+.mb-2 { margin-bottom: var(--s2); }
+.mb-3 { margin-bottom: var(--s3); }
+.my-3 { margin: var(--s3) 0; }
+.stack-2 { display: grid; gap: var(--s2); }
+.stack-3 { display: grid; gap: var(--s3); }
+.block { display: block; }
+
+/* ---------- a block reaching its panel's edges ---------- */
+.bleed { margin: 0 calc(var(--s4) * -1); }
+.bleed--end { margin-bottom: calc(var(--s4) * -1); }
+.fold--flush > summary { padding-inline: 0; min-height: 48px; }
+.fold--flush > .fold__body { padding-inline: 0; }
+.line-top { border-top: 1px solid var(--line); }
+.line-bottom { border-bottom: 1px solid var(--line); }
+.wcard__why { border-radius: 0 0 var(--r-md) var(--r-md); }
+.own__foot { display: flex; justify-content: space-between; gap: var(--s3); }
+
+/* ---------- rows to pick from, and layouts said once ---------- */
+.row--pick { min-height: 48px; gap: var(--s3); }
+.row--facet { padding-inline: var(--s1); }
+.row--flush { padding-inline: 0; }
+.row--top { align-items: flex-start; }
+.pick__words { margin-inline-start: var(--s2); }
+.pick { display: inline-flex; align-items: center; gap: var(--s3); }
+.pick__label { margin-inline-start: var(--s2-5); }
+.actions--center { justify-content: center; }
+.empty--none { justify-items: center; text-align: center; padding: var(--s16) var(--s4); }

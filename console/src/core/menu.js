@@ -1,6 +1,5 @@
 // The project menu (SET-01, SET-02, PJS-01): language and theme, the project's own pages, the projects on this
 // computer (live: GET /api/projects); and "Open it live", which any action of the read-only copy opens (OFF-02, OFF-03).
-import { prefs } from './prefs.js';
 import { t, num } from './i18n.js';
 import { esc, icon, fmtWhen } from './format.js';
 import { href } from './address.js';
@@ -8,11 +7,12 @@ import { sheet, rerenderSheet } from './sheets.js';
 import { client } from '../data/actions.js';
 import { live } from '../data/store.js';
 import { project } from '../data/model.js';
+import { rowWords, displayToggles, titledBlock } from './parts.js';
 
 let projects = null;
 
 function row(ic, label, sub, path) {
-  return `<a class="row" href="${href(path)}" data-act="go" data-href="${href(path)}">${icon(ic)}<span class="row__main"><span class="row__title">${esc(label)}</span>${sub ? `<span class="row__meta" style="display:block">${esc(sub)}</span>` : ''}</span>${icon('chev', 'icon--sm icon--dir muted')}</a>`;
+  return `<a class="row" href="${href(path)}" data-act="go" data-href="${href(path)}">${icon(ic)}${rowWords(esc(label), sub ? esc(sub) : null)}${icon('chev', 'icon--sm icon--dir muted')}</a>`;
 }
 
 function assistantsSub() {
@@ -27,8 +27,8 @@ function projectRows() {
   const mark = name => `<span class="project-btn__mark" aria-hidden="true">${esc((name || '?').slice(0, 1).toUpperCase())}</span>`;
   const score = s => (s == null ? t('proj.unchecked') : t('proj.score', { score: num(Math.round(s * 100)) }));
   const current = (projects || []).find(p => p.current);
-  return `<div class="row">${mark(here.name)}<span class="row__main"><span class="row__title mono">${esc(here.name)}</span><span class="row__meta" style="display:block">${esc(t('proj.current'))}${current ? `, ${esc(score(current.score))}` : ''}</span></span>${icon('check', 'muted')}</div>
-    ${others.map(p => `<a class="row" href="${href('/open', { kind: 'switch', p: p.workspace })}" data-act="go" data-href="${href('/open', { kind: 'switch', p: p.workspace })}">${mark(p.name)}<span class="row__main"><span class="row__title mono">${esc(p.name)}</span><span class="row__meta" style="display:block">${esc(score(p.score))}${p.checked ? `, ${esc(t('proj.checked', { when: fmtWhen(p.checked) }))}` : ''}</span></span>${icon('chev', 'icon--sm icon--dir muted')}</a>`).join('')}
+  return `<div class="row">${mark(here.name)}${rowWords(esc(here.name), esc(t('proj.current')) + (current ? `, ${esc(score(current.score))}` : ''), { title: 'mono' })}${icon('check', 'muted')}</div>
+    ${others.map(p => `<a class="row" href="${href('/open', { kind: 'switch', p: p.workspace })}" data-act="go" data-href="${href('/open', { kind: 'switch', p: p.workspace })}">${mark(p.name)}${rowWords(esc(p.name), esc(score(p.score)) + (p.checked ? `, ${esc(t('proj.checked', { when: fmtWhen(p.checked) }))}` : ''), { title: 'mono' })}${icon('chev', 'icon--sm icon--dir muted')}</a>`).join('')}
     ${row('folder', t('proj.new'), '', '/activity?sheet=launcher')}`;
 }
 
@@ -38,28 +38,16 @@ sheet('project', {
     return {
       title: esc(t('proj.title')),
       body: `
-        <div class="toggles">
-          <div class="toggle-row"><span>${t('lang.label')}</span>
-            <div class="seg" role="group" aria-label="${esc(t('lang.label'))}" style="min-width:180px">
-              <button type="button" data-act="lang" data-lang="ar" data-fk="lang-ar" aria-pressed="${prefs.lang === 'ar'}" lang="ar">${t('lang.ar')}</button>
-              <button type="button" data-act="lang" data-lang="en" data-fk="lang-en" aria-pressed="${prefs.lang === 'en'}" lang="en">${t('lang.en')}</button>
-            </div></div>
-          <p class="muted small">${t('lang.note')}</p>
-          <div class="toggle-row"><span>${t('theme.label')}</span>
-            <div class="seg" role="group" aria-label="${esc(t('theme.label'))}" style="min-width:180px">
-              <button type="button" data-act="theme-set" data-theme="light" data-fk="th-l" aria-pressed="${prefs.theme === 'light'}">${icon('sun', 'icon--sm')}${t('theme.light')}</button>
-              <button type="button" data-act="theme-set" data-theme="dark" data-fk="th-d" aria-pressed="${prefs.theme === 'dark'}">${icon('moon', 'icon--sm')}${t('theme.dark')}</button>
-            </div></div>
-        </div>
-        <div><div class="block-title">${t('proj.this')}</div>
+        <div class="toggles">${displayToggles('')}</div>
+        ${titledBlock(t('proj.this'), `
           <div class="panel rows">
             ${row('branch', t('proj.branches'), t('proj.branches.sub', { branch: project().branch }), '/project/branches')}
             ${row('app', t('proj.app'), t('proj.app.sub'), '/project/app')}
             ${row('ai', t('proj.assistants'), assistantsSub(), '/project/assistants')}
             ${row('tool', t('proj.tools'), t('proj.tools.sub'), '/project/tools')}
             ${row('gear', t('proj.settings'), t('proj.settings.sub'), '/project/settings')}
-          </div></div>
-        <div><div class="block-title">${t('proj.others')}</div><div class="panel rows">${projectRows()}</div></div>`,
+          </div>`)}
+        ${titledBlock(t('proj.others'), `<div class="panel rows">${projectRows()}</div>`)}`,
     };
   },
   after() {
@@ -74,10 +62,10 @@ sheet('open-live', {
     return {
       title: esc(t('offline.sheet.title')),
       body: `<p>${t('offline.sheet.body')}</p>
-        <div class="code" style="padding:12px 16px">eaos studio</div>
+        <div class="code pad-3-4">eaos studio</div>
         <button class="btn btn--secondary" data-act="copy" data-text="eaos studio">${icon('copy')}${t('copy')}</button>
         <p>${t('offline.sheet.or')}</p>
-        <div class="code" style="padding:12px 16px;white-space:pre-wrap">${esc(t('offline.sheet.request'))}</div>
+        <div class="code pad-3-4 pre">${esc(t('offline.sheet.request'))}</div>
         <button class="btn btn--secondary" data-act="copy" data-text="${esc(t('offline.sheet.request'))}">${icon('copy')}${t('pv.copy')}</button>`,
     };
   },

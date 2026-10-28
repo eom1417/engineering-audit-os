@@ -9,6 +9,7 @@ export * from './notices.js';
 export * from './settings.js';
 export * from './shell.js';
 export * from './outline.js';
+export * from './parts.js';
 export { act, tickAct } from './events.js';
 export { S } from './state.js';
 export { prefs } from './prefs.js';

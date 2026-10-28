@@ -1,9 +1,10 @@
 // S-01 Status: where the project stands and the one step that fits now (PRJ-01..12, HIS-02, BLD-04, SET-06), on the
 // report and the live command state. Its sheets: freshness (PRJ-04) and health on the phone (PRJ-02).
 import {
-  t, tn, L, num, esc, icon, code, sev, href, band, fmtWhen, exactTime, screen, sheet, liveNow, freshness, live, model, data, contract, prefs, derive, has,
+  t, tn, L, num, esc, icon, code, sev, href, band, fmtWhen, exactTime, screen, sheet, liveNow, freshness, live, model, data, contract, prefs, derive,
+  has, smallFold, rowWords, ac, facts, titledBlock, pageHead,
 } from 'eaos';
-import { buildStep } from '../kit/kit.js';
+import { buildStep, nm } from '../kit/kit.js';
 
 const { SEV } = model;
 const NEEDS = ['meta', 'head', 'health', 'cards', 'decisions', 'history', 'plans'];
@@ -35,7 +36,7 @@ function notRun() {
   if (!rows.length) return '';
   const DID = { fixed: 'st.notrun.fixed', failed: 'st.notrun.failed', needs_person: 'st.notrun.you' };
   const list = rows.map(r => `<li><b>${esc(has('ac.stage.' + r.stage) ? t('ac.stage.' + r.stage) : r.stage)}</b>: ${esc(r.reason)}${r.did ? ` <span class="muted">${t(DID[r.did] || 'st.notrun.failed')}</span>` : ''}</li>`).join('');
-  return `<details class="fold panel" style="margin-top:8px"><summary>${icon('info', 'muted')}<span class="row__main small">${esc(tn('st.notrun', rows.length))}</span>${icon('chev', 'chev icon--sm')}</summary>
+  return `<details class="fold panel mt-2"><summary>${icon('info', 'muted')}<span class="row__main small">${esc(tn('st.notrun', rows.length))}</span>${icon('chev', 'chev icon--sm')}</summary>
     <ul class="fold__body small ink-2">${list}</ul></details>`;
 }
 
@@ -61,7 +62,7 @@ function nextStep(ctx) {
 }
 
 const rowLink = (to, lead, title, meta) => `<a class="row" href="${href(to)}">${lead}
-  <span class="row__main"><span class="row__title">${esc(title)}</span>${meta ? `<span class="row__meta" style="display:block">${esc(meta)}</span>` : ''}</span>${icon('chev', 'icon--dir muted')}</a>`;
+  ${rowWords(esc(title), meta ? esc(meta) : null)}${icon('chev', 'icon--dir muted')}</a>`;
 
 // the row of what waits for the owner, with what it is made of
 function waitingRow(wc) {
@@ -132,10 +133,9 @@ function healthBody() {
       <div class="meter__track" role="img" aria-label="${esc(t('area.' + a.id))}: ${a.score}">${ticks}<span class="meter__fill" style="width:${a.score}%"></span></div></div>`;
   }).join('');
   return `<div class="health-card__top"><span class="figure">${h.score}</span><span class="health-card__band">${t('band.' + band(h.score, h.unchecked.length > 0))}</span></div>
-    <p class="small ink-2" style="margin-top:4px">${esc(trend(h))}</p>
-    <div class="meters" style="margin-top:20px">${meters}</div>
-    <details class="fold" style="margin-top:16px;border-top:1px solid var(--line)"><summary style="padding-inline:0;min-height:48px">${icon('info', 'muted')}<span class="row__main small">${t('st.health.formula.title')}</span>${icon('chev', 'chev icon--sm')}</summary>
-      <div class="fold__body small ink-2" style="padding-inline:0">${t('st.health.formula')}</div></details>`;
+    <p class="small ink-2 mt-1">${esc(trend(h))}</p>
+    <div class="meters mt-5">${meters}</div>
+    ${smallFold('info', t('st.health.formula.title'), t('st.health.formula'), { cls: 'fold--flush mt-4 line-top', body: 'small ink-2' })}`;
 }
 
 function healthRow() {
@@ -144,14 +144,8 @@ function healthRow() {
   const weakest = h.areas.filter(a => a.score != null).sort((a, b) => a.score - b.score)[0];
   return `<section class="section only-phone"><div class="panel rows">
     <button class="row" data-act="sheet" data-sheet="health">
-      <span class="row__main"><span class="row__title">${esc(t('st.health', { score: h.score, band: t('band.' + band(h.score, h.unchecked.length > 0)) }))}</span>
-      <span class="row__meta" style="display:block">${weakest ? esc(t('st.health.weakest', { area: t('area.' + weakest.id), score: weakest.score })) + '. ' : ''}${esc(trend(h))}</span></span>
+      ${rowWords(esc(t('st.health', { score: h.score, band: t('band.' + band(h.score, h.unchecked.length > 0)) })), `${weakest ? esc(t('st.health.weakest', { area: t('area.' + weakest.id), score: weakest.score })) + '. ' : ''}${esc(trend(h))}`)}
       ${icon('chev', 'icon--dir muted')}</button></div></section>`;
-}
-
-function fold(id, title, sum, body) {
-  return `<details class="fold" id="fold-${id}"><summary><span class="row__main"><span class="row__title">${title}</span><span class="row__meta" style="display:block">${sum}</span></span>${icon('chev', 'chev')}</summary>
-    <div class="fold__body">${body}</div></details>`;
 }
 
 /** The journey's steps (live: /api/progress journey), else the check alone, which this report proves done. */
@@ -163,15 +157,15 @@ function journeySteps() {
 
 // where the project stands: what is next, the last check and fix batch, the branches waiting
 function standHTML(ctx, { p, tot, n, lastFix, waiting }) {
-  return `<dl class="facts">
-      ${n.short ? `<dt>${t('st.stand.next')}</dt><dd>${esc(n.short)}</dd>` : ''}
-      <dt>${t('st.stand.checked')}</dt><dd>${t('st.stand.checked.v', { commit: code(p.commit.slice(0, 7)) })}</dd>
-      ${tot.all_cards ? `<dt>${t('st.stand.progress')}</dt><dd>${esc(t('st.stand.progress.v', { closed: num(tot.closed), all: num(tot.all_cards) }))}</dd>` : ''}
-      ${lastFix ? `<dt>${t('st.stand.batch')}</dt><dd>${esc(t('st.stand.batch.v', { state: L(contract.STATE_WORDS[lastFix.state]), label: derive.labelOf(lastFix.label, prefs.lang) }))}
-        ${lastFix.state === 'stopped' && !lastFix.outcome && !ctx.offline ? `<div style="margin-top:4px"><button class="btn btn--secondary btn--sm" data-act="sheet" data-sheet="action:fix_abandon">${t('st.stand.close')}</button></div>` : ''}</dd>` : ''}
-      ${waiting.map(run => `<dt>${t('st.stand.branch')}</dt><dd><a class="link" href="${href('/waiting/' + encodeURIComponent(run.id))}">${code(run.result.branch)}</a></dd>`).join('')}
-    </dl>
-    ${ctx.offline ? '' : `<div class="actions" style="margin-top:12px"><a class="btn btn--secondary btn--sm" href="${href('/ask', { note: 'project' })}">${icon('note')}${t('st.stand.note')}</a></div>`}`;
+  return `${facts([
+      n.short ? [t('st.stand.next'), esc(n.short)] : '',
+      [t('st.stand.checked'), t('st.stand.checked.v', { commit: code(p.commit.slice(0, 7)) })],
+      tot.all_cards ? [t('st.stand.progress'), esc(t('st.stand.progress.v', { closed: num(tot.closed), all: num(tot.all_cards) }))] : '',
+      lastFix ? [t('st.stand.batch'), `${esc(t('st.stand.batch.v', { state: L(contract.STATE_WORDS[lastFix.state]), label: derive.labelOf(lastFix.label, prefs.lang) }))}
+        ${lastFix.state === 'stopped' && !lastFix.outcome && !ctx.offline ? `<div class="mt-1"><button class="btn btn--secondary btn--sm" data-act="sheet" data-sheet="action:fix_abandon">${t('st.stand.close')}</button></div>` : ''}`] : '',
+      waiting.map(run => `<dt>${t('st.stand.branch')}</dt><dd><a class="link" href="${href('/waiting/' + encodeURIComponent(run.id))}">${code(run.result.branch)}</a></dd>`).join(''),
+    ])}
+    ${ctx.offline ? '' : `<div class="actions mt-3"><a class="btn btn--secondary btn--sm" href="${href('/ask', { note: 'project' })}">${icon('note')}${t('st.stand.note')}</a></div>`}`;
 }
 // the journey's steps, each done, running now, or to come
 function journeyHTML(steps) {
@@ -185,30 +179,28 @@ function aboutHTML(p, sz) {
   const lastCheck = live.runs.find(r => r.action === 'audit');
   const langs = sz.languages.map(l => `${esc(l.name)} ${Math.round(l.share * 100)}%`).join(t('list.sep'));
   const notDone = st.filter(x => x.state !== 'done');
-  return `<dl class="facts">
-      <dt>${t('st.about.langs')}</dt><dd>${langs}</dd>
-      <dt>${t('st.about.files')}</dt><dd class="num">${num(sz.files)}</dd>
-      <dt>${t('st.about.lines')}</dt><dd class="num">${num(sz.lines)}</dd>
-      <dt>${t('st.about.stages')}</dt><dd>${t('st.about.stages.v', { done: num(count('done')), partial: num(count('partial')), skipped: num(count('skipped')) })}
-        ${lastCheck ? `<a class="link" href="${href('/activity/run/' + encodeURIComponent(lastCheck.id))}">${t('st.about.stages.open')}</a>` : ''}</dd>
-      <dt>${t('st.about.scan')}</dt><dd>${code(p.branch)} ${code(p.commit.slice(0, 7))}</dd>
-      <dt>${t('st.about.eaos')}</dt><dd>${code('EAOS ' + p.eaos_version)}</dd>
-    </dl>
-    ${notDone.length ? `<div class="block-title" style="margin-top:16px">${t('st.about.notdone')}</div>
+  return `${facts([
+      [t('st.about.langs'), langs],
+      [t('st.about.files'), num(sz.files), 'num'],
+      [t('st.about.lines'), num(sz.lines), 'num'],
+      [t('st.about.stages'), `${t('st.about.stages.v', { done: num(count('done')), partial: num(count('partial')), skipped: num(count('skipped')) })}
+        ${lastCheck ? `<a class="link" href="${href('/activity/run/' + encodeURIComponent(lastCheck.id))}">${t('st.about.stages.open')}</a>` : ''}`],
+      [t('st.about.scan'), `${code(p.branch)} ${code(p.commit.slice(0, 7))}`],
+      [t('st.about.eaos'), code('EAOS ' + p.eaos_version)],
+    ])}
+    ${notDone.length ? `<div class="block-title mt-4">${t('st.about.notdone')}</div>
     <ul class="panel rows">${notDone.map(x => `<li><button class="row" data-act="sheet" data-sheet="stage:${esc(x.id)}">${icon(x.state === 'skipped' ? 'dash' : 'warn', 'muted')}
-        <span class="row__main"><span class="row__title">${code(x.id)}</span><span class="row__meta" style="display:block">${t(STAGE_WORD[x.state] || 'st.about.partial')}</span></span>
+        ${rowWords(code(x.id), t(STAGE_WORD[x.state] || 'st.about.partial'))}
         ${icon('chev', 'icon--sm icon--dir muted')}</button></li>`).join('')}</ul>
-    <p class="small muted" style="margin-top:8px">${t('st.about.redo')}</p>` : ''}`;
+    <p class="small muted mt-2">${t('st.about.redo')}</p>` : ''}`;
 }
 // the areas the check did not measure, and how to measure them; then what this version of EAOS does not check at all
 function measuredHTML(unmeasured, unchecked) {
   return `<p class="small ink-2">${unmeasured.length ? t('st.measured.v', { n: tn('pl.area', unmeasured.length) }) : t('st.measured.all')}</p>
-    ${unmeasured.map(a => `<div class="nm" style="margin-top:12px"><div class="nm__title"><span class="tag tag--nm">${t('nm')}</span>${t('area.' + a.id)}</div>
-      <p class="small ink-2">${a.id === 'performance' ? t('st.measured.why') : t('st.nm.other')}</p>
-      ${a.id === 'performance' ? `<div><a class="btn btn--secondary btn--sm" href="${href('/activity', { sheet: 'check', path: 'speed' })}">${t('st.nm.act')}</a></div>` : ''}</div>`).join('')}
-    ${unchecked.length ? `<div class="block-title" style="margin-top:16px">${t('st.unchecked')}</div>
-    ${unchecked.map(k => `<div class="nm" style="margin-top:12px"><div class="nm__title"><span class="tag tag--nm">${t('st.unchecked.tag')}</span>${t('unchecked.' + k.id)}</div>
-      <p class="small ink-2">${t('unchecked.' + k.id + '.why')}</p></div>`).join('')}` : ''}`;
+    ${unmeasured.map(a => nm(t('area.' + a.id), a.id === 'performance' ? t('st.measured.why') : t('st.nm.other'),
+      a.id === 'performance' ? `<a class="btn btn--secondary btn--sm" href="${href('/activity', { sheet: 'check', path: 'speed' })}">${t('st.nm.act')}</a>` : '', { cls: 'mt-3' })).join('')}
+    ${unchecked.length ? `<div class="block-title mt-4">${t('st.unchecked')}</div>
+    ${unchecked.map(k => nm(t('unchecked.' + k.id), t('unchecked.' + k.id + '.why'), '', { tag: t('st.unchecked.tag'), cls: 'mt-3' })).join('')}` : ''}`;
 }
 
 function folds(ctx) {
@@ -228,10 +220,10 @@ function folds(ctx) {
   const measured = measuredHTML(unmeasured, health.unchecked);
   const standSum = waiting.length ? tn('pl.fix_branch_waits', waiting.length) : n.short || '';
   return `<div class="section panel">
-    ${fold('stand', t('st.fold.stand'), esc(standSum), stand)}
-    ${fold('journey', t('st.fold.journey'), esc(journeySum), journey)}
-    ${fold('about', t('st.fold.about'), esc(t('st.fold.about.sum', { files: tn('pl.file', sz.files || 0), lines: tn('pl.line', sz.lines || 0), stages: tn('pl.stage', st.length) })), about)}
-    ${fold('measured', t('st.fold.measured'), esc([...unmeasured.map(a => t('area.' + a.id)), ...health.unchecked.map(k => t('unchecked.' + k.id))].join(t('list.sep')) || t('st.measured.all')), measured)}
+    ${ac.fold('stand', t('st.fold.stand'), esc(standSum), stand)}
+    ${ac.fold('journey', t('st.fold.journey'), esc(journeySum), journey)}
+    ${ac.fold('about', t('st.fold.about'), esc(t('st.fold.about.sum', { files: tn('pl.file', sz.files || 0), lines: tn('pl.line', sz.lines || 0), stages: tn('pl.stage', st.length) })), about)}
+    ${ac.fold('measured', t('st.fold.measured'), esc([...unmeasured.map(a => t('area.' + a.id)), ...health.unchecked.map(k => t('unchecked.' + k.id))].join(t('list.sep')) || t('st.measured.all')), measured)}
   </div>`;
 }
 
@@ -253,20 +245,17 @@ function aside() {
 function emptyState(ctx) {
   const steps = (live.progress && live.progress.journey) || [];
   return `<div class="page">
-    <h1 class="lede">${t('st.empty.lede')}</h1>
-    <p class="guide">${t('st.empty.guide')}</p>
-    <div class="actions">${ctx.offline ? '' : `<a class="btn btn--primary" href="${href('/activity', { sheet: 'check' })}">${t('st.empty.act')}</a>`}
-      <button class="btn btn--quiet" data-act="copy" data-text="eaos check">${icon('copy')}${t('st.copy_request')}</button></div>
-    ${steps.length ? `<div class="section panel">${fold('journey', t('st.fold.journey'), esc(L(steps[0].title)), `<ol class="rows">${steps.map(s => `<li class="row" style="padding-inline:0;min-height:44px">${icon('circle', 'muted')}<span class="row__main">${esc(L(s.title))}</span></li>`).join('')}</ol>`)}</div>` : ''}
+    ${pageHead(t('st.empty.lede'), t('st.empty.guide'), `${ctx.offline ? '' : `<a class="btn btn--primary" href="${href('/activity', { sheet: 'check' })}">${t('st.empty.act')}</a>`}
+      <button class="btn btn--quiet" data-act="copy" data-text="eaos check">${icon('copy')}${t('st.copy_request')}</button>`)}
+    ${steps.length ? `<div class="section panel">${ac.fold('journey', t('st.fold.journey'), esc(L(steps[0].title)), `<ol class="rows">${steps.map(s => `<li class="row" style="padding-inline:0;min-height:44px">${icon('circle', 'muted')}<span class="row__main">${esc(L(s.title))}</span></li>`).join('')}</ol>`)}</div>` : ''}
   </div>`;
 }
 
 /** A project still being built from its plan: the build's verdict and its one next step, never a check's score. */
 function buildState() {
   return `<div class="page">
-    <h1 class="lede">${esc(model.project().verdict)}</h1>
-    <div class="actions">${buildStep()}<a class="btn btn--quiet" href="${href('/problems/plan')}">${icon('layers', 'icon--sm')}${t('st.build.plan')}</a>
-      <p class="actions__note">${t('bp.note')}</p></div>
+    ${pageHead(esc(model.project().verdict), null, `${buildStep()}<a class="btn btn--quiet" href="${href('/problems/plan')}">${icon('layers', 'icon--sm')}${t('st.build.plan')}</a>
+      <p class="actions__note">${t('bp.note')}</p>`)}
     ${nowRows()}
   </div>`;
 }
@@ -274,8 +263,7 @@ function buildState() {
 function loadingState() {
   return `<div class="page" aria-busy="true">
     <div class="context"><span class="chip skel" style="width:110px"></span><span class="chip skel" style="width:190px"></span></div>
-    <h1 class="lede">${t('st.loading')}</h1>
-    <div class="actions"><span class="btn skel" style="width:260px"></span></div>
+    ${pageHead(t('st.loading'), null, `<span class="btn skel" style="width:260px"></span>`)}
     <div class="status-cols"><div>${glance(true)}</div></div>
   </div>`;
 }
@@ -314,15 +302,15 @@ sheet('freshness', {
     return {
       title: esc(t('st.fresh.title')),
       body: `<p class="h2">${esc(lede)}</p>
-        <dl class="facts">
-          <dt>${t('st.fresh.checked')}</dt><dd>${p.checked_at ? esc(exactTime(p.checked_at)) : ''}</dd>
-          <dt>${t('st.fresh.branch')}</dt><dd>${code(p.branch)}</dd>
-          <dt>${t('st.fresh.commit')}</dt><dd>${code(p.commit)}</dd>
-          <dt>${t('st.fresh.dirty')}</dt><dd>${t(p.dirty ? 'st.fresh.dirty.yes' : 'st.fresh.dirty.v')}</dd>
-          ${fresh.tip ? `<dt>${t('st.fresh.head')}</dt><dd>${fresh.tip === p.commit ? t('st.fresh.head.v', { commit: code(fresh.tip.slice(0, 7)) }) : code(fresh.tip.slice(0, 7))}</dd>` : ''}
-          ${fresh.checked_at ? `<dt>${t('st.fresh.looked')}</dt><dd>${esc(fmtWhen(fresh.checked_at))}</dd>` : ''}
-        </dl>
-        ${files.length ? `<div><div class="block-title">${t('st.fresh.files')}</div><ul class="panel rows">${files.slice(0, 12).map(x => `<li class="row small">${code(x)}</li>`).join('')}</ul></div>` : ''}`,
+        ${facts([
+            [t('st.fresh.checked'), p.checked_at ? esc(exactTime(p.checked_at)) : ''],
+            [t('st.fresh.branch'), code(p.branch)],
+            [t('st.fresh.commit'), code(p.commit)],
+            [t('st.fresh.dirty'), t(p.dirty ? 'st.fresh.dirty.yes' : 'st.fresh.dirty.v')],
+            fresh.tip ? [t('st.fresh.head'), fresh.tip === p.commit ? t('st.fresh.head.v', { commit: code(fresh.tip.slice(0, 7)) }) : code(fresh.tip.slice(0, 7))] : '',
+            fresh.checked_at ? [t('st.fresh.looked'), esc(fmtWhen(fresh.checked_at))] : '',
+          ])}
+        ${files.length ? titledBlock(t('st.fresh.files'), `<ul class="panel rows">${files.slice(0, 12).map(x => `<li class="row small">${code(x)}</li>`).join('')}</ul>`) : ''}`,
       foot: `<a class="btn btn--primary btn--block" href="${href('/activity', { sheet: 'check' })}" data-act="go" data-href="${href('/activity', { sheet: 'check' })}">${t('st.fresh.check')}</a>
         <button class="btn btn--quiet btn--block" data-act="copy" data-text="eaos branch ${esc(p.branch)} && eaos check">${icon('copy')}${t('st.fresh.copy')}</button>`,
     };
