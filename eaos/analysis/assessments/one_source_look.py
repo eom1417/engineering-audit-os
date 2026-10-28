@@ -170,6 +170,11 @@ def _tokens(seen, written, by_kind):
     return {kind: _dtcg(kind, values) for kind, values in steps.items() if values}
 
 
+def _place(homes, places):
+    """Where the look's card is: its tokens file, else the first place a value is written."""
+    return (homes or [p['path'] for p in places] or ['the pages'])[0]
+
+
 def finding(facts, out):
     """The one finding of the look, or None: the values written outside the tokens file (from `facts`, the patterns
     set's look_value and look_home), and what the pages show (the census) where it drifts."""
@@ -181,8 +186,7 @@ def finding(facts, out):
     # a card when the look truly repeats: values written again and again that a token would name, or drift on the pages
     if len(repeated) < REPEATED_VALUES and not drifts: return None
     total = sum(by_kind.values())
-    place = (homes or [p['path'] for p in places] or ['the pages'])[0]
-    return {'kind': 'look', 'place': place, 'line': None, 'severity': 'medium' if drifts or total >= 50 else 'low',
+    return {'kind': 'look', 'place': _place(homes, places), 'line': None, 'severity': 'medium' if drifts or total >= 50 else 'low',
             'evidence': {'written': total, 'by_kind': dict(sorted(by_kind.items())), 'places': places[:30], 'home': homes,
                          'repeated': [f"{row['kind']} {row['value']} ×{row['count']}" for row in sorted(repeated, key=lambda r: -r['count'])][:12],
                          'seen': seen, 'drifts': sorted(drifts), 'tokens': _tokens(seen, written, by_kind)}}

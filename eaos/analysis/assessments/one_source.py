@@ -87,9 +87,9 @@ def _kept(fact):
     """Whether a pair is worth a home: alike as the law says, NEAR_COPY's lines or more, two places, neither set aside."""
     value, path = fact['value'], fact['location']['path']
     other = value.get('other') or {}
-    return ((value.get('lines') or 0) >= NEAR_COPY['min_lines'] and (value.get('similarity') or 1.0) >= NEAR_COPY['similarity']
-            and (path != other.get('path') or _apart(fact['location'].get('line') or 0, value.get('end_line'), other))
-            and not ASIDE.search(path) and not ASIDE.search(other.get('path') or ''))
+    alike = (value.get('lines') or 0) >= NEAR_COPY['min_lines'] and (value.get('similarity') or 1.0) >= NEAR_COPY['similarity']
+    two = path != other.get('path') or _apart(fact['location'].get('line') or 0, value.get('end_line'), other)
+    return alike and two and not any(ASIDE.search(where) for where in (path, other.get('path') or ''))
 
 
 def near_copies(sets):
