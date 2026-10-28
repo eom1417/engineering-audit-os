@@ -9,6 +9,7 @@ from types import MappingProxyType
 
 from ..core.progress.reasons import reasons
 from .run import MANIFEST, _write
+from ..core.system.files import read_json
 
 ROUNDS = 3
 
@@ -94,8 +95,8 @@ def consent(manifest, question):
 def pending(report):
     """The first stage of the last check whose reason has a remedy needing no person, never tried (a check made before
     the remedies, or a tool installed since), else None."""
-    try: manifest = json.loads((Path(report) / MANIFEST).read_text(encoding='utf-8'))
-    except (OSError, ValueError): return None
+    manifest = read_json(Path(report) / MANIFEST)
+    if manifest is None: return None
     tried = {r['stage'] for r in manifest.get('remedies') or []}
     return next((name for name, row in (manifest.get('stages') or {}).items() if row.get('status') != 'ok' and name not in tried
                  and _unattended(row)), None)

@@ -16,6 +16,7 @@ from .process import state_digest
 from ..core import progress
 from ..core.system import resources
 from ..core.toolchain import registry
+from ..core.system.files import read_json
 
 # The engines are the registry's (eaos/data/toolchain.json): every tool the engines stage runs (`check: engines`) with a
 # command of its own has its adapter here, by its NAME; an added tool that declares an `engine` runs through sarif.py.
@@ -165,8 +166,8 @@ def _selected(only):
 
 def _with_kept(workdir, selected, reports):
     """(every engine, every report): the ones run now and the others of the check's last engines.json."""
-    try: previous = json.loads((workdir / 'engines.json').read_text(encoding='utf-8'))
-    except (OSError, ValueError): return selected, reports
+    previous = read_json(workdir / 'engines.json')
+    if previous is None: return selected, reports
     kept = {name: row for name, row in (previous.get('engines') or {}).items() if name in ADAPTERS and name not in reports}
     return ordered([*kept, *selected]), {**kept, **reports}
 

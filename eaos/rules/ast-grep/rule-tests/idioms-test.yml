@@ -2,6 +2,7 @@ id: eaos.idiom.json-read-python
 valid:
   - "def f(p):\n    return json.loads(p.read_text())"
   - "try:\n    x = json.loads(body)\nexcept ValueError:\n    x = None"
+  - "try:\n    record = json.loads(p.read_text())\n    run(record)\nexcept BaseException:\n    log()"
 invalid:
   - "try:\n    x = json.loads(Path(p).read_text(encoding='utf-8'))\nexcept (OSError, ValueError):\n    x = {}"
 ---

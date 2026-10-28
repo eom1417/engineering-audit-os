@@ -336,10 +336,7 @@ def files_of_interest(workdir):
 
 
 def _facts_in(source):
-    if not source.is_file(): return []
-    try: payload = json.loads(source.read_text(encoding='utf-8'))
-    except (ValueError, OSError): return []
-    return payload.get('facts', [])
+    return (read_json(source) or {}).get('facts', [])
 
 
 def _paths_of(fact, kind):

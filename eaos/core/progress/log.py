@@ -47,6 +47,7 @@ from pathlib import Path
 from .context import bounded
 from .fold import fold_file
 from .liveness import ALIVE_EVERY
+from ...core.system.files import read_json
 
 PROGRESS = 'run-progress.jsonl'
 FOLDER = 'progress'
@@ -141,8 +142,7 @@ def stage_rows(stages):
 def previous_seconds(out):
     """{stage: seconds} of the last run of this report that reached an end, for a rough estimate; a stage it could not
     run keeps the time it took the last time it ran ok (the manifest's `measured`); {} on a first run."""
-    try: manifest = json.loads((Path(out) / 'run-manifest.json').read_text(encoding='utf-8'))
-    except (OSError, ValueError): return {}
+    manifest = read_json(Path(out) / 'run-manifest.json', {})
     return {**{name: s for name, s in (manifest.get('measured') or {}).items() if isinstance(s, (int, float))},
             **{name: row.get('seconds') for name, row in (manifest.get('stages') or {}).items()
                if isinstance(row, dict) and row.get('status') == 'ok' and isinstance(row.get('seconds'), (int, float))}}

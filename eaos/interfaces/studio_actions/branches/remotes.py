@@ -1,7 +1,8 @@
 """Fetching the remotes, the project's protection policy, and how fresh each branch is."""
 from ....core.project import branches as reading
-from ....core.project.runs import _read_json, _write_json, now
+from ....core.project.runs import _write_json, now
 from .common import Blocked, git, say, valid_name
+from ....core.system.files import read_json
 
 
 class Remotes:
@@ -46,7 +47,7 @@ class Remotes:
     def _save_protection(self, name, protect):
         """The project's policy file with `name` protected (`protect`) or unprotected."""
         path = self.store.folder / reading.POLICY
-        saved = _read_json(path, {}) or {}
+        saved = read_json(path, {}) or {}
         protected, unprotected = set(saved.get('protected') or []), set(saved.get('unprotected') or [])
         (protected.add if protect else protected.discard)(name)
         (unprotected.discard if protect else unprotected.add)(name)

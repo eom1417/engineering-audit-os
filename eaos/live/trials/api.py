@@ -13,6 +13,7 @@ from pathlib import Path
 
 from ...core.system.process import run_command
 from ...core.toolchain import home
+from ...core.system.files import read_json
 
 CHECKS = 'not_a_server_error,ignored_auth,negative_data_rejection,object_level_authorization'
 SEED = 1
@@ -64,8 +65,8 @@ def _stored_token(data):
 
 def headers(state):
     """The request headers of a saved browser session: its cookies, and a bearer token it keeps in local storage."""
-    try: data = json.loads(Path(state).read_text(encoding='utf-8'))
-    except (OSError, ValueError, TypeError): return {}
+    data = read_json(state) if state else None
+    if not isinstance(data, dict): return {}
     cookies = '; '.join(f"{c['name']}={c['value']}" for c in data.get('cookies') or [])
     token = _stored_token(data)
     return {**({'Cookie': cookies} if cookies else {}), **({'Authorization': f'Bearer {token}'} if token else {})}

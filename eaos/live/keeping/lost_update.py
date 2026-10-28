@@ -13,6 +13,7 @@ import urllib.error
 import urllib.request
 
 from ...core.system.web import opened
+from ...core.system.files import read_json
 
 PARAM = re.compile(r'(:\w+|\{\w+\}|\[\w+\]|<\w+(?::\w+)?>)$')
 TRIED = 3
@@ -21,8 +22,7 @@ FIRST, SECOND = 'eaos-first-change', 'eaos-second-change'
 
 def cookie_of(state):
     """The Cookie header of a Playwright storage state (the run's session), or ''."""
-    try: cookies = json.loads(open(state, encoding='utf-8').read()).get('cookies') or []
-    except (OSError, TypeError, ValueError): return ''
+    cookies = ((read_json(state) if state else None) or {}).get('cookies') or []
     return '; '.join(f"{c['name']}={c['value']}" for c in cookies)
 
 

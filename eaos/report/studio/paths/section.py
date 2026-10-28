@@ -43,13 +43,13 @@ import re
 from collections import Counter, defaultdict
 from pathlib import Path
 
-from ....analysis.maps import system as sm
 from . import records as path_records
 from .. import system as system_section
 from ..change import _objects
 from .graph import LANES, _Builder, _fact_id, _measure
 from .overview import layout, overview
 from .timeline import timeline
+from ....core.system.files import read_json
 
 OPERATION = {'retain': 'retain', 'modify': 'refactor', 'rebuild': 'rebuild', 'delete': 'delete', 'retire': 'delete'}
 MAX_CARDS = 20
@@ -93,7 +93,7 @@ def components(report):
 
 def _target_record(report):
     """target-architecture.json; {} when it is missing or not an object."""
-    target = sm._load(Path(report) / 'target-architecture.json', {}) or {}
+    target = read_json(Path(report) / 'target-architecture.json', {}) or {}
     return target if isinstance(target, dict) else {}
 
 

@@ -16,7 +16,6 @@ preview's confirm token; inside a run the Studio started (EAOS_STUDIO_RUN) each 
 """
 import fcntl
 import functools
-import json
 import os
 import sys
 import threading
@@ -30,6 +29,7 @@ from ..core.system.launch import HEADLESS
 from ..core.project.runs import ACTIVE, RETRYABLE
 from ..core.project import state as project_state
 from .govern_words import WORDS, text_of
+from ..core.system.files import read_json
 
 SIGN_IN = 'sign-in'          # what waits for the person while the check waits for their sign-in (eaos/live/access/sign_in.py)
 HOST_IDLE = int(os.environ.get('EAOS_HOST_IDLE') or 120)   # seconds the host stays once nothing is queued or active (tests: less)
@@ -346,8 +346,7 @@ def propose_resolution(project, source, target, assistant=None):
 def _section(project, name):
     from ..journeys.fix.selection import studio_folder
     folder = studio_folder(core(project).project)
-    try: return json.loads((folder / f'{name}.json').read_text(encoding='utf-8')) if folder else None
-    except (OSError, ValueError): return None
+    return read_json(folder / f'{name}.json') if folder else None
 
 
 def history(project):

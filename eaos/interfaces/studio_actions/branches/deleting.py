@@ -4,8 +4,9 @@ import json
 import secrets
 from datetime import datetime, timezone
 
-from ....core.project.runs import _read_json, _write_json, now
+from ....core.project.runs import _write_json, now
 from .common import Blocked, COMMITS_SHOWN, RECOVERY, _out, git, say, valid_name
+from ....core.system.files import read_json
 
 
 class Deleting:
@@ -137,7 +138,7 @@ class Deleting:
         done['deleted'].append({'branch': branch['branch'], 'tip': branch['tip'], 'merged_into': branch['merged_into'], 'recovery': kept['id']})
 
     def recoveries(self):
-        return _read_json(self.store.folder / 'branch-recovery.json', []) or []
+        return read_json(self.store.folder / 'branch-recovery.json', []) or []
 
     def _keep(self, name, where, remote, tip, run):
         """A recovery ref for the commit about to lose its branch, written before anything is deleted."""

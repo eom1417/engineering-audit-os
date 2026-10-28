@@ -32,6 +32,7 @@ from urllib.parse import urlsplit
 
 from ...core import toolchain
 from ...core.system.process import run_command
+from ...core.system.files import read_json
 
 TEMPLATES = Path(__file__).resolve().parents[2] / 'templates/screens'
 VIEWPORTS = ({'name': 'phone', 'width': 390, 'height': 844},
@@ -284,9 +285,9 @@ def _run_lighthouse(url, report, chrome, folder, timeout):
                               env={**os.environ, 'CHROME_PATH': chrome, 'TMPDIR': folder})
     except (OSError, subprocess.TimeoutExpired) as problem:
         return None, f'lighthouse: {problem}'
-    try: return json.loads(report.read_text(encoding='utf-8')), ''
-    except (OSError, ValueError):
-        return None, f'lighthouse exited {done.returncode}: {(done.stderr or done.stdout)[-800:]}'
+    found = read_json(report)
+    if found is not None: return found, ''
+    return None, f'lighthouse exited {done.returncode}: {(done.stderr or done.stdout)[-800:]}'
 
 
 def _lighthouse_result(data, url, kept):

@@ -3,8 +3,9 @@ together. The assistant plans on top of it (eaos/ai/ideal/planner.py); without o
 import re
 from pathlib import Path
 
-from .base import EVIDENCE, LIMIT, OPERATIONS, _facts, _load, _slug
+from .base import EVIDENCE, LIMIT, OPERATIONS, _facts, _slug
 from ..nodes.framework import short
+from ...core.system.files import read_json
 
 RELATION_OP = {'retain': 'retain', 'modify': 'refactor', 'refactor': 'refactor', 'rebuild': 'rebuild', 'delete': 'delete',
                'retire': 'delete', 'introduce': 'new', 'new': 'new', 'merge': 'merge', 'unassessed': 'refactor'}
@@ -22,7 +23,7 @@ def proposal(report):
     """The rules' target as the rules proposed it (target-proposal.json), before the reconcile decided it; a report from
     before that stage has only target-architecture.json."""
     report = Path(report)
-    return _load(report / 'target-proposal.json', None) or _load(report / 'target-architecture.json', {}) or {}
+    return read_json(report / 'target-proposal.json', None) or read_json(report / 'target-architecture.json', {}) or {}
 
 
 def views(report):
@@ -48,7 +49,7 @@ def _by(rows, key):
 # ---------------------------------------------------------------- system and change
 
 def system(target, studio):
-    found = _load(studio / 'system.json', {}) or {}
+    found = read_json(studio / 'system.json', {}) or {}
     return ("Today's components with the rules' disposition, and the target components of the reference.",
             _current_components(target, found) + _target_components(target, found))
 
@@ -92,7 +93,7 @@ def _layer_rule(row):
 # ---------------------------------------------------------------- journeys and paths
 
 def journeys(report, studio):
-    screens = _dicts((_load(studio / 'journeys.json', {}) or {}).get('screens'))
+    screens = _dicts((read_json(studio / 'journeys.json', {}) or {}).get('screens'))
     if screens:
         return ("Every screen with its folder's operation toward the target (studio/journeys.json).", [_screen(s) for s in screens])
     pages = [f for f in _facts(report, 'entrypoints') if f.get('kind') == 'entry_point'
@@ -111,7 +112,7 @@ def _page(f):
 
 
 def paths(studio):
-    found = _load(studio / 'paths.json', {}) or {}
+    found = read_json(studio / 'paths.json', {}) or {}
     ops = {name: row.get('op') for name, row in (found.get('components') or {}).items() if isinstance(row, dict)}
     nodes = _by(found.get('nodes'), 'id')
     return ('Every code path with the hardest operation the rules give the parts it crosses (studio/paths.json).',
@@ -130,7 +131,7 @@ def _path(path, ops, nodes):
 # ---------------------------------------------------------------- data and infrastructure
 
 def data_paths(report, studio):
-    data = _load(studio / 'data_paths.json', {}) or {}
+    data = read_json(studio / 'data_paths.json', {}) or {}
     stores = _dicts(data.get('stores'))
     if not stores: return _stores_from_facts(report)
     # A store's evidence is on its endpoints' call sites (studio/data_paths.json endpoints[].sites[].fact); `sites` on
@@ -186,7 +187,7 @@ def infra(target):
 # ---------------------------------------------------------------- pipeline and plan
 
 def pipeline(studio):
-    found = _load(studio / 'pipeline.json', {}) or {}
+    found = read_json(studio / 'pipeline.json', {}) or {}
     gaps = _pipeline_gaps(found)
     stages = [s for s in _dicts(found.get('stages')) if s.get('kind') not in ('router', 'fork', 'join')]
     if gaps: return ("The pipeline rules' gap: one entry per broken rule (studio/pipeline.json#views.gap).", [_gap(g) for g in gaps])
@@ -224,7 +225,7 @@ def _kept_stage(s):
 
 
 def plan_order(report):
-    plan = _load(report / 'plan.json', {}) or {}
+    plan = read_json(report / 'plan.json', {}) or {}
     return ("The fix plan's milestones in the rules' order.",
             [_element(m.get('id'), 'step', f"{m.get('id')}: {m.get('name') or m.get('goal') or ''}", 'retain', m.get('id'),
                       m.get('goal'), [t for t in m.get('tasks') or [] if isinstance(t, str)], ['RULE-plan-order'])

@@ -4,8 +4,9 @@ and the semantic hypotheses."""
 import json
 from pathlib import Path
 
-from .base import EVIDENCE, LIMIT, _facts, _load
+from .base import EVIDENCE, LIMIT, _facts
 from ..nodes.framework import short, UNTRUSTED
+from ...core.system.files import read_json
 
 DOCS = ('README.md', 'README', 'readme.md', 'ARCHITECTURE.md', 'CONTRIBUTING.md', 'docs/**/*.md', '*.md')
 
@@ -68,22 +69,22 @@ def cited(row, most):
 
 def features(report):
     return [{'name': f.get('name'), 'surfaces': (f.get('surfaces') or [])[:6], 'tables': (f.get('tables') or [])[:6], 'evidence': cited(f, 3)}
-            for f in (_load(Path(report) / 'features.json', {}) or {}).get('features') or [] if isinstance(f, dict)][:40]
+            for f in (read_json(Path(report) / 'features.json', {}) or {}).get('features') or [] if isinstance(f, dict)][:40]
 
 
 def intake(report):
     return [{'question': short(q.get('question'), 160), 'answer': short(q.get('answer'), 160), 'status': q.get('status')}
-            for q in (_load(Path(report) / 'intake.json', {}) or {}).get('questions') or [] if isinstance(q, dict)][:30]
+            for q in (read_json(Path(report) / 'intake.json', {}) or {}).get('questions') or [] if isinstance(q, dict)][:30]
 
 
 def waiting(report, project):
     """The decisions waiting for the person, each with the answer they saved in the Studio, if any."""
-    rows = (_load(Path(report) / 'studio/decisions.json', {}) or {}).get('decisions') or []
+    rows = (read_json(Path(report) / 'studio/decisions.json', {}) or {}).get('decisions') or []
     out = [{'id': d.get('id'), 'question': short(d.get('question'), 200), 'state': d.get('state')} for d in rows if isinstance(d, dict)]
     if not project: return out
     from ...core.project.places import workspace
-    from ...core.project.runs import _read_json, decision_scope
-    responses = _read_json(workspace(Path(project).resolve()) / 'runs/decisions.json', {}) or {}
+    from ...core.project.runs import decision_scope
+    responses = read_json(workspace(Path(project).resolve()) / 'runs/decisions.json', {}) or {}
     for item, source in zip(out, rows):
         response = responses.get(decision_scope(Path(report) / 'studio', source))
         if response: item.update(owner_answer=response, state='owner_answer_saved')
@@ -92,7 +93,7 @@ def waiting(report, project):
 
 def semantic(report):
     """The semantic stage's hypotheses with the facts each stands on, and its open questions."""
-    found = _load(Path(report) / 'semantic.json', {}) or {}
+    found = read_json(Path(report) / 'semantic.json', {}) or {}
     return {'hypotheses': [{'id': c.get('id'), 'statement': short(c.get('statement'), 300), 'facts': (c.get('fact_ids') or [])[:4]}
                            for c in found.get('claims') or [] if isinstance(c, dict)][:30],
             'questions': [short(q.get('question'), 200) for q in found.get('questions') or [] if isinstance(q, dict)][:20]}

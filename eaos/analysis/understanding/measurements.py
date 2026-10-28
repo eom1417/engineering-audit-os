@@ -16,10 +16,10 @@ A field with no source stays null and its reason is written in `missing`: an unk
 The rows are the files the audit parsed, so the table and dossier.coverage.files_parsed agree; files it
 could not parse are listed under not_measured with their reason.
 """
-import json
 from pathlib import Path
 
 from ...core.project.workspace import write
+from ...core.system.files import read_json
 
 FUNCTION_SCOPES = ('function', 'method')
 
@@ -28,16 +28,12 @@ def _facts(out):
     rows = []
     for path in sorted((Path(out) / 'facts').glob('*.json')):
         if path.stem == 'boundaries': continue          # the layers' findings (M6), the claims'; they measure no file
-        try: data = json.loads(path.read_text(encoding='utf-8'))
-        except (OSError, ValueError): continue
-        rows += [row for row in data.get('facts') or [] if isinstance(row, dict)]
+        rows += [row for row in (read_json(path) or {}).get('facts') or [] if isinstance(row, dict)]
     return rows
 
 
 def _engines_observed(out):
-    try: data = json.loads((Path(out) / 'facts/external.json').read_text(encoding='utf-8'))
-    except (OSError, ValueError): return set()
-    return set((data.get('summary') or {}).get('engines_observed') or [])
+    return set(((read_json(Path(out) / 'facts/external.json') or {}).get('summary') or {}).get('engines_observed') or [])
 
 
 def _path_of(fact):
@@ -48,9 +44,8 @@ def _coverage(out):
     """{path: covered fraction 0..1} from verification.json, which holds percents."""
     verification = out / 'verification.json'
     if not verification.is_file(): return {}
-    try: return {path: round(value['percent'] / 100, 4)
-                 for path, value in (json.loads(verification.read_text(encoding='utf-8')).get('coverage') or {}).items()}
-    except (ValueError, KeyError, TypeError): return {}
+    coverage = (read_json(verification) or {}).get('coverage') or {}
+    return {path: round(value['percent'] / 100, 4) for path, value in coverage.items() if isinstance(value, dict) and 'percent' in value}
 
 
 class _Indexes:

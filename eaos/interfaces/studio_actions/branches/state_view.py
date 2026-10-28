@@ -5,8 +5,9 @@ import fcntl
 from pathlib import Path
 
 from ....core.project import branches as reading, state as project_state
-from ....core.project.runs import ACTIVE, TERMINAL, _read_json, _write_json, now
+from ....core.project.runs import ACTIVE, TERMINAL, _write_json, now
 from .common import EAOS_EMAIL, _out, _when, git, say, work_of
+from ....core.system.files import read_json
 
 
 class StateView:
@@ -79,14 +80,14 @@ class StateView:
 
     # ------------------------------------------------------------------ provenance and policy
     def _registry(self):
-        return _read_json(self.store.folder / 'branch-provenance.json', {}) or {}
+        return read_json(self.store.folder / 'branch-provenance.json', {}) or {}
 
     def record(self, name, **fields):
         """Durable provenance of a branch EAOS made or changed: merged into the existing entry, never replacing it."""
         path = self.store.folder / 'branch-provenance.json'
         with (self.store.folder / 'branch-provenance.lock').open('a+') as lock:
             fcntl.flock(lock, fcntl.LOCK_EX)
-            data = _read_json(path, {}) or {}
+            data = read_json(path, {}) or {}
             entry = data.setdefault('branches', {}).setdefault(name, {'created_by': 'eaos', 'at': now()})
             for key, value in fields.items():
                 if key == 'checks': entry.setdefault('checks', []).append(value)
@@ -148,7 +149,7 @@ class StateView:
         head = head or self.head()
         analysis = state.get('branch') or head['branch']
         studio = self.actions._studio()
-        manifest = _read_json(Path(studio) / 'manifest.json', {}) if studio else {}
+        manifest = read_json(Path(studio) / 'manifest.json', {}) if studio else {}
         scanned = (manifest or {}).get('scanned') or {}
         tip = self.tip(f'refs/heads/{analysis}') if analysis else head['commit']
         return {'checkout': head, 'analysis': {'branch': analysis, 'selected': bool(state.get('branch')), 'tip': tip,

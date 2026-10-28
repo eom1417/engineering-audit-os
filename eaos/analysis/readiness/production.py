@@ -19,7 +19,8 @@ import json
 from pathlib import Path
 
 from ...facts.store import facts
-from ...live.trials.load_plans import _load, dependencies, routes, scenarios
+from ...live.trials.load_plans import dependencies, routes, scenarios
+from ...core.system.files import read_json
 
 ASPECTS = ('resilience', 'security', 'observability', 'performance')
 TOXICS = ('latency 2000 ms', 'timeout', 'down')
@@ -103,7 +104,7 @@ def _rate_limit_row(limits):
 
 def _surfaces(report):
     """Every surface of every feature in features.json."""
-    return [s for f in (_load(Path(report) / 'features.json', {}) or {}).get('features') or [] for s in f.get('surfaces') or []]
+    return [s for f in (read_json(Path(report) / 'features.json', {}) or {}).get('features') or [] for s in f.get('surfaces') or []]
 
 
 def _health_row(report):
@@ -137,7 +138,7 @@ def _observability(report):
 
 def _performance(report, measured):
     """The k6 baseline against the intake's thresholds; unmeasured, with why, when the baseline did not run here."""
-    baseline = _load(Path(report) / 'live/baseline.json', None) if measured else None
+    baseline = read_json(Path(report) / 'live/baseline.json', None) if measured else None
     if not baseline: return _estimated_rows([s for s in scenarios(report) if s.get('kind') == 'load'])
     return [_baseline_row(scenario, baseline.get('conditions')) for scenario in baseline.get('scenarios') or []]
 

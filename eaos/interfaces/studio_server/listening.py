@@ -1,7 +1,6 @@
 """Where the Studio's server listens and for how long: its socket (loopback, or beyond it for an exact Remote origin),
 uvicorn on it, the port and launch token it keeps across restarts, and its exit once idle (eaos/interfaces/studio_server/server.py
 builds the app it serves)."""
-import json
 import os
 import re
 import signal
@@ -11,6 +10,7 @@ from pathlib import Path
 
 from ...core.system import launch, studio_access as security
 from ...core.system.studio_access import Locks
+from ...core.system.files import read_json
 
 
 def _exit_when_idle(ctx, every=30):
@@ -51,9 +51,7 @@ def serve(app, sock=None, ready=None):
 def _drop_record(state):
     """This server's record goes as it ends; the record of the Studio that replaced it (an updated EAOS) stays."""
     path = launch.record_path(state)
-    try:
-        if json.loads(path.read_text(encoding='utf-8')).get('pid') == os.getpid(): path.unlink()
-    except (OSError, ValueError): pass
+    if (read_json(path) or {}).get('pid') == os.getpid(): path.unlink(missing_ok=True)
 
 
 def _bind_kept(state, port, remote_origin, remote=False):

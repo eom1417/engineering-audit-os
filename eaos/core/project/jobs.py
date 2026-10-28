@@ -26,6 +26,7 @@ import time
 import traceback
 from contextlib import contextmanager
 from datetime import datetime, timezone
+from ...core.system.files import read_json
 
 
 KEEP = 30           # the jobs a project keeps; older ended ones go with their logs
@@ -86,8 +87,7 @@ def _alive(pid):
 def running(project, kind=None):
     """The job still running for this project (and kind), if any: one piece of work at a time per project."""
     for path in sorted(folder(project).glob('*.json'), reverse=True):
-        try: record = json.loads(path.read_text(encoding='utf-8'))
-        except (OSError, ValueError): continue
+        record = read_json(path, {})
         if record.get('status') == 'running' and (kind is None or record['kind'] == kind):
             record = read(record['id'], project)
             if record['status'] == 'running': return record
@@ -102,8 +102,7 @@ def fixing(project):
 def _prune(project):
     """Keep the project's last KEEP jobs (a running one always), and drop the shared folder of older versions."""
     for path in sorted(folder(project).glob('*.json'), key=lambda found: found.stat().st_mtime)[:-KEEP]:
-        try: running = json.loads(path.read_text(encoding='utf-8')).get('status') == 'running'
-        except (OSError, ValueError): running = False
+        running = read_json(path, {}).get('status') == 'running'
         if not running:
             path.unlink(missing_ok=True)
             path.with_suffix('.log').unlink(missing_ok=True)

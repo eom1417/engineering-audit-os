@@ -21,6 +21,7 @@ import tempfile
 from pathlib import Path, PurePosixPath
 
 from ...core import progress
+from ...core.system.files import read_json
 
 RULES = Path(__file__).resolve().parents[2] / 'rules/codemods.json'
 TRANSFORM = Path(__file__).resolve().parents[2] / 'templates/codemods/remove-declaration.cjs'
@@ -219,8 +220,7 @@ def _lock_folders_with(target, package, version):
     found = []
     for lock in sorted(Path(target).rglob('package-lock.json')):
         if 'node_modules' in lock.parts: continue
-        try: packages = json.loads(lock.read_text(encoding='utf-8')).get('packages') or {}
-        except (OSError, ValueError): continue
+        packages = read_json(lock, {}).get('packages') or {}
         if any(key.split('node_modules/')[-1] == package and (row or {}).get('version') == version for key, row in packages.items()):
             found.append(str(PurePosixPath(lock.relative_to(target).as_posix()).parent))
     return found

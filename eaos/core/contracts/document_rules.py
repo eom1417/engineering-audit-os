@@ -3,6 +3,7 @@ from pathlib import Path
 import re
 
 from .artifacts import BY_NAME, BUDGETS, DOCUMENT
+from ...core.system.files import read_json
 
 # One source for what may be produced and how long it may be; rules.py used to keep its own list,
 # and sixteen documents were outside it and therefore never checked at all.
@@ -95,14 +96,12 @@ def missing_required(out, documents):
     With no manifest there was no pipeline run — a single command wrote part of a report — and we
     cannot call an artifact missing when nothing claimed it would be produced.
     """
-    import json
     manifest_path = Path(out) / 'run-manifest.json'
     if not manifest_path.is_file():
         return []
-    try:
-        manifest = json.loads(manifest_path.read_text(encoding='utf-8')).get('stages', {})
-    except ValueError:
-        return []
+    manifest = read_json(manifest_path)
+    if manifest is None: return []
+    manifest = manifest.get('stages', {})
     found = [f"R13 {artifact.name}: required, absent, and stage '{artifact.owner}' "
              f"does not explain it (status {(manifest.get(artifact.owner) or {}).get('status') or 'unknown'})"
              for artifact in BY_NAME.values() if not _explained(artifact, out, documents, manifest)]

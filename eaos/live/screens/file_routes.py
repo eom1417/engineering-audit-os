@@ -2,9 +2,9 @@
 turns into pages by their names (Next.js, Nuxt, SvelteKit, Astro, vite-plugin-pages, Expo Router, Streamlit's pages/),
 so a page no link reaches is still opened (Vitesse's /README, Streamlit's pages, Expo's onboarding steps were never
 pictured). A page with a parameter in its name ([id], :id, $id) is left to the links that fill it."""
-import json
 import re
 from pathlib import Path
+from ...core.system.files import read_json
 
 PAGES = ('.vue', '.md', '.mdx', '.tsx', '.jsx', '.ts', '.js', '.astro', '.svelte')
 # (dependency, folder, the files of it that are pages): each dependency the app has adds its folder
@@ -39,8 +39,8 @@ def _web_routes(root):
     web = app_folder(root)
     if web is None: return []
     app = root / web
-    try: deps = dependencies(json.loads((app / 'package.json').read_text(encoding='utf-8')))
-    except (OSError, ValueError): deps = {}
+    package = read_json(app / 'package.json')
+    deps = dependencies(package) if package is not None else {}
     if any(FILE_ROUTER.search(c.read_text(encoding='utf-8', errors='replace')) for c in app.glob('vite.config.*')):
         deps['vite-plugin-pages'] = ''      # Vue Router's own file routes (vue-router/vite): Vitesse
     return [route for dependency, folder, kind in LAYOUTS if dependency in deps for route in _routes(app / folder, kind)]

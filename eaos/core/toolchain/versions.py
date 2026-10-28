@@ -1,11 +1,11 @@
 """The version of each pinned tool installed now (`found_version`), and `doctor`: per tool, whether it is there at
 its pinned version, and why not."""
-import json
 import os
 import re
 import subprocess
 
 from .pins import Unavailable, binary_path, browsers, checkout, home, npm_prefix, release_spec, selected, tool_env, venv_of
+from ...core.system.files import read_json
 
 VERSION = re.compile(r'(\d+\.\d+\.\d+)')
 WHEEL = re.compile(r'-(\d+\.\d+\.\d+)-py3-none-any\.whl')
@@ -87,8 +87,7 @@ def package_version(tool, name=None):
     """The version of the npm package `name` (default: the tool's own package) installed in the tool's prefix, or
     None."""
     manifest = npm_prefix(tool) / 'node_modules' / (name or tool['install']['package']) / 'package.json'
-    try: return json.loads(manifest.read_text(encoding='utf-8')).get('version')
-    except (OSError, ValueError): return None
+    return (read_json(manifest) or {}).get('version')
 
 
 def _companions_missing(tool):
@@ -113,8 +112,9 @@ def pip_version(name, venv=None):
 def browser_missing():
     """'' when the pinned Playwright's Chromium is in browsers(), else what is missing."""
     manifest = home() / 'node/node_modules/playwright-core/browsers.json'
-    try: wanted = {b['name']: b['revision'] for b in json.loads(manifest.read_text(encoding='utf-8'))['browsers']}
-    except (OSError, ValueError, KeyError): return 'Playwright is not installed'
+    browsers_of = (read_json(manifest) or {}).get('browsers')
+    if not browsers_of: return 'Playwright is not installed'
+    wanted = {b['name']: b['revision'] for b in browsers_of}
     for name, folder in (('chromium', 'chromium'), ('chromium-headless-shell', 'chromium_headless_shell')):
         if name in wanted and not (browsers() / f'{folder}-{wanted[name]}').is_dir(): return f'{name} {wanted[name]} is not installed'
     return ''

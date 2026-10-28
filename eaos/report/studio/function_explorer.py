@@ -27,6 +27,7 @@ from pathlib import Path
 from ...facts.store import facts as facts_of
 from ...facts.code import flows
 from ...analysis.presentation.model import LANGUAGES
+from ...core.system.files import read_json
 
 SRC = {
     'functions': 'facts/syntax.json#symbol[kind in function, method] + engines lizard rows the parser did not read',
@@ -44,9 +45,8 @@ NEAR = 3
 
 def _owners(report):
     """{file: component name}: the deepest component of target-architecture.json listing the file (the map's rule)."""
-    import json
-    try: target = json.loads((Path(report) / 'target-architecture.json').read_text(encoding='utf-8'))
-    except (OSError, ValueError): return {}
+    target = read_json(Path(report) / 'target-architecture.json')
+    if target is None: return {}
     owners = {}
     comps = [c for c in target.get('current_components') or [] if isinstance(c, dict) and c.get('name')]
     for c in sorted(comps, key=lambda c: len(str(c['name']))):

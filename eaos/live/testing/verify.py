@@ -31,6 +31,7 @@ VERSION = '1'
 from ...core.project.workspace import SKIP_DIRS, write
 from .ran import merged, python_report, record, v8 as v8_functions
 from .suite import COVERAGERC, suite_health, with_timing
+from ...core.system.files import read_json
 
 LIMITATIONS = [
     'An isolated copy is not an operating-system sandbox; do not run untrusted projects here.',
@@ -219,8 +220,7 @@ def v8_coverage(folder, root):
     root = Path(root).resolve().as_posix().rstrip('/') + '/'
     files = {}
     for path in sorted(Path(folder).glob('*.json')):
-        try: scripts = json.loads(path.read_text(encoding='utf-8')).get('result') or []
-        except (OSError, ValueError): continue
+        scripts = read_json(path, {}).get('result') or []
         for script in scripts:
             relative = _own_source(script, root)
             if relative: _count_functions(files.setdefault(relative, {'functions': 0, 'functions_hit': 0}), script)

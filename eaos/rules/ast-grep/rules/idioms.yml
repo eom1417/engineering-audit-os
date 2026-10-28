@@ -12,7 +12,7 @@ rule:
   kind: try_statement
   all:
     - has: {stopBy: end, any: [{pattern: json.loads($P.read_text($$$))}, {pattern: json.load($F)}, {pattern: json.loads(open($$$).read())}]}
-    - has: {kind: except_clause}
+    - has: {kind: except_clause, regex: '\b(ValueError|JSONDecodeError|Exception)\b'}
 ---
 id: eaos.idiom.date-now-python
 language: Python

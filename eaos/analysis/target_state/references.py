@@ -13,6 +13,7 @@ import json
 import re
 from fnmatch import fnmatch
 from pathlib import Path
+from ...core.system.files import read_json
 
 CATALOGUE = Path(__file__).resolve().parents[2] / 'rules/reference-architectures.json'
 REQUIREMENT = re.compile(r'^\s*([A-Za-z0-9][A-Za-z0-9._-]*)')
@@ -27,8 +28,7 @@ def by_id(identifier):
 
 
 def _package_names(root):
-    try: data = json.loads((root / 'package.json').read_text(encoding='utf-8'))
-    except (OSError, ValueError): return set()
+    data = read_json(root / 'package.json', {})
     return set(data.get('dependencies') or {}) | set(data.get('devDependencies') or {})
 
 
@@ -57,8 +57,7 @@ SOURCE_SUFFIXES = {'.py', '.ts', '.tsx', '.js', '.jsx', '.mjs', '.go', '.java', 
 def _workspace(root):
     """A workspace monorepo: pnpm-workspace.yaml, turbo.json, or package.json workspaces."""
     if (root / 'pnpm-workspace.yaml').is_file() or (root / 'turbo.json').is_file(): return True
-    try: return bool(json.loads((root / 'package.json').read_text(encoding='utf-8')).get('workspaces'))
-    except (OSError, ValueError): return False
+    return bool(read_json(root / 'package.json', {}).get('workspaces'))
 
 
 TEST_PARTS = {'tests', 'test', '__tests__', 'e2e', 'fixtures'}

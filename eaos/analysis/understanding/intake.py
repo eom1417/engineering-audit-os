@@ -15,6 +15,7 @@ import json
 import re
 from pathlib import Path
 from ...facts.store import facts
+from ...core.system.files import read_json
 
 QUESTIONS = Path(__file__).resolve().parents[2] / 'rules/intake-questions.json'
 # Fields that identify a person wherever they appear, and fields that do so only on a person entity.
@@ -67,16 +68,17 @@ def hosting(target):
 
 
 def critical_features(out):
-    try: record = json.loads((Path(out) / 'features.json').read_text(encoding='utf-8'))
-    except (OSError, ValueError): return [], 'features.json is absent'
+    record = read_json(Path(out) / 'features.json')
+    if record is None: return [], 'features.json is absent'
     names = [feature['name'] for feature in record.get('features') or [] if feature.get('critical')]
     return names, f'{len(names)} of {len(record.get("features") or [])} features are on a critical path in features.json'
 
 
 def run_command(target):
     """How the project starts, from package.json: preview, then start, then dev; None when it does not say."""
-    try: scripts = json.loads((Path(target) / 'package.json').read_text(encoding='utf-8')).get('scripts') or {}
-    except (OSError, ValueError): return None
+    package = read_json(Path(target) / 'package.json')
+    if package is None: return None
+    scripts = package.get('scripts') or {}
     runner = next((tool for lock, tool in (('bun.lock', 'bun run'), ('bun.lockb', 'bun run'), ('pnpm-lock.yaml', 'pnpm run'),
                                           ('yarn.lock', 'yarn')) if (Path(target) / lock).is_file()), 'npm run')
     script = next((name for name in ('preview', 'start', 'dev') if name in scripts), None)

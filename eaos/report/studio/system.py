@@ -20,6 +20,7 @@ from pathlib import Path
 
 from ...analysis.maps import architecture as arch_map
 from . import territory
+from ...core.system.files import read_json
 
 MAX_NODES = 200
 SEVERITIES = ('critical', 'high', 'medium', 'low')
@@ -325,7 +326,7 @@ def _named_components(target):
 def system(report, card_rows):
     """The section's body: {world, counts, operations, src, current, target, capped}."""
     report = Path(report)
-    target = arch_map._load(report / 'target-architecture.json', {}) or {}
+    target = read_json(report / 'target-architecture.json', {}) or {}
     comps = _named_components(target)
     ranked = sorted(comps, key=lambda c: (-(c.get('files') or 0), c['name']))
     current = sorted(ranked[:MAX_NODES], key=lambda c: c['name'])

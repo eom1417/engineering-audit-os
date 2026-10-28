@@ -170,8 +170,7 @@ def _human_page(state, report, lang, progress, errors):
     try:
         from ...report.human_report import write
         write(report, lang or state.get('lang') or 'en', Path(state['project']).name, progress=progress)
-        try: errors += [f"{e.get('section')}: {e.get('error')}"[:300] for e in json.loads((report / 'human/errors.json').read_text(encoding='utf-8'))]
-        except (OSError, ValueError): pass
+        errors += [f"{e.get('section')}: {e.get('error')}"[:300] for e in read_json(report / 'human/errors.json', [])]
     except Exception as problem:            # the page itself could not be made: say so on it, never leave the old one
         errors.append(f'page: {type(problem).__name__}: {problem}'[:300])
         log_failure(outputs(state), problem)

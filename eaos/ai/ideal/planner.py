@@ -31,10 +31,11 @@ from ...live.access.roles import unseen
 from ...core.system.process import Stuck
 from ...analysis.repair.review import triage_verdicts
 from . import bundle as read
-from .base import EVIDENCE, LIMIT, OPERATIONS, VIEWS, _load, _slug
+from .base import EVIDENCE, LIMIT, OPERATIONS, VIEWS, _slug
 from .rules import proposal as _proposal, views as _rules_views
 from .studio import SECTION_VIEWS, _words, current, decisions, disagreements, provenance_of, scan_key, section  # noqa: F401  (the names others read here)
 from ..nodes.framework import digest, launcher_of, short as _short
+from ...core.system.files import read_json
 
 
 def _now():
@@ -47,9 +48,9 @@ def _verdicts(report):
 
 
 def _cards(report):
-    cards = (_load(Path(report) / 'studio/cards.json', {}) or {}).get('cards')
+    cards = (read_json(Path(report) / 'studio/cards.json', {}) or {}).get('cards')
     if isinstance(cards, list): return _with_id(cards)
-    return _with_id((_load(Path(report) / 'plan.json', {}) or {}).get('tasks') or [])
+    return _with_id((read_json(Path(report) / 'plan.json', {}) or {}).get('tasks') or [])
 
 
 def _with_id(rows):
@@ -72,7 +73,7 @@ def rules(report):
 def _disposition_rules():
     """The disposition rules (eaos/analysis/target_state/projection.py RULES), in their order."""
     from ...analysis.target_state.projection import RULES as DISPOSITION
-    disposition = _load(DISPOSITION, {}) or {}
+    disposition = read_json(DISPOSITION, {}) or {}
     return {f'RULE-disposition-{name}': _short((disposition.get(name) or {}).get('why'), 300) for name in disposition.get('order') or []}
 
 
@@ -96,7 +97,7 @@ def _infra_rules(target):
 
 def _pipeline_rules():
     """The pipeline rules (eaos/data/pipeline-rules.json): each one's title."""
-    pipeline = _load(Path(__file__).resolve().parents[2] / 'data/pipeline-rules.json', []) or []
+    pipeline = read_json(Path(__file__).resolve().parents[2] / 'data/pipeline-rules.json', []) or []
     return {f"RULE-pipeline-{_slug(rule['id'])}": _short(rule.get('title') or rule.get('text') or rule.get('rule'), 300)
             for rule in (pipeline.get('rules') or [] if isinstance(pipeline, dict) else pipeline) if isinstance(rule, dict) and rule.get('id')}
 
@@ -108,7 +109,7 @@ def known_ids(report, project=None):
     the baseline applied (RULE-)."""
     report = Path(report)
     known = set(rules(report)) | _fact_ids(report)
-    known.update(c['id'] for c in (_load(report / 'dossier.json', {}) or {}).get('claims') or [] if isinstance(c, dict) and c.get('id'))
+    known.update(c['id'] for c in (read_json(report / 'dossier.json', {}) or {}).get('claims') or [] if isinstance(c, dict) and c.get('id'))
     known.update(c['id'] for c in _cards(report))
     return {i for i in known if EVIDENCE.match(i)}
 
@@ -118,7 +119,7 @@ def _fact_ids(report):
     known = set()
     for path in sorted((report / 'facts').glob('*.json')):
         if path.name in ('syntax-cache.json', 'index.json', 'run.json'): continue
-        data = _load(path, {}) or {}
+        data = read_json(path, {}) or {}
         known.update(f['id'] for f in data.get('facts') or [] if isinstance(f, dict) and isinstance(f.get('id'), str))
     return known
 
@@ -149,7 +150,7 @@ def bundle(report, project=None, lang='en'):
         'cards_omitted': max(0, len(cards) - LIMIT['cards']),
         'semantic': read.semantic(report),
         'visual': _visual(report),
-        'not_seen': unseen(_load(report / 'live/screens.json', {}))[:40],
+        'not_seen': unseen(read_json(report / 'live/screens.json', {}))[:40],
         'facts': read.facts_digest(report),
         'features': read.features(report),
         'decisions': {'structure': _structure_decisions(target)[:40], 'waiting_for_the_person': read.waiting(report, project),
@@ -170,7 +171,7 @@ def _baseline(views):
 def _visual(report):
     """The visual reviewer's findings, the first 30, in short."""
     return [{k: f.get(k) for k in ('page', 'viewport', 'theme', 'title', 'kind', 'severity')}
-            for f in (_load(report / 'nodes/visual_reviewer/findings.json', {}) or {}).get('findings') or []][:30]
+            for f in (read_json(report / 'nodes/visual_reviewer/findings.json', {}) or {}).get('findings') or []][:30]
 
 
 def _structure_decisions(target):
@@ -316,7 +317,7 @@ def _elements(ideal):
 
 def _record(folder, row):
     path = folder / 'runs.json'
-    rows = (_load(path, []) or [])[-19:] + [row]
+    rows = (read_json(path, []) or [])[-19:] + [row]
     path.write_text(json.dumps(rows, ensure_ascii=False, indent=1) + '\n', encoding='utf-8')
 
 

@@ -41,9 +41,8 @@ def every():
     """Every project's state on this computer that reads, in the order of their folders."""
     out = []
     for record in sorted((home() / 'projects').glob(f'*/{FILE}')):
-        try: out.append(json.loads(record.read_text(encoding='utf-8')))
-        except (OSError, ValueError): continue
-    return out
+        out.append(read_json(record))
+    return [row for row in out if row is not None]
 
 
 def looks_like_project(folder):

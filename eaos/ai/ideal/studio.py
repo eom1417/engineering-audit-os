@@ -7,9 +7,10 @@ import hashlib
 from pathlib import Path
 from typing import NamedTuple
 
-from .base import VIEWS, _load, _slug, guard_words
+from .base import VIEWS, _slug, guard_words
 from .rules import views as _rules_views
 from ..nodes.framework import short as _short
+from ...core.system.files import read_json
 
 # The studio sections that draw a target, and the view whose provenance each carries (tools/make_contracts.py).
 SECTION_VIEWS = {'system': 'system', 'story': 'system', 'gaps': 'change', 'operations': 'plan_order', 'plans': 'plan_order',
@@ -56,8 +57,8 @@ def scan_key(report):
 def current(report):
     """(plan record or None, state): the plan when it was made for this check, and the section's state."""
     report = Path(report)
-    record = _load(report / 'ideal/plan.json')
-    runs = _load(report / 'ideal/runs.json', []) or []
+    record = read_json(report / 'ideal/plan.json')
+    runs = read_json(report / 'ideal/runs.json', []) or []
     last = runs[-1] if runs else None
     if isinstance(record, dict) and record.get('scan') == scan_key(report):
         return record, 'planned'
@@ -170,7 +171,7 @@ def section(report, lang='ar'):
     """The body of studio/ideal.json (contract studio-ideal)."""
     report = Path(report)
     record, state = current(report)
-    runs = _load(report / 'ideal/runs.json', []) or []
+    runs = read_json(report / 'ideal/runs.json', []) or []
     message = _message(state, record, runs)
     ideal = (record or {}).get('ideal') or {}
     rules_views, plan = _rules_views(report), _Plan(record, ideal, state, message)
@@ -207,8 +208,8 @@ def disagreements(report, lang='ar'):
     reconcile, eaos/analysis/planning/cards.py confirm): both views, and the one the check kept as the answer: the assistant's where it
     cited evidence and passed the guards, the rule's where a guard kept it."""
     ar = lang == 'ar'
-    target = _load(Path(report) / 'target-architecture.json', {}) or {}
-    cards = _load(Path(report) / 'cards.json', {}) or {}
+    target = read_json(Path(report) / 'target-architecture.json', {}) or {}
+    cards = read_json(Path(report) / 'cards.json', {}) or {}
     return ([_disagreement(row, ar) for row in target.get('disagreements') or []]
             + [_set_aside(row, ar) for row in cards.get('set_aside') or []])
 

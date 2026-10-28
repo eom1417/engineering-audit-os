@@ -7,6 +7,7 @@ from pathlib import Path
 
 from ....analysis.maps import architecture as arch_map
 from .routes import TEST, _norm
+from ....core.system.files import read_json
 
 def _pages_and_links(report):
     pages, links = [], []     # the code's page and link rows; the crawl's pages stand in when the code names none
@@ -72,7 +73,7 @@ def _target_of(target):
 
 def _feature_of(report):
     """{surface: the first feature naming it}."""
-    features = arch_map._load(report / 'features.json', {}) or {}
+    features = read_json(report / 'features.json', {}) or {}
     feature_of = {}
     for f in (features.get('features') if isinstance(features, dict) else None) or []:
         if not (isinstance(f, dict) and f.get('name')): continue
@@ -83,7 +84,7 @@ def _feature_of(report):
 def _shots(report, media):
     """{route: the screen shots taken of it}; media: media.json's images, else the report's studio/media.json."""
     if media is None:
-        media = arch_map._load(report / 'studio/media.json', {}) or {}
+        media = read_json(report / 'studio/media.json', {}) or {}
         media = media.get('images') if isinstance(media, dict) else None
     shots = defaultdict(list)
     for image in media or []:
@@ -98,7 +99,7 @@ def records(report, media=None):
     report = Path(report)
     pages, links = _pages_and_links(report)
     names, defined = _names(report)
-    target = arch_map._load(report / 'target-architecture.json', {}) or {}
+    target = read_json(report / 'target-architecture.json', {}) or {}
     comps = [c for c in target.get('current_components') or [] if isinstance(c, dict) and c.get('name')]
     return {'pages': pages, 'links': links, 'imports': _imports(report), 'dead': _dead(report), 'names': names, 'defined': defined,
             'owners': _owners(comps), 'target_of': _target_of(target), 'feature_of': _feature_of(report),

@@ -16,8 +16,10 @@ import shutil
 import subprocess
 import sys
 from pathlib import Path
+from ...core.system.files import read_json
 
 TEMPLATES = Path(__file__).resolve().parents[2] / 'templates/assistants'
+BROKEN = object()        # a hooks file that is not JSON
 BEGIN, END = '<!-- EAOS: begin (eaos assistant install) -->', '<!-- EAOS: end -->'
 
 
@@ -35,8 +37,8 @@ def add_session_hook(path):
     """EAOS's SessionStart hook in a hooks file of Claude Code's shape ({"hooks": {"SessionStart": [{"hooks": [...]}]}}),
     replacing an older EAOS hook and keeping everything else in the file as it is."""
     path = Path(path)
-    try: data = json.loads(path.read_text(encoding='utf-8')) if path.is_file() else {}
-    except ValueError: return None                       # a file the person broke is theirs to fix: never overwritten
+    data = read_json(path, BROKEN) if path.is_file() else {}
+    if data is BROKEN: return None                       # a file the person broke is theirs to fix: never overwritten
     groups = (data.setdefault('hooks', {})).setdefault('SessionStart', [])
     for group in groups:
         group['hooks'] = [h for h in group.get('hooks') or [] if 'handover --hook' not in str(h.get('command', ''))]

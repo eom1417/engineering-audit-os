@@ -153,8 +153,8 @@ def columns(text, line):
 
 
 def _target(report):
-    try: return Path(json.loads((Path(report) / 'facts/run.json').read_text(encoding='utf-8'))['target'])
-    except (OSError, ValueError, KeyError): return None
+    target = (read_json(Path(report) / 'facts/run.json') or {}).get('target')
+    return Path(target) if target else None
 
 
 def _table_fields(root, location):

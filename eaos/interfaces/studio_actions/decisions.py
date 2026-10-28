@@ -5,8 +5,9 @@ from pathlib import Path
 
 from ...journeys.build_from_plan import steps as build_tools
 from ...journeys.fix import selection as selecting
-from ...core.project.runs import now, _read_json, _write_json
+from ...core.project.runs import now, _write_json
 from .lane_assistants import Refused
+from ...core.system.files import read_json
 
 
 def _chosen_answer(question, option, text):
@@ -56,7 +57,7 @@ class Decisions:
     def report_decisions(self):
         folder = self._studio()
         rows = (selecting._load(folder, 'decisions') or {}).get('decisions', []) if folder else []
-        saved = _read_json(self.store.folder / 'decisions.json', {}) or {}
+        saved = read_json(self.store.folder / 'decisions.json', {}) or {}
         result = []
         for question in rows:
             scope = selecting.decision_scope(folder, question)
@@ -79,7 +80,7 @@ class Decisions:
             option, text = body.get('option'), body.get('text')
             chosen = _chosen_answer(question, option, text)
             path = self.store.folder / 'decisions.json'
-            saved = _read_json(path, {}) or {}
+            saved = read_json(path, {}) or {}
             response = _owner_response(saved, row, (decision, option, text, chosen), path)
             if question.get('tool') == 'blueprint': return build_tools.answered(self.project, row, response)
             self._review_queued(question, response, body.get('assistant'))

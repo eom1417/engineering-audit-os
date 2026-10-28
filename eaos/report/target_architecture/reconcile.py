@@ -42,9 +42,8 @@ def _critical_files(out):
 
 def _view(out):
     """The system view of this check's planned ideal, with the departures that say why: ([elements], {id: why})."""
-    import json
-    try: record = json.loads((Path(out) / 'ideal/plan.json').read_text(encoding='utf-8'))
-    except (OSError, ValueError): return [], {}
+    record = read_json(Path(out) / 'ideal/plan.json')
+    if record is None: return [], {}
     ideal = record.get('ideal') or {}
     because = {str(d.get('element')): d.get('because') for d in ideal.get('departures') or []
                if isinstance(d, dict) and d.get('view') == 'system'}
@@ -163,9 +162,7 @@ def _elements_on(elements, known):
 
 def _set_aside(out):
     """The cards and claims the triage set aside (cards.json)."""
-    import json
-    try: set_aside = json.loads((Path(out) / 'cards.json').read_text(encoding='utf-8')).get('set_aside') or []
-    except (OSError, ValueError): set_aside = []
+    set_aside = (read_json(Path(out) / 'cards.json') or {}).get('set_aside') or []
     return {row.get(key) for row in set_aside for key in ('card', 'claim_id') if row.get(key)}
 
 

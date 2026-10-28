@@ -11,6 +11,7 @@ from datetime import datetime, timezone
 import json
 from pathlib import Path
 from . import SCHEMA_VERSION, digest
+from ..core.system.files import read_json
 
 SHARED = ('extractor', 'extractor_version', 'limitations')
 
@@ -79,8 +80,7 @@ class Sets(Mapping):
 
 def _holding(out, kinds):
     """The sets that can hold a fact of `kinds`: those the index lists with one, and any it does not describe."""
-    try: index = {row['set']: row.get('kinds') for row in json.loads((Path(out) / 'facts/index.json').read_text(encoding='utf-8'))['sets']}
-    except (OSError, ValueError, KeyError): index = {}
+    index = {row['set']: row.get('kinds') for row in (read_json(Path(out) / 'facts/index.json') or {}).get('sets') or []}
     return [name for name in Sets(out) if index.get(name) is None or set(index[name]) & set(kinds)]
 
 

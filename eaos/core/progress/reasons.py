@@ -4,9 +4,9 @@ The texts live in eaos/data/errors.json -> reasons, beside the plain errors (the
 when something did not happen). A code the catalog does not know gives None: the reader then shows the sentence EAOS
 wrote itself, never an empty place.
 """
-import json
 from functools import lru_cache
 from pathlib import Path
+from ...core.system.files import read_json
 
 CATALOG = Path(__file__).resolve().parents[2] / 'data/errors.json'
 
@@ -14,8 +14,7 @@ CATALOG = Path(__file__).resolve().parents[2] / 'data/errors.json'
 @lru_cache(maxsize=1)
 def reasons():
     """{code: {'ar': text, 'en': text}} from the catalog; {} when it cannot be read."""
-    try: return dict(json.loads(CATALOG.read_text(encoding='utf-8')).get('reasons') or {})
-    except (OSError, ValueError): return {}
+    return dict(read_json(CATALOG, {}).get('reasons') or {})
 
 
 def reason_text(code, language='ar'):

@@ -20,11 +20,11 @@ there, so everything found is the change's). A gate counts only what the change 
 
 Each problem is {'gate', 'where', 'what'}; `what` is the sentence the assistant reads, with its place.
 """
-import json
 import re
 from pathlib import Path
 
 from ...core.contracts.code_laws import MAX_COMPLEXITY, MAX_LINES
+from ...core.system.files import read_json
 
 ASIDE = re.compile(r'(\.test\.|\.spec\.|/tests?/|^tests?/|e2e/|\.config\.)')     # a copy here is not the code's
 
@@ -91,8 +91,7 @@ def _added(rows, before, after):
 
 def _facts(folder, name):
     file = Path(folder) / 'facts' / f'{name}.json'
-    try: return json.loads(file.read_text(encoding='utf-8'))['facts'] if file.is_file() else []
-    except (OSError, ValueError, KeyError): return []
+    return (read_json(file) or {}).get('facts') or []
 
 
 # ---------------------------------------------------------------- structure

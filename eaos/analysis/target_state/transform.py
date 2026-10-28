@@ -11,6 +11,7 @@ import sys
 from ...core import progress
 from ...facts.store import read_set
 from .sustainability import compute, _transformations
+from ...core.system.files import read_json
 
 
 NAME = 'transform-plan'
@@ -44,9 +45,7 @@ MANIFEST_TESTS = (('go.mod', ['go', 'test', './...']), ('Cargo.toml', ['cargo', 
 def _npm_test(target):
     """True when package.json declares a real test script, not npm's placeholder."""
     package = target / 'package.json'
-    if not package.is_file(): return False
-    try: scripts = json.loads(package.read_text(encoding='utf-8')).get('scripts', {})
-    except (ValueError, OSError): scripts = {}
+    scripts = read_json(package, {}).get('scripts', {})
     return bool(scripts.get('test')) and 'no test specified' not in scripts['test'].lower()
 
 

@@ -20,8 +20,7 @@ LIMITATIONS = ['Read from the code, the migrations and the built output; a guard
 
 def _policy_layers(target):
     path = Path(target) / 'eaos.policy.json'
-    try: return json.loads(path.read_text(encoding='utf-8')).get('layers') if path.is_file() else None
-    except ValueError: return None
+    return (read_json(path) or {}).get('layers')
 
 
 def _said(row, live=False):

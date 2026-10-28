@@ -32,9 +32,10 @@ import re
 from collections import defaultdict
 from pathlib import Path
 
-from .system_paths import (METHODS, _facts, _load, _path, _reach, _words, api_group, clean_path, is_test,
+from .system_paths import (METHODS, _facts, _path, _reach, _words, api_group, clean_path, is_test,
                            route_of_file, same_route)
 from .system_view import assemble
+from ...core.system.files import read_json
 
 DEPTH = 3
 NOT_TABLES = {'if', 'not', 'exists', 'a', 't', 'the', 'this', 'that', 'table', 'select', 'from', 'where', 'as', 'on', 'x'}
@@ -68,7 +69,7 @@ def records(report):
            'owner': {}, 'components': {}, 'methods': defaultdict(set), 'symbols': defaultdict(set), 'packages': defaultdict(set), 'root': ''}
     for fact in _facts(report, 'entrypoints', 'entry_point', 'data_access'): _entry_record(fact, out)
     out['flows'] = [_flow_record(flow) for flow in _facts(report, 'flows', 'flow')]
-    out['features'] = _named_features(_load(report / 'features.json', {}))
+    out['features'] = _named_features(read_json(report / 'features.json', {}))
     out['imports'].update(_imports(report))
     for table in _facts(report, 'domain', 'data_table'): _table_record(table, out)
     for fact in _facts(report, 'syntax', 'symbol', 'import_edge'): _syntax_record(fact, out)
@@ -146,7 +147,7 @@ def _syntax_record(fact, out):
 
 
 def _component_records(report, out):
-    target = _load(report / 'target-architecture.json', {})
+    target = read_json(report / 'target-architecture.json', {})
     target = target if isinstance(target, dict) else {}
     out['root'] = str(target.get('root') or '')
     for c in target.get('current_components') or []: _component_record(c, out)

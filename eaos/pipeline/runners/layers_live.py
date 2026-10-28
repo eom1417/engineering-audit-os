@@ -16,14 +16,16 @@ from pathlib import Path
 
 from .live_app import _live
 from ..stages import SkipStage
+from ...core.system.files import read_json
 
 ADVISED = {'rls_disabled_in_public', 'rls_policy_always_true', 'security_definer_view', 'rls_enabled_no_policy'}
 LEVELS = {'ERROR': 'high', 'WARN': 'medium', 'INFO': 'low'}
 
 
 def _record(context):
-    try: return json.loads((context.out / 'layers.json').read_text(encoding='utf-8'))
-    except (OSError, ValueError): raise SkipStage('the layers were not read in this check', code='no_layers')
+    record = read_json(context.out / 'layers.json')
+    if record is None: raise SkipStage('the layers were not read in this check', code='no_layers')
+    return record
 
 
 def built(context, runtime, record):

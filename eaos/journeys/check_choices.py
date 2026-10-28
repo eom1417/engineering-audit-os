@@ -15,7 +15,6 @@ assistant (the MCP audit tool) and the Studio.
 The paths are asked for each check (a focused check is a choice of the moment); the mode and the sign-in are kept. The
 state comes from its callers (eaos/journeys/guided/ loads and saves it), so this module sits below them.
 """
-import json
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -26,6 +25,7 @@ from ..pipeline.path_choice import resolve
 from ..pipeline.schedule import MODES, forecast
 from ..pipeline.stages import BY_NAME, ORDER, dependents
 from ..core.progress import previous_seconds
+from ..core.system.files import read_json
 
 SIGN_IN = ('hand', 'test_user', 'none')        # by hand on the sign-in page, the assistant's seed script, no sign-in
 
@@ -113,8 +113,7 @@ def without_ai_kept(report, without_ai, again_from, chosen):
     """Whether a check runs without the assistant: when asked, or when it goes on (`again_from`) from a check that ran
     without it (its AI stages say so) and no assistant was chosen now, so a redo never stops on one never used."""
     if without_ai or not again_from or chosen: return bool(without_ai)
-    try: stages = json.loads((Path(report) / 'run-manifest.json').read_text(encoding='utf-8')).get('stages') or {}
-    except (OSError, ValueError, TypeError): return False
+    stages = (read_json(Path(report) / 'run-manifest.json') or {}).get('stages') or {}
     return any((row or {}).get('reason_code') == 'ai_skipped' for row in stages.values())
 
 

@@ -28,6 +28,7 @@ from pathlib import Path
 from ...analysis.maps import architecture as arch_map
 from .data_paths_layout import FAMILIES, MAX_LANE, view  # noqa: F401  (MAX_LANE: a lane's limit, read here by the tests)
 from .system import owner_of
+from ...core.system.files import read_json
 
 WRITES = {'post', 'put', 'patch', 'delete', 'insert', 'update', 'upsert', 'rpc', 'storage'}
 READS = {'get', 'select'}
@@ -110,7 +111,7 @@ def _site(fact):
 
 def _component_of(report):
     """(owner(path) -> current component name | None, {current name: target name}, target known)."""
-    record = arch_map._load(Path(report) / 'target-architecture.json', {}) or {}
+    record = read_json(Path(report) / 'target-architecture.json', {}) or {}
     comps = [c for c in record.get('current_components') or [] if isinstance(c, dict) and c.get('name')]
     owner = owner_of([c['name'] for c in comps]) if comps else (lambda path: None)
     goes = {c['name']: c.get('target_component') for c in comps}

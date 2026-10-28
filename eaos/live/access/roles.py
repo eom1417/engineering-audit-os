@@ -15,6 +15,7 @@ import json
 import re
 from pathlib import Path
 from urllib.parse import urlsplit
+from ...core.system.files import read_json
 
 MOST = 10
 WAY_IN = ('strategy', 'sign_in')
@@ -69,8 +70,7 @@ def proven(out):
 
 
 def _record(out):
-    try: return json.loads((Path(out) / 'roles.json').read_text(encoding='utf-8')) if out else {}
-    except (OSError, ValueError): return {}
+    return read_json(Path(out) / 'roles.json', {}) if out else {}
 
 
 def pages_of(out, served=True):

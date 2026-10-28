@@ -27,6 +27,7 @@ from .files import github_actions, make_targets, npm_scripts, json_exports
 from .langgraph import langgraph
 from .queues import queues
 from .read import slug, site, Py, _str, _unparse, KINDS, HOW, DETECTED_AT
+from ...core.system.files import read_json
 
 NAME = 'pipeline'
 
@@ -314,7 +315,6 @@ def write(report, record):
 def read(report):
     """The record of a report's facts/pipeline.json, or None when the check did not write it."""
     path = Path(report) / 'facts' / 'pipeline.json'
-    if not path.is_file(): return None
-    try: return record_of(json.loads(path.read_text(encoding='utf-8')).get('facts') or [])
-    except (OSError, ValueError): return None
+    body = read_json(path)
+    return None if body is None else record_of(body.get('facts') or [])
 

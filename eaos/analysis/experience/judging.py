@@ -258,8 +258,8 @@ def _witnessed(row):
 def _indexed(report, entry):
     """The `experience` set listed in the facts' index of the check it judges (its target kept), so the claims read it;
     nothing when the report holds no check."""
-    try: target = json.loads((Path(report) / 'facts/run.json').read_text(encoding='utf-8'))['target']
-    except (OSError, ValueError, KeyError): return
+    target = (read_json(Path(report) / 'facts/run.json') or {}).get('target')
+    if target is None: return
     add_to_index(report, target, entry)
 
 

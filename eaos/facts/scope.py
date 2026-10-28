@@ -9,9 +9,9 @@ into an audit of that dependency: the reader wants a report about their code. By
 the engine excludes a small set of well-known vendored directory names; a project that
 genuinely wants them analysed declares `include_vendored: true` in `eaos.policy.json`.
 """
-import json
 import subprocess
 from pathlib import Path
+from ..core.system.files import read_json
 
 FILENAME = 'eaos.policy.json'
 # .claude/worktrees: the working copies an AI assistant makes of the project inside it, whole copies of its code.
@@ -28,8 +28,7 @@ def _analysis(target, path=None):
     """The policy's `analysis` section; {} when the project has none or its policy does not read."""
     candidate = Path(path) if path else Path(target) / FILENAME
     if not candidate.is_file(): return {}
-    try: policy = json.loads(candidate.read_text(encoding='utf-8'))
-    except (ValueError, OSError): return {}
+    policy = read_json(candidate)
     analysis = policy.get('analysis') if isinstance(policy, dict) else None
     return analysis if isinstance(analysis, dict) else {}
 

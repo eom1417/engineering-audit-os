@@ -6,12 +6,12 @@ missing then, the person is asked (the Studio's Waiting for you, the assistant's
 sign-in`) and waited for while every stage that opens no page goes on. Nobody signing in within the wait ends it with
 that reason, and the page stages see the app signed out, which the report says.
 """
-import json
 from pathlib import Path
 
 from ...live.access import sign_in
 from .live_app import _keep, _live, shared_app
 from ..stages import SkipStage
+from ...core.system.files import read_json
 
 CHOSEN_OUT = 'the person chose no sign-in: the pages behind it were seen signed out, as a visitor sees them'
 NOBODY = ('nobody signed in within {minutes} minutes: the pages behind the sign-in were seen signed out, as a visitor '
@@ -91,8 +91,7 @@ def _ask(context, chosen, live, base, state):
 
 def _setup_page(context):
     """The first page and screens the setup's probe opened (live/setup.json), signed out unless a seed signed in."""
-    try: return json.loads((context.out / 'live/setup.json').read_text(encoding='utf-8')).get('page')
-    except (OSError, ValueError): return None
+    return (read_json(context.out / 'live/setup.json') or {}).get('page')
 
 
 def _published(context, chosen):
