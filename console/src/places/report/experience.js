@@ -35,12 +35,12 @@ function overview(s) {
   const reached = s.time.filter(g => g.status === 'reached').length;
   const replays = s.replays.summary || {};
   return facts([
-    [t('rp.ex.goals'), esc(t('rp.ex.reached', { n: num(reached), all: num(s.time.length) }))],
-    [t('rp.ex.difficulties'), num(s.difficulties.ranked.length)],
-    [t('rp.ex.tickets'), num(s.tickets.length)],
-    replays.green != null || replays.red != null ? [t('rp.ex.replays'), esc(t('rp.ex.replays.v', { green: num(replays.green || 0), red: num(replays.red || 0) }))] : null,
-    s.seconds != null ? [t('rp.ex.total'), `${seconds(s.seconds)}${s.calls != null ? ' · ' + esc(tn('rp.ex.calls', s.calls)) : ''}`] : null,
-  ]);
+      [t('rp.ex.goals'), esc(t('rp.ex.reached', { n: num(reached), all: num(s.time.length) }))],
+      [t('rp.ex.difficulties'), num(s.difficulties.ranked.length)],
+      [t('rp.ex.tickets'), num(s.tickets.length)],
+      replays.green != null || replays.red != null ? [t('rp.ex.replays'), esc(t('rp.ex.replays.v', { green: num(replays.green || 0), red: num(replays.red || 0) }))] : null,
+      s.seconds != null ? [t('rp.ex.total'), `${seconds(s.seconds)}${s.calls != null ? ' · ' + esc(tn('rp.ex.calls', s.calls)) : ''}`] : null,
+    ]);
 }
 
 function step(st, n) {

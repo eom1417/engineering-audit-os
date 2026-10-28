@@ -3,12 +3,8 @@
 // the batches' progress, the question it waits on, the result or the error and the timeline (derive.deriveRun); a
 // check's stages by layer from /api/progress, and the replay of a finished check at x10 or x30.
 import {
-  t, tn, L, num, esc, rich, icon, code, diffLines, href, fmtWhen, screen, act, refresh, refreshSoon, afterRender, parseHash, offline, has,
-  live, store, model, client, derive, ac, md,
-  inlineSwitch,
-  facts,
-  titledSection,
-  notFound,
+  t, tn, L, num, esc, rich, icon, code, diffLines, href, fmtWhen, screen, act, refresh, refreshSoon, afterRender, parseHash, offline, has, live,
+  store, model, client, derive, ac, md, inlineSwitch, facts, titledSection, notFound,
 } from 'eaos';
 import { controls, byOf } from './activity.js';
 import { stagesOf, board, counts, finished, summary, span, lostOf, stageTitle } from './stages.js';

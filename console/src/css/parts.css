@@ -16,6 +16,7 @@
 /* ---------- space around a block ---------- */
 .mt-0-5 { margin-top: var(--s0-5); }
 .mt-1 { margin-top: var(--s1); }
+.mt-1-5 { margin-top: var(--s1-5); }
 .mt-2 { margin-top: var(--s2); }
 .mt-3 { margin-top: var(--s3); }
 .mt-4 { margin-top: var(--s4); }
@@ -24,8 +25,10 @@
 .mt-8 { margin-top: var(--s8); }
 .mb-2 { margin-bottom: var(--s2); }
 .mb-3 { margin-bottom: var(--s3); }
+.my-3 { margin: var(--s3) 0; }
 .stack-2 { display: grid; gap: var(--s2); }
 .stack-3 { display: grid; gap: var(--s3); }
+.block { display: block; }
 
 /* ---------- a block reaching its panel's edges ---------- */
 .bleed { margin: 0 calc(var(--s4) * -1); }
@@ -37,7 +40,7 @@
 .wcard__why { border-radius: 0 0 var(--r-md) var(--r-md); }
 .own__foot { display: flex; justify-content: space-between; gap: var(--s3); }
 
-/* ---------- rows to pick from, and a few layouts said once ---------- */
+/* ---------- rows to pick from, and layouts said once ---------- */
 .row--pick { min-height: 48px; gap: var(--s3); }
 .row--facet { padding-inline: var(--s1); }
 .row--flush { padding-inline: 0; }
@@ -47,6 +50,3 @@
 .pick__label { margin-inline-start: var(--s2-5); }
 .actions--center { justify-content: center; }
 .empty--none { justify-items: center; text-align: center; padding: var(--s16) var(--s4); }
-.block { display: block; }
-.mt-1-5 { margin-top: var(--s1-5); }
-.my-3 { margin: var(--s3) 0; }

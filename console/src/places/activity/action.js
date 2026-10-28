@@ -1,12 +1,8 @@
 // One action's preview with its form (RUN-13, FIX-14, FIX-16): the sheet ?sheet=action:<id> every action of the
 // launcher opens (launch.js); a reading tool answers in place, any other starts a run.
 import {
-  t, L, num, esc, icon, code, href, sheet, act, rerenderSheet, local, parseHash, closeSheetThen, toast, refresh, offline, chk,
-  S, store, model, client, contract, ActionError, has, ac,
-  terminalFold,
-  toggleRow,
-  radio,
-  facts,
+  t, L, num, esc, icon, code, href, sheet, act, rerenderSheet, local, parseHash, closeSheetThen, toast, refresh, offline, chk, S, store, model,
+  client, contract, ActionError, has, ac, terminalFold, toggleRow, radio, facts,
 } from 'eaos';
 import { metaOf, reading, said, alertLine } from './launch.js';
 
@@ -99,7 +95,12 @@ function consentHTML(a) {
 function actionFacts(a, p) {
   if (!p || reading(a)) return '';
   const estimate = p.estimate && p.estimate.minutes_high > 1 ? `<dt>${t('pv.estimate')}</dt><dd>${esc(t('pv.estimate.v', { lo: num(p.estimate.minutes_low), hi: num(p.estimate.minutes_high) }))}<span class="small muted" style="display:block">${esc(L(p.estimate.basis))}</span></dd>` : '';
-  return facts([estimate, [t('pv.risk'), `<span class="tag ${p.risk.level === 'high' ? 'tag--caution' : 'tag--state'}">${t('pv.risk.' + p.risk.level)}</span>`], [t('pv.fail'), esc(L(p.on_failure)), 'small'], a.needs_assistant ? `<dt>${t('pv.who')}</dt><dd>${p.assistant ? esc(p.assistant.name) : esc(t('pv.handoff'))}</dd>` : '']);
+  return facts([
+      estimate,
+      [t('pv.risk'), `<span class="tag ${p.risk.level === 'high' ? 'tag--caution' : 'tag--state'}">${t('pv.risk.' + p.risk.level)}</span>`],
+      [t('pv.fail'), esc(L(p.on_failure)), 'small'],
+      a.needs_assistant ? [t('pv.who'), p.assistant ? esc(p.assistant.name) : esc(t('pv.handoff'))] : '',
+    ]);
 }
 const answerHTML = own => (own.answer !== undefined ? `<div class="ac-answer" role="status"><div class="block-title">${t('ac.ax.answer')}</div>${ac.answerHTML(own.answer) || `<p class="small muted">${t('ac.ax.answer.none')}</p>`}</div>` : '');
 function actionBody(a, own) {

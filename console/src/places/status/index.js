@@ -1,13 +1,8 @@
 // S-01 Status: where the project stands and the one step that fits now (PRJ-01..12, HIS-02, BLD-04, SET-06), on the
 // report and the live command state. Its sheets: freshness (PRJ-04) and health on the phone (PRJ-02).
 import {
-  t, tn, L, num, esc, icon, code, sev, href, band, fmtWhen, exactTime, screen, sheet, liveNow, freshness, live, model, data, contract, prefs, derive, has,
-  smallFold,
-  rowWords,
-  ac,
-  facts,
-  titledBlock,
-  pageHead,
+  t, tn, L, num, esc, icon, code, sev, href, band, fmtWhen, exactTime, screen, sheet, liveNow, freshness, live, model, data, contract, prefs, derive,
+  has, smallFold, rowWords, ac, facts, titledBlock, pageHead,
 } from 'eaos';
 import { buildStep, nm } from '../kit/kit.js';
 
@@ -162,8 +157,14 @@ function journeySteps() {
 
 // where the project stands: what is next, the last check and fix batch, the branches waiting
 function standHTML(ctx, { p, tot, n, lastFix, waiting }) {
-  return `${facts([n.short ? `<dt>${t('st.stand.next')}</dt><dd>${esc(n.short)}</dd>` : '', [t('st.stand.checked'), t('st.stand.checked.v', { commit: code(p.commit.slice(0, 7)) })], tot.all_cards ? `<dt>${t('st.stand.progress')}</dt><dd>${esc(t('st.stand.progress.v', { closed: num(tot.closed), all: num(tot.all_cards) }))}</dd>` : '', lastFix ? `<dt>${t('st.stand.batch')}</dt><dd>${esc(t('st.stand.batch.v', { state: L(contract.STATE_WORDS[lastFix.state]), label: derive.labelOf(lastFix.label, prefs.lang) }))}
-        ${lastFix.state === 'stopped' && !lastFix.outcome && !ctx.offline ? `<div class="mt-1"><button class="btn btn--secondary btn--sm" data-act="sheet" data-sheet="action:fix_abandon">${t('st.stand.close')}</button></div>` : ''}</dd>` : '', waiting.map(run => `<dt>${t('st.stand.branch')}</dt><dd><a class="link" href="${href('/waiting/' + encodeURIComponent(run.id))}">${code(run.result.branch)}</a></dd>`).join('')])}
+  return `${facts([
+      n.short ? [t('st.stand.next'), esc(n.short)] : '',
+      [t('st.stand.checked'), t('st.stand.checked.v', { commit: code(p.commit.slice(0, 7)) })],
+      tot.all_cards ? [t('st.stand.progress'), esc(t('st.stand.progress.v', { closed: num(tot.closed), all: num(tot.all_cards) }))] : '',
+      lastFix ? [t('st.stand.batch'), `${esc(t('st.stand.batch.v', { state: L(contract.STATE_WORDS[lastFix.state]), label: derive.labelOf(lastFix.label, prefs.lang) }))}
+        ${lastFix.state === 'stopped' && !lastFix.outcome && !ctx.offline ? `<div class="mt-1"><button class="btn btn--secondary btn--sm" data-act="sheet" data-sheet="action:fix_abandon">${t('st.stand.close')}</button></div>` : ''}`] : '',
+      waiting.map(run => `<dt>${t('st.stand.branch')}</dt><dd><a class="link" href="${href('/waiting/' + encodeURIComponent(run.id))}">${code(run.result.branch)}</a></dd>`).join(''),
+    ])}
     ${ctx.offline ? '' : `<div class="actions mt-3"><a class="btn btn--secondary btn--sm" href="${href('/ask', { note: 'project' })}">${icon('note')}${t('st.stand.note')}</a></div>`}`;
 }
 // the journey's steps, each done, running now, or to come
@@ -178,8 +179,15 @@ function aboutHTML(p, sz) {
   const lastCheck = live.runs.find(r => r.action === 'audit');
   const langs = sz.languages.map(l => `${esc(l.name)} ${Math.round(l.share * 100)}%`).join(t('list.sep'));
   const notDone = st.filter(x => x.state !== 'done');
-  return `${facts([[t('st.about.langs'), langs], [t('st.about.files'), num(sz.files), 'num'], [t('st.about.lines'), num(sz.lines), 'num'], [t('st.about.stages'), `${t('st.about.stages.v', { done: num(count('done')), partial: num(count('partial')), skipped: num(count('skipped')) })}
-        ${lastCheck ? `<a class="link" href="${href('/activity/run/' + encodeURIComponent(lastCheck.id))}">${t('st.about.stages.open')}</a>` : ''}`], [t('st.about.scan'), `${code(p.branch)} ${code(p.commit.slice(0, 7))}`], [t('st.about.eaos'), code('EAOS ' + p.eaos_version)]])}
+  return `${facts([
+      [t('st.about.langs'), langs],
+      [t('st.about.files'), num(sz.files), 'num'],
+      [t('st.about.lines'), num(sz.lines), 'num'],
+      [t('st.about.stages'), `${t('st.about.stages.v', { done: num(count('done')), partial: num(count('partial')), skipped: num(count('skipped')) })}
+        ${lastCheck ? `<a class="link" href="${href('/activity/run/' + encodeURIComponent(lastCheck.id))}">${t('st.about.stages.open')}</a>` : ''}`],
+      [t('st.about.scan'), `${code(p.branch)} ${code(p.commit.slice(0, 7))}`],
+      [t('st.about.eaos'), code('EAOS ' + p.eaos_version)],
+    ])}
     ${notDone.length ? `<div class="block-title mt-4">${t('st.about.notdone')}</div>
     <ul class="panel rows">${notDone.map(x => `<li><button class="row" data-act="sheet" data-sheet="stage:${esc(x.id)}">${icon(x.state === 'skipped' ? 'dash' : 'warn', 'muted')}
         ${rowWords(code(x.id), t(STAGE_WORD[x.state] || 'st.about.partial'))}
@@ -294,7 +302,14 @@ sheet('freshness', {
     return {
       title: esc(t('st.fresh.title')),
       body: `<p class="h2">${esc(lede)}</p>
-        ${facts([[t('st.fresh.checked'), p.checked_at ? esc(exactTime(p.checked_at)) : ''], [t('st.fresh.branch'), code(p.branch)], [t('st.fresh.commit'), code(p.commit)], [t('st.fresh.dirty'), t(p.dirty ? 'st.fresh.dirty.yes' : 'st.fresh.dirty.v')], fresh.tip ? `<dt>${t('st.fresh.head')}</dt><dd>${fresh.tip === p.commit ? t('st.fresh.head.v', { commit: code(fresh.tip.slice(0, 7)) }) : code(fresh.tip.slice(0, 7))}</dd>` : '', fresh.checked_at ? `<dt>${t('st.fresh.looked')}</dt><dd>${esc(fmtWhen(fresh.checked_at))}</dd>` : ''])}
+        ${facts([
+            [t('st.fresh.checked'), p.checked_at ? esc(exactTime(p.checked_at)) : ''],
+            [t('st.fresh.branch'), code(p.branch)],
+            [t('st.fresh.commit'), code(p.commit)],
+            [t('st.fresh.dirty'), t(p.dirty ? 'st.fresh.dirty.yes' : 'st.fresh.dirty.v')],
+            fresh.tip ? [t('st.fresh.head'), fresh.tip === p.commit ? t('st.fresh.head.v', { commit: code(fresh.tip.slice(0, 7)) }) : code(fresh.tip.slice(0, 7))] : '',
+            fresh.checked_at ? [t('st.fresh.looked'), esc(fmtWhen(fresh.checked_at))] : '',
+          ])}
         ${files.length ? titledBlock(t('st.fresh.files'), `<ul class="panel rows">${files.slice(0, 12).map(x => `<li class="row small">${code(x)}</li>`).join('')}</ul>`) : ''}`,
       foot: `<a class="btn btn--primary btn--block" href="${href('/activity', { sheet: 'check' })}" data-act="go" data-href="${href('/activity', { sheet: 'check' })}">${t('st.fresh.check')}</a>
         <button class="btn btn--quiet btn--block" data-act="copy" data-text="eaos branch ${esc(p.branch)} && eaos check">${icon('copy')}${t('st.fresh.copy')}</button>`,

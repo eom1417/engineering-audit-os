@@ -3,15 +3,8 @@
 // say comes from the live API: the `status` and `assistant_check` reading tools (free, answered at once), the check's
 // offer (the audit preview), /api/progress's setup, safety and tools flows, /api/sign-in, /api/usage, /api/session.
 import {
-  t, L, num, esc, icon, code, href, has, fmtWhen, exactTime, screen, sheet, act, refresh, toast, closeSheetThen, setTimeZone, offline,
-  prefs, live, store, model, client, ActionError, ac,
-  skeletonRows, displayToggles,
-  rowWords,
-  bitsOf,
-  radio,
-  facts,
-  titledSection,
-  openLiveButton, pageHead,
+  t, L, num, esc, icon, code, href, has, fmtWhen, exactTime, screen, sheet, act, refresh, toast, closeSheetThen, setTimeZone, offline, prefs, live,
+  store, model, client, ActionError, ac, skeletonRows, displayToggles, rowWords, bitsOf, radio, facts, titledSection, openLiveButton, pageHead,
 } from 'eaos';
 import { projBack, protectedNames } from './git.js';
 
@@ -94,7 +87,10 @@ function appPage(ctx) {
     ${pageHead(t(appLede(runs)), t(runs ? 'ac.app.guide' : 'ac.app.guide.notsetup'), `${appMain(runs)}
       ${runs ? `<button class="btn btn--quiet" data-act="sheet" data-sheet="action:run_setup">${t('ac.app.run')}</button>` : ''}
       <p class="actions__note">${t('ac.app.consent.ask')}</p>`)}
-    ${titledSection('app-h', t('ac.app.state'), `<div class="panel panel__pad">${facts([appFacts(st, runs), [t('ac.app.copy'), t('ac.app.copy.v')]], 'ac-facts')}</div>`)}
+    ${titledSection('app-h', t('ac.app.state'), `<div class="panel panel__pad">${facts([
+        appFacts(st, runs),
+        [t('ac.app.copy'), t('ac.app.copy.v')],
+      ], 'ac-facts')}</div>`)}
     ${titledSection('cons-h', t('ac.app.consent'), `
       ${noteCard(consent ? 'ok' : 'notin', t(consent ? 'ac.app.consent.yes' : 'ac.app.consent.no'), [t('ac.app.consent.what')])}`)}
     ${appSignIn(o)}
@@ -173,7 +169,13 @@ function improveFacts(u) {
   const readAgain = T && all(T) ? Math.round((T.cache_read || 0) / ((T.input || 0) + (T.cache_write || 0) + (T.cache_read || 0) || 1) * 100) : null;
   const think = T && (T.output || T.thinking) ? Math.round((T.thinking || 0) / ((T.output || 0) + (T.thinking || 0)) * 100) : null;
   const share = v => (v != null ? num(v) + '%' : ac.nmTag());
-  return facts([[t('ac.as.i.perfix'), `${closed ? ac.money(fixCost / closed) : ac.nmTag()} <span class="small muted">${t('ac.as.i.perfix.v')}</span>`], [t('ac.as.i.check'), money(T && T.cost_usd, ac.nmTag())], [t('ac.as.i.again'), `${share(readAgain)} <span class="small muted">${t('ac.as.i.again.v')}</span>`], [t('ac.as.i.think'), `${share(think)} <span class="small muted">${t('ac.as.i.think.v')}</span>`], [t('ac.as.i.chat'), money(u.chat && u.chat.cost_usd, ac.nmTag())]]);
+  return facts([
+      [t('ac.as.i.perfix'), `${closed ? ac.money(fixCost / closed) : ac.nmTag()} <span class="small muted">${t('ac.as.i.perfix.v')}</span>`],
+      [t('ac.as.i.check'), money(T && T.cost_usd, ac.nmTag())],
+      [t('ac.as.i.again'), `${share(readAgain)} <span class="small muted">${t('ac.as.i.again.v')}</span>`],
+      [t('ac.as.i.think'), `${share(think)} <span class="small muted">${t('ac.as.i.think.v')}</span>`],
+      [t('ac.as.i.chat'), money(u.chat && u.chat.cost_usd, ac.nmTag())],
+    ]);
 }
 
 const chatFold = chat => ac.fold('chat', t('ac.as.chat'), esc(t('ac.as.chat.sum', { n: num((chat && chat.turns) || 0), cost: money(chat && chat.cost_usd, t('nm')) })),
@@ -266,7 +268,12 @@ function toolsPage(ctx) {
     ${projBack()}
     ${pageHead(esc(lede), t(failed.length ? 'ac.tl.guide.failed.v' : installing ? 'ac.tl.guide.installing.v' : 'ac.tl.guide'), toolsActions(failed))}
     ${titledSection('tw-h', t('ac.tl.waits'), `
-      <div class="panel panel__pad">${facts([[t('ac.tl.for_check'), `${esc(t('ac.tl.of', { n: num(ready), t: num(needed.length) }))}&ensp;${toolsReady(failed, coming)}`], toolsLeft(f, installing), [t('ac.tl.eaos'), code('EAOS ' + (store.live.version || model.project().eaos_version))], f && f.ended_at ? `<dt>${t('ac.tl.last')}</dt><dd>${esc(fmtWhen(f.ended_at))}</dd>` : ''])}</div>`)}
+      <div class="panel panel__pad">${facts([
+          [t('ac.tl.for_check'), `${esc(t('ac.tl.of', { n: num(ready), t: num(needed.length) }))}&ensp;${toolsReady(failed, coming)}`],
+          toolsLeft(f, installing),
+          [t('ac.tl.eaos'), code('EAOS ' + (store.live.version || model.project().eaos_version))],
+          f && f.ended_at ? [t('ac.tl.last'), esc(fmtWhen(f.ended_at))] : '',
+        ])}</div>`)}
     ${toolsLists(list, needed, attention, ready)}
   </div>`;
 }
@@ -311,7 +318,11 @@ const keptSection = kept => titledSection('kp-h', t('ac.set.kept'), `
 function versionSection() {
   const made = model.project().eaos_version;
   return titledSection('vr-h', t('ac.set.version'), `
-      <div class="panel panel__pad">${facts([[t('ac.set.v.eaos'), code('EAOS ' + (store.live.version || made || ''))], [t('ac.set.v.contract'), session && session.contract != null ? esc(num(session.contract)) : '—', 'num'], [t('ac.set.v.same'), made && store.live.version ? (made === store.live.version ? ac.mark('ok', t('ac.set.v.same.v')) : ac.mark('partial', esc(t('ac.set.v.differs', { v: made })))) : '…']])}</div>`);
+      <div class="panel panel__pad">${facts([
+          [t('ac.set.v.eaos'), code('EAOS ' + (store.live.version || made || ''))],
+          [t('ac.set.v.contract'), session && session.contract != null ? esc(num(session.contract)) : '—', 'num'],
+          [t('ac.set.v.same'), made && store.live.version ? (made === store.live.version ? ac.mark('ok', t('ac.set.v.same.v')) : ac.mark('partial', esc(t('ac.set.v.differs', { v: made })))) : '…'],
+        ])}</div>`);
 }
 const keys = [['Ctrl/Cmd K', 'ac.set.kb.k'], ['Ctrl/Cmd I', 'ac.set.kb.i'], ['Esc', 'ac.set.kb.esc'], ['↑ ↓ Enter', 'ac.set.kb.arrows'], ['Shift + click', 'ac.set.kb.shift'], ['Tab', 'ac.set.kb.tab']];
 function keysSection() {

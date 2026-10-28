@@ -6,7 +6,11 @@ const enc = encodeURIComponent;
 const pathName = p => (has('ac.path.' + p) ? t('ac.path.' + p) : p);
 function errorHTML(e) {
   return `<section class="panel ac-result ac-result--fail" aria-label="${esc(t('ac.run.error'))}">
-      ${facts([[t('ac.run.what'), `${rich(L(e.text))}${e.reason ? ` <span class="small muted">${rich(e.reason)}</span>` : ''}`], e.what_now ? `<dt>${t('ac.run.todo')}</dt><dd>${rich(L(e.what_now))}</dd>` : '', [t('ac.run.recoverable'), t(e.recoverable ? 'ac.run.recoverable.yes' : 'ac.run.recoverable.no')]])}
+      ${facts([
+          [t('ac.run.what'), `${rich(L(e.text))}${e.reason ? ` <span class="small muted">${rich(e.reason)}</span>` : ''}`],
+          e.what_now ? [t('ac.run.todo'), rich(L(e.what_now))] : '',
+          [t('ac.run.recoverable'), t(e.recoverable ? 'ac.run.recoverable.yes' : 'ac.run.recoverable.no')],
+        ])}
       ${e.detail ? `<details class="ac-ev-fold"><summary>${t('ac.run.tech')}${icon('chev-down', 'icon--sm muted')}</summary><div class="code pad-2-3 pre">${esc(e.detail)}</div></details>` : ''}</section>`;
 }
 /** The checks' verdict: changes kept and left out. */

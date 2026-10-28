@@ -4,13 +4,8 @@
 // (`verb:fix:step:<id>`, the server resolves its open problems). States: loading, empty (no check), not measured
 // (no waves), offline (every action opens "Open it live").
 import {
-  t, tn, L, num, esc, icon, code, sev, chk, rich, href, screen, act, tickAct, refresh, parseHash, announce, setSelbar, offline,
-  model, selection, data,
-  ac, rowWords,
-  facts,
-  titledSection,
-  notFound,
-  pageHead,
+  t, tn, L, num, esc, icon, code, sev, chk, rich, href, screen, act, tickAct, refresh, parseHash, announce, setSelbar, offline, model, selection,
+  data, ac, rowWords, facts, titledSection, notFound, pageHead,
 } from 'eaos';
 import { loading, nm, prow, enc, back, empty, ticks, page } from '../kit/kit.js';
 import { buildPage } from './build.js';
@@ -274,14 +269,14 @@ function stepFacts(s, all, before, tasks) {
   return `<section class="panel panel__pad un-stepfacts" aria-label="${esc(t('un.gap.props'))}">
         ${shareHTML(tasks)}
         ${facts([
-          [t('un.step.gate'), s.gate ? rich(L(s.gate)) : `<span class="muted">${t('un.none')}</span>`],
-          [t('un.step.weight'), weights ? Math.round((s.weight || 0) / weights * 100) + '%' : '—'],
-          [t('un.step.waves'), s.first == null ? `<span class="muted">${t('un.waves.nowave')}</span>` : `<a class="link" href="${href('/problems/plan/waves', { step: s.id })}">${esc(s.first === s.last ? t('un.waves.one', { w: s.first }) : t('un.waves.span', { a: s.first, b: s.last }))}</a>`],
-          [t('un.step.waitsfor'), waitsLine],
-          [t('un.step.comesbefore'), before.length ? before.map(x => `<a class="link" href="${href('/problems/plan/' + enc(x.id))}">${code(x.id)}</a>`).join(' ') : t('un.none')],
-          [t('un.step.subplan'), s.sub_plan ? code(s.sub_plan) : t('un.none')],
-          [t('un.gap.ops'), ops.map(o => '#' + num(o.order)).join(' ') || t('un.none')],
-        ])}
+            [t('un.step.gate'), s.gate ? rich(L(s.gate)) : `<span class="muted">${t('un.none')}</span>`],
+            [t('un.step.weight'), weights ? Math.round((s.weight || 0) / weights * 100) + '%' : '—'],
+            [t('un.step.waves'), s.first == null ? `<span class="muted">${t('un.waves.nowave')}</span>` : `<a class="link" href="${href('/problems/plan/waves', { step: s.id })}">${esc(s.first === s.last ? t('un.waves.one', { w: s.first }) : t('un.waves.span', { a: s.first, b: s.last }))}</a>`],
+            [t('un.step.waitsfor'), waitsLine],
+            [t('un.step.comesbefore'), before.length ? before.map(x => `<a class="link" href="${href('/problems/plan/' + enc(x.id))}">${code(x.id)}</a>`).join(' ') : t('un.none')],
+            [t('un.step.subplan'), s.sub_plan ? code(s.sub_plan) : t('un.none')],
+            [t('un.gap.ops'), ops.map(o => '#' + num(o.order)).join(' ') || t('un.none')],
+          ])}
       </section>`;
 }
 function stepPage(ctx) {

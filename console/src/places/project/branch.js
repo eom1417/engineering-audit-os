@@ -3,14 +3,8 @@
 // on its own free preview whose confirm token the act spends: merge, delete here or on the remote, protect, unprotect,
 // propose a conflict's resolution. What it shares with S-46: git.js.
 import {
-  t, tn, L, num, esc, icon, code, rich, diffLines, href, fmtWhen, screen, sheet, act, rerenderSheet, local, toast, closeSheetThen,
-  live, store, client, ActionError, ac,
-  rowWords,
-  lockLine, radio,
-  facts,
-  titledBlock, titledSection,
-  notFound, refusal,
-  openLiveButton, pageHead,
+  t, tn, L, num, esc, icon, code, rich, diffLines, href, fmtWhen, screen, sheet, act, rerenderSheet, local, toast, closeSheetThen, live, store,
+  client, ActionError, ac, rowWords, lockLine, radio, facts, titledBlock, titledSection, notFound, refusal, openLiveButton, pageHead,
 } from 'eaos';
 import {
   enc, said, reasonsOf, inv, inventory, detail, mergeTry, problemOf, changed, liveName, waitingRun, aheadBehind, whoLine, roleTags,
@@ -76,7 +70,17 @@ function whereFact(b) {
 }
 function branchFacts(b, det, target) {
   return titledSection('bf-h', t('ac.br1.facts'), `
-      <div class="panel panel__pad">${facts([[t('ac.br1.tip'), `${code(String(b.tip).slice(0, 7))} <span class="small ink-2">${rich(b.subject || '')}</span> <span class="small muted">${esc(fmtWhen(b.last_commit))}</span>`], [t('ac.br1.where'), whereFact(b)], [t('ac.br1.vs'), aheadBehind(b)], [t('ac.br1.who'), whoLine(b)], b.protected ? `<dt>${t('ac.br.r.protected')}</dt><dd>${esc(L(b.protected))}</dd>` : '', [t('ac.br1.wt'), b.worktree ? `${code(b.worktree.path)} ${t(b.worktree.current ? 'ac.br.wt.here' : 'ac.br.wt.other')}` : t('ac.br1.wt.none')], [t('ac.br1.checks'), checksLine(det.checks)], det.lineage && det.lineage.parent ? `<dt>${t('ac.br1.lineage')}</dt><dd>${t('ac.br1.lineage.v', { p: code(det.lineage.parent), c: code(String(det.lineage.parent_commit || '').slice(0, 7)) })}</dd>` : '', [t('ac.br1.dest'), target ? t('ac.br1.dest.v', { t: code(target) }) : '—']], 'ac-facts')}</div>`);
+      <div class="panel panel__pad">${facts([
+          [t('ac.br1.tip'), `${code(String(b.tip).slice(0, 7))} <span class="small ink-2">${rich(b.subject || '')}</span> <span class="small muted">${esc(fmtWhen(b.last_commit))}</span>`],
+          [t('ac.br1.where'), whereFact(b)],
+          [t('ac.br1.vs'), aheadBehind(b)],
+          [t('ac.br1.who'), whoLine(b)],
+          b.protected ? [t('ac.br.r.protected'), esc(L(b.protected))] : '',
+          [t('ac.br1.wt'), b.worktree ? `${code(b.worktree.path)} ${t(b.worktree.current ? 'ac.br.wt.here' : 'ac.br.wt.other')}` : t('ac.br1.wt.none')],
+          [t('ac.br1.checks'), checksLine(det.checks)],
+          det.lineage && det.lineage.parent ? [t('ac.br1.lineage'), t('ac.br1.lineage.v', { p: code(det.lineage.parent), c: code(String(det.lineage.parent_commit || '').slice(0, 7)) })] : '',
+          [t('ac.br1.dest'), target ? t('ac.br1.dest.v', { t: code(target) }) : '—'],
+        ], 'ac-facts')}</div>`);
 }
 function branchPage(ctx) {
   const name = ctx.params.name, kind = ctx.query.kind || 'local', remote = ctx.query.remote || null;
@@ -144,7 +148,15 @@ function mergeBody(name, p, into) {
   return `${owner()}<p>${t('ac.mg.lede', { b: code(name), t: code(p.target) })}</p>
         ${p.blocked.length ? refusal(t('ac.mg.refused'), [esc(reasonsOf(p.blocked)), p.conflicts.length && p.conflicts.map(code).join(' ')]) : ''}
         <div><div class="block-title" id="mg-into">${t('cf.into')}</div>${into}</div>
-        ${facts([[t('ac.mg.how'), t(p.path === 'accept' ? 'ac.mg.how.accept' : 'ac.mg.how.v')], [t('ac.mg.ff'), t(p.fast_forward ? 'ac.mg.ff.yes' : 'ac.mg.ff.merge')], [t('ac.mg.heads'), `${code(String(p.source_head).slice(0, 7))} → ${code(String(p.target_head).slice(0, 7))}`], [t('ac.mg.commits'), esc(tn('ac.pl.commit', p.commits.length))], [t('cf.files'), esc(tn('pl.file', p.files.length))], [t('ac.mg.conflicts'), p.conflicts.length ? ac.mark('failed', esc(tn('pl.file', p.conflicts.length))) : ac.mark('ok', t('ac.mg.conflicts.none'))], [t('cf.checks'), checksLine(p.checks)]])}`;
+        ${facts([
+            [t('ac.mg.how'), t(p.path === 'accept' ? 'ac.mg.how.accept' : 'ac.mg.how.v')],
+            [t('ac.mg.ff'), t(p.fast_forward ? 'ac.mg.ff.yes' : 'ac.mg.ff.merge')],
+            [t('ac.mg.heads'), `${code(String(p.source_head).slice(0, 7))} → ${code(String(p.target_head).slice(0, 7))}`],
+            [t('ac.mg.commits'), esc(tn('ac.pl.commit', p.commits.length))],
+            [t('cf.files'), esc(tn('pl.file', p.files.length))],
+            [t('ac.mg.conflicts'), p.conflicts.length ? ac.mark('failed', esc(tn('pl.file', p.conflicts.length))) : ac.mark('ok', t('ac.mg.conflicts.none'))],
+            [t('cf.checks'), checksLine(p.checks)],
+          ])}`;
 }
 const mergeReady = (p, own) => !p.blocked.length && p.confirm && own.ack_merge && (!p.needs_unchecked_ack || own.ack_merge2) && !own.busy;
 function mergeFoot(name, p, own) {
@@ -196,8 +208,11 @@ function localLoss(p, lost) {
 }
 function deleteBody(remote, br, p, lost) {
   return `${owner()}<p>${t(remote ? 'ac.dl.lede.remote' : 'ac.dl.lede', { b: code(br.name), r: code(br.remote || 'origin') })}</p>
-          ${facts([[t('ac.br1.who'), esc(L(p.whose))], remote ? `<dt>${t('ac.dl.other')}</dt><dd>${t(p.local_kept ? 'ac.dl.other.local' : 'ac.dl.other.nolocal')}</dd>`
-              : localLoss(p, lost)])}
+          ${facts([
+              [t('ac.br1.who'), esc(L(p.whose))],
+              remote ? `<dt>${t('ac.dl.other')}</dt><dd>${t(p.local_kept ? 'ac.dl.other.local' : 'ac.dl.other.nolocal')}</dd>`
+              : localLoss(p, lost),
+            ])}
           ${lost.length ? titledBlock(t('ac.dl.only.list'), `<ul class="panel rows">${lost.map(c => `<li class="row small" style="min-height:44px">${code(String(c.commit).slice(0, 7))}<span class="row__main">${rich(c.subject || '')}</span></li>`).join('')}</ul>`) : ''}
           <p class="small ink-2">${t('ac.dl.recovery')}</p>`;
 }

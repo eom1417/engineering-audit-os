@@ -4,16 +4,9 @@
 // choose the branch EAOS checks, clean up the merged branches, restore a deleted one, compare with another base, fetch.
 // One branch and its own sheets: branch.js; what both share: git.js.
 import {
-  t, tn, L, num, esc, icon, code, href, fmtWhen, screen, sheet, act, rerenderSheet, local, toast, closeSheetThen, openSheet,
-  parseHash, setQuery, searchTyped, freshness, store, client, ActionError, normalize, ac, refresh,
-  rowWords,
-  bitsOf,
-  toggleRow,
-  lockLine, radio,
-  facts,
-  titledBlock, titledSection,
-  refusal,
-  openLiveButton, pageHead,
+  t, tn, L, num, esc, icon, code, href, fmtWhen, screen, sheet, act, rerenderSheet, local, toast, closeSheetThen, openSheet, parseHash, setQuery,
+  searchTyped, freshness, store, client, ActionError, normalize, ac, refresh, rowWords, bitsOf, toggleRow, lockLine, radio, facts, titledBlock,
+  titledSection, refusal, openLiveButton, pageHead,
 } from 'eaos';
 import {
   enc, said, reasonsOf, projBack, inv, inventory, changed, rowOf, brUrl, liveName, aheadBehind, whoLine, roleTags, owner, ack, valid, alert,
@@ -50,7 +43,12 @@ const headOf = x => `${code(x.branch || '')} ${code(String(x.commit || '').slice
 /** The four places a branch matters: the folder, the analysis, the report, the last scan. */
 function fourPanel(c, w, f) {
   const dirty = unsaved(c), none = esc(t('ac.br.four.none'));
-  return `<div class="panel panel__pad ac-four">${facts([[t('ac.br.four.folder'), `${code(w.folder)} <span class="small muted">${dirty ? esc(t('ac.br.four.unsaved.v', { n: num(dirty) })) : t('ac.br.four.clean')}</span>`], [t('ac.br.four.analysed'), `${code(w.analysed)}${c.analysis && c.analysis.selected ? ` <span class="small muted">${t('ac.br.four.chosen')}</span>` : ''}`], [t('ac.br.four.report'), c.report ? `${headOf(c.report)} <span class="small muted">${esc(fmtWhen(c.report.at))}</span>` : none], [t('ac.br.four.scan'), c.scan ? headOf(c.scan) : none]])}
+  return `<div class="panel panel__pad ac-four">${facts([
+      [t('ac.br.four.folder'), `${code(w.folder)} <span class="small muted">${dirty ? esc(t('ac.br.four.unsaved.v', { n: num(dirty) })) : t('ac.br.four.clean')}</span>`],
+      [t('ac.br.four.analysed'), `${code(w.analysed)}${c.analysis && c.analysis.selected ? ` <span class="small muted">${t('ac.br.four.chosen')}</span>` : ''}`],
+      [t('ac.br.four.report'), c.report ? `${headOf(c.report)} <span class="small muted">${esc(fmtWhen(c.report.at))}</span>` : none],
+      [t('ac.br.four.scan'), c.scan ? headOf(c.scan) : none],
+    ])}
       ${w.differ ? `<p class="ac-note ac-note--caution small mt-3">${icon('warn', 'icon--sm ac-c-caution')}<span>${t('ac.br.four.differ.todo', { folder: code(w.folder), analysed: code(w.analysed) })}</span></p>`
         : `<p class="small ink-2 mt-3">${t(f.state === 'fresh' ? 'ac.br.four.agree' : 'ac.br.four.agree.stale')}</p>`}</div>`;
 }
@@ -73,7 +71,13 @@ function recoveryFold(d) {
 const defaultFact = def => (def && def.name ? `${code(def.name)} <span class="small muted">${esc(def.source || '')}</span>` : '—');
 function remotesFold(d) {
   const remotes = d.remotes || [], worktrees = d.worktrees || [], missing = d.missing_linked || [];
-  return ac.fold('remotes', t('ac.br.remotes'), esc(t('ac.br.remotes.sum.v', { remotes: remotes.join(t('list.sep')) || t('ac.br.remotes.none'), n: num(worktrees.length) })), facts([[t('ac.br.remote'), remotes.map(code).join(' ') || esc(t('ac.br.remotes.none'))], [t('ac.br.remote.default'), defaultFact(d.default)], [t('ac.br.remote.fetched'), esc(d.last_fetch ? fmtWhen(d.last_fetch) : t('ac.br.fetched.never'))], [t('ac.br.wt'), worktrees.map(w => `<div>${code(w.path)} ${code(w.branch || String(w.head).slice(0, 7))} <span class="small muted">${t(w.current ? 'ac.br.wt.here' : 'ac.br.wt.other')}</span></div>`).join('')], [t('ac.br.orphans'), missing.length ? missing.map(m => code(m.name)).join(' ') : t('ac.br.orphans.none')]]));
+  return ac.fold('remotes', t('ac.br.remotes'), esc(t('ac.br.remotes.sum.v', { remotes: remotes.join(t('list.sep')) || t('ac.br.remotes.none'), n: num(worktrees.length) })), facts([
+      [t('ac.br.remote'), remotes.map(code).join(' ') || esc(t('ac.br.remotes.none'))],
+      [t('ac.br.remote.default'), defaultFact(d.default)],
+      [t('ac.br.remote.fetched'), esc(d.last_fetch ? fmtWhen(d.last_fetch) : t('ac.br.fetched.never'))],
+      [t('ac.br.wt'), worktrees.map(w => `<div>${code(w.path)} ${code(w.branch || String(w.head).slice(0, 7))} <span class="small muted">${t(w.current ? 'ac.br.wt.here' : 'ac.br.wt.other')}</span></div>`).join('')],
+      [t('ac.br.orphans'), missing.length ? missing.map(m => code(m.name)).join(' ') : t('ac.br.orphans.none')],
+    ]));
 }
 function branchesHTML(q, d) {
   const w = whereOf(d.context || {});
@@ -241,7 +245,11 @@ act('ac-cleanup', async el => {
 });
 
 /* restore a deleted branch (BRN-09) */
-const restoreBody = (r, v, taken) => `<p>${t('ac.rs.lede')}</p>${facts([[t('ac.rs.tip'), code(String(r.tip).slice(0, 12))], [t('ac.rs.when'), esc(fmtWhen(r.at))], [t('ac.rs.by'), r.run ? `<a class="link" href="${href('/activity/run/' + enc(r.run))}">${code(r.run)}</a>` : '—']])}
+const restoreBody = (r, v, taken) => `<p>${t('ac.rs.lede')}</p>${facts([
+    [t('ac.rs.tip'), code(String(r.tip).slice(0, 12))],
+    [t('ac.rs.when'), esc(fmtWhen(r.at))],
+    [t('ac.rs.by'), r.run ? `<a class="link" href="${href('/activity/run/' + enc(r.run))}">${code(r.run)}</a>` : '—'],
+  ])}
         <label class="ac-label" for="rs-name">${t('ac.rs.name')}</label><div class="field"><input id="rs-name" dir="ltr" data-fk="rs-name" data-input="ac-rs-name" value="${esc(v)}" autocomplete="off" aria-describedby="rs-note"></div>
         <p class="small ${taken ? 'ac-c-danger' : 'muted'}" id="rs-note">${t(taken ? 'ac.rs.taken' : 'ac.rs.note')}</p>`;
 sheet('restore', {

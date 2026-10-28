@@ -9,7 +9,7 @@ export const matches = normalize.matches;
 
 export const back = (path, label, query) => `<a class="back" href="${href(path, query)}">${icon('back', 'icon--dir')}${esc(label)}</a>`;
 
-/* ---------- rows ---------- */
+/* ---------- choices, a list's own search, lists a page at a time ---------- */
 
 /** A segmented control whose choices are addresses (LNK-01): [value, label, count]. */
 export function seg(param, items, cur, label, opts) {

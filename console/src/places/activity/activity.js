@@ -3,13 +3,8 @@
 // controls (pause, resume, stop with its question, retry, move up and down, remove from the line) on the live
 // action API (POST /api/runs/<id>/<op>, /api/runs/reorder). Everything comes from the live command state (EAOS.live).
 import {
-  t, tn, num, esc, icon, href, fmtWhen, screen, sheet, act, refresh, toast, announce, setQuery, searchTyped, parseHash, closeSheetThen, offline, local, rerenderSheet,
-  live, store, client, ActionError, normalize, model, ac,
-  skeletonRows,
-  rowWords,
-  bitsOf,
-  inlineSwitch,
-  titledSection,
+  t, tn, num, esc, icon, href, fmtWhen, screen, sheet, act, refresh, toast, announce, setQuery, searchTyped, parseHash, closeSheetThen, offline,
+  local, rerenderSheet, live, store, client, ActionError, normalize, model, ac, skeletonRows, rowWords, bitsOf, inlineSwitch, titledSection,
   pageHead,
 } from 'eaos';
 import { stagesOf, stageButton, counts, finished, stageTitle } from './stages.js';

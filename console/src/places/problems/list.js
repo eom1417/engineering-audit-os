@@ -2,11 +2,8 @@
 // LNK-01). The address carries the view (who, sev, area, pstate, step, comp, q, group, n); the list shows 50 problems
 // at a time. A new check that lands while the person reads leaves the list as it was until they ask (PRB-11).
 import {
-  t, tn, L, num, esc, rich, icon, code, sev, chk, href, screen, sheet, act, tickAct, refresh, setQuery, searchTyped, parseHash, announce, closeSheetThen, setSelbar,
-  S, model, selection, data,
-  skeletonRows,
-  titledBlock,
-  pageHead,
+  t, tn, L, num, esc, rich, icon, code, sev, chk, href, screen, sheet, act, tickAct, refresh, setQuery, searchTyped, parseHash, announce,
+  closeSheetThen, setSelbar, S, model, selection, data, skeletonRows, titledBlock, pageHead,
 } from 'eaos';
 import { NEEDS, SEV, AREAS, STATES, FACETS, component, who, steps, value, list, filterProblems, activeFilters, facetLabel, keepQuery } from './shared.js';
 import { detailHTML } from './detail.js';

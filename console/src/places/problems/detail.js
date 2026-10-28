@@ -108,7 +108,11 @@ export function detailHTML(p, ctx) {
     ${p.why ? `<section class="psec"><h2>${t('pd.why')}</h2><p>${rich(L(p.why))}</p></section>` : ''}
     <section class="psec" id="pd-decision"><h2>${t('pd.decision')}</h2>${decisionHTML(p)}</section>
     <section class="psec"><h2>${t('pd.where')}</h2><ul class="places">${places}</ul>
-      ${facts([[t('pd.component'), code(component(p))], [t('pd.area'), t('area.' + (p.category || 'none'))], [t('pd.kind'), esc(kindWord(p.kind))]], 'mt-3')}</section>
+      ${facts([
+          [t('pd.component'), code(component(p))],
+          [t('pd.area'), t('area.' + (p.category || 'none'))],
+          [t('pd.kind'), esc(kindWord(p.kind))],
+        ], 'mt-3')}</section>
     <section class="psec"><h2>${t('pd.evidence')} <span class="muted small">${read.length ? esc(tn('pl.fact', read.length)) : ''}</span></h2>${evidence}</section>
     <section class="psec"><h2>${t('pd.plan')}</h2>${planHTML(p, all)}</section>
     <div class="panel">
@@ -131,7 +135,10 @@ sheet('fact', {
       title: `${f.engine ? esc(f.engine) + ' ' : ''}${code(f.kind)}`,
       sub: code(id),
       body: `<p>${rich(L(f.summary))}</p>
-        ${facts([[t('pd.kind'), code(f.kind)], f.path ? `<dt>${t('pd.where')}</dt><dd>${code(f.path + (f.line != null ? ':' + f.line : ''))}</dd>` : ''])}
+        ${facts([
+            [t('pd.kind'), code(f.kind)],
+            f.path ? [t('pd.where'), code(f.path + (f.line != null ? ':' + f.line : ''))] : '',
+          ])}
         ${f.code ? codeBlock(f.code) : `<p class="small muted">${noCode(f, [])}</p>`}
         ${others(f)}
         ${titledBlock(t('pd.ev.rests'), `<div class="panel rows">${f.cards.map(c => { const p = model.problem(c); return p ? `<a class="row" href="${href('/problems/' + enc(c))}" data-act="go" data-href="${href('/problems/' + enc(c))}">${sev(p.severity, false)}<span class="row__main small">${code(c)} ${rich(L(p.title))}</span></a>` : ''; }).join('')}</div>`)}`,

@@ -3,12 +3,8 @@
 // sheet (S-16, CHK-09); "Redo from here" with its free preview (CHK-10, POST /api/actions/audit/preview with
 // again_from); and the replay of a finished check from its own start and end times (CHK-11).
 import {
-  t, tn, L, num, esc, rich, icon, code, has, sheet, act, rerenderSheet, local, parseHash, closeSheetThen, toast, refresh, href, offline,
-  data, client, store, model, ActionError, ac, prefs,
-  terminalFold,
-  rowWords,
-  facts,
-  titledBlock,
+  t, tn, L, num, esc, rich, icon, code, has, sheet, act, rerenderSheet, local, parseHash, closeSheetThen, toast, refresh, href, offline, data,
+  client, store, model, ActionError, ac, prefs, terminalFold, rowWords, facts, titledBlock,
 } from 'eaos';
 
 /** A stage's name and what it does: the dictionary's words, else its own description. */
@@ -281,7 +277,14 @@ sheet('redo', {
       title: esc(title),
       sub: `<span class="free-band">${icon('check', 'icon--sm')}${t('free')}</span>`,
       body: `<p>${esc(failed ? t('ac.redo.does.failed', { tools: (inputs.engines || []).join(t('list.sep')) }) : t('ac.redo.does', { n: num(rerun.length - 1) }))}</p>
-        ${facts([[t('ac.redo.code'), t('ac.redo.code.v', { branch: code(model.project().branch), commit: code((model.project().commit || '').slice(0, 7)) })], [t('ac.redo.runs'), esc(tn('pl.stage', rerun.length))], [t('ac.redo.kept'), esc(tn('pl.stage', kept))], [t('pv.estimate'), redoEstimate(p, own)], [t('pv.risk'), `<span class="tag tag--state">${t('pv.risk.low')}</span> <span class="small ink-2">${t('ac.redo.risk')}</span>`], [t('pv.fail'), t('ac.redo.fail'), 'small']])}
+        ${facts([
+            [t('ac.redo.code'), t('ac.redo.code.v', { branch: code(model.project().branch), commit: code((model.project().commit || '').slice(0, 7)) })],
+            [t('ac.redo.runs'), esc(tn('pl.stage', rerun.length))],
+            [t('ac.redo.kept'), esc(tn('pl.stage', kept))],
+            [t('pv.estimate'), redoEstimate(p, own)],
+            [t('pv.risk'), `<span class="tag tag--state">${t('pv.risk.low')}</span> <span class="small ink-2">${t('ac.redo.risk')}</span>`],
+            [t('pv.fail'), t('ac.redo.fail'), 'small'],
+          ])}
         ${titledBlock(t('ac.redo.list'), `<ul class="ac-chiplist">${rerun.map(x => `<li><span class="tag tag--state">${esc(stageTitle(x))}</span></li>`).join('')}</ul>`)}
         <p class="small ink-2">${t('ac.redo.never')}</p>
         ${terminalFold(esc(cmd))}`,

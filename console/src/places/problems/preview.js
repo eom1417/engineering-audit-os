@@ -6,11 +6,8 @@
 // preview again, since the token is bound to it. Address: ?sheet=verb:<verb>[:fixable | :assistant | :<problem> |
 // :step:<id>]; without a target, the current selection.
 import {
-  t, tn, L, num, esc, rich, icon, code, sev, href, assistantPicker, estimate, expiresAt, sheet, act, rerenderSheet, local, parseHash, closeSheetThen, toast, refresh, offline,
-  model, selection, store, client, ActionError, contract, prefs,
-  terminalFold, toggleRow,
-  lockLine, radio,
-  facts,
+  t, tn, L, num, esc, rich, icon, code, sev, href, assistantPicker, estimate, expiresAt, sheet, act, rerenderSheet, local, parseHash, closeSheetThen,
+  toast, refresh, offline, model, selection, store, client, ActionError, contract, prefs, terminalFold, toggleRow, lockLine, radio, facts,
   titledBlock,
 } from 'eaos';
 
@@ -71,7 +68,11 @@ function radios(name, rows, picked, act) {
 function whereHTML(w, own) {
   const base = w.base ? w.base.branch : '';
   const mode = w.mode || 'new';
-  return titledBlock(t('pv.where'), `<div class="panel panel__pad">${facts([[t('pv.base'), baseFact(w, base)], [t('pv.deliver'), deliverFact(w, mode, base)], mode === 'direct' ? '' : mergeFact(w)])}
+  return titledBlock(t('pv.where'), `<div class="panel panel__pad">${facts([
+      [t('pv.base'), baseFact(w, base)],
+      [t('pv.deliver'), deliverFact(w, mode, base)],
+      mode === 'direct' ? '' : mergeFact(w),
+    ])}
     ${w.problem ? `<p class="small" role="note">${icon('warn', 'icon--sm')} ${esc(L(w.problem))}</p>` : ''}
     <details class="mt-2" ${own.whereOpen ? 'open' : ''} data-where><summary class="link" style="cursor:pointer;min-height:44px;display:inline-flex;align-items:center">${t('pv.change')}</summary>
       ${changeHTML(w, own, base, mode)}
@@ -157,7 +158,13 @@ function waitingSheet(verb, own, title, cmd) {
 }
 
 function factsHTML(p) {
-  return facts([[t('pv.files'), esc(tn('pl.file', p.files.length))], p.batches.length ? `<dt>${t('pv.batches')}</dt><dd>${esc(t('pv.batches.v', { batches: tn('pl.batch', p.batches.length) }))}</dd>` : '', [t('pv.estimate'), `${esc(estimate(p))}<span class="small muted" style="display:block">${esc(L(p.estimate.basis))}</span>`], [t('pv.risk'), `<span class="tag ${p.risk.level === 'high' ? 'tag--caution' : 'tag--state'}">${t('pv.risk.' + p.risk.level)}</span> <span class="small ink-2">${esc(L(p.risk.why))}</span>`], [t('pv.fail'), esc(L(p.on_failure)), 'small']]);
+  return facts([
+      [t('pv.files'), esc(tn('pl.file', p.files.length))],
+      p.batches.length ? [t('pv.batches'), esc(t('pv.batches.v', { batches: tn('pl.batch', p.batches.length) }))] : '',
+      [t('pv.estimate'), `${esc(estimate(p))}<span class="small muted" style="display:block">${esc(L(p.estimate.basis))}</span>`],
+      [t('pv.risk'), `<span class="tag ${p.risk.level === 'high' ? 'tag--caution' : 'tag--state'}">${t('pv.risk.' + p.risk.level)}</span> <span class="small ink-2">${esc(L(p.risk.why))}</span>`],
+      [t('pv.fail'), esc(L(p.on_failure)), 'small'],
+    ]);
 }
 
 /** The choices and notes under the facts: a Fix's place, the assistant, a Fix's speed and accept-by-itself. */

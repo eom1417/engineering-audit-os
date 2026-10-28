@@ -4,13 +4,8 @@
 // (PRJ-08: composed from the data), then every action of the contract (RUN-13), then the expert steps (FIX-16); each
 // action opens its own preview with its form (action.js).
 import {
-  t, tn, L, num, esc, rich, icon, code, href, sheet, act, rerenderSheet, local, closeSheetThen, toast, refresh, offline,
-  S, live, store, model, client, contract, normalize, ActionError, ac,
-  rowWords,
-  toggleRow,
-  radio,
-  facts,
-  titledBlock,
+  t, tn, L, num, esc, rich, icon, code, href, sheet, act, rerenderSheet, local, closeSheetThen, toast, refresh, offline, S, live, store, model,
+  client, contract, normalize, ActionError, ac, rowWords, toggleRow, radio, facts, titledBlock,
 } from 'eaos';
 
 const enc = encodeURIComponent;
@@ -68,7 +63,11 @@ function initCheck(c, q) {
 function checkFacts(p) {
   const first = !ac.lastCheck();
   const est = p && p.estimate && p.estimate.minutes_low != null ? t('pv.estimate.v', { lo: num(p.estimate.minutes_low), hi: num(p.estimate.minutes_high) }) : t('ac.chk.est.none');
-  return facts([[t('pv.estimate'), `${p ? esc(est) : `<span class="muted" aria-busy="true">${t('pv.updating')}</span>`}<span class="small muted" style="display:block">${p && p.estimate ? esc(L(p.estimate.basis)) : t(first ? 'ac.chk.est.basis.none' : 'ac.chk.est.basis.wait')}</span>`], [t('pv.risk'), `<span class="tag tag--state">${t('pv.risk.low')}</span> <span class="small ink-2">${t('ac.chk.risk')}</span>`], [t('pv.fail'), p ? esc(L(p.on_failure)) : t('ac.chk.fail'), 'small']]);
+  return facts([
+      [t('pv.estimate'), `${p ? esc(est) : `<span class="muted" aria-busy="true">${t('pv.updating')}</span>`}<span class="small muted" style="display:block">${p && p.estimate ? esc(L(p.estimate.basis)) : t(first ? 'ac.chk.est.basis.none' : 'ac.chk.est.basis.wait')}</span>`],
+      [t('pv.risk'), `<span class="tag tag--state">${t('pv.risk.low')}</span> <span class="small ink-2">${t('ac.chk.risk')}</span>`],
+      [t('pv.fail'), p ? esc(L(p.on_failure)) : t('ac.chk.fail'), 'small'],
+    ]);
 }
 function pathsHTML(c) {
   const pathCard = (id, on, name, looks) => `<label class="opt ac-path"><input type="checkbox" data-change="ac-path" value="${esc(id)}" data-fk="path-${esc(id)}" ${on ? 'checked' : ''}><span class="ac-path__box" aria-hidden="true">${icon('tick')}</span>

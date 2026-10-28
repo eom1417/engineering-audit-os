@@ -6,12 +6,9 @@
 // the assistant's own session and is kept for the tab. Also ?q= (asks at once), ?run=<id> (about a run),
 // ?records=1&q= (the check's records, the free `ask` tool) and ?note=project (a note, the `note` action).
 import {
-  t, num, L, esc, rich, icon, code, href, fmtTime, screen, act, refresh, refreshSoon, redrawAssist, toast, announce, parseHash, setQuery, searchTyped, openSheet, offline,
-  S, live, store, client, contract, ActionError, prefs, ac, md,
-  toggleRow,
-  rowWords,
-  titledSection,
-  openLiveButton, pageHead,
+  t, num, L, esc, rich, icon, code, href, fmtTime, screen, act, refresh, refreshSoon, redrawAssist, toast, announce, parseHash, setQuery,
+  searchTyped, openSheet, offline, S, live, store, client, contract, ActionError, prefs, ac, md, toggleRow, rowWords, titledSection, openLiveButton,
+  pageHead,
 } from 'eaos';
 
 const KEY = 'eaos.chat';
