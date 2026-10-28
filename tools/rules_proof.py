@@ -122,16 +122,33 @@ def committed_again(project):
     return commit.returncode != 0, round(time.monotonic() - began, 1), commit.stdout + commit.stderr
 
 
-def problems(rules, card, fixed, again):
-    edited, found = fixed['edited'], []
-    if rules['again'] != 1: found.append(f"the rule said again made another rule ({rules['again']})")
+def kept_and_found(rules, card, told):
+    """What went wrong in steps 1-2: the rule said again made another, the card misses a place, the assistant was not told."""
+    found = [] if rules['again'] == 1 else [f"the rule said again made another rule ({rules['again']})"]
     if not card or sorted(p.split(':')[0] for p in card.get('paths') or []) != sorted(RECORDS): found.append(f'the card does not name the three places: {card}')
-    if sorted(fixed['told']) != sorted([rules['pinned'], rules['batch']]): found.append(f"the assistant was not told both rules: {fixed['told']}")
-    if edited['one place'].get('kept') is not False: found.append(f"a fix of one place was kept: {edited['one place']}")
-    if 'Every total keeps two decimals' not in str(edited['every place, the totals broken'].get('why')): found.append(f"the fix that broke the totals was not refused by its rule: {edited['every place, the totals broken']}")
-    if edited['every place'].get('kept') is not True or fixed['accepted'] != 'accepted': found.append(f"the sound fix was not kept and taken in: {edited['every place']}, {fixed['accepted']}")
+    if sorted(told) != sorted([rules['pinned'], rules['batch']]): found.append(f'the assistant was not told both rules: {told}')
+    return found
+
+
+def held_and_refused(edited, accepted, again):
+    """What went wrong in steps 3-4: a partial fix or one that broke the other rule kept, the sound one not, the hook silent."""
+    found = [] if edited['one place'].get('kept') is False else [f"a fix of one place was kept: {edited['one place']}"]
+    if 'Every total keeps two decimals' not in str(edited['every place, the totals broken'].get('why')):
+        found.append(f"the fix that broke the totals was not refused by its rule: {edited['every place, the totals broken']}")
+    if edited['every place'].get('kept') is not True or accepted != 'accepted': found.append(f"the sound fix was not kept and taken in: {edited['every place']}, {accepted}")
     if not again[0] or 'came back' not in again[2]: found.append(f'the later commit was not refused as a rule that came back: {again}')
     return found
+
+
+def problems(rules, card, fixed, again):
+    return kept_and_found(rules, card, fixed['told']) + held_and_refused(fixed['edited'], fixed['accepted'], again)
+
+
+def said_back(fixed, listed, rules, again, card):
+    """What the proof shows the reader: the card, the rules told, the refusals with their words, the hook's."""
+    print(json.dumps({'card': card and card['id'], 'told': fixed['told'], 'refused': {k: str(v.get('why'))[:160] for k, v in fixed['edited'].items() if v.get('kept') is False},
+                      'branch': (fixed.get('finished') or {}).get('branch'), 'batch_rule': listed[rules['batch']]['history'][-1],
+                      'hook': {'refused': again[0], 'seconds': again[1], 'said': again[2].strip()[-300:]}}, ensure_ascii=False, indent=1))
 
 
 def main(folder):
@@ -143,9 +160,7 @@ def main(folder):
     again = committed_again(project)
     found = problems(rules, card, fixed, again)
     if listed[rules['batch']]['state'] != 'ended': found.append(f"the batch's rule did not stop with its batch: {listed[rules['batch']]}")
-    print(json.dumps({'card': card and card['id'], 'told': fixed['told'], 'refused': {k: str(v.get('why'))[:160] for k, v in fixed['edited'].items() if v.get('kept') is False},
-                      'branch': (fixed.get('finished') or {}).get('branch'), 'batch_rule': listed[rules['batch']]['history'][-1],
-                      'hook': {'refused': again[0], 'seconds': again[1], 'said': again[2].strip()[-300:]}}, ensure_ascii=False, indent=1))
+    said_back(fixed, listed, rules, again, card)
     print('rules proof: ' + ('; '.join(found) if found else 'every rule kept, guarded, found in all its places, fixed in one batch, '
                              'the batch\'s rule ended with it, the pinned one held at the commit'))
     return 1 if found else 0

@@ -3,7 +3,6 @@ change brought (a match it added, a test it made fail), so a rule already broken
 change, and the card that names every place is what fixes the rest.
 """
 import contextlib
-import shutil
 import subprocess
 import tempfile
 from collections import Counter
@@ -37,19 +36,18 @@ def in_check(rules, root, found=None):
 def at_commit(repo, commit):
     """A function giving the code of `repo` at `commit`, checked out apart the first time it is asked for (a guard that
     held needs no past to compare with), and removed at the end."""
-    folder, made = Path(tempfile.mkdtemp(prefix='eaos-rule-before-')), {}
-
-    def code():
-        if 'where' not in made:
-            where = folder / 'code'
-            done = subprocess.run(['git', '-C', str(repo), 'worktree', 'add', '--detach', '--quiet', str(where), commit], capture_output=True, text=True)
-            made['where'] = where if not done.returncode else None
-        return made['where']
-    try:
-        yield code
-    finally:
-        if made.get('where'): subprocess.run(['git', '-C', str(repo), 'worktree', 'remove', '--force', str(made['where'])], capture_output=True)
-        shutil.rmtree(folder, ignore_errors=True)
+    made = {}
+    with tempfile.TemporaryDirectory(prefix='eaos-rule-before-') as folder:
+        def code():
+            if 'where' not in made:
+                where = Path(folder) / 'code'
+                done = subprocess.run(['git', '-C', str(repo), 'worktree', 'add', '--detach', '--quiet', str(where), commit], capture_output=True, text=True)
+                made['where'] = where if not done.returncode else None
+            return made['where']
+        try:
+            yield code
+        finally:
+            if made.get('where'): subprocess.run(['git', '-C', str(repo), 'worktree', 'remove', '--force', str(made['where'])], capture_output=True)
 
 
 def _new_places(after, before):

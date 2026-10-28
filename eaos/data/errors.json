@@ -798,6 +798,10 @@
   "unmeasured": {
    "ar": "المرحلة اشتغلت لكن جزء منها ما انقاس (مثلًا ما فيه قاعدة بيانات خاصة بالنسخة، أو ما انفتحت صفحة تحفظ): هذا الجزء ما يُحسب سليم، وتفاصيله في RUN.md.",
    "en": "The stage ran but part of it could not be measured (for example the copy has no database of its own, or no page that saves was opened): that part is never counted as clean; RUN.md says which."
+  },
+  "no_rules": {
+   "ar": "ما قلت قاعدة تنطبق على هذا المشروع الحين.",
+   "en": "You stated no rule that holds for this project now."
   }
  }
 }
