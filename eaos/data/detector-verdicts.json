@@ -33,7 +33,19 @@
     "policy": "no labelled class for this detector yet",
     "load_blocker": "no labelled class for this detector yet",
     "untested": "no labelled class for this detector yet",
-    "unattributed": "no labelled class for this detector yet"
+    "unattributed": "no labelled class for this detector yet",
+    "one_source:near_copy": "precision 0.459 < 0.8 on 85 judged outputs (M15.10)",
+    "one_source:ui_pattern": "precision 0.091 < 0.8 on 11 judged outputs (M15.10)",
+    "one_source:look": "only 4 judged outputs (bar 5) (M15.10)",
+    "one_source:idiom:date_format": "only 1 judged outputs (bar 5) (M15.10)",
+    "one_source:idiom:json_read": "it produced no output on the set (M15.10)",
+    "one_source:idiom:money_format": "it produced no output on the set (M15.10)",
+    "one_source:idiom:request_state": "it produced no output on the set (M15.10)",
+    "one_source:idiom:popup_close": "it produced no output on the set (M15.10)",
+    "one_source:idiom:drag_drop": "it produced no output on the set (M15.10)",
+    "one_source:idiom:validation": "it produced no output on the set (M15.10)",
+    "one_source:idiom:pagination": "it produced no output on the set (M15.10)",
+    "one_source:idiom:route_guard": "it produced no output on the set (M15.10)"
   },
   "shown": [
     "broken_code",

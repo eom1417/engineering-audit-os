@@ -109,5 +109,18 @@ class Cards(unittest.TestCase):
         self.assertEqual(from_one_source.present(spec, sets())[0], 'REFUTED')
 
 
+class KeptAside(unittest.TestCase):
+    def test_a_card_of_a_detector_under_its_bar_is_kept_aside_with_its_reason(self):
+        import os
+        from unittest import mock
+        from eaos.analysis.claims import ledger
+        claims = from_one_source.one_source_claims(None, sets(near(('a.py', 1), ('b.py', 1))), None, 0)
+        verdicts = Path(scratch('eaos-verdicts-')) / 'verdicts.json'
+        verdicts.write_text(json.dumps({'hidden': {'one_source:near_copy': 'precision under the bar'}, 'shown': []}), encoding='utf-8')
+        with mock.patch.dict(os.environ, {'EAOS_DETECTOR_VERDICTS': str(verdicts)}):
+            shown, withheld = ledger.withhold(claims)
+        self.assertEqual((shown, withheld[0]['withheld']['detector']), ([], 'one_source:near_copy'))
+
+
 if __name__ == '__main__':
     unittest.main()
