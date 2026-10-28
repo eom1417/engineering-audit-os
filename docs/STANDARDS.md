@@ -74,10 +74,12 @@ for undefined names and unused imports (`console/eslint.config.js`).
   `test_consistency`, `test_artifact_contract`, `test_named_paths` (every path EAOS names exists), `test_public_tree`,
   `test_platforms`, `test_single_source`, `test_packaging`, `test_journey` (the fast end-to-end proof)), `test_layers`
   (every planted boundary defect found) and the golden trial (`tools/golden_trial.sh`).
-- **Detection baseline** (M0.2): `tests/fixtures/baseline-app` carries 16 planted problems, listed in
+- **Detection baseline** (M0.2): `tests/fixtures/baseline-app` carries 35 planted problems, listed in
   `tests/fixtures/baseline-problems.json` with how far EAOS reaches each (card, finding, missed): eight from M0.2 (a
   command injection, a secret, a dead function, a dead module, duplication, a broken screen, a sign-in, a logic flaw)
-  and, since M6, one defect per boundary of the layers. Its clean twin `tests/fixtures/baseline-clean` (the same app
+  and, since M6, one defect per boundary of the layers; since M12-M14 real data in the code, old engines and how the
+  data is saved; since M15 one source per pattern (a near copy one line changed, JSON read three ways, a pop-up on three
+  screens, a colour a shade off, sizes off the scale, a date three ways, a route repeating its guard). Its clean twin `tests/fixtures/baseline-clean` (the same app
   done right) must show no layer finding. The golden trial checks both and `tools/detection_baseline.py` refuses a
   check that reaches any problem less; `--record` after reaching more. Today 16 of 16 (0.0.83; `docs/METRICS.md`).
 - **Compatibility corpus** (M0.3): 15 real open-source apps pinned in `tools/corpus.json` (React/Vite with and without

@@ -46,10 +46,11 @@ engineering-audit-os/
       understanding/       what the program is: features, aspects, measurements, the dossier, the owner's intake and
                            engagement, the bounded source the model reads
       claims/              one ledger of everything asserted: claims from facts, records, layers, the repository, the
-                           experience and the logic-flaw hunt; probes, correlation
+                           experience, the logic-flaw hunt and one source per pattern; probes, correlation
       assessments/         ready judgements per kind of finding: dead code, dependencies, mechanical, policy, weaknesses,
                            real data in the code, old engines and code never run, how the data is saved and kept,
-                           the debt register
+                           one source per pattern (near copies, ways of working, screen patterns, the look), the debt
+                           register
       layers/              the whole system in layers: placement, boundaries, browser, endpoints, guards, data,
                            the rules split, operations
       experience/          the simulated users' plan: the scenario, the domain data, the simulation, the judging
@@ -60,7 +61,7 @@ engineering-audit-os/
       readiness/           production readiness and the load model
       planning/            the plan: cards, order, documents, the plan the person brings, the roadmap, ranking
       repair/              how a card is fixed and proven: remediation, codemods, the move tool and its gate, the
-                           context trim, gates, finish line, acceptance, review
+                           context trim, gates (one_source_gate: no change adds a copy), finish line, acceptance, review
       presentation/        the one model of a report and the counts every view shows
     live/                  the app running in its isolated copy: agent.py (the one browser agent)
       isolation/           the sandbox: run only with consent, without secrets, seeing its own disk
@@ -80,7 +81,8 @@ engineering-audit-os/
       frameworks/          one detector per framework: entry points, routes, navigation, data access
       declared_pipelines/  pipelines a project declares (its Python code and frameworks, LangGraph, build files, queues)
       dead_code/           what no user can reach and nothing reads, and the registries that keep a name alive
-      duplication/         fingerprints, repeated sequences, redundant work
+      duplication/         fingerprints, the patterns repeated (the look written outside its tokens file, the screens'
+                           element trees), redundant work
       repository/          the repository as an engineer and an assistant read it: its layout and its assistants' context
       runtime/             services, configuration files, how each file bounds its load
       domain/              constants, data models, rules and module state
@@ -92,8 +94,8 @@ engineering-audit-os/
       project/             a project's records: places, state, runs, ledger, jobs, branches, workspace, repo context
       contracts/           artifacts, documents, decisions, check paths, the code laws, the owner's share, untrusted text
       language/            the words in both languages, plain words, a person's intents, the language check
-      system/              processes, resources, the web, a local database, the version, usage, the Studio's launch
-                           and who may talk to it
+      system/              processes, resources, files (the one JSON reader), the clock (the time now, written once),
+                           the web, a local database, the version, usage, the Studio's launch and who may talk to it
       toolchain/           every external tool at its pinned version, and the catalog the assistant adds to
       progress/            the progress of every long piece of work
     data/ rules/ templates/   contracts, words, catalogs, the built Studio; engine rules; scripts the app runs

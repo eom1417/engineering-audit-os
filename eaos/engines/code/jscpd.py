@@ -22,7 +22,7 @@ from ..process import run, which
 
 NAME, BINARY, PINNED = 'jscpd', 'jscpd', '5.4.2'
 ALWAYS_IGNORED = ('**/.git/**', '**/node_modules/**', '**/.venv/**', '**/dist/**', '**/build/**',
-                  '**/__pycache__/**', '**/.enola/**')
+                  '**/__pycache__/**', '**/.enola/**', '**/*.d.ts')     # a declaration file: types written (or generated) for code elsewhere
 IMPORT = re.compile(r'^\s*(from\s+\S+\s+import\b|import\s|export\s.*\bfrom\s|\}\s*from\s)')
 ASIDE = re.compile(r'^\s*("""|\'\'\'|#|//|\*|/\*)?\s*$|^\s*(#|//)')        # blank, a comment, a docstring's quotes alone
 NEAR_MODES = ('--similarity', str(NEAR_COPY['similarity']), '--max-gap-lines', str(NEAR_COPY['max_gap_lines']),
