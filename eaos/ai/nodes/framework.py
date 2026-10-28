@@ -28,7 +28,6 @@ import re
 import threading
 from ...core.contracts.code_laws import LAWS
 from ...core.contracts.untrusted import UNTRUSTED
-from datetime import datetime, timezone
 from pathlib import Path
 from ...core.system.files import read_json
 
@@ -40,10 +39,6 @@ WORDS = {
     'failed': 'The assistant\'s answer could not be used ({why}), so the rules decided alone.',
     'stopped': 'The run was stopped, so the rules decided alone.',
 }
-
-
-def now():
-    return datetime.now(timezone.utc).isoformat(timespec='seconds')
 
 
 def load(path, default=None):

@@ -41,13 +41,13 @@ import shutil
 import socket
 import threading
 import time
-from datetime import datetime, timezone
 from pathlib import Path
 
 from .context import bounded
 from .fold import fold_file
 from .liveness import ALIVE_EVERY
 from ...core.system.files import read_json
+from ...core.system.clock import now, stamp
 
 PROGRESS = 'run-progress.jsonl'
 FOLDER = 'progress'
@@ -64,10 +64,6 @@ def enabled():
     """False when EAOS_PROGRESS is 0, off, no or false: then no flow writes its progress and `count()` and `step()`
     hear nothing. It exists to prove that progress never changes a result (tools/progress_determinism.py)."""
     return os.environ.get('EAOS_PROGRESS', '').strip().lower() not in ('0', 'off', 'no', 'false')
-
-
-def now():
-    return datetime.now(timezone.utc).isoformat(timespec='milliseconds')
 
 
 def _at(at):
@@ -171,7 +167,7 @@ class ProgressLog:
         self.path = path_for(out, flow)
         self.seq = 0
         self.lock = threading.RLock()
-        self.run = datetime.now(timezone.utc).strftime('%Y%m%dT%H%M%S') + '-' + secrets.token_hex(3)
+        self.run = stamp('%Y%m%dT%H%M%S', utc=True) + '-' + secrets.token_hex(3)
         self.enabled = enabled()
         self.broken = not self.enabled              # turned off: every line is left unwritten, as if it failed
         self.clock = clock
@@ -200,7 +196,7 @@ class ProgressLog:
     def emit(self, event, **fields):
         with self.lock:
             self.seq += 1
-            row = {'seq': self.seq, 'at': now(), 'event': event, 'run': self.run, **fields}
+            row = {'seq': self.seq, 'at': now('milliseconds'), 'event': event, 'run': self.run, **fields}
             self.wrote_at = self.clock()
             if event == 'stage.started':
                 self.current, self.sampled_at = fields.get('stage'), self.wrote_at

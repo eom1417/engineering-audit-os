@@ -8,7 +8,8 @@ from ...live.access import sign_in as signing
 from ...pipeline import remedies
 from ...core.project.state import waiting_batch
 from .fixing import _no_safety_net
-from .project import ANSWER_SECONDS, SeveralProjects, _current, _head, _now, state_of, tool_digest
+from .project import ANSWER_SECONDS, SeveralProjects, _current, _head, state_of, tool_digest
+from ...core.system.clock import now
 
 
 # ---------------------------------------------------------------- where things are
@@ -24,7 +25,7 @@ def _branch(state):
         if current: guided.choose(state, current)
         return None
     if not (state.get('asked') or {}).get('branch'):
-        state.setdefault('asked', {})['branch'] = _now()
+        state.setdefault('asked', {})['branch'] = now()
         guided.save(state)
     return {'status': 'needs_branch', 'branches': options['branches'][:15], 'recommended': options['recommended'],
             'main_branch': options['main'], 'checked_out': current,

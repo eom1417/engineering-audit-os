@@ -7,8 +7,8 @@ import json
 import os
 from pathlib import Path
 import re
-from datetime import datetime, timezone
 from ... import __version__
+from ...core.system.clock import now
 
 DATA = Path(__file__).resolve().parents[2] / 'data'
 SKIP_DIRS = {'.git', 'node_modules', '.venv', 'venv', '__pycache__', 'vendor', 'dist', 'build', '.next', '.nuxt', '.terraform'}
@@ -18,7 +18,6 @@ INFRA = re.compile(r'(docker|compose|helm|kubernetes|k8s|terraform|serverless|pu
 # adminSecrets.ts or credentialsForm.tsx are source the audit must read, or it calls their imports missing.
 SENSITIVE = re.compile(r'(^\.env($|\.)|\.pem$|\.key$|^id_(rsa|ed25519)$|(^|[._-])(credentials?|secrets?)(\.(json|ya?ml|toml|ini|txt|env|conf|cfg|properties|xml|csv)$|$)|\.tfstate($|\.)|\.p12$|\.pfx$|^\.npmrc$|^\.netrc$)',re.I)
 
-def now(): return datetime.now(timezone.utc).isoformat()
 def digest(b): return hashlib.sha256(b).hexdigest()
 def read(p): return json.loads(Path(p).read_text(encoding='utf-8'))
 def write(p,obj):
@@ -75,7 +74,7 @@ def inventory(root, max_files=100000, max_bytes=2_000_000):
     manifest_names=sorted({f['path'] for f in files if Path(f['path']).name in STACKS or f['path'].endswith(('.csproj','.fsproj','.sln'))})
     stack_hints=sorted({STACKS.get(Path(p).name,'.NET') for p in manifest_names})
     fingerprint=digest(json.dumps(files,sort_keys=True).encode())
-    return {'root':str(root),'created_at':now(),'fingerprint':fingerprint,'limits':{'max_files':max_files,'max_bytes':max_bytes},'truncated':limited,'errors':errors,'exclusions':exclusions,'files':files,'manifest_candidates':manifest_names,'stack_hints':stack_hints,'infrastructure_candidates':[f['path'] for f in files if INFRA.search(f['path'])],'interpretation':'Filename hints only; confirm actual architecture, versions and deployed infrastructure with evidence.'}
+    return {'root':str(root),'created_at':now('auto'),'fingerprint':fingerprint,'limits':{'max_files':max_files,'max_bytes':max_bytes},'truncated':limited,'errors':errors,'exclusions':exclusions,'files':files,'manifest_candidates':manifest_names,'stack_hints':stack_hints,'infrastructure_candidates':[f['path'] for f in files if INFRA.search(f['path'])],'interpretation':'Filename hints only; confirm actual architecture, versions and deployed infrastructure with evidence.'}
 
 def load_run(path):
     run=Path(path).resolve(); state=read(run/'run.json')
@@ -100,7 +99,6 @@ def safe_file(root,relative):
     if root not in resolved.parents or not resolved.is_file(): raise ValueError('Not a regular in-target file')
     if any(SENSITIVE.search(p) for p in rel.parts): raise ValueError('Sensitive path: metadata only; do not capture contents')
     return resolved
-
 
 
 @contextmanager

@@ -5,9 +5,10 @@ import fcntl
 from pathlib import Path
 
 from ....core.project import branches as reading, state as project_state
-from ....core.project.runs import ACTIVE, TERMINAL, _write_json, now
+from ....core.project.runs import ACTIVE, TERMINAL, _write_json
 from .common import EAOS_EMAIL, _out, _when, git, say, work_of
 from ....core.system.files import read_json
+from ....core.system.clock import now
 
 
 class StateView:
@@ -88,7 +89,7 @@ class StateView:
         with (self.store.folder / 'branch-provenance.lock').open('a+') as lock:
             fcntl.flock(lock, fcntl.LOCK_EX)
             data = read_json(path, {}) or {}
-            entry = data.setdefault('branches', {}).setdefault(name, {'created_by': 'eaos', 'at': now()})
+            entry = data.setdefault('branches', {}).setdefault(name, {'created_by': 'eaos', 'at': now('milliseconds')})
             for key, value in fields.items():
                 if key == 'checks': entry.setdefault('checks', []).append(value)
                 elif key == 'history': entry.setdefault('history', []).append(value)
@@ -162,10 +163,10 @@ class StateView:
     def run_context(self):
         """What a new run is made on, recorded on it when it is created so a later change of branch never retargets it
         silently: {analysis_branch, analysis_commit, checkout, detached, at}."""
-        if not self.is_repo(): return {'analysis_branch': None, 'analysis_commit': None, 'checkout': None, 'detached': None, 'at': now()}
+        if not self.is_repo(): return {'analysis_branch': None, 'analysis_commit': None, 'checkout': None, 'detached': None, 'at': now('milliseconds')}
         context = self.context()
         return {'analysis_branch': context['analysis']['branch'], 'analysis_commit': context['analysis']['tip'],
-                'checkout': context['checkout']['branch'], 'detached': context['checkout']['detached'], 'at': now()}
+                'checkout': context['checkout']['branch'], 'detached': context['checkout']['detached'], 'at': now('milliseconds')}
 
     def work_branch(self, record):
         """A run's work branch as it is now: {name, exists, tip, recorded_tip, deleted, recovery} | {state: not_created_yet |

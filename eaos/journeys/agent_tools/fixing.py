@@ -12,8 +12,9 @@ from ...core.project.state import waiting_batch
 from ...live.app import setup as live_setup
 from .edits import _apply, _inside
 from .evidence import _ready
-from .project import WAIT, _head, _now, _read, _report, _start, state_of
+from .project import WAIT, _head, _read, _report, _start, state_of
 from .running import CONSENT, _consented
+from ...core.system.clock import now
 
 
 # ---------------------------------------------------------------- fixing
@@ -182,7 +183,7 @@ def _fix_start_job(project, arguments, progress):
     root, base = open_batch(source, runtime, number)
     cards = {t['id']: t for t in read_plan(report)['tasks'] if t['id'] in set(arguments['cards'])}
     wave = {'number': number, 'root': str(root), 'base': base, 'cards': arguments['cards'], 'kept': {}, 'failed': {}, 'tools': {},
-            'opened': _now(), 'keys': {c: cards[c]['key'] for c in arguments['cards']},
+            'opened': now(), 'keys': {c: cards[c]['key'] for c in arguments['cards']},
             'base_branch': state.get('branch') or branches.checked_out(state['project']),
             'deliver_as': arguments.get('deliver_as'), 'merge_into': arguments.get('merge_into')}
     _settle_delivery(state, wave, root)

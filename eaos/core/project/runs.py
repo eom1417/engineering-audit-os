@@ -20,9 +20,9 @@ import json
 import os
 import re
 import threading
-from datetime import datetime, timezone
 from pathlib import Path
 from ...core.system.files import read_json
+from ...core.system.clock import now
 
 ZERO = '0' * 64
 # A run's fields only its assistant's brief reads (eaos/interfaces/studio_actions/runs.py prompt_of), never a page: the list of
@@ -46,10 +46,6 @@ KEEP = 10
 SECRET = re.compile(r'(sk-[A-Za-z0-9_-]{16,}|sk-ant-[A-Za-z0-9_-]{16,}|gh[pousr]_[A-Za-z0-9]{20,}|github_pat_[A-Za-z0-9_]{20,}'
                     r'|AKIA[0-9A-Z]{16}|xox[abpr]-[A-Za-z0-9-]{10,}|eyJ[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}'
                     r'|(?i:bearer)\s+[A-Za-z0-9._~+/-]{16,}=*|-----BEGIN [A-Z ]*PRIVATE KEY-----[\s\S]*?-----END [A-Z ]*PRIVATE KEY-----)')
-
-
-def now():
-    return datetime.now(timezone.utc).isoformat(timespec='milliseconds')
 
 
 def canonical(value):
@@ -107,7 +103,7 @@ class Store:
 
     def save(self, record, new=False):
         with self.lock:
-            record['updated'] = now()
+            record['updated'] = now('milliseconds')
             _write_json(self.path(record['id']) / 'run.json', record, create=new)
             self.changed.notify_all()
         if new: self.trim()
@@ -127,7 +123,7 @@ class Store:
         """One ended run's record notes what it used and when it was trimmed; its raw stream, events and errors go."""
         from ..system.usage import of_run
         folder = self.path(row['id'])
-        self.update(row['id'], usage=row.get('usage') or of_run(folder), trimmed=now())
+        self.update(row['id'], usage=row.get('usage') or of_run(folder), trimmed=now('milliseconds'))
         for name in ('stream.jsonl', 'stderr.log', 'events.jsonl', 'mcp.json'): (folder / name).unlink(missing_ok=True)
 
     def update(self, run, **fields):
@@ -182,7 +178,7 @@ class Store:
                 out.seek(0)
                 lines = [line for line in out.read().splitlines() if line.strip()]
                 last = json.loads(lines[-1]) if lines else {'seq': 0, 'hash': ZERO}
-                event = {'seq': last['seq'] + 1, 'id': f"{run}-{last['seq'] + 1}", 'run': run, 'at': now(), 'kind': kind,
+                event = {'seq': last['seq'] + 1, 'id': f"{run}-{last['seq'] + 1}", 'run': run, 'at': now('milliseconds'), 'kind': kind,
                          'text': self.scrub(text), 'data': self.scrub(data), 'detail': self.scrub(detail), 'prev': last['hash']}
                 event['hash'] = hashlib.sha256((event['prev'] + canonical(event)).encode('utf-8')).hexdigest()
                 out.write(json.dumps(event, ensure_ascii=False) + '\n')
@@ -205,7 +201,7 @@ class Store:
 
     def refused(self, method, path, reason, keep=500):
         """A call the locks refused, in runs/refused.jsonl: when, which route, why; never a token or a query."""
-        line = json.dumps({'at': now(), 'method': method, 'path': self.scrub(str(path).split('?')[0])[:200], 'reason': reason}, ensure_ascii=False)
+        line = json.dumps({'at': now('milliseconds'), 'method': method, 'path': self.scrub(str(path).split('?')[0])[:200], 'reason': reason}, ensure_ascii=False)
         path = self.folder / 'refused.jsonl'
         with self.lock:
             if not self.folder.is_dir(): return

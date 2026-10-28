@@ -8,7 +8,6 @@ here are the run of them all, its manifest, and the checks a person asks for (ch
 import json
 import threading
 import time
-from datetime import datetime, timezone
 from pathlib import Path
 
 from ..core.progress import ProgressLog, previous_seconds
@@ -24,6 +23,7 @@ from .schedule import LimitedProvider, assistants, run_ready
 from .stage_run import CHECKPOINT, FAILED, NOT_REACHED, OK, SKIPPED, UNAVAILABLE, Context, _stage, _write
 from .stages import BY_NAME, ORDER, STAGES, dependents
 from ..core.system.files import read_json
+from ..core.system.clock import now
 
 MANIFEST = 'run-manifest.json'
 
@@ -65,7 +65,7 @@ def execute(target, out, *, only=(), skip=(), language='ar', exclude=(), engines
     requested = _requested(only, (*skip, *switched_off(paths or ['complete'])))
     completed = _completed or {}
     context['again'] = bool(completed)          # within a check run before: a tool run again joins the others' results
-    started_at = datetime.now(timezone.utc).isoformat(timespec='seconds')
+    started_at = now()
     began = time.monotonic()
     todo = _todo(requested, completed)
     head = _head(context, started_at, requested)

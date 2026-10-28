@@ -23,6 +23,7 @@ from pathlib import Path
 
 from ...core.system.studio_access import THIS_COMPUTER
 from ...core.system.files import read_json
+from ...core.system.clock import now
 
 SESSION = 'session.json'                     # in the run's folder: the session of the app in its isolated copy
 PUBLISHED = 'published-session.json'         # in the project's workspace: the published address's, for one check only
@@ -63,7 +64,7 @@ def seeding(state):
 def mark(state):
     """The session the browser just saved, marked as the person's and made readable by its owner only."""
     record = read_json(state) or {}
-    _write(state, {**record, 'eaos': {'by': 'hand', 'at': datetime.now(timezone.utc).isoformat(timespec='seconds')}})
+    _write(state, {**record, 'eaos': {'by': 'hand', 'at': now()}})
 
 
 def from_code(report):
@@ -119,7 +120,7 @@ def tell(workspace, **said):
 def asked(workspace):
     """What the check asks the person now, or None (nothing asked, answered, or no longer waited for)."""
     record = read_json(Path(workspace) / ASKED)
-    if not record or record.get('state') != 'waiting' or record['until'] < datetime.now(timezone.utc).isoformat(timespec='seconds'): return None
+    if not record or record.get('state') != 'waiting' or record['until'] < now(): return None
     return record
 
 

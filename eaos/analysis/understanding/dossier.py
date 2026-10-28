@@ -4,7 +4,6 @@ Everything a reader sees is derived from `dossier.json`. Nothing is written into
 that does not exist in the ledger, and no claim reaches a reader without its confidence and source (claims: gather.py).
 """
 from collections import namedtuple
-from datetime import datetime, timezone
 from functools import partial
 from pathlib import Path
 from ... import __version__
@@ -15,6 +14,7 @@ from ...core.contracts.document import Document, say
 from ...core.contracts.document_rules import validate
 from ...facts.store import read_set
 from ...core.project.workspace import read, write
+from ...core.system.clock import stamp
 
 # What the dossier was asked for (assemble's arguments) and what it is built from: each travels whole to every step.
 _Request = namedtuple('_Request', 'target out run language version exclude')
@@ -323,7 +323,7 @@ def _dossier(request, inputs, rows, withheld):
     return {
         'schema_version': 1,
         'provenance': {'target': str(target), 'tool_version': request.version or __version__,
-                       'generated_at': datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M UTC'), 'snapshot_fingerprint': sets['syntax']['input_sha'],
+                       'generated_at': stamp('%Y-%m-%d %H:%M UTC', utc=True), 'snapshot_fingerprint': sets['syntax']['input_sha'],
                        'audit_run': str(run) if run else None,
                        'model_calls': 0 if not run else (records['state'] or {}).get('model_calls', 'see engine-state.json'),
                        'extractors': {name: data['extractor_version'] for name, data in sorted(sets.items())},

@@ -1,10 +1,10 @@
 """What refuses a branch change, and the one-at-a-time lock and history every change goes through."""
 import fcntl
 import secrets
-from datetime import datetime
 
-from ....core.project.runs import ACTIVE, now
+from ....core.project.runs import ACTIVE
 from .common import Blocked, git, say, work_of
+from ....core.system.clock import now, stamp
 
 
 class Guards:
@@ -93,10 +93,10 @@ class Guards:
         return handle
 
     def _start(self, action, label, branches, inputs):
-        run = 'b' + datetime.now().strftime('%Y%m%d-%H%M%S-') + secrets.token_hex(3)
+        run = 'b' + stamp('%Y%m%d-%H%M%S-') + secrets.token_hex(3)
         record = {'id': run, 'action': action, 'verb': None, 'label': label, 'inputs': inputs, 'cards': [], 'selection': None,
-                  'assistant': None, 'mode': 'direct', 'state': 'running', 'attempt': 1, 'created': now(), 'queued_at': now(),
-                  'started': now(), 'read': False, 'context': self.run_context(), 'branch_op': {'branches': branches}}
+                  'assistant': None, 'mode': 'direct', 'state': 'running', 'attempt': 1, 'created': now('milliseconds'), 'queued_at': now('milliseconds'),
+                  'started': now('milliseconds'), 'read': False, 'context': self.run_context(), 'branch_op': {'branches': branches}}
         self.store.save(record, new=True)
         self.store.append(run, 'action', {'en': f"You asked: {label['en']}", 'ar': f"طلبت: {label['ar']}"},
                           {'action': action, 'by': 'person', 'arguments': inputs})

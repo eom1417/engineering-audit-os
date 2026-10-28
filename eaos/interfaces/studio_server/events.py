@@ -31,13 +31,13 @@ import json
 import secrets
 import threading
 from collections import deque
-from datetime import datetime, timezone
 from pathlib import Path
 
 from ...core import toolchain
 from ...core.progress import PROGRESS, path_for
 from ...core.progress.log import FOLDER
 from ...core.system.files import read_json
+from ...core.system.clock import now
 
 KEEP = 2000
 EVENT_LOG = 'events.jsonl'
@@ -63,10 +63,6 @@ STEP_TEXT = {
     'run.ended': ('{flow} ended: {status}', 'انتهى {flow}: {status}'),
 }
 BATCH, MERGED = {'in_batch', 'on_branch'}, {'done'}
-
-
-def now():
-    return datetime.now(timezone.utc).isoformat(timespec='milliseconds')
 
 
 def _stat(path):
@@ -168,7 +164,7 @@ class Feed:
         en, ar = TEXT.get(kind, (kind, kind))
         with self.lock:
             self.seq += 1
-            event = {'seq': self.seq, 'id': f'{self.epoch}-{self.seq}', 'at': now(), 'kind': kind, 'source': source,
+            event = {'seq': self.seq, 'id': f'{self.epoch}-{self.seq}', 'at': now('milliseconds'), 'kind': kind, 'source': source,
                      'sections': sorted(sections), 'text': text or {'en': en, 'ar': ar}, 'data': data or {}}
             self.events.append(event)
             return event

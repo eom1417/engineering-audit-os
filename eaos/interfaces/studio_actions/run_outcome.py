@@ -3,8 +3,9 @@ with its diff, checks and cards closed; and the batch accepted by itself when th
 import subprocess
 
 from ...ai.assistant import prompts
-from ...core.project.runs import now
+
 from ...core.project import state as project_state
+from ...core.system.clock import now
 
 
 def _fresh_waves(record, state):
@@ -83,7 +84,7 @@ class Outcomes:
         if ok:
             self.store.append(run, 'result', {'en': f'Taken in automatically: {branch}', 'ar': f'اعتُمد تلقائيًا: {branch}'},
                               {'branch': branch, 'outcome': 'accept', 'auto_accept': True, 'answer': result})
-            self.store.update(run, outcome='accepted', decided=now())
+            self.store.update(run, outcome='accepted', decided=now('milliseconds'))
         else:
             why = str((result or {}).get('status') or (result or {}).get('error'))
             self.store.append(run, 'say', {'en': f'Not accepted automatically ({why}): the branch {branch} waits for you',

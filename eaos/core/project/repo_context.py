@@ -3,7 +3,8 @@ import json
 from collections import OrderedDict
 import re
 from pathlib import Path
-from .workspace import read, write, safe_file, digest, now
+from .workspace import read, write, safe_file, digest
+from ...core.system.clock import now
 
 # Preserve line numbering; obvious credential values are removed before provider access.
 SECRET=re.compile(r'''(?i)(\b[\w-]*(?:api[_-]?key|secret|password|access[_-]?token|authorization)[\w-]*["']?\s*[=:]\s*)("(?:\\.|[^"\\\r\n])*"|'(?:\\.|[^'\\\r\n])*'|[^\r\n,;}]+)''')
@@ -46,7 +47,7 @@ class Context:
         eid='SRC-'+digest(json.dumps(ref,sort_keys=True).encode())[:20]
         block={'evidence_id':eid,'path':path,'start_line':start,'end_line':end,'redacted':raw!=clean,'source':'\n'.join(f'{i}: {line}' for i,line in enumerate(clean.splitlines(),start))}
         if len(json.dumps(block,ensure_ascii=False))>self.budget//2:raise ValueError('Requested range exceeds context allocation; narrow line range')
-        self.evidence[eid]={'id':eid,'kind':'source','location':f'{path}:{start}-{end}','revision':self.state['revision'],'observed_at':now(),'observation':'Source range made available to the model; semantic conclusions are separate.','method':'source_range_capture','limitations':'Static source only. '+('Credential-like values redacted; inspect sanitized behavior separately.' if raw!=clean else 'Not proof of runtime behavior.'),'source_ref':ref}
+        self.evidence[eid]={'id':eid,'kind':'source','location':f'{path}:{start}-{end}','revision':self.state['revision'],'observed_at':now('auto'),'observation':'Source range made available to the model; semantic conclusions are separate.','method':'source_range_capture','limitations':'Static source only. '+('Credential-like values redacted; inspect sanitized behavior separately.' if raw!=clean else 'Not proof of runtime behavior.'),'source_ref':ref}
         self.seen.add(eid)
         if persist:write(self.run/'evidence.json',list(self.evidence.values()))
         return block

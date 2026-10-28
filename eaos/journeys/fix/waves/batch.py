@@ -2,7 +2,6 @@
 import json
 import subprocess
 import tempfile
-from datetime import datetime, timezone
 from pathlib import Path
 
 from ....core import progress
@@ -11,6 +10,7 @@ from ..execute import git, original_checks, own_batch, project_checks, record, r
 from .acceptance import _still, batch_acceptance, engines_for
 from .cards import plan
 from ....core.system.files import read_json
+from ....core.system.clock import now
 
 
 # ---------------------------------------------------------------- one change, its gates
@@ -354,7 +354,7 @@ def _write_wave(batch, wave, kept, failed):
     patches.mkdir(parents=True, exist_ok=True)
     if kept: git(root, 'format-patch', '--quiet', '-o', str(patches), f'{base}..HEAD')
     summary = {'wave': number, 'branch': branch or f'eaos/wave-{number}', 'root': str(root), 'base': base, 'kept': list(kept),
-               'failed': failed, 'at': datetime.now(timezone.utc).isoformat(timespec='seconds'),
+               'failed': failed, 'at': now(),
                'stat': git(root, 'diff', '--shortstat', f'{base}..HEAD').stdout.strip(), **({'security': batch['security']} if batch.get('security') else {}),
                **({'limitations': batch['limitations']} if batch.get('limitations') else {})}
     (patches / 'wave.json').write_text(json.dumps(summary, ensure_ascii=False, indent=1) + '\n', encoding='utf-8')

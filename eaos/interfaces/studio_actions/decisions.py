@@ -5,9 +5,10 @@ from pathlib import Path
 
 from ...journeys.build_from_plan import steps as build_tools
 from ...journeys.fix import selection as selecting
-from ...core.project.runs import now, _write_json
+from ...core.project.runs import _write_json
 from .lane_assistants import Refused
 from ...core.system.files import read_json
+from ...core.system.clock import now
 
 
 def _chosen_answer(question, option, text):
@@ -35,9 +36,9 @@ def _owner_response(saved, row, answer, path):
         raise LookupError('this question already has an owner answer')
     if response: return response
     response = {'decision': decision, 'scope': row['scope'], 'option': option, 'text': text,
-                'label': chosen['label'] if chosen else text, 'at': now(), 'provenance': 'owner:studio',
+                'label': chosen['label'] if chosen else text, 'at': now('milliseconds'), 'provenance': 'owner:studio',
                 'status': 'saved', 'run': 'd' + row['scope'][:40],
-                'history': [{'at': now(), 'event': 'saved', 'by': 'owner:studio'}]}
+                'history': [{'at': now('milliseconds'), 'event': 'saved', 'by': 'owner:studio'}]}
     saved[row['scope']] = response
     _write_json(path, saved)
     return response
@@ -96,7 +97,7 @@ class Decisions:
         except KeyError: self._queue_review(run, question, response, wanted)
         response['status'] = 'queued'
         if not any(e['event'] == 'queued' for e in response['history']):
-            response['history'].append({'at': now(), 'event': 'queued', 'run': run})
+            response['history'].append({'at': now('milliseconds'), 'event': 'queued', 'run': run})
 
     def _queue_review(self, run, question, response, wanted):
         """A run for the assistant to review the owner's answer, with the cards it blocks and their evidence."""
@@ -106,7 +107,7 @@ class Decisions:
                   'inputs': {}, 'owner_decision': self._review_context(question, response), 'cards': question.get('blocks', []),
                   'assistant': None if assistant == 'handoff' else assistant,
                   'mode': 'handoff' if assistant == 'handoff' else 'assistant', 'state': 'queued',
-                  'attempt': 1, 'created': now(), 'queued_at': now(), 'read': False}
+                  'attempt': 1, 'created': now('milliseconds'), 'queued_at': now('milliseconds'), 'read': False}
         self.store.save(record, new=True)
         self.store.append(run, 'action', record['label'], {'action': 'report_decision', 'by': 'person'})
 
@@ -168,4 +169,4 @@ class Decisions:
                           {'branch': branch, 'outcome': operation if ok else None, 'answer': result} if ok else
                           {'reason': str(result.get('status') or result.get('error')), 'recoverable': True,
                            'what_now': {'en': str(result.get('what_now') or ''), 'ar': str(result.get('what_now') or '')}})
-        if ok: self.store.update(run, outcome={'accept': 'accepted', 'undo': 'undone'}[operation], decided=now())
+        if ok: self.store.update(run, outcome={'accept': 'accepted', 'undo': 'undone'}[operation], decided=now('milliseconds'))

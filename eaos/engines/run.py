@@ -3,7 +3,6 @@ import contextvars
 import json
 import time
 from concurrent.futures import FIRST_COMPLETED, ThreadPoolExecutor, wait
-from datetime import datetime, timezone
 from pathlib import Path
 from typing import NamedTuple
 
@@ -17,6 +16,7 @@ from ..core import progress
 from ..core.system import resources
 from ..core.toolchain import registry
 from ..core.system.files import read_json
+from ..core.system.clock import now
 
 # The engines are the registry's (eaos/data/toolchain.json): every tool the engines stage runs (`check: engines`) with a
 # command of its own has its adapter here, by its NAME; an added tool that declares an `engine` runs through sarif.py.
@@ -132,7 +132,7 @@ def analyze(target, workdir, exclude=(), only=None, formats=None, keep=False):  
     findings, justified = _split(selected, reports)
     manifest = {
         'contract_version': 1,
-        'generated_at': datetime.now(timezone.utc).isoformat(timespec='seconds'),
+        'generated_at': now(),
         'target': str(target), 'exclude': sorted(exclude), 'formats': sorted(formats) if formats else None,
         'requested': selected, 'unknown_engines': unknown,
         'target_unchanged': before == after, 'target_digest': before,

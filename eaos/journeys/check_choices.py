@@ -15,7 +15,6 @@ assistant (the MCP audit tool) and the Studio.
 The paths are asked for each check (a focused check is a choice of the moment); the mode and the sign-in are kept. The
 state comes from its callers (eaos/journeys/guided/ loads and saves it), so this module sits below them.
 """
-from datetime import datetime, timezone
 from pathlib import Path
 
 from ..live.access import sign_in
@@ -26,6 +25,7 @@ from ..pipeline.schedule import MODES, forecast
 from ..pipeline.stages import BY_NAME, ORDER, dependents
 from ..core.progress import previous_seconds
 from ..core.system.files import read_json
+from ..core.system.clock import now
 
 SIGN_IN = ('hand', 'test_user', 'none')        # by hand on the sign-in page, the assistant's seed script, no sign-in
 
@@ -45,7 +45,7 @@ def agreed_to_run(state):
 def agree_to_run(state, via):
     """The person's yes to running their app in an isolated copy, kept for the project in `state` (asked once, not once
     a run; eaos/journeys/guided/ check_runtime reads it): the Studio's check window, `eaos check --run-app`, or the assistant."""
-    state['consent'] = {**(state.get('consent') or {}), 'run_and_fix': True, 'at': datetime.now(timezone.utc).isoformat(timespec='seconds')}
+    state['consent'] = {**(state.get('consent') or {}), 'run_and_fix': True, 'at': now()}
     if not any(q.get('id') == 'run_and_fix' for q in state.setdefault('questions', [])):
         state['questions'].append({'id': 'run_and_fix', 'kind': 'yes_no', 'answer': True, 'via': via})
 

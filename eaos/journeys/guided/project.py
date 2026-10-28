@@ -5,7 +5,6 @@ import json
 import os
 import shutil
 import traceback
-from datetime import datetime, timezone
 from pathlib import Path
 
 from ...core.project import branches, state as project_state
@@ -13,6 +12,7 @@ from ...core.project.state import runtime_of
 from ..fix import waves
 from ...core.project.places import outputs_root, second_name
 from ...core.system.files import read_json
+from ...core.system.clock import now, stamp
 
 
 OUTPUTS_README = {
@@ -80,7 +80,7 @@ def language(requested=None, state=None):
 def log_failure(where, problem):
     logs = Path(where) / 'logs'
     logs.mkdir(parents=True, exist_ok=True)
-    path = logs / f"{datetime.now().strftime('%Y%m%d-%H%M%S')}.log"
+    path = logs / f"{stamp('%Y%m%d-%H%M%S')}.log"
     path.write_text(''.join(traceback.format_exception(type(problem), problem, problem.__traceback__)), encoding='utf-8')
     return path
 
@@ -128,7 +128,7 @@ def publish(state, lang=None, event=None):
     never a reason for a step to fail: without it, the technical report is still there."""
     from ...core.system.version_info import stamp
     report, home_folder = report_of(state), branches.home(state)
-    target, made = home_folder / 'REPORT.html', datetime.now(timezone.utc).isoformat(timespec='seconds')
+    target, made = home_folder / 'REPORT.html', now()
     errors, progress = [], {'waves': state.get('waves') or []}
 
     def part(name, build):

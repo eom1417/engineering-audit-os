@@ -235,8 +235,8 @@ def flow_state(folder, flow='check'):
 
 def scan_state(report, last_id=None):
     """`/api/scan-progress`: the check's flow, the server's clock for the page's timers and the feed's last id."""
-    from .events import now
-    return {**flow_state(report), 'now': now(), 'feed_last': last_id}
+    from ...core.system.clock import now
+    return {**flow_state(report), 'now': now('milliseconds'), 'feed_last': last_id}
 
 
 def progress_state(report, state, last_id=None):
@@ -244,11 +244,11 @@ def progress_state(report, state, last_id=None):
     project's runtime folder, and the install of the tools with the ones the check needs on this project
     (`tools_needed`); the check and the tools alone when no project is known."""
     from ...core import toolchain
-    from .events import now
+    from ...core.system.clock import now
     flows = {'check': flow_state(report), toolchain.FLOW: flow_state(toolchain.home(), toolchain.FLOW)}
     if state: flows.update((flow, flow_state(journeys.folder(state, flow), flow)) for flow in journeys.flows(state)[1:])
     needed = toolchain.needed(toolchain.project_files(state['project']) if state else ())
-    return {'journey': journeys.journey(state) if state else [], 'flows': flows, 'tools_needed': needed, 'now': now(), 'feed_last': last_id}
+    return {'journey': journeys.journey(state) if state else [], 'flows': flows, 'tools_needed': needed, 'now': now('milliseconds'), 'feed_last': last_id}
 
 
 def report_ticket(tickets, report):

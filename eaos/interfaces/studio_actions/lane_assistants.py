@@ -14,8 +14,9 @@ from ...journeys import check_choices, guided
 from ...journeys.fix import lanes
 from ...pipeline.schedule import assistants
 from ...journeys.fix.waves import plan
-from ...core.project.runs import TERMINAL, now
+from ...core.project.runs import TERMINAL
 from ...core.project import state as project_state
+from ...core.system.clock import now
 
 
 def speed(project, cards):
@@ -55,8 +56,8 @@ def after(manager, run, state):
         label = {'en': f"{record['label']['en']}: assistant {lane + 1}", 'ar': f"{record['label']['ar']}: المساعد {lane + 1}"}
         manager.store.save({**{key: record.get(key) for key in ('action', 'verb', 'assistant', 'owner_answers', 'context')},
                             'id': child, 'label': label, 'cards': cards, 'cards_detail': [details.get(card, {'id': card}) for card in cards],
-                            'mode': 'assistant', 'lane': lane, 'parent': run, 'state': 'running', 'attempt': 1, 'created': now(),
-                            'queued_at': now(), 'started': now(), 'read': False}, new=True)
+                            'mode': 'assistant', 'lane': lane, 'parent': run, 'state': 'running', 'attempt': 1, 'created': now('milliseconds'),
+                            'queued_at': now('milliseconds'), 'started': now('milliseconds'), 'read': False}, new=True)
         manager.store.append(child, 'action', label, {'action': 'fix', 'by': 'person', 'arguments': {'cards': cards, 'lane': lane}})
         threading.Thread(target=manager._start, args=(child,), daemon=True).start()
     manager.store.append(run, 'step', {'en': f'{len(made)} more assistants fix the other cards at the same time, each its own files',

@@ -3,11 +3,11 @@
 A claim only becomes CONFIRMED because something was actually executed or re-derived, and a probe
 that fails turns its claim into REFUTED instead of quietly disappearing.
 """
-from datetime import datetime, timezone
 from pathlib import Path
 import re
 from .probe_queries import run_graph_query
 from ...core.project.workspace import read, write
+from ...core.system.clock import now
 
 KINDS = ['absence_search', 'graph_query', 'execution', 'coverage', 'falsification']
 # What each kind of probe is able to settle. A static check can show that a structure exists;
@@ -21,9 +21,6 @@ DECIDABLE = {
 }
 DEFAULT_SCOPE = ['source', 'test']
 CONFIDENCE = ['CONFIRMED', 'LIKELY', 'HYPOTHESIS', 'REFUTED']
-
-
-def now(): return datetime.now(timezone.utc).isoformat()
 
 
 def probe(index, claim_id, kind, specification, requires_execution=False):
@@ -180,7 +177,7 @@ def run_all(target, out, allow_execution=False):
     counts = {'CONFIRMED': 0, 'REFUTED': 0, 'PARTIAL': 0, 'INCONCLUSIVE': 0, 'blocked': 0}
     for row in probes:
         status, detail = decide_probe(row, sets, allow_execution)
-        row['status'], row['result'], row['ran_at'] = status, detail, now()
+        row['status'], row['result'], row['ran_at'] = status, detail, now('auto')
         row['searched'] = sorted(constant_sites(_searched_name(row), sets)) if row['probe_type'] == 'absence_search' else None
         claim = by_claim.get(row['claim_id'])
         if claim is None:

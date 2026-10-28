@@ -36,10 +36,7 @@ from .rules import proposal as _proposal, views as _rules_views
 from .studio import SECTION_VIEWS, _words, current, decisions, disagreements, provenance_of, scan_key, section  # noqa: F401  (the names others read here)
 from ..nodes.framework import digest, launcher_of, short as _short
 from ...core.system.files import read_json
-
-
-def _now():
-    return datetime.now(timezone.utc).isoformat(timespec='seconds')
+from ...core.system.clock import now
 
 
 def _verdicts(report):
@@ -336,7 +333,7 @@ def plan(report, launcher=None, project=None, lang='en', adapters=None, cancel=N
     report = Path(report)
     folder = report / 'ideal'
     folder.mkdir(parents=True, exist_ok=True)
-    at, tell = _now(), (say or (lambda en, ar: None))
+    at, tell = now(), (say or (lambda en, ar: None))
     launcher = launcher or launcher_of(adapters, folder / ('run-' + at.replace(':', '').replace('+0000', 'Z')), cancel, started)
     if launcher is None:
         message = _words('no_assistant')

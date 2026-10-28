@@ -23,6 +23,7 @@ import uuid
 from datetime import datetime, timezone
 
 from ...core.system.usage import from_stream
+from ...core.system.clock import stamp
 
 READ_TOOLS = ('status', 'branches', 'menu', 'impact', 'ask', 'assistant_check', 'overview', 'findings', 'finding', 'structure',
               'plan', 'report_file', 'fix_read', 'build_read', 'design_brief')
@@ -70,7 +71,7 @@ def start(actions, body):
     name = actions._assistant(None, True)
     if name not in actions.adapters: raise LookupError('no assistant is signed in on this computer: sign in to Claude Code or Codex')
     adapter, direct = actions.adapters[name], control(actions)['on']
-    folder = actions.store.folder / 'chat' / (session or datetime.now(timezone.utc).strftime('new-%Y%m%d-%H%M%S-%f'))
+    folder = actions.store.folder / 'chat' / (session or stamp('new-%Y%m%d-%H%M%S-%f', utc=True))
     folder.mkdir(parents=True, exist_ok=True)
     prompt = (('(Direct control is on.) ' if direct else '') + _runs(actions) + message) if session else _opening(actions, body.get('context'), message, direct)
     argv = adapter.argv(prompt, 'chat', folder, session=session, tools=READ_TOOLS)

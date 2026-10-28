@@ -7,11 +7,11 @@ kind, by id, or one set) and only the sets that can hold them are read: every ca
 on EAOS, often several times per stage.
 """
 from collections.abc import Mapping
-from datetime import datetime, timezone
 import json
 from pathlib import Path
 from . import SCHEMA_VERSION, digest
 from ..core.system.files import read_json
+from ..core.system.clock import now
 
 SHARED = ('extractor', 'extractor_version', 'limitations')
 
@@ -110,6 +110,6 @@ def write_index(out, target, entries):
     index = {'schema_version': SCHEMA_VERSION, 'sets': sorted(entries, key=lambda e: e['set'])}
     (facts_dir(out) / 'index.json').write_text(serialise(index), encoding='utf-8')
     (facts_dir(out) / 'run.json').write_text(serialise(
-        {'target': str(target), 'produced_at': datetime.now(timezone.utc).isoformat(),
+        {'target': str(target), 'produced_at': now('auto'),
          'sets': [e['set'] for e in index['sets']]}), encoding='utf-8')
     return index

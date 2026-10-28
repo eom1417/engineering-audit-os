@@ -3,7 +3,6 @@ run calls MCP's): the code it reads and that code's provenance taken first, the 
 person, START-HERE.md even when composing did not run, then the state stamped, its stale batch retired, the pages
 published and the state saved (M3.3: the CLI had its own copy, without the remedies or the tools' fingerprint).
 """
-from datetime import datetime, timezone
 from pathlib import Path
 
 from ..core.project import branches, state as project_state
@@ -12,6 +11,7 @@ from .guided.project import chosen_assistant, publish, report_of, save, source, 
 from ..core.system.version_info import digest
 from ..pipeline import check, remedies
 from ..report.documents.start_here import start_here
+from ..core.system.clock import now
 
 
 def run(state, options, again_from=None, go_on=False):
@@ -26,7 +26,7 @@ def run(state, options, again_from=None, go_on=False):
                           chosen_assistant(state))
     if not (out / 'START-HERE.md').is_file(): start_here(out, state.get('lang') or 'en', Path(state['project']).name)
     state = project_state.load(state['project'])            # as the check's stages left it
-    state.update(scanned=datetime.now(timezone.utc).isoformat(timespec='seconds'), scanned_with=digest(), **read)
+    state.update(scanned=now(), scanned_with=digest(), **read)
     retire_stale_batch(state)
     page = publish(state)
     save(state)

@@ -28,10 +28,10 @@ import subprocess
 import tempfile
 import threading
 import time
-from datetime import datetime, timezone
 
 from ...core.project.places import home
 from ...core.system.files import read_json
+from ...core.system.clock import now
 
 NAMES = {'claude': 'Claude Code', 'codex': 'Codex'}
 TIMEOUT = 30            # seconds the tiny real call may take
@@ -63,10 +63,6 @@ class NoAssistant:
 
     def __repr__(self):
         return f'NoAssistant({self.code!r})'
-
-
-def _now():
-    return datetime.now(timezone.utc).isoformat(timespec='seconds')
 
 
 def words(code):
@@ -157,7 +153,7 @@ def check(name, timeout=TIMEOUT):
     """The probe itself, never cached: the readiness of assistant `name` (claude or codex) on this computer now."""
     began = time.monotonic()
     row = {'id': name, 'name': NAMES[name], 'installed': False, 'version': None, 'ready': False, 'code': None,
-           'command': name, 'checked_at': _now(), 'seconds': 0.0}
+           'command': name, 'checked_at': now(), 'seconds': 0.0}
 
     def done(problem=None, said=''):
         row['ready'] = problem is None

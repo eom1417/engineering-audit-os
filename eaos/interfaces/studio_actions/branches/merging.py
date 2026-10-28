@@ -1,11 +1,11 @@
 """Choosing the analysis branch, and merging one branch into another (a preview first, then the merge)."""
 import secrets
-from datetime import datetime
 from pathlib import Path
 
 from ....core.project import branches as reading, state as project_state
-from ....core.project.runs import now
+
 from .common import Blocked, COMMITS_SHOWN, FILES_SHOWN, _eaos_env, _out, git, say, valid_name
+from ....core.system.clock import now, stamp
 
 
 class Merging:
@@ -101,7 +101,7 @@ class Merging:
                 'fast_forward': fast_forward, 'commits': commits, 'files': files, 'conflicts': conflicts, 'checks': checks,
                 'needs_unchecked_ack': unchecked, 'target_checked_out': bool(held), 'blocked': reasons,
                 'recommended_target': row['ownership'].get('base'), 'protected': inventory['protected'].get(target),
-                'confirm': None if reasons else self.locks.confirm('branch_merge', bound, self.project), 'checked_at': now()}
+                'confirm': None if reasons else self.locks.confirm('branch_merge', bound, self.project), 'checked_at': now('milliseconds')}
 
     @staticmethod
     def _held_target(inventory, target, reasons):
@@ -155,7 +155,7 @@ class Merging:
             if done.get('error'):
                 return {'run': self._finish(run, False, {'en': f"Not merged: {done['error']}", 'ar': f"ما اندمج: {done['error']}"},
                                             {'reason': done['error'], 'source': source, 'target': target, 'branches': [source, target]})}
-            self.record(source, merged_into={'branch': target, 'at': now(), 'commit': done['commit'], 'run': run, 'via': done['via']})
+            self.record(source, merged_into={'branch': target, 'at': now('milliseconds'), 'commit': done['commit'], 'run': run, 'via': done['via']})
             return {'run': self._finish(run, True, {'en': f'{source} is merged into {target}.', 'ar': f'اندمج {source} في {target}.'},
                                         {'source': source, 'target': target, 'via': done['via'], 'target_before': bound['target_head'],
                                          'target_after': done['commit'], 'branches': [source, target]}, outcome='merged')}
@@ -169,7 +169,7 @@ class Merging:
         after = self.tip(f'refs/heads/{target}')
         data = {'source': source, 'target': target, 'via': 'accept', 'answer': answer, 'target_before': bound['target_head'],
                 'target_after': after, 'branches': [source, target], 'reason': None if ok else str(answer.get('status') or answer.get('error'))}
-        if ok: self.record(source, merged_into={'branch': target, 'at': now(), 'commit': after, 'run': run, 'via': 'accept'})
+        if ok: self.record(source, merged_into={'branch': target, 'at': now('milliseconds'), 'commit': after, 'run': run, 'via': 'accept'})
         return self._finish(run, ok, {'en': f'{source} is in {target}; the report and the progress are up to date.' if ok else f"Not merged: {data['reason']}",
                                       'ar': f'{source} صار في {target}، والتقرير والتقدم محدّثان.' if ok else f"ما اندمج: {data['reason']}"},
                             data, outcome='accepted' if ok else None)
@@ -197,14 +197,14 @@ class Merging:
         preview = self.preview_merge(body)
         if not preview['conflicts']: raise Blocked([say('There is no conflict to resolve.', 'ما فيه تعارض يُحل.', 'no_conflict')])
         assistant = self.actions._assistant(body.get('assistant'), True)
-        run = 'c' + datetime.now().strftime('%Y%m%d-%H%M%S-') + secrets.token_hex(3)
+        run = 'c' + stamp('%Y%m%d-%H%M%S-') + secrets.token_hex(3)
         review = {'kind': 'branch_conflict', 'source': preview['source'], 'target': preview['target'], 'source_head': preview['source_head'],
                   'target_head': preview['target_head'], 'conflicts': preview['conflicts'][:50], 'files': preview['files'][:100]}
         record = {'id': run, 'action': 'branch_conflict', 'verb': None, 'label': {'en': f"Propose how to resolve {preview['source']} into {preview['target']}",
                                                                                    'ar': f"اقترح حل تعارض {preview['source']} مع {preview['target']}"},
                   'inputs': {}, 'review': review, 'cards': [], 'assistant': None if assistant == 'handoff' else assistant,
-                  'mode': 'handoff' if assistant == 'handoff' else 'assistant', 'state': 'queued', 'attempt': 1, 'created': now(),
-                  'queued_at': now(), 'read': False, 'context': self.run_context(), 'branch_op': {'branches': [preview['source'], preview['target']]}}
+                  'mode': 'handoff' if assistant == 'handoff' else 'assistant', 'state': 'queued', 'attempt': 1, 'created': now('milliseconds'),
+                  'queued_at': now('milliseconds'), 'read': False, 'context': self.run_context(), 'branch_op': {'branches': [preview['source'], preview['target']]}}
         self.store.save(record, new=True)
         self.store.append(run, 'action', record['label'], {'action': 'branch_conflict', 'by': 'person', 'arguments': {'source': preview['source'], 'target': preview['target']}})
         self.store.set_queue(self.store.queue())

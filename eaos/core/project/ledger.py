@@ -22,19 +22,15 @@ import hashlib
 import json
 import re
 import subprocess
-from datetime import datetime, timezone
 from pathlib import Path
 
 from . import branches
 from ...core.system.files import read_json
+from ...core.system.clock import now
 
 TRAILER = 'EAOS-Card'
 NUMBERS = re.compile(r'\d+')
 CLOSED = ('done',)
-
-
-def _now():
-    return datetime.now(timezone.utc).isoformat(timespec='seconds')
 
 
 def _git(project, *args):
@@ -129,7 +125,7 @@ def sync(state, event=None, report=None):
     ids = keys(plan['tasks'])
     first = ledger is None
     if first:
-        ledger = {'schema_version': 1, 'started': _now(), 'plan_stamp': stamp, 'cards': {}, 'history': []}
+        ledger = {'schema_version': 1, 'started': now(), 'plan_stamp': stamp, 'cards': {}, 'history': []}
     cards = ledger['cards']
     _merge_plan(cards, plan['tasks'], ids, milestone, first)
     if ledger.get('plan_stamp') != stamp:
@@ -143,7 +139,7 @@ def sync(state, event=None, report=None):
     _reopen_waited(by_id, plan['tasks'])
     _apply_open_batch(cards, by_id, state.get('open_wave') or {})
     totals = _record_history(ledger, first, event, project, state)
-    ledger.update(updated=_now(), commit=_head(project, state), totals=totals)
+    ledger.update(updated=now(), commit=_head(project, state), totals=totals)
     _save(state, ledger)
     return ledger
 
@@ -220,7 +216,7 @@ def _apply_history(cards, in_branch, undone):
         if card['key'] in undone and card['state'] == 'done':                # its fix was reverted on the branch
             card.update(state='open', commit=None, batch=None, why='its fix was reverted on the branch')
         if card['key'] in in_branch and card['state'] != 'done':
-            card.update(state='done', commit=in_branch[card['key']], at=_now(), why='')
+            card.update(state='done', commit=in_branch[card['key']], at=now(), why='')
 
 
 def _reopen_waited(by_id, tasks):
@@ -253,7 +249,7 @@ def _record_history(ledger, first, event, project, state):
     last = history[-1] if history else None
     moved = not last or last['closed'] != totals['closed'] or last['total'] != totals['total']
     if first or event or moved:
-        history.append({'at': _now(), 'event': 'baseline' if first else event or 'merged', 'closed': totals['closed'],
+        history.append({'at': now(), 'event': 'baseline' if first else event or 'merged', 'closed': totals['closed'],
                         'total': totals['total'], 'percent': totals['percent'], 'commit': _head(project, state)})
         del history[:-200]
     return totals

@@ -14,20 +14,16 @@ last one was doing. So:
 import json
 import os
 import subprocess
-from datetime import datetime, timezone
 from pathlib import Path
 
 from . import guided
 from ..core.project import state as project_state
 from ..core.project.state import waiting_batch
+from ..core.system.clock import now
 
 KEEP = 2000                  # journal lines kept
 READING = {'status', 'wait', 'overview', 'findings', 'finding', 'structure', 'plan', 'report_file', 'fix_read', 'build_read',
            'open_report', 'open_blueprint', 'handover', 'branches', 'menu', 'tools_check', 'assistant_check', 'impact', 'ask'}
-
-
-def _now():
-    return datetime.now(timezone.utc).isoformat(timespec='seconds')
 
 
 def assistant():
@@ -104,7 +100,7 @@ def record(tool, arguments, result, status=None):
         state = _state(given.get('project'))
         if not state or tool == 'note': return               # a note writes its own line
         card = given.get('card') or (given.get('id') if tool == 'finding' else None)
-        _append(state, {'at': _now(), 'by': assistant(), 'tool': tool, 'card': card,
+        _append(state, {'at': now(), 'by': assistant(), 'tool': tool, 'card': card,
                         'arguments': _arguments(arguments), 'outcome': _outcome(result)})
         if tool not in READING or tool == 'wait': refresh(state, status)
     except Exception:                       # the handover is extra: a failure here must not cost the tool its answer
@@ -116,7 +112,7 @@ def note(text, card=None, project=None, status=None):
     if not state: raise LookupError('this project has no EAOS work yet: call `status` first')
     text = ' '.join(str(text or '').split())
     if not text: raise ValueError('the note is empty')
-    _append(state, {'at': _now(), 'by': assistant(), 'tool': 'note', 'card': card, 'note': text[:1500]})
+    _append(state, {'at': now(), 'by': assistant(), 'tool': 'note', 'card': card, 'note': text[:1500]})
     refresh(state, status)
     return {'noted': True, 'handover': str(guided.outputs(state) / 'HANDOVER.md')}
 
@@ -229,7 +225,7 @@ def refresh(state, status=None):
     lines = ['# HANDOVER: ' + Path(state['project']).name, '',
              ('> هذا الملف يُكتب تلقائيًا بعد كل خطوة، ليكمل أي مساعد ذكي (Claude Code أو Codex) من حيث توقف الآخر.' if ar else
               '> Written automatically after every step, so that any AI assistant (Claude Code or Codex) continues where the other stopped.'),
-             '', f"Updated: {_now()} · project: `{state['project']}` · branch: `{b['branch'] or 'the one checked out'}` · mode: {b['mode']}", '',
+             '', f"Updated: {now()} · project: `{state['project']}` · branch: `{b['branch'] or 'the one checked out'}` · mode: {b['mode']}", '',
              '## Continue from here', '',
              '1. Call the eaos `status` tool first: it is the live version of this page (this file is a snapshot).',
              f"2. Next tool: `{step.get('tool', 'status')}`: {step.get('why', '')}".rstrip(': '),

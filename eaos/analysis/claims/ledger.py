@@ -3,7 +3,6 @@
 A fact is produced by an extractor and is reproducible. A claim is an interpretation and must name
 what would disprove it. A question is an admitted gap. Nothing rendered may exist outside this ledger.
 """
-from datetime import datetime, timezone
 import json
 import os
 from pathlib import Path
@@ -20,6 +19,7 @@ from ..assessments.weaknesses import SECURITY, claims as weaknesses
 from ...core.contracts.vocabulary import schema_errors
 from ...core.language.words import IMPACTS
 from ...core.project.workspace import DATA, read, write
+from ...core.system.clock import now
 
 CONFIDENCE = ['CONFIRMED', 'LIKELY', 'HYPOTHESIS', 'REFUTED']
 PROVING_METHODS = {'runtime_probe', 'test_evidence', 'static_fact', 'history_fact'}
@@ -32,9 +32,6 @@ TYPES = ['structure', 'responsibility', 'contract', 'business_rule', 'flow_step'
 
 
 def schema(): return read(DATA / 'schemas/claim.schema.json')
-
-
-def now(): return datetime.now(timezone.utc).isoformat()
 
 
 def claim_id(index): return 'CLM-%03d' % index
@@ -99,7 +96,7 @@ def make(index, statement, claim_type, confidence, method, evidence_ids, falsifi
     if len(statement) > STATEMENT_LIMIT: statement = statement[:STATEMENT_LIMIT - 1].rstrip() + '…'
     row = {'id': claim_id(index), 'statement': statement, 'claim_type': claim_type, 'confidence': confidence,
            'method': list(method), 'evidence_ids': list(evidence_ids), 'falsifier': falsifier,
-           'status': extra.pop('status', 'open'), 'created_at': extra.pop('created_at', now())}
+           'status': extra.pop('status', 'open'), 'created_at': extra.pop('created_at', now('auto'))}
     row.update({k: v for k, v in extra.items() if v is not None})
     return row
 
