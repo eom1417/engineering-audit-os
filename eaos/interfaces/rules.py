@@ -145,9 +145,12 @@ def hook(project=None, on=True, agreed=False):
     if on and not agreed:
         return {'status': 'needs_agreement', 'ask_the_person': 'Check your pinned rules on every commit? EAOS adds a few lines '
                 'to the project\'s git pre-commit hook; a commit that breaks one is refused with the place.'}
+    import os
     from ..ai.assistant.setup import eaos_command
     record = registry.load(state['project'])
-    path, made = context.hook(state['project'], eaos_command(), on, (record.get('hook') or {}).get('made', False))
+    # the hook reads the registry this EAOS keeps: an EAOS home set here goes into its line
+    home = ['env', f"EAOS_HOME={os.environ['EAOS_HOME']}"] if os.environ.get('EAOS_HOME') else []
+    path, made = context.hook(state['project'], home + eaos_command(), on, (record.get('hook') or {}).get('made', False))
     registry.keep(state['project'], hook={'on': on, 'made': made, 'path': str(path)})
     return {'status': 'on' if on else 'off', 'hook': str(path)}
 
