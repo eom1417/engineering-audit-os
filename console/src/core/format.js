@@ -2,7 +2,6 @@
 // now; paths, symbols and settings inside report texts are isolated left to right (SET-04).
 import { prefs } from './prefs.js';
 import { t, num } from './i18n.js';
-import { radio } from './parts.js';
 
 export function esc(s) {
   return String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -27,15 +26,6 @@ export function sev(level, withWord) {
 }
 export function chk(attrs, checked, label) {
   return `<label class="check"><input type="checkbox" ${attrs || ''} ${checked ? 'checked' : ''} aria-label="${esc(label || '')}"><span class="check__box">${icon('tick')}</span></label>`;
-}
-/** Who runs an action: one radio per assistant, off until it is installed and signed in; `prefix` keeps each sheet's
- *  names and handlers its own. */
-export function assistantPicker(all, picked, prefix) {
-  return `<div class="block-title">${t('pv.who')}</div><div class="opts">${all.map(a => {
-    const ready = a.installed && a.logged_in;
-    return radio({ name: prefix + 'asst', value: a.id, 'data-change': prefix + 'pv-asst', 'data-fk': `${prefix}asst-${a.id}`, checked: a.id === picked, disabled: !ready },
-      esc(a.name), t(!a.installed ? 'pv.notinstalled' : !a.logged_in ? 'pv.notsigned' : 'pv.ready') + (a.version ? ' · ' + esc(a.version) : ''));
-  }).join('')}</div>`;
 }
 /** An action preview's estimate in words: minutes, hours past three, or that none could be made. */
 export function estimate(p) {

@@ -7,7 +7,8 @@ const q = () => parseHash().query;
 export const enc = encodeURIComponent;
 export const matches = normalize.matches;
 
-export const back = ac.back;
+/** The way back, as the core draws it (read when drawn: a part drawn on its own has no core). */
+export const back = (path, label, query) => ac.back(path, label, query);
 
 /** The report page's facts, drawn inside the place's own bundle (its parts are drawn and tested on their own, without
  *  the core's parts). */
