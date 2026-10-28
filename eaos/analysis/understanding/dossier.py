@@ -8,7 +8,7 @@ from functools import partial
 from pathlib import Path
 from ... import __version__
 from ..claims import from_one_source, from_runs, ledger
-from ..claims.gather import REGISTER, build_claims, fact_index_of, needs_a_disposition, origin_of, runtime_claims
+from ..claims.gather import REGISTER, assess_mechanically, build_claims, fact_index_of, needs_a_disposition, origin_of, runtime_claims
 from ...core import progress
 from ...core.contracts.document import Document, say
 from ...core.contracts.document_rules import validate
@@ -316,6 +316,7 @@ def _claims(request, inputs):
         row['origin'] = origin_of(row, fact_index)
         row.setdefault('artifacts', [REGISTER])
         row.setdefault('disposition', {'kind': 'investigate', 'reason': 'Ranked for review; no owner assigned yet in this run.'})
+    if request.target is not None: assess_mechanically(runtime, inputs.sets, request.target)   # one source per pattern's (M15.7)
     from ..planning.ranking import rank
     return rank(rows + runtime, inputs.sets, fact_index), withheld
 
