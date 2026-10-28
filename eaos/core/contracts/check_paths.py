@@ -6,6 +6,8 @@ from ..language.words import catalog
 COMPLETE = 'complete'
 # The assistant's review every path keeps: the cards it found, judged, ordered and written in both languages.
 SPINE = ('proposals', 'triage', 'order', 'translate')
+# The person's own rules hold whatever is checked (M16): their stage and their cards are on every path.
+HELD = {'stages': ('rules',), 'patterns': ('person_rule',)}
 PATHS = {
     'complete': {},
     'security': {'stages': ('engines',), 'kinds': ('secret', 'vulnerability', 'misconfiguration'), 'engines': ('syft', 'presidio', 'ast-grep'),

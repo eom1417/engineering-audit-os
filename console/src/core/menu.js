@@ -44,6 +44,7 @@ sheet('project', {
             ${row('branch', t('proj.branches'), t('proj.branches.sub', { branch: project().branch }), '/project/branches')}
             ${row('app', t('proj.app'), t('proj.app.sub'), '/project/app')}
             ${row('ai', t('proj.assistants'), assistantsSub(), '/project/assistants')}
+            ${row('lock', t('proj.rules'), t('proj.rules.sub'), '/project/rules')}
             ${row('tool', t('proj.tools'), t('proj.tools.sub'), '/project/tools')}
             ${row('gear', t('proj.settings'), t('proj.settings.sub'), '/project/settings')}
           </div>`)}

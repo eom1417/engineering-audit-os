@@ -54,7 +54,7 @@ RECOMMENDATIONS = {
 }
 CREDENTIAL_SEVERITY = {'public': 'low', 'test': 'low'}
 # The debt category of a card kind that carries its own severity (M13, M14, M15).
-OWN_CATEGORY = {'old_engine': 'dead_code', 'data_keeping': 'data', 'one_source': 'maintainability'}
+OWN_CATEGORY = {'old_engine': 'dead_code', 'data_keeping': 'data', 'one_source': 'maintainability', 'person_rule': 'reliability'}
 # Personal values whose check digits were verified (an IBAN, a Saudi national id, a card number): a lookup, not a guess.
 CHECKED_VALUES = ('IBAN_CODE', 'SA_NATIONAL_ID', 'CREDIT_CARD')
 

@@ -10,7 +10,7 @@ from pathlib import Path
 from unittest import mock
 
 from eaos.engines import ADAPTERS
-from eaos.core.contracts.check_paths import PATHS, SPINE
+from eaos.core.contracts.check_paths import HELD, PATHS, SPINE
 from eaos.pipeline.path_choice import resolve
 from eaos.pipeline.run import check
 from eaos.pipeline.stages import OPTIONAL, STAGES
@@ -37,7 +37,7 @@ class PathsTests(unittest.TestCase):
         self.assertEqual(resolve(['security', 'complete'])['stages'], None)
         with self.assertRaises(ValueError): resolve(['speedy'])
         # every optional stage, card pattern and engine capability belongs to a path
-        chosen = [p for name, p in PATHS.items() if name != 'complete']
+        chosen = [p for name, p in PATHS.items() if name != 'complete'] + [HELD]     # the person's rules, on every path
         optional = {s.name for s in STAGES if s.necessity == OPTIONAL} - set(SPINE)
         self.assertEqual(optional - {n for p in chosen for n in p.get('stages', ())}, set())
         self.assertEqual(set(PATTERNS) - {n for p in chosen for n in p.get('patterns', ())}, set())

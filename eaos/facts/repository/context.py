@@ -1,7 +1,7 @@
 """The context an assistant reads at the start of every session (M7.9): the instruction files (AGENTS.md, CLAUDE.md and
 the files it imports with @, GEMINI.md, the Cursor and Copilot rules, the project's skills), measured in tokens: how
-heavy they are, the lines said in more than one, and the done items still in them. EAOS's own block between its marker
-lines (eaos/ai/assistant/setup.py) is never counted against the person."""
+heavy they are, the lines said in more than one, and the done items still in them. EAOS's own blocks between their marker
+lines (eaos/ai/assistant/setup.py, the pinned rules of eaos/analysis/rules/context.py) are never counted against the person."""
 import posixpath
 import re
 from collections import defaultdict
@@ -42,10 +42,11 @@ def texts(source, everything, limits):
 
 
 def _without_eaos(text, limits):
-    begin, end = limits['eaos_block']
-    while begin in text and end in text.split(begin, 1)[1]:
-        head, rest = text.split(begin, 1)
-        text = head + rest.split(end, 1)[1]
+    """The text without EAOS's own blocks: its guide's and the person's pinned rules' (M16)."""
+    for begin, end in limits['eaos_block']:
+        while begin in text and end in text.split(begin, 1)[1]:
+            head, rest = text.split(begin, 1)
+            text = head + rest.split(end, 1)[1]
     return text
 
 

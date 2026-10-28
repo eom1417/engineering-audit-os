@@ -19,7 +19,7 @@ import os
 TIERS = ('light', 'standard', 'deep')
 STAGES = {'card_triage': 'light', 'translation': 'light', 'experience_actor': 'light',
           'visual_reviewer': 'standard', 'pipeline_gap_planner': 'standard', 'plan_orderer': 'standard',
-          'experience_support': 'standard',
+          'experience_support': 'standard', 'rule_guard': 'standard',
           'ideal_planner': 'deep', 'fix_reviewer': 'deep', 'experience_scenario': 'deep', 'experience_data': 'deep',
           'experience_judge': 'deep'}
 CLOSING = {'card_triage': ('reject',), 'pipeline_gap_planner': ('not a gap',), 'visual_reviewer': ('clean',)}

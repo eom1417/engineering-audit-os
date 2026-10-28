@@ -26,7 +26,7 @@ from ...core.system.usage import from_stream
 from ...core.system.clock import stamp
 
 READ_TOOLS = ('status', 'branches', 'menu', 'impact', 'ask', 'assistant_check', 'overview', 'findings', 'finding', 'structure',
-              'plan', 'report_file', 'fix_read', 'build_read', 'design_brief')
+              'plan', 'report_file', 'fix_read', 'build_read', 'design_brief', 'rules')
 CONTROLS = ('retry', 'stop', 'pause', 'resume')
 # The run controls as the person reads them on the button they pressed (en, ar).
 PRESSED = {'pause': ('Pause', 'أوقف مؤقتًا'), 'resume': ('Resume', 'كمّل'), 'stop': ('Stop', 'أوقف'), 'retry': ('Try again', 'أعد المحاولة')}
@@ -55,7 +55,9 @@ or {{"kind": "control", "action": "retry"|"stop"|"pause"|"resume", "inputs": {{}
 {control} Only one piece of work runs at a time and the rest waits its turn: when the person
 wants something now (a new check while one runs, say), stop the running one first (a control "stop" with its run id, from
 `status`), then propose theirs. A new check is the action "audit" with {{"fresh": true}}, from nothing; a stopped check
-goes on with the control "retry" on its run. Return JSON: {{"answer": "...", "proposals": [...]}}.
+goes on with the control "retry" on its run. When the person states a requirement that must always hold ("never...",
+"always...", "the data lives only in..."), keep it in their own words: the action "rule" with {{"op": "add", "words": "<their
+words>", "door": "chat"}}. Return JSON: {{"answer": "...", "proposals": [...]}}.
 
 The actions: {actions}
 

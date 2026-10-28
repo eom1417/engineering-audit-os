@@ -3,7 +3,7 @@ sets, inconclusive when the facts it reads, or the engines it names, are not the
 """
 from . import from_experience as experience_claims, from_layers as layer_claims, from_logic_flaws as logic_claims, from_repository as repository_claims
 from . import from_keeping as keeping_claims, from_old_engines as old_engine_claims, from_real_data as real_data_claims
-from . import from_one_source as one_source_claims
+from . import from_one_source as one_source_claims, from_rules as rule_claims
 from ..assessments import weaknesses
 
 
@@ -18,7 +18,7 @@ QUERY_REQUIRES = {
     'weakness_present': 'external', 'boundary_finding_present': 'boundaries',
     'repository_finding_present': 'repository', 'logic_flaw_present': 'logic_flaws',
     'experience_difficulty_present': 'experience', 'real_data_present': 'external',
-    'old_engine_present': 'syntax', 'data_keeping_present': 'external', 'one_source_present': 'patterns',
+    'old_engine_present': 'syntax', 'data_keeping_present': 'external', 'one_source_present': 'patterns', 'rule_broken': 'syntax',
 }
 
 
@@ -179,7 +179,7 @@ QUERIES = {
     'repository_finding_present': repository_claims.present, 'logic_flaw_present': logic_claims.present,
     'experience_difficulty_present': experience_claims.present, 'real_data_present': real_data_claims.present,
     'old_engine_present': old_engine_claims.present, 'data_keeping_present': keeping_claims.present,
-    'one_source_present': one_source_claims.present,
+    'one_source_present': one_source_claims.present, 'rule_broken': rule_claims.present,
 }
 
 

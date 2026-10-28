@@ -365,3 +365,7 @@ RUNNERS['keeping'] = keeping
 
 RUNNERS.update(translate=translate, verify=verify, journeys=journeys, readiness=readiness, architecture=architecture,
                sustainability=sustainability, transform=transform)
+
+
+from .rules import rules  # noqa: E402  (the person's own rules, M16)
+RUNNERS['rules'] = rules

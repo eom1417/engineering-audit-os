@@ -48,6 +48,9 @@ The whole way for an existing project, in order (`status` always says the next t
 Without the Studio, the same governance is yours through runs (the queue: estimate, check, show, stop...), waiting (what
 waits for the person), act (fix, verify, explain, plan on cards or a group, previewed first), history and branch_change:
 what is the person's there (an answer, a branch change, a Fix that accepts itself) takes their word and the preview's token.
+When the person states a requirement that must hold ("never...", "always...", "the data lives only in..."), keep it in
+their words with rule(op=add) and write its guard once (rule op=guard); the cards list in your_rules the rules each
+fix must keep, and check_changed checks a change on them in seconds before it lands.
 Only the plan's cards count as progress: do not do work outside them. Call `status` first in every session: its
 `handover` says what the last assistant (you, or another one after a usage limit) did and how to continue; add the
 why with `note` after each card and before you stop.
@@ -71,7 +74,7 @@ what the tools returned.
 # In a run the Studio started (EAOS_STUDIO_RUN set by eaos/interfaces/studio_actions), the assistant asks instead, and the person
 # answers in the Studio, which calls these itself.
 PERSON_ONLY = ('accept', 'undo', 'choose_branch', 'answer', 'branches merge', 'branches delete', 'branches protect', 'branches cleanup',
-               'branches restore', 'auto_accept', 'sign_in_forget', 'logic_flaws')
+               'branches restore', 'auto_accept', 'sign_in_forget', 'logic_flaws', 'rule pin', 'rule unpin', 'rule change', 'rule hook')
 STUDIO = 'EAOS Studio'           # the name the Studio's own calls are recorded under
 
 
@@ -130,7 +133,7 @@ def build(more=None):
     which the Studio itself never calls: functions, reading)."""
     from mcp.server.mcpserver import MCPServer
     from mcp.types import ToolAnnotations
-    from . import build as mcp_build, fix as mcp_fix
+    from . import build as mcp_build, fix as mcp_fix, rules as mcp_rules
 
     server = MCPServer(name='eaos', title='Engineering Audit OS', version=__version__, instructions=INSTRUCTIONS)
     reading = ToolAnnotations(readOnlyHint=True, openWorldHint=False)
@@ -138,6 +141,7 @@ def build(more=None):
     _check_tools(server, reading, working)
     mcp_fix._fix_tools(server, reading, working, _answer, _status)
     mcp_build._build_tools(server, reading, working, _answer)
+    mcp_rules.register(server, reading, working, _answer)
     if more: more(server, reading, working, _answer)
     _prompts(server)
     return server

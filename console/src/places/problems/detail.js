@@ -77,7 +77,8 @@ function noteHTML(p) {
   if (offline()) return `<p class="small muted">${icon('lock', 'icon--sm')} ${t('pd.note.offline')}</p>`;
   return `<label class="sr-only" for="note-${esc(p.id)}">${t('pd.note')}</label>
     <textarea class="input" id="note-${esc(p.id)}" data-fk="note-${esc(p.id)}" placeholder="${esc(t('pd.note.ph'))}"></textarea>
-    <div><button class="btn btn--secondary btn--sm" data-act="note-save" data-id="${esc(p.id)}">${t('pd.note.save')}</button></div>
+    <div class="actions"><button class="btn btn--secondary btn--sm" data-act="note-save" data-id="${esc(p.id)}">${t('pd.note.save')}</button>
+      <button class="btn btn--quiet btn--sm" data-act="rule-save" data-id="${esc(p.id)}" data-fk="rule-${esc(p.id)}">${t('pd.rule.save')}</button></div>
     <p class="small muted">${t('pd.note.kept')}</p>`;
 }
 
@@ -146,20 +147,22 @@ sheet('fact', {
   },
 });
 
-/* ---------- a note on the problem for whoever goes on after (PRB-15): the `note` action, kept in the handover ---------- */
-act('note-save', async el => {
+/* ---------- what the person writes on a card (PRB-15): a note for whoever goes on after (the `note` action, kept in the
+   handover), or one of their rules for this card (the `rule` action, M16: a card's comment is a door) ---------- */
+async function fromNote(el, inputs, kept, done) {
   const id = el.dataset.id;
   const ta = document.getElementById('note-' + id);
   const text = ta && ta.value.trim();
   if (!text || !client || el.disabled) return;
   el.disabled = true;
   try {
-    await client.start({ action: 'note', inputs: { text, card: id } });
-    S.notes[id] = text;
-    refresh();
-    toast(t('pd.note.saved'));
+    await client.start(inputs(text, id));
+    if (kept) kept(id, text);
+    toast(t(done));
   } catch (e) {
     el.disabled = false;
     toast(said(e), { refusal: true });
   }
-});
+}
+act('note-save', el => fromNote(el, (text, card) => ({ action: 'note', inputs: { text, card } }), (id, text) => { S.notes[id] = text; refresh(); }, 'pd.note.saved'));
+act('rule-save', el => fromNote(el, (words, card) => ({ action: 'rule', inputs: { op: 'add', words, card, door: 'card' } }), null, 'pd.rule.kept'));

@@ -9,7 +9,7 @@ it is about. `complete` is all of them.
 
 How scalability splits: how easily the code grows is in `code`, how the app holds under load is in `speed`.
 """
-from ..core.contracts.check_paths import COMPLETE, PATHS, SPINE
+from ..core.contracts.check_paths import COMPLETE, HELD, PATHS, SPINE
 from .loops import switches
 from .stages import BY_NAME, ORDER, REQUIRED, STAGES
 
@@ -34,7 +34,7 @@ def resolve(paths):
     # beside `complete`, a path that switches an optional loop on (eaos/pipeline/loops.py) is an option of the full check
     if COMPLETE in paths: return {'paths': [COMPLETE, *_switching(paths)], 'stages': None, 'engines': None, 'patterns': None}
     chosen = [PATHS[p] for p in paths]
-    joined = lambda key: sorted({value for path in chosen for value in path.get(key, ())})
+    joined = lambda key: sorted({value for path in [*chosen, HELD] for value in path.get(key, ())})
     spine = [stage.name for stage in STAGES if stage.necessity == REQUIRED] + list(SPINE)
     return {'paths': paths, 'stages': _closed(spine + joined('stages')), 'engines': _engines(joined('kinds'), joined('engines')),
             'patterns': joined('patterns')}

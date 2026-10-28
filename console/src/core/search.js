@@ -42,7 +42,7 @@ function places() {
 const FIRST = () => [
   ['nav.status', '/status', 'status'], ['nav.waiting.long', '/waiting', 'waiting'], ['nav.problems', '/problems', 'problems'],
   ['pb.view.plan', '/problems/plan', 'layers'], ['nav.activity', '/activity', 'activity'], ['nav.report', '/report', 'understand'],
-  ['proj.branches', '/project/branches', 'branch'], ['proj.assistants', '/project/assistants', 'ai'], ['proj.settings', '/project/settings', 'gear'],
+  ['proj.branches', '/project/branches', 'branch'], ['proj.assistants', '/project/assistants', 'ai'], ['proj.rules', '/project/rules', 'lock'], ['proj.settings', '/project/settings', 'gear'],
 ].map(([key, path, ic]) => ({ icon: ic, html: esc(t(key)), href: path }));
 
 /** The list a section of the check holds, or none while it is not read. */

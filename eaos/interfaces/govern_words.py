@@ -75,6 +75,28 @@ WORDS = {
     'sign_in_skipped': {'en': 'The check goes on without signing in.', 'ar': 'الفحص يكمل بدون دخول.'},
     'sign_in_forgot': {'en': 'Your sign-in to the app is forgotten; the next check asks again.', 'ar': 'نسيت دخولك في التطبيق؛ الفحص الجاي يطلبه من جديد.'},
     'app_said': {'en': 'What the app sent (codes, links):', 'ar': 'اللي أرسله التطبيق (رموز، روابط):'},
+    # the person's own rules (eaos/interfaces/terminal/rules.py)
+    'rules': {'en': '{count} rule(s), {pinned} pinned', 'ar': '{count} قاعدة، منها {pinned} مثبّتة'},
+    'no_rules': {'en': 'No rule yet: say one with eaos rules add "<your words>"', 'ar': 'ما فيه قواعد بعد: قلها بـ eaos rules add "<كلامك>"'},
+    'rule_kept': {'en': 'Kept as {id}: "{words}" ({scope})', 'ar': 'انحفظت كـ {id}: «{words}» ({scope})'},
+    'rule_again': {'en': 'You said this before, on {date}: it is the same rule, said {times} times.',
+                   'ar': 'قلت هذا قبل، في {date}: هي نفس القاعدة، قلتها {times} مرات.'},
+    'rule_offer_pin': {'en': 'It came back or you said it again: pin it so it holds for every change?', 'ar': 'رجعت أو قلتها مرة ثانية: تثبّتها عشان تنطبق على كل تعديل؟'},
+    'pinned': {'en': 'pinned', 'ar': 'مثبّتة'}, 'card_scope': {'en': 'for the card {ref}', 'ar': 'للبطاقة {ref}'},
+    'batch_scope': {'en': 'for the batch of fixes now', 'ar': 'لدفعة الإصلاح الحالية'},
+    'rule_touches': {'en': 'It touches: the guard {guard}; tests {tests}; the files {files}; the hook {hook}.',
+                     'ar': 'يمس: الحارس {guard}؛ الاختبارات {tests}؛ الملفات {files}؛ الـ hook {hook}.'},
+    'rule_unpinned': {'en': '{id} no longer holds; its lines left {files}. The project\'s own tests stay.',
+                      'ar': '{id} ما عادت تنطبق؛ انشالت أسطرها من {files}. اختبارات المشروع نفسها باقية.'},
+    'rule_guarded': {'en': '{id} is guarded by {guard}: now {status} {places}', 'ar': '{id} يحرسها {guard}: الحين {status} {places}'},
+    'status_held': {'en': 'held', 'ar': 'سليمة'}, 'status_broken': {'en': 'broken at', 'ar': 'مكسورة في'},
+    'status_unguarded': {'en': 'not guarded', 'ar': 'بدون حارس'}, 'status_not_run': {'en': 'not run', 'ar': 'ما اشتغل'},
+    'hook_on': {'en': 'Every commit now runs your pinned rules ({hook}).', 'ar': 'كل commit الحين يشغّل قواعدك المثبّتة ({hook}).'},
+    'hook_off': {'en': 'The commit hook no longer runs your rules.', 'ar': 'الـ hook ما عاد يشغّل قواعدك.'},
+    'changed_ok': {'en': 'The change holds: {files} file(s) read ({reached} with what depends on them), {rules} rule(s), in {seconds} s.',
+                   'ar': 'التعديل سليم: قريت {files} ملف ({reached} مع اللي يعتمد عليها)، و{rules} قاعدة، في {seconds} ثانية.'},
+    'changed_broken': {'en': 'Refused: the change breaks {count} of your rules.', 'ar': 'مرفوض: التعديل يكسر {count} من قواعدك.'},
+    'changed_laws': {'en': 'The code laws: {count} thing(s) the change adds.', 'ar': 'قوانين الكود: {count} شي يضيفه التعديل.'},
 }
 
 

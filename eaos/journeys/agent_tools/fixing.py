@@ -6,7 +6,7 @@ from pathlib import Path
 
 from ..fix import finish as batch_finish, lanes
 from .. import guided
-from ...core.project import branches, jobs, state as project_state
+from ...core.project import branches, jobs, rules as rule_registry, state as project_state
 from ..fix.branch import commit_of, direct_target, merge_target
 from ...core.project.state import waiting_batch
 from ...live.app import setup as live_setup
@@ -15,6 +15,7 @@ from .evidence import _ready
 from .project import WAIT, _head, _read, _report, _start, state_of
 from .running import CONSENT, _consented
 from ...core.system.clock import now
+from ...analysis.rules.held import brief
 
 
 # ---------------------------------------------------------------- fixing
@@ -25,9 +26,11 @@ def _open(state):
     return wave
 
 
-def _brief(card):
+def _brief(card, rules=()):
+    """A card as the assistant reads it, with the person's rules that hold for it (M16.4): keep each, or the change is refused."""
     return {'id': card['id'], 'title': card.get('title'), 'kind': card.get('pattern'), 'paths': card.get('paths'),
-            'before': card.get('before'), 'after': card.get('after'), 'impact': card.get('impact')}
+            'before': card.get('before'), 'after': card.get('after'), 'impact': card.get('impact'),
+            **({'your_rules': list(rules)} if rules else {})}
 
 
 def waiting_on(state, name):
@@ -192,11 +195,13 @@ def _fix_start_job(project, arguments, progress):
     state = project_state.load(project)
     state['open_wave'] = wave
     guided.save(state)
+    rule_registry.settle(state['project'], state)          # the rules said for the next batch now hold for this one
     guided.publish(state)
     return {'batch': number, 'copy': str(root), 'fixed_automatically': list(wave['kept']), 'failed': wave['failed'],
-            'to_do': [_brief(cards[c]) for c in lanes.mine(wave, lanes.untried(wave, arguments['cards']))],
+            'to_do': [_brief(cards[c], brief(state['project'], state, c, number)) for c in lanes.mine(wave, lanes.untried(wave, arguments['cards']))],
             'what_now': 'For each card in to_do: read it with `finding`, read the code with fix_read, then send the change with '
-                        'fix_edit. Keep every feature, route and behaviour. When every card is kept or skipped, call fix_finish.',
+                        'fix_edit. Keep every feature, route and behaviour, and every rule of the person\'s a card lists in your_rules (a '
+                        'change that breaks one is refused). When every card is kept or skipped, call fix_finish.',
             **lanes.told(helpers)}
 
 
@@ -288,7 +293,8 @@ def _fix_edit_job(project, arguments, progress):
         return {'card': card_id, 'kept': False, 'why': f'the edit could not be applied: {problem}',
                 'what_now': 'Nothing changed. Read the file again with fix_read and send a corrected edit.'}
     progress(0, 1, 'checking the change: the problem is gone, nothing broke, no endpoint disappeared')
-    broke, exit_code, still = edit_gates((report, guided.source(state), project_state.runtime_of(state)), root, card, changed, repair)
+    holding = (state['project'], rule_registry.holding(state['project'], state, None if repair else card_id, wave['number']))
+    broke, exit_code, still = edit_gates((report, guided.source(state), project_state.runtime_of(state), holding), root, card, changed, repair)
     diff = guided._git(root, 'show', '--stat', '--format=', 'HEAD').stdout.strip()
     if broke or exit_code not in (0, None):
         drop_last(root)

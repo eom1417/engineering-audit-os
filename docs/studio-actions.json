@@ -2089,6 +2089,199 @@
      "entry"
     ]
    }
+  },
+  {
+   "id": "rules",
+   "tool": "rules",
+   "group": "understand",
+   "label": {
+    "en": "Your rules",
+    "ar": "قواعدك"
+   },
+   "description": {
+    "en": "The requirements you keep asking for, each kept in your words and checked by a machine guard on every check, fix and commit: say one, pin it for every change, unpin or change it.",
+    "ar": "الأشياء اللي تكرر طلبها، كل وحدة بكلامك ويفحصها حارس آلي في كل فحص وإصلاح وcommit: قل قاعدة، ثبّتها لكل تعديل، أو فكّها أو غيّرها."
+   },
+   "mode": "direct",
+   "needs_assistant": false,
+   "irreversible": false,
+   "needs_consent": false,
+   "returns_job": false,
+   "changes_code": false,
+   "inputs": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+     "op": {
+      "type": "string",
+      "enum": [
+       "list",
+       "touches"
+      ]
+     },
+     "id": {
+      "type": [
+       "string",
+       "null"
+      ],
+      "maxLength": 20
+     },
+     "project": {
+      "type": [
+       "string",
+       "null"
+      ],
+      "description": "The project folder; the Studio fills it with the project it serves."
+     }
+    },
+    "required": []
+   }
+  },
+  {
+   "id": "rule",
+   "tool": "rule",
+   "group": "understand",
+   "label": {
+    "en": "Keep or change a rule",
+    "ar": "احفظ قاعدة أو غيّرها"
+   },
+   "description": {
+    "en": "Say a rule in your words, give it its machine guard, pin it for every change, unpin or change it, or run your pinned rules before every commit.",
+    "ar": "قل قاعدة بكلامك، واعطها حارسها الآلي، وثبّتها لكل تعديل، أو فكّها أو غيّرها، أو شغّل قواعدك المثبّتة قبل كل commit."
+   },
+   "mode": "direct",
+   "needs_assistant": false,
+   "irreversible": false,
+   "needs_consent": false,
+   "returns_job": false,
+   "changes_code": false,
+   "inputs": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+     "op": {
+      "type": "string",
+      "enum": [
+       "add",
+       "guard",
+       "pin",
+       "unpin",
+       "change",
+       "hook"
+      ]
+     },
+     "id": {
+      "type": [
+       "string",
+       "null"
+      ],
+      "maxLength": 20
+     },
+     "words": {
+      "type": [
+       "string",
+       "null"
+      ],
+      "maxLength": 2000
+     },
+     "card": {
+      "type": [
+       "string",
+       "null"
+      ],
+      "maxLength": 40
+     },
+     "pin": {
+      "type": "boolean"
+     },
+     "guard": {
+      "type": [
+       "object",
+       "null"
+      ]
+     },
+     "write": {
+      "type": "boolean"
+     },
+     "on": {
+      "type": "boolean"
+     },
+     "person_agreed": {
+      "type": "boolean"
+     },
+     "door": {
+      "type": [
+       "string",
+       "null"
+      ],
+      "enum": [
+       "chat",
+       "card",
+       null
+      ]
+     },
+     "why": {
+      "type": [
+       "string",
+       "null"
+      ],
+      "maxLength": 500
+     },
+     "project": {
+      "type": [
+       "string",
+       "null"
+      ],
+      "description": "The project folder; the Studio fills it with the project it serves."
+     }
+    },
+    "required": [
+     "op"
+    ]
+   }
+  },
+  {
+   "id": "check_changed",
+   "tool": "check_changed",
+   "group": "check",
+   "label": {
+    "en": "Check what changed",
+    "ar": "افحص اللي تغيّر"
+   },
+   "description": {
+    "en": "Only what changed, now: your rules and the code laws on the changed files and what depends on them, in seconds, without AI.",
+    "ar": "اللي تغيّر بس، الحين: قواعدك وقوانين الكود على الملفات المتغيرة واللي يعتمد عليها، في ثواني وبدون ذكاء اصطناعي."
+   },
+   "mode": "direct",
+   "needs_assistant": false,
+   "irreversible": false,
+   "needs_consent": false,
+   "returns_job": false,
+   "changes_code": false,
+   "inputs": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+     "base": {
+      "type": [
+       "string",
+       "null"
+      ],
+      "maxLength": 200
+     },
+     "staged": {
+      "type": "boolean"
+     },
+     "project": {
+      "type": [
+       "string",
+       "null"
+      ],
+      "description": "The project folder; the Studio fills it with the project it serves."
+     }
+    },
+    "required": []
+   }
   }
  ],
  "verbs": [
