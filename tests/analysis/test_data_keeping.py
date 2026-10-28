@@ -7,6 +7,7 @@ from eaos.analysis.assessments import data_keeping
 from eaos.analysis.claims import from_keeping
 from eaos.engines.code import ast_grep
 from eaos.facts.run import collect, read_available
+from eaos.engines.tool import version_of
 from shared_fixture import scratch
 
 BASELINE = Path(__file__).resolve().parents[1] / 'fixtures/baseline-app'
@@ -48,7 +49,7 @@ class FromTheCode(unittest.TestCase):
         self.assertEqual(next(f for f in found if f['rule'] == 'adding-required-field')['sites'], [('migrations/001.sql', 2)])
 
     def test_the_baseline_s_saves_pictures_and_backup_are_found_and_what_must_stay_is_left(self):
-        if ast_grep.version() != ast_grep.PINNED: self.skipTest('ast-grep is not installed at its pin')
+        if version_of(ast_grep) != ast_grep.PINNED: self.skipTest('ast-grep is not installed at its pin')
         out = Path(scratch('eaos-keeping-facts-'))
         collect(BASELINE, out, ['syntax'], engines=['ast-grep'])
         found, _ = data_keeping.findings(out, read_available(out), BASELINE)

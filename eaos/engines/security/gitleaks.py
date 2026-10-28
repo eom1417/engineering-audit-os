@@ -30,9 +30,6 @@ def capabilities():
     return [Capability('secret', '*')]
 
 
-def version(): return tool.version(BINARY)
-
-
 @tool.engine(NAME, BINARY, fresh=True)
 def analyze(target, workdir, exclude, formats, found):
     config, output = workdir / 'gitleaks.toml', workdir / 'gitleaks.sarif'

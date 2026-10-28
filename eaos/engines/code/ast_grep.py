@@ -42,9 +42,6 @@ def capabilities():
     return [Capability(kind, rule, granularity=SYMBOL) for rule, kind in rules() if kind in KINDS]
 
 
-def version(): return tool.version(BINARY)
-
-
 def records(lines):
     """The parsed matches of a `--json=stream` run, one JSON object per line."""
     return [json.loads(line) for line in lines.splitlines() if line.strip()]

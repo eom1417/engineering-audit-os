@@ -26,9 +26,6 @@ HOLDS = {'require-concurrent-index-creation', 'require-concurrent-index-deletion
 def capabilities(): return [Capability('sql_quality', '*')]
 
 
-def version(): return tool.version(BINARY)
-
-
 def migrations(target, exclude=()):
     """The project's migration files: .sql files under a folder named migrations (or migrate)."""
     root = Path(target)

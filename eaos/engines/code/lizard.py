@@ -24,9 +24,6 @@ def capabilities():
     return [Capability('complexity', 'lizard.ccn', granularity=SYMBOL)]
 
 
-def version(): return tool.version(BINARY)
-
-
 def rows(text):
     """Lizard's CSV as dictionaries keyed by COLUMNS; a row of another width is skipped and counted."""
     out, skipped = [], 0

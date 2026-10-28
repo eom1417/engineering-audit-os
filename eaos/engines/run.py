@@ -9,7 +9,7 @@ from typing import NamedTuple
 from .code import ast_grep, codegraph, dependency_cruiser, enola, gitnexus, jscpd, knip, lizard, react_docgen, reforge, scc, sqlfluff, squawk
 from .security import bandit, checkov, codeql, gitleaks, osv_scanner, presidio, semgrep, syft, trivy
 from .api import oasdiff, spectral
-from . import sarif
+from . import sarif, tool
 from .contract import NOT_APPLICABLE, OBSERVED, UNAVAILABLE
 from .process import state_digest
 from ..core import progress
@@ -34,7 +34,7 @@ def health():
     """What is installed, at what version, and whether it matches the pin. Runs no analysis."""
     report = {}
     for name, adapter in sorted(ADAPTERS.items()):
-        found = adapter.version()
+        found = tool.version_of(adapter)
         report[name] = {'installed': found is not None, 'version': found, 'pinned': adapter.PINNED,
                         'version_matches_pin': found == adapter.PINNED,
                         'capabilities': [{'kind': c.kind, 'rule': c.rule, 'method': c.method}

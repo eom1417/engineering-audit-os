@@ -7,6 +7,7 @@ from pathlib import Path
 from eaos.analysis.claims import correlate
 from eaos.engines import ADAPTERS, analyze, health
 from eaos.engines.contract import Report, UNAVAILABLE, finding, subject
+from eaos.engines.tool import version_of
 
 
 def engine_fact(identifier, engine, kind, path, rule='r', sites=None, message='m', measurements=()):
@@ -186,7 +187,7 @@ class InstalledEngineTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         from eaos.engines.code import enola, jscpd
-        if not (enola.version() and jscpd.version()):
+        if not (version_of(enola) and version_of(jscpd)):
             raise unittest.SkipTest('the pinned engines are not installed in this environment')
 
     def test_a_run_only_runs_what_was_asked_leaves_the_target_untouched_and_is_reproducible(self):

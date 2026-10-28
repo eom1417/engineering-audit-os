@@ -27,9 +27,6 @@ def capabilities():
     return [Capability('vulnerability', 'osv.vulnerable_dependency', method=DETERMINISTIC)]
 
 
-def version(): return tool.version(BINARY)
-
-
 def _key(text):
     """A version as comparable parts: 1.10.0 > 1.9.2; a pre-release sorts before its release."""
     main, _, pre = str(text).partition('-')

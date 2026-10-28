@@ -22,9 +22,6 @@ def capabilities():
     return [Capability('api_contract', 'oasdiff.breaking')]
 
 
-def version(): return tool.version(BINARY)
-
-
 @tool.engine(NAME, BINARY)
 def analyze(target, workdir, exclude, formats, found):
     target = Path(target).resolve()

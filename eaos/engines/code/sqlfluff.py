@@ -25,9 +25,6 @@ def capabilities():
     return [Capability('sql_quality', 'AM*,ST*,CV*,RF01,RF02,RF04,PRS')]
 
 
-def version(): return tool.version(BINARY)
-
-
 def style(code):
     return code.startswith(STYLE_FAMILIES) or code in STYLE_CODES
 

@@ -33,9 +33,6 @@ def capabilities():
             Capability('unused_dependency', 'knip.dependencies', granularity=FILE)]
 
 
-def version(): return tool.version(BINARY)
-
-
 def plugins(binary):
     """Every plugin the installed knip knows, read from its own package (bin/knip.js -> dist/plugins/<name>)."""
     folder = Path(os.path.realpath(binary)).parent.parent / 'dist' / 'plugins'

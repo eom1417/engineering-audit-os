@@ -19,9 +19,6 @@ def capabilities():
     return []
 
 
-def version(): return tool.version(BINARY)
-
-
 @tool.engine(NAME, BINARY)
 def analyze(target, workdir, exclude, formats, found):
     target = Path(target)

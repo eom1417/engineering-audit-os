@@ -23,9 +23,6 @@ def capabilities():
     return [Capability('vulnerability', 'B*'), Capability('secret', 'B10[5-7]')]
 
 
-def version(): return tool.version(BINARY)
-
-
 @tool.engine(NAME, BINARY, fresh=True)
 def analyze(target, workdir, exclude, formats, found):
     output = workdir / 'bandit.sarif'

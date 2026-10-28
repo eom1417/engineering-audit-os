@@ -20,9 +20,6 @@ def capabilities():
     return [Capability('misconfiguration', 'CKV*')]
 
 
-def version(): return tool.version(BINARY)
-
-
 def _command(target, workdir, exclude):
     command = [which(BINARY), '-d', str(target), '-o', 'sarif', '-o', 'json', '--output-file-path', str(workdir),
                '--quiet', '--compact', '--skip-download', '--skip-path', 'node_modules']

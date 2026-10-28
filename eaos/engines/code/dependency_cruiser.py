@@ -32,9 +32,6 @@ def capabilities():
     return [Capability('cycle', 'no-circular', granularity=FILE), Capability('boundary', 'policy.deny', granularity=FILE)]
 
 
-def version(): return tool.version(BINARY)
-
-
 def glob_regex(pattern):
     """A path glob of eaos.policy.json (`src/ui/**`) as the regular expression dependency-cruiser matches."""
     out, index = '', 0

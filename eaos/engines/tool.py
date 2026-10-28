@@ -35,6 +35,12 @@ def version(binary, args=('--version',)):
     return 'unknown'
 
 
+def version_of(adapter):
+    """The version an adapter's tool prints: its own reader (a SARIF tool's, react-docgen's), else its binary's."""
+    own = getattr(adapter, 'version', None)
+    return own() if own else version(adapter.BINARY)
+
+
 def package_version(name, binary):
     """The version of an npm tool that has no --version (the react-docgen CLI): the one its pinned package
     records, when its command is installed; else None."""

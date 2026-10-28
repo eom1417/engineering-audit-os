@@ -27,11 +27,8 @@ NEAR_MODES = ('--similarity', str(NEAR_COPY['similarity']), '--max-gap-lines', s
 def capabilities(): return []
 
 
-def version(): return tool.version(BINARY)
-
-
 def analyze(target, workdir, exclude=(), formats=None):
-    found = version()
+    found = tool.version(BINARY)
     if found is None:
         return Report(NAME, None, PINNED, UNAVAILABLE, reason='jscpd is not installed')
     workdir = Path(workdir) / 'jscpd'
