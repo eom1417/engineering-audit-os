@@ -86,7 +86,9 @@ def snapshot(project, paths, folder, revision=None):
 
 def laws(before, after, paths):
     """What the change adds against the code laws over `paths` (eaos/analysis/repair/gates.py debt), from the facts of
-    the two snapshots: [{gate, where, what}]."""
+    the two snapshots: [{gate, where, what}]. Dead code is not among them: the snapshots hold the changed files alone,
+    so whatever imports them is missing and every new module would look unreached (the full check and a fix's gate,
+    which read the whole copy, judge it)."""
     from ...facts.run import collect
     from ..repair.gates import debt
     with tempfile.TemporaryDirectory(prefix='eaos-changed-facts-') as facts:
@@ -94,7 +96,7 @@ def laws(before, after, paths):
         for name, root in (('before', before), ('after', after)):
             folders[name] = Path(facts) / name
             collect(Path(root), folders[name], engines=list(GATE_ENGINES))
-        return debt(folders['before'], folders['after'], [p for p in paths if (Path(after) / p).is_file()])
+        return debt(folders['before'], folders['after'], [p for p in paths if (Path(after) / p).is_file()], dead=False)
 
 
 def found_of(problems):
