@@ -14,9 +14,10 @@ from pathlib import Path
 from ...facts.engine_findings import engine_records
 from ...live.keeping.restore import commands
 
-KINDS = {   # kind: severity
+# kind: severity. A missing backup is low: a hosted database may be backed up by its provider, which the code does not show.
+KINDS = {
     'whole_state_local': 'medium', 'whole_state_request': 'medium', 'growing_queue': 'medium', 'told_early': 'medium',
-    'pictures_in_sql': 'medium', 'state_column': 'low', 'backup_skips': 'high', 'no_backup': 'low',   # a hosted database may be backed up by its provider: said, never graded high 'backup_local': 'low',
+    'pictures_in_sql': 'medium', 'state_column': 'low', 'backup_skips': 'high', 'no_backup': 'low', 'backup_local': 'low',
     'save_resends': 'medium', 'save_grows': 'medium', 'save_large': 'medium', 'save_many': 'low',
     'documents_in_column': 'medium', 'pictures_in_rows': 'medium', 'two_tables': 'low', 'restore_misses': 'high',
     'restore_failed': 'high', 'two_places': 'medium', 'data_in_files': 'low', 'lost_update': 'high', 'page_weight': 'low', 'uncompressed': 'low'}
