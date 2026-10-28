@@ -85,15 +85,14 @@ def done(answer, project):
 
 
 def _database(name):
-    return {'path': name, 'write': f"// The {RECORDS[name]}, read from the database.\nconst db = require('./db');\n"
-                                   f"module.exports = () => db.all('{RECORDS[name]}');\n"}
+    """The sound fix of one file: its records read from the database the app passes in, nothing written in the code."""
+    return {'path': name, 'content': f"// The {RECORDS[name]}, read from the app's database.\nmodule.exports = db => db.all('{RECORDS[name]}');\n"}
 
 
-DB = {'path': 'db.js', 'write': "// The app's database (a stand-in the tests replace).\nmodule.exports = { all: async table => [] };\n"}
 EDITS = {
-    'one place': [DB, _database('contacts.js')],
-    'every place, the totals broken': [DB, *map(_database, RECORDS), {'path': 'total.js', 'write': 'module.exports = amount => String(amount);\n'}],
-    'every place': [DB, *map(_database, RECORDS)],
+    'one place': [_database('contacts.js')],
+    'every place, the totals broken': [*map(_database, RECORDS), {'path': 'total.js', 'content': 'module.exports = amount => String(amount);\n'}],
+    'every place': [*map(_database, RECORDS)],
 }
 
 

@@ -161,8 +161,14 @@ def _run_test(guard, root):
         return 'not_run', [], f'{type(problem).__name__}: {problem}'[:300]
     if done.returncode == 0: return 'held', [], 'its test passed'
     output = (done.stdout or '') + (done.stderr or '')
-    places = sorted({f'{p}:{n.lstrip(":")}' for p, n in PLACE.findall(output) if (Path(root) / p).is_file()})
+    places = sorted({f'{_inside(root, p)}:{n.lstrip(":")}' for p, n in PLACE.findall(output) if (Path(root) / p).is_file()})
     return 'broken', places or [' '.join(guard['command'])], output.strip()[-600:]
+
+
+def _inside(root, path):
+    """A place a test named, as the project reads it: relative to its folder (a runner may print absolute paths)."""
+    try: return str(Path(path).resolve().relative_to(Path(root).resolve())) if Path(path).is_absolute() else path
+    except ValueError: return path
 
 
 def _run_detectors(guard, found, paths):

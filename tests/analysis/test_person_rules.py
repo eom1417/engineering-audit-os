@@ -220,6 +220,9 @@ class InACheck(Rules):
         self.assertEqual(recheck(self.project, spec)[0], 'CONFIRMED')
         for name in ('seed.js', 'more.js'): (self.project / 'src' / name).write_text('export const rows = async (db) => db.all();\n')
         self.assertEqual(recheck(self.project, spec)[0], 'REFUTED', 'closed only when the guard finds none')
+        from eaos.journeys.fix.waves.acceptance import _probe_exit
+        self.assertEqual(_probe_exit(json.loads(json.dumps(spec)), {}, out, self.project), 0,
+                         "a batch's check runs the guard on the copy, never the check's own finding")
 
 
 if __name__ == '__main__':

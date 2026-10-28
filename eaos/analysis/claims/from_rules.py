@@ -74,7 +74,7 @@ def rule_claims(out, claims, fact_index, offset):
                   'words': row['words'], 'said_on': row['said_on'], 'returns': row['returns'], 'cards': row.get('cards') or [],
                   'severity': 'high' if row['scope']['kind'] == 'pinned' or row['returns'] else 'medium', 'category': 'reliability'}
         probe = ({'probe_type': 'graph_query', 'specification': {'query': 'rule_broken', 'rule': row['id'], 'guard': _guard_of(record, row['id']),
-                                                                 'found': {'status': row['status'], 'places': row['places']}, 'engines': []}} if row['kind'] in ('pattern', 'test') else None)
+                                                                 'engines': []}} if row['kind'] in ('pattern', 'test') else None)
         made.append(ledger.make(offset + len(made) + 1, en, 'business_rule', 'CONFIRMED',
                                 ['static_fact' if row['kind'] != 'test' else 'test_evidence'], ['rules.json'],
                                 "The rule's guard, run again, finding nothing.", confidence_ceiling='CONFIRMED',
@@ -83,10 +83,10 @@ def rule_claims(out, claims, fact_index, offset):
 
 
 def present(specification, sets):
-    """A rule card's probe: CONFIRMED while its guard still finds the rule broken on the code read (`sets['rule']`, the
-    guard run on the copy by recheck; in the check itself, what its rules stage found)."""
-    result = sets.get('rule') or specification.get('found')
-    if result is None or result['status'] not in ('broken', 'held'): return 'INCONCLUSIVE', 'the rule\'s guard did not run on this code'
+    """A rule card's probe: CONFIRMED while its guard, run again on the copy (`sets['rule']`, made by recheck and a batch's
+    check), still finds the rule broken; never what an earlier check found."""
+    result = sets['rule']
+    if result['status'] not in ('broken', 'held'): return 'INCONCLUSIVE', 'the rule\'s guard did not run on this code'
     if result['status'] == 'broken': return 'CONFIRMED', f"the rule is still broken at {', '.join(result['places'][:4])}"
     return 'REFUTED', 'its guard finds the rule broken nowhere'
 

@@ -34,7 +34,7 @@ def edit_gates(where, root, card, changed, repair):
         broke = (new_breakage(report, root, collected=out) + words(laws) + app_breakage(project, runtime, root, changed)
                  + (rules_gate(*held[0], root, changed, laws) if held and held[0][1] else []))
         exit_code = None if repair else batch_acceptance(report, [card], root, collected=out).get(card['id'])
-        return broke, exit_code, _still(card, out) if exit_code not in (0, None) else ''
+        return broke, exit_code, _still(card, out, root) if exit_code not in (0, None) else ''
 
 
 def _sizes_before(root, paths):

@@ -18,7 +18,7 @@ QUERY_REQUIRES = {
     'weakness_present': 'external', 'boundary_finding_present': 'boundaries',
     'repository_finding_present': 'repository', 'logic_flaw_present': 'logic_flaws',
     'experience_difficulty_present': 'experience', 'real_data_present': 'external',
-    'old_engine_present': 'syntax', 'data_keeping_present': 'external', 'one_source_present': 'patterns', 'rule_broken': 'syntax',
+    'old_engine_present': 'syntax', 'data_keeping_present': 'external', 'one_source_present': 'patterns', 'rule_broken': 'rule',
 }
 
 
