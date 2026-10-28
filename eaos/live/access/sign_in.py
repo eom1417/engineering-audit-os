@@ -22,6 +22,7 @@ from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 from ...core.system.studio_access import THIS_COMPUTER
+from ...core.system.files import read_json
 
 SESSION = 'session.json'                     # in the run's folder: the session of the app in its isolated copy
 PUBLISHED = 'published-session.json'         # in the project's workspace: the published address's, for one check only
@@ -44,14 +45,9 @@ def _write(path, record):
     os.replace(temporary, path)
 
 
-def _read(path):
-    try: return json.loads(Path(path).read_text(encoding='utf-8'))
-    except (OSError, ValueError): return None
-
-
 def by_hand(state):
     """Whether the session file was saved by the person on the sign-in page (never replaced by a seed script's)."""
-    return bool(((_read(state) or {}).get('eaos') or {}).get('by') == 'hand')
+    return bool(((read_json(state) or {}).get('eaos') or {}).get('by') == 'hand')
 
 
 def seeding(state):
@@ -66,7 +62,7 @@ def seeding(state):
 
 def mark(state):
     """The session the browser just saved, marked as the person's and made readable by its owner only."""
-    record = _read(state) or {}
+    record = read_json(state) or {}
     _write(state, {**record, 'eaos': {'by': 'hand', 'at': datetime.now(timezone.utc).isoformat(timespec='seconds')}})
 
 
@@ -74,7 +70,7 @@ def from_code(report):
     """The routes of the code's sign-in feature (eaos/analysis/understanding/features.py groups login, signin, auth... as `auth`),
     and any route of another feature that is a sign-in itself (the detection baseline's /api/login, grouped as `api`)."""
     from ..app.setup import SIGN_IN_PAGE
-    features = (_read(Path(report) / 'features.json') or {}).get('features') or []
+    features = (read_json(Path(report) / 'features.json') or {}).get('features') or []
     routes = [s for f in features for s in f.get('surfaces') or [] if f.get('name') == 'auth' or SIGN_IN_PAGE.search(s)]
     return [f'{surface}: a sign-in route of the code' for surface in list(dict.fromkeys(routes))[:5]]
 
@@ -116,13 +112,13 @@ def ask(workspace, base, state, why, log=None, mail=None, published=False):  # l
 
 def tell(workspace, **said):
     """Add to the question asked now what the person reads with it (`tried`: what EAOS tried before asking)."""
-    record = _read(Path(workspace) / ASKED)
+    record = read_json(Path(workspace) / ASKED)
     if record: _write(Path(workspace) / ASKED, {**record, **said})
 
 
 def asked(workspace):
     """What the check asks the person now, or None (nothing asked, answered, or no longer waited for)."""
-    record = _read(Path(workspace) / ASKED)
+    record = read_json(Path(workspace) / ASKED)
     if not record or record.get('state') != 'waiting' or record['until'] < datetime.now(timezone.utc).isoformat(timespec='seconds'): return None
     return record
 
@@ -147,7 +143,7 @@ def wait(workspace, seconds=None):
     try:
         while time.monotonic() < end:
             check_cancelled()
-            outcome = (_read(path) or {}).get('state')
+            outcome = (read_json(path) or {}).get('state')
             if outcome in (SIGNED_IN, SIGNED_OUT): return outcome
             time.sleep(1)
         return 'timeout'

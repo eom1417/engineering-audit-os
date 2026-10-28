@@ -29,7 +29,8 @@ from pathlib import Path
 from typing import NamedTuple
 
 from ...core import progress
-from .assist import assist_messages, read_json
+from .assist import assist_messages
+from ...core.system.files import read_json
 from ..behavior.specs import LEAVES
 from ...core.progress.flow import OPTIONAL, Stage
 from .profile import apply, safe, write_profile
@@ -58,7 +59,7 @@ def routes(report, limit=4):
     """A few of the lock's screens and server pages (`GET /notes`) without parameters, to see that each one is a screen
     of its own and opens signed in; never one that signs out or changes (LEAVES), which would end the session the probe
     checks. A server app's pages left out, the probe saw only its public first page and took an empty session for one."""
-    plan = read_json(Path(report) / 'behavior-lock/plan.json') if report else {}
+    plan = read_json(Path(report) / 'behavior-lock/plan.json', {}) if report else {}
     surfaces = [s.split(' (')[0] for spec in plan.get('specs') or [] for s in spec.get('surfaces') or []]
     # The screens first: a plan opening with its API (`GET /api/me` ...) filled the few paths, and the baseline's
     # #/account, the screen that draws the sign-in form, was never opened (the detection baseline's missed sign-in).
@@ -168,7 +169,7 @@ def verify(project, runtime, attempt, report=None, mode='lock'):
         if state.exists(): state.unlink()
         record['fixtures'] = dict(live.seed(base, state))
         record['seed_output'] = getattr(live, 'seed_output', '')
-        detected = read_json(runtime / 'setup' / 'detected.json')
+        detected = read_json(runtime / 'setup' / 'detected.json', {})
         out_of_reach = (detected.get('facts') or {}).get('database_out_of_reach')
         page = record['page'] = _probed(live, base, state, report, project if out_of_reach else None)
         empty = '' if mode == 'baseline' else empty_state(page, _unset(runtime, live))
@@ -187,7 +188,7 @@ def verify(project, runtime, attempt, report=None, mode='lock'):
 
 def _unset(runtime, live):
     """The environment names the app reads that the run gives no value."""
-    names = (read_json(runtime / 'setup/detected.json').get('facts') or {}).get('env_names') or []
+    names = (read_json(runtime / 'setup/detected.json', {}).get('facts') or {}).get('env_names') or []
     return [n for n in names if n not in live.profile.get('env', {}) and n != 'NODE_ENV']
 
 
@@ -308,7 +309,7 @@ def _setup(project, runtime, report, provider, say):
 def kept(runtime, profile):
     """The new draft with what the last setup's run.json holds that must stay: the production run that worked (often
     the assistant's), and every secret the run chose, so a session signed with it (the person's sign-in) outlives it."""
-    before = read_json(runtime / 'run.json') or {}
+    before = read_json(runtime / 'run.json', {}) or {}
     if (before.get('baseline') or {}).get('verified'): profile['baseline'] = before['baseline']
     env = profile.get('env') or {}
     env.update({name: value for name, value in (before.get('env') or {}).items() if name in env and SECRETISH.search(name)})

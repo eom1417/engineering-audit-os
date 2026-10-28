@@ -12,6 +12,7 @@ from ...core.project import branches, state as project_state
 from ...core.project.state import runtime_of
 from ..fix import waves
 from ...core.project.places import outputs_root, second_name
+from ...core.system.files import read_json
 
 
 OUTPUTS_README = {
@@ -117,8 +118,7 @@ RESUME = []
 def report_stamp(state):
     """What the last REPORT.html of the branch was made from: {version, commit, digest, built, scanned_commit (the project
     commit the check read), errors}; {} when none."""
-    try: return json.loads((branches.home(state) / '.report.json').read_text(encoding='utf-8'))
-    except (OSError, ValueError): return {}
+    return read_json(branches.home(state) / '.report.json', {})
 
 
 def publish(state, lang=None, event=None):

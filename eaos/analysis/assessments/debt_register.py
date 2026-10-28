@@ -14,10 +14,10 @@ hotspot, for the item's hottest file, from measurements.json:
 where pct is the file's percentile rank (0..1) among the analysed files. The item keeps the three ranks,
 not only the product, so a reader sees why a place is hot.
 """
-import json
 from pathlib import Path
 
 from ...core import progress
+from ...core.system.files import read_json
 
 FORMULA = 'score = pct(complexity_max) x pct(churn) x (1 + pct(fan_in)), percentile ranks among the analysed files'
 SEVERITIES = ('low', 'medium', 'high', 'critical')
@@ -57,11 +57,6 @@ CREDENTIAL_SEVERITY = {'public': 'low', 'test': 'low'}
 OWN_CATEGORY = {'old_engine': 'dead_code', 'data_keeping': 'data', 'one_source': 'maintainability'}
 # Personal values whose check digits were verified (an IBAN, a Saudi national id, a card number): a lookup, not a guess.
 CHECKED_VALUES = ('IBAN_CODE', 'SA_NATIONAL_ID', 'CREDIT_CARD')
-
-
-def _load(path, default):
-    try: return json.loads(Path(path).read_text(encoding='utf-8'))
-    except (OSError, ValueError): return default
 
 
 def percentiles(rows, field):
@@ -225,7 +220,7 @@ def corroborated(item):
 
 def _probes(out):
     probes = {}
-    for probe in _load(out / 'probes.json', []) or []:
+    for probe in read_json(out / 'probes.json', []) or []:
         if isinstance(probe, dict): probes.setdefault(probe.get('claim_id'), []).append(probe)
     return probes
 
@@ -282,7 +277,7 @@ def build(out, dossier):
     out = Path(out)
     claims = dossier.get('claims') or []
     all_facts = _facts(out, claims)
-    heat = hotspots(_load(out / 'measurements.json', {}))
+    heat = hotspots(read_json(out / 'measurements.json', {}))
     items = _claim_items(claims, all_facts, _probes(out))
     items += [_credential_item(fact, all_facts) for fact in _unclaimed_credentials(claims, items, all_facts)]
     for item in items: _settle(item, heat)

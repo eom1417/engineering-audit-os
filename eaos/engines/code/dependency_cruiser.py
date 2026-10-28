@@ -18,6 +18,7 @@ from pathlib import Path
 from .. import tool
 from ..contract import ERROR, FILE, OBSERVED, Report, finding, subject
 from ..process import run, which
+from ...core.system.files import read_json
 
 NAME = 'dependency-cruiser'
 BINARY = 'depcruise'
@@ -76,15 +77,13 @@ def _layer_rules(workdir):
     """The rules the layer map wrote for this check, or none."""
     path = Path(workdir) / LAYERS if workdir else None
     if not (path and path.is_file()): return []
-    try: return json.loads(path.read_text(encoding='utf-8'))
-    except ValueError: return []
+    return read_json(path, [])
 
 
 def _policy(policy):
     """What eaos.policy.json declares; {} when there is none or it is not JSON."""
     if not policy.is_file(): return {}
-    try: return json.loads(policy.read_text(encoding='utf-8'))
-    except ValueError: return {}
+    return read_json(policy, {})
 
 
 def cycles(summary):

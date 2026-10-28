@@ -16,6 +16,7 @@ import re
 from pathlib import Path
 
 from ...facts.store import facts
+from ...core.system.files import read_json
 
 VERSION = 1
 RULES = Path(__file__).resolve().parents[2] / 'rules/external-services.json'
@@ -196,8 +197,7 @@ def _goals(scenario):
 
 
 def _scenario(report):
-    try: return json.loads((Path(report) / 'experience/scenario.json').read_text(encoding='utf-8'))
-    except (OSError, ValueError): return None
+    return read_json(Path(report) / 'experience/scenario.json')
 
 
 def brief(report, scenario=None):

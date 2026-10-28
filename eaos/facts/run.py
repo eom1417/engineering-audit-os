@@ -15,6 +15,9 @@ from .source import Source
 from ..core import progress
 from .store import write_index, write_set
 from hashlib import sha256 as _sha256
+from ..core.system.files import read_json
+
+
 def digest(data): return _sha256(data).hexdigest()
 
 EXTRACTORS = {'history': history, 'syntax': syntax, 'structure': structure, 'resolve': resolve, 'entrypoints': entrypoints,
@@ -146,8 +149,7 @@ def _checked_paths(target, out):
 
 def _load_cache(cache_path):
     if not cache_path.is_file(): return {}
-    try: return json.loads(cache_path.read_text(encoding='utf-8'))
-    except ValueError: return {}
+    return read_json(cache_path, {})
 
 
 def _run_extractor(name, target, source, produced, context):

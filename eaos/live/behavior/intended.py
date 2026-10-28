@@ -21,6 +21,7 @@ import shutil
 import subprocess
 from pathlib import Path
 from typing import NamedTuple
+from ...core.system.files import read_json
 
 PICTURE = 0.05           # the most of a declared screen's pixels its addition may change
 KEPT = 20
@@ -122,8 +123,7 @@ def _remember(recorded, commit, kept):
 
 
 def _index(recorded):
-    try: return json.loads((Path(recorded) / INDEX).read_text(encoding='utf-8'))
-    except (OSError, ValueError): return []
+    return read_json(Path(recorded) / INDEX, [])
 
 
 def _holds(target, commit):

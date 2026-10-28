@@ -22,6 +22,7 @@ import re
 import threading
 from datetime import datetime, timezone
 from pathlib import Path
+from ...core.system.files import read_json
 
 ZERO = '0' * 64
 # A run's fields only its assistant's brief reads (eaos/interfaces/studio_actions/runs.py prompt_of), never a page: the list of
@@ -82,11 +83,6 @@ def _write_json(path, data, create=False):
     temporary.replace(path)
 
 
-def _read_json(path, default=None):
-    try: return json.loads(Path(path).read_text(encoding='utf-8'))
-    except (OSError, ValueError): return default
-
-
 class Store:
     """The runs of one project, their events and the queue. Thread-safe within one process; across processes the
     dispatcher lock (`dispatch.lock`) keeps a single writer of states, and events are appended under a file lock."""
@@ -105,7 +101,7 @@ class Store:
         return self.folder / run
 
     def load(self, run):
-        data = _read_json(self.path(run) / 'run.json')
+        data = read_json(self.path(run) / 'run.json')
         if not data: raise KeyError(run)
         return data
 
@@ -143,13 +139,13 @@ class Store:
     def all(self):
         rows = []
         for path in self.folder.glob('*/run.json'):
-            data = _read_json(path)
+            data = read_json(path)
             if data: rows.append(data)
         return sorted(rows, key=lambda row: row.get('created') or '', reverse=True)
 
     # the queue
     def queue(self):
-        order = _read_json(self.folder / 'queue.json', []) or []
+        order = read_json(self.folder / 'queue.json', []) or []
         queued = {row['id']: row for row in self.all() if row.get('state') == 'queued' and not row.get('read')}
         known = [run for run in order if run in queued]
         rest = sorted((run for run in queued if run not in known), key=lambda run: queued[run].get('queued_at') or '')

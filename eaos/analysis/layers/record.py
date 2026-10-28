@@ -8,6 +8,7 @@ from . import boundaries, browser, data, endpoints, operations, rules_split
 from .catalog import BOUNDARIES, RULES, fix, sentence
 from .placement import layer_map
 from .source import Project
+from ...core.system.files import read_json
 
 NAME = 'boundaries'
 VERSION = '1'
@@ -41,8 +42,7 @@ def _layers(drawn):
 
 
 def read(path):
-    try: return json.loads(Path(path).read_text(encoding='utf-8'))
-    except (OSError, ValueError): return None
+    return read_json(path)
 
 
 def check(target, out, verification=None):

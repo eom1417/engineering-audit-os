@@ -26,6 +26,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 from . import branches
+from ...core.system.files import read_json
 
 TRAILER = 'EAOS-Card'
 NUMBERS = re.compile(r'\d+')
@@ -64,8 +65,7 @@ def path(state):
 
 
 def load(state):
-    try: return json.loads(path(state).read_text(encoding='utf-8'))
-    except (OSError, ValueError): return None
+    return read_json(path(state))
 
 
 def done(cards):
@@ -108,8 +108,7 @@ def _plan(state, report=None):
     """The plan of the check on record: `report`/plan.json (eaos/journeys/guided.report_of), by default in the branch's part of
     the outputs folder."""
     if report is None and not state.get('outputs'): return None
-    try: return json.loads((Path(report or branches.home(state) / 'technical') / 'plan.json').read_text(encoding='utf-8'))
-    except (OSError, ValueError): return None
+    return read_json(Path(report or branches.home(state) / 'technical') / 'plan.json')
 
 
 def _entry(card, k, milestone):

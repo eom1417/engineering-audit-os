@@ -37,6 +37,7 @@ from pathlib import Path
 from ...core import toolchain
 from ...core.progress import PROGRESS, path_for
 from ...core.progress.log import FOLDER
+from ...core.system.files import read_json
 
 KEEP = 2000
 EVENT_LOG = 'events.jsonl'
@@ -83,11 +84,6 @@ def _rows(chunk):
         except ValueError: continue
         if isinstance(row, dict) and row.get('event'): rows.append(row)
     return rows
-
-
-def _read(path):
-    try: return json.loads(Path(path).read_text(encoding='utf-8'))
-    except (OSError, ValueError): return None
 
 
 def _log_rows(chunk):
@@ -236,7 +232,7 @@ class Feed:
         return added
 
     def snapshot(self):
-        manifest = _read(self.folder / 'manifest.json')
+        manifest = read_json(self.folder / 'manifest.json')
         if not isinstance(manifest, dict) or not isinstance(manifest.get('sections'), list): return None
         sections = {s.get('name'): s.get('sha256') for s in manifest['sections'] if isinstance(s, dict)}
         return {'digest': '|'.join(f'{k}:{v}' for k, v in sorted(sections.items(), key=lambda kv: str(kv[0]))),
@@ -248,7 +244,7 @@ class Feed:
         before = self.seen or {}
         if before.get('sections', {}).get(name) == sections.get(name) and name in before.get('states', {}):
             return before['states'][name]
-        body = _read(self.folder / f'{name}.json') if name in sections else None
+        body = read_json(self.folder / f'{name}.json') if name in sections else None
         rows = (body or {}).get(name) if isinstance(body, dict) else None
         return {str(r.get('id')): r.get('state') for r in rows or [] if isinstance(r, dict)}
 

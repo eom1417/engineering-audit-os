@@ -3,17 +3,16 @@
     critical(report, lang)   the broken critical boundaries (high), one red line each, for the top of START-HERE.md
     lines(report, lang)      each boundary with its state in plain words, and how the files sit in their layers
 """
-import json
 from pathlib import Path
 
 from ...analysis.layers.catalog import BOUNDARIES
+from ...core.system.files import read_json
 
 CRITICAL_SHOWN = 5
 
 
 def read(report):
-    try: return json.loads((Path(report) / 'layers.json').read_text(encoding='utf-8'))
-    except (OSError, ValueError): return None
+    return read_json(Path(report) / 'layers.json')
 
 
 def _say(ar, arabic, english): return arabic if ar else english

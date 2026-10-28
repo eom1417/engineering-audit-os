@@ -6,6 +6,7 @@ from pathlib import Path
 
 from .live_app import _keep, _live, _ran
 from ..stages import SkipStage
+from ...core.system.files import read_json
 
 VISITOR = re.compile(r'/(login|log-in|signin|sign-in|sign_in|register|signup|sign-up|sign_up|join|auth)(\b|/|\?|$)', re.I)   # pages a visitor sees
 
@@ -260,8 +261,7 @@ def _explored(context, base, state):
     from ...live.agent import SCREENS, Browser, explore, replay
     folder = Path(context.runtime) / 'explore'
     saved = folder / 'screens.json'
-    try: record = json.loads(saved.read_text(encoding='utf-8'))
-    except (OSError, ValueError): record = None
+    record = read_json(saved)
     if not record and not context.provider: return []
     with Browser(base, folder, _file(state)) as browser:
         done = replay(browser, record) if record else {'broken_at': 0, 'screens': []}

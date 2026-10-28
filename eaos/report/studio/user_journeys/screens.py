@@ -29,7 +29,6 @@ The layout is pinned across scans and views (eaos/report/studio/user_journeys/la
 between them, the menus and the flags; report/studio/user_journeys/routes.py: a route's spelling and matching; report/studio/user_journeys/records.py: what is read; report/studio/user_journeys/tasks.py:
 what a person does; report/studio/user_journeys/section.py: the body as the Studio draws it.
 """
-import json
 from collections import defaultdict, deque
 from pathlib import Path
 
@@ -39,6 +38,7 @@ from .records import component_file, records
 from .routes import DEPTH, SHARED, _norm, _reach, matches
 from .section import _assemble
 from .tasks import _tasks
+from ....core.system.files import read_json
 
 REDIRECT_HANDLERS = {'Navigate', 'Redirect'}
 
@@ -274,6 +274,5 @@ def journeys(report, media=None):
     previous = None
     path = Path(report) / 'studio/journeys.json'
     if path.is_file():
-        try: previous = json.loads(path.read_text(encoding='utf-8'))
-        except (OSError, ValueError): previous = None
+        previous = read_json(path)
     return build(report, previous, media)

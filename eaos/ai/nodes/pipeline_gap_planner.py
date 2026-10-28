@@ -13,6 +13,7 @@ from pathlib import Path
 
 from . import framework as core, runner
 from ..ideal import planner as ideal
+from ...core.system.files import read_json
 
 VERSION = '1'
 LIMIT = {'gaps': 200}
@@ -55,8 +56,7 @@ def _gaps(report):
 def inputs(report, project=None, lang='en', **_):
     gaps = _gaps(report)[:LIMIT['gaps']]
     if not gaps: return None
-    try: rules_ = json.loads((Path(__file__).resolve().parents[2] / 'data/pipeline-rules.json').read_text(encoding='utf-8'))
-    except (OSError, ValueError): rules_ = []
+    rules_ = read_json(Path(__file__).resolve().parents[2] / 'data/pipeline-rules.json', [])
     used = {g.get('rule') for g in gaps}
     return {'lang': lang,
             'gaps': [{'id': g['id'], 'rule': f"RULE-pipeline-{g.get('rule')}", 'subject': g.get('subject'), 'subject_kind': g.get('subject_kind'),

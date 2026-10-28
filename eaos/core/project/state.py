@@ -11,6 +11,7 @@ from pathlib import Path
 
 from .branches import suffix
 from .places import home, workspace
+from ...core.system.files import read_json
 
 FILE = 'state.json'
 # A folder with one of these is a project; the person's home and a drive's root never are.
@@ -25,8 +26,7 @@ def load(project):
 
 def of_workspace(folder):
     """The state kept in an EAOS workspace folder, or None (none there, or one that does not read)."""
-    try: return json.loads((Path(folder) / FILE).read_text(encoding='utf-8'))
-    except FileNotFoundError: return None
+    return read_json(Path(folder) / FILE)
 
 
 def write(state):

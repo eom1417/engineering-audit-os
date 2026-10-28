@@ -22,6 +22,7 @@ from collections import Counter, defaultdict
 from pathlib import Path
 
 from .references import by_id, layer_of, locate, rooted
+from ...core.system.files import read_json
 
 RULES = Path(__file__).resolve().parents[2] / 'rules/disposition-rules.json'
 FEATURE_LAYERS = ('features', 'services', 'web', 'cli')
@@ -58,15 +59,10 @@ def slug(text):
     return re.sub(r'[^a-z0-9]+', '-', str(text).lower()).strip('-') or 'root'
 
 
-def _load(path, default):
-    try: return json.loads(Path(path).read_text(encoding='utf-8'))
-    except (OSError, ValueError): return default
-
-
 def facts_by_kind(out):
     by_kind = defaultdict(list)
     for path in sorted((Path(out) / 'facts').glob('*.json')):
-        for fact in (_load(path, {}) or {}).get('facts') or []:
+        for fact in (read_json(path, {}) or {}).get('facts') or []:
             if isinstance(fact, dict): by_kind[fact.get('kind')].append(fact)
     return by_kind
 
@@ -263,7 +259,7 @@ def project(out, target=None):
     if reference_id is None: return None
     reference = rooted(by_id(reference_id), prefix)
     facts = facts_by_kind(out)
-    features = (_load(out / 'features.json', {}) or {}).get('features') or []
+    features = (read_json(out / 'features.json', {}) or {}).get('features') or []
     nodes = {f['location']['path']: f['value'] for f in facts['graph_node']}
     files = sorted(nodes)
     placed = place(files, features, reference)
@@ -282,21 +278,21 @@ def project(out, target=None):
 def _known(out, facts):
     """What decides a package's disposition beside its placement: each file's measurements, the unreachable modules,
     the critical debt items per file."""
-    return {'measured': {row['path']: row for row in (_load(out / 'measurements.json', {}) or {}).get('files') or []},
+    return {'measured': {row['path']: row for row in (read_json(out / 'measurements.json', {}) or {}).get('files') or []},
             'unreachable': {f['location']['path'] for f in facts['engine_finding'] if (f.get('value') or {}).get('rule') == 'unreachable-module'},
             'critical': _critical_by_file(out)}
 
 
 def _reference_of(out, target):
     """(the target folder, its reference type, its app root); the type is None when the target is not a folder."""
-    target = target or ((_load(out / 'dossier.json', {}) or {}).get('provenance') or {}).get('target')
+    target = target or ((read_json(out / 'dossier.json', {}) or {}).get('provenance') or {}).get('target')
     reference_id, prefix = locate(target) if target and Path(target).is_dir() else (None, '')
     return target, reference_id, prefix
 
 
 def _critical_by_file(out):
     critical = defaultdict(int)
-    items = (_load(out / 'debt-register.json', {}) or {}).get('items') or []
+    items = (read_json(out / 'debt-register.json', {}) or {}).get('items') or []
     for item in (item for item in items if item['severity'] == 'critical'):
         for path in item['files']: critical[path] += 1
     return critical

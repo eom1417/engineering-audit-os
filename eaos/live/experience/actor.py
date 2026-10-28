@@ -18,6 +18,7 @@ from pathlib import Path
 
 from ...core.contracts.untrusted import CLAUSE, UNTRUSTED, wrapped
 from ..agent import reach, seen, step_command, taken
+from ...core.system.files import read_json
 
 VERSION = 1
 BUDGET = {'steps': 25, 'seconds': 600, 'calls': 30, 'failures': 3}
@@ -146,5 +147,4 @@ def picture(journey, stem, name):
 
 
 def load(path):
-    try: return json.loads(Path(path).read_text(encoding='utf-8'))
-    except (OSError, ValueError): return None
+    return read_json(path)

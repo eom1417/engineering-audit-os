@@ -30,6 +30,7 @@ from ...core.contracts.code_laws import LAWS
 from ...core.contracts.untrusted import UNTRUSTED
 from datetime import datetime, timezone
 from pathlib import Path
+from ...core.system.files import read_json
 
 RULES_ONLY = 'rules only'
 LOG = 'runs.jsonl'
@@ -46,8 +47,7 @@ def now():
 
 
 def load(path, default=None):
-    try: return json.loads(Path(path).read_text(encoding='utf-8'))
-    except (OSError, ValueError): return default
+    return read_json(path, default)
 
 
 def digest(value):

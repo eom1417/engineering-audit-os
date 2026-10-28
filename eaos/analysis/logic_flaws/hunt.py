@@ -12,6 +12,7 @@ from pathlib import Path
 
 from ...core.contracts.untrusted import CLAUSE, wrapped
 from ...core.system.process import STOP, Stuck
+from ...core.system.files import read_json
 
 CLASSES = ('skipped-step', 'race', 'quantity', 'wrong-check', 'trusted-input', 'time', 'fallback', 'feature-abuse')
 SEVERITIES = ('low', 'medium', 'high')
@@ -88,7 +89,7 @@ def _rank(row):
 
 def brief(out):
     """What the hunt reads of a check's record (layers.json, features.json), bounded."""
-    layers = _read(Path(out) / 'layers.json') or {}
+    layers = read_json(Path(out) / 'layers.json') or {}
     keys = ('method', 'route', 'path', 'line', 'writes', 'by_id', 'public', 'authentication', 'authorisation', 'validation', 'data')
     rows = [row for row in layers.get('endpoints') or [] if isinstance(row, dict)]
     endpoints = [_capped({k: row.get(k) for k in keys}) for row in sorted(rows, key=_rank)]
@@ -104,14 +105,9 @@ def _capped(row):
 
 def _features(out):
     """The names of what the program does (features.json), bounded."""
-    rows = (_read(Path(out) / 'features.json') or {}).get('features') or []
+    rows = (read_json(Path(out) / 'features.json') or {}).get('features') or []
     names = (f.get('name') or f.get('title') for f in rows if isinstance(f, dict))
     return [str(name)[:200] for name in names if name][:LIMIT['features']]
-
-
-def _read(path):
-    try: return json.loads(Path(path).read_text(encoding='utf-8'))
-    except (OSError, ValueError): return None
 
 
 class Unfinished(Exception):

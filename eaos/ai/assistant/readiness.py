@@ -31,6 +31,7 @@ import time
 from datetime import datetime, timezone
 
 from ...core.project.places import home
+from ...core.system.files import read_json
 
 NAMES = {'claude': 'Claude Code', 'codex': 'Codex'}
 TIMEOUT = 30            # seconds the tiny real call may take
@@ -193,8 +194,7 @@ def _key(name):
 
 
 def _read_cache():
-    try: return json.loads(_cache_file().read_text(encoding='utf-8'))
-    except (OSError, ValueError): return {}
+    return read_json(_cache_file(), {})
 
 
 def cached(name):

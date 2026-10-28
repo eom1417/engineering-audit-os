@@ -10,6 +10,7 @@ import os
 import threading
 from datetime import datetime, timezone
 from pathlib import Path
+from ...core.system.files import read_json
 
 _lock = threading.Lock()
 DONE = 'studio-request {id} done'
@@ -25,8 +26,7 @@ def _path(project):
 
 
 def _read(project):
-    try: return json.loads(_path(project).read_text(encoding='utf-8'))
-    except (OSError, ValueError): return []
+    return read_json(_path(project), [])
 
 
 def _write(project, rows, create=False):

@@ -6,14 +6,10 @@ import re
 from pathlib import Path
 from ...facts.store import facts
 from string import Template
+from ...core.system.files import read_json
 
 TEMPLATES = Path(__file__).resolve().parents[2] / 'templates'
 NOT_HOSTS = re.compile(r'(^|\.)(w3\.org|xmlns\.com|schema\.org|example\.(com|org))$|^\.+$')
-
-
-def _load(path, default):
-    try: return json.loads(Path(path).read_text(encoding='utf-8'))
-    except (OSError, ValueError): return default
 
 
 def routes(report):
@@ -46,7 +42,7 @@ def _loadable(surface, known, kind_of, path_of, param):
 
 def dependencies(report):
     """[(name, upstream variable, features)] for every external dependency the facts show."""
-    features = (_load(Path(report) / 'features.json', {}) or {}).get('features') or []
+    features = (read_json(Path(report) / 'features.json', {}) or {}).get('features') or []
     clients = {(f.get('value') or {}).get('client') for f in facts(report, 'data_access')}
     found = []
     if 'supabase' in clients: found.append(('supabase', 'SUPABASE_UPSTREAM', _using(features, 'tables')))
@@ -95,7 +91,7 @@ def load_paths(report):
 
 
 def scenarios(report):
-    return [s for s in (_load(Path(report) / 'intake.json', {}) or {}).get('scenarios') or []]
+    return [s for s in (read_json(Path(report) / 'intake.json', {}) or {}).get('scenarios') or []]
 
 
 def write(report):

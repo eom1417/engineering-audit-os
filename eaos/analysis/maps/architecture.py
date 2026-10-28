@@ -21,18 +21,16 @@ from pathlib import Path
 
 from .layout import NODE_H, NODE_W  # noqa: F401  (the report draws the map's boxes at their size)
 from .layout import PAD, crossings, feedback_edges, layer_of, order_columns, positions, strong_groups
+from ...core.system.files import read_json
+
+
 MAX_COMPONENTS, MAX_FILES, MAX_CALLS, MAX_FUNCTIONS = 60, 400, 3000, 120
 STOP = ('unresolved', 'ambiguous', 'method_or_external')     # the trace cannot follow these calls
 LIBRARY = ('external', 'builtin')
 
 
-def _load(path, default):
-    try: return json.loads(Path(path).read_text(encoding='utf-8'))
-    except (OSError, ValueError): return default
-
-
 def facts(report, name, kind):
-    record = _load(Path(report) / 'facts' / f'{name}.json', {})
+    record = read_json(Path(report) / 'facts' / f'{name}.json', {})
     rows = record.get('facts') if isinstance(record, dict) else None
     return [f for f in rows or [] if isinstance(f, dict) and f.get('kind') == kind]
 
@@ -128,7 +126,7 @@ def _component_node(c, drawing):
 
 def component_map(report, target=None):
     """The parts of the project today and the imports between them, laid out; None when the records are missing."""
-    target = target if target is not None else _load(Path(report) / 'target-architecture.json', {})
+    target = target if target is not None else read_json(Path(report) / 'target-architecture.json', {})
     components = _current_components(target)
     nodes = facts(report, 'graph', 'graph_node')
     if not components or not nodes: return None

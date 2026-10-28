@@ -33,6 +33,7 @@ from ...core import progress
 from ...core.progress.flow import OPTIONAL, Stage
 from .folder import LOCK_CONFIG, _keep, _prepare, lend_kinds, passes  # noqa: F401  (LOCK_CONFIG: read here by the tests)
 from .results import Screens, _declared, approval_statuses, failing_tests, spec_statuses  # noqa: F401  (the names others read here)
+from ...core.system.files import read_json
 
 # The specs this runs are written by eaos/live/behavior/specs.py, its folder made by live/behavior/folder.py, its passes read by
 # live/behavior/results.py.
@@ -91,8 +92,7 @@ def _pass(live, lock, base, output, how):
     finally:
         screens.stop()
     live.log.append({'argv': argv, 'exit': code, 'tail': (out + err)[-3000:]})     # why a spec did not run
-    try: return json.loads(output.read_text(encoding='utf-8'))
-    except (OSError, ValueError): return {}
+    return read_json(output, {})
 
 
 def _approvals(live, lock, output, update):

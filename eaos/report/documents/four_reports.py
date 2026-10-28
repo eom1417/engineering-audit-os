@@ -10,18 +10,17 @@ matter, the three largest risks), then evidence, inference, impact and recommend
 examined, then links to the reference documents. Every number names where it comes from: a record, an item
 id or a claim id. They repeat nothing the appendices hold; they link to them.
 """
-import json
 from pathlib import Path
 
 from ...core.language.words import decided, who_decided
 from .markdown import Page, clip
+from ...core.system.files import read_json
 
 NAMES = ('CURRENT-STATE.md', 'TARGET-STATE.md', 'GAP-AND-STRATEGY.md', 'EXECUTION-PLAN.md')
 
 
 def _load(out, name, default=None):
-    try: return json.loads((Path(out) / name).read_text(encoding='utf-8'))
-    except (OSError, ValueError): return default
+    return read_json(Path(out) / name, default)
 
 
 def _read(out, name, key, empty):

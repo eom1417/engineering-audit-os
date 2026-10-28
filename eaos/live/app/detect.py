@@ -7,7 +7,8 @@ import secrets
 import socket
 from pathlib import Path
 
-from .assist import ENV_EXAMPLES, read_json
+from .assist import ENV_EXAMPLES
+from ...core.system.files import read_json
 from .profile import DANGER
 
 APP_FOLDERS = ('.', 'app', 'web', 'client', 'frontend', 'apps/web', 'apps/app', 'apps/frontend', 'packages/web')
@@ -55,7 +56,7 @@ def app_folder(project):
 
 
 def _starts(folder):
-    package = read_json(folder / 'package.json')
+    package = read_json(folder / 'package.json', {})
     scripts = package.get('scripts') or {}
     return 'dev' in scripts or 'start' in scripts or plain_server(folder, package, 0)[0] is not None
 
@@ -299,7 +300,7 @@ def detect(project, report=None):
     project = Path(project)
     folder = app_folder(project)
     if folder is None: return static_site(project, None, {}) or _unknown_app()     # a Python app: setup.py detect
-    package = read_json(project / folder / 'package.json')
+    package = read_json(project / folder / 'package.json', {})
     return static_site(project, folder, package) or _javascript(project, folder, package, report)
 
 
