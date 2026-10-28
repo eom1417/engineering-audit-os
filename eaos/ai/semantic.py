@@ -251,9 +251,7 @@ def _claims_of(response, first):
 def _count_claims(dossier, calls):
     calls_before = dossier['provenance'].get('model_calls', 0)
     dossier['provenance']['model_calls'] = (calls_before if isinstance(calls_before, int) else 0) + calls
-    dossier['claim_counts'] = {}
-    for claim in dossier['claims']:
-        dossier['claim_counts'][claim['confidence']] = dossier['claim_counts'].get(claim['confidence'], 0) + 1
+    dossier['claim_counts'] = ledger.claim_counts(dossier['claims'])
 
 
 def _restates(claim, existing):

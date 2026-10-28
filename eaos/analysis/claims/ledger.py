@@ -37,6 +37,13 @@ def schema(): return read(DATA / 'schemas/claim.schema.json')
 def claim_id(index): return 'CLM-%03d' % index
 
 
+def claim_counts(claims):
+    """{confidence: claims}: a dossier's claim_counts, counted again whenever its claims change."""
+    tally = {}
+    for claim in claims: tally[claim.get('confidence', '?')] = tally.get(claim.get('confidence', '?'), 0) + 1
+    return tally
+
+
 STATEMENT_LIMIT = 600
 
 # What the precision set (tools/precision.py) measured for each detector: shown or hidden. A detector whose
@@ -192,8 +199,13 @@ def one_card_per_hotspot(claims):
     return kept
 
 
+def _named(kind, detail):
+    """(the engines that assert a kind, the kind in words) of one cluster's detail."""
+    return ', '.join(detail['asserted_by']), kind.replace('_', ' ')
+
+
 def _corroborated(kind, detail, cluster, fact_sets):
-    engines, word = ', '.join(detail['asserted_by']), kind.replace('_', ' ')
+    engines, word = _named(kind, detail)
     impact_key, measured = engine_measurement(kind, cluster, fact_sets)
     return {'statement': f"{len(detail['asserted_by'])} independent engines ({engines}) report {word} in {cluster['place']}",
             'confidence': 'LIKELY',
@@ -204,13 +216,13 @@ def _corroborated(kind, detail, cluster, fact_sets):
 
 def _counted(kind, detail, cluster, fact_sets):
     """One engine counting exactly: too many parameters, nesting too deep, a function too long (finish_line.EXACT)."""
-    engines, word = ', '.join(detail['asserted_by']), kind.replace('_', ' ')
+    engines, word = _named(kind, detail)
     return {**_corroborated(kind, detail, cluster, fact_sets), 'statement': f"{engines} counts {word} in {cluster['place']}",
             'falsifier': 'Show that the count the engine states (parameters, nesting depth, lines) is within its threshold.'}
 
 
 def _granularity_gap(kind, detail, cluster, fact_sets):
-    engines, word = ', '.join(detail['asserted_by']), kind.replace('_', ' ')
+    engines, word = _named(kind, detail)
     elsewhere = ', '.join(detail['silent_at_another_resolution'])
     level = ', '.join(detail['asserted_at']) or 'unknown'
     return {'statement': (f"{engines} reports {word} in {cluster['place']} at the {level} level, "
@@ -223,7 +235,7 @@ def _granularity_gap(kind, detail, cluster, fact_sets):
 
 
 def _contested(kind, detail, cluster, fact_sets):
-    engines, word = ', '.join(detail['asserted_by']), kind.replace('_', ' ')
+    engines, word = _named(kind, detail)
     denied = ', '.join(detail['denied_by'])
     return {'statement': (f"{engines} reports {word} in {cluster['place']}, and {denied} checked the same property and did not find it"),
             'confidence': 'HYPOTHESIS',

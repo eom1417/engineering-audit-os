@@ -187,7 +187,7 @@ def refresh_views(out, language='ar'):
     from ..planning.ranking import rank
     for claim in dossier['claims']: _settle_disposition(claim)
     dossier['claims'] = rank(dossier['claims'], sets, fact_index_of(sets))
-    dossier['claim_counts'] = _counts(dossier['claims'])
+    dossier['claim_counts'] = ledger.claim_counts(dossier['claims'])
     if verification and verification.get('executed'):
         dossier['coverage']['runtime_confirmation'] = sum(
             1 for claim in dossier['claims'] if {'test_evidence', 'runtime_probe'} & set(claim.get('method', [])))
@@ -330,7 +330,7 @@ def _dossier(request, inputs, rows, withheld):
                        'excluded_patterns': inputs.map_result.get('exclude_patterns', list(request.exclude or []))},
         'coverage': _dossier_coverage(sets, records, verification, rows),
         'description': describe(sets, records),
-        'claim_counts': _counts(rows),
+        'claim_counts': ledger.claim_counts(rows),
         'claims': rows,
         'withheld_claims': withheld,
         'questions': questions_of(records, sets),
@@ -370,7 +370,7 @@ def write_verdict(out, dossier, violations, target=None, facts=None):
     result = {'target': target or provenance.get('target'), 'out': str(out),
               'artifacts': dossier.get('artifacts', []),
               'claims': len(dossier.get('claims', [])),
-              'claim_counts': dossier.get('claim_counts') or _counts(dossier.get('claims', [])),
+              'claim_counts': dossier.get('claim_counts') or ledger.claim_counts(dossier.get('claims', [])),
               'questions': len(dossier.get('questions', [])),
               'facts': facts if facts is not None else _fact_count(out),
               'model_calls': provenance.get('model_calls', 0),
@@ -391,10 +391,3 @@ def _fact_count(out):
         return sum(entry.get('facts', 0) for entry in read(index)['sets'])
     except (ValueError, KeyError, OSError):
         return None
-
-
-def _counts(claims):
-    tally = {}
-    for claim in claims:
-        tally[claim.get('confidence', '?')] = tally.get(claim.get('confidence', '?'), 0) + 1
-    return tally

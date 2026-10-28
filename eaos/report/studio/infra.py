@@ -78,7 +78,8 @@ def _measure(value, src, unit='count'):
     return {'value': value, 'src': src, 'unit': unit}
 
 
-def _site(fact):
+def site_of(fact):
+    """Where a fact is: its file, line and id, as the Studio's maps cite it."""
     location = fact.get('location') or {}
     return {'path': location.get('path') or '', 'line': location.get('start_line'), 'fact': fact.get('id')}
 
@@ -109,7 +110,7 @@ class _Lanes:
                                                   'items': [], 'sites': [], 'evidence': 0})
         if fact is not None:
             entry['evidence'] += 1
-            if len(entry['sites']) < SHOWN: entry['sites'].append(_site(fact))
+            if len(entry['sites']) < SHOWN: entry['sites'].append(site_of(fact))
         for key, value in (more.get('detail') or {}).items(): _merge(entry['detail'], key, value)
         item = more.get('item')
         if item and item not in entry['items']: entry['items'].append(item)
@@ -229,7 +230,7 @@ def _tables(report, lanes, live):
     keys = {str((f.get('value') or {}).get('name') or '').lower() for f in tables if not (f.get('value') or {}).get('dropped')}
     node = lanes.add('databases', ('db:schema', 'Tables declared in code', 'schema'), None,
                      detail={'tables': len(keys), 'row_level_security': _row_level_security(tables, keys)})
-    for fact in tables[:SHOWN]: node['sites'].append(_site(fact))
+    for fact in tables[:SHOWN]: node['sites'].append(site_of(fact))
     node['evidence'] = len(tables)
 
 

@@ -46,6 +46,19 @@ _PY_LOOPS = {ast.For: 'for', ast.AsyncFor: 'for', ast.While: 'while'}
 _PY_BRANCHES = {ast.If: 'if', ast.With: 'with', ast.AsyncWith: 'with', ast.Try: 'try', ast.IfExp: 'if_expr'}
 
 
+WALKED = ('scopes', 'calls', 'loops', 'branches', 'call_sites')
+
+
+def _walk():
+    """What a walk of one file gathers, each list empty."""
+    return {name: [] for name in WALKED}
+
+
+def _walked(walk):
+    """(scopes, calls, loops, branches, call_sites) of a finished walk."""
+    return tuple(walk[name] for name in WALKED)
+
+
 def _qualified(stack, name='<module>'):
     return '.'.join([p[1] for p in stack] + ([name] if name and name != '<module>' else []))
 
@@ -96,9 +109,9 @@ def _python_parse(text, rel):
         tree = ast.parse(text)
     except SyntaxError:
         return None
-    walk = {'scopes': [], 'calls': [], 'loops': [], 'branches': [], 'call_sites': [], 'parents': [(tree, '<module>')]}
+    walk = {**_walk(), 'parents': [(tree, '<module>')]}
     for node in tree.body: _py_visit(node, walk)
-    return walk['scopes'], walk['calls'], walk['loops'], walk['branches'], walk['call_sites']
+    return _walked(walk)
 
 
 def _python_callee(node):
@@ -171,9 +184,9 @@ def _tree_sitter_parse(text, rel, language):
     tree = tree_sitter_tree(text, language)
     if tree is None: return None
     root = tree.root_node
-    walk = {'scopes': [], 'calls': [], 'loops': [], 'branches': [], 'call_sites': [], 'stack': [(root, '<module>')]}
+    walk = {**_walk(), 'stack': [(root, '<module>')]}
     for child in root.children: _ts_walk(child, walk)
-    return walk['scopes'], walk['calls'], walk['loops'], walk['branches'], walk['call_sites']
+    return _walked(walk)
 
 
 def _ts_name(node, kind):

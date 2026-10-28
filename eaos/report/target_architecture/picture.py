@@ -15,7 +15,7 @@ eaos/report/target_architecture/decisions.py's; the final target, as the rules a
 eaos/report/target_architecture/reconcile.py's.
 """
 from pathlib import Path
-from ...facts.store import read_set
+from ...facts.store import Sets
 from .gaps import gap_matrix
 from .decisions import decisions, render_decisions, validate_decision  # noqa: F401  (the tests and the pipeline read them here)
 from .reconcile import _decide_current, reconcile  # noqa: F401  (the same)
@@ -33,11 +33,7 @@ LIMITATIONS = [
 
 
 def _gather(out):
-    sets = {}
-    for name in ['syntax', 'graph', 'domain', 'fingerprint']:
-        path = Path(out) / 'facts' / f'{name}.json'
-        if path.is_file(): sets[name] = read_set(Path(out), name)
-    return sets
+    return dict(Sets(out, ['syntax', 'graph', 'domain', 'fingerprint']))
 
 
 # An architectural component is a package, not a symbol (eaos/analysis/target_state/projection.py holds the rule).

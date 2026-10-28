@@ -66,6 +66,15 @@ LANGUAGES = {'.py': 'Python', '.ts': 'TypeScript', '.tsx': 'TypeScript', '.js': 
              '.cs': 'C#', '.php': 'PHP', '.rs': 'Rust', '.swift': 'Swift', '.vue': 'Vue', '.svelte': 'Svelte',
              '.sql': 'SQL', '.dart': 'Dart', '.scala': 'Scala', '.c': 'C', '.cpp': 'C++', '.h': 'C'}
 
+
+def language_counts(rows):
+    """{language: facts} of fact rows, each by the suffix of its file (LANGUAGES); a file of no known language aside."""
+    counts = {}
+    for row in rows:
+        name = LANGUAGES.get(Path(str((row.get('location') or {}).get('path') or '')).suffix.lower())
+        if name: counts[name] = counts.get(name, 0) + 1
+    return counts
+
 SEVERITIES = ('critical', 'high', 'medium', 'low')
 SEVERITY_WEIGHT = {'critical': 10, 'high': 5, 'medium': 2, 'low': 1}
 HALF_POINT = 20          # weighted points per 100 files at which an area scores 50

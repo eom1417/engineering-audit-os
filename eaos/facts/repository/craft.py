@@ -100,12 +100,13 @@ def _stale_in(source, doc, tree):
 def _gone(doc, named, folders, tops):
     """Whether `named`, a path of the repository's own tree (its first folder is one of the repository's; an output's is
     not), is found neither from the root nor from the document's folder."""
-    return named.split('/')[0] in tops and not any(_normal(base, named) in folders for base in ('', PurePosixPath(doc).parent.as_posix()))
+    return named.split('/')[0] in tops and not any(normal_path(base, named) in folders for base in ('', PurePosixPath(doc).parent.as_posix()))
 
 
-def _normal(base, named):
+def normal_path(*joined):
+    """The path the parts name, `..` and `.` resolved inside the repository (never above its root)."""
     parts = []
-    for part in PurePosixPath(base, named).parts:
+    for part in PurePosixPath(*joined).parts:
         if part == '..' and parts: parts.pop()
         elif part not in ('.', ''): parts.append(part)
     return '/'.join(parts)

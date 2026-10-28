@@ -9,7 +9,7 @@ from pathlib import Path
 import json
 import sys
 from ...core import progress
-from ...facts.store import read_set
+from ...facts.store import Sets
 from .sustainability import compute, _transformations
 from ...core.system.files import read_json
 
@@ -26,11 +26,7 @@ LIMITATIONS = [
 
 
 def _gather(out):
-    sets = {}
-    for name in ['fingerprint', 'redundancy', 'graph', 'resolve', 'syntax']:
-        path = Path(out) / 'facts' / f'{name}.json'
-        if path.is_file(): sets[name] = read_set(Path(out), name)
-    return sets
+    return dict(Sets(out, ['fingerprint', 'redundancy', 'graph', 'resolve', 'syntax']))
 
 
 def _canonical_home_for(out, cluster, policy_path=None):

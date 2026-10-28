@@ -23,6 +23,7 @@ from pathlib import Path, PurePosixPath
 
 from .move_python import dotted
 from ...core.system.files import read_json
+from ...facts.repository.craft import normal_path
 
 PUBLISHED = ('This project publishes a package (pyproject [project] or package.json without "private"): a moved module '
              'keeps its names under a new import path, and code outside this repository that imports the old path breaks. '
@@ -92,17 +93,9 @@ def _node_commands(text, folder):
     base = '' if folder in ('', '.') else folder + '/'
     binaries = data.get('bin') or {}
     binaries = {data.get('name') or 'bin': binaries} if isinstance(binaries, str) else binaries
-    out = {f'bin:{base}{name}': _normal(base + str(target)) for name, target in binaries.items()}
+    out = {f'bin:{base}{name}': normal_path(base + str(target)) for name, target in binaries.items()}
     out.update({f'npm:{base}{name}': name for name in (data.get('scripts') or {})})
     return out
-
-
-def _normal(path):
-    parts = []
-    for part in PurePosixPath(path).parts:
-        if part == '..' and parts: parts.pop()
-        elif part not in ('.', ''): parts.append(part)
-    return '/'.join(parts)
 
 
 def published(root, known):

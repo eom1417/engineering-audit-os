@@ -29,7 +29,7 @@ INTERPRETERS = {'python', 'python3', 'py'}
 RC = '.eaos-ran-coveragerc'
 
 
-def _own(path, root):
+def own(path, root):
     """`path` relative to the project root when it is one of its own source files, else None."""
     name = str(path)
     if name.startswith('file://'): name = name[len('file://'):]
@@ -57,7 +57,7 @@ def v8(folder, root):
     scripts = []
     for path in sorted(Path(folder).glob('*.json')):
         scripts += read_json(path, {}).get('result') or []
-    return _functions(scripts, lambda url: _own(url, root))
+    return _functions(scripts, lambda url: own(url, root))
 
 
 def browser(entries, root):
@@ -67,7 +67,7 @@ def browser(entries, root):
 
     def place(url):
         path = urlsplit(url).path
-        if path.startswith('/@fs/'): return _own(path[len('/@fs'):], root)
+        if path.startswith('/@fs/'): return own(path[len('/@fs'):], root)
         relative = path.lstrip('/')
         return relative if relative and (root / relative).is_file() and classify(relative) == 'source' else None
     return _functions(entries, place)
@@ -95,7 +95,7 @@ def python_data(files, root):
             with sqlite3.connect(f'file:{data}?mode=ro', uri=True) as db:
                 names = dict(db.execute('select id, path from file'))
                 for file_id, blob in db.execute('select file_id, numbits from line_bits'):
-                    path = _own(names.get(file_id, ''), root)
+                    path = own(names.get(file_id, ''), root)
                     if path: lines.setdefault(path, set()).update(_numbits(blob))
         except sqlite3.Error: continue
     return {path: {'lines': _ranges(found)} for path, found in lines.items()}

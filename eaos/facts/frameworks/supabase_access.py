@@ -2,6 +2,7 @@
 import re
 
 from .http_access import object_keys
+from .bindings import by_stem, stem
 
 LANGUAGES = ('javascript', 'typescript', 'tsx')
 FACT_KIND = 'data_access'
@@ -27,14 +28,6 @@ RECEIVER = re.compile(r'''([A-Za-z_$][\w$]*)\s*$''')
 # The row a write sends: `.insert({ ... })`, `.insert([{ ... }])`, `.update({ ... })`; its keys are the table's columns.
 ROW = re.compile(r'''\s*\(\s*\[?\s*''')
 WRITES = ('insert', 'update', 'upsert')
-# Stems too common to carry a binding: importing any `types` or `index` says nothing about Supabase.
-GENERIC_STEMS = {'index', 'types', 'utils', 'constants', 'config', 'helpers'}
-
-
-def _stem(path):
-    return path.rstrip('/').rsplit('/', 1)[-1].split('.')[0]
-
-
 def client_names(text, inherited=()):
     """The identifiers this file binds to a Supabase client: typed fields and parameters, factory results."""
     types = {'SupabaseClient', *TYPE_ALIAS.findall(text)}
@@ -57,23 +50,15 @@ def bound_files(texts):
     bound = {rel: client_names(text) for rel, text in texts.items()}
     bound = {rel: names for rel, names in bound.items() if names}
     for _ in range(3):
-        if not _grow(texts, bound, _by_stem(bound)): break
+        if not _grow(texts, bound, by_stem(bound)): break
     return bound
-
-
-def _by_stem(bound):
-    """{file stem: the client names the files of that stem hold}, generic stems left out."""
-    by_stem = {}
-    for rel, names in bound.items():
-        if _stem(rel) not in GENERIC_STEMS: by_stem.setdefault(_stem(rel), set()).update(names)
-    return by_stem
 
 
 def _grow(texts, bound, by_stem):
     """One hop along imports: each file takes the names of the stems it imports. True when a file gained one."""
     grew = False
     for rel, text in texts.items():
-        inherited = set().union(*(by_stem.get(_stem(spec), set()) for spec in IMPORT.findall(text)))
+        inherited = set().union(*(by_stem.get(stem(spec), set()) for spec in IMPORT.findall(text)))
         if inherited - bound.get(rel, set()):
             bound[rel] = client_names(text, bound.get(rel, set()) | inherited); grew = True
     return grew

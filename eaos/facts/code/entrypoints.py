@@ -127,21 +127,21 @@ def _record_entry_points(module, context, file, tally):
         tally['facts'].append(_entry_point_fact(item, rel, language, entry, category))
 
 
-def _record_data_access(module, context, file, tally):
-    for _offset, line, call in module.detect(context):
-        tally['fingerprints'].append(file['item']['sha256'])
-        _count(tally['data_access_by_client'], call['client'])
-        tally['facts'].append(_data_access_fact(file['item'], file['rel'], line, call, file['category']))
+def _recorder(counted, field, fact):
+    """The recorder of a detector whose finds are (offset, line, found): each counted by `field` into `counted`, and its
+    fact made by `fact(module, file, line, found)`."""
+    def record(module, context, file, tally):
+        for _offset, line, found in module.detect(context):
+            tally['fingerprints'].append(file['item']['sha256'])
+            _count(tally[counted], found[field])
+            tally['facts'].append(fact(module, file, line, found))
+    return record
 
 
-def _record_navigation(module, context, file, tally):
-    for _offset, line, link in module.detect(context):
-        tally['fingerprints'].append(file['item']['sha256'])
-        _count(tally['navigation_by_via'], link['via'])
-        tally['facts'].append(_navigation_fact(file, line, link, module.LIMITATIONS))
-
-
-RECORDERS = {'entry_point': _record_entry_points, 'data_access': _record_data_access, 'navigation': _record_navigation}
+RECORDERS = {'entry_point': _record_entry_points,
+             'data_access': _recorder('data_access_by_client', 'client',
+                                      lambda module, file, line, call: _data_access_fact(file['item'], file['rel'], line, call, file['category'])),
+             'navigation': _recorder('navigation_by_via', 'via', lambda module, file, line, link: _navigation_fact(file, line, link, module.LIMITATIONS))}
 
 
 def _scan_file(item, source, table, prepared, tally):

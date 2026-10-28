@@ -8,6 +8,7 @@ import re
 from .probe_queries import run_graph_query
 from ...core.project.workspace import read, write
 from ...core.system.clock import now
+from .ledger import claim_counts
 
 KINDS = ['absence_search', 'graph_query', 'execution', 'coverage', 'falsification']
 # What each kind of probe is able to settle. A static check can show that a structure exists;
@@ -189,9 +190,7 @@ def run_all(target, out, allow_execution=False):
     confirmed = sum(1 for claim in dossier['claims'] if claim['confidence'] == 'CONFIRMED')
     dossier['coverage']['probe_confirmed_claims'] = confirmed
     dossier['coverage']['probes_run'] = len(probes)
-    dossier['claim_counts'] = {}
-    for claim in dossier['claims']:
-        dossier['claim_counts'][claim['confidence']] = dossier['claim_counts'].get(claim['confidence'], 0) + 1
+    dossier['claim_counts'] = claim_counts(dossier['claims'])
     write(out / 'dossier.json', dossier)
     return {'target': str(Path(target).resolve()), 'out': str(out), 'probes': len(probes), 'by_status': counts,
             'confirmed_claims': confirmed, 'claims': len(dossier['claims']),

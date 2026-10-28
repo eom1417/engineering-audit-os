@@ -14,6 +14,7 @@ from pathlib import Path
 
 from .layout import feedback_edges, layer_of, order_columns
 from ...facts.declared_pipelines import detect as facts_pipeline
+from ..presentation.counts import measured
 
 RULES = Path(__file__).resolve().parents[2] / 'data' / 'pipeline-rules.json'
 STRUCTURAL = ('router', 'fork', 'join', 'source', 'sink')
@@ -27,10 +28,6 @@ def _site(where, fact=None):
     return {'path': path if path and SAFE.match(path) else None,
             'line': where.get('line') if isinstance(where.get('line'), int) else None,
             'fact': fact or where.get('fact'), 'text': (where.get('text') or None)}
-
-
-def _count(value, src):
-    return {'value': value if isinstance(value, int) and value >= 0 else None, 'src': src, 'unit': 'count'}
 
 
 def rules():
@@ -102,18 +99,18 @@ def _looked_for(record):
 
 def _counts(out, product, real, gap):
     pipelines, routers = out['pipelines'], out['routers']
-    return {'pipelines': _count(len(pipelines), 'facts/pipeline.json#pipeline'),
-            'product': _count(len(product), 'facts/pipeline.json#pipeline[role=product]'),
-            'tooling': _count(len(pipelines) - len(product), 'facts/pipeline.json#pipeline[role=tooling]'),
-            'stages': _count(len(real), 'facts/pipeline.json#pipeline_stage[kind not router, fork, join]'),
-            'edges': _count(len(out['edges']), 'facts/pipeline.json#pipeline_edge'),
-            'routers': _count(len(routers), 'facts/pipeline.json#pipeline_router'),
-            'branches': _count(sum(len(r['branches']) for r in routers), 'facts/pipeline.json#pipeline_router.branches'),
-            'fans': _count(len(out['fans']), 'facts/pipeline.json#pipeline_fan'),
-            'error_lanes': _count(len(out['errors']), 'facts/pipeline.json#pipeline_error'),
-            'hidden': _count(len(out['hidden']), 'facts/pipeline.json#pipeline_hidden'),
-            'unresolved': _count(len(out['unresolved']), 'facts/pipeline.json#pipeline_unresolved'),
-            'gaps': _count(len(gap), 'pipeline.json#views.gap: one per broken rule of eaos/data/pipeline-rules.json')}
+    return {'pipelines': measured(len(pipelines), 'facts/pipeline.json#pipeline'),
+            'product': measured(len(product), 'facts/pipeline.json#pipeline[role=product]'),
+            'tooling': measured(len(pipelines) - len(product), 'facts/pipeline.json#pipeline[role=tooling]'),
+            'stages': measured(len(real), 'facts/pipeline.json#pipeline_stage[kind not router, fork, join]'),
+            'edges': measured(len(out['edges']), 'facts/pipeline.json#pipeline_edge'),
+            'routers': measured(len(routers), 'facts/pipeline.json#pipeline_router'),
+            'branches': measured(sum(len(r['branches']) for r in routers), 'facts/pipeline.json#pipeline_router.branches'),
+            'fans': measured(len(out['fans']), 'facts/pipeline.json#pipeline_fan'),
+            'error_lanes': measured(len(out['errors']), 'facts/pipeline.json#pipeline_error'),
+            'hidden': measured(len(out['hidden']), 'facts/pipeline.json#pipeline_hidden'),
+            'unresolved': measured(len(out['unresolved']), 'facts/pipeline.json#pipeline_unresolved'),
+            'gaps': measured(len(gap), 'pipeline.json#views.gap: one per broken rule of eaos/data/pipeline-rules.json')}
 
 
 def _router_targets(p, places):

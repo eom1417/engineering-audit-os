@@ -46,7 +46,7 @@ from pathlib import Path
 from .context import bounded
 from .fold import fold_file
 from .liveness import ALIVE_EVERY
-from ...core.system.files import read_json
+from ...core.system.files import json_rows, read_json
 from ...core.system.clock import now, stamp
 
 PROGRESS = 'run-progress.jsonl'
@@ -81,12 +81,7 @@ def read(folder, flow='check'):
     """The rows of a flow's progress file, in order; [] when there is none. A line still being written is left."""
     try: raw = path_for(folder, flow).read_bytes()
     except OSError: return []
-    rows = []
-    for line in raw[:raw.rfind(b'\n') + 1].decode('utf-8', 'replace').splitlines():
-        try: row = json.loads(line)
-        except ValueError: continue
-        if isinstance(row, dict): rows.append(row)
-    return rows
+    return json_rows(raw[:raw.rfind(b'\n') + 1])
 
 
 def history_folder(folder, flow='check'):
