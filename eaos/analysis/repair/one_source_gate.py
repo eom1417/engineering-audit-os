@@ -1,59 +1,78 @@
 """The gate of one source per pattern (M15.9): what a change adds against it, from the facts before and after it
-(eaos/analysis/repair/gates.py `debt`). A near copy, a value of the look written outside the tokens file, a screen
-pattern or a way of working written by hand once more, at a file the change touched, is refused with the sentence the
-assistant reads: where, and the one home to use instead.
+(eaos/analysis/repair/gates.py `debt`), refused with the sentence the assistant reads: where, and the one home to use.
 
-Each row is keyed by its place and its count in that file, so one more of the same in a file is a new row: a change
-that adds a fifth copy is refused while the four it found are not held against it.
+What refuses a change is code copied word for word (EAOS's own metrics, eaos/facts/code/metrics.py: six lines alike,
+a copy kept on purpose inside jscpd's ignore markers, its reason beside it, aside). M15's detectors (near copies, the
+look, screen patterns, ways of working) refuse only when named in REFUSES and shown (eaos/data/detector-verdicts.json):
+one under its measured bar never refuses, and one over it refuses only once its refusals themselves are measured safe
+on independent samples (M17). None is yet: a likeness alone never refuses a sound change.
+
+Each row is keyed by what is written, not where: a copy by its code's digest, a way of working, a value of the look or
+a screen pattern by its form and its count over the changed files. Code moved between the changed files keeps its
+rows; one more of the same is a new row, and so is a different one where another left. What the check before the change
+did not measure (jscpd or ast-grep did not run, the patterns were not read, near copies without their digest: a check
+before M15's closure) holds nothing against it.
 """
-from collections import Counter
-
 from ..assessments.one_source import findings
+from ..assessments.weaknesses import observed
+
+REFUSES = frozenset()       # the detectors whose refusals are measured safe (M17); a detector's precision alone is not
 
 
-def _sets(facts):
-    return {'external': {'facts': facts('external')}, 'patterns': {'facts': facts('patterns')}}
+def detector(finding):
+    """The detector a finding is judged as (eaos/analysis/claims/ledger.py detector_of on its card)."""
+    form = finding['evidence'].get('form')
+    return f"one_source:{finding['kind']}" + (f':{form}' if finding['kind'] == 'idiom' else '')
 
 
-def _counted(kind, key, places, paths):
-    """{(kind, key, path, n): place} for each place of a changed file, numbered within its file."""
-    seen, rows = Counter(), {}
-    for place in places:
-        if place['path'] not in paths: continue
-        seen[place['path']] += 1
-        rows[(kind, key, place['path'], seen[place['path']])] = place
-    return rows
+def refusing():
+    """The detectors of M15 that may refuse a change now: named in REFUSES and not under their measured bar."""
+    from ..claims.ledger import hidden_detectors
+    hidden = hidden_detectors()
+    return {name for name in REFUSES if name not in hidden}
 
 
-def _look(facts, paths):
+def measured(record):
+    """The kinds of row a check measured (`record(name)`: its fact set, None when it has none)."""
+    external = record('external') or {}
+    ran = observed({'external': external})
+    near = [f for f in external.get('facts') or [] if f['value'].get('record') == 'near_copy']
+    kinds = {'clone'} | ({'idiom'} if 'ast-grep' in ran else set()) | ({'look', 'ui_pattern'} if record('patterns') is not None else set())
+    return kinds | ({'near_copy'} if 'jscpd' in ran and all(f['value'].get('digest') for f in near) else set())
+
+
+def _counted(kind, key, places, paths, what):
+    """{(kind, key, n): its row} for each place in the changed files, numbered over all of them: a move keeps the count."""
+    mine = sorted((p for p in places if p['path'] in paths), key=lambda p: (p['path'], p.get('line') or 0))
+    where = ', '.join(f"{p['path']}:{p.get('line') or 1}" for p in mine[:4])
+    return {(kind, key, n): {'gate': 'copy', 'where': where, 'what': what.replace('{where}', where)} for n in range(1, len(mine) + 1)}
+
+
+def _look(record, paths):
     rows = {}
-    for fact in facts('patterns'):
+    for fact in (record('patterns') or {}).get('facts') or []:
         if fact['kind'] != 'look_value': continue
         value = fact['value']
-        for key, place in _counted('look', f"{value['kind']}:{value['value']}", value['places'], paths).items():
-            rows[key] = {'gate': 'copy', 'where': f"{place['path']}:{place['line']}",
-                         'what': f"{value['kind'].replace('_', ' ')} {value['value']} is written at {place['path']}:{place['line']}, "
-                                 'outside the tokens file: name it in the tokens file and use its name'}
+        rows.update(_counted('look', f"{value['kind']}:{value['value']}", value['places'], paths,
+                             f"{value['kind'].replace('_', ' ')} {value['value']} is written at {{where}}, outside the tokens file: name it there and use its name"))
     return rows
 
 
 def _copy(finding, paths):
-    """The row of a cluster of near copies touching a changed file, keyed by its files."""
-    places = finding['evidence']['places']
-    files = tuple(sorted({p['path'] for p in places}))
-    if not set(files) & paths: return {}
-    return {('near_copy', files): {'gate': 'copy', 'where': finding['place'], 'what': 'the same code is written in '
-                                   + ', '.join(f"{p['path']}:{p['line']}" for p in places[:4]) + ': give it one home and call it'}}
+    """The rows of a cluster of near copies, one per copy in the changed files, keyed by the copied code."""
+    evidence = finding['evidence']
+    key = tuple(evidence.get('digests') or sorted({p['path'] for p in evidence['places']}))
+    return _counted('near_copy', key, evidence['places'], paths, 'the same code is written again at {where}: give it one home and call it')
 
 
 def _again(finding, paths):
-    """The rows of an idiom or a screen pattern written again in a changed file, one per place there."""
+    """The rows of an idiom or a screen pattern written again in the changed files."""
     evidence = finding['evidence']
-    what = (f"{evidence.get('form', '').replace('_', ' ')} is written by hand again" if finding['kind'] == 'idiom' else
-            f"the <{evidence.get('tag')}> structure is written again")
-    return {key: {'gate': 'copy', 'where': f"{place['path']}:{place.get('line') or 1}",
-                  'what': f"{what} at {place['path']}:{place.get('line') or 1}: use the one in {evidence.get('home')}"}
-            for key, place in _counted(finding['kind'], evidence.get('form') or evidence.get('tag'), evidence['places'], paths).items()}
+    if finding['kind'] == 'idiom':
+        key, what = evidence.get('form'), f"{evidence.get('form', '').replace('_', ' ')} is written by hand again at {{where}}"
+    else:
+        key, what = f"{evidence.get('tag')}:{evidence.get('elements')}", f"the <{evidence.get('tag')}> structure is written again at {{where}}"
+    return _counted(finding['kind'], key, evidence['places'], paths, f"{what}: use the one in {evidence.get('home')}")
 
 
 def _found(found, paths):
@@ -64,18 +83,25 @@ def _found(found, paths):
     return rows
 
 
-def _clones(facts, paths):
-    """The lines copied word for word that EAOS's own metrics find without any tool (eaos/facts/code/metrics.py)."""
+def _clones(record, paths):
+    """The lines copied word for word that EAOS's own metrics find without any tool, keyed by their digest."""
     rows = {}
-    for fact in facts('metrics'):
+    for fact in (record('metrics') or {}).get('facts') or []:
         places = fact['value'].get('occurrences') or [] if fact['kind'] == 'clone_cluster' else []
-        if len(places) >= 2 and paths & {p['path'] for p in places}:
-            rows[('clone', fact['input_sha'])] = {'gate': 'copy', 'where': places[0]['path'], 'what': 'the same code is written in '
-                                                  + ', '.join(f"{p['path']}:{p.get('start_line') or 1}" for p in places[:4]) + ': give it one home and call it'}
+        if len(places) >= 2 and paths & {p['path'] for p in places}: rows[('clone', fact['input_sha'])] = _copied(places)
     return rows
 
 
-def rows(facts, paths):
-    """The rows of the gate over one collection of facts (`facts(name)`: a fact set's facts) at the files `paths`."""
-    found, _ = findings(None, _sets(facts))
-    return {**_found(found, set(paths)), **_look(facts, set(paths)), **_clones(facts, set(paths))}
+def _copied(places):
+    return {'gate': 'copy', 'where': places[0]['path'], 'what': 'the same code is written in '
+            + ', '.join(f"{p['path']}:{p.get('start_line') or 1}" for p in places[:4]) + ': give it one home and call it'}
+
+
+def rows(record, paths, kinds=None):
+    """The rows of the gate over one check (`record(name)`: its fact set, None when it has none) at the files `paths`;
+    `kinds`: those the check before the change measured (None: every kind, nothing was there before)."""
+    live, paths = refusing(), set(paths)
+    found = [f for f in findings(None, {name: record(name) or {} for name in ('external', 'patterns')})[0]
+             if detector(f) in live] if live else []
+    out = {**_found(found, paths), **(_look(record, paths) if 'one_source:look' in live else {}), **_clones(record, paths)}
+    return {key: row for key, row in out.items() if kinds is None or key[0] in kinds}

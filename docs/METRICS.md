@@ -222,7 +222,7 @@ simulation found one real failure a person would meet. The replays cost nothing 
 | Detection baseline | 35 planted problems, the near copy, the JSON read three ways, the pop-up on three screens, the colour a shade off, the sizes off the scale, the date three ways and the repeated guard among them; 9 examples that must stay, two parts alike that change apart among them |
 | Precision on the corpus, judged from outside by an independent judge, with the three conditions | near copies **0.643** on 14 (0.459 on 85 before the conditions); screen patterns **0.0** on 6 (0.091 on 11); the look 4 judged, the ways of working 1 (the bar is 5): every one kept aside, its cards hidden and the reason said (`eaos/data/detector-verdicts.json`) |
 | What was alike in shape only | said in the report as a likeness, never a card nor a breach of the law |
-| Cost | no token; the sorting 0.04-0.41 s an app on the corpus; jscpd's near modes ride on the code stage already running |
+| Cost | no token; measured: the sorting 0.04-0.41 s an app on the corpus; jscpd's near modes ride on the code stage already running. Not measured: the whole check's time before and after M15 (reading the styles and screens, the patterns set), measured in M17 with its outside trials |
 
 ## After M14: 0.0.87 (2026-10-28), how the data is saved and kept
 

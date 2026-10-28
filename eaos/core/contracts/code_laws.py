@@ -20,10 +20,12 @@ LAWS = '''THE CODE LAWS (the target of every plan and fix, the program still doi
    must earn every line.
 2. One source of truth: a rule, calculation or function needed in several places is written once, in its home, and
    called from everywhere else, never copied; merging copies into their home is a goal of the plan.
-3. One source per pattern: no near copy of code (renamed, a line or two apart, 85% alike); no colour, font size,
-   spacing, radius, shadow or z-index outside the tokens file; a screen pattern (pop-up, card, table) or a way of
-   working (reading a file, a date, money, a request with its loading and error, drag and drop, validation, an
-   endpoint's guard) written three times or more is one component, helper, hook or middleware.
+3. One source per pattern: code that carries one responsibility is written once, never as a near copy (renamed, a
+   line or two apart, 85% alike); no colour, font size, spacing, radius, shadow or z-index outside the tokens file; a
+   screen pattern (pop-up, card, table) or a way of working (reading a file, a date, money, a request with its loading
+   and error, drag and drop, validation, an endpoint's guard) written three times or more is one component, helper,
+   hook or middleware. Merge copies only when one source is simpler and safer; code alike in shape that carries two
+   responsibilities, or a copy kept on purpose with its reason, stays apart.
 4. Clean: no dead code or unused import; small functions with one job, modules with one responsibility.
 A fix never adds a copy, dead code or a new complex function.'''
 

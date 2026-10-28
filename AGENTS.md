@@ -29,10 +29,10 @@ before anything else; it binds over this file.
   parameters, none listed: a function whose parameters cannot be grouped (a tool mirroring its command, a record's
   constructor) says why on its `def` line, `# limits: parameters -- <why>`. The laws EAOS holds every project to stay
   600 / 15 (`eaos/core/contracts/code_laws.py`). No dead code, no duplication, no security finding; layers per
-  `docs/ARCHITECTURE.md`. **One source per pattern**: no near copy, no value of the look outside the Studio's
-  `tokens.css`, no screen pattern or way of working written three times (`core/system/files.py` reads JSON,
-  `core/system/clock.py` tells the time); a copy kept on purpose says why, `# jscpd:ignore-start -- <why>` (a way of
-  working: `// ast-grep-ignore: <rule> -- <why>`).
+  `docs/ARCHITECTURE.md`. **One source per pattern**: no near copy of one responsibility (alike shapes of two stay
+  apart), no value of the look outside the Studio's `tokens.css`, no screen pattern or way of working written three
+  times (`core/system/files.py` reads JSON, `core/system/clock.py` tells the time); a copy kept on purpose says why,
+  `# jscpd:ignore-start -- <why>` (a way of working: `// ast-grep-ignore: <rule> -- <why>`).
 - **`tools/quality.sh`** checks every law in about a minute and refuses any number worse than recorded
   (`tools/code_limits.json`, `tools/quality.json`, the layers contract in `pyproject.toml`, EAOS's own repository
   rules, ESLint on the Studio); `--record` after a number went down, `python tools/code_limits.py --tighten` after a

@@ -44,8 +44,19 @@ now 40 times, 43 clusters of near copies, the Studio's look written 290 times ou
   START-HERE.
 - **Measured from outside**: on the corpus an independent judge found the near copies right 64% of the time with the
   three conditions (46% before) and the screen patterns never (9% before); under the bar of 0.8 their cards are kept
-  aside with the reason (`eaos/data/detector-verdicts.json`) while EAOS holds itself and every fix to the law; the ones
-  planted in the detection baseline are all found. The detectors take under a second a project, no token.
+  aside with the reason (`eaos/data/detector-verdicts.json`) while EAOS holds itself to the law; the ones planted in
+  the detection baseline are all found. The detectors take under a second a project, no token; the whole check's time
+  with them is measured in M17.
+- **Closed after an outside review**: a detector kept aside under its bar could still refuse a sound change at a
+  fix's gate (a third request with its loading and error, two alike functions of two jobs). The gate now refuses code
+  copied word for word, a copy kept on purpose inside jscpd's ignore markers aside; M15's detectors refuse
+  only once their refusals are measured safe (`analysis/repair/one_source_gate.py` `REFUSES`, empty), never by
+  precision alone. Its rows are what the change wrote: a copy by its code's digest (jscpd's pairs carry it), a pattern
+  by its form, counted over the changed files, so a move adds nothing, while a second copy between the same two files
+  and a different one where another left are new; a kind the check before did not measure counts nothing. The fix
+  proof's repair keeps the report, the export and the invoice the same (a missing quantity, a zero, prices, totals);
+  a person's report says each detector kept aside, how many it found and why; the law tells assistants that code alike
+  in shape that carries two responsibilities stays apart.
 
 ## 0.0.87 (2026-10-28)
 

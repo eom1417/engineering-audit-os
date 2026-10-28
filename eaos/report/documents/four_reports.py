@@ -15,6 +15,7 @@ from pathlib import Path
 from ...core.language.words import decided, who_decided
 from .markdown import Page, clip
 from ...core.system.files import read_json
+from ...analysis.claims.ledger import withheld_said
 
 NAMES = ('CURRENT-STATE.md', 'TARGET-STATE.md', 'GAP-AND-STRATEGY.md', 'EXECUTION-PLAN.md')
 
@@ -111,11 +112,10 @@ def _feature_items(features, ar):
 def _unexamined(page, out, coverage, external, ar):
     alike = [row['ar' if ar else 'en'] for row in _read(out, 'dossier.json', 'likenesses', [])[:10]]   # said, no card (M15)
     if alike:
-        page.para('متشابهات في الشكل بس، ما صارت بطاقات (ما استوفت الشروط الثلاثة):' if ar else
-                  'Alike in shape only, not cards (they miss one of the three conditions):')
+        page.para('متشابهات في الشكل بس، ما صارت بطاقات (ما استوفت الشروط الثلاثة):' if ar else 'Alike in shape only, not cards (they miss one of the three conditions):')
         page.items(alike)
     page.heading(_labels(ar)['unexamined'])
-    page.items(list(coverage.get('not_examined') or [])[:8]
+    page.items(list(coverage.get('not_examined') or [])[:8] + withheld_said(_read(out, 'dossier.json', 'withheld_claims', []), ar)
                + [('محرك غير مثبت: ' if ar else 'engine not installed: ') + name for name in external.get('engines_unavailable') or []])
 
 

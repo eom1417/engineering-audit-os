@@ -8,7 +8,7 @@ from .. import digest, make
 from ..source import language_of
 
 NAME = 'metrics'
-VERSION = '2'
+VERSION = '3'
 LIMITATIONS = [
     'Branch counting is a lexical approximation, not a compiler-accurate cyclomatic complexity.',
     "A function's complexity is the code laws' count (eaos/core/contracts/code_laws.py) in Python; elsewhere 1 + its lexical "
@@ -20,6 +20,7 @@ LIMITATIONS = [
 BRANCH = re.compile(r'\b(if|elif|else if|for|while|case|catch|except|&&|\|\||\?\?)\b|\?[^:]+:')
 COMMENT = re.compile(r'^\s*(#|//|/\*|\*|--)')
 WINDOW = 6
+KEPT = re.compile(r'jscpd:ignore-(start|end)')     # a copy kept on purpose, its reason beside it: never a clone
 MIN_LINE_LENGTH = 12
 
 
@@ -89,9 +90,20 @@ def _counter(lines, language, mine):
     return counted
 
 
+def _kept(lines):
+    """The line numbers inside jscpd's ignore markers (start to end): a copy kept on purpose, said why."""
+    kept, inside = set(), False
+    for number, line in enumerate(lines, start=1):
+        marker = KEPT.search(line)
+        if marker: inside = marker.group(1) == 'start'
+        if inside or marker: kept.add(number)
+    return kept
+
+
 def _windows_of(rel, lines):
+    kept = _kept(lines)
     cleaned = [(index + 1, normalise(line)) for index, line in enumerate(lines)
-               if len(normalise(line)) >= MIN_LINE_LENGTH and not COMMENT.match(line)]
+               if len(normalise(line)) >= MIN_LINE_LENGTH and not COMMENT.match(line) and index + 1 not in kept]
     chunks = [cleaned[position:position + WINDOW] for position in range(len(cleaned) - WINDOW + 1)]
     return [(digest('\n'.join(text for _, text in chunk).encode('utf-8')),
              {'path': rel, 'start_line': chunk[0][0], 'end_line': chunk[-1][0]}) for chunk in chunks]
