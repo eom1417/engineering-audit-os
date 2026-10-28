@@ -7,7 +7,7 @@ from collections import namedtuple
 from functools import partial
 from pathlib import Path
 from ... import __version__
-from ..claims import from_one_source, from_runs, ledger
+from ..claims import from_one_source, from_rules, from_runs, ledger
 from ..claims.gather import REGISTER, assess_mechanically, build_claims, fact_index_of, needs_a_disposition, origin_of, runtime_claims
 from ...core import progress
 from ...core.contracts.document import Document, say
@@ -308,6 +308,7 @@ def _claims(request, inputs):
     coverage_set = _more_sets(request.out, inputs.sets)
     runtime = runtime_claims(inputs.verification, len(rows), (coverage_set or {}).get('facts'), excluded=_excluded(request.exclude))
     runtime += from_runs.run_claims(request.out, inputs.sets, request.target, len(rows) + len(runtime))   # they read what ran (M13, M14)
+    runtime += from_rules.rule_claims(request.out, rows + runtime, fact_index, len(rows) + len(runtime))  # the person's own rules, last: a detector's guard reads the others (M16)
     runtime, held = ledger.withhold(runtime)        # a detector under its measured bar is kept aside here too (M15)
     for number, row in enumerate(held, start=len(withheld) + 1): row['id'] = 'WHD-%03d' % number
     withheld = withheld + held
@@ -337,6 +338,7 @@ def _dossier(request, inputs, rows, withheld):
         'claim_counts': ledger.claim_counts(rows),
         'claims': rows,
         'likenesses': from_one_source.notes(request.out, sets),     # alike in shape only: said, never cards (M15)
+        'person_rules': from_rules.said(request.out),                # the rules held, and those EAOS cannot guard, with why (M16)
         'withheld_claims': withheld,
         'questions': questions_of(records, sets),
         'tasks': tasks,

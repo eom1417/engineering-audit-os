@@ -4,7 +4,7 @@ Where EAOS is going: from today's EAOS to the tool of `docs/NORTH-STAR.md`, a co
 command. The milestones run in this order; each ends with one version (`CHANGELOG.md` says what it changed and why)
 and its numbers in `docs/METRICS.md`. This page is updated at each milestone's end.
 
-## Done (version 0.0.87)
+## Done (version 0.0.89)
 
 | Milestone | What it delivered | Version |
 |---|---|---|
@@ -27,6 +27,7 @@ and its numbers in `docs/METRICS.md`. This page is updated at each milestone's e
 | M13 Old engines | switches fixed to one value and the functions only their closed branch calls; what the tests, the server and the pages ran, and the code none of them ran; two engines doing one job; one card each with what replaced it and the proof nothing runs it | 0.0.86 |
 | M14 How the data is saved and kept | the saves the pages send measured before and after the copy is filled to a real size; how its database stores the data; the project's backup restored and compared; files the server writes; two edits of one record; the saving code and risky migrations read (Squawk) | 0.0.87 |
 | M15 One source per pattern | near copies, the look written outside its tokens, screen patterns and ways of working written three times; a card only when the copies carry one responsibility, cost upkeep and one source is simpler, else a likeness said; EAOS at zero on its own law | 0.0.88 |
+| M16 The person's own rules | a requirement said once is kept in the person's words for its work, pinned only on request, guarded by a machine (a pattern proved on its examples, a test, EAOS's detectors, or said unguarded); one card with every place; a change that breaks it refused at the fix's gate and the commit; what a change touches checked in seconds | 0.0.89 |
 
 ## Next
 
@@ -35,5 +36,4 @@ and the model only for doubt; adding each tool is measured, so EAOS proves it gr
 
 | Milestone | What it adds |
 |---|---|
-| M16 The person's rules | a requirement said once is kept for its work, pinned only on request, guarded by a check, its repeats counted; a check of what a change touches, in seconds |
 | M17 Strangers' projects | ten open-source projects never seen, judged from outside EAOS; a fair comparison with the plain assistant; real people of three kinds |

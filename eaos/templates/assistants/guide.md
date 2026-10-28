@@ -70,6 +70,16 @@ drag and drop, validation, an endpoint's guard) written three times is one compo
 only when one source is simpler and safer: code alike in shape that does two jobs stays apart. EAOS's gates refuse a
 change that copies code word for word, and say where the one home is.
 
+## The person's own rules
+
+When the person states a requirement that must hold ("the data lives only in the database", "never send the whole state
+on every save"), keep it in their words: `rule` with op=add (it holds for the card or batch in hand; the same rule said
+again is counted, never a second one), then write its guard once with op=guard: an ast-grep pattern with code that
+breaks it and code that keeps it (proved before it is kept), a test the project already has, EAOS's detectors, or
+`none` with why. Each card you fix lists in `your_rules` the rules to keep: a change that breaks one is refused with the
+person's words. Pinning, unpinning, changing a rule and the commit hook are the person's: ask first. `check_changed`
+checks a change on the rules and the code laws in seconds, before it lands.
+
 ## The Studio's work, without the Studio
 
 When the person works in a terminal, or asks for what the Studio shows, use the governance tools; they drive the

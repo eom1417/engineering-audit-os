@@ -131,6 +131,14 @@ opened in). Long work returns a job, followed with `wait`. `status` always names
 | `accept` | Merge the waiting branch, delete it, and bring the report and progress up to date in one call. Only after the person's yes (`person_agreed=true`) |
 | `undo` | Throw the waiting branch away. Only after the person's yes |
 
+### Your rules (M16)
+
+| Tool | What it does |
+| --- | --- |
+| `rules` | The person's own rules (read, answered at once): op=list (each in scope, pinned, held or broken where, how often it came back; the commit hook), op=touches (what changing or unpinning one touches) |
+| `rule` | Keep or change one: op=add (the person's words, for the card or batch in hand; said again, it is counted), op=guard (a pattern with its examples, a test, EAOS's detectors, or none with why; `write=true` asks your assistant once), and the person's own decisions op=pin, unpin, change, hook (`person_agreed=true` after their yes; refused inside a Studio run) |
+| `check_changed` | Only what changed, now: each rule on what the change brought and the code laws over the changed files and those importing them, in seconds and without AI (`base`, or `staged` for a commit) |
+
 ### Build from a plan
 
 | Tool | What it does |
@@ -230,8 +238,9 @@ A fix reaches the person only as a branch, and only through its gates:
 
 1. **At each edit** (`fix_edit`): the card's problem is gone; no endpoint gone; no new forbidden import, import cycle,
    broken reference or broken layer boundary; nothing added against the code laws (copies, dead code, complexity,
-   size, security, the repository's tidiness); and the app's own quick checks still pass when its files changed
-   (`eaos/analysis/repair/gates.py`). A failing edit is taken back with its reason.
+   size, security, the repository's tidiness); the app's own quick checks still pass when its files changed
+   (`eaos/analysis/repair/gates.py`); and no rule of the person's that holds for the card is broken by what the edit
+   brought (`eaos/analysis/rules/held.py`). A failing edit is taken back with its reason, in the person's words for a rule.
 2. **At the batch** (`fix_finish`): every kept change together through the project's own checks (tests, typecheck,
    lint), Semgrep once over the kept changes (Bandit and Gitleaks already read each edit), and the behaviour lock,
    which compares every recorded screen, its picture and its words. A batch that fails

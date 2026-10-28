@@ -20,17 +20,21 @@ def edit_gates(where, root, card, changed, repair):
     repair), what that check still finds when it fails, so the assistant fixes what is left), from one collection of facts
     on the copy `root`; `where`: (report, project, runtime). A change to the app's
     files also runs the app's own checks (app_breakage): an unused import in a Studio file broke its type check, then
-    its build, and was found only when the 51 changes of a batch met (EAOS, 2026-10-14)."""
+    its build, and was found only when the 51 changes of a batch met (EAOS, 2026-10-14). `where` may name, fourth, the
+    person's rules that hold for this work and the project they are kept for (M16.4): a change that breaks one is refused
+    with their words."""
     from ..execute import app_breakage, new_breakage
     from ....facts.run import collect
     from ....analysis.repair.gates import debt, words
-    report, project, runtime = where
+    from ....analysis.rules.held import gate as rules_gate
+    report, project, runtime, *held = where
     with tempfile.TemporaryDirectory(prefix='eaos-edit-facts-') as out:
         collect(root.resolve(), out, engines=engines_for([card]))
-        broke = (new_breakage(report, root, collected=out) + words(debt(report, out, changed, had=_sizes_before(root, changed)))
-                 + app_breakage(project, runtime, root, changed))
+        laws = debt(report, out, changed, had=_sizes_before(root, changed))
+        broke = (new_breakage(report, root, collected=out) + words(laws) + app_breakage(project, runtime, root, changed)
+                 + (rules_gate(*held[0], root, changed, laws) if held and held[0][1] else []))
         exit_code = None if repair else batch_acceptance(report, [card], root, collected=out).get(card['id'])
-        return broke, exit_code, _still(card, out) if exit_code not in (0, None) else ''
+        return broke, exit_code, _still(card, out, root) if exit_code not in (0, None) else ''
 
 
 def _sizes_before(root, paths):

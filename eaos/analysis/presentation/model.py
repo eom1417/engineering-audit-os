@@ -93,7 +93,7 @@ PATTERNS = {
     'untested_path': ('maintainability', 'medium'), 'generic': ('maintainability', 'medium'),
     'design_review': ('ux', 'medium'), 'investigation': ('maintainability', 'low'),
     'repository_craft': ('maintainability', 'low'), 'real_data': ('security', 'high'),
-    'old_engine': ('quality', 'medium'), 'data_keeping': ('performance', 'medium'), 'one_source': ('maintainability', 'medium'),
+    'old_engine': ('quality', 'medium'), 'data_keeping': ('performance', 'medium'), 'person_rule': ('maintainability', 'high'), 'one_source': ('maintainability', 'medium'),
 }
 CATEGORY_AREA = {'security': 'security', 'supply_chain': 'security', 'architecture': 'structure', 'data': 'structure',
                  'dead_code': 'quality', 'reliability': 'maintainability', 'maintainability': 'maintainability'}

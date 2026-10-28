@@ -34,6 +34,8 @@ FAMILIES = {
                     'the reference resolves, or the dead code that held it is gone.'),
     'mutable_global': ('untangle_dependencies', 'Module-level state is not changed at runtime.',
                        'the state lives behind an owner that is passed in; no module-level value is reassigned at runtime.'),
+    'person_rule': ('keep_person_rules', 'Every rule the person stated holds, in every place.',
+                    'the rule is kept in every place, from its cause; its guard finds it broken nowhere.'),
     'cycle': ('untangle_dependencies', 'The resolved import graph has no cycle.',
               'the shared part lives in its own module both sides import; the cycle is gone.'),
 }
@@ -101,7 +103,7 @@ def build_assessment(claim, fact_sets, target):
     return {'assessment': {
                 'violated_invariant': invariant,
                 'requirement_refs': [f'engagement.rules.{rule_name}'],
-                'evidence_refs': list(claim.get('fact_ids') or []),
+                'evidence_refs': list(claim.get('fact_ids') or claim.get('evidence_ids') or []),     # a rule's: its record (M16)
                 'reviewed_by': (f"engagement rule {rule_name} ({rule['source']}): {rule['why']} "
                                 'The evidence is decided by rule; no human judgement is claimed.'),
                 'before': claim['statement'],

@@ -12,24 +12,43 @@ import tempfile
 from pathlib import Path
 
 
+def _load_model(root, out, specification):
+    from ..readiness.load_model import compute
+    from ..readiness.load_projection import project
+    return {'load_model': project(compute(out))}
+
+
+def _boundaries(root, out, specification):
+    from ..layers import check, facts_of
+    return {'boundaries': {'facts': facts_of(check(Path(root).resolve(), out))}}
+
+
+def _logic_flaws(root, out, specification):
+    from .from_logic_flaws import reread
+    return {'logic_flaws': reread(root, specification)}            # the code read again, never an old hunt
+
+
+def _rule(root, out, specification):
+    from ..rules import guards
+    return {'rule': guards.run(specification['guard'], Path(root).resolve())}     # the person's rule's own guard (M16)
+
+
+# What a probe reads beside the collected facts, made again on the copy: {query: (root, out, specification) -> sets}.
+MORE = {'load_blocker_present': _load_model, 'boundary_finding_present': _boundaries, 'logic_flaw_present': _logic_flaws,
+        'rule_broken': _rule}
+
+
 def recheck(root, spec):
     from ...facts.run import collect, read_available
     from .probes import decide_probe
+    specification = spec.get('specification') or {}
     with tempfile.TemporaryDirectory(prefix='eaos-recheck-') as scratch:
         out = Path(scratch)
         # No engine named (a branch count, EAOS's own) runs none: an empty list would ask for every engine.
-        collect(Path(root).resolve(), out, engines=(spec.get('specification') or {}).get('engines') or None)
+        collect(Path(root).resolve(), out, engines=specification.get('engines') or None)
         sets = read_available(out)
-        if (spec.get('specification') or {}).get('query') == 'load_blocker_present':
-            from ..readiness.load_model import compute
-            from ..readiness.load_projection import project
-            sets['load_model'] = project(compute(out))
-        if (spec.get('specification') or {}).get('query') == 'boundary_finding_present':
-            from ..layers import check, facts_of
-            sets['boundaries'] = {'facts': facts_of(check(Path(root).resolve(), out))}
-        if (spec.get('specification') or {}).get('query') == 'logic_flaw_present':
-            from .from_logic_flaws import reread
-            sets['logic_flaws'] = reread(root, spec['specification'])     # the code read again, never an old hunt
+        for name, made in (MORE[specification['query']](root, out, specification) if specification.get('query') in MORE else {}).items():
+            sets[name] = made
         return decide_probe(spec, sets)
 
 

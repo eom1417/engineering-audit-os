@@ -140,8 +140,14 @@
   "context_repeat_chars": 40,
   "context_done_items": 5,
   "eaos_block": [
-    "<!-- EAOS: begin (eaos assistant install) -->",
-    "<!-- EAOS: end -->"
+    [
+      "<!-- EAOS: begin (eaos assistant install) -->",
+      "<!-- EAOS: end -->"
+    ],
+    [
+      "<!-- EAOS rules: begin (your pinned rules, written by EAOS from its rule registry; change them with eaos rules) -->",
+      "<!-- EAOS rules: end -->"
+    ]
   ],
   "family_stop_prefixes": [
     "test",

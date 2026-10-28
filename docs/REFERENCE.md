@@ -37,11 +37,12 @@ read [MCP.md](MCP.md).
 | Following a run | `watch` `runs` `stop` `pause` `resume` `retry` `waiting` `answer` `sign-in` |
 | Reading the results | `problems` `problem` `history` `compare` `usage` `projects` |
 | Fixing and branches | `fix` `verify` `explain` `plan` `accept` `undo` `branch` `branches` |
+| Your rules | `rules` `check --changed` |
 | The assistant | `assistant` `mcp` `handover` |
 | Maintenance | `doctor` `tools` `clean` `govern` |
 | Advanced: card acceptance | `facts` `policy` `recheck` `decided` |
 
-42 commands in all. Everything the Studio does can also be done from these commands and from the MCP tools.
+43 commands in all. Everything the Studio does can also be done from these commands and from the MCP tools.
 
 ## Getting started
 
@@ -75,6 +76,7 @@ read [MCP.md](MCP.md).
 | `--published URL` | The published address, read signed in and read only, for this check. |
 | `--again-from STAGE` | Go on from this [stage](#the-stages-of-a-check) of the last check: it and the stages that read it run again on the same code; the rest is kept. |
 | `--watch` | Follow the run in the terminal until it ends. |
+| `--changed` | Check only what changed, now, instead: your rules and the code laws on the changed files and the files that import them, in seconds and without AI. With `--base REF` (what the change is measured from, default `HEAD`), `--staged` (what is staged for a commit), `--hook` (as the commit hook runs it: only your pinned rules refuse). Exit 1 when a rule is broken. |
 
 **`eaos audit` options**
 
@@ -127,6 +129,17 @@ read [MCP.md](MCP.md).
 | `eaos branch [name]` | `--yes` `--project` `--lang` | The branch EAOS checks and fixes: the list, or move to one. Each branch has its own report and progress. |
 | `eaos branches [op] [name]` | `--into BRANCH` `--yes` `--project` `--lang` | Every branch, and one change to it, a preview then your yes. `op`: `list` (default), `merge` (`--into`: the branch to merge into), `delete`, `protect` (nothing from EAOS is merged into it), `unprotect`, `cleanup` (remove merged branches and old worktrees; each branch stays recoverable), `restore` (bring a deleted branch back). |
 
+## Your rules
+
+| Command | Options | What it does |
+|---|---|---|
+| `eaos rules` | `--project` `--lang` | Every rule you stated: for which work (a card, the batch now, or pinned), held or broken where, how often it came back, its guard, its last changes. |
+| `eaos rules add "<your words>"` | `--card ID` `--pin` | Keep a rule in your words: for that card, or for the batch of fixes now, or pinned for every change. The same rule said again is counted, and pinning is offered. |
+| `eaos rules pin ID` · `unpin ID` | | Pin a rule for every change (written for your assistant between EAOS's lines in `CLAUDE.md` / `AGENTS.md`), or end it (its lines, and with the last pinned rule the hook's, go; your project's own tests stay). What it touches is shown first. |
+| `eaos rules change ID "<words>"` | `--yes` | New words for a rule, what it touches shown first; its history keeps the old ones. |
+| `eaos rules guard ID` | `--write` · `--pattern JSON --language L --broken CODE --kept CODE [--message] [--files GLOB…]` · `--test "CMD"` · `--detectors NAME…` · `--none WHY` | The rule's machine guard, proved on its examples before it is kept: an ast-grep pattern, a test of your project's, EAOS's detectors, or none with why. `--write`: your assistant writes it, once. |
+| `eaos rules hook on` · `off` | `--yes` | Your pinned rules on every commit (git's pre-commit hook, a few lines between EAOS's markers). A commit that breaks one is refused with the place; EAOS failing to run never stops a commit. |
+
 ## The assistant
 
 | Command | Options | What it does |
@@ -175,13 +188,13 @@ The paths that look at the running app need your consent to run it (`--run-app`,
 
 ## The stages of a check
 
-A check is 40 declared stages (`eaos/pipeline/stages.py`), grouped in loops. A stage runs as soon as what it reads is
+A check is 41 declared stages (`eaos/pipeline/stages.py`), grouped in loops. A stage runs as soon as what it reads is
 ready; a stage that did not run says why, and a tool that failed is named. Any of them can be given to
 `--again-from`, `--only` and `--skip`.
 
 | Loop | Stages |
 |---|---|
-| Understand | `facts` `features` `roles` `intake` `engines` `policy` |
+| Understand | `facts` `features` `roles` `intake` `engines` `policy` `rules` |
 | Run and see the app | `setup` `verify` `session` `crawl` `lock` `record` `journeys` `screens` `baseline` `layers` |
 | Try the layers (optional) | `layers_trial` |
 | Try the experience (optional) | `experience` |
@@ -263,7 +276,7 @@ In `technical/`:
 | `cards.json`, `plan.json`, `facts/`, `live/`, … | The records the Studio, the MCP tools and the fixes read |
 
 **EAOS's own state**: `~/.eaos/` (`EAOS_HOME`): `app/` (EAOS itself), `tools/` (the external tools), `projects/<name>-<id>/`
-(each project's workspace: state, runs, isolated copies; never inside your project), `remote-origin` (the Studio's
+(each project's workspace: state, runs, isolated copies, your rules in `rules.json`; never inside your project), `remote-origin` (the Studio's
 address on a remote server). `eaos clean` removes the temporary copies there.
 
 ## The code

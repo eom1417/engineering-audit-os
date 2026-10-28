@@ -1,5 +1,46 @@
 # Changelog
 
+## 0.0.89 (2026-10-28)
+
+M16, the person's own rules. Behind vibe coding a person says the same requirement again and again ("the data lives
+only in the database; unplug it and every screen is an empty engine"); the assistant fixes one place and forgets the
+rest, the requirement comes back a few changes later, and EAOS's checks passed over it, since nobody had told EAOS. Now
+a rule is said once and held by a machine, for as long as it was asked for:
+- **Kept in the person's words** (`core/project/rules.py`, one registry per project in its EAOS workspace, never inside
+  it): when and where it was said (the chat, a card's note, the Studio, the assistant's MCP tools, the terminal), and
+  its scope: the card or the batch of fixes it was said for, by default; pinned for every change only when the person
+  asks. The same requirement said again is the rule said again (its words compared, Arabic forms and punctuation
+  aside), counted, and pinning is offered. Every change of a rule keeps who, when, through which door, why and what it
+  was.
+- **A machine guard per rule** (`analysis/rules/guards.py`), written once by the person's assistant (or asked of it with
+  `--write`) and then run free: an ast-grep pattern proved on the code it must find and the code it must leave before it
+  is kept, a test of the project's own, EAOS's own detectors and gates, or `none` with why: a rule EAOS cannot guard is
+  said so in every view, never pretended.
+- **Every place, from the root**: a `rules` stage on every check path, and one card per broken rule with every place
+  it is broken, the person's words and when they said them (`analysis/claims/from_rules.py`); it closes only when its
+  guard, run again on the fixed copy, finds none.
+- **Held while in scope**: each card the assistant fixes lists the rules it must keep (`your_rules`); a fix's gate, a
+  build card's gate and, with the person's yes, the project's git pre-commit hook refuse a change that breaks one, for
+  what the change brought only (a rule already broken elsewhere never refuses a sound change), saying the words, the day
+  they were said, how often the rule came back, and offering to pin it. EAOS failing to run never stops a commit.
+- **Written from the registry, removed without a trace**: a pinned rule goes between EAOS's marker lines in the project's
+  CLAUDE.md / AGENTS.md (read once when one imports the other; not counted against the person's context); unpinning
+  takes its line out and, with the last one, the hook's block and the files EAOS made for them; a test of the project's
+  own is never removed.
+- **What a change touches, in seconds** (`eaos check --changed`, `check_changed`, the hook): the changed files and the
+  files importing them (EAOS's import graph), each rule's smallest sufficient check (a pattern reads only those files, a
+  test runs when they reach its files) and the code laws' gates over them, no token.
+- **Every door**: `eaos rules` (add, pin, unpin, change, guard, hook), the MCP tools `rules` and `rule` (pinning,
+  unpinning, changing and the hook are the person's: their yes first, never inside a Studio run), the Studio's Your rules
+  (the project menu) and a card's note kept as its rule, the Studio's chat keeping a requirement the person states.
+- **EAOS first**: the owner's standing requirements of EAOS are its first pinned rules (nothing private published, by
+  its own test; no code copied word for word, by EAOS's gate; the code laws, by `tools/code_limits.py --check`), held by
+  the same machinery on its own repository.
+- The proof (`tools/rules_proof.py`, no token): on a copy of the golden app with people's records in three files, one
+  card with the three places, a fix of one place refused, a fix of all of them that broke the other rule refused with
+  its words, the sound fix kept and taken in, the batch's rule ended with its batch, and a later commit writing the
+  data in again refused by the hook in seconds as a rule that came back.
+
 ## 0.0.88 (2026-10-28)
 
 M15, one source per pattern. Every system repeats things (colours, sizes, screen patterns, pop-ups, the way it reads a

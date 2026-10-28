@@ -38,12 +38,13 @@ QUERY_PATTERNS = {
     'real_data_present': 'real_data',
     'old_engine_present': 'old_engine',
     'data_keeping_present': 'data_keeping',
+    'rule_broken': 'person_rule',
     'one_source_present': 'one_source',
 }
 
 
 # Card keys that are their own pattern, with or without a probe (M13, M14, M15).
-OWN_PATTERN = ('old_engine', 'data_keeping', 'one_source')
+OWN_PATTERN = ('old_engine', 'data_keeping', 'one_source', 'person_rule')
 
 
 def _by_query(claim, specification):
@@ -287,6 +288,14 @@ PATTERNS = {
         ],
         'rollback': 'revert واحد يعيد الكود كما كان.',
     },
+    'person_rule': {
+        'change': 'أصلح كل مكان تنكسر فيه قاعدة الشخص مرة وحدة من سببها، ثم شغّل حارسها مرة ثانية لين ما يلقى ولا مكان.',
+        'options': [
+            {'option': 'إصلاح كل الأماكن من السبب في دفعة وحدة', 'cost': 'متوسطة', 'verdict': 'مختار افتراضيًا'},
+            {'option': 'تغيير القاعدة أو فك تثبيتها إذا ما عادت تهم الشخص', 'cost': 'صفر', 'verdict': 'قرار الشخص وحده'},
+        ],
+        'rollback': 'revert واحد يعيد الكود كما كان.',
+    },
     'generic': {
         'change': '⧗ لا نمط معالجة معروف لهذه الفئة: صمّم التغيير يدويًا، واذكر البديل «لا نفعل شيئًا» صراحة قبل الاعتماد.',
         'options': [{'option': 'تصميم يدوي بعد قراءة الدليل', 'cost': 'غير محددة', 'verdict': 'مطلوب'}],
@@ -350,6 +359,7 @@ def cost_of_inaction(name):
         'real_data': 'تبقى بيانات الناس أو سجلات البرنامج تنتقل مع كل نسخة من الكود، وتطلع في الشاشات حتى لو قاعدة البيانات فاضية',
         'one_source': 'يبقى الشي الواحد مكتوب في أكثر من مكان: كل تعديل يتكرر، وأول تعديل ينسى مكان يخلّي الشاشات أو السلوك يختلف',
         'data_keeping': 'يكبر كل حفظ مع البيانات، أو تضيع بيانات أو تعديلات أو صور، ولا تنفع النسخة الاحتياطية يوم تحتاجها',
+        'person_rule': 'يرجع الشي اللي طلبت ما يصير، وتضطر تقوله مرة ثانية بعد كل تعديل',
         'old_engine': 'يبقى كود قديم يُقرأ ويُصان ويُختبر بلا فائدة، ويرجع يشتغل لو انقلب المفتاح بالغلط',
         'generic': '⧗ غير محددة',
     }[name]

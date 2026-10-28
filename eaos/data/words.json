@@ -253,6 +253,20 @@
     "Checking the layering"
    ]
   },
+  "rules": {
+   "title": [
+    "يفحص قواعدك",
+    "Check your own rules"
+   ],
+   "does": [
+    "يشغّل حارس كل قاعدة قلتها ولسا تنطبق: سليمة، أو مكسورة وفين، أو ما لها حارس وليش.",
+    "Runs the guard of each rule you stated that still holds: held, broken and where, or not guarded and why."
+   ],
+   "doing": [
+    "أفحص قواعدك اللي قلتها",
+    "Checking the rules you stated"
+   ]
+  },
   "layers": {
    "title": [
     "يقرأ النظام طبقات",

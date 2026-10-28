@@ -35,29 +35,38 @@ def batch_acceptance(report, cards, root, collected=None):
         return {card['id']: _acceptance_exit(card, sets, dead, out, root) for card in cards}
 
 
-def _probe_exit(spec, sets, out):
+# What a probe reads beside the collection, made again on the copy as eaos recheck makes it (eaos/analysis/claims/recheck.py
+# MORE): the load model, and a person's rule's own guard (M16), whose stored finding is the check's, never the copy's.
+AGAIN = ('load_blocker_present', 'rule_broken')
+
+
+def _decided(spec, sets, out, root):
     from ....analysis.claims.probes import decide_probe
-    if (spec.get('specification') or {}).get('query') == 'load_blocker_present' and 'load_model' not in sets:
-        from ....analysis.readiness.load_model import compute, project
-        sets['load_model'] = project(compute(out))
-    status, _ = decide_probe(spec, sets)
+    from ....analysis.claims.recheck import MORE
+    query = (spec.get('specification') or {}).get('query')
+    if query in AGAIN:
+        for name, made in MORE[query](root, out, spec['specification']).items(): sets[name] = made
+    return decide_probe(spec, sets)
+
+
+def _probe_exit(spec, sets, out, root):
+    status, _ = _decided(spec, sets, out, root)
     return 0 if status == 'REFUTED' else 1 if status in ('CONFIRMED', 'PARTIAL') else 2
 
 
-def _still(card, out):
+def _still(card, out, root):
     """What a card's own probe still finds on the copy, in its words; '' when its check is not a probe."""
     from ....facts.run import read_available
-    from ....analysis.claims.probes import decide_probe
     argv = card.get('verify_command') or []
     if not ('recheck' in argv and '--spec' in argv): return ''
-    return decide_probe(json.loads(argv[argv.index('--spec') + 1]), read_available(out))[1]
+    return _decided(json.loads(argv[argv.index('--spec') + 1]), read_available(out), out, root)[1]
 
 
 def _acceptance_exit(card, sets, dead, out, root):
     """One card's acceptance exit: read from the collection when it is a probe or the dead-code check, else run."""
     argv = card.get('verify_command') or []
     if 'recheck' in argv and '--spec' in argv:
-        return _probe_exit(json.loads(argv[argv.index('--spec') + 1]), sets, out)
+        return _probe_exit(json.loads(argv[argv.index('--spec') + 1]), sets, out, root)
     found = DEADCODE.search(argv[-1]) if argv else None
     if found: return 1 if found.groups() in dead else 0
     if argv: return subprocess.run(argv, cwd=root, capture_output=True, text=True, timeout=1800).returncode  # nosemgrep: python.lang.security.audit.dangerous-subprocess-use-audit -- a card's acceptance check, a list argv run in the candidate copy, no shell

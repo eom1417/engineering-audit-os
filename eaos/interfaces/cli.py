@@ -119,11 +119,13 @@ def policy_command(args):
 
 
 BRANCH_COMMANDS = ('accept', 'branch', 'branches', 'undo')    # in interfaces/terminal/branches.py
+RULE_COMMANDS = ('rules_command', 'check_or_changed')                           # in interfaces/terminal/rules.py
 
 
 def terminal(name):
     """The governance command `name` of eaos/interfaces/terminal/commands.py (or interfaces/terminal/branches.py), imported when it runs."""
-    module = 'eaos.interfaces.terminal.branches' if name in BRANCH_COMMANDS else 'eaos.interfaces.terminal.commands'
+    module = ('eaos.interfaces.terminal.branches' if name in BRANCH_COMMANDS else 'eaos.interfaces.terminal.rules' if name in RULE_COMMANDS
+              else 'eaos.interfaces.terminal.commands')
     return lambda args: getattr(__import__(module, fromlist=[name]), name)(args)
 
 
@@ -137,6 +139,7 @@ def governance_commands(s):
         return q
     _run_commands(command)
     _card_commands(command)
+    _rule_commands(command)
     q = s.add_parser('govern', help='The headless host that starts this project\'s runs while no Studio runs (the commands start it)')
     q.add_argument('project'); q.add_argument('--answer'); q.add_argument('--option'); q.add_argument('--text')
     q.set_defaults(func=terminal('govern_host'))
@@ -145,7 +148,8 @@ def governance_commands(s):
 def _run_commands(command):
     """The check and the runs: start, follow, control, what waits for the person, the sign-in and the answer."""
     from .govern import CONTROLS
-    q = command('check', 'Check the project now, in the background: the time it takes first, then a new check (nothing in it changes)')
+    q = command('check', 'Check the project now, in the background: the time it takes first, then a new check (nothing in it changes)',
+                'check_or_changed')
     q.add_argument('--path', nargs='+', choices=sorted(PATHS), default=None, help='check only these paths')
     q.add_argument('--mode', choices=['normal', 'speed'], default=None)
     q.add_argument('--assistant', choices=['claude', 'codex', 'none'], default=None, help='the AI the check uses, or none')
@@ -155,6 +159,11 @@ def _run_commands(command):
     q.add_argument('--run-app', action='store_true', help='run your app in an isolated copy (its pages, sign-in, speed); kept')
     q.add_argument('--again-from', dest='again_from', metavar='STAGE', help='go on from this stage of the last check: it and the stages reading it run again')
     q.add_argument('--watch', action='store_true', help='follow it here until it ends')
+    q.add_argument('--changed', action='store_true', help='check only what changed, now: your rules and the code laws on the changed files '
+                   'and what depends on them, in seconds (no AI)')
+    q.add_argument('--base', default=None, help='with --changed: what the change is measured from (default HEAD)')
+    q.add_argument('--staged', action='store_true', help='with --changed: what is staged for the commit')
+    q.add_argument('--hook', action='store_true', help='with --changed: as the commit hook runs it (only the pinned rules refuse)')
     command('watch', 'Follow a run live: its stages, the time left, the cost so far, and its questions').add_argument('run', nargs='?')
     command('runs', 'The runs: running, queued and ended').add_argument('--all', action='store_true', help='also those already read')
     for name in CONTROLS: command(name, f'{name.capitalize()} a run (the newest it applies to by default)', 'control').add_argument('run', nargs='?')
@@ -164,6 +173,25 @@ def _run_commands(command):
     q = command('answer', 'Answer what waits for you: eaos answer <id> <option>')
     q.add_argument('id'); q.add_argument('option', nargs='?'); q.add_argument('--text', default=None, help='your own answer instead of an option')
     q.add_argument('--assistant', default=None, help='a report question: who reviews your answer (claude, codex, or handoff)')
+
+
+def _rule_commands(command):
+    """The person's own rules (eaos/interfaces/terminal/rules.py)."""
+    q = command('rules', 'Your own rules for this project: say one, pin it for every change, guard it, unpin it', 'rules_command')
+    q.add_argument('action', nargs='?', default='list', choices=['list', 'add', 'pin', 'unpin', 'change', 'guard', 'hook'])
+    q.add_argument('id', nargs='?', help='the rule (R1…); for hook: on or off')
+    q.add_argument('said', nargs='*', help='add: the rule in your words; change: its new words')
+    q.add_argument('--card', default=None, help='add: the rule holds for this card only'); q.add_argument('--pin', action='store_true', help='add: pinned at once')
+    q.add_argument('--yes', action='store_true')
+    q.add_argument('--write', action='store_true', help='guard: your AI assistant writes it once, proved on its examples')
+    q.add_argument('--pattern', default=None, help="guard: ast-grep's rule as JSON, e.g. '{\"pattern\": \"localStorage.setItem($K, $V)\"}'")
+    q.add_argument('--language', default=None); q.add_argument('--message', default=None)
+    q.add_argument('--broken', action='append', help='guard: code that breaks the rule (it must be found)')
+    q.add_argument('--kept', action='append', help='guard: code that keeps the rule (it must not be found)')
+    q.add_argument('--test', default=None, help="guard: a command of your project's that fails when the rule is broken")
+    q.add_argument('--detectors', nargs='+', default=None, help="guard: EAOS's detectors that check it (copy, complex, real_data…)")
+    q.add_argument('--none', default=None, metavar='WHY', help='guard: EAOS cannot guard it, and why')
+    q.add_argument('--files', nargs='+', default=None, help='guard: the files (globs) it applies to')
 
 
 def _card_commands(command):

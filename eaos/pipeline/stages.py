@@ -155,9 +155,12 @@ _DECLARED = (
     Stage('policy', produces=('facts/policy.json',), requires=('facts',), necessity=OPTIONAL,
           absent_when='the project declares no eaos.policy.json',
           description='Enforce the declared architecture policy'),
+    Stage('rules', produces=('rules.json',), requires=('facts',), necessity=OPTIONAL,
+          absent_when='the person stated no rule that holds for this project now',
+          description="The person's own rules, each by its machine guard: held, broken and where, or not guarded and why (M16)"),
     Stage('load', produces=('load-model.json',), requires=('facts',), reads=('engines', 'baseline'),
           description='A cost record per entry point, with a stated projection at 1000x'),
-    Stage('claims', produces=('dossier.json', 'README.md'), requires=('facts', 'features', 'measure', 'load'), reads=('layers', 'layers_trial', 'experience', 'policy'),
+    Stage('claims', produces=('dossier.json', 'README.md'), requires=('facts', 'features', 'measure', 'load'), reads=('layers', 'layers_trial', 'experience', 'policy', 'rules'),
           description='Facts interpreted into a ledger of falsifiable claims'),
     Stage('probe', produces=('probes.json',), requires=('claims',), amends=('dossier.json',),
           description='Settle every claim whose truth can be decided mechanically'),
@@ -226,7 +229,7 @@ BY_NAME = {stage.name: stage for stage in STAGES}
 ORDER = tuple(stage.name for stage in STAGES)
 # The five parts a person follows a check by (the Studio's board), each stage in one; within a part, the declared order.
 PHASES = {phase: tuple(sorted(names, key=ORDER.index)) for phase, names in {
-          'read': ('facts', 'features', 'roles', 'intake', 'measure', 'architecture', 'policy', 'load'),
+          'read': ('facts', 'features', 'roles', 'intake', 'measure', 'architecture', 'policy', 'rules', 'load'),
           'tools': ('engines', 'layers', 'layers_trial', 'claims', 'probe', 'sustainability', 'transform'),
           'app': ('setup', 'verify', 'session', 'crawl', 'lock', 'record', 'journeys', 'screens', 'baseline', 'keeping', 'experience', 'readiness'),
           'assistant': ('semantic', 'triage', 'visual', 'ideal', 'pipeline_gaps'),

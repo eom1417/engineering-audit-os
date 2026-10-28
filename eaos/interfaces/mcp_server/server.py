@@ -14,6 +14,7 @@ from pathlib import Path
 
 from ... import __version__
 from ...core.contracts.code_laws import LAWS
+from .person import PERSON_ONLY, STUDIO, refuse_in_studio_run  # noqa: F401  (what only the person decides, read here by its callers)
 
 INSTRUCTIONS = """EAOS (Engineering Audit OS) checks a whole software project, finds its structural, security and
 performance problems with evidence, and fixes them safely: each fix is made in an isolated copy, checked (the
@@ -48,6 +49,9 @@ The whole way for an existing project, in order (`status` always says the next t
 Without the Studio, the same governance is yours through runs (the queue: estimate, check, show, stop...), waiting (what
 waits for the person), act (fix, verify, explain, plan on cards or a group, previewed first), history and branch_change:
 what is the person's there (an answer, a branch change, a Fix that accepts itself) takes their word and the preview's token.
+When the person states a requirement that must hold ("never...", "always...", "the data lives only in..."), keep it in
+their words with rule(op=add) and write its guard once (rule op=guard); the cards list in your_rules the rules each
+fix must keep, and check_changed checks a change on them in seconds before it lands.
 Only the plan's cards count as progress: do not do work outside them. Call `status` first in every session: its
 `handover` says what the last assistant (you, or another one after a usage limit) did and how to continue; add the
 why with `note` after each card and before you stop.
@@ -65,21 +69,6 @@ public function or class (its name, its parameters, the module it is defined in)
 what the tools returned.
 
 """ + LAWS
-
-
-# What only the person decides: these tools, and these operations of the governance tools and commands (eaos/interfaces/govern.py).
-# In a run the Studio started (EAOS_STUDIO_RUN set by eaos/interfaces/studio_actions), the assistant asks instead, and the person
-# answers in the Studio, which calls these itself.
-PERSON_ONLY = ('accept', 'undo', 'choose_branch', 'answer', 'branches merge', 'branches delete', 'branches protect', 'branches cleanup',
-               'branches restore', 'auto_accept', 'sign_in_forget', 'logic_flaws')
-STUDIO = 'EAOS Studio'           # the name the Studio's own calls are recorded under
-
-
-def refuse_in_studio_run(name):
-    """PermissionError for a decision only the person makes (PERSON_ONLY), asked inside a run the Studio started."""
-    if name in PERSON_ONLY and os.environ.get('EAOS_STUDIO_RUN'):
-        raise PermissionError(f"{name} is the person's decision, and they make it in the EAOS Studio: ask them with an "
-                              'eaos-question block and stop')
 
 
 def _status(project=None):
@@ -130,7 +119,7 @@ def build(more=None):
     which the Studio itself never calls: functions, reading)."""
     from mcp.server.mcpserver import MCPServer
     from mcp.types import ToolAnnotations
-    from . import build as mcp_build, fix as mcp_fix
+    from . import build as mcp_build, fix as mcp_fix, rules as mcp_rules
 
     server = MCPServer(name='eaos', title='Engineering Audit OS', version=__version__, instructions=INSTRUCTIONS)
     reading = ToolAnnotations(readOnlyHint=True, openWorldHint=False)
@@ -138,6 +127,7 @@ def build(more=None):
     _check_tools(server, reading, working)
     mcp_fix._fix_tools(server, reading, working, _answer, _status)
     mcp_build._build_tools(server, reading, working, _answer)
+    mcp_rules.register(server, reading, working, _answer)
     if more: more(server, reading, working, _answer)
     _prompts(server)
     return server
@@ -239,7 +229,7 @@ def _audit_tool(server, reading, working):
     """The check itself, with every choice the person makes for it."""
     from ...journeys import agent_tools as tools
 
-    @server.tool(annotations=working, description='Check the whole project (40 stages: files, features, tools, tests, structure, '
+    @server.tool(annotations=working, description='Check the whole project (41 stages: files, features, your rules, tools, tests, structure, '
                  'security, load, plan). Returns a job to follow with `wait`; when the project was already checked at this commit, '
                  'returns the overview at once, also when the code moved on since (it says so): fresh=true checks again from the '
                  'start, only when the person asks for a new check. A started check answers with `watch`, '

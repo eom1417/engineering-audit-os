@@ -59,6 +59,9 @@ DEFAULT_RULES = {
         'value': True, 'source': 'default',
         'why': 'Import cycles and module state changed at runtime make parts impossible to test or change alone; '
                'the resolved graph shows when they are gone.'},
+    'keep_person_rules': {
+        'value': True, 'source': 'default',
+        'why': 'The person stated this rule and wrote, or had written, its guard; the guard run again on the copy is the check (M16).'},
     'upgrade_vulnerable_dependencies': {
         'value': True, 'source': 'default',
         'why': 'A locked version with a published, fixed vulnerability is a known risk with a known repair; '

@@ -333,6 +333,8 @@ works from the Terminal too; the runs are the same, seen in both.
 | `eaos accept`, `eaos undo` | Says what will happen and asks your yes (or `--yes`) |
 | `eaos branch [name]`, `eaos branches [merge\|delete\|protect\|unprotect\|cleanup\|restore]` | The branch EAOS works on, and every branch change, a preview then your yes |
 | `eaos history`, `eaos compare <a> <b>`, `eaos usage` | Every check on record, two side by side, and what the assistant used |
+| `eaos rules [add "<your words>" [--pin] \| pin \| unpin \| change \| guard \| hook on]` | Your own rules: say one, guard it, pin it for every change, unpin it; the hook checks the pinned ones on every commit |
+| `eaos check --changed [--staged]` | Only what changed, now: your rules and the code laws on the changed files and what depends on them, in seconds |
 
 Every option: [REFERENCE.md](REFERENCE.md).
 
@@ -354,6 +356,8 @@ Every option: [REFERENCE.md](REFERENCE.md).
 | "A tool failed in the check: run it again" | Goes on from that stage alone, keeping the rest of the check |
 | "I don't like my app's look: redesign it" | Suggests two or three directions from free design libraries, saves the one you choose as `DESIGN.md`, and the screen review turns every departure into a design card |
 | "What is affected if I change this file?" | The files that import it, the tests that cover it, and the files that usually change with it |
+| "Always...", "Never...", "The data lives only in the database" | Kept as your rule, in your words, for the work in hand; a machine guard is written for it once, and a change that breaks it is refused. Say "pin it" and it holds for every change (and, if you agree, every commit); "unpin it" at any time. Your rules: the Studio's project menu, or `eaos rules` |
+| "Check what I changed" | Your rules and the code laws on the changed files and what depends on them, in seconds, without AI (`eaos check --changed`) |
 | `/eaos` alone (`$eaos` in Codex) | A menu of what fits your project now |
 
 ## Troubleshooting
