@@ -64,7 +64,18 @@ def _found(found, paths):
     return rows
 
 
+def _clones(facts, paths):
+    """The lines copied word for word that EAOS's own metrics find without any tool (eaos/facts/code/metrics.py)."""
+    rows = {}
+    for fact in facts('metrics'):
+        places = fact['value'].get('occurrences') or [] if fact['kind'] == 'clone_cluster' else []
+        if len(places) >= 2 and paths & {p['path'] for p in places}:
+            rows[('clone', fact['input_sha'])] = {'gate': 'copy', 'where': places[0]['path'], 'what': 'the same code is written in '
+                                                  + ', '.join(f"{p['path']}:{p.get('start_line') or 1}" for p in places[:4]) + ': give it one home and call it'}
+    return rows
+
+
 def rows(facts, paths):
     """The rows of the gate over one collection of facts (`facts(name)`: a fact set's facts) at the files `paths`."""
     found, _ = findings(None, _sets(facts))
-    return {**_found(found, set(paths)), **_look(facts, set(paths))}
+    return {**_found(found, set(paths)), **_look(facts, set(paths)), **_clones(facts, set(paths))}
