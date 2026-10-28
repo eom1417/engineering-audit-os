@@ -2,6 +2,7 @@
 the files it imports with @, GEMINI.md, the Cursor and Copilot rules, the project's skills), measured in tokens: how
 heavy they are, the lines said in more than one, and the done items still in them. EAOS's own block between its marker
 lines (eaos/ai/assistant/setup.py) is never counted against the person."""
+import posixpath
 import re
 from collections import defaultdict
 from pathlib import PurePosixPath
@@ -23,16 +24,21 @@ def files(everything, limits):
     return named
 
 
-def texts(source, everything, limits):
-    """{path: its text without EAOS's own block}, the imported files of a CLAUDE.md among them."""
-    out, queue = {}, files(everything, limits)
+def followed(start, everything, read):
+    """{path: read(path)} of the context files from `start`, the files a CLAUDE.md imports followed, inside the repository."""
+    out, queue = {}, list(start)
     while queue:
         path = queue.pop(0)
         if path in out or path not in everything: continue
-        out[path] = _without_eaos(source.text(path) or '', limits)
+        out[path] = read(path)
         if PurePosixPath(path).name == 'CLAUDE.md':
-            queue += [(PurePosixPath(path).parent / name).as_posix() for name in IMPORT.findall(out[path])]
+            queue += [posixpath.normpath(posixpath.join(posixpath.dirname(path), name)) for name in IMPORT.findall(out[path])]
     return out
+
+
+def texts(source, everything, limits):
+    """{path: its text without EAOS's own block}, the imported files of a CLAUDE.md among them."""
+    return followed(files(everything, limits), everything, lambda path: _without_eaos(source.text(path) or '', limits))
 
 
 def _without_eaos(text, limits):

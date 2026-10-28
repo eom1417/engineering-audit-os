@@ -150,13 +150,19 @@ class Deleting:
         _write_json(self.store.folder / 'branch-recovery.json', rows + [entry])
         return entry
 
+    def _local_or(self, body, remote):
+        """(the branch named, None) when the body asks for the local branch, else (None, what `remote(name, body)` gives)."""
+        where = body.get('where') or 'local'
+        name = valid_name(self.project, body.get('branch'))
+        if where == 'remote': return None, remote(name, body)
+        if where != 'local': raise ValueError('where must be local or remote')
+        return name, None
+
     def preview_delete(self, body):
         """What deleting would do: whether the branch is merged, the commits only it holds (which the recovery ref keeps),
         why it is blocked, and the confirm token(s): one for the deletion, and a second one when commits would be lost."""
-        where = body.get('where') or 'local'
-        name = valid_name(self.project, body.get('branch'))
-        if where == 'remote': return self._preview_remote(name, body)
-        if where != 'local': raise ValueError('where must be local or remote')
+        name, remote = self._local_or(body, self._preview_remote)
+        if name is None: return remote
         row, inventory = self._row(name)
         reasons = self._delete_blocks(row, inventory)
         holders = self._holders(row, name)
@@ -196,10 +202,8 @@ class Deleting:
     def delete(self, body):
         """Delete one branch, locally or on one remote (two separate operations, each with its own consent): a recovery ref
         first, then the ref removed only if it is still at the commit the preview showed. Never a force deletion."""
-        where = body.get('where') or 'local'
-        name = valid_name(self.project, body.get('branch'))
-        if where == 'remote': return self._delete_remote(name, body)
-        if where != 'local': raise ValueError('where must be local or remote')
+        name, remote = self._local_or(body, self._delete_remote)
+        if name is None: return remote
         bound = {'branch': name, 'tip': body.get('tip'), 'unmerged': bool(body.get('unmerged')), 'worktree': bool(body.get('worktree'))}
         self._spend(body, 'branch_delete', bound)
         if bound['unmerged'] and not self.locks.spend(body.get('confirm_unmerged'), 'branch_delete_unmerged', bound, self.project):
