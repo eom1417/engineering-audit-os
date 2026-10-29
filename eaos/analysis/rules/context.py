@@ -11,6 +11,8 @@ import stat
 import subprocess
 from pathlib import Path
 
+from ...core.project import rules as registry
+
 BEGIN = '<!-- EAOS rules: begin (your pinned rules, written by EAOS from its rule registry; change them with eaos rules) -->'
 END = '<!-- EAOS rules: end -->'
 HOOK_BEGIN = '# EAOS rules: begin (eaos rules hook: the rules you pinned, checked on what you commit)'
@@ -46,7 +48,8 @@ def block(rules, lang):
 
 
 def _guarded(rule):
-    kind = (rule.get('guard') or {}).get('kind')
+    if rule.get('pending') and rule.get('guard'): return 'its guard waits for your word: keep it yourself until then'
+    kind = (registry.in_force(rule) or {}).get('kind')
     return {'pattern': 'guarded by a code pattern', 'test': 'guarded by a test', 'detector': "guarded by EAOS's detectors",
             'none': 'EAOS cannot guard it: keep it yourself'}.get(kind, 'its guard is not written yet')
 

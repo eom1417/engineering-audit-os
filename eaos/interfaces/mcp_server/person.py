@@ -5,7 +5,8 @@ Studio, which calls these itself."""
 import os
 
 PERSON_ONLY = ('accept', 'undo', 'choose_branch', 'answer', 'branches merge', 'branches delete', 'branches protect', 'branches cleanup',
-               'branches restore', 'auto_accept', 'sign_in_forget', 'logic_flaws', 'rule pin', 'rule unpin', 'rule change', 'rule hook')
+               'branches restore', 'auto_accept', 'sign_in_forget', 'logic_flaws', 'rule pin', 'rule unpin', 'rule change', 'rule hook',
+               'rule approve')
 STUDIO = 'EAOS Studio'           # the name the Studio's own calls are recorded under
 
 

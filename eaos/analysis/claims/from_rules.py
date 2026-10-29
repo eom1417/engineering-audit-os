@@ -54,7 +54,7 @@ def results(out, claims, fact_index):
 
 def _guard_of(record, ident):
     from ...core.project import rules as registry
-    return registry.find(registry.load(registry.Kept(record['workspace'])), ident).get('guard')
+    return registry.in_force(registry.find(registry.load(registry.Kept(record['workspace'])), ident))
 
 
 def rule_claims(out, claims, fact_index, offset):

@@ -9,7 +9,7 @@ only after their yes; inside a Studio run each is refused (person.PERSON_ONLY). 
 from .. import rules as person_rules
 from .person import STUDIO, refuse_in_studio_run
 
-DECIDED = ('pin', 'unpin', 'change', 'hook')        # the person's: their yes first
+DECIDED = ('pin', 'unpin', 'change', 'hook', 'approve')        # the person's: their yes first
 
 
 def _door(door):
@@ -30,6 +30,7 @@ OPS = {
     'unpin': lambda project, g: person_rules.unpin(project, g['id'], door=g['door'], why=g['why']),
     'change': lambda project, g: person_rules.change(project, g['id'], g['words'], door=g['door'], why=g['why']),
     'hook': lambda project, g: person_rules.hook(project, g['on'], agreed=True),
+    'approve': lambda project, g: person_rules.approve(project, g['id'], door=g['door']),
 }
 
 
@@ -69,8 +70,10 @@ def register(server, reading, working, answer):
                 '"examples": {"broken": [code that breaks it], "kept": [code that keeps it]}}, or {"kind": "test", "command": '
                 '[...]}, {"kind": "detector", "detectors": [...]}, {"kind": "none", "why"} when no machine can check it; '
                 'write=true asks your assistant once instead): it is proved on its examples, then runs free on every check, fix '
-                'and commit; op=pin, unpin, change (words), hook (on: the pinned rules on every commit): the person\'s '
-                'decision, person_agreed=true only after their yes.' + doc)(answer(rule))
+                'and commit (a test command you propose waits for the person\'s approval before it ever runs); op=pin, unpin, '
+                'change (words: its guard then waits until one is written for them, or the person keeps it), hook (on: the '
+                'pinned rules on every commit), approve (id: the person approves a waiting guard): the person\'s decision, '
+                'person_agreed=true only after their yes.' + doc)(answer(rule))
     server.tool(annotations=working, description='Check only what changed, now, before it lands: the person\'s rules and the code laws '
                 'on the changed files and the files that depend on them (no AI, seconds). base: what the change is measured from '
                 '(default HEAD; the working tree and new files included); staged=true: what is staged for a commit. Answers each '

@@ -86,10 +86,29 @@ def _plain(text):
     return {word for word in re.findall(r'\w+', text) if len(word) > 1}
 
 
-def alike(first, second):
-    """Whether two sayings are one requirement: SAME or more of their words shared."""
+# Words whose presence or absence never changes what a rule asks (a courtesy, an article): two sayings that differ only
+# by these, case and punctuation are one rule. Any other difference (a negation, a number, a named page or table) may
+# change its meaning, so the two stay apart: never merged silently.
+FILLER = {'the', 'a', 'an', 'please', 'really', 'just', 'also', 'so', 'pls', 'kindly', 'لو', 'سمحت', 'فضلك', 'يا', 'ترى',
+          'تكفى', 'رجاء', 'رجاءا'}
+
+
+def _near(record, words):
+    return [r['id'] for r in record['rules'] if near(r['words'], words)]
+
+
+def near(first, second):
+    """Whether two sayings share SAME or more of their words: alike in words, not yet one rule."""
     a, b = _plain(first), _plain(second)
     return bool(a and b) and len(a & b) / len(a | b) >= SAME
+
+
+def alike(first, second):
+    """Whether two sayings are one requirement said again: their words differ only by FILLER, case and punctuation
+    (conservative: "saved in the database" and "never saved in the database", "20 rows" and "50 rows", "the admin
+    pages" and "the public pages" stay two rules)."""
+    a, b = _plain(first), _plain(second)
+    return bool(a and b) and not (a ^ b) - FILLER
 
 
 def _history(rule, what, by, door, why=None, was=None):  # limits: parameters -- a history entry's own fields, each kept as given
@@ -108,7 +127,8 @@ def _checked(words, door, scope):
 def add(project, words, door, by='person', where=None, scope=None):  # limits: parameters -- a saying's own fields (its words, door, who, where, scope), as every door gives them
     """A rule said: kept in the person's words, with when, where and through which door; its scope the card or batch
     it was said for (`scope`), else pinned when asked. The same requirement said again is the rule it already is: said
-    once more, back in scope, never a second rule. (rule, said before: the times it was said before, 0 for a new one)."""
+    once more, back in scope, never a second rule; one alike in words only (`near`) is a rule of its own that names
+    it (`near`), so the person can see both. (rule, said before: the times it was said before, 0 for a new one)."""
     scope = dict(scope or {'kind': 'batch', 'ref': None})
     words = _checked(words, door, scope)
     saying = {'at': now(), 'door': door, 'by': by, **({'where': str(where)[:200]} if where else {})}
@@ -122,7 +142,8 @@ def add(project, words, door, by='person', where=None, scope=None):  # limits: p
                 _history(rule, 'said again', by, door, was=was)
             return rule, len(rule['said']) - 1
         rule = {'id': f"R{record['next']}", 'words': words, 'lang': language(words), 'said': [saying], 'scope': scope,
-                'state': 'active', 'guard': None, 'breaks': [], 'broken': 0, 'returns': 0, 'held': None, 'history': []}
+                'state': 'active', 'guard': None, 'breaks': [], 'broken': 0, 'returns': 0, 'held': None, 'history': [],
+                'near': _near(record, words)}
         _history(rule, 'said', by, door)
         record['next'] += 1
         record['rules'].append(rule)
@@ -133,16 +154,20 @@ def change(project, ident, by='person', door='terminal', why=None, words=None, s
     """A rule changed in its words or scope (pinned, unpinned to the work in hand), its history keeping what it was."""
     with changing(project) as record:
         rule = find(record, ident)
-        was = {key: rule[key] for key in ('words', 'scope', 'state')}
-        if words is not None:
-            rule['words'] = _checked(words, door, rule['scope'])
-            rule['lang'] = language(rule['words'])
+        was = {key: rule.get(key) for key in ('words', 'scope', 'state', 'guard', 'pending')}
+        if words is not None: _reworded(rule, _checked(words, door, rule['scope']))
         if scope is not None:
             if scope['kind'] not in SCOPES: raise ValueError(f"unknown scope {scope['kind']}")
             rule['scope'], rule['state'] = dict(scope), 'active'
         what = 'pinned' if scope and scope['kind'] == 'pinned' else 'unpinned' if scope and was['scope']['kind'] == 'pinned' else 'changed'
         _history(rule, what, by, door, why, was)
         return rule
+
+
+def _reworded(rule, new):
+    """New words: a guard written for the old ones waits (`pending`) unless only FILLER and punctuation changed."""
+    if rule.get('guard') and not alike(rule['words'], new): rule['pending'] = 'words'
+    rule['words'], rule['lang'] = new, language(new)
 
 
 def end(project, ident, by='person', door='terminal', why=None):
@@ -157,13 +182,38 @@ def end(project, ident, by='person', door='terminal', why=None):
 
 
 def guard(project, ident, written, by, door):
-    """The rule's guard set (eaos/analysis/rules/guards.py checked it on its examples first), what it was kept."""
+    """The rule's guard set (eaos/analysis/rules/guards.py checked it on its examples first), what it was kept. A test
+    guard anyone but the person gave (their assistant, through MCP or its own ask) waits for the person's approval of
+    its command before it ever runs: a command an AI proposed never runs on their computer silently."""
     with changing(project) as record:
         rule = find(record, ident)
-        was = rule.get('guard')
+        was = {'guard': rule.get('guard'), 'pending': rule.get('pending')}
         rule['guard'] = written
+        rule['pending'] = 'approval' if written.get('kind') == 'test' and by != 'person' else None
         _history(rule, 'guarded' if written.get('kind') != 'none' else 'unguarded', by, door, written.get('why'), was)
         return rule
+
+
+def confirm(project, ident, by='person', door='terminal'):
+    """The person's word on a pending guard: its command approved, or the guard kept as matching the rule's new words."""
+    with changing(project) as record:
+        rule = find(record, ident)
+        if not rule.get('guard') or not rule.get('pending'): raise ValueError(f'{ident} has no guard waiting for your word')
+        was = {'pending': rule['pending']}
+        rule['pending'] = None
+        _history(rule, 'guard approved' if was['pending'] == 'approval' else 'guard kept for the new words', by, door, was=was)
+        return rule
+
+
+PENDING = {'words': 'its guard was written for its earlier words: it waits until a guard is written for these, or you keep it',
+           'approval': 'its test command was proposed by an assistant: it never runs until you approve it'}
+
+
+def in_force(rule):
+    """The guard that holds the rule now: its own, or, while it waits (`pending`), none, said why: a pending guard is
+    never run nor counted as protection."""
+    if rule.get('pending') and rule.get('guard'): return {'kind': 'none', 'why': PENDING[rule['pending']]}
+    return rule.get('guard')
 
 
 # ---------------------------------------------------------------- held or broken

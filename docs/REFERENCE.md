@@ -138,6 +138,7 @@ read [MCP.md](MCP.md).
 | `eaos rules pin ID` · `unpin ID` | | Pin a rule for every change (written for your assistant between EAOS's lines in `CLAUDE.md` / `AGENTS.md`), or end it (its lines, and with the last pinned rule the hook's, go; your project's own tests stay). What it touches is shown first. |
 | `eaos rules change ID "<words>"` | `--yes` | New words for a rule, what it touches shown first; its history keeps the old ones. |
 | `eaos rules guard ID` | `--write` · `--pattern JSON --language L --broken CODE --kept CODE [--message] [--files GLOB…]` · `--test "CMD"` · `--detectors NAME…` · `--none WHY` | The rule's machine guard, proved on its examples before it is kept: an ast-grep pattern, a test of your project's, EAOS's detectors, or none with why. `--write`: your assistant writes it, once. |
+| `eaos rules approve ID` | `--yes` | Your word on a guard that waits: a test command your assistant proposed (it never runs before), or a guard kept for a rule's new words (new words otherwise wait for a guard written for them). |
 | `eaos rules hook on` · `off` | `--yes` | Your pinned rules on every commit (git's pre-commit hook, a few lines between EAOS's markers). A commit that breaks one is refused with the place; EAOS failing to run never stops a commit. |
 
 ## The assistant

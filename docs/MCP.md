@@ -136,7 +136,7 @@ opened in). Long work returns a job, followed with `wait`. `status` always names
 | Tool | What it does |
 | --- | --- |
 | `rules` | The person's own rules (read, answered at once): op=list (each in scope, pinned, held or broken where, how often it came back; the commit hook), op=touches (what changing or unpinning one touches) |
-| `rule` | Keep or change one: op=add (the person's words, for the card or batch in hand; said again, it is counted), op=guard (a pattern with its examples, a test, EAOS's detectors, or none with why; `write=true` asks your assistant once), and the person's own decisions op=pin, unpin, change, hook (`person_agreed=true` after their yes; refused inside a Studio run) |
+| `rule` | Keep or change one: op=add (the person's words, for the card or batch in hand; said again, it is counted), op=guard (a pattern with its examples, a test, EAOS's detectors, or none with why; `write=true` asks your assistant once), and the person's own decisions op=pin, unpin, change, hook, approve (a test command you propose never runs before the person approves it; new words wait for a guard written for them) (`person_agreed=true` after their yes; refused inside a Studio run) |
 | `check_changed` | Only what changed, now: each rule on what the change brought and the code laws over the changed files and those importing them, in seconds and without AI (`base`, or `staged` for a commit) |
 
 ### Build from a plan
