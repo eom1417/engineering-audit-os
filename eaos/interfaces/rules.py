@@ -31,6 +31,7 @@ def _row(rule, state):
             'doors': sorted({s['door'] for s in rule['said']}), 'guard': guards.said(registry.in_force(rule)),
             'guarded': (registry.in_force(rule) or {}).get('kind') not in (None, 'none'),
             'pending': rule.get('pending') if rule.get('guard') else None,
+            'command': guards.said(rule.get('guard')) if rule.get('pending') == 'approval' else None,
             'broken': rule.get('broken', 0), 'returns': registry.came_back(rule),
             'last_broken': last and {'at': last['at'], 'where': last['where'], 'places': last['places'][:10]},
             'held': rule.get('held'), 'offer_pin': _offer_pin(rule), 'history': rule['history'][-10:]}

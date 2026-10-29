@@ -51,6 +51,13 @@ a rule is said once and held by a machine, for as long as it was asked for:
   dependencies linked, only when the working tree differs), and a deleted file is a change; a test command an assistant
   proposed ran at once on the person's computer: now it waits for the person's approval (`eaos rules approve`, `rule`
   op=approve, the Studio's Your rules) and never runs before it. What a change could not be checked on is said so.
+  Then one more, found by a security check the owner asked for: under the Studio chat's direct control, a proposal
+  of rule op=approve with person_agreed=true ran the assistant's test command, the Studio taking the preview's
+  confirm token for it, and so would any proposal carrying the person's word (run_setup, tools_add, build_start,
+  logic_flaws, pinning a rule). Now a decision of the person's (one that cannot be undone, carries their word, or is
+  only theirs, `mcp_server/person.py`) never runs at once: it waits for their press, after a preview that shows it (a
+  rule's very guard command); the chat never takes a confirm token, and `rule` needs one for the person's operations
+  (`tests/interfaces/test_chat_consent.py`).
 - The proof (`tools/rules_proof.py`, no token): on a copy of the golden app with people's records in three files, one
   card with the three places, a fix of one place refused, a fix of all of them that broke the other rule refused with
   its words, the sound fix kept and taken in, the batch's rule ended with its batch, and a later commit writing the
