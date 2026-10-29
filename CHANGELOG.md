@@ -40,6 +40,17 @@ a rule is said once and held by a machine, for as long as it was asked for:
   found three defects, fixed: a commit of new files alone was never checked (its "before" never made); a copy of a file
   the change does not touch was not seen (the files holding six of the same lines are now read beside the change); the
   rules' line of a public English manual was written in the project's chat language (now the rules' own).
+- **Closure after the owner's review** (2026-10-29, within 0.0.89), four cases each reproduced by a test before its fix
+  (`tests/analysis/test_person_rules_closure.py`): a rule and its contradiction ("saved in the database" and "not
+  saved in the database", "20 rows" and "50 rows", "the admin pages" and "the public pages") were merged as one rule
+  said again: now only sayings that differ by courtesy words, case and punctuation are one rule, and one alike in words
+  only is kept apart, naming the rule it looks like; new words kept the old guard as their protection: now that guard
+  waits until one is written for them or the person keeps it, never run nor counted meanwhile, the old one kept in the
+  history; a commit's test guards ran on the working tree: a fix left unstaged hid a staged break, and an unstaged
+  mistake refused a sound commit; now they run on what the commit holds (the index checked out apart, its installed
+  dependencies linked, only when the working tree differs), and a deleted file is a change; a test command an assistant
+  proposed ran at once on the person's computer: now it waits for the person's approval (`eaos rules approve`, `rule`
+  op=approve, the Studio's Your rules) and never runs before it. What a change could not be checked on is said so.
 - The proof (`tools/rules_proof.py`, no token): on a copy of the golden app with people's records in three files, one
   card with the three places, a fix of one place refused, a fix of all of them that broke the other rule refused with
   its words, the sound fix kept and taken in, the batch's rule ended with its batch, and a later commit writing the

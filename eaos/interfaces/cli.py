@@ -178,7 +178,7 @@ def _run_commands(command):
 def _rule_commands(command):
     """The person's own rules (eaos/interfaces/terminal/rules.py)."""
     q = command('rules', 'Your own rules for this project: say one, pin it for every change, guard it, unpin it', 'rules_command')
-    q.add_argument('action', nargs='?', default='list', choices=['list', 'add', 'pin', 'unpin', 'change', 'guard', 'hook'])
+    q.add_argument('action', nargs='?', default='list', choices=['list', 'add', 'pin', 'unpin', 'change', 'guard', 'approve', 'hook'])
     q.add_argument('id', nargs='?', help='the rule (R1…); for hook: on or off')
     q.add_argument('said', nargs='*', help='add: the rule in your words; change: its new words')
     q.add_argument('--card', default=None, help='add: the rule holds for this card only'); q.add_argument('--pin', action='store_true', help='add: pinned at once')

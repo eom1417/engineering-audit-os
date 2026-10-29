@@ -22,32 +22,61 @@ def read(out):
 def row(rule, result):
     """One rule's result as the check, the gate and the views read it."""
     return {'id': rule['id'], 'words': rule['words'], 'lang': rule['lang'], 'scope': rule['scope'], 'said_on': registry.said_on(rule),
-            'said': len(rule['said']), 'kind': (rule.get('guard') or {}).get('kind'), 'guard': guards.said(rule.get('guard')),
+            'said': len(rule['said']), 'kind': (registry.in_force(rule) or {}).get('kind'), 'guard': guards.said(registry.in_force(rule)),
             'status': result['status'], 'places': result['places'], 'found': result['said'], 'seconds': result['seconds'],
+            'waiting': rule.get('pending') if rule.get('guard') else None,
             'broken_before': rule.get('broken', 0), 'returns': registry.came_back(rule)}
 
 
 def in_check(rules, root, found=None):
     """Every rule that holds now, its guard run on the whole code at `root` (a detector's on `found`, when given)."""
-    return [row(rule, guards.run(rule.get('guard'), root, None, found)) for rule in rules]
+    return [row(rule, guards.run(registry.in_force(rule), root, None, found)) for rule in rules]
+
+
+DEPENDENCIES = {'node_modules', '.venv', 'venv', 'vendor', 'bower_components'}    # installed, never copied: linked
+
+
+def _git(repo, *args, **options):
+    return subprocess.run(['git', '-C', str(repo), *args], capture_output=True, **options)
+
+
+def _tree(repo, where, commit, index=False):
+    """`repo` at `commit` checked out at `where` (with what is staged applied on top when `index`), its installed
+    dependency folders linked from the project, never installed again: a test guard runs there on the code a commit
+    holds. Whether it was made."""
+    if _git(repo, 'worktree', 'add', '--detach', '--quiet', str(where), commit).returncode: return False
+    if index:
+        staged = _git(repo, 'diff', '--cached', '--binary', '--no-renames').stdout
+        if staged and _git(where, 'apply', '--whitespace=nowarn', input=staged).returncode: return False
+    _linked(repo, where)
+    return True
+
+
+def _linked(repo, where):
+    """The project's installed dependency folders (DEPENDENCIES, as git ignores them) linked into the tree at `where`."""
+    ignored = _git(repo, 'ls-files', '--others', '--ignored', '--exclude-standard', '--directory', text=True).stdout.split('\n')
+    for folder in (f.rstrip('/') for f in ignored if f.endswith('/') and Path(f.rstrip('/')).name in DEPENDENCIES):
+        if (where / folder).parent.is_dir() and not (where / folder).exists(): (where / folder).symlink_to(Path(repo).resolve() / folder)
 
 
 @contextlib.contextmanager
-def at_commit(repo, commit):
-    """A function giving the code of `repo` at `commit`, checked out apart the first time it is asked for (a guard that
-    held needs no past to compare with), and removed at the end."""
+def at_commit(repo, commit, index=False):
+    """A function giving the code of `repo` at `commit` (`index`: with what is staged), checked out apart the first time
+    it is asked for (a guard that held needs no past to compare with), and removed at the end."""
     made = {}
-    with tempfile.TemporaryDirectory(prefix='eaos-rule-before-') as folder:
+    with tempfile.TemporaryDirectory(prefix='eaos-rule-tree-') as folder:
         def code():
-            if 'where' not in made:
-                where = Path(folder) / 'code'
-                done = subprocess.run(['git', '-C', str(repo), 'worktree', 'add', '--detach', '--quiet', str(where), commit], capture_output=True, text=True)
-                made['where'] = where if not done.returncode else None
+            if 'where' not in made: made['where'] = Path(folder) / 'code' if _tree(repo, Path(folder) / 'code', commit, index) else None
             return made['where']
         try:
             yield code
         finally:
-            if made.get('where'): subprocess.run(['git', '-C', str(repo), 'worktree', 'remove', '--force', str(made['where'])], capture_output=True)
+            if (Path(folder) / 'code').exists(): _git(repo, 'worktree', 'remove', '--force', str(Path(folder) / 'code'))
+
+
+def unstaged(repo):
+    """Whether the working tree holds anything a commit would not: a tracked file changed and not staged, a new file."""
+    return bool(_git(repo, 'diff', '--quiet').returncode or _git(repo, 'ls-files', '--others', '--exclude-standard', text=True).stdout.strip())
 
 
 def _new_places(after, before):
@@ -65,10 +94,10 @@ def _new_places(after, before):
 def _brought(rule, result, paths, before, found):
     """A guard's break kept only for what the change brought: a pattern's matches past those the code had before it, a
     test that passed before it. `before`: the code before the change (a folder, or a callable giving one)."""
-    kind = rule['guard']['kind']
+    kind = registry.in_force(rule)['kind']
     earlier = (before() if callable(before) else before) if kind in ('pattern', 'test') else None
     if earlier is not None:
-        was = guards.run(rule['guard'], earlier, paths, found)
+        was = guards.run(registry.in_force(rule), earlier, paths, found)
         if kind == 'test' and was['status'] == 'broken': result['status'] = 'held'        # it failed before the change too
         if kind == 'pattern': result['places'] = _new_places(result['places'], was['places'])
     if not result['places'] and kind != 'test': result['status'] = 'held'
@@ -81,7 +110,7 @@ def on_change(rules, root, paths, before=None, found=None):  # limits: parameter
     what the change added). Broken only by what the change brought."""
     results = []
     for rule in rules:
-        result = guards.run(rule.get('guard'), root, paths, found)
+        result = guards.run(registry.in_force(rule), root, paths, found)
         if result['status'] == 'broken': result = _brought(rule, result, paths, before, found)
         results.append(row(rule, result))
     return results
@@ -93,7 +122,7 @@ def broken(results):
 
 def brief(project, state, card=None, batch=None):
     """The rules that hold for this work, as its assistant reads them: [{id, words, said_on, guard}]."""
-    return [{'id': r['id'], 'words': r['words'], 'said_on': registry.said_on(r), 'guard': guards.said(r.get('guard'))}
+    return [{'id': r['id'], 'words': r['words'], 'said_on': registry.said_on(r), 'guard': guards.said(registry.in_force(r))}
             for r in registry.holding(project, state, card, batch)]
 
 
@@ -146,3 +175,9 @@ def found_of(problems):
     """The gates' problems as a detector guard reads them."""
     return [{'detector': p['gate'], 'places': [part.strip() for part in p['where'].split(',') if part.strip()], 'said': p['what']}
             for p in problems]
+
+
+def unchecked(results):
+    """The rules a change could not be checked on (a guard that did not run, one waiting for the person's word): said as
+    not checked, never as held."""
+    return [item for item in results if item['status'] == 'not_run' or item.get('waiting')]

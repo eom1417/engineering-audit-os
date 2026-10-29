@@ -29,6 +29,7 @@ function stateOf(r) {
   const brokeLast = r.last_broken && (!r.held || r.held.at < r.last_broken.at);
   if (!r.in_scope) return ac.mark('skipped', t('ru.ended'));
   if (brokeLast) return ac.mark('failed', esc(t('ru.broken', { where: r.last_broken.places.slice(0, 3).join(t('list.sep')) })));
+  if (r.pending) return ac.mark('waiting', t('ru.pending.' + r.pending));
   if (r.guard_kind === 'none') return ac.mark('waiting', t('ru.unguarded'));
   if (!r.guarded) return ac.mark('waiting', t('ru.no_guard'));
   return r.held ? ac.mark('ok', t('ru.held')) : ac.mark('waiting', t('ru.not_yet'));
@@ -38,7 +39,8 @@ function ruleRow(r) {
   const pin = !r.in_scope ? '' : r.scope.kind === 'pinned'
     ? `<button class="btn btn--quiet btn--sm" data-act="ru-unpin" data-id="${esc(r.id)}" data-fk="unpin-${esc(r.id)}">${t('ru.unpin')}</button>`
     : `<button class="btn btn--${r.offer_pin ? 'primary' : 'secondary'} btn--sm" data-act="ru-pin" data-id="${esc(r.id)}" data-fk="pin-${esc(r.id)}">${icon('lock', 'icon--sm')}${t('ru.pin')}</button>`;
-  return `<li class="row">${rowWords(`${code(r.id)} ${esc(r.words)}`, meta)}${offline() ? '' : pin}</li>`;
+  const approve = r.pending && !offline() ? `<button class="btn btn--secondary btn--sm" data-act="ru-approve" data-id="${esc(r.id)}" data-fk="approve-${esc(r.id)}">${t('ru.approve.' + r.pending)}</button>` : '';
+  return `<li class="row">${rowWords(`${code(r.id)} ${esc(r.words)}`, meta)}${approve}${offline() ? '' : pin}</li>`;
 }
 const addForm = () => `<div class="panel panel__pad stack-2">
     <label for="ru-words">${t('ru.add.label')}</label>
@@ -72,4 +74,5 @@ act('ru-add', el => {
 });
 act('ru-pin', el => ask({ op: 'pin', id: el.dataset.id }, 'ru.pinned.done'));
 act('ru-unpin', el => ask({ op: 'unpin', id: el.dataset.id }, 'ru.unpinned.done'));
+act('ru-approve', el => ask({ op: 'approve', id: el.dataset.id }, 'ru.approved'));
 act('ru-hook', el => ask({ op: 'hook', on: !!el.dataset.on }, el.dataset.on ? 'ru.hook.on' : 'ru.hook.off'));

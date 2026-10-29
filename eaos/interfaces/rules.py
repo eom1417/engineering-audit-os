@@ -28,8 +28,9 @@ def _row(rule, state):
     return {'id': rule['id'], 'words': rule['words'], 'scope': rule['scope'], 'state': rule['state'],
             'in_scope': registry.in_scope(rule, state), 'said_on': registry.said_on(rule), 'said_at': rule['said'][0]['at'],
             'said': len(rule['said']), 'guard_kind': (rule.get('guard') or {}).get('kind'),
-            'doors': sorted({s['door'] for s in rule['said']}), 'guard': guards.said(rule.get('guard')),
-            'guarded': (rule.get('guard') or {}).get('kind') not in (None, 'none'),
+            'doors': sorted({s['door'] for s in rule['said']}), 'guard': guards.said(registry.in_force(rule)),
+            'guarded': (registry.in_force(rule) or {}).get('kind') not in (None, 'none'),
+            'pending': rule.get('pending') if rule.get('guard') else None,
             'broken': rule.get('broken', 0), 'returns': registry.came_back(rule),
             'last_broken': last and {'at': last['at'], 'where': last['where'], 'places': last['places'][:10]},
             'held': rule.get('held'), 'offer_pin': _offer_pin(rule), 'history': rule['history'][-10:]}
@@ -81,7 +82,10 @@ def add(project=None, words='', door='terminal', by='person', card=None, pin=Fal
     files = written(state) if rule['scope']['kind'] == 'pinned' else []
     row = _row(rule, state)
     said = (f"you said this before, on {row['said_on']} ({before} times before)" if before else None)
-    return {'rule': row, 'repeat': before, 'said_before': said, 'written_into': files,
+    near = [] if before else rule.get('near') or []
+    return {'rule': row, 'repeat': before, 'said_before': said, 'written_into': files, 'looks_like': near,
+            **({'kept_apart': f"it looks like {', '.join(near)} but differs in words that may change what it asks (a "
+                              'negation, a number, a name): kept as a rule of its own; if it is the same, unpin one'} if near else {}),
             'what_now': ('pin it so it holds for every change (rule_pin)' if row['offer_pin'] else
                          'write its guard once with rule_guard (a code pattern with examples, a test, or EAOS detectors)'
                          if not row['guarded'] else 'it is guarded: every check and change runs it')}
@@ -92,7 +96,7 @@ def touches(project, ident):
     is written into, the cards it holds open. A test of the project's own is never removed with the rule."""
     state = _state(project)
     rule = registry.find(registry.load(state['project']), ident)
-    guard = rule.get('guard') or {}
+    guard = rule.get('guard') or {}         # what it is, waiting or not
     pinned = rule['scope']['kind'] == 'pinned' and rule['state'] == 'active'
     return {'rule': rule['id'], 'words': rule['words'], 'guard': guards.said(guard),
             'tests': guard.get('tests') or ([' '.join(guard['command'])] if guard.get('kind') == 'test' else []),
@@ -140,9 +144,18 @@ def guard(project=None, ident='', written_guard=None, write=False, by='person', 
         written_guard, cost = ask(rule, state['project'], workspace(state['project']) / 'rules' / rule['id'])
         by = 'assistant'
     rule = registry.guard(state['project'], ident, guards.checked(written_guard or {}), by, door)
-    result = guards.run(rule['guard'], state['project'])
+    result = guards.run(registry.in_force(rule), state['project'])
     if rule['scope']['kind'] == 'pinned': written(state)
     return {'rule': _row(rule, state), 'now': result, 'cost_usd': cost}
+
+
+def approve(project=None, ident='', by='person', door='terminal'):
+    """The person's word on a pending guard (its test command approved, or kept for the rule's new words): it runs from
+    now on, and is run once now."""
+    state = _state(project)
+    rule = registry.confirm(state['project'], ident, by, door)
+    if rule['scope']['kind'] == 'pinned': written(state)
+    return {'rule': _row(rule, state), 'now': guards.run(registry.in_force(rule), state['project'])}
 
 
 def hook(project=None, on=True, agreed=False):
@@ -176,7 +189,7 @@ def changed(project=None, base=None, staged=False, hook_only=False, gates=True):
     from ..analysis.rules.held import record
     project = Path(project or '.').resolve()
     rules = _holding_now(project, hook_only)
-    detected = any((r.get('guard') or {}).get('kind') == 'detector' for r in rules)
+    detected = any((registry.in_force(r) or {}).get('kind') == 'detector' for r in rules)
     result = diff.check(project, rules, base, staged, gates and (detected or not hook_only))
     record(project, result['results'], 'hook' if hook_only else 'changed')
     return result

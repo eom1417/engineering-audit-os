@@ -40,6 +40,7 @@ def rules_command(args, lang):
     if action in ('pin', 'unpin', 'change'): return _change(args, lang)
     if action == 'guard': return _guard(args, lang)
     if action == 'hook': return _hook(args, lang)
+    if action == 'approve': return _approve(args, lang)
     raise ValueError(f'unknown action {action}')
 
 
@@ -55,6 +56,7 @@ def _add(args, lang):
     done = rules.add(args.project, said, 'terminal', card=args.card, pin=args.pin)
     row = done['rule']
     notes = [words('rule_again', lang, date=row['said_on'], times=row['said'])] if done['repeat'] else []
+    if done['looks_like']: notes.append(words('rule_near', lang, ids=', '.join(done['looks_like'])))
     if row['offer_pin']: notes.append(words('rule_offer_pin', lang))
     guided.box(lang, words('rule_kept', lang, id=row['id'], words=row['words'][:120], scope=_scope(row, lang)), note=notes,
                commands=[f"eaos rules pin {row['id']}"] if row['offer_pin'] else [f"eaos rules guard {row['id']} --write"])
@@ -95,6 +97,15 @@ def _guard(args, lang):
                            places=', '.join(now['places'][:5])), commands=['eaos rules', 'eaos check --changed'])
 
 
+def _approve(args, lang):
+    """A waiting guard approved by the person: its command (or the guard kept for new words) shown, their yes, then it runs."""
+    shown = rules.touches(args.project, args.id)
+    agreed(rules._state(args.project)['project'], f'rule_approve_{args.id}', words('rule_approve', lang, guard=shown['guard']), args.yes)
+    done = rules.approve(args.project, args.id, door='terminal')
+    guided.box(lang, words('rule_guarded', lang, id=args.id, guard=done['rule']['guard'], status=words(f"status_{done['now']['status']}", lang),
+                           places=', '.join(done['now']['places'][:5])), commands=['eaos rules'])
+
+
 def _hook(args, lang):
     on = args.id != 'off'
     if on: agreed(rules._state(args.project)['project'], 'rules_hook', rules.hook(args.project, True)['ask_the_person'], args.yes)
@@ -116,8 +127,9 @@ def changed(args, lang):
         if not args.hook: raise
         print(f'EAOS could not check your rules on this commit ({type(problem).__name__}: {problem}); it goes on.', file=sys.stderr)
         return 0
-    from ...analysis.rules.held import refusal
+    from ...analysis.rules.held import refusal, unchecked
     for line in refusal(found['rules'], lang): say(f'❌ {line}')
+    for item in unchecked(found['results']): say('⚠️  ' + words('rule_unchecked', lang, id=item['id'], why=item['found'][:200]))
     for problem in found['laws'][:20] if not args.hook else []: say(f"⚠️  {problem['what']}")
     if found['refused']: print(words('changed_broken', lang, count=len(found['rules'])), file=sys.stderr)
     if not args.hook: _changed_box(found, lang)        # git shows what a hook prints: no box, no next command

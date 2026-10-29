@@ -19,6 +19,7 @@ import time
 from pathlib import Path
 
 from . import held
+from ...core.project import rules as registry
 
 REACH = 300                 # files followed through the import graph at most: past it, the change is wide and a full check reads it
 GATE_ENGINES = ('jscpd', 'ast-grep', 'bandit', 'gitleaks')      # the gates' engines that answer in seconds (eaos/journeys/fix/execute.py)
@@ -29,9 +30,10 @@ def _git(project, *args):
 
 
 def changed(project, base=None, staged=False):
-    if staged: names = _git(project, 'diff', '--cached', '--name-only', '--diff-filter=ACMR').stdout.split('\n')
+    # a deletion is a change (a test may need the file), a rename the deletion of one name and the addition of another
+    if staged: names = _git(project, 'diff', '--cached', '--name-only', '--no-renames', '--diff-filter=ACMD').stdout.split('\n')
     else:
-        names = _git(project, 'diff', '--name-only', '--diff-filter=ACMR', base or 'HEAD').stdout.split('\n')
+        names = _git(project, 'diff', '--name-only', '--no-renames', '--diff-filter=ACMD', base or 'HEAD').stdout.split('\n')
         names += _git(project, 'ls-files', '--others', '--exclude-standard').stdout.split('\n')
     return sorted({n for n in names if n.strip()})
 
@@ -135,11 +137,21 @@ def _held(project, rules, change, since, gates):
         # the code laws read the changed files and the files they hold six lines of (a copy and its source), never
         # their importers, which are for the rules' guards
         problems = laws(*reversed(_sides(project, paths + sources(project, after, paths), since, Path(scratch) / 'laws')), paths) if gates else []
-        tested = [r for r in rules if (r.get('guard') or {}).get('kind') == 'test']
+        tested = [r for r in rules if (registry.in_force(r) or {}).get('kind') == 'test']
         results = held.on_change([r for r in rules if r not in tested], after, paths, before, held.found_of(problems))
-        with held.at_commit(project, since[0] or 'HEAD') as earlier:
-            results += held.on_change(tested, project, files, earlier)
+        results += _tested(project, tested, files, since)
     return results, problems
+
+
+def _tested(project, rules, files, since):
+    """The test guards on the code the change holds: for a commit, what is staged (the project folder itself only when
+    nothing differs from it, else the index checked out apart, its dependencies linked); against the base commit."""
+    if not rules: return []
+    base, staged = since
+    with held.at_commit(project, base or 'HEAD') as earlier, held.at_commit(project, 'HEAD', index=True) as index:
+        tree = index() if staged and held.unstaged(project) else project
+        if tree is None: return [held.row(r, {'status': 'not_run', 'places': [], 'said': 'the staged code could not be checked out apart', 'seconds': 0}) for r in rules]
+        return held.on_change(rules, tree, files, earlier)
 
 
 def check(project, rules, base=None, staged=False, gates=True):  # limits: parameters -- the change (its project, base or index), the rules to hold and whether the gates run
@@ -147,7 +159,7 @@ def check(project, rules, base=None, staged=False, gates=True):  # limits: param
     a rule broken (the caller decides which rules may refuse: the hook only the pinned ones)."""
     started = time.monotonic()
     found = {'changed': changed(project, base, staged), 'reached': [], 'wide': False, 'results': [], 'laws': []}
-    bound = any((r.get('guard') or {}).get('kind') == 'test' and r['guard'].get('files') for r in rules)
+    bound = any((registry.in_force(r) or {}).get('kind') == 'test' and registry.in_force(r).get('files') for r in rules)
     if found['changed']:
         found['reached'], found['wide'] = reached(project, found['changed']) if bound else (found['changed'], False)
         found['results'], found['laws'] = _held(project, rules, found, (base, staged), gates)
