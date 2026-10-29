@@ -18,7 +18,10 @@ function listed(again) {
 /** A change of a rule: queued as a run (the person pressed it: their yes), the list read again once it ran. */
 async function ask(inputs, done) {
   try {
-    await client.start({ action: 'rule', inputs: Object.assign({ person_agreed: true }, inputs) });
+    // the person pressed it here, the rule and its guard on the page: the preview's token carries that word to the server
+    const all = Object.assign({ person_agreed: true }, inputs);
+    const seen = await client.preview('rule', { inputs: all });
+    await client.start({ action: 'rule', inputs: all, confirm: seen.confirm ? seen.confirm.token : null });
     toast(t(done));
     [1500, 4000].forEach(ms => setTimeout(() => listed(true), ms));
   } catch (e) { toast(said(e), { refusal: true }); }
@@ -39,7 +42,8 @@ function ruleRow(r) {
   const pin = !r.in_scope ? '' : r.scope.kind === 'pinned'
     ? `<button class="btn btn--quiet btn--sm" data-act="ru-unpin" data-id="${esc(r.id)}" data-fk="unpin-${esc(r.id)}">${t('ru.unpin')}</button>`
     : `<button class="btn btn--${r.offer_pin ? 'primary' : 'secondary'} btn--sm" data-act="ru-pin" data-id="${esc(r.id)}" data-fk="pin-${esc(r.id)}">${icon('lock', 'icon--sm')}${t('ru.pin')}</button>`;
-  const approve = r.pending && !offline() ? `<button class="btn btn--secondary btn--sm" data-act="ru-approve" data-id="${esc(r.id)}" data-fk="approve-${esc(r.id)}">${t('ru.approve.' + r.pending)}</button>` : '';
+  const command = r.pending === 'approval' ? `<br><span class="small">${t('ru.command')} <bdi class="mono" dir="ltr">${esc(r.command || '')}</bdi></span>` : '';
+  const approve = r.pending && !offline() ? `${command}<button class="btn btn--secondary btn--sm" data-act="ru-approve" data-id="${esc(r.id)}" data-fk="approve-${esc(r.id)}">${t('ru.approve.' + r.pending)}</button>` : '';
   return `<li class="row">${rowWords(`${code(r.id)} ${esc(r.words)}`, meta)}${approve}${offline() ? '' : pin}</li>`;
 }
 const addForm = () => `<div class="panel panel__pad stack-2">

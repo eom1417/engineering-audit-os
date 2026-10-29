@@ -115,7 +115,7 @@ def _turn(actions, adapter, turn, argv):
 
 def _done_at_once(actions, proposals):
     """Under direct control: each proposal that need not wait for the person's press, run now; what came of each."""
-    return [done for p in proposals if _direct(p) if (done := _execute(actions, p))]
+    return [done for p in proposals if _direct(p, actions) if (done := _execute(actions, p))]
 
 
 def progress(actions, turn):
@@ -173,17 +173,34 @@ def control(actions, body=None):
     return {'on': not path.exists(), 'confirmed': list(CONFIRMED)}
 
 
-def _direct(proposal):
-    return proposal['kind'] == 'control' or proposal['action'] not in CONFIRMED
+def _direct(proposal, actions=None):
+    """Whether direct control runs a proposal at once: a run's control, or an action that is no decision of the person's.
+    A decision always waits for the person's own press in the Studio, after its preview showed what it does (2026-10-29:
+    a chat proposal of rule op=approve with person_agreed=true ran an assistant's test command on the person's computer)."""
+    return proposal['kind'] == 'control' or not _the_persons(proposal, actions)
+
+
+def _the_persons(proposal, actions):
+    """Whether a proposal is the person's decision: what cannot be undone (CONFIRMED, or so in its contract), one that
+    carries their word (person_agreed, person_said, a confirm token: an action needing consent asks for it so), or
+    an operation only the person decides (eaos/interfaces/mcp_server/person.py PERSON_ONLY, a rule pinned as it is said)."""
+    action, inputs = proposal['action'], proposal.get('inputs') or {}
+    irreversible = any(a['id'] == action and a.get('irreversible') for a in (actions.contract['actions'] if actions else []))
+    return action in CONFIRMED or irreversible or any(inputs.get(word) for word in ('person_agreed', 'person_said', 'confirm')) or _only_theirs(action, inputs)
+
+
+def _only_theirs(action, inputs):
+    """An operation only the person decides, by its name (PERSON_ONLY), or a rule pinned as it is said."""
+    from ..mcp_server.person import PERSON_ONLY
+    return action in PERSON_ONLY or f"{action} {inputs.get('op')}" in PERSON_ONLY or (action == 'rule' and bool(inputs.get('pin')))
 
 
 def _execute(actions, proposal):
     """One proposal run by the Studio itself, as its own buttons run it: {proposal, run} or {proposal, error}."""
     try:
         if proposal['kind'] == 'control': run = getattr(actions.manager, proposal['action'])(proposal['run'])
-        else:
-            seen = actions.preview(proposal['action'], {'inputs': proposal['inputs']})
-            run = actions.create({'action': proposal['action'], 'inputs': proposal['inputs'], 'confirm': seen.get('confirm')})
+        else:       # never the person's decision (_direct): no confirm token is taken for them
+            run = actions.create({'action': proposal['action'], 'inputs': proposal['inputs']})
         return {'proposal': proposal, 'run': run.get('id')}
     except Exception as problem:
         # one that needs the person's own confirmation stays the proposal they confirm, not a refusal in their chat

@@ -2152,7 +2152,7 @@
    "mode": "direct",
    "needs_assistant": false,
    "irreversible": false,
-   "needs_consent": false,
+   "needs_consent": true,
    "returns_job": false,
    "changes_code": false,
    "inputs": {

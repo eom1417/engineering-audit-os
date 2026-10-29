@@ -134,7 +134,12 @@ class Previews:
                    risk={'level': 'high' if spec['irreversible'] else 'medium' if spec['changes_code'] else 'low',
                          'why': spec['description'] if spec['description']['en'] else spec['label']},
                    on_failure=selecting.ON_FAILURE['fix' if spec['changes_code'] else 'read'])
+        self._shown(out, action, inputs)
+
+    def _shown(self, out, action, inputs):
+        """What the person sees of the change itself before their press: where Accept would merge, a rule and its guard."""
         if action == 'accept' and self._has_commits(): out['merge'] = self.branches.accept_where()
+        if action == 'rule' and inputs.get('id'): out['shows'] = _rule_shown(self.project, inputs)
 
     def _measured(self, action, inputs):
         """A check's time as this project's last check measured it (eaos/journeys/check_choices.py); falsy for any other."""
@@ -148,3 +153,12 @@ class Previews:
         # The planner asks the assistant itself: there is no request a chat assistant could take over.
         handed = bool(needed) and action not in PLANNERS
         out['handoff'] = {'available': handed, 'request': handoff.request_text(prompt, '<run>') if handed else None}
+
+
+def _rule_shown(project, inputs):
+    """What a change of one of the person's rules does, shown before their press: its words and its guard as it would
+    run (an approved test guard's very command, M16)."""
+    from ..rules import touches
+    try: shown = touches(project, inputs['id'])
+    except LookupError: return None
+    return {'rule': shown['rule'], 'words': shown['words'], 'op': inputs.get('op'), 'guard': shown['guard']}

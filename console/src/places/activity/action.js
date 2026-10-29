@@ -102,6 +102,8 @@ function actionFacts(a, p) {
       a.needs_assistant ? [t('pv.who'), p.assistant ? esc(p.assistant.name) : esc(t('pv.handoff'))] : '',
     ]);
 }
+/** What a change of one of the person's rules does, before their press: the rule and its guard as it would run. */
+const shownRule = p => (p && p.shows ? `<p class="small">${t('pv.rule', { id: p.shows.rule, op: p.shows.op || '' })} ${esc(p.shows.words)}<br><b>${t('pv.rule.guard')}</b> <bdi class="mono" dir="ltr">${esc(p.shows.guard)}</bdi></p>` : '');
 const answerHTML = own => (own.answer !== undefined ? `<div class="ac-answer" role="status"><div class="block-title">${t('ac.ax.answer')}</div>${ac.answerHTML(own.answer) || `<p class="small muted">${t('ac.ax.answer.none')}</p>`}</div>` : '');
 function actionBody(a, own) {
   const m = metaOf(a), p = own.preview;
@@ -111,7 +113,7 @@ function actionBody(a, own) {
   return `<p>${esc(L(a.description))}</p>${flagLine(a)}${expert}${consentHTML(a)}${link}
         ${fields ? `<div class="ac-stack">${fields}</div>` : ''}
         <p class="small muted">${t('ac.ax.project', { name: code(model.project().name) })}</p>
-        ${actionFacts(a, p)}${p && a.needs_assistant && p.assistant ? `<p class="small ink-2">${t('pv.cost')}</p>` : ''}${answerHTML(own)}
+        ${actionFacts(a, p)}${shownRule(p)}${p && a.needs_assistant && p.assistant ? `<p class="small ink-2">${t('pv.cost')}</p>` : ''}${answerHTML(own)}
         ${terminalFold(esc(actionCmd(a, own)), true)}`;
 }
 const blocked = (a, own, p) => missing(a, own) || !p || own.busy || (a.needs_assistant && !p.assistant && !(p.handoff && p.handoff.available));
