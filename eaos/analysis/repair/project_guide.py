@@ -59,6 +59,13 @@ def _areas_text(areas):
             '| Area | Its main files | Where to start |', '|---|---|---|', *rows, '']
 
 
+def _checks_text(drawn):
+    """The project's own checks and tests, said once, so no one searches for them."""
+    checks = ', '.join(f'`{command}`' for command in drawn['checks']) or 'it declares none'
+    tests = next((r['test'] or r['example'] for r in drawn['recipes'] if r['id'] == 'test'), None)
+    return ['## The checks', '', f'Before merging: {checks}. Tests: ' + (f'beside `{tests}`.' if tests else 'this project has none yet.'), '']
+
+
 def _new_file(recipe):
     return f"a new file beside `{recipe['example']}`" if recipe['grows'] == 'added' else f"`{recipe['example']}`"
 
@@ -73,11 +80,10 @@ def _test_line(recipe):
     return [f"- **Test:** `{recipe['test']}`."] if recipe['test'] and recipe['test'] != recipe['example'] else []
 
 
-def _recipe_text(recipe, checks):
+def _recipe_text(recipe):
     made = f"{recipe['commit']['sha']}, {recipe['commit']['date']}" if recipe['commit'] else 'from the layout: no commit shows one added'
-    check = ['- **Check:** ' + ', '.join(f'`{command}`' for command in checks) + '.'] if checks else []
     return [f"### {recipe['title']}", f"- **Last real example:** `{recipe['example']}` ({made}).",
-            f"- **Read only:** {_quoted(recipe['read'])}.", _touch_line(recipe), *_test_line(recipe), *check, '']
+            f"- **Read only:** {_quoted(recipe['read'])}.", _touch_line(recipe), *_test_line(recipe), '']
 
 
 def text(drawn, name):
@@ -86,9 +92,9 @@ def text(drawn, name):
     head = [BEGIN, f'# Extending {name}', '',
             '**Adding anything starts here.** Read the recipe of what you add, not the whole project: it names the files to read and '
             'to touch, in order, taken from how this project really grew.', *pinned, '']
-    recipes = [line for recipe in drawn['recipes'] for line in _recipe_text(recipe, drawn['checks'])]
+    recipes = [line for recipe in drawn['recipes'] for line in _recipe_text(recipe)]
     missing = [f"**Not in this project yet:** {'; '.join(drawn['missing'])}. Keep the layers above when adding the first one.", ''] if drawn['missing'] else []
-    return '\n'.join([*head, *_layers_text(drawn['layers'], drawn['gaps']), *_areas_text(drawn['areas']), '## Recipes', '', *recipes, *missing, END]) + '\n'
+    return '\n'.join([*head, *_layers_text(drawn['layers'], drawn['gaps']), *_areas_text(drawn['areas']), *_checks_text(drawn), '## Recipes', '', *recipes, *missing, END]) + '\n'
 
 
 def _keep_below(old, new):

@@ -1009,6 +1009,123 @@
    }
   },
   {
+   "id": "context_propose",
+   "tool": "context_propose",
+   "group": "setup",
+   "label": {
+    "en": "See what the context batch would do",
+    "ar": "شوف وش تسوي دفعة ملفات الكونتكست"
+   },
+   "description": {
+    "en": "What the trim of the assistants' context would do and the extension guide it would write; nothing is written.",
+    "ar": "وش يسوي ترتيب ملفات الكونتكست، ودليل الإضافة اللي بيكتبه؛ وما ينكتب شي."
+   },
+   "mode": "direct",
+   "needs_assistant": false,
+   "irreversible": false,
+   "needs_consent": false,
+   "returns_job": false,
+   "changes_code": false,
+   "inputs": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+     "private_to": {
+      "type": [
+       "string",
+       "null"
+      ]
+     },
+     "project": {
+      "type": [
+       "string",
+       "null"
+      ],
+      "description": "The project folder; the Studio fills it with the project it serves."
+     }
+    },
+    "required": []
+   }
+  },
+  {
+   "id": "context_make",
+   "tool": "context_make",
+   "group": "setup",
+   "label": {
+    "en": "Trim the context and write the guide",
+    "ar": "رتّب الكونتكست واكتب الدليل"
+   },
+   "description": {
+    "en": "On a branch of its own: the context trimmed, every instruction kept, the extension guide written with one pointer line.",
+    "ar": "في فرع لحاله: الكونتكست مرتب بدون ما تضيع تعليمة، ودليل الإضافة مكتوب مع سطر واحد يشير له."
+   },
+   "mode": "direct",
+   "needs_assistant": false,
+   "irreversible": false,
+   "needs_consent": true,
+   "returns_job": true,
+   "changes_code": true,
+   "inputs": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+     "person_agreed": {
+      "type": "boolean"
+     },
+     "private_to": {
+      "type": [
+       "string",
+       "null"
+      ]
+     },
+     "project": {
+      "type": [
+       "string",
+       "null"
+      ],
+      "description": "The project folder; the Studio fills it with the project it serves."
+     }
+    },
+    "required": []
+   }
+  },
+  {
+   "id": "project_map",
+   "tool": "project_map",
+   "group": "setup",
+   "label": {
+    "en": "Build the map for your assistant",
+    "ar": "ابنِ الخريطة لمساعدك"
+   },
+   "description": {
+    "en": "GitNexus's map of the project: its index outside the project, its short skills where git does not take them. Asks your agreement.",
+    "ar": "خريطة GitNexus للمشروع: فهرسها برا المشروع، ومهاراتها القصيرة في مكان git ما ياخذه. يطلب موافقتك."
+   },
+   "mode": "direct",
+   "needs_assistant": false,
+   "irreversible": false,
+   "needs_consent": true,
+   "returns_job": false,
+   "changes_code": false,
+   "inputs": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+     "person_agreed": {
+      "type": "boolean"
+     },
+     "project": {
+      "type": [
+       "string",
+       "null"
+      ],
+      "description": "The project folder; the Studio fills it with the project it serves."
+     }
+    },
+    "required": []
+   }
+  },
+  {
    "id": "run_try",
    "tool": "run_try",
    "group": "setup",
