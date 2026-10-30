@@ -3,11 +3,11 @@ never the commit of a repository EAOS only happens to sit in (a .venv inside a p
 import shutil
 import subprocess
 import sys
-import tempfile
 import unittest
 from pathlib import Path
 
 import eaos
+from tests.shared_fixture import Workspace
 
 CODE = Path(eaos.__file__).resolve().parent
 ASK = 'from eaos.core.system.version_info import commit; print(commit())'
@@ -19,15 +19,16 @@ def git(*args, cwd):
 
 
 def said(packages):
-    """The commit a fresh Python with EAOS at `packages` says, its pip record aside (none is found there)."""
-    return subprocess.run([sys.executable, '-I', '-c', f'import sys; sys.path.insert(0, {str(packages)!r}); {ASK}'],
+    """The commit a fresh Python with EAOS at `packages` says, with no site-packages (-S): no pip record of an install
+    answers before git does."""
+    return subprocess.run([sys.executable, '-I', '-S', '-c', f'import sys; sys.path.insert(0, {str(packages)!r}); {ASK}'],
                           capture_output=True, text=True, check=True, cwd=packages).stdout.strip()
 
 
-class VersionCommit(unittest.TestCase):
+class VersionCommit(Workspace):
     def setUp(self):
-        self.tmp = Path(tempfile.mkdtemp())
-        self.addCleanup(shutil.rmtree, self.tmp, True)
+        super().setUp()
+        self.tmp = Path(self.tmp)
 
     def copy(self, folder):
         shutil.copytree(CODE, folder / 'eaos', ignore=shutil.ignore_patterns('__pycache__'))
