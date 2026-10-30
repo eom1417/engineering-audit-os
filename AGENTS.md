@@ -16,6 +16,7 @@ before anything else; it binds over this file.
 | `docs/NORTH-STAR.md` | what EAOS is for, the three journeys, the principles |
 | `docs/STANDARDS.md` | the laws (code, security, safety, disk, tests, language), what guards each, the Definition of Done |
 | `docs/ARCHITECTURE.md` | the layout, the layers, the loops, where a new file goes |
+| `docs/EXTENDING.md` | **adding anything starts here**: per kind of addition, the files to read and touch, the test, the gates |
 | `docs/METRICS.md` | the numbers, baseline and after each milestone |
 | `CHANGELOG.md` | what each version changed and why |
 | `CONTRIBUTING.md` | how a change is proposed |

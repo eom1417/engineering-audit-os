@@ -8,9 +8,12 @@ reports are rebuilt by the measurements and trials.
 
     python tools/dev_paths.py            # print where each part is
     python tools/dev_paths.py upstreams  # clone every engine source eaos/data/toolchain.json pins (source_commit)
+    python tools/dev_paths.py map        # GitNexus's map of EAOS (docs/EXTENDING.md "The map"), about 35 s, no token
+    python tools/dev_paths.py map-where  # the command that asks it who calls a symbol and what a change breaks
 """
 import json
 import os
+import shutil
 import subprocess
 import sys
 from pathlib import Path
@@ -31,6 +34,10 @@ UPSTREAMS = place('EAOS_UPSTREAMS', 'upstream-src')
 TRUTH = place('EAOS_TRUTH', 'truth')
 # Public pipeline projects pinned for the pipeline map's truth files (evaluations/pipelines/, tools/pipeline_truth.py).
 PIPELINES = place('EAOS_PIPELINES', 'pipelines')
+# GitNexus writes where it reads (its index of about 300 MB, skills, a block in AGENTS.md and CLAUDE.md), so it reads a
+# copy of the tracked files here, never the checkout; `--skip-agents-md` keeps its block out of the context files.
+MAP = place('EAOS_MAP', 'map')
+SKILLS = ROOT / '.claude' / 'skills'          # its skills are copied here, a folder git ignores
 
 
 def pinned_upstreams(registry=ROOT / 'eaos/data/toolchain.json'):
@@ -49,11 +56,45 @@ def fetch_upstreams():
         print(f'{name}: {commit[:10]}')
 
 
+def _copy_tracked(copy):
+    """The tracked files of this checkout over the last copy; GitNexus's own folders kept for its cache."""
+    for old in copy.glob('*') if copy.exists() else ():
+        if old.name not in ('.gitnexus', '.claude', '.agents'): shutil.rmtree(old) if old.is_dir() else old.unlink()
+    listed = subprocess.run(['git', 'ls-files', '-z'], cwd=ROOT, capture_output=True, check=True).stdout.decode().split('\0')
+    for name in filter(None, listed):
+        if (ROOT / name).is_file():
+            (copy / name).parent.mkdir(parents=True, exist_ok=True)
+            shutil.copy2(ROOT / name, copy / name)
+
+
+def map_where():
+    return f'GITNEXUS_HOME={MAP / "registry"} gitnexus impact <symbol> -r {ROOT.name} > /tmp/impact.json   (copy: {MAP / ROOT.name})'
+
+
+def build_map():
+    """GitNexus's graph, area skills and MCP of EAOS: built on a copy in MAP, its skills copied into .claude/skills."""
+    sys.path.insert(0, str(ROOT))
+    from eaos.core.toolchain import home
+    binary = str(home() / 'bin' / 'gitnexus') if (home() / 'bin' / 'gitnexus').exists() else shutil.which('gitnexus')
+    if not binary: raise SystemExit('gitnexus is not installed: python -m eaos tools install --only gitnexus')
+    copy = MAP / ROOT.name
+    _copy_tracked(copy)
+    subprocess.run([binary, 'analyze', '--skills', '--skip-agents-md', '--skip-git', '--no-stats', '--name', ROOT.name, '.'],
+                   cwd=copy, env=dict(os.environ, GITNEXUS_HOME=str(MAP / 'registry')), check=True)
+    for old in SKILLS.glob('gitnexus*'): shutil.rmtree(old)
+    for skill in (copy / '.claude' / 'skills').glob('gitnexus*'): shutil.copytree(skill, SKILLS / skill.name)
+    print(f"{len(list(SKILLS.glob('gitnexus*')))} skills in .claude/skills; {map_where()}")
+
+
 if __name__ == '__main__':
     if sys.argv[1:] == ['upstreams']:
         fetch_upstreams()
+    elif sys.argv[1:] == ['map']:
+        build_map()
+    elif sys.argv[1:] == ['map-where']:
+        print(map_where())
     elif not sys.argv[1:]:
-        for label, path in (('corpus', CORPUS), ('measure', MEASURE), ('upstream-src', UPSTREAMS), ('truth', TRUTH), ('pipelines', PIPELINES)):
+        for label, path in (('corpus', CORPUS), ('measure', MEASURE), ('upstream-src', UPSTREAMS), ('truth', TRUTH), ('pipelines', PIPELINES), ('map', MAP)):
             print(f'{label:13} {path}{"" if path.exists() else "  (absent)"}')
     else:
         raise SystemExit(__doc__)
