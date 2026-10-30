@@ -2,7 +2,7 @@
 
 Every function becomes a measurement row (granularity `symbol`); a function above Lizard's own warning
 threshold (cyclomatic complexity over 15) is also a `complexity` finding, a witness beside reforge and
-enola, so two of them agreeing on one file is what raises a claim. Its CSV has no header: the
+EAOS's own count, so two of them agreeing on one file is what raises a claim. Its CSV has no header: the
 column order is pinned by the contract sample in tests/contracts/lizard.json.
 """
 import csv

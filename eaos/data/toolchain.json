@@ -20,8 +20,11 @@
    "primary": "gitnexus"
   },
   "architecture_map": {
-   "what": "The code drawn as a city (size, complexity, changes) and its dependency clusters",
-   "primary": "codecharta"
+   "what": "The files most worth a look (complexity times changes) and the clusters the imports draw",
+   "primary": "eaos",
+   "eaos": [
+    "eaos/analysis/maps/code_map.py"
+   ]
   },
   "near_copies": {
    "what": "Code copied or nearly copied in several places",
@@ -150,97 +153,6 @@
   }
  },
  "tools": [
-  {
-   "name": "codegraph",
-   "role": "read",
-   "stages": [
-    "S02",
-    "S03",
-    "S04"
-   ],
-   "check": "engines",
-   "license": "Apache-2.0",
-   "repository": "https://github.com/codegraph-ai/CodeGraph",
-   "version": "0.20.1",
-   "source_commit": "64f4f306e2a88eaba43eaef05499779d7fe6f75b",
-   "binary": "codegraph-server",
-   "install": {
-    "method": "release",
-    "url": "https://github.com/codegraph-ai/CodeGraph/releases/download/v0.20.1/codegraph-server-linux-x64",
-    "sha256": "32b26422fa5ffe0a130955b7f7df771f722b2d427d67f53f104d9907bdfb24a6",
-    "archive": "binary",
-    "member": "codegraph-server",
-    "platforms": {
-     "linux-x86_64": {
-      "method": "release",
-      "url": "https://github.com/codegraph-ai/CodeGraph/releases/download/v0.20.1/codegraph-server-linux-x64",
-      "sha256": "32b26422fa5ffe0a130955b7f7df771f722b2d427d67f53f104d9907bdfb24a6",
-      "archive": "binary",
-      "member": "codegraph-server"
-     },
-     "darwin-arm64": {
-      "url": "https://github.com/codegraph-ai/CodeGraph/releases/download/v0.20.1/codegraph-server-darwin-arm64",
-      "sha256": "460d830e93467efb9270bfe6ac01f34e32d3369041e3a93699a9887053d18cc3",
-      "archive": "binary",
-      "member": "codegraph-server"
-     },
-     "darwin-x86_64": {
-      "url": "https://github.com/codegraph-ai/CodeGraph/releases/download/v0.20.1/codegraph-server-darwin-x64",
-      "sha256": "5aa863ea529afcf6664cf40fcd7079d4121e8348acc1c9e0ebbc0c4675246ddd",
-      "archive": "binary",
-      "member": "codegraph-server"
-     }
-    }
-   },
-   "jobs": {
-    "code_graph": "raw import statements and per-symbol complexity (EAOS has both itself; no call edge on any measured ground)"
-   }
-  },
-  {
-   "name": "enola",
-   "role": "read",
-   "stages": [
-    "S02",
-    "S04"
-   ],
-   "check": "engines",
-   "license": "Apache-2.0",
-   "repository": "https://github.com/enola-labs/enola",
-   "version": "0.4.21",
-   "source_commit": "d086926aca80975dde34094e99c84cce59fb1cd6",
-   "binary": "enola",
-   "install": {
-    "method": "release",
-    "url": "https://github.com/enola-labs/enola/releases/download/v0.4.21/enola-0.4.21-linux-amd64.tar.gz",
-    "sha256": "002f7d199e3461ba114e619608e38c9fa67d34089b9fc6423214943e146f322c",
-    "archive": "tar.gz",
-    "member": "enola-0.4.21-linux-amd64",
-    "platforms": {
-     "linux-x86_64": {
-      "method": "release",
-      "url": "https://github.com/enola-labs/enola/releases/download/v0.4.21/enola-0.4.21-linux-amd64.tar.gz",
-      "sha256": "002f7d199e3461ba114e619608e38c9fa67d34089b9fc6423214943e146f322c",
-      "archive": "tar.gz",
-      "member": "enola-0.4.21-linux-amd64"
-     },
-     "darwin-arm64": {
-      "url": "https://github.com/enola-labs/enola/releases/download/v0.4.21/enola-0.4.21-darwin-arm64.tar.gz",
-      "sha256": "8786ea0139d994e25299cdadc70c124054f0eea3babc42972861d9e6782c36ff",
-      "archive": "tar.gz",
-      "member": "enola-0.4.21-darwin-arm64"
-     },
-     "darwin-x86_64": {
-      "url": "https://github.com/enola-labs/enola/releases/download/v0.4.21/enola-0.4.21-darwin-amd64.tar.gz",
-      "sha256": "12c5816b5d01d910b4a91b85eb0a42babfec601eb6120e7be6018732ca5549d1",
-      "archive": "tar.gz",
-      "member": "enola-0.4.21-darwin-amd64"
-     }
-    }
-   },
-   "jobs": {
-    "dead_code": "package-level insights: dead code, cycles, god classes (50 of 50 dead-code candidates false on EAOS, none of the planted found)"
-   }
-  },
   {
    "name": "reforge",
    "role": "read",
@@ -484,52 +396,6 @@
    "license_note": "Semgrep Rules License v1.0: fetched to this machine for non-commercial use and read by the semgrep adapter; never copied into the EAOS repository or redistributed.",
    "jobs": {
     "static_security": "the official rule library Semgrep reads (security and secrets only)"
-   }
-  },
-  {
-   "name": "trivy",
-   "role": "read",
-   "stages": [
-    "S04",
-    "S10"
-   ],
-   "applies": "all",
-   "check": "engines",
-   "license": "Apache-2.0",
-   "repository": "https://github.com/aquasecurity/trivy",
-   "version": "0.74.0",
-   "binary": "trivy",
-   "install": {
-    "method": "release",
-    "url": "https://github.com/aquasecurity/trivy/releases/download/v0.74.0/trivy_0.74.0_Linux-64bit.tar.gz",
-    "sha256": "2ae6fe3ee734b7fdf11335663e18c75ea12dccc76062f09f164a3b0f8be4371a",
-    "archive": "tar.gz",
-    "member": "trivy",
-    "platforms": {
-     "linux-x86_64": {
-      "method": "release",
-      "url": "https://github.com/aquasecurity/trivy/releases/download/v0.74.0/trivy_0.74.0_Linux-64bit.tar.gz",
-      "sha256": "2ae6fe3ee734b7fdf11335663e18c75ea12dccc76062f09f164a3b0f8be4371a",
-      "archive": "tar.gz",
-      "member": "trivy"
-     },
-     "darwin-arm64": {
-      "url": "https://github.com/aquasecurity/trivy/releases/download/v0.74.0/trivy_0.74.0_macOS-ARM64.tar.gz",
-      "sha256": "1caada5e0e2091909357c7525d3aa76f4b660b13821bc143b190c7483e31cc11",
-      "archive": "tar.gz",
-      "member": "trivy"
-     },
-     "darwin-x86_64": {
-      "url": "https://github.com/aquasecurity/trivy/releases/download/v0.74.0/trivy_0.74.0_macOS-64bit.tar.gz",
-      "sha256": "472816f6888dda689d075c30254d4210b4d1035acf365aa72332f584c2f60485",
-      "archive": "tar.gz",
-      "member": "trivy"
-     }
-    }
-   },
-   "jobs": {
-    "secrets": "a third secret witness (no secret Gitleaks and Semgrep missed on any measured ground)",
-    "infrastructure_config": "Dockerfile and Kubernetes pitfalls (each also found by Checkov; no Terraform or CI file read)"
    }
   },
   {
@@ -966,10 +832,10 @@
      "GITNEXUS_SKIP_OPTIONAL_GRAMMARS": "1"
     }
    },
-   "license_note": "Non-commercial use only. EAOS is free and non-commercial; a commercial user of EAOS is bound by this license and may skip it (--skip gitnexus): CodeGraph and dependency-cruiser cover its core capability.",
+   "license_note": "Non-commercial use only. EAOS is free and non-commercial; a commercial user of EAOS is bound by this license and may skip it (--skip gitnexus): EAOS's own graph and dependency-cruiser cover what the check reads from it.",
    "jobs": {
     "assistant_map": "primary",
-    "architecture_map": "the code's communities (Leiden), unused today"
+    "code_graph": "a second witness of calls and imports, exact on calls through a module, with impact and processes for an assistant"
    }
   },
   {
@@ -1192,57 +1058,6 @@
    }
   },
   {
-   "name": "temurin-jre",
-   "role": "validate",
-   "stages": [
-    "S02",
-    "S06"
-   ],
-   "license": "GPL-2.0-with-classpath-exception",
-   "repository": "https://github.com/adoptium/temurin21-binaries",
-   "version": "21.0.12",
-   "version_args": [
-    "-version"
-   ],
-   "binary": "java",
-   "install": {
-    "method": "release",
-    "url": "https://github.com/adoptium/temurin21-binaries/releases/download/jdk-21.0.12.1%2B1/OpenJDK21U-jre_x64_linux_hotspot_21.0.12.1_1.tar.gz",
-    "sha256": "2413149700df0f7d440500a84a8f764c535f21e5a5e87d38328b64eec2c5b500",
-    "archive": "tar.gz",
-    "tree": true,
-    "entry": "jdk-21.0.12.1+1-jre/bin/java",
-    "platforms": {
-     "linux-x86_64": {
-      "method": "release",
-      "url": "https://github.com/adoptium/temurin21-binaries/releases/download/jdk-21.0.12.1%2B1/OpenJDK21U-jre_x64_linux_hotspot_21.0.12.1_1.tar.gz",
-      "sha256": "2413149700df0f7d440500a84a8f764c535f21e5a5e87d38328b64eec2c5b500",
-      "archive": "tar.gz",
-      "tree": true,
-      "entry": "jdk-21.0.12.1+1-jre/bin/java"
-     },
-     "darwin-arm64": {
-      "url": "https://github.com/adoptium/temurin21-binaries/releases/download/jdk-21.0.12.1%2B1/OpenJDK21U-jre_aarch64_mac_hotspot_21.0.12.1_1.tar.gz",
-      "sha256": "dec50fc6f9fcd4fe3ae8cabf5a5fa68f6afc48841f7698e468e9aa5d54beed84",
-      "archive": "tar.gz",
-      "tree": true,
-      "entry": "jdk-21.0.12.1+1-jre/Contents/Home/bin/java"
-     },
-     "darwin-x86_64": {
-      "url": "https://github.com/adoptium/temurin21-binaries/releases/download/jdk-21.0.12.1%2B1/OpenJDK21U-jre_x64_mac_hotspot_21.0.12.1_1.tar.gz",
-      "sha256": "6717ec641fd9ce0bb209ca083ee23b42202ac68cb6fcc5753496e0e4a0f41989",
-      "archive": "tar.gz",
-      "tree": true,
-      "entry": "jdk-21.0.12.1+1-jre/Contents/Home/bin/java"
-     }
-    }
-   },
-   "install_note": "CodeCharta's analysis CLI (ccsh) runs on it; the checksum is the one Adoptium publishes.",
-   "jobs": {
-    "architecture_map": "the Java runtime CodeCharta's analysis needs"
-   }
-  },
-  {
    "name": "jscodeshift",
    "role": "run",
    "stages": [
@@ -1327,56 +1142,6 @@
    "install_note": "Libraries, no executable: the journeys stage (eaos/live/behavior/lock.py run_journeys) injects rrweb's recorder unmodified into each page a journey opens and keeps its events as JSON, capped in size, for the assistant and a later replay with rrweb-player from local files, never from a network.",
    "jobs": {
     "journey_recording": "primary"
-   }
-  },
-  {
-   "name": "codecharta",
-   "role": "read",
-   "stages": [
-    "S02",
-    "S03"
-   ],
-   "check": "architecture",
-   "license": "BSD-3-Clause",
-   "repository": "https://github.com/MaibornWolff/codecharta",
-   "version": "2.1.0",
-   "binary": "ccsh",
-   "install": {
-    "method": "npm",
-    "package": "codecharta-analysis"
-   },
-   "install_note": "The analysis CLI (ccsh): unifiedparser (size and complexity per file) and gitlogparser (change frequency) merged into one cc.json, the architecture city (eaos/engines/code/codecharta_emerge.py). Needs temurin-jre.",
-   "jobs": {
-    "architecture_map": "primary"
-   }
-  },
-  {
-   "name": "emerge",
-   "role": "read",
-   "stages": [
-    "S02",
-    "S03"
-   ],
-   "check": "architecture",
-   "license": "MIT",
-   "repository": "https://github.com/glato/emerge",
-   "version": "2.0.7",
-   "binary": "emerge",
-   "install": {
-    "method": "pip",
-    "package": "emerge-viz",
-    "with": [
-     "setuptools==80.10.2",
-     "pip==24.0"
-    ],
-    "own_venv": true
-   },
-   "install_note": "The dependency graph with its clusters (Louvain modularity), as JSON and as a local interactive page (eaos/engines/code/codecharta_emerge.py). Its own environment: its dependencies would move packaging (23.2 to 26.3) in the one the other Python tools share. setuptools 80 is installed beside it: emerge imports pkg_resources, which setuptools 81 removes, and pip 24.0, whose internals it reads to list the Python packages it sees. At its end it tries to copy a path to the clipboard and fails on a computer without one; its files are already written, and EAOS judges it by them.",
-   "version_args": [
-    "--help"
-   ],
-   "jobs": {
-    "architecture_map": "the file dependency graph's clusters (Louvain) and fan-in"
    }
   },
   {

@@ -1,7 +1,7 @@
 """Security findings in the project's own code, read as a few cards and never dropped.
 
-Every engine that reads code for security (Semgrep's patterns, Bandit's syntax tree, CodeQL's data flow, Gitleaks'
-and Trivy's secret scanners) reports weaknesses its own way, and a real one is often seen by only one of them. So:
+Every engine that reads code for security (Semgrep's patterns, Bandit's syntax tree, CodeQL's data flow, and
+Gitleaks' secret scanner) reports weaknesses its own way, and a real one is often seen by only one of them. So:
 - Two engines agree when they report a weakness of the same kind (a secret, or a vulnerability) in the same file
   within LINE_WINDOW lines of each other: the group is corroborated, a LIKELY card.
 - A finding no other engine confirms still becomes a card, a HYPOTHESIS the assistant's triage decides on the code

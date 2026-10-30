@@ -16,8 +16,6 @@ sys.path.insert(0, str(ROOT))
 from eaos.core.system.web import opened  # noqa: E402
 
 REPOSITORIES = {
-    'enola': 'enola-labs/enola',
-    'codegraph': 'codegraph-ai/CodeGraph',
     'reforge': 'LyleMi/Reforge',
     'jscpd': 'kucherenko/jscpd',
 }

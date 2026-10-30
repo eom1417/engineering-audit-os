@@ -1,4 +1,4 @@
-"""SARIF 2.1.0, read once for every tool that writes it: Semgrep, Trivy, Checkov, OSV-Scanner, Spectral, ZAP.
+"""SARIF 2.1.0, read once for every tool that writes it: Semgrep, Checkov, OSV-Scanner, Spectral, ZAP.
 
 A tool adapter builds its command, runs it, and hands the SARIF file here. Which EAOS kind a rule becomes is
 data, in eaos/rules/sarif-rules.json, not code: the first row whose `match` (fnmatch on the ruleId) fits wins.

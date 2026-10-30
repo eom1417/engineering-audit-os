@@ -186,8 +186,8 @@ class InstalledEngineTests(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
-        from eaos.engines.code import enola, jscpd
-        if not (version_of(enola) and version_of(jscpd)):
+        from eaos.engines.code import jscpd, lizard
+        if not (version_of(lizard) and version_of(jscpd)):
             raise unittest.SkipTest('the pinned engines are not installed in this environment')
 
     def test_a_run_only_runs_what_was_asked_leaves_the_target_untouched_and_is_reproducible(self):
@@ -203,7 +203,7 @@ class InstalledEngineTests(unittest.TestCase):
             for name, mtime in (('a', 1_000_000), ('b', 2_000_000)):
                 target = shutil.copytree('eaos/core/progress', Path(tmp, name, 'progress'))
                 for path in target.rglob('*'): os.utime(path, (mtime, mtime))
-                collect(target, Path(tmp, name, 'out'), engines=['enola', 'jscpd'])
+                collect(target, Path(tmp, name, 'out'), engines=['lizard', 'jscpd'])
                 facts = json.loads(Path(tmp, name, 'out', 'facts/external.json').read_text())['facts']
                 ids.append(sorted(fact['id'] for fact in facts))
         self.assertTrue(ids[0])

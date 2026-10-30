@@ -23,7 +23,7 @@ from ..process import run, which
 
 NAME, BINARY, PINNED = 'jscpd', 'jscpd', '5.4.2'
 ALWAYS_IGNORED = ('**/.git/**', '**/node_modules/**', '**/.venv/**', '**/dist/**', '**/build/**',
-                  '**/__pycache__/**', '**/.enola/**', '**/*.d.ts')     # a declaration file: types written (or generated) for code elsewhere
+                  '**/__pycache__/**', '**/*.d.ts')     # a declaration file: types written (or generated) for code elsewhere
 IMPORT = re.compile(r'^\s*(from\s+\S+\s+import\b|import\s|export\s.*\bfrom\s|\}\s*from\s)')
 ONE = r'[\w$]+(\s+as\s+[\w$]+)?'                   # a name imported, maybe renamed
 NAMES = re.compile(rf'^\s*\(?\s*{ONE}(\s*,\s*{ONE})*\s*,\s*$|^\s*{ONE}(\s*,\s*{ONE})+\s*$')   # a line of an import's list of names

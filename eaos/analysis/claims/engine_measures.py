@@ -16,7 +16,7 @@ def _number(value):
 
 
 def _complexity(facts):
-    # reforge names it function.complexity and declares a threshold; codegraph names it complexity
+    # reforge names it function.complexity and declares a threshold; an engine may name it complexity
     # without one. A measurement that carries its threshold is preferred over one that does not.
     found = [m for fact in facts for name in ('function.complexity', 'cyclomatic_complexity', 'cognitive_complexity', 'complexity')
              for m in [_extract_measurement(fact, name)] if m is not None and m.get('value') is not None]

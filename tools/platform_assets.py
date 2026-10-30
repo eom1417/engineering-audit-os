@@ -49,7 +49,7 @@ def _named_like(names, wanted, tree):
     """The files named exactly like the tool (under bin/ for a tree), else the ones named after its release."""
     base = lambda n: n.rsplit('/', 1)[-1]
     found = [n for n in names if base(n) == wanted and (not tree or '/bin/' in n)]
-    # A binary named after its release (enola-0.4.21-darwin-arm64) is still the tool.
+    # A binary named after its release (reforge-0.3.0-darwin-arm64) is still the tool.
     return found or [n for n in names if base(n).startswith(wanted + '-') and not re.search(r'\.(txt|md|json|sha256)$', base(n))]
 
 

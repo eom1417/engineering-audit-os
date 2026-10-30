@@ -5,7 +5,7 @@ and it touches .git. So it never runs on the project. It runs on a real copy (no
 file is the original) without .git or dependency folders, with --index-only so it injects nothing, and
 with GITNEXUS_HOME inside the work directory so its registry stays out of the user's home.
 
-It is a third witness beside EAOS's own graph, CodeGraph and dependency-cruiser. Its cycles are the
+It is the second witness beside EAOS's own graph (dependency-cruiser holds the JavaScript boundaries). Its cycles are the
 source graph's (type imports included); a file at least FAN_IN files import is a coupling finding; its
 communities (Leiden clusters) are candidate boundaries of today's components for S02 and NS7, written to
 facts/external.json -> summary.communities. Agreement between witnesses raises a claim; disagreement is

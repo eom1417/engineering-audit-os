@@ -4,9 +4,9 @@ Read only from the facts the check already wrote; nothing is guessed:
 
     functions   facts/syntax.json symbol (function, method): name, file, lines, parameters, exported; and the
                 functions Lizard measured in a language the parser does not read (engines: symbol_metric_external)
-    complexity  Lizard's cyclomatic complexity when Lizard ran (engine lizard), else the lexical branch count of
-                facts/metrics.json; `src` names which
-    size        Lizard's lines of code, else the metric's line count, else the symbol's span
+    complexity  EAOS's own count (the code laws', facts/metrics.json), else Lizard's for a function the parser did not
+                read; `src` names which
+    size        the metric's line count, else Lizard's lines of code, else the symbol's span
     kind        react-docgen's exported components (engine react-docgen, with their props as the signature); a
                 capitalised function in a .tsx/.jsx file is a component by React's own naming rule; use* is a hook;
                 handle*/on* is a handler
@@ -241,19 +241,22 @@ def _signature(short, value, component):
 
 
 def _lines(row, liz, metric):
-    """An engine's measure when it is a possible one (lizard said -1 for eaos/report/blueprint/design.py page, and the whole section
-    failed its contract); else EAOS's own."""
-    if liz and (liz.get('nloc') or -1) >= 0: return {'value': liz['nloc'], 'src': 'engines lizard#nloc', 'unit': 'lines'}
+    """EAOS's own measure; else Lizard's when it is a possible one (lizard said -1 for eaos/report/blueprint/design.py page, and
+    the whole section failed its contract); else the symbol's span."""
     if metric.get('lines') is not None: return {'value': metric['lines'], 'src': 'facts/metrics.json#metric.value.lines', 'unit': 'lines'}
+    if liz and (liz.get('nloc') or -1) >= 0: return {'value': liz['nloc'], 'src': 'engines lizard#nloc', 'unit': 'lines'}
     span = (row['end'] - row['start'] + 1) if row['end'] else None
     return {'value': span, 'src': 'facts/syntax.json#symbol end_line - start_line + 1', 'unit': 'lines'}
 
 
 def _complexity(liz, metric):
-    if liz and liz.get('cyclomatic_complexity') is not None:
-        return {'value': liz['cyclomatic_complexity'], 'src': 'engines lizard#cyclomatic_complexity', 'unit': 'count'}
+    """The code laws' one count (facts/metrics.json); Lizard's only for a function EAOS did not measure."""
+    if metric.get('complexity') is not None:
+        return {'value': metric['complexity'], 'src': 'facts/metrics.json#metric.value.complexity', 'unit': 'count'}
     if metric.get('branches') is not None:
         return {'value': metric['branches'] + 1, 'src': 'facts/metrics.json#metric.value.branches + 1 (lexical)', 'unit': 'count'}
+    if liz and liz.get('cyclomatic_complexity') is not None:
+        return {'value': liz['cyclomatic_complexity'], 'src': 'engines lizard#cyclomatic_complexity', 'unit': 'count'}
     return {'value': None, 'src': 'not measured: no Lizard row and no metric for this function', 'unit': 'count'}
 
 

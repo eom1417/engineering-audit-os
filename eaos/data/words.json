@@ -235,8 +235,8 @@
     "Finds the components, the layers and who imports whom."
    ],
    "doing": [
-    "أرسم خريطة البنية: المدينة ومجموعات الكود",
-    "Drawing the architecture map: the city and the code clusters"
+    "أرسم خريطة البنية: الملفات الأولى بالنظر ومجموعات الكود",
+    "Drawing the architecture map: the hotspots and the code clusters"
    ]
   },
   "policy": {

@@ -17,11 +17,11 @@ def sample(name):
 
 class SampleTests(Workspace):
     def test_each_sample_is_pinned_and_maps_everything_and_no_secret_survives(self):
-        from eaos.engines.security import checkov, semgrep, trivy
+        from eaos.engines.security import checkov, semgrep
         from eaos.engines.code import dependency_cruiser, gitnexus, sqlfluff
         from eaos.engines.api import oasdiff, spectral
         from eaos.engines import sarif
-        for module, name, file, kinds in ((semgrep, 'semgrep', 'semgrep.sarif', None), (trivy, 'trivy', 'trivy.sarif', {'secret'}),
+        for module, name, file, kinds in ((semgrep, 'semgrep', 'semgrep.sarif', None),
                                           (checkov, 'checkov', 'results_sarif.sarif', {'misconfiguration'}),
                                           (spectral, 'spectral', 'spectral.sarif', {'api_contract'})):
             with self.subTest(engine=name):
@@ -32,7 +32,6 @@ class SampleTests(Workspace):
                 self.assertEqual(unmapped, {})
                 self.assertTrue(findings)
                 if kinds: self.assertLessEqual(kinds, {f['kind'] for f in findings})
-        self.assertNotRegex(json.dumps(sample('trivy')), r'\*{6,}', 'the trivy sample is redacted')
         payload = sample('scc')
         for language in payload['scc.json']:
             for field in ('Name', 'Count', 'Code', 'Complexity'): self.assertIn(field, language)
@@ -56,18 +55,6 @@ class SampleTests(Workspace):
         for cycle in payload['check-cycles.json']['cycles']: self.assertIn('files', cycle)
         rows = gitnexus.table(payload['cypher-imports.json']['markdown'])
         self.assertTrue(rows and all(len(row) == 2 for row in rows))
-        from eaos.engines.security import trivy
-        path = Path(self.tmp) / 'trivy.sarif'
-        path.write_text(json.dumps({'runs': [{'tool': {'driver': {'rules': [
-            {'id': 'jwt-token', 'name': 'Secret', 'shortDescription': {'text': 'JWT token'},
-             'fullDescription': {'text': 'KEY="eyJhbGciOi.real.token"'}, 'help': {'text': 'KEY="eyJ"', 'markdown': 'KEY'}}]}},
-            'results': [{'ruleId': 'jwt-token', 'message': {'text': 'Artifact: .env\nMatch: KEY="eyJhbGciOi.real.token"'},
-                         'locations': [{'physicalLocation': {'artifactLocation': {'uri': '.env'}, 'region': {'startLine': 2}}}]}]}]}))
-        trivy.redact(path)
-        text = path.read_text()
-        self.assertNotIn('eyJ', text)
-        self.assertNotIn('KEY=', text)
-        self.assertIn('Match: [not recorded]', text)
 
 
 class SemgrepTests(Workspace):
@@ -341,14 +328,4 @@ class GitNexusTests(Workspace):
         self.assertEqual([sorted(p for p, _ in f['sites']) for f in report.findings if f['kind'] == 'cycle'],
                          [['src/a.ts', 'src/b.ts']])
 
-class MirrorTests(Workspace):
-    def test_a_copy_without_hardlinks_cannot_reach_the_project(self):
-        from eaos.engines.process import mirror
-        root = Path(self.tmp) / 'project'
-        root.mkdir()
-        (root / 'AGENTS.md').write_text('original\n')
-        copy, how = mirror(root, Path(self.tmp) / 'work', hardlink=False)
-        self.assertEqual(how, 'copy')
-        with open(copy / 'AGENTS.md', 'r+') as handle:
-            handle.write('changed')
-        self.assertEqual((root / 'AGENTS.md').read_text(), 'original\n')
+

@@ -5,7 +5,7 @@ Every few seconds while a stage runs, the writer asks the system for its process
     ps -A -o pid=,ppid=,etime=,comm=
 
 (POSIX flags that both Linux procps and the macOS ps accept), keeps the processes that descend from the run's own
-process, and reports them as `[{name, pid, since}]`: semgrep-core started by pysemgrep started by EAOS, trivy,
+process, and reports them as `[{name, pid, since}]`: semgrep-core started by pysemgrep started by EAOS,
 playwright, k6. Linux prints `comm` as a short name (15 characters at most); macOS prints the executable's full path,
 so a name that is a path keeps only its last part. Both may contain spaces, so `comm` is everything after the third
 column.

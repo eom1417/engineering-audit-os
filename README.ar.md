@@ -278,16 +278,15 @@ TASK-001  7 دوال منسوخة كاملة باختلاف الأسماء فق�
 
 | المجال | الأدوات |
 |---|---|
-| البنية والفهم | CodeGraph · GitNexus · Enola · Reforge · ast-grep · dependency-cruiser · react-docgen · CodeCharta · Emerge |
+| البنية والفهم | GitNexus · Reforge · ast-grep · dependency-cruiser · react-docgen، مع خريطة EAOS الخاصة لروابط الكود |
 | التعقيد والتكرار والكود الميت | Lizard · jscpd · scc · knip، مع عدّ EAOS الخاص |
-| الأمان والمكتبات | Semgrep وقواعده · Bandit · Gitleaks · CodeQL¹ · OSV-Scanner · Syft · Trivy · Checkov |
+| الأمان والمكتبات | Semgrep وقواعده · Bandit · Gitleaks · CodeQL¹ · OSV-Scanner · Syft · Checkov |
 | العقود والبيانات | Spectral · oasdiff · SQLFluff · Schemathesis · مستشارو Supabase CLI · pgTAP |
 | تطبيقك وهو يعمل | Playwright · rrweb · Lighthouse · axe-core · pytest · k6 · Mailpit (يلتقط بريد التطبيق) |
 | التغييرات الآلية | jscodeshift، مع أداة النقل الخاصة بـ EAOS |
 | التصميم (شكل البناء أو إعادة التصميم) | UI UX Pro Max · awesome-design-md · tweakcn themes · frontend-design من Anthropic؛ ويأخذ التطبيق المبني shadcn/ui وFontsource |
 
-<sub>¹ يعمل CodeQL على المشاريع مفتوحة المصدر المنشورة علنًا على GitHub فقط، كما تسمح شروطه. وبيئة Java مثبّتة
-(Temurin) تشغّل الأدوات التي تحتاجها.</sub>
+<sub>¹ يعمل CodeQL على المشاريع مفتوحة المصدر المنشورة علنًا على GitHub فقط، كما تسمح شروطه.</sub>
 
 ## التوثيق
 
