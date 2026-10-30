@@ -40,6 +40,11 @@ def _database_parts(record, live, db, context, saves):
     _part(record, 'restore', lambda: restore.drill(live, db, context.target))
 
 
+def _say_none(record, db, context):
+    """An app whose code declares no table and that saved nothing here has no database: said, so it is no gap."""
+    if not db and not record['writes'] and not facts(context.out, 'data_table'): record['database']['none_declared'] = True
+
+
 def keeping(context):
     _live(context)
     live, base, made = sessions(context)
@@ -54,6 +59,7 @@ def keeping(context):
     if db: _database_parts(record, live, db, context, saves)
     else: record.setdefault('database', {'why': "the app runs on no database of the run's own (its PostgreSQL or an SQLite file)"})
     record['writes'] = writes.sorted_out(record.get('writes_before') or {}, record.get('writes_at_volume'))
+    _say_none(record, db, context)
     _part(record, 'files', lambda: files.written(live.sandbox.copy, live.started_at, getattr(db, 'path', None)))
     _part(record, 'lost_update', lambda: lost_update.probe(base, edit_routes(context.out), lost_update.cookie_of(state)))
     for heavy in ('writes_before', 'writes_at_volume'):

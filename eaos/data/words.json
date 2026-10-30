@@ -743,8 +743,8 @@
     "Broken boundaries between the layers"
    ],
    "why": [
-    "المتصفح يحمل سرًا، أو نقطة طلب بلا حماية، أو جدول مفتوح، أو قاعدة في المكان الخطأ: أي أحد يصل إلى ما لا يملكه.",
-    "The browser holds a secret, an endpoint has no guard, a table is open, or a rule lives in the wrong place: anyone reaches what is not theirs."
+    "حماية أو تشغيل أو اختبارات ما تطابق المطلوب من النظام: كل بطاقة تقول الحالة نفسها وخطرها.",
+    "Protection, operations or tests that fall short of what the system needs: each card names its own case and how serious it is."
    ]
   },
   "security_weakness": {

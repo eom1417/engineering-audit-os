@@ -22,6 +22,7 @@ from collections import Counter, defaultdict
 from pathlib import Path
 
 from .references import by_id, layer_of, locate, rooted
+from ...core.contracts.vocabulary import classify
 from ...core.system.files import read_json
 
 RULES = Path(__file__).resolve().parents[2] / 'rules/disposition-rules.json'
@@ -201,7 +202,8 @@ def _observed_in_facts(facts):
 
 def _secrets_item(facts):
     """(present, evidence) of the secrets item: no secret-class credential is committed."""
-    secrets = [f for f in facts['committed_credential'] if (f.get('value') or {}).get('severity') not in ('public', 'test')]
+    secrets = [f for f in facts['committed_credential'] if (f.get('value') or {}).get('severity') not in ('public', 'test')
+               and classify((f.get('location') or {}).get('path') or '') != 'test']      # a sample in a test's data is no credential of the project's
     return not secrets, f"{len(secrets)} secret-class credential(s) committed"
 
 

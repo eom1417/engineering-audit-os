@@ -8,6 +8,7 @@ from . import boundaries, browser, data, endpoints, operations, rules_split
 from .catalog import BOUNDARIES, RULES, fix, sentence
 from .placement import layer_map
 from .source import Project
+from ..target_state.policy import allowed
 from ...core.system.files import read_json
 
 NAME = 'boundaries'
@@ -32,10 +33,25 @@ def _said(row, live=False):
             'fix_en': fix(row['rule'], params), 'fix_ar': fix(row['rule'], params, 'ar')}
 
 
-def _layers(drawn):
-    reference = drawn['reference'] or {'layers': []}
+def _counted(drawn):
     counts = {}
     for row in drawn['rows']: counts[row['layer']] = counts.get(row['layer'], 0) + 1
+    return counts
+
+
+def _declared(target, counts):
+    """The layers the project declares in eaos.policy.json, each with what its rules forbid it: rows are placed by them."""
+    policy = read_json(Path(target) / 'eaos.policy.json') or {}
+    names = list(policy.get('layers') or ())
+    return [{'name': name, 'role': None, 'responsibility': None, 'files': counts.get(name, 0),
+             'allowed': [other for other in names if other != name and allowed(policy, name, other)],
+             'denied': [other for other in names if other != name and not allowed(policy, name, other)]} for name in names]
+
+
+def _layers(drawn, target):
+    counts = _counted(drawn)
+    if drawn['declared_policy']: return _declared(target, counts)
+    reference = drawn['reference'] or {'layers': []}
     return [{'name': layer['name'], 'role': layer.get('role'), 'responsibility': layer.get('responsibility'),
              'allowed': layer.get('allowed_dependencies') or [], 'files': counts.get(layer['name'], 0)} for layer in reference['layers']]
 
@@ -57,7 +73,7 @@ def check(target, out, verification=None):
     tested = operations.tests(project, drawn, table, verification)
     found = breaches + shipped['findings'] + guarded + held['findings'] + rules_split.check(project, drawn['rows'], table) \
         + operations.operations_findings(infra) + tested['findings']
-    return {'schema_version': 1, 'type': drawn['type'], 'declared_policy': drawn['declared_policy'], 'layers': _layers(drawn),
+    return {'schema_version': 1, 'type': drawn['type'], 'declared_policy': drawn['declared_policy'], 'layers': _layers(drawn, target),
             'map': [{k: row[k] for k in ('path', 'layer', 'side', 'confidence', 'reason')} for row in drawn['rows']],
             'gaps': drawn['gaps'], 'endpoints': table, 'tables': held['tables'], 'built': shipped['built'],
             'operations': infra, 'tests': {k: v for k, v in tested.items() if k != 'findings'},

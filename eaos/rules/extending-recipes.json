@@ -4,7 +4,7 @@
   "kinds": [
     {"id": "page", "title": "A page", "grows": "added", "paths": ["(^|/)(pages?|routes?|views?|screens?|templates)/.*\\.(tsx|jsx|vue|svelte|astro|html|dart)$", "(^|/)app/(.*/)?(page|layout)\\.\\w+$", "(^|/)\\+page\\.svelte$"], "not": ["(^|/)(pages/api|components?|e?mails?)/"]},
     {"id": "endpoint", "title": "An endpoint", "grows": "added", "from": "endpoints", "paths": ["(^|/)(api|controllers?|handlers?|endpoints?)/.*\\.\\w+$", "(^|/)route\\.(ts|js)$", "(^|/)(urls|views|routes)\\.py$"]},
-    {"id": "model", "title": "A data model and its migration", "grows": "added", "from": "tables", "paths": ["(^|/)(models?|entities|migrations?)/.*\\.\\w+$", "(^|/)models\\.py$", "\\.prisma$", "\\.sql$"]},
+    {"id": "model", "title": "A data model and its migration", "grows": "added", "from": "tables", "paths": ["(^|/)(models?|entities|migrations?)/.*\\.\\w+$", "(^|/)models\\.py$", "\\.prisma$", "\\.sql$"], "not": ["(^|/)templates?/"]},
     {"id": "job", "title": "A background job", "grows": "added", "paths": ["(^|/)(jobs?|workers?|tasks?|cron|queues?|schedulers?)(/|\\.\\w+$)", "(^|/)celery\\.py$"]},
     {"id": "token", "title": "A value of the look (a token)", "grows": "changed", "paths": ["(^|/)(tokens?|theme|variables)\\.(css|scss|less|json|ts|js)$", "(^|/)tailwind\\.config\\.\\w+$"]},
     {"id": "component", "title": "A component", "grows": "added", "paths": ["(^|/)(components?|ui)/.*\\.(tsx|jsx|vue|svelte|astro|dart)$"]},
@@ -15,5 +15,7 @@
     {"id": "translation", "title": "A translation", "grows": "changed", "paths": ["(^|/)(locales?|i18n|lang|languages|translations?|messages)/.*\\.\\w+$", "\\.(po|xliff|arb)$"]}
   ],
   "noise": ["(^|/)\\.(gitignore|gitattributes|editorconfig|prettierrc[\\w.]*|eslintrc[\\w.]*)$", "(^|/)(README|CHANGELOG|LICENSE|CONTRIBUTING|AGENTS|CLAUDE)[\\w.-]*$", "(^|/)(docs?|\\.github|\\.vscode)/", "\\.(lock|lockb|snap|png|jpe?g|gif|svg|ico|webp|woff2?)$", "(^|/)(package\\.json|package-lock\\.json|pnpm-lock\\.yaml|yarn\\.lock|requirements[\\w.-]*\\.txt|pyproject\\.toml|go\\.(mod|sum)|Cargo\\.(toml|lock)|Gemfile(\\.lock)?|composer\\.(json|lock))$"],
-  "role_order": {"database": 0, "data": 1, "shared": 2, "endpoint": 3, "screen": 4}
+  "role_order": {"database": 0, "data": 1, "shared": 2, "endpoint": 3, "screen": 4},
+  "heavy": ["(^|/)(golden|fixtures?|snapshots?|__snapshots__|testdata|vendor|third_party|migrations/versions)(/|$)", "\\.(lock|lockb|min\\.js|map|snap)$", "(^|/)(package-lock\\.json|pnpm-lock\\.yaml|yarn\\.lock)$"],
+  "feature_order": ["model", "job", "endpoint", "component", "page", "token", "format", "translation", "setting", "test"]
 }

@@ -44,7 +44,7 @@ def repaired(state, root, changed, diff):
 
 
 def finish_job(project, arguments, progress):
-    from .regenerate import regenerate
+    from .regenerate import keep_guide, regenerate
     from .waves import GatesFailed, finish_batch
     state = project_state.load(project)
     wave = state['open_wave']
@@ -54,7 +54,8 @@ def finish_job(project, arguments, progress):
         summary = finish_batch(guided.report_of(state), guided.source(state), project_state.runtime_of(state), wave, lock=True,
                                say=lambda kind, *_: _phase(project, kind, progress), repairs=repairs,
                                bisect=bool(arguments.get('leave_out')) or len(repairs) >= REPAIRS,
-                               regenerate=lambda root: regenerate(root, project_state.runtime_of(state), wave['base'], wave['number']))
+                               regenerate=lambda root: (regenerate(root, project_state.runtime_of(state), wave['base'], wave['number']),
+                                                        keep_guide(root, guided.report_of(state), state['project'], wave['number'])))
     except BaseException as problem:   # the batch stays as it was, even stopped mid-way: its copy back to its kept changes
         guided._git(wave['root'], 'cherry-pick', '--abort')
         guided._git(wave['root'], 'reset', '--hard', '--quiet', was or wave['base'])

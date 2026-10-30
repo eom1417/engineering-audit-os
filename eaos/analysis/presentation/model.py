@@ -50,7 +50,7 @@ The counts and scales the views show beside them are in eaos/analysis/presentati
 import math
 from pathlib import Path
 
-from ...core.contracts.decisions import ready, waiting
+from ...core.contracts.decisions import unattended, waiting
 from ...core.language.plain import kind as plain_kind
 from ...core.language.words import unchecked
 from .counts import (all_card_count, architecture_counts, collection_count, density_counts, history_scale,  # noqa: F401  (the views read them here)
@@ -171,7 +171,7 @@ def _problem_row(task, claim, item):
     decision = task.get('decision') or {}
     return {'id': task.get('id', ''), 'pattern': plain_kind(task), 'area': area, 'severity': severity,
             'confidence': claim.get('confidence') or task.get('confidence') or 'CONFIRMED',
-            'auto': ready(task),
+            'auto': unattended(task),
             'outcomes': decision.get('allowed_outcomes') or [], 'options': task.get('options') or [],
             'effort': task.get('effort'), 'change': words['change'], 'priority': task.get('priority') or 0,
             'title': words['title'], 'paths': task.get('paths') or [],
