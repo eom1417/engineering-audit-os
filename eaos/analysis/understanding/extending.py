@@ -24,6 +24,7 @@ WIRING = 2                # the files named for wiring a new one in
 CHECK_SCRIPT = re.compile(r'^(tools|scripts|bin)/(quality|check|checks|verify|lint|test|tests|ci)\.sh$')
 GUIDE_OWN = re.compile(r'(^|/)(EXTENDING|AGENTS|CLAUDE)\.md$')     # a commit of the guide alone says nothing of how the project grew
 DATA = re.compile(r'(^|/)(fixtures?|golden|snapshots?|__snapshots__|testdata|contracts|rule-tests)/')
+SCATTERED = 5             # a kind spread so thin that no folder holds a fifth of it
 MIN_USERS, SENSITIVE, FEATURES = 5, 5, 12
 HEAVY, HEAVY_BYTES = 6, 100_000
 LIFT = 1.25               # a file changes with a kind this many times more often than with any commit, or it is no sign
@@ -110,9 +111,11 @@ def _recipe(kind, tree, commits, context):
 
 
 def _home(own):
-    """The folder that holds most files of this kind, its data and snapshots aside."""
+    """The folder that holds most files of this kind, its data and snapshots aside; when they are scattered in one folder
+    each (a migration, a route), the folder above it."""
     real = [path for path in own if not _data(path)] or own
-    return Counter(PurePosixPath(path).parent.as_posix() for path in real).most_common(1)[0][0]
+    folder, count = Counter(PurePosixPath(path).parent.as_posix() for path in real).most_common(1)[0]
+    return PurePosixPath(folder).parent.as_posix() if count * SCATTERED < len(real) else folder
 
 
 def _data(path):
@@ -274,8 +277,8 @@ def _heavy(root, tree):
 def _keeps(recipe, record, layers):
     """What a new file of this recipe must keep: what its example's layer may not use."""
     placed = next((row.get('layer') for row in record.get('map') or () if row['path'] == recipe['example']), None)
-    denied = next((layer['denied'] for layer in layers if layer['name'] == placed), ())
-    return {**recipe, 'layer': placed, 'denied': list(denied)}
+    layer = next((layer for layer in layers if layer['name'] == placed), {})
+    return {**recipe, 'layer': placed, 'denied': list(layer.get('denied') or ()), 'allowed': list(layer.get('allowed') or ())}
 
 
 def _order(recipes):

@@ -123,8 +123,9 @@ def _test_line(recipe):
 
 def _keep_line(recipe):
     if not recipe.get('layer'): return []
-    denied = f": it must not use {', '.join(recipe['denied'])}" if recipe['denied'] else ''
-    return [f"- **What must stay true:** it belongs to the layer {recipe['layer']}{denied}."]
+    rule = (f": it must not use {', '.join(recipe['denied'])}" if recipe['denied']
+            else f": it may use only {', '.join(recipe['allowed'])}" if recipe.get('allowed') else '')
+    return [f"- **What must stay true:** it belongs to the layer {recipe['layer']}{rule}."]
 
 
 def _recipe_text(recipe):
