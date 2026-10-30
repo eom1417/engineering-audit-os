@@ -86,6 +86,8 @@ def _summary(manifest, facts, present, absent):
             'engines_not_applicable': not_applicable(manifest),
             # Candidate boundaries of today's components (GitNexus communities), for the map and the target.
             'communities': _communities(manifest),
+            # GitNexus's area skills read: each area's key files, for the project's extension guide.
+            'areas': _detail(manifest).get('areas') or [],
             # What each engine actually looked for, so silence can be told from absence.
             'evaluated_kinds': _evaluated_kinds(manifest, present),
             'findings': len(facts), 'target_unchanged': manifest['target_unchanged'],
@@ -104,7 +106,11 @@ def _failed(manifest):
 
 def _communities(manifest):
     """GitNexus's communities: candidate boundaries of today's components."""
-    return ((manifest['coverage'].get('gitnexus') or {}).get('detail') or {}).get('communities') or []
+    return _detail(manifest).get('communities') or []
+
+
+def _detail(manifest):
+    return (manifest['coverage'].get('gitnexus') or {}).get('detail') or {}
 
 
 def run(target, source, out=None, only=None, keep=False):

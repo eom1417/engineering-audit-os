@@ -52,6 +52,18 @@ class ContextBatchTests(unittest.TestCase):
         self.assertNotIn('- [x]', (self.project / 'AGENTS.md').read_text())
         self.assertIn('I want every answer in Arabic, short.', (self.project / 'DEVELOPING.md').read_text())
 
+    def test_with_a_check_read_the_batch_writes_the_guide_and_one_pointer_and_a_person_with_no_trim_left_gets_it_too(self):
+        report = Path(self.tmp.name) / 'report'
+        report.mkdir()
+        (report / 'layers.json').write_text(json.dumps({'map': [{'path': 'src/app.py', 'layer': 'core', 'side': 'server'}], 'layers': []}))
+        runtime = project_state.runtime_of(project_state.load(self.project))
+        (runtime / 'authorization.json').write_text(json.dumps({'commit': git(self.project, 'rev-parse', 'HEAD')}))
+        self.assertEqual(context_batch.proposal(self.project, report=report)['guide']['path'], 'docs/EXTENDING.md')
+        summary = context_batch.make({'target': self.project, 'runtime': runtime, 'number': 1, 'report': report, 'deliver_as': 'eaos/main/context-1'})
+        self.assertIn('docs/EXTENDING.md', summary['kept'])
+        root = Path(summary['root'])
+        self.assertEqual(git(root, 'show', 'HEAD:AGENTS.md').count('docs/EXTENDING.md'), 1)
+
     def test_a_private_place_outside_the_repository_or_in_an_assistants_folder_is_refused(self):
         for place in ('../notes.md', '/root/notes.md', '.claude/notes.md'):
             summary = context_batch.make({'target': self.project, 'runtime': project_state.runtime_of(project_state.load(self.project)),

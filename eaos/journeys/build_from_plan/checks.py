@@ -68,6 +68,25 @@ def _run_script(root, env, scripts, script, say):
     return None
 
 
+def _milestone_proof(state, root, out, step, problems):
+    """`problems` with what the repository's craft adds at a milestone's proof; none left, the extension guide of what is
+    built so far (M18.3) is written and committed on the copy. `step`: (the card, or None at the proof; the last milestone?)."""
+    card, closing = step
+    problems = problems + [p for p in _milestone_tidy(root, out, card, closing) if p not in problems]
+    if card is None and not problems: _keep_guide(state, root, out)
+    return problems
+
+
+def _keep_guide(state, root, out):
+    from ...analysis.layers import check
+    from ...analysis.repair import project_guide
+    drawn = project_guide.extending.draft(root, out, project_guide.tracked(root), check(root, out), project_guide.pinned_ids(state['project']))
+    written = project_guide.write(root, drawn)
+    if written:
+        _git(root, 'add', '--', *written)
+        _git(root, '-c', 'user.name=EAOS', '-c', 'user.email=eaos@localhost', 'commit', '-q', '-m', 'The extension guide, kept with what was built (EAOS)')
+
+
 def _milestone_tidy(root, out, card, closing):
     """A milestone's proof (not the last: it reads every file) holds the whole copy to the repository's craft (M8.7)."""
     from ...analysis.repair.gates import tidy

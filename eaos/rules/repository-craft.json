@@ -140,6 +140,7 @@
     ".claude/skills",
     ".agents/skills"
   ],
+  "guide_min_files": 15,
   "context_tokens": 6000,
   "context_repeat_chars": 40,
   "context_done_items": 5,
@@ -151,6 +152,10 @@
     [
       "<!-- EAOS rules: begin (your pinned rules, written by EAOS from its rule registry; change them with eaos rules) -->",
       "<!-- EAOS rules: end -->"
+    ],
+    [
+      "<!-- EAOS guide pointer: begin (one line, written by EAOS) -->",
+      "<!-- EAOS guide pointer: end -->"
     ]
   ],
   "family_stop_prefixes": [

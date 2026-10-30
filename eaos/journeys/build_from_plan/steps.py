@@ -26,7 +26,7 @@ from .. import agent_tools, guided, catalog as journeys
 from . import look as build_look
 from .blueprint import (_plan, _state, answered, blueprint_answer, blueprint_design, blueprint_spec, blueprint_start,  # noqa: F401
                         folder, open_blueprint, publish, studio_build)
-from .checks import _checks, _git, _milestone_tidy
+from .checks import _checks, _git, _milestone_proof
 from .look import read as _read
 
 from ...core.project import state as project_state
@@ -178,7 +178,7 @@ def _gates(state, root, card=None, closing=False, progress=lambda *_: None):
     """The build's gates on the copy: its own scripts, then the gates every change passes (eaos/analysis/repair/gates.py) against
     nothing before it, held to the blueprint's policy: the fast security engines on every card, CodeQL too when a
     milestone closes, where it may run; dead code once the milestone closes, when the cards after can no longer use it;
-    the repository's craft and context on the whole copy at each milestone's proof (M8.7)."""
+    the repository's craft and context on the whole copy, and the extension guide kept, at each milestone's proof."""
     from ..fix.execute import GATE_ENGINES
     from ...facts.run import collect
     from ...analysis.repair.gates import found
@@ -192,7 +192,7 @@ def _gates(state, root, card=None, closing=False, progress=lambda *_: None):
         collect(Path(root).resolve(), out, engines=list(GATE_ENGINES) + (['codeql'] if closing else []))
         problems += found(None, out, changed, rules, dead=closing)
         problems += rules_gate(state, card, root, changed, problems)       # the person's rules (M16.4): a change that breaks one is refused
-        problems += [p for p in _milestone_tidy(root, out, card, closing) if p not in problems]
+        problems = _milestone_proof(state, root, out, (card, closing), problems)
     if card and card != 'FIX': problems += _untested(state, root, card)
     return problems
 

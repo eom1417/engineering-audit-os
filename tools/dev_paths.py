@@ -13,7 +13,6 @@ reports are rebuilt by the measurements and trials.
 """
 import json
 import os
-import shutil
 import subprocess
 import sys
 from pathlib import Path
@@ -56,17 +55,6 @@ def fetch_upstreams():
         print(f'{name}: {commit[:10]}')
 
 
-def _copy_tracked(copy):
-    """The tracked files of this checkout over the last copy; GitNexus's own folders kept for its cache."""
-    for old in copy.glob('*') if copy.exists() else ():
-        if old.name not in ('.gitnexus', '.claude', '.agents'): shutil.rmtree(old) if old.is_dir() else old.unlink()
-    listed = subprocess.run(['git', 'ls-files', '-z'], cwd=ROOT, capture_output=True, check=True).stdout.decode().split('\0')
-    for name in filter(None, listed):
-        if (ROOT / name).is_file():
-            (copy / name).parent.mkdir(parents=True, exist_ok=True)
-            shutil.copy2(ROOT / name, copy / name)
-
-
 def map_where():
     return f'GITNEXUS_HOME={MAP / "registry"} gitnexus impact <symbol> -r {ROOT.name} > /tmp/impact.json   (copy: {MAP / ROOT.name})'
 
@@ -75,15 +63,10 @@ def build_map():
     """GitNexus's graph, area skills and MCP of EAOS: built on a copy in MAP, its skills copied into .claude/skills."""
     sys.path.insert(0, str(ROOT))
     from eaos.core.toolchain import home
-    binary = str(home() / 'bin' / 'gitnexus') if (home() / 'bin' / 'gitnexus').exists() else shutil.which('gitnexus')
-    if not binary: raise SystemExit('gitnexus is not installed: python -m eaos tools install --only gitnexus')
-    copy = MAP / ROOT.name
-    _copy_tracked(copy)
-    subprocess.run([binary, 'analyze', '--skills', '--skip-agents-md', '--skip-git', '--no-stats', '--name', ROOT.name, '.'],
-                   cwd=copy, env=dict(os.environ, GITNEXUS_HOME=str(MAP / 'registry')), check=True)
-    for old in SKILLS.glob('gitnexus*'): shutil.rmtree(old)
-    for skill in (copy / '.claude' / 'skills').glob('gitnexus*'): shutil.copytree(skill, SKILLS / skill.name)
-    print(f"{len(list(SKILLS.glob('gitnexus*')))} skills in .claude/skills; {map_where()}")
+    from eaos.engines.code.gitnexus import make_map
+    if (home() / 'bin' / 'gitnexus').exists(): os.environ['PATH'] = f"{home() / 'bin'}{os.pathsep}{os.environ['PATH']}"
+    made = make_map(ROOT, MAP, SKILLS)
+    print(f"{made['skills']} skills in .claude/skills; {map_where()}")
 
 
 if __name__ == '__main__':

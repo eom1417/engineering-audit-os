@@ -86,6 +86,22 @@ def write(project, pinned, made, lang='en'):
     return written, sorted({*made, *(str(p.relative_to(project)) for p in to_make)}) if pinned else []
 
 
+def hold_block(project, begin, end, line):
+    """`line` between `begin` and `end` in the context files, in place of what was there; the files whose text changed.
+    With none, AGENTS.md and a CLAUDE.md that reads it are made."""
+    project = Path(project)
+    targets, to_make = files(project)
+    written = []
+    for path in dict.fromkeys([*targets, *to_make]):
+        old = path.read_text(encoding='utf-8') if path.is_file() else ''
+        kept = _strip(old, begin, end)
+        new = (kept.rstrip('\n') + '\n\n' if kept.strip() else '') + f'{begin}\n{line}\n{end}\n' if path in targets else '@AGENTS.md\n'
+        if new != old:
+            path.write_text(new, encoding='utf-8')
+            written.append(str(path.relative_to(project)))
+    return written
+
+
 # ---------------------------------------------------------------- the hook
 
 def hook_path(project):

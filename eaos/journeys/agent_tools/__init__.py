@@ -21,7 +21,7 @@ from .evidence import (ask, finding, findings, impact, open_report, plan, report
 from .edits import _apply, _inside  # noqa: F401
 from .fixing import (_chosen, _no_safety_net, _still_open, delivery, fix_abandon, fix_edit,  # noqa: F401
                      fix_finish, fix_read, fix_skip, fix_start, waiting_on, work_branches)
-from .tidying import context_make, context_propose, moves_make, moves_propose  # noqa: F401
+from .tidying import context_make, context_propose, moves_make, moves_propose, project_map  # noqa: F401
 from .project import (ANSWER_SECONDS, EVIDENCE, PAGE, SeveralProjects, TOOLS_FIRST, WAIT, _current, _head,  # noqa: F401
                       _read, _report, _start, _watch, locate, open_studio, repositories_under, state_of,
                       tool_digest, wait)
