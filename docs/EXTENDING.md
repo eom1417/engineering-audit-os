@@ -14,7 +14,7 @@ structure, fixed in the same milestone), the time.
 ## The map (before a change that touches code you have not read)
 
 `python tools/dev_paths.py map` builds GitNexus's map of EAOS outside the repository (about 35 s, no token) and copies its
-area skills into `.claude/skills/` (ignored by git): `gitnexus-area-<area>` names an area's key files and entry points,
+area skills into `.claude/skills` (this command makes it, git ignores it): `gitnexus-area-<area>` names an area's key files and entry points,
 about a thousand tokens each; read the one of the area you change. Who calls a symbol and what a change breaks:
 `python tools/dev_paths.py map-where` prints the command; write its answer to a file (`> /tmp/impact.json`), since a
 piped answer stops at 64 KB, and prefer `impact` or `cypher` to `context`, which lists only the first callers.
