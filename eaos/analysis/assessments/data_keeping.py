@@ -149,10 +149,12 @@ def from_lighthouse(out):
 
 
 def unmeasured(record):
-    """What the copy could not read, in words: none of it is taken for clean."""
+    """What the copy could not read, in words: none of it is taken for clean. An app whose code declares no table and that
+    saved nothing here has no database to read: that is what it is, not a gap."""
     if record is None: return ['the app did not run, so no save was measured and no database was read']
     out = []
-    if (record.get('database') or {}).get('why'): out.append(record['database']['why'])
+    database = record.get('database') or {}
+    if database.get('why') and not database.get('none_declared'): out.append(database['why'])
     if not (record.get('writes_before') or {}).get('pages'): out.append('no page was opened to measure its saves')
     return out
 

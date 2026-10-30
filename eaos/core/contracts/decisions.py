@@ -143,6 +143,14 @@ def ready(card):
     return card.get('kind') in ('remediate', 'build') and (card.get('decision') or {}).get('readiness') == 'ready'
 
 
+def unattended(card):
+    """Whether a batch fixes the card and the machine alone proves it: not a part still to build, not a question to look
+    into, and no check a person must read. What a person is told EAOS fixes by itself."""
+    decision = card.get('decision') or {}
+    return bool(ready(card)) and card.get('kind') == 'remediate' and card.get('pattern') != 'investigation' \
+        and not any(check.get('kind') == 'human' for check in decision.get('checks') or ())
+
+
 def waiting(card, done):
     """The cards `card` waits for: its prerequisites not in `done` yet. A module is split only once its complex functions
     are simplified (eaos/analysis/planning/cards.py _split_last); taken before them, the split failed in batch after batch (EAOS, 2026-10-15)."""
