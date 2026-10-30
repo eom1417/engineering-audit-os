@@ -39,6 +39,18 @@ def regenerate(root, runtime, base, number):
     except RuntimeError: return None
 
 
+def keep_guide(root, report, project, number):
+    """The project's extension guide (M18.3) written or brought up to date as one commit on top of the batch, from the
+    check's own read; None when the check has no layers or nothing changed. A batch never fails for its guide."""
+    from .waves import commit
+    from ...analysis.repair import project_guide
+    drawn = project_guide.drawn_from_report(root, report, project)
+    written = project_guide.write(root, drawn) if drawn else []
+    if not written: return None
+    try: return commit(root, {'id': 'EXTENDING', 'title': "the project's extension guide, kept with this batch", 'key': f'extending-{number}'}, 'eaos')
+    except RuntimeError: return None
+
+
 def _bring_back(root, copy):
     """Every file the build changed in `copy` that git keeps in `root`, written there; tracked files it removed,
     removed. The copy started as exactly the tracked files of `root`'s commit (eaos/live/isolation/sandbox.py committed_copy)."""

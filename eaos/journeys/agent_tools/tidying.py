@@ -69,7 +69,7 @@ def project_map(project=None, person_agreed=False):
     run folder, its skills in .claude/skills, which this repository alone stops git from taking (.git/info/exclude)."""
     if not person_agreed:
         return {'status': 'needs_agreement', 'ask_the_person': 'Build a map of this project for your assistant (about a minute, no tokens; '
-                'its index stays outside the project, its short skills in .claude/skills, which git will not take) and register its tools?',
+                'its index stays outside the project, its short skills in .claude/skills, which git will not take) and register its tools? The licence of GitNexus allows no commercial use: say no for a commercial project; its guide does not need the map.',
                 'what_now': 'Only if the person says yes, call project_map again with person_agreed=true.'}
     from ...analysis.repair import project_guide
     state = state_of(project)

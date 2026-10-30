@@ -138,6 +138,48 @@ class ProjectGuideTests(Workspace):
         self.assertIn('docs/EXTENDING.md', git(root, 'show', '--name-only', '--format=', 'HEAD'))
         self.assertEqual(git(root, 'status', '--porcelain'), '')
 
+    def test_a_project_that_declares_its_layers_is_mapped_by_them_and_says_what_each_must_not_use(self):
+        from eaos.analysis.layers import record
+        root = Path(self.tmp) / 'declared'
+        root.mkdir()
+        (root / 'eaos.policy.json').write_text(json.dumps({'layers': {'core': ['core/**'], 'web': ['web/**']}, 'rules': [{'deny': {'from': 'core', 'to': 'web'}, 'reason': 'down only'}]}))
+        layers = record._layers({'declared_policy': True, 'rows': [{'layer': 'core'}, {'layer': 'core'}, {'layer': 'web'}], 'reference': None}, root)
+        self.assertEqual([(l['name'], l['files'], l['denied']) for l in layers], [('core', 2, ['web']), ('web', 1, [])])
+
+    def test_an_endpoint_the_record_found_is_told_by_it_not_by_a_folder_called_api(self):
+        root = self.repo()
+        self.commit(root, {'src/api/client.ts': 'x', 'server/routes.ts': 'y'}, 'both')
+        report = Path(self.tmp) / 'report'
+        (report / 'layers.json').write_text(json.dumps({**LAYERS, 'endpoints': [{'path': 'server/routes.ts'}]}))
+        endpoint = next(r for r in project_guide.drawn_from_report(root, report)['recipes'] if r['id'] == 'endpoint')
+        self.assertEqual(endpoint['example'], 'server/routes.ts')
+
+    def test_the_guide_has_what_a_person_needs_to_add_a_feature_from_what_the_check_read(self):
+        root = self.repo()
+        report = Path(self.tmp) / 'report'
+        (report / 'facts').mkdir()
+        (report / 'facts/graph.json').write_text(json.dumps({'facts': [{'kind': 'graph_node', 'location': {'path': 'src/data/client.ts'}, 'value': {'fan_in': 9, 'depends_on': []}}]}))
+        (report / 'architecture').mkdir()
+        (report / 'architecture/map.json').write_text(json.dumps({'digest': {'hotspots': [{'path': 'src/router.tsx', 'commits': 3, 'complexity': 40}],
+                                                                             'clusters': [{'members': ['src/data/client.ts', 'src/data/x.ts']}]}}))
+        (report / 'features.json').write_text(json.dumps({'features': [{'name': 'orders', 'surfaces': ['src/pages/Home.tsx'], 'tables': ['orders']}]}))
+        (report / 'layers.json').write_text(json.dumps({**LAYERS, 'findings': [{'severity': 'high', 'en': 'A screen reads the database.'}]}))
+        text = project_guide.text(project_guide.drawn_from_report(root, report), 'shop')
+        for said in ('## Where new code goes', '## Reuse first', '`src/data/client.ts` (9 files use it)', '## Sensitive files', '## Features today', '| orders |',
+                     '## Add a new feature', 'A feature is finished when', '**What must stay true:**', '## Known departures', 'A screen reads the database.',
+                     '## The areas', '| src/data |', 'Before merging: `npm run lint`'):
+            self.assertIn(said, text)
+
+    def test_a_fix_batch_carries_the_guide_as_its_own_commit_and_only_when_it_changed(self):
+        from eaos.journeys.fix.regenerate import keep_guide
+        root = self.repo()
+        report = Path(self.tmp) / 'report'
+        with mock.patch.object(project_guide, 'pinned_ids', return_value=[]):
+            self.assertTrue(keep_guide(root, report, str(root), 1))
+            self.assertIn('docs/EXTENDING.md', git(root, 'show', '--name-only', '--format=', 'HEAD'))
+            self.assertIsNone(keep_guide(root, report, str(root), 2))
+            self.assertIsNone(keep_guide(root, Path(self.tmp) / 'no-check', str(root), 3))
+
     def test_the_commands_are_the_projects_own(self):
         root = Path(self.tmp)
         self.assertEqual(extending.commands(root, {'manage.py', 'go.mod'}), ['python manage.py test', 'go test ./...'])

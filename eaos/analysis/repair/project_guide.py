@@ -47,23 +47,64 @@ def _quoted(paths):
 
 def _layers_text(layers, gaps):
     if not layers: return []
-    rows = [f"| {l['name']} | {l['role'] or ''} | {_quoted(l['folders'])} | {l['files']} | {', '.join(l['allowed']) or 'none'} |" for l in layers]
-    told = [f'{gaps} file(s) are in no layer yet.'] if gaps else []
-    return ['## The layers', '', '| Layer | Role | Where | Files | May use |', '|---|---|---|---|---|', *rows, '', *told, *([''] if told else [])]
+    told = [f'{gaps} file(s) are in no layer yet.', ''] if gaps else []
+    return ['## The layers', '', *_layer_rows(layers), '', *told]
+
+
+def _layer_rows(layers):
+    """A project's declared rules say what a layer must not use, the shorter list; a reference type what it may."""
+    denies = any(layer['denied'] for layer in layers)
+    head = 'Must not use' if denies else 'May use'
+    rows = [f"| {l['name']} | {_quoted(l['folders'])} | {l['files']} | {', '.join(l['denied'] if denies else l['allowed']) or '-'} |" for l in layers]
+    return [f'| Layer | Where | Files | {head} |', '|---|---|---|---|', *rows]
 
 
 def _areas_text(areas):
     if not areas: return []
     rows = [f"| {a['name']} | {_quoted(a['files'])} | {_quoted(a['entries'])} |" for a in areas]
-    return ['## The areas (GitNexus)', '', 'With the map built (`project_map`), each area has a short skill, `gitnexus-area-<area>`.', '',
-            '| Area | Its main files | Where to start |', '|---|---|---|', *rows, '']
+    return ['## The areas', '', '| Area | Its main files | Where to start |', '|---|---|---|', *rows, '']
+
+
+def _places_text(recipes):
+    rows = [f"| {r['title']} | `{r['home']}` | `{r['example']}` |" for r in recipes if r['grows'] == 'added']
+    if not rows: return []
+    return ['## Where new code goes', '', 'New code goes here, not in a new place; a new place updates this table.', '',
+            '| Kind | Its folder | Example |', '|---|---|---|', *rows, '']
+
+
+def _reuse_text(reuse):
+    if not reuse: return []
+    return ['## Reuse first', '', 'Before writing a helper, look here: the files most of the project already uses.', '',
+            *(f"- `{row['path']}` ({row['users']} files use it)" for row in reuse), '']
+
+
+def _sensitive_text(sensitive):
+    if not sensitive: return []
+    return ['## Sensitive files', '', 'Complex and often changed: read them whole, change them in small steps, run every check.', '',
+            *(f"- `{row['path']}` ({row['commits']} commits, complexity {row['complexity']})" for row in sensitive), '']
+
+
+def _features_text(features):
+    if not features: return []
+    rows = [f"| {f['name']} | {_quoted(f['surfaces'])} | {', '.join(f['tables']) or '-'} |" for f in features]
+    return ['## Features today', '', '| Feature | Where it starts | Its data |', '|---|---|---|', *rows, '']
 
 
 def _checks_text(drawn):
-    """The project's own checks and tests, said once, so no one searches for them."""
+    """The project's own checks and where its tests live, said once, so no one searches for them."""
     checks = ', '.join(f'`{command}`' for command in drawn['checks']) or 'it declares none'
-    tests = next((r['test'] or r['example'] for r in drawn['recipes'] if r['id'] == 'test'), None)
-    return ['## The checks', '', f'Before merging: {checks}. Tests: ' + (f'beside `{tests}`.' if tests else 'this project has none yet.'), '']
+    home = drawn['tests']
+    tests = f"{home['count']} tests, in {_quoted(f'{folder}/' for folder in home['folders'])}." if home['count'] else 'this project has none yet.'
+    return ['## The checks', '', f'Before merging: {checks}.', f'Tests: {tests}', '']
+
+
+def _feature_text(drawn):
+    titles = {recipe['id']: recipe['title'] for recipe in drawn['recipes']}
+    steps = [f'{n}. {titles[step]}: its recipe below.' for n, step in enumerate(drawn['feature_steps'], 1)]
+    if not steps: return []
+    return ['## Add a new feature', '', 'Reuse first; then, in this order:', *steps, '',
+            'A feature is finished when it can be reached from where people use it, it keeps the layers, it wrote nothing '
+            '"Reuse first" already has, its tests and the checks pass, and this guide says it.', '']
 
 
 def _new_file(recipe):
@@ -80,21 +121,37 @@ def _test_line(recipe):
     return [f"- **Test:** `{recipe['test']}`."] if recipe['test'] and recipe['test'] != recipe['example'] else []
 
 
+def _keep_line(recipe):
+    if not recipe.get('layer'): return []
+    denied = f": it must not use {', '.join(recipe['denied'])}" if recipe['denied'] else ''
+    return [f"- **What must stay true:** it belongs to the layer {recipe['layer']}{denied}."]
+
+
 def _recipe_text(recipe):
     made = f"{recipe['commit']['sha']}, {recipe['commit']['date']}" if recipe['commit'] else 'from the layout: no commit shows one added'
     return [f"### {recipe['title']}", f"- **Last real example:** `{recipe['example']}` ({made}).",
-            f"- **Read only:** {_quoted(recipe['read'])}.", _touch_line(recipe), *_test_line(recipe), '']
+            f"- **Read only:** {_quoted(recipe['read'])}.", _touch_line(recipe), *_keep_line(recipe), *_test_line(recipe), '']
+
+
+def _closing_text(drawn):
+    heavy = ['## Do not read by default', '', 'Too large to read by chance; open one only when the task names it: '
+             + _quoted(f'{folder}/' for folder in drawn['heavy']) + '.', ''] if drawn['heavy'] else []
+    missing = ['## Not in this project yet', '', '; '.join(drawn['missing']) + '. Keep the layers above when adding the first one.', ''] if drawn['missing'] else []
+    departures = ['## Known departures', '', 'Where the project breaks its own structure today. Follow the tables for new code, not these.', '',
+                  *(f'- {said}' for said in drawn['departures']), ''] if drawn['departures'] else []
+    return [*heavy, *missing, *departures]
 
 
 def text(drawn, name):
     """The guide's text from `drawn` (extending.draft), for the project called `name`."""
     pinned = [f"Rules pinned on this project hold in every change: {', '.join(drawn['pinned'])} (their words are in your context file)."] if drawn['pinned'] else []
     head = [BEGIN, f'# Extending {name}', '',
-            '**Adding anything starts here.** Read the recipe of what you add, not the whole project: it names the files to read and '
-            'to touch, in order, taken from how this project really grew.', *pinned, '']
+            '**Adding anything starts here.** Read the recipe of what you add, then its example; read further only if the recipe '
+            'leaves a question. It is taken from how this project really grew.', *pinned, '']
     recipes = [line for recipe in drawn['recipes'] for line in _recipe_text(recipe)]
-    missing = [f"**Not in this project yet:** {'; '.join(drawn['missing'])}. Keep the layers above when adding the first one.", ''] if drawn['missing'] else []
-    return '\n'.join([*head, *_layers_text(drawn['layers'], drawn['gaps']), *_areas_text(drawn['areas']), *_checks_text(drawn), '## Recipes', '', *recipes, *missing, END]) + '\n'
+    return '\n'.join([*head, *_layers_text(drawn['layers'], drawn['gaps']), *_places_text(drawn['recipes']), *_reuse_text(drawn['reuse']),
+                      *_sensitive_text(drawn['sensitive']), *_features_text(drawn['features']), *_areas_text(drawn['areas']), *_checks_text(drawn),
+                      *_feature_text(drawn), '## Recipes', '', *recipes, *_closing_text(drawn), END]) + '\n'
 
 
 def _keep_below(old, new):
