@@ -155,19 +155,16 @@ def readiness(context):
 
 
 def architecture(context):
-    """The city and the clusters of the code (eaos/engines/code/codecharta_emerge.py) and their digest, in architecture/map.json."""
-    if context.engines is None:
-        raise SkipStage('external engines were not requested for this run', code='engines_not_requested')
-    from ...engines.code.codecharta_emerge import city, clusters, digest
+    """The code map (eaos/analysis/maps/code_map.py): the hotspots, the import clusters and their modularity, in
+    architecture/map.json."""
+    from ...analysis.maps.code_map import digest
     from ...core.project.workspace import write
-    folder = context.out / 'architecture'
-    drawn = {'city': city(context.target, folder), 'clusters': clusters(context.target, folder)}
-    if all(row['status'] != 'observed' for row in drawn.values()):
-        raise SkipStage('; '.join(row.get('reason', '') for row in drawn.values())[:300], code='no_architecture_map')
-    summary = digest(folder)
-    write(folder / 'map.json', {'schema_version': 1, **drawn, 'digest': summary})
-    return {**{name: row['status'] for name, row in drawn.items()}, 'hotspots': len(summary['hotspots']),
-            'clusters': len(summary['clusters'])}
+    drawn = digest(context.out)
+    if not drawn['hotspots'] and not drawn['clusters']:
+        raise SkipStage('no production file was measured or imports another', code='no_architecture_map')
+    (context.out / 'architecture').mkdir(parents=True, exist_ok=True)
+    write(context.out / 'architecture' / 'map.json', {'schema_version': 2, 'digest': drawn})
+    return {'hotspots': len(drawn['hotspots']), 'clusters': len(drawn['clusters'])}
 
 
 def sustainability(context):

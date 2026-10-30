@@ -263,16 +263,15 @@ version with its checksum and licence ([`eaos/data/toolchain.json`](eaos/data/to
 
 | Area | Tools |
 |---|---|
-| Structure and understanding | CodeGraph · GitNexus · Enola · Reforge · ast-grep · dependency-cruiser · react-docgen · CodeCharta · Emerge |
+| Structure and understanding | GitNexus · Reforge · ast-grep · dependency-cruiser · react-docgen, beside EAOS's own graph and code map |
 | Complexity, duplication, dead code | Lizard · jscpd · scc · knip, beside EAOS's own counts |
-| Security and dependencies | Semgrep and its rules · Bandit · Gitleaks · CodeQL¹ · OSV-Scanner · Syft · Trivy · Checkov |
+| Security and dependencies | Semgrep and its rules · Bandit · Gitleaks · CodeQL¹ · OSV-Scanner · Syft · Checkov |
 | Contracts and data | Spectral · oasdiff · SQLFluff · Schemathesis · the Supabase CLI's advisors · pgTAP |
 | Your running app | Playwright · rrweb · Lighthouse · axe-core · pytest · k6 · Mailpit (catches the app's e-mail) |
 | Automatic changes | jscodeshift, beside EAOS's own move tool |
 | Design (the look of a build or a redesign) | UI UX Pro Max · awesome-design-md · tweakcn themes · Anthropic's frontend-design; a built app gets shadcn/ui and Fontsource |
 
-<sub>¹ CodeQL runs only on open-source projects hosted publicly on GitHub, as its terms allow. A pinned Java runtime
-(Temurin) runs the tools that need one.</sub>
+<sub>¹ CodeQL runs only on open-source projects hosted publicly on GitHub, as its terms allow.</sub>
 
 ## Documentation
 

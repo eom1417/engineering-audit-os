@@ -29,15 +29,17 @@ class MeasurementTests(Workspace):
                 fact('history_ownership', path, {'authors': 2}),
                 fact('graph_node', path, {'fan_in': 3, 'fan_out': 1})]
 
-    def test_every_number_names_its_source_and_the_projects_own_metrics_answer_without_engines(self):
-        facts = self.base() + [fact('symbol_metric_external', 'src/a.ts', {'engine': 'scc', 'code': 28}),
-                               fact('symbol_metric_external', 'src/a.ts', {'engine': 'codegraph', 'complexity': 9})]
-        record = self.report(facts)
+    def test_every_number_names_its_source_and_the_projects_own_metrics_answer_first(self):
+        scc = fact('symbol_metric_external', 'src/a.ts', {'engine': 'scc', 'code': 28})
+        record = self.report(self.base() + [scc])
         self.assertEqual(validate(record, contracts()['measurements']), [])
         [row] = record['files']
-        self.assertEqual((row['loc'], row['complexity_max'], row['churn'], row['authors'], row['fan_in']), (28, 9, 4, 2, 3))
-        self.assertEqual(row['sources'], {'loc': 'scc', 'complexity_max': 'codegraph', 'duplicated_lines': 'jscpd',
-                                          'churn': 'git history', 'fan_in': 'eaos.graph'})
+        self.assertEqual((row['loc'], row['complexity_max'], row['churn'], row['authors'], row['fan_in']), (30, 7, 4, 2, 3))
+        self.assertEqual(row['sources'], {'loc': 'eaos.metrics', 'complexity_max': 'eaos.metrics (branches + 1)',
+                                          'duplicated_lines': 'jscpd', 'churn': 'git history', 'fan_in': 'eaos.graph'})
+        # scc answers only for a file EAOS does not measure (a language its parser does not read).
+        [row] = self.report([f for f in self.base() if f['value'].get('scope') != 'file'] + [scc])['files']
+        self.assertEqual((row['loc'], row['sources']['loc']), (28, 'scc'))
         [row] = self.report(self.base(), engines=())['files']
         self.assertEqual((row['loc'], row['complexity_max']), (30, 7))
         self.assertIsNone(row['duplicated_lines'])

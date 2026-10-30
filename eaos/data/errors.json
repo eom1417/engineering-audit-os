@@ -750,8 +750,8 @@
    }
   },
   "no_architecture_map": {
-   "ar": "ما انرسمت خريطة البنية: أداتا CodeCharta وEmerge غير مثبتتين أو ما تقرآن لغة هذا المشروع.",
-   "en": "The architecture map was not drawn: CodeCharta and Emerge are not installed, or neither reads this project's language."
+   "ar": "ما انرسمت خريطة البنية: ما فيه ملف من البرنامج انقاس أو يستورد ملفًا ثانيًا.",
+   "en": "The architecture map was not drawn: no file of the program was measured or imports another."
   },
   "no_pages": {
    "ar": "برنامجك ما فيه صفحات يمشي فيها المستخدم، فما فيه رحلات تُسجَّل.",

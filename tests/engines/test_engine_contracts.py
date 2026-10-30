@@ -9,7 +9,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from eaos.engines.code import codegraph, enola, reforge
+from eaos.engines.code import reforge
 from eaos.engines.contract import KINDS
 
 CONTRACTS = Path(__file__).resolve().parents[1] / 'contracts'
@@ -21,7 +21,6 @@ def sample(name):
 
 # The engines with no captured sample: each writes SARIF, read by sarif.py and its tests (test_sarif).
 UNSAMPLED = ('bandit', 'gitleaks', 'codeql')
-TAGGED = ('codegraph',)      # its release tag, v0.20.1, is the version it prints
 
 
 class SampleTests(unittest.TestCase):
@@ -37,35 +36,12 @@ class SampleTests(unittest.TestCase):
                     self.assertTrue(callable(getattr(adapter, method, None)), f'{name} has no {method}')
                 # its version is read from its binary (tool.version_of), or by its own reader
                 self.assertTrue(callable(getattr(adapter, 'version', None)) or getattr(adapter, 'BINARY', None), f'{name} has no version reader')
-                pin = 'v' + tool.pinned(name) if name in TAGGED else tool.pinned(name)
-                self.assertEqual(adapter.PINNED, pin, 'the adapter and the registry pin one version')
+                self.assertEqual(adapter.PINNED, tool.pinned(name), 'the adapter and the registry pin one version')
                 if name not in UNSAMPLED:
                     self.assertEqual(sample(name)['pinned_version'], adapter.PINNED, f'{name}: captured from another version')
                 for capability in adapter.capabilities(): self.assertIn(capability.kind, KINDS)
-        kinds = list(enola.KIND_BY_SOURCE.values()) + list(reforge.KIND_BY_FAMILY.values()) + list(codegraph.TOOLS.values())
-        for kind in kinds:
+        for kind in reforge.KIND_BY_FAMILY.values():
             self.assertIn(kind, KINDS)
-
-
-# enola's sources the adapter sees and deliberately does not map: they report scope rather than a finding.
-DECLINED_SOURCES = ('domain', 'coverage', 'crossrepo', 'entry-points', 'intent', 'messaging-coverage', 'package-metrics')
-
-
-class EnolaContractTests(unittest.TestCase):
-    def test_every_insight_source_is_mapped_or_deliberately_declined_and_still_locates_itself(self):
-        payload = sample('enola')
-        unmapped = {row['source'] for row in payload['insights.json'] if row['source'] not in enola.KIND_BY_SOURCE}
-        self.assertEqual(sorted(unmapped - set(DECLINED_SOURCES)), [],
-                         'an insight source appeared that the adapter neither maps nor declines')
-        self.assertTrue(DECLINED_SOURCES)
-        self.assertEqual(sorted(set(DECLINED_SOURCES) & set(enola.KIND_BY_SOURCE)), [])
-        receipt = payload['receipt.json']
-        for field in ('snapshot_id', 'extractor_version', 'extractors', 'explainers'):
-            self.assertIn(field, receipt, f'enola stopped reporting {field}')
-        self.assertTrue(set(receipt['explainers']) & set(enola.KIND_BY_SOURCE), 'enola renamed its explainers')
-        located = [row for row in payload['insights.json']
-                   if row['source'] in enola.KIND_BY_SOURCE and (row.get('evidence') or [{}])[0].get('file')]
-        self.assertTrue(located, 'no mapped insight carries a file any more; every finding would lose its place')
 
 
 class ReforgeContractTests(unittest.TestCase):
@@ -87,71 +63,11 @@ class ReforgeContractTests(unittest.TestCase):
                 self.assertTrue(members or locations, 'a grouped issue with neither members nor locations would be dropped')
 
 
-class JscpdAndCodegraphContractTests(unittest.TestCase):
-    def test_jscpd_clones_and_statistics_and_codegraph_tool_payloads_keep_their_shape(self):
+class JscpdContractTests(unittest.TestCase):
+    def test_jscpd_clones_and_statistics_keep_their_shape(self):
         report = sample('jscpd')['jscpd-report.json']
         for clone in report['duplicates']:
             for side in ('firstFile', 'secondFile'):
                 self.assertLessEqual({'name', 'start'}, set(clone[side]))
             self.assertIn('lines', clone)
         self.assertLessEqual({'sources', 'lines', 'percentage', 'clones'}, set(report['statistics']['total']))
-        payload = sample('codegraph')
-        self.assertIn('summary', payload['codegraph_get_dependency_graph.json'])
-        calls = payload['codegraph_get_call_graph.json']
-        self.assertTrue('edges' in calls or 'message' in calls)
-        for function in payload['codegraph_find_hot_paths.json']['functions']:
-            self.assertLessEqual({'name', 'score'}, set(function))
-
-
-class CodegraphAdapterTests(unittest.TestCase):
-    """The wrapper never raises, never guesses, and never hides a tool failure."""
-
-    def test_a_missing_binary_is_reported_unavailable_not_raised(self):
-        original = codegraph.BINARY
-        codegraph.BINARY = '/nonexistent/codegraph-server'
-        try:
-            with tempfile.TemporaryDirectory() as tmp:
-                (Path(tmp) / 'src').mkdir()
-                (Path(tmp) / 'src/a.go').write_text('package a\n')
-                result = codegraph.run(Path(tmp) / 'src', Path(tmp) / 'out')
-        finally:
-            codegraph.BINARY = original
-        self.assertEqual((result['available'], result['summary']['tools'], result['facts']), (False, {}, []))
-        # Self-audit: every codegraph metric (grade A, complexity 1 included) became a complexity finding, twice. A
-        # metric with no threshold is kept as a symbol metric only, and codegraph is no witness of complexity.
-        from unittest import mock
-        metric = {'kind': 'symbol_metric_external', 'location': {'path': 'a.py', 'line': 3},
-                  'value': {'name': 'f', 'complexity': 1, 'grade': 'A'}}
-        produced = {'facts': [metric], 'summary': {'files_asked': 1, 'tools': {}}}
-        with tempfile.TemporaryDirectory() as tmp, mock.patch.object(codegraph, 'version', return_value='1'), \
-                mock.patch.object(codegraph, 'run', return_value=produced):
-            report = codegraph.analyze(tmp, tmp)
-        self.assertEqual(([f['kind'] for f in report.findings], sorted(report.evaluated)), ([], ['coupling']))
-
-    def test_engine_paths_are_relative_nameless_edges_are_dropped_and_flow_files_are_asked_about(self):
-        from eaos.engines.code.codegraph import files_of_interest
-        from eaos.engines.code.codegraph_payloads import _module_edges_from_dep_graph, _relative
-        self.assertEqual(_relative('/repo/pkg/a.go', '/repo'), 'pkg/a.go')
-        # A path outside the tree is kept as given rather than mangled into a wrong relative one.
-        self.assertEqual(_relative('/elsewhere/b.go', '/repo'), '/elsewhere/b.go')
-        self.assertEqual(_relative('', '/repo'), '')
-        payload = {'nodes': [{'id': '1', 'type': 'codefile', 'path': '/repo/pkg/a.go', 'language': 'go'},
-                             {'id': '2', 'type': 'module', 'name': 'strings', 'path': ''}],
-                   'edges': [{'from': '1', 'to': '2', 'type': 'import'}, {'from': '1', 'to': '99', 'type': 'import'},
-                             {'from': '404', 'to': '2', 'type': 'import'}]}
-        facts = _module_edges_from_dep_graph(payload, '/repo')
-        self.assertEqual([(f['value']['from'], f['value']['to']) for f in facts], [('pkg/a.go', 'strings')])
-        self.assertNotIn('99', json.dumps(facts))
-        # The flow fact names its path set `touched_files`; a file only a flow reaches must still be asked about.
-        with tempfile.TemporaryDirectory() as tmp:
-            facts_dir = Path(tmp) / 'report' / 'facts'
-            facts_dir.mkdir(parents=True)
-            (facts_dir / 'entrypoints.json').write_text(json.dumps({'facts': [
-                {'kind': 'entry_point', 'location': {'path': 'cmd/main.go'}, 'value': {'category': 'source'}},
-                {'kind': 'entry_point', 'location': {'path': 'cmd/main_test.go'}, 'value': {'category': 'test'}}]}))
-            (facts_dir / 'flows.json').write_text(json.dumps({'facts': [
-                {'kind': 'flow', 'location': {'path': 'cmd/main.go'},
-                 'value': {'entry': {'path': 'cmd/main.go'}, 'touched_files': ['cmd/main.go', 'internal/store/store.go']}}]}))
-            found = files_of_interest(Path(tmp) / 'report' / 'engines' / 'codegraph')
-        self.assertTrue({'internal/store/store.go', 'cmd/main.go'} <= set(found))
-        self.assertNotIn('cmd/main_test.go', found, "a test entry point is not the reader's entry point")

@@ -14,7 +14,7 @@ import zipfile
 from pathlib import Path
 
 from ..system.web import opened
-from .pins import TRIVY_CACHE, _link, browsers, checkout, home, npm_prefix, release_spec, tool_env, uv, venv_of
+from .pins import _link, browsers, checkout, home, npm_prefix, registry, release_spec, tool_env, uv, venv_of
 from .versions import browser_missing, found_version
 
 CHUNK = 2 ** 20
@@ -173,8 +173,32 @@ def _ensure(tool, step, echo):
         if found != tool['version']: raise RuntimeError(reason or f'installed {found}, pinned {tool["version"]}')
         echo(f"install {tool['name']} {found}")
     if tool['name'] == 'playwright': install_browsers(echo)
-    # Trivy reads no vulnerability database since OSV-Scanner alone answers for packages (M2.3): the one it kept (1.6 GB,
-    # downloaded again every day) is removed.
-    if tool['name'] == 'trivy':
-        for folder in (home() / TRIVY_CACHE / 'db', home() / TRIVY_CACHE / 'db-old', home() / 'cache/trivy-next'):
-            shutil.rmtree(folder, ignore_errors=True)
+
+
+# The caches of tools no longer pinned (Trivy's, retired in M18.1), removed with the tools themselves.
+RETIRED_CACHES = ('cache/trivy', 'cache/trivy-next')
+
+
+def retire():
+    """Remove from the tools home what no pinned tool owns: a release, an npm prefix or an own virtualenv of a tool the
+    registry no longer lists, the caches of retired tools and the links left pointing at nothing. What EAOS installed,
+    EAOS removes when it stops using it. Returns what was removed, relative to the tools home."""
+    base = home()
+    gone = _unowned(base, {t['name'] for t in registry()['tools']})
+    for folder in gone: shutil.rmtree(folder, ignore_errors=True)
+    links = [link for link in (base / 'bin').glob('*') if link.is_symlink() and not link.exists()]
+    for link in links: link.unlink()
+    return sorted(str(path.relative_to(base)) for path in gone + links)
+
+
+def _unowned(base, names):
+    """The folders of the tools home that belong to no tool in `names`."""
+    releases = [f for f in (base / 'releases').glob('*') if not _owned(f.name, names)]
+    prefixes = [f for f in (base / 'npm').glob('*') if f.name not in names]
+    venvs = [f for f in base.glob('venv-*') if f.name.removeprefix('venv-') not in names]
+    return releases + prefixes + venvs + [base / c for c in RETIRED_CACHES if (base / c).exists()]
+
+
+def _owned(release, names):
+    """Whether a release folder (`<name>-<version>`) is one of `names`."""
+    return any(release == name or release.startswith(f'{name}-') for name in names)

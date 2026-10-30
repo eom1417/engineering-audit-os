@@ -62,7 +62,7 @@ for undefined names and unused imports (`console/eslint.config.js`).
 
 | Law | Guarded by |
 |---|---|
-| **What EAOS makes, EAOS removes**: a new kind of file comes with the rule that removes or bounds it, and its test | `test_artifact_contract` (every artifact one owner, one purpose, one budget); `test_code_limits` (a temporary folder removed by what made it); `test_sandbox` (a killed run's leftovers removed) |
+| **What EAOS makes, EAOS removes**: a new kind of file comes with the rule that removes or bounds it, and its test | `test_artifact_contract` (every artifact one owner, one purpose, one budget); `test_code_limits` (a temporary folder removed by what made it); `test_sandbox` (a killed run's leftovers removed); `test_toolchain` (a tool no longer pinned leaves the tools home at the next install) |
 | Outputs hold what people or later stages read; caches live in the runtime folder, never in the report | `test_artifact_contract` |
 | A check's output and runtime have size budgets (`docs/METRICS.md`) | `tools/metrics.py` at each milestone end |
 | Long runs (checks, suites, updates) run as systemd units or background jobs, one heavy job at a time | review |

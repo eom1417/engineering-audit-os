@@ -1,8 +1,7 @@
 """Running a pinned analyzer, and keeping the target byte-identical while it runs.
 
-The target is read-only. One engine (enola) insists on writing its output inside the repository
-it reads, so that engine reads a mirror instead: hardlinked when the filesystem allows it, copied
-when it does not. Nothing here ever runs a script belonging to the analysed project.
+The target is read-only: an engine that writes where it reads runs on a copy of its own (GitNexus). Nothing here
+ever runs a script belonging to the analysed project.
 """
 import os
 import shutil
@@ -54,23 +53,3 @@ def state_digest(target):
                 continue
             digest.update(f'{path.relative_to(target)}|{stat.st_size}|{stat.st_mtime_ns}\n'.encode('utf-8'))
     return digest.hexdigest()
-
-
-def mirror(target, workdir, hardlink=True):
-    """A throwaway copy of the target an engine may write into. Hardlinks when it can, copies when not.
-
-    A hardlinked file is the original: an engine that rewrites an existing file in place would change the
-    project too. Such an engine asks for hardlink=False and gets a copy it cannot reach the project through.
-    """
-    target, destination = Path(target).resolve(), Path(workdir) / 'mirror'
-    if destination.exists():
-        shutil.rmtree(destination, ignore_errors=True)
-    destination.parent.mkdir(parents=True, exist_ok=True)
-    code, _, error, _ = run(['cp', '-al', str(target), str(destination)]) if hardlink else (1, '', '', 0)
-    if code == 0:
-        return destination, 'hardlink'
-    shutil.rmtree(destination, ignore_errors=True)
-    code, _, error, _ = run(['cp', '-a', str(target), str(destination)])
-    if code != 0:
-        raise OSError(f'could not mirror the target for an engine that writes where it reads: {error.strip()[:200]}')
-    return destination, 'copy'

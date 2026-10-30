@@ -58,7 +58,7 @@ engineering-audit-os/
                            the rules split, operations
       experience/          the simulated users' plan: the scenario, the domain data, the simulation, the judging
       logic_flaws/         the optional logic-flaw hunt: the brief and prompts, the grounding and the record
-      maps/                the maps people read: architecture, system, pipeline, C4, impact, and their layout
+      maps/                the maps people read: architecture, system, pipeline, C4, impact, the code map (hotspots, clusters), and their layout
       target_state/        where the project should be: references, projection, repair or rebuild, transform,
                            sustainability, the declared policy, the look
       readiness/           production readiness and the load model

@@ -65,7 +65,7 @@ def _structure(out, ran):
     row = {'source': 'architecture/map.json, facts/graph.json, facts/policy.json, facts/metrics.json', 'city_hotspots': _hotspots(digest),
            'clusters': _clusters(digest), 'large_modules': _large_modules(out), 'modularity': digest.get('modularity'), 'cycles': graph.get('cycles'),
            'policy_violations': policy.get('violations') if policy.get('declared') else None,
-           'map': {k: (arch.get(k) or {}).get('status') for k in ('city', 'clusters')} if arch else None}
+           'map': {k: len(digest.get(k) or []) for k in ('hotspots', 'clusters')} if arch else None}
     row['rules'] = _structure_verdict(graph.get('cycles'), row['policy_violations'], arch, row['large_modules'])
     return row
 

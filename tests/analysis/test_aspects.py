@@ -1,6 +1,6 @@
 """Every aspect of the program reaches the person's assistant and gets a verdict (eaos/analysis/understanding/aspects.py), with the evidence
 stages restored in 0.0.9: production readiness (eaos/analysis/readiness/production.py), the architecture map's digest
-(eaos/engines/code/codecharta_emerge.py) and the capped journeys (eaos/live/behavior/lock.py)."""
+(eaos/analysis/maps/code_map.py) and the capped journeys (eaos/live/behavior/lock.py)."""
 import json
 import os
 import subprocess
@@ -53,23 +53,33 @@ class Readiness(Workspace):
         self.assertEqual([speed({'p95_ms': 1250.0, 'error_rate': 0}), speed({'p95_ms': 8.0, 'error_rate': 0.2}),
                           speed({'p95_ms': 8.0, 'error_rate': 0})], ['gap', 'gap', 'ok'])
 
-    def test_the_city_and_the_clusters_are_read_into_hotspots_and_clusters(self):
-        from eaos.engines.code.codecharta_emerge import digest
-        folder = Path(self.tmp) / 'architecture'
-        _write(folder / 'city.cc.json', {'files': [{'id': 'r', 'name': 'root', 'type': 'Folder', 'children': [
-            {'id': 'a', 'name': 'app', 'type': 'Folder', 'children': [{'id': 'm', 'name': 'main.py', 'type': 'File'},
-                                                                     {'id': 'p', 'name': 'prices.py', 'type': 'File'}]}]}],
-            'lenses': {'metrics': {'attributes': {'m': {'complexity': 2, 'rloc': 10}, 'p': {'complexity': 9, 'rloc': 40}}},
-                       'git': {'attributes': {'m': {'number_of_commits': 1}, 'p': {'number_of_commits': 7}}}}})
-        _write(folder / 'emerge/python/emerge-statistics-and-metrics.json', {
-            'overall-metrics': {'louvain-modularity-dependency-graph': 0.4},
-            'local-metrics': {'shop/app/main.py': {'fan-in-dependency-graph': 0, 'file_result_dependency_graph_louvain-modularity-in-file': 0},
-                              'shop/app/prices.py': {'fan-in-dependency-graph': 3, 'file_result_dependency_graph_louvain-modularity-in-file': 0}}})
-        found = digest(folder)
+    def test_the_facts_are_read_into_hotspots_and_clusters(self):
+        from eaos.analysis.maps.code_map import digest
+        out = Path(self.tmp)
+        metric = lambda path, branches, lines: {'kind': 'metric', 'location': {'path': path},
+                                                'value': {'scope': 'file', 'branches': branches, 'code_lines': lines}}
+        node = lambda path, fan_in, uses: {'kind': 'graph_node', 'location': {'path': path}, 'value': {'fan_in': fan_in, 'depends_on': uses}}
+        churn = lambda path, commits: {'kind': 'history_churn', 'location': {'path': path}, 'value': {'commits': commits}}
+        _write(out / 'facts/metrics.json', {'facts': [metric('app/main.py', 1, 10), metric('app/prices.py', 8, 40),
+                                                     metric('tests/test_prices.py', 30, 90)]})
+        _write(out / 'facts/history.json', {'facts': [churn('app/main.py', 1), churn('app/prices.py', 7)]})
+        # two tight groups joined by one import; a test file is not part of the map
+        shop, mail = ['shop/a.py', 'shop/b.py', 'shop/c.py'], ['mail/a.py', 'mail/b.py', 'mail/c.py']
+        uses = {path: [other for other in group if other != path] for group in (shop, mail) for path in group}
+        uses['shop/a.py'].append('mail/a.py')
+        _write(out / 'facts/graph.json', {'facts': [node(path, 3 if path == 'shop/a.py' else 1, used) for path, used in uses.items()]
+                                          + [node('tests/test_shop.py', 0, ['shop/a.py'])]})
+        found = digest(out)
         self.assertEqual([h['path'] for h in found['hotspots']], ['app/prices.py', 'app/main.py'])
-        self.assertEqual(found['clusters'], [{'id': 'python-0', 'files': 2, 'members': ['app/prices.py', 'app/main.py'],
-                                              'most_depended_on': 'app/prices.py'}])
-        self.assertEqual(found['modularity'], 0.4)
+        self.assertEqual(found['hotspots'][0]['score'], 9 * 7)
+        self.assertEqual([(c['files'], c['most_depended_on']) for c in found['clusters']], [(3, 'mail/a.py'), (3, 'shop/a.py')])
+        self.assertEqual(sorted(sorted(c['members']) for c in found['clusters']), [sorted(mail), sorted(shop)])
+        self.assertGreater(found['modularity'], 0.3)
+        # the stage writes it into a report with no architecture folder yet
+        from types import SimpleNamespace
+        from eaos.pipeline.runners.by_rules import architecture
+        self.assertEqual(architecture(SimpleNamespace(out=out)), {'hotspots': 2, 'clusters': 2})
+        self.assertEqual(json.loads((out / 'architecture/map.json').read_text())['digest'], found)
 
     def test_journeys_stay_light_on_disk(self):
         from eaos.live.behavior import lock as behavior_lock

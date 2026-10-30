@@ -57,7 +57,7 @@ class Entry(Project):
         http, keys, app = self.client()
         log.emit('stage.started', stage='semgrep')
         body = http.get('/api/progress', headers={'X-EAOS-Token': keys.token}).json()
-        self.assertEqual((body['flows']['tools']['state'], body['flows']['tools']['stages'][0]['name']), ('running', 'codegraph'))
+        self.assertEqual((body['flows']['tools']['state'], body['flows']['tools']['stages'][0]['name']), ('running', 'reforge'))   # the registry's first tool
         self.assertIn('semgrep', body['tools_needed'])
         self.assertNotIn('sqlfluff', body['tools_needed'], 'no SQL in this project')
         events = app.state.ctx.feed.poll()

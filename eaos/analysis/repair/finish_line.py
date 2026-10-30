@@ -1,7 +1,7 @@
 """The finish line of a card on what engines report about code: the exact findings it must clear, fixed when the card is
 made, each judged by one ruler. On EAOS itself (2026-10-15) one "complexity" card mixed seven kinds of finding, judged
 the whole file by whichever engine spoke, and six cards of a batch could not pass whatever the assistant did:
-- a branching score (reforge complex_function, lizard ccn, enola) is judged by EAOS's own count
+- a branching score (reforge complex_function, lizard ccn) is judged by EAOS's own count
   (facts/code/metrics.py, the one the gates and the code laws use): engines disagree (one function scored 15, 40 and 49), so a
   function EAOS counts within MAX_COMPLEXITY is no target, whatever an engine said; one EAOS does not count (a language
   it does not read) is judged by the engine that reported it;

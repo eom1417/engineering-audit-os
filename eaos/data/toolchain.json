@@ -5,92 +5,154 @@
   "default": "~/.eaos/tools"
  },
  "description": "Every external tool EAOS runs or validates with, at its pinned version, and how to install it without root. The only list: eaos tools install and doctor, the engines stage (eaos/engines/__init__.py ADAPTERS) and the pages read it; `source_commit` pins the source tools/dev_paths.py upstreams clones for reading. A release is accepted only if its sha256 matches the one pinned here, copied from the checksums the project publishes. `check` names the stage of the check that runs a tool (eaos/pipeline/stages.py): the check waits for those tools, on a project they apply to, before it starts.",
+ "jobs": {
+  "code_graph": {
+   "what": "The imports and calls between files, and the layers they cross",
+   "primary": "eaos",
+   "eaos": [
+    "eaos/facts/code/syntax.py",
+    "eaos/facts/code/graph.py",
+    "eaos/analysis/layers/boundaries.py"
+   ]
+  },
+  "assistant_map": {
+   "what": "A map of the code an assistant reads before a change: its areas, callers and what a change touches",
+   "primary": "gitnexus"
+  },
+  "architecture_map": {
+   "what": "The files most worth a look (complexity times changes) and the clusters the imports draw",
+   "primary": "eaos",
+   "eaos": [
+    "eaos/analysis/maps/code_map.py"
+   ]
+  },
+  "near_copies": {
+   "what": "Code copied or nearly copied in several places",
+   "primary": "jscpd",
+   "eaos": [
+    "eaos/analysis/assessments/one_source.py"
+   ]
+  },
+  "one_source_patterns": {
+   "what": "A value of the look, a screen pattern or a way of working written many times",
+   "primary": "eaos",
+   "eaos": [
+    "eaos/facts/duplication/patterns.py",
+    "eaos/analysis/assessments/one_source.py"
+   ]
+  },
+  "dead_code": {
+   "what": "Code and files nothing reaches",
+   "primary": "eaos",
+   "eaos": [
+    "eaos/facts/dead_code/detect.py"
+   ]
+  },
+  "size_complexity": {
+   "what": "The size and complexity of files and functions",
+   "primary": "eaos",
+   "eaos": [
+    "eaos/core/contracts/code_laws.py",
+    "eaos/facts/code/metrics.py"
+   ]
+  },
+  "code_rules": {
+   "what": "EAOS's own structural rules over the syntax trees",
+   "primary": "ast-grep"
+  },
+  "static_security": {
+   "what": "Security weaknesses read from the code",
+   "primary": "semgrep"
+  },
+  "secrets": {
+   "what": "Secrets written into the files",
+   "primary": "gitleaks",
+   "eaos": [
+    "eaos/facts/defects/secrets.py"
+   ]
+  },
+  "personal_data": {
+   "what": "Real personal data written in the code",
+   "primary": "presidio"
+  },
+  "infrastructure_config": {
+   "what": "Pitfalls of CI, container, Terraform and Kubernetes files",
+   "primary": "checkov"
+  },
+  "vulnerable_dependencies": {
+   "what": "Locked dependency versions with a known advisory",
+   "primary": "osv-scanner"
+  },
+  "sbom": {
+   "what": "Every dependency as an inventory (SBOM)",
+   "primary": "syft"
+  },
+  "api_lint": {
+   "what": "The OpenAPI document checked against its ruleset",
+   "primary": "spectral"
+  },
+  "api_breaking": {
+   "what": "What the last change of the API document broke for its clients",
+   "primary": "oasdiff"
+  },
+  "api_live": {
+   "what": "The running API tried with generated requests",
+   "primary": "schemathesis"
+  },
+  "sql_lint": {
+   "what": "The project's SQL linted",
+   "primary": "sqlfluff"
+  },
+  "migration_risk": {
+   "what": "Risky database migrations",
+   "primary": "squawk"
+  },
+  "database_rules": {
+   "what": "The database's security rules read and tried on the run's own database",
+   "primary": "supabase"
+  },
+  "components": {
+   "what": "React components and the props they declare",
+   "primary": "react-docgen"
+  },
+  "codemods": {
+   "what": "Mechanical edits made by rules on an isolated copy",
+   "primary": "jscodeshift"
+  },
+  "screens": {
+   "what": "The app opened, pictured and locked in a browser",
+   "primary": "playwright"
+  },
+  "accessibility": {
+   "what": "WCAG rules on each rendered page",
+   "primary": "axe-core"
+  },
+  "page_performance": {
+   "what": "A page's performance and best-practice scores",
+   "primary": "lighthouse"
+  },
+  "journey_recording": {
+   "what": "What a journey did on each page, recorded",
+   "primary": "rrweb"
+  },
+  "lock_tests": {
+   "what": "The lock's approval tests",
+   "primary": "pytest"
+  },
+  "load": {
+   "what": "The app under load",
+   "primary": "k6"
+  },
+  "mail": {
+   "what": "The e-mails the app sends, caught",
+   "primary": "mailpit"
+  },
+  "design_references": {
+   "what": "Styles, palettes, design systems, themes and craft guidance read when a look is drawn",
+   "primary": "ui-ux-pro-max"
+  }
+ },
  "tools": [
-  {
-   "name": "codegraph",
-   "role": "read",
-   "stages": [
-    "S02",
-    "S03",
-    "S04"
-   ],
-   "check": "engines",
-   "license": "Apache-2.0",
-   "repository": "https://github.com/codegraph-ai/CodeGraph",
-   "version": "0.20.1",
-   "source_commit": "64f4f306e2a88eaba43eaef05499779d7fe6f75b",
-   "binary": "codegraph-server",
-   "install": {
-    "method": "release",
-    "url": "https://github.com/codegraph-ai/CodeGraph/releases/download/v0.20.1/codegraph-server-linux-x64",
-    "sha256": "32b26422fa5ffe0a130955b7f7df771f722b2d427d67f53f104d9907bdfb24a6",
-    "archive": "binary",
-    "member": "codegraph-server",
-    "platforms": {
-     "linux-x86_64": {
-      "method": "release",
-      "url": "https://github.com/codegraph-ai/CodeGraph/releases/download/v0.20.1/codegraph-server-linux-x64",
-      "sha256": "32b26422fa5ffe0a130955b7f7df771f722b2d427d67f53f104d9907bdfb24a6",
-      "archive": "binary",
-      "member": "codegraph-server"
-     },
-     "darwin-arm64": {
-      "url": "https://github.com/codegraph-ai/CodeGraph/releases/download/v0.20.1/codegraph-server-darwin-arm64",
-      "sha256": "460d830e93467efb9270bfe6ac01f34e32d3369041e3a93699a9887053d18cc3",
-      "archive": "binary",
-      "member": "codegraph-server"
-     },
-     "darwin-x86_64": {
-      "url": "https://github.com/codegraph-ai/CodeGraph/releases/download/v0.20.1/codegraph-server-darwin-x64",
-      "sha256": "5aa863ea529afcf6664cf40fcd7079d4121e8348acc1c9e0ebbc0c4675246ddd",
-      "archive": "binary",
-      "member": "codegraph-server"
-     }
-    }
-   }
-  },
-  {
-   "name": "enola",
-   "role": "read",
-   "stages": [
-    "S02",
-    "S04"
-   ],
-   "check": "engines",
-   "license": "Apache-2.0",
-   "repository": "https://github.com/enola-labs/enola",
-   "version": "0.4.21",
-   "source_commit": "d086926aca80975dde34094e99c84cce59fb1cd6",
-   "binary": "enola",
-   "install": {
-    "method": "release",
-    "url": "https://github.com/enola-labs/enola/releases/download/v0.4.21/enola-0.4.21-linux-amd64.tar.gz",
-    "sha256": "002f7d199e3461ba114e619608e38c9fa67d34089b9fc6423214943e146f322c",
-    "archive": "tar.gz",
-    "member": "enola-0.4.21-linux-amd64",
-    "platforms": {
-     "linux-x86_64": {
-      "method": "release",
-      "url": "https://github.com/enola-labs/enola/releases/download/v0.4.21/enola-0.4.21-linux-amd64.tar.gz",
-      "sha256": "002f7d199e3461ba114e619608e38c9fa67d34089b9fc6423214943e146f322c",
-      "archive": "tar.gz",
-      "member": "enola-0.4.21-linux-amd64"
-     },
-     "darwin-arm64": {
-      "url": "https://github.com/enola-labs/enola/releases/download/v0.4.21/enola-0.4.21-darwin-arm64.tar.gz",
-      "sha256": "8786ea0139d994e25299cdadc70c124054f0eea3babc42972861d9e6782c36ff",
-      "archive": "tar.gz",
-      "member": "enola-0.4.21-darwin-arm64"
-     },
-     "darwin-x86_64": {
-      "url": "https://github.com/enola-labs/enola/releases/download/v0.4.21/enola-0.4.21-darwin-amd64.tar.gz",
-      "sha256": "12c5816b5d01d910b4a91b85eb0a42babfec601eb6120e7be6018732ca5549d1",
-      "archive": "tar.gz",
-      "member": "enola-0.4.21-darwin-amd64"
-     }
-    }
-   }
-  },
   {
    "name": "reforge",
    "role": "read",
@@ -131,6 +193,9 @@
       "member": "./reforge"
      }
     }
+   },
+   "jobs": {
+    "size_complexity": "parameters, nesting and length per function, data clumps, test duplication and boundary bypasses (hidden until measured, M18.16)"
    }
   },
   {
@@ -149,6 +214,9 @@
    "install": {
     "method": "pip",
     "package": "jscpd"
+   },
+   "jobs": {
+    "near_copies": "primary"
    }
   },
   {
@@ -190,6 +258,9 @@
       "member": "syft"
      }
     }
+   },
+   "jobs": {
+    "sbom": "primary"
    }
   },
   {
@@ -233,6 +304,9 @@
       "member": "osv-scanner"
      }
     }
+   },
+   "jobs": {
+    "vulnerable_dependencies": "primary"
    }
   },
   {
@@ -275,6 +349,9 @@
       "member": "scc"
      }
     }
+   },
+   "jobs": {
+    "size_complexity": "the lines of files in the languages EAOS's parser does not read"
    }
   },
   {
@@ -294,6 +371,10 @@
    "install": {
     "method": "pip",
     "package": "semgrep"
+   },
+   "jobs": {
+    "static_security": "primary",
+    "secrets": "EAOS's rules for a key shipped to the browser and the official secrets rules"
    }
   },
   {
@@ -312,48 +393,9 @@
     "repository": "https://github.com/semgrep/semgrep-rules",
     "dir": "semgrep-rules"
    },
-   "license_note": "Semgrep Rules License v1.0: fetched to this machine for non-commercial use and read by the semgrep adapter; never copied into the EAOS repository or redistributed."
-  },
-  {
-   "name": "trivy",
-   "role": "read",
-   "stages": [
-    "S04",
-    "S10"
-   ],
-   "applies": "all",
-   "check": "engines",
-   "license": "Apache-2.0",
-   "repository": "https://github.com/aquasecurity/trivy",
-   "version": "0.74.0",
-   "binary": "trivy",
-   "install": {
-    "method": "release",
-    "url": "https://github.com/aquasecurity/trivy/releases/download/v0.74.0/trivy_0.74.0_Linux-64bit.tar.gz",
-    "sha256": "2ae6fe3ee734b7fdf11335663e18c75ea12dccc76062f09f164a3b0f8be4371a",
-    "archive": "tar.gz",
-    "member": "trivy",
-    "platforms": {
-     "linux-x86_64": {
-      "method": "release",
-      "url": "https://github.com/aquasecurity/trivy/releases/download/v0.74.0/trivy_0.74.0_Linux-64bit.tar.gz",
-      "sha256": "2ae6fe3ee734b7fdf11335663e18c75ea12dccc76062f09f164a3b0f8be4371a",
-      "archive": "tar.gz",
-      "member": "trivy"
-     },
-     "darwin-arm64": {
-      "url": "https://github.com/aquasecurity/trivy/releases/download/v0.74.0/trivy_0.74.0_macOS-ARM64.tar.gz",
-      "sha256": "1caada5e0e2091909357c7525d3aa76f4b660b13821bc143b190c7483e31cc11",
-      "archive": "tar.gz",
-      "member": "trivy"
-     },
-     "darwin-x86_64": {
-      "url": "https://github.com/aquasecurity/trivy/releases/download/v0.74.0/trivy_0.74.0_macOS-64bit.tar.gz",
-      "sha256": "472816f6888dda689d075c30254d4210b4d1035acf365aa72332f584c2f60485",
-      "archive": "tar.gz",
-      "member": "trivy"
-     }
-    }
+   "license_note": "Semgrep Rules License v1.0: fetched to this machine for non-commercial use and read by the semgrep adapter; never copied into the EAOS repository or redistributed.",
+   "jobs": {
+    "static_security": "the official rule library Semgrep reads (security and secrets only)"
    }
   },
   {
@@ -372,6 +414,9 @@
    "install": {
     "method": "pip",
     "package": "checkov"
+   },
+   "jobs": {
+    "infrastructure_config": "primary"
    }
   },
   {
@@ -390,6 +435,9 @@
    "install": {
     "method": "pip",
     "package": "bandit[sarif]"
+   },
+   "jobs": {
+    "static_security": "Python weaknesses read from the syntax tree that Semgrep's security pack has no rule for (a request without a timeout)"
    }
   },
   {
@@ -432,6 +480,9 @@
       "member": "gitleaks"
      }
     }
+   },
+   "jobs": {
+    "secrets": "primary"
    }
   },
   {
@@ -456,7 +507,10 @@
      "en_core_web_sm @ https://github.com/explosion/spacy-models/releases/download/en_core_web_sm-3.8.0/en_core_web_sm-3.8.0-py3-none-any.whl#sha256=1932429db727d4bff3deed6b34cfc05df17794f4a52eeb26cf8928f7c1a0fb85"
     ]
    },
-   "install_note": "Real data written in the code (M12.1): a library, no executable; eaos/templates/presidio/scan.py imports it in its own environment and reads the project's string literals only, with the Saudi mobile, national id and Arabic name patterns and the placeholders of eaos/rules/personal-data.json. spaCy's small English model (MIT, its wheel pinned by its sha256) finds English names. Its own environment: spaCy's numpy and pydantic would move the versions the other Python tools share."
+   "install_note": "Real data written in the code (M12.1): a library, no executable; eaos/templates/presidio/scan.py imports it in its own environment and reads the project's string literals only, with the Saudi mobile, national id and Arabic name patterns and the placeholders of eaos/rules/personal-data.json. spaCy's small English model (MIT, its wheel pinned by its sha256) finds English names. Its own environment: spaCy's numpy and pydantic would move the versions the other Python tools share.",
+   "jobs": {
+    "personal_data": "primary"
+   }
   },
   {
    "name": "codeql",
@@ -509,6 +563,9 @@
       "entry": "codeql/codeql"
      }
     }
+   },
+   "jobs": {
+    "static_security": "data followed across functions and files (open-source projects on GitHub only)"
    }
   },
   {
@@ -532,7 +589,10 @@
      "typescript@6.0.3"
     ]
    },
-   "install_note": "typescript 6 is installed beside it: without a compiler it reads no .ts file and reports an empty graph (TypeScript 7 is not yet supported by its API)."
+   "install_note": "typescript 6 is installed beside it: without a compiler it reads no .ts file and reports an empty graph (TypeScript 7 is not yet supported by its API).",
+   "jobs": {
+    "code_graph": "the layer map's boundaries as rules on the JavaScript and TypeScript runtime graph (a type-only import erased)"
+   }
   },
   {
    "name": "schemathesis",
@@ -548,7 +608,10 @@
     "method": "pip",
     "package": "schemathesis"
    },
-   "install_note": "Tries the running API in the `layers` option (M6.7): a fixed seed, a time budget, the run's two test accounts as peers."
+   "install_note": "Tries the running API in the `layers` option (M6.7): a fixed seed, a time budget, the run's two test accounts as peers.",
+   "jobs": {
+    "api_live": "primary"
+   }
   },
   {
    "name": "supabase",
@@ -595,7 +658,10 @@
      }
     }
    },
-   "install_note": "Its security advisors (`supabase db advisors --db-url`) read the run's own database with the migrations applied (M6.6); no Docker, no Supabase project."
+   "install_note": "Its security advisors (`supabase db advisors --db-url`) read the run's own database with the migrations applied (M6.6); no Docker, no Supabase project.",
+   "jobs": {
+    "database_rules": "primary"
+   }
   },
   {
    "name": "pgtap",
@@ -611,7 +677,10 @@
     "repository": "https://github.com/theory/pgtap",
     "dir": "pgtap"
    },
-   "install_note": "v1.3.4: the per-table tests of the data rules (M6.6) load it as SQL into the run's own database (eaos/live/trials/data.py makes pgtap.sql from its source once)."
+   "install_note": "v1.3.4: the per-table tests of the data rules (M6.6) load it as SQL into the run's own database (eaos/live/trials/data.py makes pgtap.sql from its source once).",
+   "jobs": {
+    "database_rules": "per-table tests of the data rules, loaded into the run's own database"
+   }
   },
   {
    "name": "sqlfluff",
@@ -628,6 +697,9 @@
    "install": {
     "method": "pip",
     "package": "sqlfluff"
+   },
+   "jobs": {
+    "sql_lint": "primary"
    }
   },
   {
@@ -670,7 +742,10 @@
      }
     }
    },
-   "install_note": "Risky PostgreSQL migrations (M14.3): a NOT NULL column added without a default, no lock timeout, a table rewritten, ... read from the project's migrations (eaos/engines/code/squawk.py). It sees a migration's risk, not a design such as a whole document kept in one column: that is read on the run's own database."
+   "install_note": "Risky PostgreSQL migrations (M14.3): a NOT NULL column added without a default, no lock timeout, a table rewritten, ... read from the project's migrations (eaos/engines/code/squawk.py). It sees a migration's risk, not a design such as a whole document kept in one column: that is read on the run's own database.",
+   "jobs": {
+    "migration_risk": "primary"
+   }
   },
   {
    "name": "spectral",
@@ -687,6 +762,9 @@
    "install": {
     "method": "npm",
     "package": "@stoplight/spectral-cli"
+   },
+   "jobs": {
+    "api_lint": "primary"
    }
   },
   {
@@ -729,6 +807,9 @@
       "member": "oasdiff"
      }
     }
+   },
+   "jobs": {
+    "api_breaking": "primary"
    }
   },
   {
@@ -751,7 +832,11 @@
      "GITNEXUS_SKIP_OPTIONAL_GRAMMARS": "1"
     }
    },
-   "license_note": "Non-commercial use only. EAOS is free and non-commercial; a commercial user of EAOS is bound by this license and may skip it (--skip gitnexus): CodeGraph and dependency-cruiser cover its core capability."
+   "license_note": "Non-commercial use only. EAOS is free and non-commercial; a commercial user of EAOS is bound by this license and may skip it (--skip gitnexus): EAOS's own graph and dependency-cruiser cover what the check reads from it.",
+   "jobs": {
+    "assistant_map": "primary",
+    "code_graph": "a second witness of calls and imports, exact on calls through a module, with impact and processes for an assistant"
+   }
   },
   {
    "name": "ast-grep",
@@ -771,7 +856,10 @@
     "method": "pip",
     "package": "ast-grep-cli"
    },
-   "install_note": "The PyPI wheel carries the same prebuilt binary as the GitHub release, per platform; pip checks it against the index hash. It reads EAOS's own rule pack in eaos/rules/ast-grep."
+   "install_note": "The PyPI wheel carries the same prebuilt binary as the GitHub release, per platform; pip checks it against the index hash. It reads EAOS's own rule pack in eaos/rules/ast-grep.",
+   "jobs": {
+    "code_rules": "primary"
+   }
   },
   {
    "name": "lizard",
@@ -789,6 +877,9 @@
    "install": {
     "method": "pip",
     "package": "lizard"
+   },
+   "jobs": {
+    "size_complexity": "the functions of the languages EAOS's parser does not read"
    }
   },
   {
@@ -807,6 +898,9 @@
    "install": {
     "method": "npm",
     "package": "knip"
+   },
+   "jobs": {
+    "dead_code": "unused exports, types and dependencies of a JavaScript or TypeScript package; the Studio's own law"
    }
   },
   {
@@ -827,7 +921,10 @@
     "package": "@react-docgen/cli"
    },
    "version_from": "package",
-   "install_note": "The command-line package @react-docgen/cli 3.0.7 pins the react-docgen library at exactly 8.0.4. It has no --version: its version is read from its own package.json."
+   "install_note": "The command-line package @react-docgen/cli 3.0.7 pins the react-docgen library at exactly 8.0.4. It has no --version: its version is read from its own package.json.",
+   "jobs": {
+    "components": "primary"
+   }
   },
   {
    "name": "playwright",
@@ -844,7 +941,10 @@
     "method": "npm",
     "package": "@playwright/test"
    },
-   "install_note": "Validation needs no browser: `playwright test --list` loads every spec. Running the lock (NS26) installs browsers inside the sandbox."
+   "install_note": "Validation needs no browser: `playwright test --list` loads every spec. Running the lock (NS26) installs browsers inside the sandbox.",
+   "jobs": {
+    "screens": "primary"
+   }
   },
   {
    "name": "pytest",
@@ -864,7 +964,10 @@
      "approvaltests==19.1.1"
     ]
    },
-   "install_note": "Runs the lock's approval tests (NS26) with ApprovalTests (Apache-2.0), installed beside it."
+   "install_note": "Runs the lock's approval tests (NS26) with ApprovalTests (Apache-2.0), installed beside it.",
+   "jobs": {
+    "lock_tests": "primary"
+   }
   },
   {
    "name": "k6",
@@ -904,6 +1007,9 @@
       "member": "k6-v2.3.0-macos-amd64/k6"
      }
     }
+   },
+   "jobs": {
+    "load": "primary"
    }
   },
   {
@@ -946,55 +1052,10 @@
       "member": "mailpit"
      }
     }
-   }
-  },
-  {
-   "name": "temurin-jre",
-   "role": "validate",
-   "stages": [
-    "S02",
-    "S06"
-   ],
-   "license": "GPL-2.0-with-classpath-exception",
-   "repository": "https://github.com/adoptium/temurin21-binaries",
-   "version": "21.0.12",
-   "version_args": [
-    "-version"
-   ],
-   "binary": "java",
-   "install": {
-    "method": "release",
-    "url": "https://github.com/adoptium/temurin21-binaries/releases/download/jdk-21.0.12.1%2B1/OpenJDK21U-jre_x64_linux_hotspot_21.0.12.1_1.tar.gz",
-    "sha256": "2413149700df0f7d440500a84a8f764c535f21e5a5e87d38328b64eec2c5b500",
-    "archive": "tar.gz",
-    "tree": true,
-    "entry": "jdk-21.0.12.1+1-jre/bin/java",
-    "platforms": {
-     "linux-x86_64": {
-      "method": "release",
-      "url": "https://github.com/adoptium/temurin21-binaries/releases/download/jdk-21.0.12.1%2B1/OpenJDK21U-jre_x64_linux_hotspot_21.0.12.1_1.tar.gz",
-      "sha256": "2413149700df0f7d440500a84a8f764c535f21e5a5e87d38328b64eec2c5b500",
-      "archive": "tar.gz",
-      "tree": true,
-      "entry": "jdk-21.0.12.1+1-jre/bin/java"
-     },
-     "darwin-arm64": {
-      "url": "https://github.com/adoptium/temurin21-binaries/releases/download/jdk-21.0.12.1%2B1/OpenJDK21U-jre_aarch64_mac_hotspot_21.0.12.1_1.tar.gz",
-      "sha256": "dec50fc6f9fcd4fe3ae8cabf5a5fa68f6afc48841f7698e468e9aa5d54beed84",
-      "archive": "tar.gz",
-      "tree": true,
-      "entry": "jdk-21.0.12.1+1-jre/Contents/Home/bin/java"
-     },
-     "darwin-x86_64": {
-      "url": "https://github.com/adoptium/temurin21-binaries/releases/download/jdk-21.0.12.1%2B1/OpenJDK21U-jre_x64_mac_hotspot_21.0.12.1_1.tar.gz",
-      "sha256": "6717ec641fd9ce0bb209ca083ee23b42202ac68cb6fcc5753496e0e4a0f41989",
-      "archive": "tar.gz",
-      "tree": true,
-      "entry": "jdk-21.0.12.1+1-jre/Contents/Home/bin/java"
-     }
-    }
    },
-   "install_note": "CodeCharta's analysis CLI (ccsh) runs on it; the checksum is the one Adoptium publishes."
+   "jobs": {
+    "mail": "primary"
+   }
   },
   {
    "name": "jscodeshift",
@@ -1011,7 +1072,10 @@
     "method": "npm",
     "package": "jscodeshift"
    },
-   "install_note": "Runs the codemods of mechanical cards on an isolated copy (their dry run) and on the execution copy; it parses code, it never runs it."
+   "install_note": "Runs the codemods of mechanical cards on an isolated copy (their dry run) and on the execution copy; it parses code, it never runs it.",
+   "jobs": {
+    "codemods": "primary"
+   }
   },
   {
    "name": "axe-core",
@@ -1032,7 +1096,10 @@
      "playwright-core@1.63.0"
     ]
    },
-   "install_note": "A library, no executable: eaos/templates/screens/audit.mjs imports @axe-core/playwright and runs WCAG 2.2 A/AA rules on each rendered page through the pinned Playwright. axe-core stays at 4.13.0, the line @axe-core/playwright 4.13.0 depends on (~4.13.0), so one copy of the rules is installed; playwright-core is the pinned Playwright's version, its peer."
+   "install_note": "A library, no executable: eaos/templates/screens/audit.mjs imports @axe-core/playwright and runs WCAG 2.2 A/AA rules on each rendered page through the pinned Playwright. axe-core stays at 4.13.0, the line @axe-core/playwright 4.13.0 depends on (~4.13.0), so one copy of the rules is installed; playwright-core is the pinned Playwright's version, its peer.",
+   "jobs": {
+    "accessibility": "primary"
+   }
   },
   {
    "name": "lighthouse",
@@ -1049,7 +1116,10 @@
     "method": "npm",
     "package": "lighthouse"
    },
-   "install_note": "Mobile performance, accessibility and best-practices scores of one URL, as JSON (eaos/live/screens/audit.py). It drives the Chromium the pinned Playwright installed (CHROME_PATH); it needs Node.js 22.19 or newer."
+   "install_note": "Mobile performance, accessibility and best-practices scores of one URL, as JSON (eaos/live/screens/audit.py). It drives the Chromium the pinned Playwright installed (CHROME_PATH); it needs Node.js 22.19 or newer.",
+   "jobs": {
+    "page_performance": "primary"
+   }
   },
   {
    "name": "rrweb",
@@ -1069,51 +1139,10 @@
      "rrweb-player@2.1.7"
     ]
    },
-   "install_note": "Libraries, no executable: the journeys stage (eaos/live/behavior/lock.py run_journeys) injects rrweb's recorder unmodified into each page a journey opens and keeps its events as JSON, capped in size, for the assistant and a later replay with rrweb-player from local files, never from a network."
-  },
-  {
-   "name": "codecharta",
-   "role": "read",
-   "stages": [
-    "S02",
-    "S03"
-   ],
-   "check": "architecture",
-   "license": "BSD-3-Clause",
-   "repository": "https://github.com/MaibornWolff/codecharta",
-   "version": "2.1.0",
-   "binary": "ccsh",
-   "install": {
-    "method": "npm",
-    "package": "codecharta-analysis"
-   },
-   "install_note": "The analysis CLI (ccsh): unifiedparser (size and complexity per file) and gitlogparser (change frequency) merged into one cc.json, the architecture city (eaos/engines/code/codecharta_emerge.py). Needs temurin-jre."
-  },
-  {
-   "name": "emerge",
-   "role": "read",
-   "stages": [
-    "S02",
-    "S03"
-   ],
-   "check": "architecture",
-   "license": "MIT",
-   "repository": "https://github.com/glato/emerge",
-   "version": "2.0.7",
-   "binary": "emerge",
-   "install": {
-    "method": "pip",
-    "package": "emerge-viz",
-    "with": [
-     "setuptools==80.10.2",
-     "pip==24.0"
-    ],
-    "own_venv": true
-   },
-   "install_note": "The dependency graph with its clusters (Louvain modularity), as JSON and as a local interactive page (eaos/engines/code/codecharta_emerge.py). Its own environment: its dependencies would move packaging (23.2 to 26.3) in the one the other Python tools share. setuptools 80 is installed beside it: emerge imports pkg_resources, which setuptools 81 removes, and pip 24.0, whose internals it reads to list the Python packages it sees. At its end it tries to copy a path to the clipboard and fails on a computer without one; its files are already written, and EAOS judges it by them.",
-   "version_args": [
-    "--help"
-   ]
+   "install_note": "Libraries, no executable: the journeys stage (eaos/live/behavior/lock.py run_journeys) injects rrweb's recorder unmodified into each page a journey opens and keeps its events as JSON, capped in size, for the assistant and a later replay with rrweb-player from local files, never from a network.",
+   "jobs": {
+    "journey_recording": "primary"
+   }
   },
   {
    "name": "ui-ux-pro-max",
@@ -1129,7 +1158,10 @@
     "repository": "https://github.com/nextlevelbuilder/ui-ux-pro-max-skill",
     "dir": "ui-ux-pro-max"
    },
-   "license_note": "Styles, palettes, font pairings and UX rules by product type, searched offline by its own script; read when a look is drawn. Fetched to this machine, never copied into the EAOS repository."
+   "license_note": "Styles, palettes, font pairings and UX rules by product type, searched offline by its own script; read when a look is drawn. Fetched to this machine, never copied into the EAOS repository.",
+   "jobs": {
+    "design_references": "primary"
+   }
   },
   {
    "name": "awesome-design-md",
@@ -1145,7 +1177,10 @@
     "repository": "https://github.com/voltagent/awesome-design-md",
     "dir": "awesome-design-md"
    },
-   "license_note": "Reference design systems as DESIGN.md files (Google Stitch format), each with a light and dark preview; read as directions, never copied as a brand. Fetched to this machine, never copied into the EAOS repository."
+   "license_note": "Reference design systems as DESIGN.md files (Google Stitch format), each with a light and dark preview; read as directions, never copied as a brand. Fetched to this machine, never copied into the EAOS repository.",
+   "jobs": {
+    "design_references": "reference design systems as DESIGN.md files, light and dark"
+   }
   },
   {
    "name": "tweakcn-themes",
@@ -1161,7 +1196,10 @@
     "repository": "https://github.com/BankkRoll/tweakcn-theme-picker",
     "dir": "tweakcn-themes"
    },
-   "license_note": "Light and dark themes in the shadcn/ui token format. Fetched to this machine, never copied into the EAOS repository."
+   "license_note": "Light and dark themes in the shadcn/ui token format. Fetched to this machine, never copied into the EAOS repository.",
+   "jobs": {
+    "design_references": "light and dark themes in the shadcn/ui token format"
+   }
   },
   {
    "name": "anthropic-skills",
@@ -1177,7 +1215,10 @@
     "repository": "https://github.com/anthropics/skills",
     "dir": "anthropic-skills"
    },
-   "license_note": "Only its frontend-design skill (Apache-2.0) is read: craft guidance for the assistant that builds the screens; the other skills keep their own terms and are not used. Fetched to this machine, never copied into the EAOS repository."
+   "license_note": "Only its frontend-design skill (Apache-2.0) is read: craft guidance for the assistant that builds the screens; the other skills keep their own terms and are not used. Fetched to this machine, never copied into the EAOS repository.",
+   "jobs": {
+    "design_references": "the frontend-design skill: craft guidance for the assistant that builds the screens"
+   }
   }
  ]
 }

@@ -21,8 +21,6 @@ there is marked "not kept" and its licence is read at its repository.
 
 | Entry | Copyright | Licence | Used how | Licence text |
 | --- | --- | --- | --- | --- |
-| `codegraph` ([CodeGraph](https://github.com/codegraph-ai/CodeGraph)) | Andrey Vasilevsky | Apache-2.0 | one-shot tool JSON read | kept, with NOTICE |
-| `enola` ([enola](https://github.com/enola-labs/enola)) | Dejan Menges | Apache-2.0 | JSON artifacts read | kept, with NOTICE |
 | `reforge` ([Reforge](https://github.com/LyleMi/Reforge)) | the Reforge authors | Apache-2.0 | JSON report read | kept |
 | `jscpd` ([jscpd](https://github.com/kucherenko/jscpd)) | Andrey Kucherenko | MIT | JSON report read | kept |
 | `syft` ([Syft](https://github.com/anchore/syft)) | Anchore, Inc. | Apache-2.0 | CycloneDX SBOM written to the report, read by OSV-Scanner | kept |
@@ -30,7 +28,6 @@ there is marked "not kept" and its licence is read at its repository.
 | `scc` ([scc](https://github.com/boyter/scc)) | Ben Boyter | MIT | per-file size and complexity read as measurements | kept |
 | `semgrep` ([Semgrep](https://github.com/semgrep/semgrep)) | Semgrep, Inc. | LGPL-2.1 | EAOS's own rules (`eaos/rules/semgrep/`) and the rule set below; SARIF read | kept |
 | `semgrep-rules` ([semgrep-rules](https://github.com/semgrep/semgrep-rules)) | Semgrep, Inc. | Semgrep Rules License v1.0 | fetched to the person's computer for non-commercial use and read by Semgrep; never copied here or redistributed | kept |
-| `trivy` ([Trivy](https://github.com/aquasecurity/trivy)) | Aqua Security | Apache-2.0 | secrets and misconfigurations only; SARIF read | kept |
 | `checkov` ([Checkov](https://github.com/bridgecrewio/checkov)) | the Checkov authors | Apache-2.0 | GitHub Actions, Dockerfiles, Terraform and Kubernetes files; SARIF and JSON read | kept |
 | `bandit` ([Bandit](https://github.com/PyCQA/bandit)) | PyCQA | Apache-2.0 | SARIF read | kept |
 | `gitleaks` ([Gitleaks](https://github.com/gitleaks/gitleaks)) | Zachary Rice | MIT | secrets redacted; SARIF read | kept |
@@ -46,8 +43,6 @@ there is marked "not kept" and its licence is read at its repository.
 | `lizard` ([Lizard](https://github.com/terryyin/lizard)) | Terry Yin and other contributors | MIT | CSV read | kept |
 | `knip` ([knip](https://github.com/webpro-nl/knip)) | Lars Kappert | ISC | every plugin off; JSON report read | kept |
 | `react-docgen` ([react-docgen](https://github.com/reactjs/react-docgen), `@react-docgen/cli`) | Facebook, Inc. and its affiliates | MIT | JSON report read | kept |
-| `codecharta` ([CodeCharta](https://github.com/MaibornWolff/codecharta), ccsh) | MaibornWolff GmbH | BSD-3-Clause | cc.json written and kept as the architecture city | kept |
-| `emerge` ([Emerge](https://github.com/glato/emerge)) | Grzegorz Lato | MIT | dependency graph JSON read, its local page kept | kept |
 
 ### Running and trying the app
 
@@ -62,7 +57,6 @@ All run on the app's isolated copy on the person's computer, with a database of 
 | `pytest` ([pytest](https://github.com/pytest-dev/pytest)) | Holger Krekel and others | MIT | runs the behaviour lock's approval tests, with ApprovalTests (Apache-2.0) installed beside it | kept |
 | `k6` ([k6](https://github.com/grafana/k6)) | Grafana Labs | AGPL-3.0 | unmodified, as a separate process, for load trials; its summary read | kept |
 | `mailpit` ([Mailpit](https://github.com/axllent/mailpit)) | Ralph Slooten | MIT | catches the e-mail the app sends from its copy | kept |
-| `temurin-jre` ([Eclipse Temurin](https://github.com/adoptium/temurin21-binaries)) | the OpenJDK authors, built by Eclipse Adoptium | GPL-2.0-with-classpath-exception | the Java runtime CodeCharta's ccsh runs on | not kept |
 | `jscodeshift` ([jscodeshift](https://github.com/facebook/jscodeshift)) | Meta Platforms, Inc. and affiliates | MIT | runs the codemods of mechanical cards on an isolated copy; it parses code, never runs it | kept |
 | `axe-core` ([axe-core](https://github.com/dequelabs/axe-core) and [@axe-core/playwright](https://github.com/dequelabs/axe-core-npm)) | Deque Systems, Inc. | MPL-2.0 | injected unmodified into the page under test, which MPL-2.0 permits without further obligation; WCAG violations read as JSON | kept |
 | `lighthouse` ([Lighthouse](https://github.com/GoogleChrome/lighthouse)) | Google LLC | Apache-2.0 | mobile JSON report of one address read (`eaos/live/screens/audit.py`) | kept |
@@ -94,7 +88,7 @@ Ideas and prompt structure adapted into EAOS's own words; no code is copied.
 
 ## Evaluated and not used
 
-- **Serena**: licensed per component, SolidLSP under MIT and the Serena application under GPL-3.0-or-later. CodeGraph
-  (Apache-2.0) already covers its capability, so a copyleft obligation would buy nothing.
+- **Serena**: licensed per component, SolidLSP under MIT and the Serena application under GPL-3.0-or-later. GitNexus
+  and EAOS's own graph already cover its capability.
 - **ArchMind**: ships no licence file, so every right is reserved. Its architectural ideas informed our thinking; none
   of its code is present here.

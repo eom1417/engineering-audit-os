@@ -12,7 +12,7 @@ from contextlib import contextmanager
 from pathlib import Path
 
 from .. import progress
-from .installers import _ensure
+from .installers import _ensure, retire
 from .pins import Unavailable, home, needed, ordered, project_files, registry, selected
 from .versions import doctor
 
@@ -73,6 +73,7 @@ def install(names=None, stage=None, skip=(), echo=print, project=None):
     failed. Returns the tools that could not be installed."""
     tools = ordered(selected(names, stage, skip), project_files(project) if project else ())
     with machine_lock():
+        for path in retire(): echo(f'removed {path}: no pinned tool uses it')
         failed = _run(tools, echo)
         while failed and _asked_again(): failed = _run(tools, echo)
     return failed

@@ -111,6 +111,20 @@ class InstallTests(ToolchainBase):
         self.assertEqual(toolchain.install(echo=lambda line: None), [])
         self.assertEqual(sorted(p.name for p in (self.home / 'releases').iterdir()), ['fake-2.0.0'])
 
+    def test_a_tool_no_longer_pinned_leaves_the_disk_at_the_next_install(self):
+        # M18.1 retired six tools (about 850 MB): nothing removed what the registry stopped listing.
+        self.write(tool('fake', '1.2.3', self.archive.as_uri(), self.sha))
+        for folder in ('releases/trivy-0.74.0', 'npm/codecharta', 'npm/fake', 'venv-emerge', 'cache/trivy/policy', 'browsers'):
+            (self.home / folder).mkdir(parents=True)
+        (self.home / 'bin').mkdir(exist_ok=True)
+        (self.home / 'bin/trivy').symlink_to(self.home / 'releases/trivy-0.74.0/trivy')
+        self.assertEqual(toolchain.install(echo=lambda line: None), [])
+        self.assertEqual(sorted(p.name for p in (self.home / 'releases').iterdir()), ['fake-1.2.3'])
+        self.assertEqual([p.name for p in (self.home / 'npm').iterdir()], ['fake'])
+        self.assertFalse((self.home / 'venv-emerge').exists() or (self.home / 'cache/trivy').exists())
+        self.assertFalse((self.home / 'bin/trivy').is_symlink())
+        self.assertTrue((self.home / 'bin/fake').exists() and (self.home / 'browsers').is_dir())
+
     def test_a_download_goes_on_from_what_an_earlier_attempt_left(self):
         Ranged.body, Ranged.asked = self.archive.read_bytes(), []
         server = http.server.HTTPServer(('127.0.0.1', 0), Ranged)

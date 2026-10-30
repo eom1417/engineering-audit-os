@@ -128,9 +128,8 @@ ARTIFACTS = (
              checked=False, absent_when='the person did not choose to try the experience'),
     Artifact('experience/story.json', 'experience', RECORD, "The experience report's data, EXPERIENCE.md's record", required=False,
              checked=False, absent_when='the person did not choose to try the experience'),
-    Artifact('architecture/map.json', 'architecture', RECORD, 'The code as a city (CodeCharta) and its dependency clusters (Emerge), '
-             'with their hotspots and clusters', required=False,
-             absent_when='external engines were not requested, or neither CodeCharta nor Emerge is installed or reads this project'),
+    Artifact('architecture/map.json', 'architecture', RECORD, 'The hotspots and the import clusters of the code, from its facts',
+             required=False, absent_when='no production file was measured or imports another'),
 
 )
 

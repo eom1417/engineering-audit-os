@@ -6,7 +6,7 @@ each layer of the reference type barred from the layers it may not use, and brow
 through any chain of files). Cycles and
 boundary breaches are findings, one per distinct cycle, on the runtime graph (a cycle through an
 `import type` is erased by the compiler, so it is not reported); they are a witness beside EAOS's own graph and
-enola, so agreement between them is what raises a claim.
+GitNexus, so agreement between them is what raises a claim.
 
 Without a TypeScript compiler beside it, dependency-cruiser reads no .ts file and reports an empty,
 clean graph. `eaos tools install` puts one there; a run that examined no module in a project that has

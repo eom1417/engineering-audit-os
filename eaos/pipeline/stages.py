@@ -148,10 +148,10 @@ _DECLARED = (
                       "and SLO-able scenarios, and the load baseline against the intake's thresholds"),
     Stage('measure', produces=('measurements.json',), requires=('facts',), reads=('engines', 'verify'),
           description='One row per analysed file: size, complexity, duplication, change and dependency, each with its source'),
-    Stage('architecture', produces=('architecture/map.json',), requires=('measure',), necessity=OPTIONAL, uses=('memory',),
-          absent_when='external engines were not requested, or neither CodeCharta nor Emerge is installed or reads this project',
-          description="The architecture map: the code as a city (CodeCharta: size, complexity and changes per file) and its "
-                      'dependency clusters (Emerge), with the hotspots and the clusters the assistant reads'),
+    Stage('architecture', produces=('architecture/map.json',), requires=('measure',), necessity=OPTIONAL,
+          absent_when='no production file was measured or imports another',
+          description="The architecture map from EAOS's own facts: the hotspots (complexity times changes per file) and the "
+                      'import clusters with their modularity, which the assistant reads'),
     Stage('policy', produces=('facts/policy.json',), requires=('facts',), necessity=OPTIONAL,
           absent_when='the project declares no eaos.policy.json',
           description='Enforce the declared architecture policy'),

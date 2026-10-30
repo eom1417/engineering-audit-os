@@ -3,10 +3,11 @@
 Nothing here parses code. Every field is read from a fact another stage or engine already recorded, and
 the row names where each came from (`sources`):
 
-  loc             scc's code lines (symbol_metric_external, engine scc); else EAOS's own file metric
+  loc             EAOS's own file metric; else scc's code lines (symbol_metric_external, engine scc), for a language
+                  EAOS does not parse
   language        the syntax extractor's source_file fact
-  complexity_max  CodeGraph's cyclomatic complexity of the file's most complex symbol; else EAOS's lexical
-                  count, branches + 1, of its functions and methods, or of the file body when it has none
+  complexity_max  EAOS's own count, branches + 1, of the file's most complex function or method, or of the file body
+                  when it has none (the code laws' one count)
   duplicated_lines lines of this file jscpd found copied elsewhere (its clone sites)
   churn           commits that changed the file (history_churn), with authors and the last change date
   fan_in, fan_out files that import it and files it imports (graph_node)
@@ -55,7 +56,6 @@ class _Indexes:
     def __init__(self, out, by_kind):
         metric_external = by_kind.get('symbol_metric_external', [])
         self.scc = {_path_of(f): f['value'] for f in metric_external if f['value'].get('engine') == 'scc'}
-        self.codegraph = self._codegraph(metric_external)
         self.own_file, self.own_symbols = self._own(by_kind.get('metric', []))
         self.jscpd_seen = 'jscpd' in _engines_observed(out)
         self.duplicated = self._duplicated(metric_external)
@@ -63,15 +63,6 @@ class _Indexes:
         self.ownership = {_path_of(f): f['value'] for f in by_kind.get('history_ownership', [])}
         self.graph = {_path_of(f): f['value'] for f in by_kind.get('graph_node', [])}
         self.coverage = _coverage(out)
-
-    @staticmethod
-    def _codegraph(metric_external):
-        """CodeGraph's complexity of each file's most complex symbol."""
-        codegraph = {}
-        for fact in metric_external:
-            if fact['value'].get('engine') == 'codegraph' and isinstance(fact['value'].get('complexity'), (int, float)):
-                codegraph[_path_of(fact)] = max(codegraph.get(_path_of(fact), 0), fact['value']['complexity'])
-        return codegraph
 
     @staticmethod
     def _own(metrics):
@@ -96,15 +87,14 @@ class _Indexes:
         return duplicated
 
     def loc(self, path, row, used, missing):
-        if path in self.scc: row['loc'], used['loc'] = self.scc[path].get('code'), 'scc'
-        elif path in self.own_file: row['loc'], used['loc'] = self.own_file[path].get('code_lines'), 'eaos.metrics'
+        if path in self.own_file: row['loc'], used['loc'] = self.own_file[path].get('code_lines'), 'eaos.metrics'
+        elif path in self.scc: row['loc'], used['loc'] = self.scc[path].get('code'), 'scc'
         else:
             row['loc'] = None
             missing.append({'field': 'loc', 'reason': 'neither scc nor EAOS measured this file'})
 
     def complexity(self, path, row, used, missing):
-        if path in self.codegraph: row['complexity_max'], used['complexity_max'] = self.codegraph[path], 'codegraph'
-        elif path in self.own_symbols: row['complexity_max'], used['complexity_max'] = self.own_symbols[path], 'eaos.metrics (branches + 1)'
+        if path in self.own_symbols: row['complexity_max'], used['complexity_max'] = self.own_symbols[path], 'eaos.metrics (branches + 1)'
         elif path in self.own_file:
             row['complexity_max'], used['complexity_max'] = (self.own_file[path].get('branches') or 0) + 1, 'eaos.metrics (file body, no function)'
         else:

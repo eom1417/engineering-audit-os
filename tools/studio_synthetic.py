@@ -200,7 +200,7 @@ def _card_rows(rng, cards, modules):
         kind, severity = KINDS[i % len(KINDS)], SEVERITIES[min(int(rng.random() ** 2 * 5), 4)]
         fact = f'FACT-{i:06d}'
         line = 1 + rng.randrange(400)
-        facts.append({'id': fact, 'kind': 'engine_finding', 'engine': ('enola', 'jscpd', 'semgrep', 'knip')[i % 4], 'path': path,
+        facts.append({'id': fact, 'kind': 'engine_finding', 'engine': ('reforge', 'jscpd', 'semgrep', 'knip')[i % 4], 'path': path,
                       'line': line, 'summary': f'{kind.replace("_", " ")} in {path}', 'sites': [{'path': path, 'line': 1}],
                       'code': {'start': max(1, line - 2), 'line': line, 'hidden': [],
                                'lines': [f'const v{n} = step{n}(input)  // m{i % 3}' for n in range(max(1, line - 2), line + 3)]}})

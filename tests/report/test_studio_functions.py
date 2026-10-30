@@ -59,7 +59,7 @@ def write_report(folder):
     entry = [fact('data_access', API, 15, {'client': 'supabase', 'target': 'orders', 'operation': 'insert', 'category': 'source'}),
              fact('data_access', API, 45, {'client': 'http', 'target': '/orders', 'operation': 'get', 'category': 'source'})]
     config = [fact('env_read', API, 11, {'name': 'VITE_API_URL'})]
-    metrics = [fact('metric', API, 10, {'scope': 'function', 'lines': 21, 'branches': 3}, symbol='createOrder'),
+    metrics = [fact('metric', API, 10, {'scope': 'function', 'lines': 21, 'branches': 3, 'complexity': 4}, symbol='createOrder'),
                fact('metric', API, 32, {'scope': 'function', 'lines': 9, 'branches': 0}, symbol='toRow')]
     engines = [external(API, 9, 'createOrder', 'lizard', cyclomatic_complexity=7, nloc=19, end_line=30),
                external(OLD, 3, 'Program::Main', 'lizard', cyclomatic_complexity=2, nloc=5, end_line=9),
@@ -90,8 +90,12 @@ class Functions(TemporaryWorkspace):
         self.assertEqual(self.by_id[f'{PAGE}#OrdersPage']['callees'], [f'{PAGE}#useOrders'])      # `mystery` resolves nowhere: left out
         self.assertEqual((self.body['counts']['calls']['value'], self.body['counts']['call_sites']['value']), (5, 7))
         create, row = self.by_id[f'{API}#createOrder'], self.by_id[f'{API}#toRow']
-        self.assertEqual((create['complexity']['value'], create['lines']['value']), (7, 19))
-        self.assertIn('lizard', create['complexity']['src'])
+        # EAOS's own count first (the code laws' one count); Lizard only where EAOS measured nothing (the C# file)
+        self.assertEqual((create['complexity']['value'], create['lines']['value']), (4, 21))
+        self.assertIn('metrics.json', create['complexity']['src'])
+        main = next(f for f in self.body['functions'] if f['id'].startswith(OLD))
+        self.assertEqual((main['complexity']['value'], main['lines']['value']), (2, 5))
+        self.assertIn('lizard', main['complexity']['src'])
         self.assertEqual(row['complexity']['value'], 1)
         self.assertIn('lexical', row['complexity']['src'])
         self.assertIsNone(self.by_id[f'{API}#listOrders']['complexity']['value'])     # neither: null, never 0

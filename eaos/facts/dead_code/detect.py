@@ -260,7 +260,7 @@ def adjudicate(findings, source, own=()):
 
 def _candidate_name(value, location):
     """The bare name an engine's dead-code finding is about: its symbol, else the first name its message quotes; a
-    module's is its path. Engines write a symbol their own way (vulture `a/b.py:act`, knip `a/b.js:name`, enola
+    module's is its path. Engines write a symbol their own way (vulture `a/b.py:act`, knip `a/b.js:name`, and
     `a/b.name`): read as one dotted name, `py:act` named nothing and every vulture finding was thrown away (M2.3)."""
     path, symbol = location.get('path'), location.get('symbol')
     name = (symbol if symbol and symbol != path else None) or _quoted_name(value.get('message') or '')
