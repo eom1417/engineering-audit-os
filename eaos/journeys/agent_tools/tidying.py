@@ -44,9 +44,11 @@ def moves_make(project=None, moves=None, person_agreed=False):
 def context_propose(project=None, private_to=None):
     """What a trim of the assistants' context would do, and the tokens every session would save; nothing written."""
     from ..fix.context_batch import proposal
-    drawn = proposal(guided.source(state_of(project)), private_to)
+    state = state_of(project)
+    drawn = proposal(guided.source(state), private_to, guided.report_of(state))
     return {**drawn, 'what_now': ('Tell the person, plainly, what the trim does (the done items it archives, the lines said twice it '
-                                  'keeps once, the paths it fixes) and the tokens saved. Lines in `personal` are their own ways: ask '
+                                  'keeps once, the paths it fixes) and the tokens saved, and the extension guide it writes (`guide`: '
+                                  'its file and recipes, with one line in the context files pointing at it). Lines in `personal` are their own ways: ask '
                                   'whether to move them to a private file they name (private_to). Then context_make with '
                                   'person_agreed=true.')}
 
@@ -57,9 +59,22 @@ def context_make(project=None, private_to=None, person_agreed=False):
     stop = _not_now(state)
     if stop: return stop[0]
     if not person_agreed:
-        return {'status': 'needs_agreement', 'ask_the_person': "Trim the assistants' context on a new branch, every instruction kept?",
+        return {'status': 'needs_agreement', 'ask_the_person': "Trim the assistants' context and write the project's extension guide on a new branch, every instruction kept?",
                 'what_now': 'Only if the person says yes, call context_make again with person_agreed=true.'}
     return _start('context_make', state, {'private_to': private_to}, watch=True)
+
+
+def project_map(project=None, person_agreed=False):
+    """GitNexus's area skills and MCP for the project's assistant, only with the person's yes: its index in the project's
+    run folder, its skills in .claude/skills, which this repository alone stops git from taking (.git/info/exclude)."""
+    if not person_agreed:
+        return {'status': 'needs_agreement', 'ask_the_person': 'Build a map of this project for your assistant (about a minute, no tokens; '
+                'its index stays outside the project, its short skills in .claude/skills, which git will not take) and register its tools?',
+                'what_now': 'Only if the person says yes, call project_map again with person_agreed=true.'}
+    from ...analysis.repair import project_guide
+    state = state_of(project)
+    made = project_guide.give_map(state['project'], project_state.runtime_of(state) / 'map')
+    return {**made, 'what_now': 'Tell the person the map is built and how to refresh it (this tool again); read a gitnexus-area skill before changing that area.'}
 
 
 def _chosen(state, moves):
@@ -104,7 +119,8 @@ def _moves_job(project, arguments, progress):
 def _context_job(project, arguments, progress):
     from ..fix.context_batch import make
     progress(0, 1, "trimming the assistants' context")
-    return _own_batch(project, 'context', lambda state, batch: make({**batch, 'private_to': arguments.get('private_to')}))
+    return _own_batch(project, 'context', lambda state, batch: make({**batch, 'private_to': arguments.get('private_to'),
+                                                                  'report': guided.report_of(state), 'project': state['project']}))
 
 
 def _own_batch(project, kind, made):

@@ -29,7 +29,7 @@ def findings(source, resolved, target=None):
     read = context.texts(source, everything, rules)
     return _strongest(craft.crowded(paths, rules) + craft.families(paths, rules) + craft.vague(source, paths, rules)
             + craft.versions(paths, rules) + craft.traps(paths, _imported_modules(resolved or []), rules)
-            + craft.stale_docs(source, everything, rules) + craft.tests_flat(paths, rules) + craft.dev_details(source, published(target or source.inventory['root'], paths), rules)
+            + craft.stale_docs(source, everything, rules) + craft.tests_flat(paths, rules) + craft.no_guide(paths, everything, rules) + craft.dev_details(source, published(target or source.inventory['root'], paths), rules)
             + context.heavy(read, rules) + context.repeats(read, rules) + context.done(read, rules), rules['per_rule'])
 
 

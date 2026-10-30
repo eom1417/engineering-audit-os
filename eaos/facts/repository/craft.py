@@ -1,7 +1,7 @@
 """The repository's layout read as an engineer reads it (M7.8), from its files alone: a folder too crowded to look
 through, a family of files that wants its own folder, a name that says nothing, two versions of one file, source in a
-folder tools skip as output, a document naming a path that is not there, tests that do not follow the code, and what
-it publishes of the computer it was made on. A framework's own folders (catalog limits: exempt_folders) are never one."""
+folder tools skip as output, a document naming a path that is not there, tests that do not follow the code, no map for
+extending it, and what it publishes of the computer it was made on. A framework's own folders (catalog limits: exempt_folders) are never one."""
 import re
 from collections import defaultdict
 from pathlib import PurePosixPath
@@ -110,6 +110,13 @@ def normal_path(*joined):
         if part == '..' and parts: parts.pop()
         elif part not in ('.', ''): parts.append(part)
     return '/'.join(parts)
+
+
+def no_guide(paths, everything, limits):
+    """A project large enough to get lost in, with no extension guide (eaos/analysis/repair/project_guide.py)."""
+    source = _source(paths, limits)
+    if len(source) < limits['guide_min_files'] or any(PurePosixPath(p).name == 'EXTENDING.md' for p in everything): return []
+    return [finding('no-extending-guide', 'docs/EXTENDING.md', {'path': 'docs/EXTENDING.md', 'count': len(source)})]
 
 
 def tests_flat(paths, limits):

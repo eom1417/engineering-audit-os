@@ -179,6 +179,26 @@ def _summary(commits, per_file, reference, settings):
     }
 
 
+def additions(target, max_commits=500, bulk_limit=Settings().bulk_limit):
+    """Newest first, each commit's {sha, date, added, changed} (paths relative to `target`), for a project's extension
+    guide: what an addition touched. Merges and mass commits (over `bulk_limit` files) are left out; no git, none."""
+    if not available(target): return []
+    done = git(target, ['log', '--no-merges', '--no-renames', '--name-status', f'--max-count={max_commits}',
+                        f'--pretty=format:{RECORD}%h{FIELD}%aI', '--', '.'])
+    prefix = prefix_of(target)
+    commits = (_changes(chunk, prefix) for chunk in done.stdout.split(RECORD) if chunk.strip())
+    return [commit for commit in commits if 0 < len(commit['changed']) <= bulk_limit]
+
+
+def _changes(chunk, prefix):
+    header, _, body = chunk.partition('\n')
+    sha, date = header.split(FIELD)
+    rows = [line.split('\t') for line in body.splitlines() if line.count('\t') == 1]
+    rows = [(status, path[len(prefix):]) for status, path in rows if path.startswith(prefix)]
+    return {'sha': sha, 'date': date[:10], 'added': [path for status, path in rows if status == 'A'],
+            'changed': [path for status, path in rows if status != 'D']}
+
+
 def run(target, source=None, max_commits=2000, **options):
     target = Path(target)
     if not available(target):

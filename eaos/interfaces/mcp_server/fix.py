@@ -10,7 +10,7 @@ from ...core.toolchain import catalog as tools_catalog
 
 def _fix_tools(server, reading, working, _answer, _status):
     """The tools of the findings, the plan, the run, the fixes and the person's decision on them, in this order."""
-    for group in (_finding_tools, _report_tools, _run_tools, _batch_tools, _edit_tools): group(server, reading, working, _answer)
+    for group in (_finding_tools, _report_tools, _run_tools, _context_tools, _batch_tools, _edit_tools): group(server, reading, working, _answer)
     _decision_tools(server, working, _answer, _status)
 
 
@@ -115,6 +115,30 @@ def _run_tools(server, reading, working, _answer):
     @_answer
     def run_setup(person_agreed: bool = False, project: str | None = None) -> str:
         return tools.run_setup(project, person_agreed)
+
+
+def _context_tools(server, reading, working, _answer):
+    """The assistants' context trimmed, the project's extension guide with it, and GitNexus's map for its assistant."""
+    from ...journeys import agent_tools as tools
+
+    @server.tool(annotations=working, description="GitNexus's map of the project for its assistant (area skills, its MCP): the index outside "
+                 "the project, the skills in a folder git does not take; needs person_agreed=true after the person says yes.")
+    @_answer
+    def project_map(project: str | None = None, person_agreed: bool = False) -> str:
+        return tools.project_map(project=project, person_agreed=person_agreed)
+
+    @server.tool(annotations=reading, description="What a batch of the assistants' context would do, nothing written: what the trim "
+                 "archives and keeps once, the tokens saved, and the project's extension guide it writes (docs/EXTENDING.md and one "
+                 "pointer line in the context files).")
+    @_answer
+    def context_propose(private_to: str | None = None, project: str | None = None) -> str:
+        return tools.context_propose(project, private_to)
+
+    @server.tool(annotations=working, description="Make that batch in an isolated copy, on a branch of its own, every instruction kept; "
+                 "needs person_agreed=true after the person says yes. Returns a job.")
+    @_answer
+    def context_make(person_agreed: bool = False, private_to: str | None = None, project: str | None = None) -> str:
+        return tools.context_make(project=project, private_to=private_to, person_agreed=person_agreed)
 
 
 def _batch_tools(server, reading, working, _answer):

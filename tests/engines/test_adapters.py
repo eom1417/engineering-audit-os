@@ -307,6 +307,14 @@ class OpenApiTests(Workspace):
 
 
 class GitNexusTests(Workspace):
+    def test_its_area_skills_are_read_for_their_key_files_and_where_to_start(self):
+        from eaos.engines.code import gitnexus
+        skill = Path(self.tmp) / '.claude/skills/gitnexus-area-orders/SKILL.md'
+        skill.parent.mkdir(parents=True)
+        skill.write_text('# Orders\n\n## Key Files\n\n| File | Symbols |\n|------|---------|\n| `src/orders.py` | a |\n| `vendor/x.py` | b |\n\n'
+                         '## Entry Points\n\n- **`place`** (Function) — `src/orders.py:9`\n\n## Key Symbols\n\n| `Order` | Class | `src/model.py` | 2 |\n')
+        self.assertEqual(gitnexus.areas_of(self.tmp, ('vendor',)), [{'name': 'Orders', 'files': ['src/orders.py'], 'entries': ['src/orders.py']}])
+
     def test_it_runs_on_a_copy_and_leaves_the_project_and_the_home_untouched(self):
         from eaos.engines.code import gitnexus
         from eaos.engines.process import state_digest

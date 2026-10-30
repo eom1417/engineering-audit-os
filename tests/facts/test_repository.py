@@ -31,7 +31,7 @@ class CraftTests(unittest.TestCase):
         files.update({f'app/page{n}.tsx': '' for n in range(30)})             # Next.js routes: the framework's layout
         files.update({'lib/utils.py': 'x = 1\n' * 301, 'lib/small/helpers.py': 'x = 1\n', 'lib/api.js': '', 'lib/api_v2.js': ''})
         rules = {rule for rule, _ in found(project(files))}
-        self.assertEqual(rules, {'crowded-folder', 'prefix-family', 'vague-name', 'version-name'})
+        self.assertEqual(rules, {'crowded-folder', 'prefix-family', 'vague-name', 'version-name', 'no-extending-guide'})
         self.assertIn(('crowded-folder', 'src'), found(project(files)))
         self.assertNotIn(('vague-name', 'lib/small/helpers.py'), found(project(files)), 'a short helpers file is fine')
 

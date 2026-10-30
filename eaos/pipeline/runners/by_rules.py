@@ -198,8 +198,17 @@ def layers(context):
     from .live_app import _ran
     verification = layered.read(context.out / 'verification.json') if _ran(context, 'verify') else None
     summary = layered.run(context.target, context.out, verification)
+    _guide_draft(context)
     return {'findings': summary['findings'], 'questions': summary['questions'], 'files': summary['files'],
             'gaps': summary['gaps'], 'endpoints': summary['endpoints']}
+
+
+def _guide_draft(context):
+    """The project's extension guide as EAOS would write it, in extending/ of the report (M18.3), for its card and batch."""
+    from ...analysis.repair import project_guide
+    drawn = project_guide.drawn_from_report(context.target, context.out)
+    (context.out / 'extending').mkdir(parents=True, exist_ok=True)
+    (context.out / 'extending' / project_guide.NAME).write_text(project_guide.text(drawn, Path(context.target).name), encoding='utf-8')
 
 
 def claims(context):

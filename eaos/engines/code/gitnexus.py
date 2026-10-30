@@ -2,8 +2,10 @@
 
 `gitnexus analyze` writes where it reads: its index, and by default AGENTS.md, CLAUDE.md and skill files,
 and it touches .git. So it never runs on the project. It runs on a real copy (not hardlinks: a hardlinked
-file is the original) without .git or dependency folders, with --index-only so it injects nothing, and
-with GITNEXUS_HOME inside the work directory so its registry stays out of the user's home.
+file is the original) without .git or dependency folders, with --skip-agents-md so it writes no context file, and
+with GITNEXUS_HOME inside the work directory so its registry stays out of the user's home. Its area skills, written in
+the copy, are read for a project's extension guide (coverage `areas`). `make_map` builds the same map for a person's
+assistant, only with their yes: its index outside the project, its skills in a folder git does not take.
 
 It is the second witness beside EAOS's own graph (dependency-cruiser holds the JavaScript boundaries). Its cycles are the
 source graph's (type imports included); a file at least FAN_IN files import is a coupling finding; its
@@ -18,6 +20,7 @@ import json
 import os
 import re
 import shutil
+import subprocess
 import sys
 from pathlib import Path
 
@@ -86,7 +89,7 @@ def _indexed(target, workdir):
     home.mkdir(parents=True)
     env = {**os.environ, 'GITNEXUS_HOME': str(home)}
     binary = which(BINARY)
-    code, _, error, seconds = run([binary, 'analyze', '.', '--index-only', '--skip-git', '--skip-fts'], cwd=copy, env=env,
+    code, _, error, seconds = run([binary, 'analyze', '.', '--skills', '--skip-agents-md', '--skip-git', '--skip-fts'], cwd=copy, env=env,
                                   timeout=1800)
     return _Index(binary, copy, env, seconds), ((error.strip()[-300:] or f'exit {code}') if code else None)
 
@@ -159,6 +162,56 @@ def _communities(members, exclude):
     return [{'name': f'{label} ({identifier})', 'files': sorted(files)} for (identifier, label), files in sorted(communities.items())]
 
 
+KEY_FILE = re.compile(r'^\| `([^`]+)` \|', re.M)
+ENTRY = re.compile(r'^- \*\*`[^`]+`\*\* \([^)]*\) — `([^`:]+)', re.M)
+
+
+def _section(text, title):
+    return text.split(f'## {title}', 1)[1].split('\n## ', 1)[0] if f'## {title}' in text else ''
+
+
+def areas_of(copy, exclude=()):
+    """From the area skills GitNexus wrote in `copy`, each area's name, its key files and the files to start from."""
+    found = []
+    for skill in sorted(Path(copy).glob('.claude/skills/gitnexus-area-*/SKILL.md')):
+        text = skill.read_text(encoding='utf-8', errors='replace')
+        files = [path for path in KEY_FILE.findall(_section(text, 'Key Files')) if not excluded(path, exclude)]
+        heading = re.search(r'^# (.+)$', text, re.M)
+        if files: found.append({'name': heading[1] if heading else skill.parent.name, 'files': files,
+                                'entries': sorted(set(ENTRY.findall(_section(text, 'Entry Points'))))})
+    return found
+
+
+def _copy_tracked(root, copy):
+    """The files git tracks in `root` over the last copy; GitNexus's own folders kept for its cache."""
+    copy.mkdir(parents=True, exist_ok=True)
+    for old in copy.glob('*'):
+        if old.name not in ('.gitnexus', '.claude', '.agents'): shutil.rmtree(old) if old.is_dir() else old.unlink()
+    done = subprocess.run(['git', '-C', str(root), 'ls-files', '-z'], capture_output=True, check=True)
+    for name in filter(None, done.stdout.decode().split('\0')):
+        if (Path(root) / name).is_file():
+            (copy / name).parent.mkdir(parents=True, exist_ok=True)
+            shutil.copy2(Path(root) / name, copy / name)
+
+
+def make_map(root, home, skills):
+    """GitNexus's graph, area skills and MCP of the project at `root`: built on a copy under `home` (the index stays
+    there), its skills copied into the folder `skills`. {copy, registry, skills: how many, seconds}."""
+    binary = which(BINARY)
+    if not binary: raise FileNotFoundError('gitnexus is not installed: eaos tools install --only gitnexus')
+    home, skills = Path(home), Path(skills)
+    copy, registry = home / Path(root).resolve().name, home / 'registry'
+    _copy_tracked(root, copy)
+    code, _, error, seconds = run([binary, 'analyze', '--skills', '--skip-agents-md', '--skip-git', '--no-stats', '--name', copy.name, '.'],
+                                  cwd=copy, env={**os.environ, 'GITNEXUS_HOME': str(registry)}, timeout=1800)
+    if code: raise RuntimeError(error.strip()[-300:] or f'exit {code}')
+    skills.mkdir(parents=True, exist_ok=True)
+    for old in skills.glob('gitnexus*'): shutil.rmtree(old)
+    made = list((copy / '.claude' / 'skills').glob('gitnexus*'))
+    for skill in made: shutil.copytree(skill, skills / skill.name)
+    return {'copy': str(copy), 'registry': str(registry), 'skills': len(made), 'seconds': seconds}
+
+
 def analyze(target, workdir, exclude=(), formats=None):
     declined, found = tool.started(NAME, BINARY, target)
     if declined: return declined
@@ -177,6 +230,6 @@ def analyze(target, workdir, exclude=(), formats=None):
     return Report(NAME, found, PINNED, OBSERVED, seconds=index.seconds, findings=findings, metrics=metrics,
                   coverage={'status': 'observed', 'relations': relations, 'import_edges': len(imports),
                             'cycles': len(cycles), 'fan_in_threshold': FAN_IN,
-                            'communities': _communities(members, exclude)},
+                            'communities': _communities(members, exclude), 'areas': areas_of(index.copy, exclude)},
                   evaluated={'cycle': {'status': 'observed', 'granularity': FILE},
                              'coupling': {'status': 'observed', 'granularity': FILE}})

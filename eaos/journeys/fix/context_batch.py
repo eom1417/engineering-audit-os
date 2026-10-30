@@ -12,7 +12,7 @@ The branch is handed over like a wave's (waves.apply); accept and undo decide it
 import posixpath
 from pathlib import Path
 
-from ...analysis.repair import context_trim
+from ...analysis.repair import context_trim, project_guide
 from ...core.project.ledger import TRAILER
 from .execute import commit_all, git, own_batch, record_batch
 
@@ -30,37 +30,57 @@ def private_problem(private_to):
     return ''
 
 
-def proposal(target, private_to=None):
-    """What a trim of `target`'s context would do, as the person reads it before deciding; nothing written."""
+def _guide(target, report):
+    """What the batch would write of the extension guide (M18.3), or None without a check that read the layers."""
+    drawn = project_guide.drawn_from_report(target, report)
+    if not drawn: return None
+    return {'path': project_guide.place(project_guide.tracked(target)), 'recipes': [r['title'] for r in drawn['recipes']],
+            'not_yet': drawn['missing'], 'tokens': len(project_guide.text(drawn, Path(target).name)) // 4}
+
+
+def proposal(target, private_to=None, report=None):
+    """What a trim of `target`'s context would do, and the guide it would write, as the person reads it before deciding;
+    nothing written."""
     drawn = context_trim.plan(target, private_to if not private_problem(private_to) else None)
     before = sum(len(text) for text in drawn['before'].values()) // 4
     after = sum(len(drawn['edits'].get(path, text)) for path, text in drawn['before'].items()) // 4
     return {'files': sorted(drawn['before']), 'archive': [row.strip() for _, row in drawn['archive']],
             'archive_file': drawn['archive_file'], 'kept_once': sorted(drawn['edits']), 'kept_twice': drawn['kept_twice'],
             'renamed': drawn['renamed'], 'personal': drawn['personal'], 'private_file': drawn['private_file'],
-            'tokens_before': before, 'tokens_after': after, 'refused': private_problem(private_to)}
+            'tokens_before': before, 'tokens_after': after, 'guide': _guide(target, report), 'refused': private_problem(private_to)}
 
 
 def make(batch):
-    """The trim made and checked in a copy: the summary, `kept` the files written, empty when refused (why in
-    `refused`). `batch`: {target, runtime, number, private_to, deliver_as}."""
+    """The trim made and checked in a copy, the extension guide and its pointer with it when `report` holds a check: the
+    summary, `kept` the files written, empty when refused (why in `refused`). `batch`: {target, runtime, number,
+    private_to, report, deliver_as}."""
     batch = {**batch, 'kind': 'context', 'items': []}
     root, base = own_batch(batch['target'], batch['runtime'], f"CONTEXT-{batch['number']}")
     if (why := private_problem(batch.get('private_to')) or _ignored(root, _extra(batch))): return record_batch(batch, root, base, [], [why])
     allowed = set(context_trim.plan(root)['before']) | set(_extra(batch))
     try: done = context_trim.apply(root, batch.get('private_to'))
     except context_trim.Untrimmable as problem: return record_batch(batch, root, base, [], [f'an instruction would be lost or repeated: {problem}'])
-    if not done['written']: return record_batch(batch, root, base, [], ['nothing to trim: the context is already as light as it can be made'])
+    written = [*done['written'], *_guide_written(root, batch)]
+    if not written: return record_batch(batch, root, base, [], ['nothing to trim: the context is already as light as it can be made'])
+    allowed |= set(written)
     if (stray := sorted(set(_changed(root)) - allowed)):
         git(root, 'reset', '--hard', '--quiet', base)
         return record_batch(batch, root, base, [], [f'the trim would write files that are not the context: {", ".join(stray[:5])}'])
     commit_all(root, f"Trim the assistants' context: {done['archived']} done item(s) archived, {done['tokens_before'] - done['tokens_after']} "
-                     f"tokens fewer every session\n\nExecuted by EAOS (context batch).\n\n{TRAILER}: context")
-    if (lost := _not_committed(root, done['written'])):
+                     f"tokens fewer every session; the extension guide kept\n\nExecuted by EAOS (context batch).\n\n{TRAILER}: context")
+    if (lost := _not_committed(root, written)):
         git(root, 'reset', '--hard', '--quiet', base)
         return record_batch(batch, root, base, [], [f'the commit does not hold what the trim checked: {", ".join(lost[:5])}'])
     batch['extra'] = {k: done[k] for k in ('archived', 'private', 'renamed', 'kept_twice', 'tokens_before', 'tokens_after')}
-    return record_batch(batch, root, base, done['written'], [])
+    return record_batch(batch, root, base, written, [])
+
+
+def _guide_written(root, batch):
+    """The guide and its pointer written in the copy; the files of them git takes."""
+    drawn = project_guide.drawn_from_report(root, batch.get('report'), batch.get('project'))
+    if not drawn: return []
+    written = project_guide.write(root, drawn)
+    return [path for path in written if path not in project_guide.written_ignored(root, written)]
 
 
 def _ignored(root, paths):

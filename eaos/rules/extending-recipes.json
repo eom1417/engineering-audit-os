@@ -1,0 +1,19 @@
+{
+  "schema_version": 1,
+  "about": "The recipes of a project's extension guide (eaos/analysis/understanding/extending.py): how a file of each kind is told by its path. `grows`: 'added' when a new one is a new file (read from the commits that added one), 'changed' when it is a change of a file that is there. `from`: a set the layer record knows it by. Only what a project has gets a recipe.",
+  "kinds": [
+    {"id": "page", "title": "A page", "grows": "added", "paths": ["(^|/)(pages?|routes?|views?|screens?|templates)/.*\\.(tsx|jsx|vue|svelte|astro|html|dart)$", "(^|/)app/(.*/)?(page|layout)\\.\\w+$", "(^|/)\\+page\\.svelte$"], "not": ["(^|/)(pages/api|components?|e?mails?)/"]},
+    {"id": "endpoint", "title": "An endpoint", "grows": "added", "from": "endpoints", "paths": ["(^|/)(api|controllers?|handlers?|endpoints?)/.*\\.\\w+$", "(^|/)route\\.(ts|js)$", "(^|/)(urls|views|routes)\\.py$"]},
+    {"id": "model", "title": "A data model and its migration", "grows": "added", "from": "tables", "paths": ["(^|/)(models?|entities|migrations?)/.*\\.\\w+$", "(^|/)models\\.py$", "\\.prisma$", "\\.sql$"]},
+    {"id": "job", "title": "A background job", "grows": "added", "paths": ["(^|/)(jobs?|workers?|tasks?|cron|queues?|schedulers?)(/|\\.\\w+$)", "(^|/)celery\\.py$"]},
+    {"id": "token", "title": "A value of the look (a token)", "grows": "changed", "paths": ["(^|/)(tokens?|theme|variables)\\.(css|scss|less|json|ts|js)$", "(^|/)tailwind\\.config\\.\\w+$"]},
+    {"id": "component", "title": "A component", "grows": "added", "paths": ["(^|/)(components?|ui)/.*\\.(tsx|jsx|vue|svelte|astro|dart)$"]},
+    {"id": "format", "title": "A format (a date, a number, a currency)", "grows": "changed", "paths": ["(^|/)(format|formats|formatters?|formatting)(/|\\.\\w+$)"]},
+    {"id": "test", "title": "A test", "grows": "added", "paths": ["(^|/)tests?\\.py$"]},
+    {"id": "dependency", "title": "A dependency", "grows": "changed", "paths": ["(^|/)(package\\.json|package-lock\\.json|pnpm-lock\\.yaml|yarn\\.lock|bun\\.lockb|requirements[\\w.-]*\\.txt|pyproject\\.toml|poetry\\.lock|uv\\.lock|Pipfile(\\.lock)?|go\\.(mod|sum)|Cargo\\.(toml|lock)|Gemfile(\\.lock)?|composer\\.(json|lock)|pubspec\\.(yaml|lock))$"]},
+    {"id": "setting", "title": "A setting or a secret (by name only, its value never written here)", "grows": "changed", "paths": ["(^|/)\\.env\\.(example|sample|template)$", "(^|/)(settings|config|configuration|env)\\.(py|ts|js|mjs|json|ya?ml|toml)$", "(^|/)config/.*\\.\\w+$"], "not": ["\\.config\\.\\w+$", "(^|/)\\.(vscode|idea|devcontainer)/"]},
+    {"id": "translation", "title": "A translation", "grows": "changed", "paths": ["(^|/)(locales?|i18n|lang|languages|translations?|messages)/.*\\.\\w+$", "\\.(po|xliff|arb)$"]}
+  ],
+  "noise": ["(^|/)\\.(gitignore|gitattributes|editorconfig|prettierrc[\\w.]*|eslintrc[\\w.]*)$", "(^|/)(README|CHANGELOG|LICENSE|CONTRIBUTING|AGENTS|CLAUDE)[\\w.-]*$", "(^|/)(docs?|\\.github|\\.vscode)/", "\\.(lock|lockb|snap|png|jpe?g|gif|svg|ico|webp|woff2?)$", "(^|/)(package\\.json|package-lock\\.json|pnpm-lock\\.yaml|yarn\\.lock|requirements[\\w.-]*\\.txt|pyproject\\.toml|go\\.(mod|sum)|Cargo\\.(toml|lock)|Gemfile(\\.lock)?|composer\\.(json|lock))$"],
+  "role_order": {"database": 0, "data": 1, "shared": 2, "endpoint": 3, "screen": 4}
+}
