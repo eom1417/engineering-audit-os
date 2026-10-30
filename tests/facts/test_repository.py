@@ -59,6 +59,16 @@ class ContextTests(unittest.TestCase):
         heavy = project({'AGENTS.md': 'y' * 30000})
         self.assertEqual(found(heavy), {('context-heavy', 'AGENTS.md')})
 
+    def test_a_skill_weighs_its_name_and_description_only(self):
+        # 26 generated area skills (GitNexus) were counted as read whole every session: 30,000 tokens and their shared
+        # lines "repeated"; a session reads a skill's front matter, its body only when the skill is used.
+        body = 'Working with code in this area, read its key files and entry points first.\n' + 'z' * 8000
+        skills = {f'.claude/skills/area-{n}/SKILL.md': f'---\nname: area-{n}\ndescription: the {n} area\n---\n' + body
+                  for n in range(26)}
+        self.assertEqual(found(project({'AGENTS.md': 'Read the guide first.\n', **skills})), set())
+        long = {'.claude/skills/one/SKILL.md': '---\nname: one\ndescription: ' + 'w' * 30000 + '\n---\nbody'}
+        self.assertEqual(found(project({'AGENTS.md': 'Read the guide first.\n', **long})), {('context-heavy', 'AGENTS.md')})
+
 
 class CleanTwinTests(unittest.TestCase):
     def test_the_detection_baseline_s_clean_twin_has_no_repository_finding(self):

@@ -37,8 +37,19 @@ def followed(start, everything, read):
 
 
 def texts(source, everything, limits):
-    """{path: its text without EAOS's own block}, the imported files of a CLAUDE.md among them."""
-    return followed(files(everything, limits), everything, lambda path: _without_eaos(source.text(path) or '', limits))
+    """{path: its text without EAOS's own block}, the imported files of a CLAUDE.md among them; of a skill only what a
+    session reads before it is used."""
+    return followed(files(everything, limits), everything,
+                    lambda path: _preloaded(path, _without_eaos(source.text(path) or '', limits), limits))
+
+
+def _preloaded(path, text, limits):
+    """What a session reads of a context file before anyone asks: all of it, but of a skill (a folder of
+    `skill_folders`) only its SKILL.md's front matter, its name and description; its body and its other files are read
+    when the skill is used."""
+    if not any(path.startswith(folder + '/') for folder in limits['skill_folders']): return text
+    if PurePosixPath(path).name != 'SKILL.md' or not text.startswith('---'): return ''
+    return text[:text.find('\n---', 3) + 4] if '\n---' in text[3:] else ''
 
 
 def _without_eaos(text, limits):

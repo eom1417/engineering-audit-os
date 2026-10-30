@@ -111,7 +111,7 @@ engineering-audit-os/
   tests/                   the unittest suite, one folder per layer it proves (guards/ for the whole), fixtures/,
                            contracts/ (engines' pinned outputs), and the two helpers every test shares
   tools/                   developer tools: quality (every code law) with code_limits, golden_trial with
-                           detection_baseline, corpus, metrics, validate, dev_setup and dev_paths, platform_assets,
+                           detection_baseline, corpus, metrics, validate, dev_setup and dev_paths (with GitNexus's map of EAOS, built outside the repository), platform_assets,
                            upstream_check; the proofs with the real assistant (fix, journeys, tidy, experience); the
                            contracts' makers (make_contracts, contracts_*, contract_shapes), the Studio's synthetic data,
                            the progress checks, translation_seed
@@ -185,6 +185,8 @@ manifest): what it covered, what it could not, and why; a big gap (a stage broke
 for a reason the person did not choose) shows in red at the top of START-HERE.md and RUN.md.
 
 ## 4. Where a new file goes
+
+Which files to read and touch, in order, for each kind of addition: `docs/EXTENDING.md`.
 
 | It is… | It goes in |
 |---|---|

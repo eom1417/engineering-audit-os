@@ -136,6 +136,10 @@
     ".claude/skills",
     ".agents/skills"
   ],
+  "skill_folders": [
+    ".claude/skills",
+    ".agents/skills"
+  ],
   "context_tokens": 6000,
   "context_repeat_chars": 40,
   "context_done_items": 5,
