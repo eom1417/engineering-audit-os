@@ -3,6 +3,7 @@ gets one; written between EAOS's markers with one pointer line in the context fi
 import json
 import subprocess
 from pathlib import Path
+from unittest import mock
 
 from shared_fixture import Workspace
 
@@ -121,6 +122,21 @@ class ProjectGuideTests(Workspace):
         self.assertEqual([f['rule'] for f in craft.no_guide(many, set(many), rules)], ['no-extending-guide'])
         self.assertEqual(craft.no_guide(many[:-1], set(many), rules), [])
         self.assertEqual(craft.no_guide(many, {*many, 'docs/EXTENDING.md'}, rules), [])
+
+    def test_a_build_is_born_with_it_and_its_milestone_proof_commits_it_only_when_nothing_holds_it_back(self):
+        from eaos.journeys.build_from_plan import checks
+        root = self.repo()
+        out = Path(self.tmp) / 'report'
+        state = {'project': str(root)}
+        with mock.patch('eaos.analysis.layers.check', return_value=LAYERS), mock.patch.object(checks, '_milestone_tidy', return_value=[]), \
+                mock.patch.object(project_guide, 'pinned_ids', return_value=[]):
+            checks._milestone_proof(state, root, out, ('CARD-1', False), [])
+            self.assertFalse((root / 'docs/EXTENDING.md').exists(), 'a card is no proof')
+            self.assertEqual(checks._milestone_proof(state, root, out, (None, False), [{'gate': 'x'}]), [{'gate': 'x'}])
+            self.assertFalse((root / 'docs/EXTENDING.md').exists(), 'held back')
+            checks._milestone_proof(state, root, out, (None, False), [])
+        self.assertIn('docs/EXTENDING.md', git(root, 'show', '--name-only', '--format=', 'HEAD'))
+        self.assertEqual(git(root, 'status', '--porcelain'), '')
 
     def test_the_commands_are_the_projects_own(self):
         root = Path(self.tmp)
