@@ -58,6 +58,7 @@ class Base(Workspace):
                  card('TASK-004', milestone='M2')]
         (self.studio / 'cards.json').write_text(json.dumps({'cards': cards}), encoding='utf-8')
         self.apps = []
+        self.threads = set(threading.enumerate())
         self.app = self.make()
 
     def tearDown(self):
@@ -69,6 +70,9 @@ class Base(Workspace):
             app.close()
         pids = [run['pid'] for app in self.apps for run in app.store.all() if run.get('pid')]
         until(lambda: not any(alive(pid) for pid in pids), 5)
+        # a run's thread ends (its last event written) before the folder goes: once it outlived it, a KeyError (2026-10-30)
+        started = [thread for thread in threading.enumerate() if thread not in self.threads]
+        until(lambda: not any(thread.is_alive() for thread in started), 10)
         super().tearDown()
 
     def make(self, adapters_=None, **options):

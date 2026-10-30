@@ -10,6 +10,7 @@ from unittest import mock
 
 from tests.shared_fixture import Workspace
 
+from eaos.core.project.runs import TERMINAL
 from eaos.interfaces.studio_actions import Actions, chat
 from eaos.interfaces.studio_actions.lane_assistants import Refused
 
@@ -62,10 +63,13 @@ class ChatConsent(Workspace):
         self.assertEqual([p['action'] for p in safe if not chat._direct(p, self.actions)], [])
         done = chat._done_at_once(self.actions, [safe[0]])
         self.assertTrue(done and done[0].get('run'), done)
+        # it ran to its end, before the test's folder goes (its thread once outlived the folder: a KeyError, 2026-10-30)
+        self.assertEqual(self.actions.wait(done[0]['run'], TERMINAL)['state'], 'done')
 
     def test_the_persons_own_press_after_a_preview_that_shows_the_command_runs_it(self):
         inputs = {'op': 'approve', 'id': 'R1', 'person_agreed': True}
         seen = self.actions.preview('rule', {'inputs': inputs})
         self.assertIn(str(self.marker), seen['shows']['guard'], 'the very command is shown before the press')
-        self.actions.create({'action': 'rule', 'inputs': inputs, 'confirm': seen['confirm']['token']})
+        run = self.actions.create({'action': 'rule', 'inputs': inputs, 'confirm': seen['confirm']['token']})
+        self.assertEqual(self.actions.wait(run['id'], TERMINAL)['state'], 'done')
         self.assertTrue(self.ran())
