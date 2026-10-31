@@ -5,5 +5,12 @@
   "breaks": [
    "open_report: read_only_hint changed"
   ]
+ },
+ {
+  "why": "open_studio starts a server or stops a running one to replace it, so it is no longer declared read-only",
+  "approved_by": "the maintainers, in their review of the status and open_studio batch, 2026-10-31",
+  "breaks": [
+   "open_studio: read_only_hint changed"
+  ]
  }
 ]

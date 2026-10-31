@@ -1,6 +1,8 @@
 """What MCP calls read-only changes nothing, and what changes something is not called read-only: reading a build's file leaves
 the project's state alone, and opening the report, which rebuilds it, is handled as work by the assistants and the Studio."""
 import asyncio
+import contextlib
+import io
 import json
 import os
 import subprocess
@@ -10,6 +12,8 @@ from pathlib import Path
 from unittest import mock
 
 from eaos.core.project import state as project_state
+from eaos.core.system import launch
+from eaos.interfaces import cli
 from eaos.interfaces.mcp_server.govern import every
 from eaos.interfaces.mcp_server.server import build, reading as read_only
 from eaos.interfaces.studio_actions import chat
@@ -163,6 +167,38 @@ class AskingWhereTheProjectIs(Home):
             self.assertEqual(_called(self.server, 'choose_branch', branch='feature', person_said='feature', project=str(self.project))['status'], 'needs_the_person')
             self.assertEqual(_called(self.server, 'status', project=str(self.project))['status'], 'needs_branch')
             self.assertEqual(_called(self.server, 'choose_branch', branch='feature', person_said='feature', project=str(self.project))['status'], 'chosen')
+
+
+class OpeningTheStudio(Home):
+    """It starts a server, or stops one to replace it, so MCP does not call it read-only; all it does stays as it was."""
+    RUNNING = {'port': 9, 'token': 't' * 32}
+
+    def test_mcp_does_not_call_it_read_only_nor_promise_its_updates_only_add(self):
+        hints = _tool(self.server, 'open_studio').annotations
+        self.assertFalse(hints.read_only_hint)
+        self.assertIsNone(hints.destructive_hint, 'it can replace a running server: by MCP, false would say it only adds')
+        self.assertFalse(hints.open_world_hint)
+        self.assertNotIn('open_studio', read_only())
+
+    def test_the_tool_still_starts_it_and_answers_as_it_did(self):
+        with mock.patch.object(launch, 'start', return_value=(self.RUNNING, True)) as started, mock.patch.object(launch, '_open', return_value=False):
+            answer = _called(self.server, 'open_studio', show=False, project=str(self.project))
+        started.assert_called_once()
+        self.assertEqual(sorted(answer), ['checked', 'live', 'opened_in_browser', 'started', 'studio', 'what_now'])
+        self.assertEqual((answer['studio'], answer['started'], answer['opened_in_browser']), (launch.url_of(self.RUNNING), True, False))
+
+    def test_the_terminal_still_opens_it_in_the_background_and_prints_its_address(self):
+        with mock.patch('eaos.core.toolchain.prepare'), mock.patch('eaos.core.toolchain.ready', return_value=True), \
+                mock.patch.object(launch, 'start', return_value=(self.RUNNING, False)), mock.patch.object(launch, '_open', return_value=False), \
+                contextlib.redirect_stdout(io.StringIO()) as printed:
+            code = cli.main(['studio', str(self.project), '--background', '--no-open'])
+        self.assertEqual((code, printed.getvalue().strip()), (0, f'EAOS Studio: {launch.url_of(self.RUNNING)}'))
+
+    def test_the_terminal_still_serves_it_in_the_foreground_by_default(self):
+        with mock.patch('eaos.interfaces.studio_server.server.run_foreground', return_value=0) as served:
+            self.assertEqual(cli.main(['studio', str(self.project), '--no-open']), 0)
+        served.assert_called_once()
+        self.assertEqual((served.call_args.args[0], served.call_args.kwargs['show']), (str(self.project), False))
 
 
 if __name__ == '__main__':

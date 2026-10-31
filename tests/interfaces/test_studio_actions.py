@@ -675,6 +675,13 @@ class Direct(Base):
         self.assertEqual([name for name, _ in calls], ['open_report'])
         self.assertIn(created['id'], [run['id'] for run in self.get('/api/runs')[1]['runs']])
 
+    def test_opening_the_studio_by_its_action_is_work_too_it_waits_its_turn_and_still_runs(self):
+        self.app.manager.tools, calls = self.fake_tools({'open_studio': {'studio': 'http://127.0.0.1:1/', 'started': False}})
+        created = self.post('/api/runs', {'action': 'open_studio', 'inputs': {'show': False}})[1]['run']
+        self.assertNotIn('answer', created.get('result') or {}, 'not answered at once, as a reading action is')
+        self.assertEqual(self.app.wait(created['id'], ('done', 'failed'), 20)['state'], 'done')
+        self.assertEqual([name for name, _ in calls], ['open_studio'])
+
     def test_a_reading_action_answers_at_once_and_a_job_is_followed_with_its_progress(self):
         from eaos.core.project import jobs
         self.app.manager.tools, calls = self.fake_tools({'status': {'next': 'audit'}, 'audit': {'job': 'audit-1', 'status': 'running'}})
