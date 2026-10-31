@@ -1,0 +1,15 @@
+{
+  "target": "{{PROJECT}}",
+  "out": "{{OUTPUT}}/technical",
+  "test_files": [],
+  "declared_coverage": {},
+  "executed": false,
+  "reason": "the person has not agreed to run the app in an isolated copy (eaos next asks once), so nothing was run and the check reads the code alone",
+  "limitations": [
+    "An isolated copy is not an operating-system sandbox; do not run untrusted projects here.",
+    "Coverage reflects the command that was run, not all behaviour the system can exhibit.",
+    "An uncovered line is not proof of dead code; it is proof this command did not reach it.",
+    "Test discovery by path convention misses suites that do not follow it.",
+    "Commands run with the interpreter running EAOS unless an absolute one is configured; a project needing its own virtualenv must configure the command explicitly."
+  ]
+}

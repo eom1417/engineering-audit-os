@@ -1,0 +1,243 @@
+{
+  "schema_version": 2,
+  "status": "REVIEW_REQUIRED",
+  "current_components": [
+    {
+      "id": "T-app",
+      "name": "app",
+      "kind": "package",
+      "origin": "app",
+      "relation": "retain",
+      "reason": "It is already where the target puts it, breaks no layer rule, carries no critical risk, and is simple and unduplicated. (6 file(s), 0 to move (0%), 0 forbidden import(s), complexity_max 1, duplicated_lines 0, 3 unreachable, 0 critical debt item(s)); also: 3 live claim(s) about it",
+      "responsibility": "",
+      "owner": "",
+      "paths": [
+        "app/__init__.py",
+        "app/main.py",
+        "app/old_export.py",
+        "app/old_mail.py",
+        "app/old_report.py",
+        "app/prices.py"
+      ],
+      "files": 6,
+      "symbols": 5,
+      "fan_in": 1,
+      "fan_out": 1,
+      "contracts": [],
+      "depends_on": [],
+      "evidence_ids": [
+        "CLM-001",
+        "CLM-002",
+        "CLM-003",
+        "FACT-0c6c882d51e438f3",
+        "FACT-16488dd85e1cb145",
+        "FACT-5166c9d35cf1da93",
+        "FACT-9210753a0e132d92",
+        "FACT-cb54c9b9b267e247",
+        "FACT-f3537170a5673e92"
+      ],
+      "source_component_id": null,
+      "assessment": {
+        "live_claims": 3,
+        "policy_violations": 0,
+        "dependency_cycles": 0,
+        "load_blockers": 0
+      },
+      "target_component": "domain",
+      "projection": {
+        "files": 6,
+        "moved": 0,
+        "moved_share": 0.0,
+        "forbidden": 0,
+        "complexity_max": 1,
+        "duplicated_lines": 0,
+        "unreachable": 3,
+        "critical": 0
+      }
+    }
+  ],
+  "components": [
+    {
+      "id": "T-app",
+      "name": "app",
+      "kind": "package",
+      "origin": "app",
+      "relation": "retain",
+      "reason": "It is already where the target puts it, breaks no layer rule, carries no critical risk, and is simple and unduplicated. (6 file(s), 0 to move (0%), 0 forbidden import(s), complexity_max 1, duplicated_lines 0, 3 unreachable, 0 critical debt item(s)); also: 3 live claim(s) about it",
+      "responsibility": "",
+      "owner": "",
+      "paths": [
+        "app/__init__.py",
+        "app/main.py",
+        "app/old_export.py",
+        "app/old_mail.py",
+        "app/old_report.py",
+        "app/prices.py"
+      ],
+      "files": 6,
+      "symbols": 5,
+      "fan_in": 1,
+      "fan_out": 1,
+      "contracts": [],
+      "depends_on": [],
+      "evidence_ids": [
+        "CLM-001",
+        "CLM-002",
+        "CLM-003",
+        "FACT-0c6c882d51e438f3",
+        "FACT-16488dd85e1cb145",
+        "FACT-5166c9d35cf1da93",
+        "FACT-9210753a0e132d92",
+        "FACT-cb54c9b9b267e247",
+        "FACT-f3537170a5673e92"
+      ],
+      "source_component_id": null,
+      "assessment": {
+        "live_claims": 3,
+        "policy_violations": 0,
+        "dependency_cycles": 0,
+        "load_blockers": 0
+      },
+      "target_component": "domain",
+      "projection": {
+        "files": 6,
+        "moved": 0,
+        "moved_share": 0.0,
+        "forbidden": 0,
+        "complexity_max": 1,
+        "duplicated_lines": 0,
+        "unreachable": 3,
+        "critical": 0
+      }
+    }
+  ],
+  "target_components": [
+    {
+      "name": "domain",
+      "layer": "domain",
+      "reference": "python-cli",
+      "responsibility": "Rules with no I/O",
+      "files": 6,
+      "moves_in": 0,
+      "forbidden_edges_removed": 0,
+      "paths": [
+        "app/__init__.py",
+        "app/main.py",
+        "app/old_export.py",
+        "app/old_mail.py",
+        "app/old_report.py",
+        "app/prices.py"
+      ]
+    },
+    {
+      "name": "feature:cli-shop",
+      "layer": "services",
+      "reference": "python-cli",
+      "responsibility": "cli:shop: أمر واحد، لا تلمس بيانات",
+      "feature": "cli:shop",
+      "files": 0,
+      "moves_in": 0,
+      "forbidden_edges_removed": 0,
+      "paths": []
+    }
+  ],
+  "decisions": [],
+  "gap_matrix": [
+    {
+      "component": "T-app",
+      "current": {
+        "relation": "retain",
+        "origin": "app",
+        "reason": "It is already where the target puts it, breaks no layer rule, carries no critical risk, and is simple and unduplicated. (6 file(s), 0 to move (0%), 0 forbidden import(s), complexity_max 1, duplicated_lines 0, 3 unreachable, 0 critical debt item(s)); also: 3 live claim(s) about it"
+      },
+      "target": [
+        "retain T-app"
+      ],
+      "gap": "partial",
+      "evidence": [
+        "CLM-001",
+        "CLM-002",
+        "CLM-003",
+        "FACT-0c6c882d51e438f3",
+        "FACT-16488dd85e1cb145",
+        "FACT-5166c9d35cf1da93",
+        "FACT-9210753a0e132d92",
+        "FACT-cb54c9b9b267e247",
+        "FACT-f3537170a5673e92"
+      ],
+      "blocking_tasks": [
+        "TASK-001",
+        "TASK-002",
+        "TASK-003"
+      ],
+      "current_id": "T-app",
+      "current_origin": "app",
+      "target_ids": [],
+      "target_component": "domain",
+      "files_to_move": 0,
+      "forbidden_imports": 0
+    }
+  ],
+  "limits": "A target component is a proposal, not a guarantee; the engine does not write code. The relation (retain/modify/introduce/retire) is the engine's best read of the gap; a human reviewer may move a component from modify to retire or vice versa. A target component's contracts are derived from the source it descends from; new components have empty contracts until the engagement writes them.",
+  "retained_structure": "Source inventory is shown below. Missing target decisions remain explicit gaps.",
+  "reference": "python-cli",
+  "root": "",
+  "infrastructure": [
+    {
+      "area": "configuration",
+      "present": true,
+      "decision": "Keep: Flags and one config file, validated at start. The check: Every invalid setting exits with code 2 and its name.",
+      "tool": null,
+      "tool_reason": "a code change: one typed settings module",
+      "evidence": "the environment is read in 0 file(s)",
+      "alternative": "Do nothing: a bad value should fail before work starts."
+    },
+    {
+      "area": "data",
+      "present": false,
+      "decision": "Introduce: Inputs and outputs in documented formats with versions. Why: A format change breaks scripts that call the tool.",
+      "tool": null,
+      "tool_reason": "a schema owner in code",
+      "evidence": "typed schema source: none",
+      "alternative": "Do nothing: a format change breaks scripts that call the tool."
+    },
+    {
+      "area": "ci",
+      "present": false,
+      "decision": "Introduce: Tests on every push, on every supported Python. Why: A change breaks an older interpreter unseen.",
+      "tool": "GitHub Actions + pre-commit",
+      "tool_reason": null,
+      "evidence": "0 CI step(s) in the repository",
+      "alternative": "Do nothing: a change breaks an older interpreter unseen."
+    },
+    {
+      "area": "tests",
+      "present": false,
+      "decision": "Introduce: Unit tests plus approval tests of command output. Why: Output is the tool's interface.",
+      "tool": "pytest + ApprovalTests",
+      "tool_reason": null,
+      "evidence": "0 test file(s)",
+      "alternative": "Do nothing: output is the tool's interface."
+    },
+    {
+      "area": "observability",
+      "present": false,
+      "decision": "Introduce: Exit codes that mean something, and --verbose logging. Why: A script calling the tool needs to know what failed.",
+      "tool": null,
+      "tool_reason": "a local rotating log inside the application; there is no server to collect from",
+      "evidence": "0 observability signal(s)",
+      "alternative": "Do nothing: a script calling the tool needs to know what failed."
+    },
+    {
+      "area": "secrets",
+      "present": true,
+      "decision": "Keep: Tokens from the environment or keychain only. The check: No credential in the repository.",
+      "tool": null,
+      "tool_reason": "the host's own secret store",
+      "evidence": "0 secret-class credential(s) committed",
+      "alternative": "Do nothing: a token in a config file is committed sooner or later."
+    }
+  ],
+  "forbidden_edges": 0,
+  "target_edges": []
+}

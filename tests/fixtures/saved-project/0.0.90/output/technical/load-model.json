@@ -1,0 +1,98 @@
+{
+  "schema_version": 1,
+  "entry_points": [
+    {
+      "id": "FACT-dd66bb9bf5dfe73d",
+      "label": "shop",
+      "surface": "cli",
+      "handler": "app.main:run",
+      "path": "pyproject.toml",
+      "answers": {
+        "data_access_calls": {
+          "question": "data_access_calls",
+          "status": "undetectable",
+          "value": null,
+          "evidence": [],
+          "reason": "no data-access call sites recorded in this entry path and the path is outside the detectors vocabulary"
+        },
+        "repeats_per_iteration": {
+          "question": "repeats_per_iteration",
+          "status": "undetectable",
+          "value": null,
+          "evidence": [],
+          "reason": "no n+1 redundancy observation in this entry path and the path is outside the detectors vocabulary"
+        },
+        "result_is_bounded": {
+          "question": "result_is_bounded",
+          "status": "undetectable",
+          "value": null,
+          "evidence": [],
+          "reason": "the path is in a language outside the read detectors"
+        },
+        "complexity_class": {
+          "question": "complexity_class",
+          "status": "undetectable",
+          "value": null,
+          "evidence": [],
+          "reason": "no engine performance observation on this path"
+        },
+        "shared_mutable_state": {
+          "question": "shared_mutable_state",
+          "status": "not_applicable",
+          "value": null,
+          "evidence": [
+            "FACT-dd66bb9bf5dfe73d"
+          ],
+          "reason": "the entry path is in a language outside the shared_mutable_state vocabulary (Python, Go, JavaScript, TypeScript)"
+        },
+        "outbound_calls_protected": {
+          "question": "outbound_calls_protected",
+          "status": "undetectable",
+          "value": null,
+          "evidence": [],
+          "reason": "no integration_target on this path and the path is outside the detectors vocabulary"
+        },
+        "cached": {
+          "question": "cached",
+          "status": "undetectable",
+          "value": null,
+          "evidence": [],
+          "reason": "no cache site on this path and the path is outside the detectors vocabulary"
+        },
+        "rate_limited": {
+          "question": "rate_limited",
+          "status": "not_applicable",
+          "value": null,
+          "evidence": [
+            "FACT-dd66bb9bf5dfe73d"
+          ],
+          "reason": "a cli entry point has no inbound request rate to bound"
+        }
+      },
+      "projection": {
+        "multiplier": 1000,
+        "cost_score": 0.0,
+        "interpretation": "projected ceiling of 0.0 cost units at 1000x traffic (data_access_calls=0, n_plus_one=?, unbounded=False, shared_state=False, rate_limited=True)",
+        "bottlenecks": [],
+        "caveats": [
+          "This is a structural projection, not a performance measurement.",
+          "Cost is in arbitrary units that rank entries, not seconds or RPS.",
+          "An undetectable answer becomes a caveat: the entry is \"incomplete\" in the projection."
+        ],
+        "incomplete": true,
+        "unanswered_questions": [
+          "cached",
+          "complexity_class",
+          "data_access_calls",
+          "outbound_calls_protected",
+          "repeats_per_iteration",
+          "result_is_bounded"
+        ]
+      }
+    }
+  ],
+  "projection": {
+    "multiplier": 1000,
+    "method": "multiplier=1000; cost per data_access_call, ×100 per n+1, ×1000 per unbounded query, ×10 per shared-state mutation, ×50 per missing rate limit"
+  }
+}

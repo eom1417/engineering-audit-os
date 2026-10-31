@@ -41,7 +41,7 @@ and `tools`.
 
 ## The tools
 
-`eaos mcp` exposes 57 tools. Every tool takes `project`, the project folder (by default, the folder the assistant was
+`eaos mcp` exposes 66 tools. Every tool takes `project`, the project folder (by default, the folder the assistant was
 opened in). Long work returns a job, followed with `wait`. `status` always names the next tool to call.
 
 ### Orient and continue

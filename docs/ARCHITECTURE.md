@@ -115,7 +115,8 @@ engineering-audit-os/
                            detection_baseline, corpus, metrics, validate, dev_setup and dev_paths (with GitNexus's map of EAOS, built outside the repository), platform_assets,
                            upstream_check; the proofs with the real assistant (fix, journeys, tidy, experience); the
                            contracts' makers (make_contracts, contracts_*, contract_shapes), the Studio's synthetic data,
-                           the progress checks, translation_seed
+                           the progress checks, translation_seed; public_contract/ (the lock on what the CLI and MCP promise,
+                           what reads them and the mutations that prove it)
   upstreams/               the licences of the pinned external tools (THIRD_PARTY_NOTICES.md)
   docs/                    this page and the other references
 ```

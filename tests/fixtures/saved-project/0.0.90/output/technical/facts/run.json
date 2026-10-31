@@ -1,0 +1,1 @@
+{"target":"{{PROJECT}}","produced_at":"2026-10-31T10:40:16.001707+00:00","sets":["broken","config","deadcode","domain","entrypoints","fingerprint","flows","graph","history","leftovers","metrics","patterns","pipeline","redundancy","repository","resolve","runtime","secrets","structure","syntax"]}

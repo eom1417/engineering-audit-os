@@ -97,8 +97,9 @@ piped answer stops at 64 KB, and prefer `impact` or `cypher` to `context`, which
 - **Touch, in order:** (1) the journey it calls, in `eaos/journeys/` (a door holds no logic); (2) the command in
   `command_groups.py`; (3) the MCP tool in `eaos/interfaces/mcp_server/`; (4) the Studio action in
   `docs/studio-actions.json` and `eaos/interfaces/studio_actions/`; (5) its row in `studio_parity.PARITY`, or in
-  `NO_TOOL` with its reason; (6) `docs/MCP.md` when a tool is added.
-- **Test:** `tests/interfaces/test_parity.py`, and the door's own test in `tests/interfaces/`.
+  `NO_TOOL` with its reason; (6) `docs/MCP.md` when a tool is added; (7) `python tools/public_contract/lock.py --record`, and a writing
+  tool's row in `tools/public_contract/capture.py` (`EMPTY_WRITING` or `WRITING_ELSEWHERE`).
+- **Test:** `tests/interfaces/test_parity.py`, `tests/guards/test_public_contract.py`, and the door's own test in `tests/interfaces/`.
 
 ### A Studio screen
 - **Read:** `console/README.md`, `console/src/places/status/index.js` (a place), `console/src/core/router.js`.

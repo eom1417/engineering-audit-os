@@ -1,0 +1,2873 @@
+{
+ "<root>": [
+  {
+   "choices": null,
+   "default": "==SUPPRESS==",
+   "dest": "version",
+   "flags": [
+    "--version"
+   ],
+   "kind": "VersionAction",
+   "nargs": 0,
+   "required": false,
+   "type": null
+  }
+ ],
+ "accept": [
+  {
+   "choices": [
+    "ar",
+    "en"
+   ],
+   "default": null,
+   "dest": "lang",
+   "flags": [
+    "--lang"
+   ],
+   "kind": "StoreAction",
+   "nargs": null,
+   "required": false,
+   "type": null
+  },
+  {
+   "choices": null,
+   "default": ".",
+   "dest": "project",
+   "flags": [],
+   "kind": "StoreAction",
+   "nargs": "?",
+   "required": false,
+   "type": null
+  },
+  {
+   "choices": null,
+   "default": false,
+   "dest": "yes",
+   "flags": [
+    "--yes"
+   ],
+   "kind": "StoreTrueAction",
+   "nargs": 0,
+   "required": false,
+   "type": null
+  }
+ ],
+ "answer": [
+  {
+   "choices": null,
+   "default": null,
+   "dest": "assistant",
+   "flags": [
+    "--assistant"
+   ],
+   "kind": "StoreAction",
+   "nargs": null,
+   "required": false,
+   "type": null
+  },
+  {
+   "choices": null,
+   "default": null,
+   "dest": "id",
+   "flags": [],
+   "kind": "StoreAction",
+   "nargs": null,
+   "required": true,
+   "type": null
+  },
+  {
+   "choices": [
+    "ar",
+    "en"
+   ],
+   "default": null,
+   "dest": "lang",
+   "flags": [
+    "--lang"
+   ],
+   "kind": "StoreAction",
+   "nargs": null,
+   "required": false,
+   "type": null
+  },
+  {
+   "choices": null,
+   "default": null,
+   "dest": "option",
+   "flags": [],
+   "kind": "StoreAction",
+   "nargs": "?",
+   "required": false,
+   "type": null
+  },
+  {
+   "choices": null,
+   "default": ".",
+   "dest": "project",
+   "flags": [
+    "--project"
+   ],
+   "kind": "StoreAction",
+   "nargs": null,
+   "required": false,
+   "type": null
+  },
+  {
+   "choices": null,
+   "default": null,
+   "dest": "text",
+   "flags": [
+    "--text"
+   ],
+   "kind": "StoreAction",
+   "nargs": null,
+   "required": false,
+   "type": null
+  }
+ ],
+ "assistant": [
+  {
+   "choices": [
+    "install"
+   ],
+   "default": "install",
+   "dest": "action",
+   "flags": [],
+   "kind": "StoreAction",
+   "nargs": "?",
+   "required": false,
+   "type": null
+  },
+  {
+   "choices": [
+    "ar",
+    "en"
+   ],
+   "default": null,
+   "dest": "lang",
+   "flags": [
+    "--lang"
+   ],
+   "kind": "StoreAction",
+   "nargs": null,
+   "required": false,
+   "type": null
+  },
+  {
+   "choices": null,
+   "default": ".",
+   "dest": "project",
+   "flags": [
+    "--project"
+   ],
+   "kind": "StoreAction",
+   "nargs": null,
+   "required": false,
+   "type": null
+  },
+  {
+   "choices": null,
+   "default": false,
+   "dest": "yes",
+   "flags": [
+    "--yes"
+   ],
+   "kind": "StoreTrueAction",
+   "nargs": 0,
+   "required": false,
+   "type": null
+  }
+ ],
+ "audit": [
+  {
+   "choices": null,
+   "default": null,
+   "dest": "engines",
+   "flags": [
+    "--engines"
+   ],
+   "kind": "StoreAction",
+   "nargs": "*",
+   "required": false,
+   "type": null
+  },
+  {
+   "choices": null,
+   "default": [],
+   "dest": "exclude",
+   "flags": [
+    "--exclude"
+   ],
+   "kind": "AppendAction",
+   "nargs": null,
+   "required": false,
+   "type": null
+  },
+  {
+   "choices": [
+    "architecture",
+    "debugging",
+    "evolution",
+    "onboarding"
+   ],
+   "default": "evolution",
+   "dest": "goal",
+   "flags": [
+    "--goal"
+   ],
+   "kind": "StoreAction",
+   "nargs": null,
+   "required": false,
+   "type": null
+  },
+  {
+   "choices": null,
+   "default": null,
+   "dest": "intake",
+   "flags": [
+    "--intake"
+   ],
+   "kind": "StoreAction",
+   "nargs": null,
+   "required": false,
+   "type": null
+  },
+  {
+   "choices": [
+    "ar",
+    "en"
+   ],
+   "default": "ar",
+   "dest": "lang",
+   "flags": [
+    "--lang"
+   ],
+   "kind": "StoreAction",
+   "nargs": null,
+   "required": false,
+   "type": null
+  },
+  {
+   "choices": null,
+   "default": [],
+   "dest": "only",
+   "flags": [
+    "--only"
+   ],
+   "kind": "AppendAction",
+   "nargs": null,
+   "required": false,
+   "type": null
+  },
+  {
+   "choices": null,
+   "default": null,
+   "dest": "out",
+   "flags": [
+    "--out"
+   ],
+   "kind": "StoreAction",
+   "nargs": null,
+   "required": true,
+   "type": null
+  },
+  {
+   "choices": null,
+   "default": false,
+   "dest": "resume",
+   "flags": [
+    "--resume"
+   ],
+   "kind": "StoreTrueAction",
+   "nargs": 0,
+   "required": false,
+   "type": null
+  },
+  {
+   "choices": null,
+   "default": null,
+   "dest": "run_app",
+   "flags": [
+    "--run-app"
+   ],
+   "kind": "StoreAction",
+   "nargs": null,
+   "required": false,
+   "type": null
+  },
+  {
+   "choices": null,
+   "default": [],
+   "dest": "skip",
+   "flags": [
+    "--skip"
+   ],
+   "kind": "AppendAction",
+   "nargs": null,
+   "required": false,
+   "type": null
+  },
+  {
+   "choices": null,
+   "default": null,
+   "dest": "target",
+   "flags": [],
+   "kind": "StoreAction",
+   "nargs": null,
+   "required": true,
+   "type": null
+  }
+ ],
+ "branch": [
+  {
+   "choices": [
+    "ar",
+    "en"
+   ],
+   "default": null,
+   "dest": "lang",
+   "flags": [
+    "--lang"
+   ],
+   "kind": "StoreAction",
+   "nargs": null,
+   "required": false,
+   "type": null
+  },
+  {
+   "choices": null,
+   "default": null,
+   "dest": "name",
+   "flags": [],
+   "kind": "StoreAction",
+   "nargs": "?",
+   "required": false,
+   "type": null
+  },
+  {
+   "choices": null,
+   "default": ".",
+   "dest": "project",
+   "flags": [
+    "--project"
+   ],
+   "kind": "StoreAction",
+   "nargs": null,
+   "required": false,
+   "type": null
+  },
+  {
+   "choices": null,
+   "default": false,
+   "dest": "yes",
+   "flags": [
+    "--yes"
+   ],
+   "kind": "StoreTrueAction",
+   "nargs": 0,
+   "required": false,
+   "type": null
+  }
+ ],
+ "branches": [
+  {
+   "choices": null,
+   "default": null,
+   "dest": "into",
+   "flags": [
+    "--into"
+   ],
+   "kind": "StoreAction",
+   "nargs": null,
+   "required": false,
+   "type": null
+  },
+  {
+   "choices": [
+    "ar",
+    "en"
+   ],
+   "default": null,
+   "dest": "lang",
+   "flags": [
+    "--lang"
+   ],
+   "kind": "StoreAction",
+   "nargs": null,
+   "required": false,
+   "type": null
+  },
+  {
+   "choices": null,
+   "default": null,
+   "dest": "name",
+   "flags": [],
+   "kind": "StoreAction",
+   "nargs": "?",
+   "required": false,
+   "type": null
+  },
+  {
+   "choices": [
+    "cleanup",
+    "delete",
+    "list",
+    "merge",
+    "protect",
+    "restore",
+    "unprotect"
+   ],
+   "default": "list",
+   "dest": "op",
+   "flags": [],
+   "kind": "StoreAction",
+   "nargs": "?",
+   "required": false,
+   "type": null
+  },
+  {
+   "choices": null,
+   "default": ".",
+   "dest": "project",
+   "flags": [
+    "--project"
+   ],
+   "kind": "StoreAction",
+   "nargs": null,
+   "required": false,
+   "type": null
+  },
+  {
+   "choices": null,
+   "default": false,
+   "dest": "yes",
+   "flags": [
+    "--yes"
+   ],
+   "kind": "StoreTrueAction",
+   "nargs": 0,
+   "required": false,
+   "type": null
+  }
+ ],
+ "check": [
+  {
+   "choices": null,
+   "default": null,
+   "dest": "again_from",
+   "flags": [
+    "--again-from"
+   ],
+   "kind": "StoreAction",
+   "nargs": null,
+   "required": false,
+   "type": null
+  },
+  {
+   "choices": [
+    "claude",
+    "codex",
+    "none"
+   ],
+   "default": null,
+   "dest": "assistant",
+   "flags": [
+    "--assistant"
+   ],
+   "kind": "StoreAction",
+   "nargs": null,
+   "required": false,
+   "type": null
+  },
+  {
+   "choices": null,
+   "default": null,
+   "dest": "base",
+   "flags": [
+    "--base"
+   ],
+   "kind": "StoreAction",
+   "nargs": null,
+   "required": false,
+   "type": null
+  },
+  {
+   "choices": null,
+   "default": false,
+   "dest": "changed",
+   "flags": [
+    "--changed"
+   ],
+   "kind": "StoreTrueAction",
+   "nargs": 0,
+   "required": false,
+   "type": null
+  },
+  {
+   "choices": null,
+   "default": false,
+   "dest": "hook",
+   "flags": [
+    "--hook"
+   ],
+   "kind": "StoreTrueAction",
+   "nargs": 0,
+   "required": false,
+   "type": null
+  },
+  {
+   "choices": [
+    "ar",
+    "en"
+   ],
+   "default": null,
+   "dest": "lang",
+   "flags": [
+    "--lang"
+   ],
+   "kind": "StoreAction",
+   "nargs": null,
+   "required": false,
+   "type": null
+  },
+  {
+   "choices": [
+    "normal",
+    "speed"
+   ],
+   "default": null,
+   "dest": "mode",
+   "flags": [
+    "--mode"
+   ],
+   "kind": "StoreAction",
+   "nargs": null,
+   "required": false,
+   "type": null
+  },
+  {
+   "choices": [
+    "code",
+    "complete",
+    "experience",
+    "layers",
+    "look",
+    "security",
+    "speed"
+   ],
+   "default": null,
+   "dest": "path",
+   "flags": [
+    "--path"
+   ],
+   "kind": "StoreAction",
+   "nargs": "+",
+   "required": false,
+   "type": null
+  },
+  {
+   "choices": null,
+   "default": ".",
+   "dest": "project",
+   "flags": [
+    "--project"
+   ],
+   "kind": "StoreAction",
+   "nargs": null,
+   "required": false,
+   "type": null
+  },
+  {
+   "choices": null,
+   "default": null,
+   "dest": "published",
+   "flags": [
+    "--published"
+   ],
+   "kind": "StoreAction",
+   "nargs": null,
+   "required": false,
+   "type": null
+  },
+  {
+   "choices": null,
+   "default": false,
+   "dest": "run_app",
+   "flags": [
+    "--run-app"
+   ],
+   "kind": "StoreTrueAction",
+   "nargs": 0,
+   "required": false,
+   "type": null
+  },
+  {
+   "choices": [
+    "hand",
+    "none",
+    "test_user"
+   ],
+   "default": null,
+   "dest": "sign_in",
+   "flags": [
+    "--sign-in"
+   ],
+   "kind": "StoreAction",
+   "nargs": null,
+   "required": false,
+   "type": null
+  },
+  {
+   "choices": null,
+   "default": false,
+   "dest": "staged",
+   "flags": [
+    "--staged"
+   ],
+   "kind": "StoreTrueAction",
+   "nargs": 0,
+   "required": false,
+   "type": null
+  },
+  {
+   "choices": null,
+   "default": false,
+   "dest": "watch",
+   "flags": [
+    "--watch"
+   ],
+   "kind": "StoreTrueAction",
+   "nargs": 0,
+   "required": false,
+   "type": null
+  }
+ ],
+ "clean": [
+  {
+   "choices": [
+    "ar",
+    "en"
+   ],
+   "default": null,
+   "dest": "lang",
+   "flags": [
+    "--lang"
+   ],
+   "kind": "StoreAction",
+   "nargs": null,
+   "required": false,
+   "type": null
+  },
+  {
+   "choices": null,
+   "default": false,
+   "dest": "pictures",
+   "flags": [
+    "--pictures"
+   ],
+   "kind": "StoreTrueAction",
+   "nargs": 0,
+   "required": false,
+   "type": null
+  },
+  {
+   "choices": null,
+   "default": ".",
+   "dest": "project",
+   "flags": [],
+   "kind": "StoreAction",
+   "nargs": "?",
+   "required": false,
+   "type": null
+  },
+  {
+   "choices": null,
+   "default": false,
+   "dest": "yes",
+   "flags": [
+    "--yes"
+   ],
+   "kind": "StoreTrueAction",
+   "nargs": 0,
+   "required": false,
+   "type": null
+  }
+ ],
+ "compare": [
+  {
+   "choices": null,
+   "default": null,
+   "dest": "first",
+   "flags": [],
+   "kind": "StoreAction",
+   "nargs": null,
+   "required": true,
+   "type": null
+  },
+  {
+   "choices": [
+    "ar",
+    "en"
+   ],
+   "default": null,
+   "dest": "lang",
+   "flags": [
+    "--lang"
+   ],
+   "kind": "StoreAction",
+   "nargs": null,
+   "required": false,
+   "type": null
+  },
+  {
+   "choices": null,
+   "default": ".",
+   "dest": "project",
+   "flags": [
+    "--project"
+   ],
+   "kind": "StoreAction",
+   "nargs": null,
+   "required": false,
+   "type": null
+  },
+  {
+   "choices": null,
+   "default": null,
+   "dest": "second",
+   "flags": [],
+   "kind": "StoreAction",
+   "nargs": null,
+   "required": true,
+   "type": null
+  }
+ ],
+ "decided": [
+  {
+   "choices": null,
+   "default": null,
+   "dest": "report",
+   "flags": [],
+   "kind": "StoreAction",
+   "nargs": null,
+   "required": true,
+   "type": null
+  },
+  {
+   "choices": null,
+   "default": null,
+   "dest": "uid",
+   "flags": [],
+   "kind": "StoreAction",
+   "nargs": null,
+   "required": true,
+   "type": null
+  }
+ ],
+ "design": [
+  {
+   "choices": [
+    "ar",
+    "en"
+   ],
+   "default": null,
+   "dest": "lang",
+   "flags": [
+    "--lang"
+   ],
+   "kind": "StoreAction",
+   "nargs": null,
+   "required": false,
+   "type": null
+  },
+  {
+   "choices": null,
+   "default": ".",
+   "dest": "project",
+   "flags": [
+    "--project"
+   ],
+   "kind": "StoreAction",
+   "nargs": null,
+   "required": false,
+   "type": null
+  }
+ ],
+ "do": [
+  {
+   "choices": [
+    "ar",
+    "en"
+   ],
+   "default": null,
+   "dest": "lang",
+   "flags": [
+    "--lang"
+   ],
+   "kind": "StoreAction",
+   "nargs": null,
+   "required": false,
+   "type": null
+  },
+  {
+   "choices": null,
+   "default": ".",
+   "dest": "project",
+   "flags": [
+    "--project"
+   ],
+   "kind": "StoreAction",
+   "nargs": null,
+   "required": false,
+   "type": null
+  },
+  {
+   "choices": null,
+   "default": null,
+   "dest": "request",
+   "flags": [],
+   "kind": "StoreAction",
+   "nargs": "*",
+   "required": true,
+   "type": null
+  },
+  {
+   "choices": null,
+   "default": false,
+   "dest": "yes",
+   "flags": [
+    "--yes"
+   ],
+   "kind": "StoreTrueAction",
+   "nargs": 0,
+   "required": false,
+   "type": null
+  }
+ ],
+ "doctor": [
+  {
+   "choices": null,
+   "default": false,
+   "dest": "fix",
+   "flags": [
+    "--fix"
+   ],
+   "kind": "StoreTrueAction",
+   "nargs": 0,
+   "required": false,
+   "type": null
+  },
+  {
+   "choices": [
+    "ar",
+    "en"
+   ],
+   "default": null,
+   "dest": "lang",
+   "flags": [
+    "--lang"
+   ],
+   "kind": "StoreAction",
+   "nargs": null,
+   "required": false,
+   "type": null
+  },
+  {
+   "choices": null,
+   "default": null,
+   "dest": "project",
+   "flags": [],
+   "kind": "StoreAction",
+   "nargs": "?",
+   "required": false,
+   "type": null
+  },
+  {
+   "choices": null,
+   "default": false,
+   "dest": "yes",
+   "flags": [
+    "--yes"
+   ],
+   "kind": "StoreTrueAction",
+   "nargs": 0,
+   "required": false,
+   "type": null
+  }
+ ],
+ "experience": [
+  {
+   "choices": null,
+   "default": "",
+   "dest": "apart",
+   "flags": [
+    "--apart"
+   ],
+   "kind": "StoreAction",
+   "nargs": null,
+   "required": false,
+   "type": null
+  },
+  {
+   "choices": [
+    "claude",
+    "codex"
+   ],
+   "default": null,
+   "dest": "assistant",
+   "flags": [
+    "--assistant"
+   ],
+   "kind": "StoreAction",
+   "nargs": null,
+   "required": false,
+   "type": null
+  },
+  {
+   "choices": null,
+   "default": null,
+   "dest": "base",
+   "flags": [
+    "--base"
+   ],
+   "kind": "StoreAction",
+   "nargs": null,
+   "required": false,
+   "type": null
+  },
+  {
+   "choices": null,
+   "default": null,
+   "dest": "database",
+   "flags": [
+    "--database"
+   ],
+   "kind": "StoreAction",
+   "nargs": null,
+   "required": false,
+   "type": null
+  },
+  {
+   "choices": [
+    "ar",
+    "en"
+   ],
+   "default": "ar",
+   "dest": "lang",
+   "flags": [
+    "--lang"
+   ],
+   "kind": "StoreAction",
+   "nargs": null,
+   "required": false,
+   "type": null
+  },
+  {
+   "choices": null,
+   "default": 400,
+   "dest": "max_calls",
+   "flags": [
+    "--max-calls"
+   ],
+   "kind": "StoreAction",
+   "nargs": null,
+   "required": false,
+   "type": "int"
+  },
+  {
+   "choices": null,
+   "default": null,
+   "dest": "out",
+   "flags": [
+    "--out"
+   ],
+   "kind": "StoreAction",
+   "nargs": null,
+   "required": true,
+   "type": null
+  },
+  {
+   "choices": null,
+   "default": null,
+   "dest": "runtime",
+   "flags": [
+    "--runtime"
+   ],
+   "kind": "StoreAction",
+   "nargs": null,
+   "required": false,
+   "type": null
+  },
+  {
+   "choices": null,
+   "default": null,
+   "dest": "sessions",
+   "flags": [
+    "--sessions"
+   ],
+   "kind": "StoreAction",
+   "nargs": null,
+   "required": false,
+   "type": null
+  },
+  {
+   "choices": [
+    "judge",
+    "plan",
+    "replay",
+    "report",
+    "run"
+   ],
+   "default": null,
+   "dest": "step",
+   "flags": [],
+   "kind": "StoreAction",
+   "nargs": null,
+   "required": true,
+   "type": null
+  },
+  {
+   "choices": null,
+   "default": null,
+   "dest": "target",
+   "flags": [],
+   "kind": "StoreAction",
+   "nargs": null,
+   "required": true,
+   "type": null
+  },
+  {
+   "choices": null,
+   "default": false,
+   "dest": "yes",
+   "flags": [
+    "--yes"
+   ],
+   "kind": "StoreTrueAction",
+   "nargs": 0,
+   "required": false,
+   "type": null
+  }
+ ],
+ "explain": [
+  {
+   "choices": null,
+   "default": null,
+   "dest": "assistant",
+   "flags": [
+    "--assistant"
+   ],
+   "kind": "StoreAction",
+   "nargs": null,
+   "required": false,
+   "type": null
+  },
+  {
+   "choices": null,
+   "default": null,
+   "dest": "group",
+   "flags": [
+    "--group"
+   ],
+   "kind": "StoreAction",
+   "nargs": null,
+   "required": false,
+   "type": null
+  },
+  {
+   "choices": null,
+   "default": null,
+   "dest": "ids",
+   "flags": [],
+   "kind": "StoreAction",
+   "nargs": "*",
+   "required": true,
+   "type": null
+  },
+  {
+   "choices": [
+    "ar",
+    "en"
+   ],
+   "default": null,
+   "dest": "lang",
+   "flags": [
+    "--lang"
+   ],
+   "kind": "StoreAction",
+   "nargs": null,
+   "required": false,
+   "type": null
+  },
+  {
+   "choices": null,
+   "default": ".",
+   "dest": "project",
+   "flags": [
+    "--project"
+   ],
+   "kind": "StoreAction",
+   "nargs": null,
+   "required": false,
+   "type": null
+  },
+  {
+   "choices": null,
+   "default": false,
+   "dest": "yes",
+   "flags": [
+    "--yes"
+   ],
+   "kind": "StoreTrueAction",
+   "nargs": 0,
+   "required": false,
+   "type": null
+  }
+ ],
+ "facts": [
+  {
+   "choices": null,
+   "default": null,
+   "dest": "engines",
+   "flags": [
+    "--engines"
+   ],
+   "kind": "StoreAction",
+   "nargs": "*",
+   "required": false,
+   "type": null
+  },
+  {
+   "choices": null,
+   "default": [],
+   "dest": "exclude",
+   "flags": [
+    "--exclude"
+   ],
+   "kind": "AppendAction",
+   "nargs": null,
+   "required": false,
+   "type": null
+  },
+  {
+   "choices": null,
+   "default": false,
+   "dest": "history",
+   "flags": [
+    "--history"
+   ],
+   "kind": "StoreTrueAction",
+   "nargs": 0,
+   "required": false,
+   "type": null
+  },
+  {
+   "choices": null,
+   "default": 2000,
+   "dest": "max_commits",
+   "flags": [
+    "--max-commits"
+   ],
+   "kind": "StoreAction",
+   "nargs": null,
+   "required": false,
+   "type": "bounded_int"
+  },
+  {
+   "choices": null,
+   "default": null,
+   "dest": "out",
+   "flags": [
+    "--out"
+   ],
+   "kind": "StoreAction",
+   "nargs": null,
+   "required": true,
+   "type": null
+  },
+  {
+   "choices": null,
+   "default": null,
+   "dest": "target",
+   "flags": [],
+   "kind": "StoreAction",
+   "nargs": null,
+   "required": true,
+   "type": null
+  }
+ ],
+ "fix": [
+  {
+   "choices": null,
+   "default": null,
+   "dest": "assistant",
+   "flags": [
+    "--assistant"
+   ],
+   "kind": "StoreAction",
+   "nargs": null,
+   "required": false,
+   "type": null
+  },
+  {
+   "choices": null,
+   "default": false,
+   "dest": "auto_accept",
+   "flags": [
+    "--auto-accept"
+   ],
+   "kind": "StoreTrueAction",
+   "nargs": 0,
+   "required": false,
+   "type": null
+  },
+  {
+   "choices": null,
+   "default": null,
+   "dest": "group",
+   "flags": [
+    "--group"
+   ],
+   "kind": "StoreAction",
+   "nargs": null,
+   "required": false,
+   "type": null
+  },
+  {
+   "choices": null,
+   "default": null,
+   "dest": "ids",
+   "flags": [],
+   "kind": "StoreAction",
+   "nargs": "*",
+   "required": true,
+   "type": null
+  },
+  {
+   "choices": [
+    "ar",
+    "en"
+   ],
+   "default": null,
+   "dest": "lang",
+   "flags": [
+    "--lang"
+   ],
+   "kind": "StoreAction",
+   "nargs": null,
+   "required": false,
+   "type": null
+  },
+  {
+   "choices": null,
+   "default": ".",
+   "dest": "project",
+   "flags": [
+    "--project"
+   ],
+   "kind": "StoreAction",
+   "nargs": null,
+   "required": false,
+   "type": null
+  },
+  {
+   "choices": null,
+   "default": false,
+   "dest": "yes",
+   "flags": [
+    "--yes"
+   ],
+   "kind": "StoreTrueAction",
+   "nargs": 0,
+   "required": false,
+   "type": null
+  }
+ ],
+ "govern": [
+  {
+   "choices": null,
+   "default": null,
+   "dest": "answer",
+   "flags": [
+    "--answer"
+   ],
+   "kind": "StoreAction",
+   "nargs": null,
+   "required": false,
+   "type": null
+  },
+  {
+   "choices": null,
+   "default": null,
+   "dest": "option",
+   "flags": [
+    "--option"
+   ],
+   "kind": "StoreAction",
+   "nargs": null,
+   "required": false,
+   "type": null
+  },
+  {
+   "choices": null,
+   "default": null,
+   "dest": "project",
+   "flags": [],
+   "kind": "StoreAction",
+   "nargs": null,
+   "required": true,
+   "type": null
+  },
+  {
+   "choices": null,
+   "default": null,
+   "dest": "text",
+   "flags": [
+    "--text"
+   ],
+   "kind": "StoreAction",
+   "nargs": null,
+   "required": false,
+   "type": null
+  }
+ ],
+ "handover": [
+  {
+   "choices": null,
+   "default": false,
+   "dest": "hook",
+   "flags": [
+    "--hook"
+   ],
+   "kind": "StoreTrueAction",
+   "nargs": 0,
+   "required": false,
+   "type": null
+  },
+  {
+   "choices": [
+    "ar",
+    "en"
+   ],
+   "default": null,
+   "dest": "lang",
+   "flags": [
+    "--lang"
+   ],
+   "kind": "StoreAction",
+   "nargs": null,
+   "required": false,
+   "type": null
+  },
+  {
+   "choices": null,
+   "default": ".",
+   "dest": "project",
+   "flags": [],
+   "kind": "StoreAction",
+   "nargs": "?",
+   "required": false,
+   "type": null
+  }
+ ],
+ "history": [
+  {
+   "choices": [
+    "ar",
+    "en"
+   ],
+   "default": null,
+   "dest": "lang",
+   "flags": [
+    "--lang"
+   ],
+   "kind": "StoreAction",
+   "nargs": null,
+   "required": false,
+   "type": null
+  },
+  {
+   "choices": null,
+   "default": ".",
+   "dest": "project",
+   "flags": [
+    "--project"
+   ],
+   "kind": "StoreAction",
+   "nargs": null,
+   "required": false,
+   "type": null
+  }
+ ],
+ "logic-flaws": [
+  {
+   "choices": [
+    "claude",
+    "codex"
+   ],
+   "default": null,
+   "dest": "assistant",
+   "flags": [
+    "--assistant"
+   ],
+   "kind": "StoreAction",
+   "nargs": null,
+   "required": false,
+   "type": null
+  },
+  {
+   "choices": null,
+   "default": 4,
+   "dest": "max_calls",
+   "flags": [
+    "--max-calls"
+   ],
+   "kind": "StoreAction",
+   "nargs": null,
+   "required": false,
+   "type": "int"
+  },
+  {
+   "choices": null,
+   "default": 40,
+   "dest": "minutes",
+   "flags": [
+    "--minutes"
+   ],
+   "kind": "StoreAction",
+   "nargs": null,
+   "required": false,
+   "type": "bounded_int"
+  },
+  {
+   "choices": null,
+   "default": null,
+   "dest": "out",
+   "flags": [
+    "--out"
+   ],
+   "kind": "StoreAction",
+   "nargs": null,
+   "required": true,
+   "type": null
+  },
+  {
+   "choices": null,
+   "default": null,
+   "dest": "target",
+   "flags": [],
+   "kind": "StoreAction",
+   "nargs": null,
+   "required": true,
+   "type": null
+  },
+  {
+   "choices": null,
+   "default": false,
+   "dest": "yes",
+   "flags": [
+    "--yes"
+   ],
+   "kind": "StoreTrueAction",
+   "nargs": 0,
+   "required": false,
+   "type": null
+  }
+ ],
+ "mcp": [],
+ "next": [
+  {
+   "choices": [
+    "ar",
+    "en"
+   ],
+   "default": null,
+   "dest": "lang",
+   "flags": [
+    "--lang"
+   ],
+   "kind": "StoreAction",
+   "nargs": null,
+   "required": false,
+   "type": null
+  },
+  {
+   "choices": null,
+   "default": ".",
+   "dest": "project",
+   "flags": [],
+   "kind": "StoreAction",
+   "nargs": "?",
+   "required": false,
+   "type": null
+  },
+  {
+   "choices": null,
+   "default": false,
+   "dest": "yes",
+   "flags": [
+    "--yes"
+   ],
+   "kind": "StoreTrueAction",
+   "nargs": 0,
+   "required": false,
+   "type": null
+  }
+ ],
+ "pause": [
+  {
+   "choices": [
+    "ar",
+    "en"
+   ],
+   "default": null,
+   "dest": "lang",
+   "flags": [
+    "--lang"
+   ],
+   "kind": "StoreAction",
+   "nargs": null,
+   "required": false,
+   "type": null
+  },
+  {
+   "choices": null,
+   "default": ".",
+   "dest": "project",
+   "flags": [
+    "--project"
+   ],
+   "kind": "StoreAction",
+   "nargs": null,
+   "required": false,
+   "type": null
+  },
+  {
+   "choices": null,
+   "default": null,
+   "dest": "run",
+   "flags": [],
+   "kind": "StoreAction",
+   "nargs": "?",
+   "required": false,
+   "type": null
+  }
+ ],
+ "plan": [
+  {
+   "choices": null,
+   "default": null,
+   "dest": "assistant",
+   "flags": [
+    "--assistant"
+   ],
+   "kind": "StoreAction",
+   "nargs": null,
+   "required": false,
+   "type": null
+  },
+  {
+   "choices": null,
+   "default": null,
+   "dest": "group",
+   "flags": [
+    "--group"
+   ],
+   "kind": "StoreAction",
+   "nargs": null,
+   "required": false,
+   "type": null
+  },
+  {
+   "choices": null,
+   "default": null,
+   "dest": "ids",
+   "flags": [],
+   "kind": "StoreAction",
+   "nargs": "*",
+   "required": true,
+   "type": null
+  },
+  {
+   "choices": [
+    "ar",
+    "en"
+   ],
+   "default": null,
+   "dest": "lang",
+   "flags": [
+    "--lang"
+   ],
+   "kind": "StoreAction",
+   "nargs": null,
+   "required": false,
+   "type": null
+  },
+  {
+   "choices": null,
+   "default": ".",
+   "dest": "project",
+   "flags": [
+    "--project"
+   ],
+   "kind": "StoreAction",
+   "nargs": null,
+   "required": false,
+   "type": null
+  },
+  {
+   "choices": null,
+   "default": false,
+   "dest": "yes",
+   "flags": [
+    "--yes"
+   ],
+   "kind": "StoreTrueAction",
+   "nargs": 0,
+   "required": false,
+   "type": null
+  }
+ ],
+ "policy": [
+  {
+   "choices": [
+    "check",
+    "init"
+   ],
+   "default": null,
+   "dest": "action",
+   "flags": [],
+   "kind": "StoreAction",
+   "nargs": null,
+   "required": true,
+   "type": null
+  },
+  {
+   "choices": null,
+   "default": null,
+   "dest": "out",
+   "flags": [
+    "--out"
+   ],
+   "kind": "StoreAction",
+   "nargs": null,
+   "required": true,
+   "type": null
+  },
+  {
+   "choices": null,
+   "default": null,
+   "dest": "policy",
+   "flags": [
+    "--policy"
+   ],
+   "kind": "StoreAction",
+   "nargs": null,
+   "required": false,
+   "type": null
+  },
+  {
+   "choices": null,
+   "default": null,
+   "dest": "target",
+   "flags": [],
+   "kind": "StoreAction",
+   "nargs": null,
+   "required": true,
+   "type": null
+  }
+ ],
+ "problem": [
+  {
+   "choices": null,
+   "default": null,
+   "dest": "id",
+   "flags": [],
+   "kind": "StoreAction",
+   "nargs": null,
+   "required": true,
+   "type": null
+  },
+  {
+   "choices": [
+    "ar",
+    "en"
+   ],
+   "default": null,
+   "dest": "lang",
+   "flags": [
+    "--lang"
+   ],
+   "kind": "StoreAction",
+   "nargs": null,
+   "required": false,
+   "type": null
+  },
+  {
+   "choices": null,
+   "default": ".",
+   "dest": "project",
+   "flags": [
+    "--project"
+   ],
+   "kind": "StoreAction",
+   "nargs": null,
+   "required": false,
+   "type": null
+  }
+ ],
+ "problems": [
+  {
+   "choices": [
+    "maintainability",
+    "performance",
+    "quality",
+    "security",
+    "structure",
+    "ux"
+   ],
+   "default": null,
+   "dest": "area",
+   "flags": [
+    "--area"
+   ],
+   "kind": "StoreAction",
+   "nargs": null,
+   "required": false,
+   "type": null
+  },
+  {
+   "choices": null,
+   "default": false,
+   "dest": "fixable",
+   "flags": [
+    "--fixable"
+   ],
+   "kind": "StoreTrueAction",
+   "nargs": 0,
+   "required": false,
+   "type": null
+  },
+  {
+   "choices": null,
+   "default": null,
+   "dest": "kind",
+   "flags": [
+    "--kind"
+   ],
+   "kind": "StoreAction",
+   "nargs": null,
+   "required": false,
+   "type": null
+  },
+  {
+   "choices": [
+    "ar",
+    "en"
+   ],
+   "default": null,
+   "dest": "lang",
+   "flags": [
+    "--lang"
+   ],
+   "kind": "StoreAction",
+   "nargs": null,
+   "required": false,
+   "type": null
+  },
+  {
+   "choices": null,
+   "default": 30,
+   "dest": "limit",
+   "flags": [
+    "--limit"
+   ],
+   "kind": "StoreAction",
+   "nargs": null,
+   "required": false,
+   "type": "int"
+  },
+  {
+   "choices": null,
+   "default": 0,
+   "dest": "offset",
+   "flags": [
+    "--offset"
+   ],
+   "kind": "StoreAction",
+   "nargs": null,
+   "required": false,
+   "type": "int"
+  },
+  {
+   "choices": null,
+   "default": ".",
+   "dest": "project",
+   "flags": [
+    "--project"
+   ],
+   "kind": "StoreAction",
+   "nargs": null,
+   "required": false,
+   "type": null
+  },
+  {
+   "choices": [
+    "critical",
+    "high",
+    "low",
+    "medium"
+   ],
+   "default": null,
+   "dest": "severity",
+   "flags": [
+    "--severity"
+   ],
+   "kind": "StoreAction",
+   "nargs": null,
+   "required": false,
+   "type": null
+  },
+  {
+   "choices": null,
+   "default": null,
+   "dest": "text",
+   "flags": [
+    "--text"
+   ],
+   "kind": "StoreAction",
+   "nargs": null,
+   "required": false,
+   "type": null
+  },
+  {
+   "choices": null,
+   "default": null,
+   "dest": "where",
+   "flags": [
+    "--where"
+   ],
+   "kind": "StoreAction",
+   "nargs": null,
+   "required": false,
+   "type": null
+  }
+ ],
+ "projects": [
+  {
+   "choices": [
+    "ar",
+    "en"
+   ],
+   "default": null,
+   "dest": "lang",
+   "flags": [
+    "--lang"
+   ],
+   "kind": "StoreAction",
+   "nargs": null,
+   "required": false,
+   "type": null
+  },
+  {
+   "choices": null,
+   "default": ".",
+   "dest": "project",
+   "flags": [
+    "--project"
+   ],
+   "kind": "StoreAction",
+   "nargs": null,
+   "required": false,
+   "type": null
+  }
+ ],
+ "recheck": [
+  {
+   "choices": null,
+   "default": ".",
+   "dest": "root",
+   "flags": [],
+   "kind": "StoreAction",
+   "nargs": "?",
+   "required": false,
+   "type": null
+  },
+  {
+   "choices": null,
+   "default": null,
+   "dest": "spec",
+   "flags": [
+    "--spec"
+   ],
+   "kind": "StoreAction",
+   "nargs": null,
+   "required": true,
+   "type": null
+  }
+ ],
+ "resume": [
+  {
+   "choices": [
+    "ar",
+    "en"
+   ],
+   "default": null,
+   "dest": "lang",
+   "flags": [
+    "--lang"
+   ],
+   "kind": "StoreAction",
+   "nargs": null,
+   "required": false,
+   "type": null
+  },
+  {
+   "choices": null,
+   "default": ".",
+   "dest": "project",
+   "flags": [
+    "--project"
+   ],
+   "kind": "StoreAction",
+   "nargs": null,
+   "required": false,
+   "type": null
+  },
+  {
+   "choices": null,
+   "default": null,
+   "dest": "run",
+   "flags": [],
+   "kind": "StoreAction",
+   "nargs": "?",
+   "required": false,
+   "type": null
+  }
+ ],
+ "retry": [
+  {
+   "choices": [
+    "ar",
+    "en"
+   ],
+   "default": null,
+   "dest": "lang",
+   "flags": [
+    "--lang"
+   ],
+   "kind": "StoreAction",
+   "nargs": null,
+   "required": false,
+   "type": null
+  },
+  {
+   "choices": null,
+   "default": ".",
+   "dest": "project",
+   "flags": [
+    "--project"
+   ],
+   "kind": "StoreAction",
+   "nargs": null,
+   "required": false,
+   "type": null
+  },
+  {
+   "choices": null,
+   "default": null,
+   "dest": "run",
+   "flags": [],
+   "kind": "StoreAction",
+   "nargs": "?",
+   "required": false,
+   "type": null
+  }
+ ],
+ "rules": [
+  {
+   "choices": [
+    "add",
+    "approve",
+    "change",
+    "guard",
+    "hook",
+    "list",
+    "pin",
+    "unpin"
+   ],
+   "default": "list",
+   "dest": "action",
+   "flags": [],
+   "kind": "StoreAction",
+   "nargs": "?",
+   "required": false,
+   "type": null
+  },
+  {
+   "choices": null,
+   "default": null,
+   "dest": "broken",
+   "flags": [
+    "--broken"
+   ],
+   "kind": "AppendAction",
+   "nargs": null,
+   "required": false,
+   "type": null
+  },
+  {
+   "choices": null,
+   "default": null,
+   "dest": "card",
+   "flags": [
+    "--card"
+   ],
+   "kind": "StoreAction",
+   "nargs": null,
+   "required": false,
+   "type": null
+  },
+  {
+   "choices": null,
+   "default": null,
+   "dest": "detectors",
+   "flags": [
+    "--detectors"
+   ],
+   "kind": "StoreAction",
+   "nargs": "+",
+   "required": false,
+   "type": null
+  },
+  {
+   "choices": null,
+   "default": null,
+   "dest": "files",
+   "flags": [
+    "--files"
+   ],
+   "kind": "StoreAction",
+   "nargs": "+",
+   "required": false,
+   "type": null
+  },
+  {
+   "choices": null,
+   "default": null,
+   "dest": "id",
+   "flags": [],
+   "kind": "StoreAction",
+   "nargs": "?",
+   "required": false,
+   "type": null
+  },
+  {
+   "choices": null,
+   "default": null,
+   "dest": "kept",
+   "flags": [
+    "--kept"
+   ],
+   "kind": "AppendAction",
+   "nargs": null,
+   "required": false,
+   "type": null
+  },
+  {
+   "choices": [
+    "ar",
+    "en"
+   ],
+   "default": null,
+   "dest": "lang",
+   "flags": [
+    "--lang"
+   ],
+   "kind": "StoreAction",
+   "nargs": null,
+   "required": false,
+   "type": null
+  },
+  {
+   "choices": null,
+   "default": null,
+   "dest": "language",
+   "flags": [
+    "--language"
+   ],
+   "kind": "StoreAction",
+   "nargs": null,
+   "required": false,
+   "type": null
+  },
+  {
+   "choices": null,
+   "default": null,
+   "dest": "message",
+   "flags": [
+    "--message"
+   ],
+   "kind": "StoreAction",
+   "nargs": null,
+   "required": false,
+   "type": null
+  },
+  {
+   "choices": null,
+   "default": null,
+   "dest": "none",
+   "flags": [
+    "--none"
+   ],
+   "kind": "StoreAction",
+   "nargs": null,
+   "required": false,
+   "type": null
+  },
+  {
+   "choices": null,
+   "default": null,
+   "dest": "pattern",
+   "flags": [
+    "--pattern"
+   ],
+   "kind": "StoreAction",
+   "nargs": null,
+   "required": false,
+   "type": null
+  },
+  {
+   "choices": null,
+   "default": false,
+   "dest": "pin",
+   "flags": [
+    "--pin"
+   ],
+   "kind": "StoreTrueAction",
+   "nargs": 0,
+   "required": false,
+   "type": null
+  },
+  {
+   "choices": null,
+   "default": ".",
+   "dest": "project",
+   "flags": [
+    "--project"
+   ],
+   "kind": "StoreAction",
+   "nargs": null,
+   "required": false,
+   "type": null
+  },
+  {
+   "choices": null,
+   "default": null,
+   "dest": "said",
+   "flags": [],
+   "kind": "StoreAction",
+   "nargs": "*",
+   "required": true,
+   "type": null
+  },
+  {
+   "choices": null,
+   "default": null,
+   "dest": "test",
+   "flags": [
+    "--test"
+   ],
+   "kind": "StoreAction",
+   "nargs": null,
+   "required": false,
+   "type": null
+  },
+  {
+   "choices": null,
+   "default": false,
+   "dest": "write",
+   "flags": [
+    "--write"
+   ],
+   "kind": "StoreTrueAction",
+   "nargs": 0,
+   "required": false,
+   "type": null
+  },
+  {
+   "choices": null,
+   "default": false,
+   "dest": "yes",
+   "flags": [
+    "--yes"
+   ],
+   "kind": "StoreTrueAction",
+   "nargs": 0,
+   "required": false,
+   "type": null
+  }
+ ],
+ "runs": [
+  {
+   "choices": null,
+   "default": false,
+   "dest": "all",
+   "flags": [
+    "--all"
+   ],
+   "kind": "StoreTrueAction",
+   "nargs": 0,
+   "required": false,
+   "type": null
+  },
+  {
+   "choices": [
+    "ar",
+    "en"
+   ],
+   "default": null,
+   "dest": "lang",
+   "flags": [
+    "--lang"
+   ],
+   "kind": "StoreAction",
+   "nargs": null,
+   "required": false,
+   "type": null
+  },
+  {
+   "choices": null,
+   "default": ".",
+   "dest": "project",
+   "flags": [
+    "--project"
+   ],
+   "kind": "StoreAction",
+   "nargs": null,
+   "required": false,
+   "type": null
+  }
+ ],
+ "show": [
+  {
+   "choices": [
+    "ar",
+    "en"
+   ],
+   "default": null,
+   "dest": "lang",
+   "flags": [
+    "--lang"
+   ],
+   "kind": "StoreAction",
+   "nargs": null,
+   "required": false,
+   "type": null
+  },
+  {
+   "choices": null,
+   "default": ".",
+   "dest": "project",
+   "flags": [],
+   "kind": "StoreAction",
+   "nargs": "?",
+   "required": false,
+   "type": null
+  },
+  {
+   "choices": null,
+   "default": false,
+   "dest": "yes",
+   "flags": [
+    "--yes"
+   ],
+   "kind": "StoreTrueAction",
+   "nargs": 0,
+   "required": false,
+   "type": null
+  }
+ ],
+ "sign-in": [
+  {
+   "choices": null,
+   "default": false,
+   "dest": "forget",
+   "flags": [
+    "--forget"
+   ],
+   "kind": "StoreTrueAction",
+   "nargs": 0,
+   "required": false,
+   "type": null
+  },
+  {
+   "choices": [
+    "ar",
+    "en"
+   ],
+   "default": null,
+   "dest": "lang",
+   "flags": [
+    "--lang"
+   ],
+   "kind": "StoreAction",
+   "nargs": null,
+   "required": false,
+   "type": null
+  },
+  {
+   "choices": null,
+   "default": ".",
+   "dest": "project",
+   "flags": [
+    "--project"
+   ],
+   "kind": "StoreAction",
+   "nargs": null,
+   "required": false,
+   "type": null
+  },
+  {
+   "choices": null,
+   "default": false,
+   "dest": "signed_out",
+   "flags": [
+    "--signed-out"
+   ],
+   "kind": "StoreTrueAction",
+   "nargs": 0,
+   "required": false,
+   "type": null
+  }
+ ],
+ "start": [
+  {
+   "choices": [
+    "claude",
+    "codex",
+    "none"
+   ],
+   "default": null,
+   "dest": "assistant",
+   "flags": [
+    "--assistant"
+   ],
+   "kind": "StoreAction",
+   "nargs": null,
+   "required": false,
+   "type": null
+  },
+  {
+   "choices": [
+    "ar",
+    "en"
+   ],
+   "default": null,
+   "dest": "lang",
+   "flags": [
+    "--lang"
+   ],
+   "kind": "StoreAction",
+   "nargs": null,
+   "required": false,
+   "type": null
+  },
+  {
+   "choices": [
+    "normal",
+    "speed"
+   ],
+   "default": null,
+   "dest": "mode",
+   "flags": [
+    "--mode"
+   ],
+   "kind": "StoreAction",
+   "nargs": null,
+   "required": false,
+   "type": null
+  },
+  {
+   "choices": null,
+   "default": false,
+   "dest": "no_watch",
+   "flags": [
+    "--no-watch"
+   ],
+   "kind": "StoreTrueAction",
+   "nargs": 0,
+   "required": false,
+   "type": null
+  },
+  {
+   "choices": [
+    "code",
+    "complete",
+    "experience",
+    "layers",
+    "look",
+    "security",
+    "speed"
+   ],
+   "default": null,
+   "dest": "path",
+   "flags": [
+    "--path"
+   ],
+   "kind": "StoreAction",
+   "nargs": "+",
+   "required": false,
+   "type": null
+  },
+  {
+   "choices": null,
+   "default": ".",
+   "dest": "project",
+   "flags": [],
+   "kind": "StoreAction",
+   "nargs": "?",
+   "required": false,
+   "type": null
+  },
+  {
+   "choices": null,
+   "default": false,
+   "dest": "yes",
+   "flags": [
+    "--yes"
+   ],
+   "kind": "StoreTrueAction",
+   "nargs": 0,
+   "required": false,
+   "type": null
+  }
+ ],
+ "status": [
+  {
+   "choices": [
+    "ar",
+    "en"
+   ],
+   "default": null,
+   "dest": "lang",
+   "flags": [
+    "--lang"
+   ],
+   "kind": "StoreAction",
+   "nargs": null,
+   "required": false,
+   "type": null
+  },
+  {
+   "choices": null,
+   "default": ".",
+   "dest": "project",
+   "flags": [],
+   "kind": "StoreAction",
+   "nargs": "?",
+   "required": false,
+   "type": null
+  },
+  {
+   "choices": null,
+   "default": false,
+   "dest": "yes",
+   "flags": [
+    "--yes"
+   ],
+   "kind": "StoreTrueAction",
+   "nargs": 0,
+   "required": false,
+   "type": null
+  }
+ ],
+ "stop": [
+  {
+   "choices": [
+    "ar",
+    "en"
+   ],
+   "default": null,
+   "dest": "lang",
+   "flags": [
+    "--lang"
+   ],
+   "kind": "StoreAction",
+   "nargs": null,
+   "required": false,
+   "type": null
+  },
+  {
+   "choices": null,
+   "default": ".",
+   "dest": "project",
+   "flags": [
+    "--project"
+   ],
+   "kind": "StoreAction",
+   "nargs": null,
+   "required": false,
+   "type": null
+  },
+  {
+   "choices": null,
+   "default": null,
+   "dest": "run",
+   "flags": [],
+   "kind": "StoreAction",
+   "nargs": "?",
+   "required": false,
+   "type": null
+  }
+ ],
+ "studio": [
+  {
+   "choices": null,
+   "default": false,
+   "dest": "background",
+   "flags": [
+    "--background"
+   ],
+   "kind": "StoreTrueAction",
+   "nargs": 0,
+   "required": false,
+   "type": null
+  },
+  {
+   "choices": null,
+   "default": false,
+   "dest": "no_open",
+   "flags": [
+    "--no-open"
+   ],
+   "kind": "StoreTrueAction",
+   "nargs": 0,
+   "required": false,
+   "type": null
+  },
+  {
+   "choices": null,
+   "default": 0,
+   "dest": "port",
+   "flags": [
+    "--port"
+   ],
+   "kind": "StoreAction",
+   "nargs": null,
+   "required": false,
+   "type": "int"
+  },
+  {
+   "choices": null,
+   "default": ".",
+   "dest": "project",
+   "flags": [],
+   "kind": "StoreAction",
+   "nargs": "?",
+   "required": false,
+   "type": null
+  },
+  {
+   "choices": null,
+   "default": null,
+   "dest": "remote_origin",
+   "flags": [
+    "--remote-origin"
+   ],
+   "kind": "StoreAction",
+   "nargs": null,
+   "required": false,
+   "type": null
+  }
+ ],
+ "tools": [
+  {
+   "choices": [
+    "doctor",
+    "install"
+   ],
+   "default": null,
+   "dest": "action",
+   "flags": [],
+   "kind": "StoreAction",
+   "nargs": null,
+   "required": true,
+   "type": null
+  },
+  {
+   "choices": null,
+   "default": false,
+   "dest": "json",
+   "flags": [
+    "--json"
+   ],
+   "kind": "StoreTrueAction",
+   "nargs": 0,
+   "required": false,
+   "type": null
+  },
+  {
+   "choices": null,
+   "default": null,
+   "dest": "only",
+   "flags": [
+    "--only"
+   ],
+   "kind": "StoreAction",
+   "nargs": null,
+   "required": false,
+   "type": null
+  },
+  {
+   "choices": null,
+   "default": null,
+   "dest": "project",
+   "flags": [
+    "--project"
+   ],
+   "kind": "StoreAction",
+   "nargs": null,
+   "required": false,
+   "type": null
+  },
+  {
+   "choices": null,
+   "default": null,
+   "dest": "skip",
+   "flags": [
+    "--skip"
+   ],
+   "kind": "StoreAction",
+   "nargs": null,
+   "required": false,
+   "type": null
+  },
+  {
+   "choices": [
+    "assessment",
+    "execution"
+   ],
+   "default": null,
+   "dest": "stage",
+   "flags": [
+    "--stage"
+   ],
+   "kind": "StoreAction",
+   "nargs": null,
+   "required": false,
+   "type": null
+  }
+ ],
+ "undo": [
+  {
+   "choices": [
+    "ar",
+    "en"
+   ],
+   "default": null,
+   "dest": "lang",
+   "flags": [
+    "--lang"
+   ],
+   "kind": "StoreAction",
+   "nargs": null,
+   "required": false,
+   "type": null
+  },
+  {
+   "choices": null,
+   "default": ".",
+   "dest": "project",
+   "flags": [],
+   "kind": "StoreAction",
+   "nargs": "?",
+   "required": false,
+   "type": null
+  },
+  {
+   "choices": null,
+   "default": false,
+   "dest": "yes",
+   "flags": [
+    "--yes"
+   ],
+   "kind": "StoreTrueAction",
+   "nargs": 0,
+   "required": false,
+   "type": null
+  }
+ ],
+ "usage": [
+  {
+   "choices": [
+    "ar",
+    "en"
+   ],
+   "default": null,
+   "dest": "lang",
+   "flags": [
+    "--lang"
+   ],
+   "kind": "StoreAction",
+   "nargs": null,
+   "required": false,
+   "type": null
+  },
+  {
+   "choices": null,
+   "default": ".",
+   "dest": "project",
+   "flags": [
+    "--project"
+   ],
+   "kind": "StoreAction",
+   "nargs": null,
+   "required": false,
+   "type": null
+  }
+ ],
+ "verify": [
+  {
+   "choices": null,
+   "default": null,
+   "dest": "assistant",
+   "flags": [
+    "--assistant"
+   ],
+   "kind": "StoreAction",
+   "nargs": null,
+   "required": false,
+   "type": null
+  },
+  {
+   "choices": null,
+   "default": null,
+   "dest": "group",
+   "flags": [
+    "--group"
+   ],
+   "kind": "StoreAction",
+   "nargs": null,
+   "required": false,
+   "type": null
+  },
+  {
+   "choices": null,
+   "default": null,
+   "dest": "ids",
+   "flags": [],
+   "kind": "StoreAction",
+   "nargs": "*",
+   "required": true,
+   "type": null
+  },
+  {
+   "choices": [
+    "ar",
+    "en"
+   ],
+   "default": null,
+   "dest": "lang",
+   "flags": [
+    "--lang"
+   ],
+   "kind": "StoreAction",
+   "nargs": null,
+   "required": false,
+   "type": null
+  },
+  {
+   "choices": null,
+   "default": ".",
+   "dest": "project",
+   "flags": [
+    "--project"
+   ],
+   "kind": "StoreAction",
+   "nargs": null,
+   "required": false,
+   "type": null
+  },
+  {
+   "choices": null,
+   "default": false,
+   "dest": "yes",
+   "flags": [
+    "--yes"
+   ],
+   "kind": "StoreTrueAction",
+   "nargs": 0,
+   "required": false,
+   "type": null
+  }
+ ],
+ "waiting": [
+  {
+   "choices": [
+    "ar",
+    "en"
+   ],
+   "default": null,
+   "dest": "lang",
+   "flags": [
+    "--lang"
+   ],
+   "kind": "StoreAction",
+   "nargs": null,
+   "required": false,
+   "type": null
+  },
+  {
+   "choices": null,
+   "default": ".",
+   "dest": "project",
+   "flags": [
+    "--project"
+   ],
+   "kind": "StoreAction",
+   "nargs": null,
+   "required": false,
+   "type": null
+  }
+ ],
+ "watch": [
+  {
+   "choices": [
+    "ar",
+    "en"
+   ],
+   "default": null,
+   "dest": "lang",
+   "flags": [
+    "--lang"
+   ],
+   "kind": "StoreAction",
+   "nargs": null,
+   "required": false,
+   "type": null
+  },
+  {
+   "choices": null,
+   "default": ".",
+   "dest": "project",
+   "flags": [
+    "--project"
+   ],
+   "kind": "StoreAction",
+   "nargs": null,
+   "required": false,
+   "type": null
+  },
+  {
+   "choices": null,
+   "default": null,
+   "dest": "run",
+   "flags": [],
+   "kind": "StoreAction",
+   "nargs": "?",
+   "required": false,
+   "type": null
+  }
+ ]
+}

@@ -1,0 +1,288 @@
+{
+ "schema_version": 1,
+ "type": "python-cli",
+ "declared_policy": false,
+ "layers": [
+  {
+   "name": "cli",
+   "role": "entry",
+   "responsibility": "Argument parsing and output only",
+   "allowed": [
+    "services"
+   ],
+   "files": 0
+  },
+  {
+   "name": "services",
+   "role": "logic",
+   "responsibility": "Use cases",
+   "allowed": [
+    "domain",
+    "infrastructure"
+   ],
+   "files": 0
+  },
+  {
+   "name": "domain",
+   "role": "logic",
+   "responsibility": "Rules with no I/O",
+   "allowed": [],
+   "files": 6
+  },
+  {
+   "name": "infrastructure",
+   "role": "data",
+   "responsibility": "Files, network, database",
+   "allowed": [
+    "domain"
+   ],
+   "files": 0
+  }
+ ],
+ "map": [
+  {
+   "path": "app/__init__.py",
+   "layer": "domain",
+   "side": "server",
+   "confidence": "medium",
+   "reason": "its path matches **/*.py"
+  },
+  {
+   "path": "app/main.py",
+   "layer": "domain",
+   "side": "server",
+   "confidence": "medium",
+   "reason": "its path matches **/*.py"
+  },
+  {
+   "path": "app/old_export.py",
+   "layer": "domain",
+   "side": "server",
+   "confidence": "medium",
+   "reason": "its path matches **/*.py"
+  },
+  {
+   "path": "app/old_mail.py",
+   "layer": "domain",
+   "side": "server",
+   "confidence": "medium",
+   "reason": "its path matches **/*.py"
+  },
+  {
+   "path": "app/old_report.py",
+   "layer": "domain",
+   "side": "server",
+   "confidence": "medium",
+   "reason": "its path matches **/*.py"
+  },
+  {
+   "path": "app/prices.py",
+   "layer": "domain",
+   "side": "server",
+   "confidence": "medium",
+   "reason": "its path matches **/*.py"
+  }
+ ],
+ "gaps": [],
+ "endpoints": [],
+ "tables": [],
+ "built": {
+  "read": [],
+  "gap": "no built output was read: the project holds none, and the app was not built in an isolated copy (it is built there when you agree to run it)"
+ },
+ "operations": [
+  {
+   "area": "configuration",
+   "item": "Flags and one config file, validated at start",
+   "present": true,
+   "evidence": "the environment is read in 0 file(s)",
+   "success": "Every invalid setting exits with code 2 and its name.",
+   "tool": null
+  },
+  {
+   "area": "data",
+   "item": "Inputs and outputs in documented formats with versions",
+   "present": false,
+   "evidence": "typed schema source: none",
+   "success": "Every output format has a schema version.",
+   "tool": null
+  },
+  {
+   "area": "ci",
+   "item": "Tests on every push, on every supported Python",
+   "present": false,
+   "evidence": "0 CI step(s) in the repository",
+   "success": "The matrix passes on the default branch.",
+   "tool": "GitHub Actions + pre-commit"
+  },
+  {
+   "area": "tests",
+   "item": "Unit tests plus approval tests of command output",
+   "present": false,
+   "evidence": "0 test file(s)",
+   "success": "Every command has an approved output.",
+   "tool": "pytest + ApprovalTests"
+  },
+  {
+   "area": "observability",
+   "item": "Exit codes that mean something, and --verbose logging",
+   "present": false,
+   "evidence": "0 observability signal(s)",
+   "success": "Every failure exits non-zero with a message on stderr.",
+   "tool": null
+  },
+  {
+   "area": "secrets",
+   "item": "Tokens from the environment or keychain only",
+   "present": true,
+   "evidence": "0 secret-class credential(s) committed",
+   "success": "No credential in the repository.",
+   "tool": null
+  }
+ ],
+ "tests": {
+  "runners": [],
+  "files": 0,
+  "run": null,
+  "layers_untested": [
+   "domain"
+  ],
+  "endpoints_untested": []
+ },
+ "findings": [
+  {
+   "rule": "operations-missing",
+   "path": "*",
+   "line": null,
+   "evidence": "typed schema source: none",
+   "params": {
+    "area": "data",
+    "item": "Inputs and outputs in documented formats with versions",
+    "evidence": "typed schema source: none",
+    "success": "Every output format has a schema version."
+   },
+   "boundary": "operations",
+   "severity": "low",
+   "live": false,
+   "en": "Inputs and outputs in documented formats with versions: not found (typed schema source: none)",
+   "ar": "Inputs and outputs in documented formats with versions: غير موجود (typed schema source: none)",
+   "fix_en": "Add it; the check that it is there: Every output format has a schema version.",
+   "fix_ar": "أضفه؛ وعلامة وجوده: Every output format has a schema version."
+  },
+  {
+   "rule": "operations-missing",
+   "path": "*",
+   "line": null,
+   "evidence": "0 CI step(s) in the repository",
+   "params": {
+    "area": "ci",
+    "item": "Tests on every push, on every supported Python",
+    "evidence": "0 CI step(s) in the repository",
+    "success": "The matrix passes on the default branch."
+   },
+   "boundary": "operations",
+   "severity": "low",
+   "live": false,
+   "en": "Tests on every push, on every supported Python: not found (0 CI step(s) in the repository)",
+   "ar": "Tests on every push, on every supported Python: غير موجود (0 CI step(s) in the repository)",
+   "fix_en": "Add it; the check that it is there: The matrix passes on the default branch.",
+   "fix_ar": "أضفه؛ وعلامة وجوده: The matrix passes on the default branch."
+  },
+  {
+   "rule": "operations-missing",
+   "path": "*",
+   "line": null,
+   "evidence": "0 test file(s)",
+   "params": {
+    "area": "tests",
+    "item": "Unit tests plus approval tests of command output",
+    "evidence": "0 test file(s)",
+    "success": "Every command has an approved output."
+   },
+   "boundary": "operations",
+   "severity": "low",
+   "live": false,
+   "en": "Unit tests plus approval tests of command output: not found (0 test file(s))",
+   "ar": "Unit tests plus approval tests of command output: غير موجود (0 test file(s))",
+   "fix_en": "Add it; the check that it is there: Every command has an approved output.",
+   "fix_ar": "أضفه؛ وعلامة وجوده: Every command has an approved output."
+  },
+  {
+   "rule": "operations-missing",
+   "path": "*",
+   "line": null,
+   "evidence": "0 observability signal(s)",
+   "params": {
+    "area": "observability",
+    "item": "Exit codes that mean something, and --verbose logging",
+    "evidence": "0 observability signal(s)",
+    "success": "Every failure exits non-zero with a message on stderr."
+   },
+   "boundary": "operations",
+   "severity": "low",
+   "live": false,
+   "en": "Exit codes that mean something, and --verbose logging: not found (0 observability signal(s))",
+   "ar": "Exit codes that mean something, and --verbose logging: غير موجود (0 observability signal(s))",
+   "fix_en": "Add it; the check that it is there: Every failure exits non-zero with a message on stderr.",
+   "fix_ar": "أضفه؛ وعلامة وجوده: Every failure exits non-zero with a message on stderr."
+  }
+ ],
+ "questions": [],
+ "live": null,
+ "summary": {
+  "boundaries": {
+   "browser": {
+    "low": 0,
+    "medium": 0,
+    "high": 0
+   },
+   "endpoints": {
+    "low": 0,
+    "medium": 0,
+    "high": 0
+   },
+   "data": {
+    "low": 0,
+    "medium": 0,
+    "high": 0
+   },
+   "rules": {
+    "low": 0,
+    "medium": 0,
+    "high": 0
+   },
+   "layers": {
+    "low": 0,
+    "medium": 0,
+    "high": 0
+   },
+   "operations": {
+    "low": 4,
+    "medium": 0,
+    "high": 0
+   },
+   "tests": {
+    "low": 0,
+    "medium": 0,
+    "high": 0
+   }
+  },
+  "findings": 4,
+  "questions": 0,
+  "critical": [],
+  "files": 6,
+  "gaps": 0,
+  "endpoints": 0,
+  "placed": 6,
+  "tables": 0,
+  "by_boundary": {
+   "browser": 0,
+   "endpoints": 0,
+   "data": 0,
+   "rules": 0,
+   "layers": 0,
+   "operations": 4,
+   "tests": 0
+  }
+ }
+}

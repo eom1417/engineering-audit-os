@@ -1,0 +1,85 @@
+{
+ "schema_version": 1,
+ "findings": [
+  {
+   "id": "RDY-resilience-dependencies",
+   "aspect": "resilience",
+   "status": "ok",
+   "title": "No external dependency a fault could hit was found in the code",
+   "detail": "",
+   "evidence": []
+  },
+  {
+   "id": "RDY-security-scan",
+   "aspect": "security",
+   "status": "ok",
+   "title": "No route a security scan could request without a fixture",
+   "detail": "",
+   "evidence": [
+    "features.json"
+   ]
+  },
+  {
+   "id": "RDY-observability-health",
+   "aspect": "observability",
+   "status": "gap",
+   "title": "No health route a load balancer or uptime check could call",
+   "detail": "A running release cannot be checked from outside without one.",
+   "evidence": [
+    "features.json"
+   ]
+  },
+  {
+   "id": "RDY-observability-telemetry",
+   "aspect": "observability",
+   "status": "gap",
+   "title": "No traces, metrics or error capture in the code",
+   "detail": "A slow or failing request in production would be invisible until a user reports it.",
+   "evidence": []
+  },
+  {
+   "id": "RDY-observability-slo",
+   "aspect": "observability",
+   "status": "ok",
+   "title": "3 intake scenario(s) an SLO can be written for",
+   "detail": "QS-001: p95_ms 800 ms (default); QS-002: error_rate 0.01 ratio (default); QS-003: availability 99.5 percent (default)",
+   "evidence": [
+    "intake.json"
+   ]
+  },
+  {
+   "id": "RDY-performance-QS-001",
+   "aspect": "performance",
+   "status": "unmeasured",
+   "title": "QS-001: 100 users at the same time use every user-facing route",
+   "detail": "Threshold p95 800 ms; the app did not run under load in this check, so its speed is only estimated (load-model.json).",
+   "evidence": [
+    "intake.json",
+    "load-model.json"
+   ]
+  }
+ ],
+ "summary": {
+  "resilience": {
+   "ok": 1,
+   "gap": 0,
+   "unmeasured": 0
+  },
+  "security": {
+   "ok": 1,
+   "gap": 0,
+   "unmeasured": 0
+  },
+  "observability": {
+   "ok": 1,
+   "gap": 2,
+   "unmeasured": 0
+  },
+  "performance": {
+   "ok": 0,
+   "gap": 0,
+   "unmeasured": 1
+  }
+ },
+ "limits": "Read from the code and the intake; no fault was injected and no security scan ran. Only the k6 baseline, when it ran in this check, is a measurement."
+}

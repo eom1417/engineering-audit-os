@@ -1,0 +1,1317 @@
+{
+ "contract_version": 1,
+ "target": "{{PROJECT}}",
+ "out": "{{OUTPUT}}/technical",
+ "started_at": "2026-10-31T10:40:07+00:00",
+ "mode": "normal",
+ "paths": [
+  "complete"
+ ],
+ "seconds": 8.95,
+ "requested": [
+  "facts",
+  "features",
+  "roles",
+  "intake",
+  "engines",
+  "policy",
+  "rules",
+  "setup",
+  "verify",
+  "session",
+  "crawl",
+  "lock",
+  "record",
+  "journeys",
+  "screens",
+  "baseline",
+  "layers",
+  "keeping",
+  "measure",
+  "architecture",
+  "load",
+  "readiness",
+  "claims",
+  "probe",
+  "sustainability",
+  "transform",
+  "semantic",
+  "plan",
+  "target",
+  "proposals",
+  "triage",
+  "visual",
+  "cards",
+  "ideal",
+  "pipeline_gaps",
+  "reconcile",
+  "order",
+  "steps",
+  "reports",
+  "translate"
+ ],
+ "stages": {
+  "facts": {
+   "stage": "facts",
+   "status": "ok",
+   "reason": "",
+   "seconds": 8.82,
+   "necessity": "required",
+   "produces": [
+    "facts/index.json"
+   ],
+   "artifacts": [
+    "facts/index.json"
+   ],
+   "detail": {
+    "facts": 80,
+    "sets": 20,
+    "exclude": [
+     ".claude/worktrees",
+     ".venv",
+     "build",
+     "components/ui",
+     "dist",
+     "fixtures",
+     "generated",
+     "node_modules",
+     "testdata",
+     "third_party",
+     "vendor"
+    ]
+   }
+  },
+  "engines": {
+   "stage": "engines",
+   "status": "unavailable",
+   "reason": "the frozen project runs no external tool",
+   "seconds": 0.0,
+   "necessity": "optional",
+   "produces": [
+    "facts/external.json"
+   ],
+   "artifacts": [],
+   "detail": {},
+   "reason_code": "engines_not_requested"
+  },
+  "features": {
+   "stage": "features",
+   "status": "ok",
+   "reason": "",
+   "seconds": 0.0,
+   "necessity": "required",
+   "produces": [
+    "features.json"
+   ],
+   "artifacts": [
+    "features.json"
+   ],
+   "detail": {
+    "features": 1,
+    "unassigned": 0,
+    "critical": 0
+   }
+  },
+  "policy": {
+   "stage": "policy",
+   "status": "unavailable",
+   "reason": "the project declares no eaos.policy.json",
+   "seconds": 0.0,
+   "necessity": "optional",
+   "produces": [
+    "facts/policy.json"
+   ],
+   "artifacts": [],
+   "detail": {},
+   "reason_code": "no_policy"
+  },
+  "rules": {
+   "stage": "rules",
+   "status": "unavailable",
+   "reason": "the person stated no rule that holds for this project now",
+   "seconds": 0.0,
+   "necessity": "optional",
+   "produces": [
+    "rules.json"
+   ],
+   "artifacts": [],
+   "detail": {},
+   "reason_code": "no_rules"
+  },
+  "roles": {
+   "stage": "roles",
+   "status": "unavailable",
+   "reason": "no assistant was installed or allowed for this check, so the rules stand alone",
+   "seconds": 0.0,
+   "necessity": "optional",
+   "produces": [
+    "roles.json"
+   ],
+   "artifacts": [],
+   "detail": {},
+   "reason_code": "no_provider"
+  },
+  "intake": {
+   "stage": "intake",
+   "status": "ok",
+   "reason": "",
+   "seconds": 0.0,
+   "necessity": "required",
+   "produces": [
+    "intake.json"
+   ],
+   "artifacts": [
+    "intake.json"
+   ],
+   "detail": {
+    "answered": 0,
+    "scenarios": 3
+   }
+  },
+  "setup": {
+   "stage": "setup",
+   "status": "unavailable",
+   "reason": "the person has not agreed to run the app in an isolated copy (eaos next asks once), so nothing was run and the check reads the code alone",
+   "seconds": 0.0,
+   "necessity": "optional",
+   "produces": [
+    "live/setup.json"
+   ],
+   "artifacts": [],
+   "detail": {},
+   "reason_code": "no_run_consent"
+  },
+  "verify": {
+   "stage": "verify",
+   "status": "unavailable",
+   "reason": "the person has not agreed to run the app in an isolated copy (eaos next asks once), so nothing was run and the check reads the code alone",
+   "seconds": 0.0,
+   "necessity": "optional",
+   "produces": [
+    "verification.json"
+   ],
+   "artifacts": [],
+   "detail": {},
+   "reason_code": "no_run_consent"
+  },
+  "session": {
+   "stage": "session",
+   "status": "unavailable",
+   "reason": "the person has not agreed to run the app in an isolated copy (eaos next asks once), so nothing was run and the check reads the code alone",
+   "seconds": 0.0,
+   "necessity": "optional",
+   "produces": [
+    "live/sign-in.json"
+   ],
+   "artifacts": [],
+   "detail": {},
+   "reason_code": "no_run_consent"
+  },
+  "measure": {
+   "stage": "measure",
+   "status": "ok",
+   "reason": "",
+   "seconds": 0.0,
+   "necessity": "required",
+   "produces": [
+    "measurements.json"
+   ],
+   "artifacts": [
+    "measurements.json"
+   ],
+   "detail": {
+    "files": 6,
+    "complete": 6
+   }
+  },
+  "crawl": {
+   "stage": "crawl",
+   "status": "unavailable",
+   "reason": "the person has not agreed to run the app in an isolated copy (eaos next asks once), so nothing was run and the check reads the code alone",
+   "seconds": 0.0,
+   "necessity": "optional",
+   "produces": [
+    "live/crawl.json"
+   ],
+   "artifacts": [],
+   "detail": {},
+   "reason_code": "no_run_consent"
+  },
+  "layers": {
+   "stage": "layers",
+   "status": "ok",
+   "reason": "",
+   "seconds": 0.01,
+   "necessity": "required",
+   "produces": [
+    "layers.json",
+    "facts/boundaries.json"
+   ],
+   "artifacts": [
+    "facts/boundaries.json",
+    "layers.json"
+   ],
+   "detail": {
+    "findings": 4,
+    "questions": 0,
+    "files": 6,
+    "gaps": 0,
+    "endpoints": 0
+   }
+  },
+  "architecture": {
+   "stage": "architecture",
+   "status": "unavailable",
+   "reason": "the frozen project runs no external tool",
+   "seconds": 0.0,
+   "necessity": "optional",
+   "produces": [
+    "architecture/map.json"
+   ],
+   "artifacts": [],
+   "detail": {},
+   "reason_code": "engines_not_requested"
+  },
+  "lock": {
+   "stage": "lock",
+   "status": "ok",
+   "reason": "",
+   "seconds": 0.0,
+   "necessity": "optional",
+   "produces": [
+    "behavior-lock/plan.json"
+   ],
+   "artifacts": [
+    "behavior-lock/plan.json"
+   ],
+   "detail": {
+    "specs": 1,
+    "without_spec": 1
+   }
+  },
+  "record": {
+   "stage": "record",
+   "status": "unavailable",
+   "reason": "the person has not agreed to run the app in an isolated copy (eaos next asks once), so nothing was run and the check reads the code alone",
+   "seconds": 0.0,
+   "necessity": "optional",
+   "produces": [
+    "live/lock.json"
+   ],
+   "artifacts": [],
+   "detail": {},
+   "reason_code": "no_run_consent"
+  },
+  "journeys": {
+   "stage": "journeys",
+   "status": "unavailable",
+   "reason": "the person has not agreed to run the app in an isolated copy (eaos next asks once), so nothing was run and the check reads the code alone",
+   "seconds": 0.0,
+   "necessity": "optional",
+   "produces": [
+    "live/journeys.json"
+   ],
+   "artifacts": [],
+   "detail": {},
+   "reason_code": "no_run_consent"
+  },
+  "screens": {
+   "stage": "screens",
+   "status": "unavailable",
+   "reason": "the person has not agreed to run the app in an isolated copy (eaos next asks once), so nothing was run and the check reads the code alone",
+   "seconds": 0.0,
+   "necessity": "optional",
+   "produces": [
+    "live/screens.json"
+   ],
+   "artifacts": [],
+   "detail": {},
+   "reason_code": "no_run_consent"
+  },
+  "baseline": {
+   "stage": "baseline",
+   "status": "unavailable",
+   "reason": "the person has not agreed to run the app in an isolated copy (eaos next asks once), so nothing was run and the check reads the code alone",
+   "seconds": 0.0,
+   "necessity": "optional",
+   "produces": [
+    "live/baseline.json"
+   ],
+   "artifacts": [],
+   "detail": {},
+   "reason_code": "no_run_consent"
+  },
+  "keeping": {
+   "stage": "keeping",
+   "status": "unavailable",
+   "reason": "the person has not agreed to run the app in an isolated copy (eaos next asks once), so nothing was run and the check reads the code alone",
+   "seconds": 0.0,
+   "necessity": "optional",
+   "produces": [
+    "live/keeping.json"
+   ],
+   "artifacts": [],
+   "detail": {},
+   "reason_code": "no_run_consent"
+  },
+  "visual": {
+   "stage": "visual",
+   "status": "unavailable",
+   "reason": "no assistant was installed or allowed for this check, so the rules stand alone",
+   "seconds": 0.0,
+   "necessity": "optional",
+   "produces": [
+    "nodes/visual_reviewer/findings.json"
+   ],
+   "artifacts": [],
+   "detail": {},
+   "reason_code": "no_provider"
+  },
+  "load": {
+   "stage": "load",
+   "status": "ok",
+   "reason": "",
+   "seconds": 0.0,
+   "necessity": "required",
+   "produces": [
+    "load-model.json"
+   ],
+   "artifacts": [
+    "load-model.json"
+   ],
+   "detail": {
+    "entry_points": 1,
+    "incomplete": 1
+   }
+  },
+  "layers_trial": {
+   "stage": "layers_trial",
+   "status": "skipped",
+   "reason": "its optional loop was not switched on for this check",
+   "seconds": 0.0,
+   "necessity": "optional",
+   "produces": [
+    "live/api-trial"
+   ],
+   "artifacts": [],
+   "detail": {},
+   "reason_code": "loop_off"
+  },
+  "experience": {
+   "stage": "experience",
+   "status": "skipped",
+   "reason": "its optional loop was not switched on for this check",
+   "seconds": 0.0,
+   "necessity": "optional",
+   "produces": [
+    "experience/run.json"
+   ],
+   "artifacts": [],
+   "detail": {},
+   "reason_code": "loop_off"
+  },
+  "readiness": {
+   "stage": "readiness",
+   "status": "ok",
+   "reason": "",
+   "seconds": 0.0,
+   "necessity": "required",
+   "produces": [
+    "readiness.json"
+   ],
+   "artifacts": [
+    "readiness.json"
+   ],
+   "detail": {
+    "resilience": {
+     "ok": 1,
+     "gap": 0,
+     "unmeasured": 0
+    },
+    "security": {
+     "ok": 1,
+     "gap": 0,
+     "unmeasured": 0
+    },
+    "observability": {
+     "ok": 1,
+     "gap": 2,
+     "unmeasured": 0
+    },
+    "performance": {
+     "ok": 0,
+     "gap": 0,
+     "unmeasured": 1
+    }
+   }
+  },
+  "claims": {
+   "stage": "claims",
+   "status": "ok",
+   "reason": "",
+   "seconds": 0.02,
+   "necessity": "required",
+   "produces": [
+    "dossier.json",
+    "README.md"
+   ],
+   "artifacts": [
+    "README.md",
+    "dossier.json"
+   ],
+   "detail": {
+    "claims": 3,
+    "counts": {
+     "CONFIRMED": 3
+    }
+   }
+  },
+  "probe": {
+   "stage": "probe",
+   "status": "ok",
+   "reason": "",
+   "seconds": 0.0,
+   "necessity": "required",
+   "produces": [
+    "probes.json"
+   ],
+   "artifacts": [
+    "probes.json"
+   ],
+   "detail": {
+    "target": "{{PROJECT}}",
+    "out": "{{OUTPUT}}/technical",
+    "probes": 3,
+    "by_status": {
+     "CONFIRMED": 3,
+     "REFUTED": 0,
+     "PARTIAL": 0,
+     "INCONCLUSIVE": 0,
+     "blocked": 0
+    },
+    "confirmed_claims": 3,
+    "claims": 3,
+    "limits": "A probe decides only what it checks. Execution probes stay disabled unless explicitly allowed, and an isolated copy is not an OS sandbox."
+   }
+  },
+  "sustainability": {
+   "stage": "sustainability",
+   "status": "ok",
+   "reason": "",
+   "seconds": 0.0,
+   "necessity": "required",
+   "produces": [
+    "sustainability.json"
+   ],
+   "artifacts": [
+    "sustainability.json"
+   ],
+   "detail": {
+    "measured": 5,
+    "moves": 1
+   }
+  },
+  "transform": {
+   "stage": "transform",
+   "status": "ok",
+   "reason": "",
+   "seconds": 0.0,
+   "necessity": "required",
+   "produces": [
+    "transform-plan.json"
+   ],
+   "artifacts": [
+    "transform-plan.json"
+   ],
+   "detail": {
+    "stages": 1,
+    "without_home": 0
+   }
+  },
+  "semantic": {
+   "stage": "semantic",
+   "status": "unavailable",
+   "reason": "no assistant was installed or allowed for this check, so the rules stand alone",
+   "seconds": 0.0,
+   "necessity": "optional",
+   "produces": [
+    "semantic.json"
+   ],
+   "artifacts": [],
+   "detail": {},
+   "reason_code": "no_provider"
+  },
+  "plan": {
+   "stage": "plan",
+   "status": "ok",
+   "reason": "",
+   "seconds": 0.01,
+   "necessity": "required",
+   "produces": [
+    "plan.json",
+    "PLAN/WAVES.md"
+   ],
+   "artifacts": [
+    "PLAN/WAVES.md",
+    "plan.json"
+   ],
+   "detail": {
+    "tasks": 3,
+    "waves": 1
+   }
+  },
+  "target": {
+   "stage": "target",
+   "status": "ok",
+   "reason": "",
+   "seconds": 0.0,
+   "necessity": "required",
+   "produces": [
+    "target-architecture.json",
+    "target-proposal.json"
+   ],
+   "artifacts": [
+    "target-architecture.json",
+    "target-proposal.json"
+   ],
+   "detail": {
+    "components": 1,
+    "status": "REVIEW_REQUIRED"
+   }
+  },
+  "proposals": {
+   "stage": "proposals",
+   "status": "unavailable",
+   "reason": "no assistant was installed or allowed for this check, so the rules stand alone",
+   "seconds": 0.0,
+   "necessity": "optional",
+   "produces": [
+    "proposals.json"
+   ],
+   "artifacts": [],
+   "detail": {},
+   "reason_code": "no_provider"
+  },
+  "triage": {
+   "stage": "triage",
+   "status": "unavailable",
+   "reason": "no assistant was installed or allowed for this check, so the rules stand alone",
+   "seconds": 0.0,
+   "necessity": "optional",
+   "produces": [
+    "nodes/card_triage/verdicts.json"
+   ],
+   "artifacts": [],
+   "detail": {},
+   "reason_code": "no_provider"
+  },
+  "cards": {
+   "stage": "cards",
+   "status": "ok",
+   "reason": "",
+   "seconds": 0.0,
+   "necessity": "required",
+   "produces": [
+    "cards.json"
+   ],
+   "artifacts": [
+    "cards.json"
+   ],
+   "detail": {
+    "extension": 0,
+    "kept": 3,
+    "set_aside": 0,
+    "doubted": 0,
+    "design": 0,
+    "decided_by": "rules"
+   }
+  },
+  "ideal": {
+   "stage": "ideal",
+   "status": "unavailable",
+   "reason": "no assistant was installed or allowed for this check, so the rules stand alone",
+   "seconds": 0.0,
+   "necessity": "optional",
+   "produces": [
+    "ideal/plan.json"
+   ],
+   "artifacts": [],
+   "detail": {},
+   "reason_code": "no_provider"
+  },
+  "pipeline_gaps": {
+   "stage": "pipeline_gaps",
+   "status": "unavailable",
+   "reason": "no assistant was installed or allowed for this check, so the rules stand alone",
+   "seconds": 0.0,
+   "necessity": "optional",
+   "produces": [
+    "nodes/pipeline_gap_planner/plan.json"
+   ],
+   "artifacts": [],
+   "detail": {},
+   "reason_code": "no_provider"
+  },
+  "reconcile": {
+   "stage": "reconcile",
+   "status": "ok",
+   "reason": "",
+   "seconds": 0.01,
+   "necessity": "required",
+   "produces": [
+    "TARGET-ARCHITECTURE.md"
+   ],
+   "artifacts": [
+    "TARGET-ARCHITECTURE.md"
+   ],
+   "detail": {
+    "by": "rules",
+    "rule_only": 3
+   }
+  },
+  "order": {
+   "stage": "order",
+   "status": "unavailable",
+   "reason": "no assistant was installed or allowed for this check, so the rules stand alone",
+   "seconds": 0.0,
+   "necessity": "optional",
+   "produces": [
+    "nodes/plan_orderer/order.json"
+   ],
+   "artifacts": [],
+   "detail": {},
+   "reason_code": "no_provider"
+  },
+  "steps": {
+   "stage": "steps",
+   "status": "ok",
+   "reason": "",
+   "seconds": 0.0,
+   "necessity": "required",
+   "produces": [
+    "PLAN/STEPS.md"
+   ],
+   "artifacts": [
+    "PLAN/STEPS.md"
+   ],
+   "detail": {
+    "steps": 0,
+    "decided_by": "rules"
+   }
+  },
+  "reports": {
+   "stage": "reports",
+   "status": "ok",
+   "reason": "",
+   "seconds": 0.02,
+   "necessity": "required",
+   "produces": [
+    "CURRENT-STATE.md",
+    "TARGET-STATE.md",
+    "GAP-AND-STRATEGY.md",
+    "EXECUTION-PLAN.md",
+    "START-HERE.md"
+   ],
+   "artifacts": [
+    "CURRENT-STATE.md",
+    "EXECUTION-PLAN.md",
+    "GAP-AND-STRATEGY.md",
+    "START-HERE.md",
+    "TARGET-STATE.md"
+   ],
+   "detail": {
+    "reports": 4
+   }
+  },
+  "translate": {
+   "stage": "translate",
+   "status": "unavailable",
+   "reason": "no assistant was installed or allowed for this check, so the rules stand alone",
+   "seconds": 0.0,
+   "necessity": "optional",
+   "produces": [
+    "i18n/ar/START-HERE.md",
+    "i18n/en/START-HERE.md"
+   ],
+   "artifacts": [],
+   "detail": {},
+   "reason_code": "no_provider"
+  }
+ },
+ "loops": {
+  "understand": {
+   "state": "met",
+   "stages": [],
+   "rounds": 1
+  },
+  "run_and_see": {
+   "state": "explained",
+   "stages": [
+    "setup",
+    "screens"
+   ],
+   "rounds": 1
+  },
+  "try_layers": {
+   "state": "explained",
+   "stages": [
+    "layers_trial"
+   ],
+   "rounds": 1
+  },
+  "try_experience": {
+   "state": "explained",
+   "stages": [
+    "experience"
+   ],
+   "rounds": 1
+  },
+  "judge": {
+   "state": "explained",
+   "stages": [
+    "triage"
+   ],
+   "rounds": 1
+  },
+  "envision": {
+   "state": "explained",
+   "stages": [
+    "ideal"
+   ],
+   "rounds": 1
+  },
+  "plan": {
+   "state": "met",
+   "stages": [],
+   "rounds": 1
+  },
+  "hand_over": {
+   "state": "met",
+   "stages": [],
+   "rounds": 1
+  }
+ },
+ "coverage": [
+  {
+   "loop": "understand",
+   "name": {
+    "ar": "فهم الكود",
+    "en": "Understanding the code"
+   },
+   "state": "met",
+   "rounds": 1,
+   "covered": [
+    "facts",
+    "features",
+    "intake"
+   ],
+   "missed": [
+    {
+     "stage": "roles",
+     "status": "unavailable",
+     "reason_code": "no_provider",
+     "reason": "no assistant was installed or allowed for this check, so the rules stand alone"
+    },
+    {
+     "stage": "engines",
+     "status": "unavailable",
+     "reason_code": "engines_not_requested",
+     "reason": "the frozen project runs no external tool"
+    },
+    {
+     "stage": "policy",
+     "status": "unavailable",
+     "reason_code": "no_policy",
+     "reason": "the project declares no eaos.policy.json"
+    },
+    {
+     "stage": "rules",
+     "status": "unavailable",
+     "reason_code": "no_rules",
+     "reason": "the person stated no rule that holds for this project now"
+    }
+   ],
+   "behind": [],
+   "big": false
+  },
+  {
+   "loop": "run_and_see",
+   "name": {
+    "ar": "تشغيل التطبيق ورؤية شاشاته",
+    "en": "Running the app and seeing its screens"
+   },
+   "state": "explained",
+   "rounds": 1,
+   "covered": [
+    "lock",
+    "layers"
+   ],
+   "missed": [
+    {
+     "stage": "setup",
+     "status": "unavailable",
+     "reason_code": "no_run_consent",
+     "reason": "the person has not agreed to run the app in an isolated copy (eaos next asks once), so nothing was run and the check reads the code alone"
+    },
+    {
+     "stage": "verify",
+     "status": "unavailable",
+     "reason_code": "no_run_consent",
+     "reason": "the person has not agreed to run the app in an isolated copy (eaos next asks once), so nothing was run and the check reads the code alone"
+    },
+    {
+     "stage": "session",
+     "status": "unavailable",
+     "reason_code": "no_run_consent",
+     "reason": "the person has not agreed to run the app in an isolated copy (eaos next asks once), so nothing was run and the check reads the code alone"
+    },
+    {
+     "stage": "crawl",
+     "status": "unavailable",
+     "reason_code": "no_run_consent",
+     "reason": "the person has not agreed to run the app in an isolated copy (eaos next asks once), so nothing was run and the check reads the code alone"
+    },
+    {
+     "stage": "record",
+     "status": "unavailable",
+     "reason_code": "no_run_consent",
+     "reason": "the person has not agreed to run the app in an isolated copy (eaos next asks once), so nothing was run and the check reads the code alone"
+    },
+    {
+     "stage": "journeys",
+     "status": "unavailable",
+     "reason_code": "no_run_consent",
+     "reason": "the person has not agreed to run the app in an isolated copy (eaos next asks once), so nothing was run and the check reads the code alone"
+    },
+    {
+     "stage": "screens",
+     "status": "unavailable",
+     "reason_code": "no_run_consent",
+     "reason": "the person has not agreed to run the app in an isolated copy (eaos next asks once), so nothing was run and the check reads the code alone"
+    },
+    {
+     "stage": "baseline",
+     "status": "unavailable",
+     "reason_code": "no_run_consent",
+     "reason": "the person has not agreed to run the app in an isolated copy (eaos next asks once), so nothing was run and the check reads the code alone"
+    },
+    {
+     "stage": "keeping",
+     "status": "unavailable",
+     "reason_code": "no_run_consent",
+     "reason": "the person has not agreed to run the app in an isolated copy (eaos next asks once), so nothing was run and the check reads the code alone"
+    }
+   ],
+   "behind": [
+    "setup",
+    "screens"
+   ],
+   "big": false
+  },
+  {
+   "loop": "try_layers",
+   "name": {
+    "ar": "try_layers",
+    "en": "try_layers"
+   },
+   "state": "explained",
+   "rounds": 1,
+   "covered": [],
+   "missed": [
+    {
+     "stage": "layers_trial",
+     "status": "skipped",
+     "reason_code": "loop_off",
+     "reason": "its optional loop was not switched on for this check"
+    }
+   ],
+   "behind": [
+    "layers_trial"
+   ],
+   "big": false
+  },
+  {
+   "loop": "try_experience",
+   "name": {
+    "ar": "try_experience",
+    "en": "try_experience"
+   },
+   "state": "explained",
+   "rounds": 1,
+   "covered": [],
+   "missed": [
+    {
+     "stage": "experience",
+     "status": "skipped",
+     "reason_code": "loop_off",
+     "reason": "its optional loop was not switched on for this check"
+    }
+   ],
+   "behind": [
+    "experience"
+   ],
+   "big": false
+  },
+  {
+   "loop": "judge",
+   "name": {
+    "ar": "الحكم على المشاكل",
+    "en": "Judging the problems"
+   },
+   "state": "explained",
+   "rounds": 1,
+   "covered": [
+    "measure",
+    "load",
+    "readiness",
+    "claims",
+    "probe",
+    "sustainability",
+    "transform",
+    "plan",
+    "target",
+    "cards"
+   ],
+   "missed": [
+    {
+     "stage": "architecture",
+     "status": "unavailable",
+     "reason_code": "engines_not_requested",
+     "reason": "the frozen project runs no external tool"
+    },
+    {
+     "stage": "semantic",
+     "status": "unavailable",
+     "reason_code": "no_provider",
+     "reason": "no assistant was installed or allowed for this check, so the rules stand alone"
+    },
+    {
+     "stage": "proposals",
+     "status": "unavailable",
+     "reason_code": "no_provider",
+     "reason": "no assistant was installed or allowed for this check, so the rules stand alone"
+    },
+    {
+     "stage": "triage",
+     "status": "unavailable",
+     "reason_code": "no_provider",
+     "reason": "no assistant was installed or allowed for this check, so the rules stand alone"
+    },
+    {
+     "stage": "visual",
+     "status": "unavailable",
+     "reason_code": "no_provider",
+     "reason": "no assistant was installed or allowed for this check, so the rules stand alone"
+    }
+   ],
+   "behind": [
+    "triage"
+   ],
+   "big": true
+  },
+  {
+   "loop": "envision",
+   "name": {
+    "ar": "الصورة المثالية",
+    "en": "The ideal picture"
+   },
+   "state": "explained",
+   "rounds": 1,
+   "covered": [
+    "reconcile"
+   ],
+   "missed": [
+    {
+     "stage": "ideal",
+     "status": "unavailable",
+     "reason_code": "no_provider",
+     "reason": "no assistant was installed or allowed for this check, so the rules stand alone"
+    },
+    {
+     "stage": "pipeline_gaps",
+     "status": "unavailable",
+     "reason_code": "no_provider",
+     "reason": "no assistant was installed or allowed for this check, so the rules stand alone"
+    }
+   ],
+   "behind": [
+    "ideal"
+   ],
+   "big": true
+  },
+  {
+   "loop": "plan",
+   "name": {
+    "ar": "ترتيب الخطة",
+    "en": "Ordering the plan"
+   },
+   "state": "met",
+   "rounds": 1,
+   "covered": [
+    "steps"
+   ],
+   "missed": [
+    {
+     "stage": "order",
+     "status": "unavailable",
+     "reason_code": "no_provider",
+     "reason": "no assistant was installed or allowed for this check, so the rules stand alone"
+    }
+   ],
+   "behind": [],
+   "big": false
+  },
+  {
+   "loop": "hand_over",
+   "name": {
+    "ar": "التسليم والتقارير",
+    "en": "Handing over the reports"
+   },
+   "state": "met",
+   "rounds": 1,
+   "covered": [
+    "reports"
+   ],
+   "missed": [
+    {
+     "stage": "translate",
+     "status": "unavailable",
+     "reason_code": "no_provider",
+     "reason": "no assistant was installed or allowed for this check, so the rules stand alone"
+    }
+   ],
+   "behind": [],
+   "big": false
+  }
+ ],
+ "counts": {
+  "ok": 18,
+  "skipped": 2,
+  "unavailable": 22,
+  "failed": 0,
+  "not_reached": 0
+ },
+ "status": "COMPLETE",
+ "limits": "A stage that did not run proves nothing. Read the skipped and unavailable rows before reading the findings: they are the shape of what this run could not see.",
+ "options": {
+  "language": "en",
+  "exclude": [],
+  "max_files": 100000,
+  "max_bytes": 2000000,
+  "policy_path": null,
+  "intake": null,
+  "without_tools": []
+ },
+ "source_fingerprint": "45aed7d19a592f879872edd596682a8bacc53299899804083bfb81f851925889",
+ "measured": {
+  "facts": 8.82,
+  "features": 0.0,
+  "intake": 0.0,
+  "measure": 0.0,
+  "layers": 0.01,
+  "lock": 0.0,
+  "load": 0.0,
+  "readiness": 0.0,
+  "claims": 0.02,
+  "probe": 0.0,
+  "sustainability": 0.0,
+  "transform": 0.0,
+  "plan": 0.01,
+  "target": 0.0,
+  "cards": 0.0,
+  "reconcile": 0.01,
+  "steps": 0.0,
+  "reports": 0.02
+ },
+ "remedies": [
+  {
+   "stage": "roles",
+   "code": "no_provider",
+   "remedy": {
+    "tool": "assistant_check",
+    "then": "again_from"
+   },
+   "round": 1,
+   "outcome": "failed",
+   "after": "unavailable"
+  },
+  {
+   "stage": "setup",
+   "code": "no_run_consent",
+   "remedy": {
+    "consent": "run"
+   },
+   "round": 1,
+   "outcome": "needs_person",
+   "after": "unavailable"
+  },
+  {
+   "stage": "verify",
+   "code": "no_run_consent",
+   "remedy": {
+    "consent": "run"
+   },
+   "round": 1,
+   "outcome": "needs_person",
+   "after": "unavailable"
+  },
+  {
+   "stage": "session",
+   "code": "no_run_consent",
+   "remedy": {
+    "consent": "run"
+   },
+   "round": 1,
+   "outcome": "needs_person",
+   "after": "unavailable"
+  },
+  {
+   "stage": "crawl",
+   "code": "no_run_consent",
+   "remedy": {
+    "consent": "run"
+   },
+   "round": 1,
+   "outcome": "needs_person",
+   "after": "unavailable"
+  },
+  {
+   "stage": "record",
+   "code": "no_run_consent",
+   "remedy": {
+    "consent": "run"
+   },
+   "round": 1,
+   "outcome": "needs_person",
+   "after": "unavailable"
+  },
+  {
+   "stage": "journeys",
+   "code": "no_run_consent",
+   "remedy": {
+    "consent": "run"
+   },
+   "round": 1,
+   "outcome": "needs_person",
+   "after": "unavailable"
+  },
+  {
+   "stage": "screens",
+   "code": "no_run_consent",
+   "remedy": {
+    "consent": "run"
+   },
+   "round": 1,
+   "outcome": "needs_person",
+   "after": "unavailable"
+  },
+  {
+   "stage": "baseline",
+   "code": "no_run_consent",
+   "remedy": {
+    "consent": "run"
+   },
+   "round": 1,
+   "outcome": "needs_person",
+   "after": "unavailable"
+  },
+  {
+   "stage": "keeping",
+   "code": "no_run_consent",
+   "remedy": {
+    "consent": "run"
+   },
+   "round": 1,
+   "outcome": "needs_person",
+   "after": "unavailable"
+  },
+  {
+   "stage": "visual",
+   "code": "no_provider",
+   "remedy": {
+    "tool": "assistant_check",
+    "then": "again_from"
+   },
+   "round": 1,
+   "outcome": "failed",
+   "after": "unavailable"
+  },
+  {
+   "stage": "semantic",
+   "code": "no_provider",
+   "remedy": {
+    "tool": "assistant_check",
+    "then": "again_from"
+   },
+   "round": 1,
+   "outcome": "failed",
+   "after": "unavailable"
+  },
+  {
+   "stage": "proposals",
+   "code": "no_provider",
+   "remedy": {
+    "tool": "assistant_check",
+    "then": "again_from"
+   },
+   "round": 1,
+   "outcome": "failed",
+   "after": "unavailable"
+  },
+  {
+   "stage": "triage",
+   "code": "no_provider",
+   "remedy": {
+    "tool": "assistant_check",
+    "then": "again_from"
+   },
+   "round": 1,
+   "outcome": "failed",
+   "after": "unavailable"
+  },
+  {
+   "stage": "ideal",
+   "code": "no_provider",
+   "remedy": {
+    "tool": "assistant_check",
+    "then": "again_from"
+   },
+   "round": 1,
+   "outcome": "failed",
+   "after": "unavailable"
+  },
+  {
+   "stage": "pipeline_gaps",
+   "code": "no_provider",
+   "remedy": {
+    "tool": "assistant_check",
+    "then": "again_from"
+   },
+   "round": 1,
+   "outcome": "failed",
+   "after": "unavailable"
+  },
+  {
+   "stage": "order",
+   "code": "no_provider",
+   "remedy": {
+    "tool": "assistant_check",
+    "then": "again_from"
+   },
+   "round": 1,
+   "outcome": "failed",
+   "after": "unavailable"
+  },
+  {
+   "stage": "translate",
+   "code": "no_provider",
+   "remedy": {
+    "tool": "assistant_check",
+    "then": "again_from"
+   },
+   "round": 1,
+   "outcome": "failed",
+   "after": "unavailable"
+  }
+ ]
+}

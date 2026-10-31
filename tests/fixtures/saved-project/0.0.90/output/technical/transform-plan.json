@@ -1,0 +1,61 @@
+{
+  "schema_version": 1,
+  "stages": [
+    {
+      "stage": 1,
+      "move": "eliminate_redundancy",
+      "redundancy_kind": "pass_through",
+      "sites": [
+        {
+          "path": "app/old_export.py",
+          "line": 2,
+          "symbol": "legacy_export",
+          "callee": "join"
+        },
+        {
+          "path": "app/old_report.py",
+          "line": 2,
+          "symbol": "legacy_total",
+          "callee": "sum"
+        }
+      ],
+      "steps": [
+        "Inspect each site; remove or hoist the redundant call.",
+        "Keep the public signature stable; the call site is the only changed file."
+      ],
+      "acceptance": {
+        "id": "TRANSFORM-001-ACCEPTANCE",
+        "kind": "command",
+        "invariant": "Every candidate source file remains parseable after the structural move.",
+        "expected": "The command exits successfully in the candidate repository.",
+        "source_revision": "candidate",
+        "argv": [
+          "{{PYTHON}}",
+          "-m",
+          "compileall",
+          "-q",
+          "."
+        ],
+        "command": "{{PYTHON}} -m compileall -q .",
+        "cwd": ".",
+        "expected_exit": 0,
+        "origin": "generated_equivalence_fallback",
+        "source_files": [
+          "app/old_export.py",
+          "app/old_report.py"
+        ]
+      },
+      "rollback": "Revert one commit: the redundancy-removal edit is the only change in this stage.",
+      "falsifier": "Show that the call depends on loop-local state and cannot be hoisted, or that the \"redundant\" call returns a different value across iterations.",
+      "predicted": {
+        "minimal_path": 0.0
+      },
+      "indicator": "minimal_path"
+    }
+  ],
+  "summary": {
+    "stages": 1,
+    "moves_with_no_viable_candidate": 0
+  },
+  "limits": "A stage is a proposal, not an executed edit; the human or the isolated-copy remediator runs it. Acceptance commands are the closest executable proxy; runtime behaviour is not measured here. A predicted delta is computed from the structural reduction; a runtime check may show different results. A falsifier is a hint at the kind of evidence that would reject the move; it is not a guard. No stage edits /opt/flow or environment files: the engine never modifies the target outside its declared scope."
+}

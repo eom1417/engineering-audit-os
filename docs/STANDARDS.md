@@ -73,8 +73,16 @@ for undefined names and unused imports (`console/eslint.config.js`).
   condition can be awaited; no test of exact wording unless the wording is the contract.
 - Guards that always stay: every test of `tests/guards/` (`test_code_limits`, `test_studio_assets`, `test_golden_facts`,
   `test_consistency`, `test_artifact_contract`, `test_named_paths` (every path EAOS names exists), `test_public_tree`,
-  `test_platforms`, `test_single_source`, `test_packaging`, `test_journey` (the fast end-to-end proof)), `test_layers`
+  `test_platforms`, `test_single_source`, `test_packaging`, `test_journey` (the fast end-to-end proof), `test_public_contract`
+  (what the CLI and MCP promise, below)), `test_layers`
   (every planted boundary defect found) and the golden trial (`tools/golden_trial.sh`).
+- **The public contract**: `tools/public_contract/lock.py` locks in `tests/fixtures/contract/` every CLI command and argument, every
+  MCP tool's input and read-only hints, the exit codes and the form of the answers on an empty project and on a saved one
+  (`tests/fixtures/saved-project/<version>/`, frozen, kept for every later version to read). What takes from a caller is refused;
+  a break the maintainers agreed to is kept with its reason and who approved it (`--accept-break`, and `CHANGELOG.md`); what
+  only adds is recorded (`--record`). Words and values are not held here: the golden trial reads those, and what a writing tool
+  answers on real work is held by the tests `tools/public_contract/capture.py` names, or it says it is not locked yet.
+  `tools/public_contract/mutations.py` proves the lock on the real code, by hand when its design changes.
 - **Detection baseline** (M0.2): `tests/fixtures/baseline-app` carries 35 planted problems, listed in
   `tests/fixtures/baseline-problems.json` with how far EAOS reaches each (card, finding, missed): eight from M0.2 (a
   command injection, a secret, a dead function, a dead module, duplication, a broken screen, a sign-in, a logic flaw)
