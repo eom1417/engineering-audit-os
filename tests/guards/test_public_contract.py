@@ -185,6 +185,21 @@ class EveryToolAccountedFor(unittest.TestCase):
         with self.assertRaises(contract.Refused):
             contract.record(new, Path(scratch.name))
 
+    def test_an_accepted_break_cannot_bring_in_a_tool_that_says_nothing(self):
+        scratch = tempfile.TemporaryDirectory()
+        self.addCleanup(scratch.cleanup)
+        lock = Path(scratch.name)
+        contract.write(self.lock, lock)
+        new = copy.deepcopy(self.lock)
+        new['mcp']['tools'].pop('fix_skip')
+        new['mcp']['tools']['brand_new'] = copy.deepcopy(new['mcp']['tools']['status'])
+        new['accounting']['brand_new'] = captured.UNACCOUNTED
+        with self.assertRaises(contract.Refused):
+            contract.accept_break(new, 'a reason', 'someone', lock)
+        self.assertIn('fix_skip', contract.load(lock)['mcp']['tools'])
+        self.assertNotIn('brand_new', contract.load(lock)['accounting'])
+        self.assertEqual(contract.accepted(lock), [])
+
     def test_a_test_named_for_a_writing_tool_exists_and_drives_it(self):
         for name, how in self.lock['accounting'].items():
             if not how.startswith('tests/'): continue

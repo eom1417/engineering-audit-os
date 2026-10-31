@@ -195,12 +195,16 @@ def accepted(lock=LOCK):
     return json.loads(path.read_text(encoding='utf-8')) if path.is_file() else []
 
 
+def _every_tool_accounted(new):
+    silent = [name for name, how in new['accounting'].items() if how.startswith('UNACCOUNTED')]
+    if silent: raise Refused(f'a tool says neither how it is held nor why not: {silent}')
+
+
 def record(new, lock=LOCK):
     """The lock made `new`, which may only add to it; a first lock has nothing to break."""
     breaks = compare(load(lock), new)[0] if (lock / 'cli.json').is_file() else []
     if breaks: raise Refused('breaks what callers rely on, so it is not recorded:\n  ' + '\n  '.join(breaks))
-    silent = [name for name, how in new['accounting'].items() if how.startswith('UNACCOUNTED')]
-    if silent: raise Refused(f'a tool says neither how it is held nor why not: {silent}')
+    _every_tool_accounted(new)
     write(new, lock)
 
 
@@ -209,6 +213,7 @@ def accept_break(new, why, approved_by, lock=LOCK):
     if not (why or '').strip() or not (approved_by or '').strip(): raise Refused('a break needs its reason and who approved it')
     breaks = compare(load(lock), new)[0]
     if not breaks: raise Refused('nothing breaks: use --record')
+    _every_tool_accounted(new)
     rows = [*accepted(lock), {'why': why.strip(), 'approved_by': approved_by.strip(), 'breaks': breaks}]
     write(new, lock)
     (lock / ACCEPTED).write_text(json.dumps(rows, ensure_ascii=False, indent=1) + '\n', encoding='utf-8')
