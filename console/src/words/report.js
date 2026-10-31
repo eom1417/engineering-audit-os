@@ -86,6 +86,7 @@ export default {
   'un.files.full.does': ['التقرير الكامل صفحة HTML للناس، تُفتح في تبويب جديد من متصفحك، هنا أو عن بُعد.', 'The full report is an HTML page for people, opened in a new tab of your browser, here or remotely.'],
   'un.files.open': ['افتحه في المتصفح', 'Open it in the browser'],
   'un.files.opened': ['فُتح التقرير الكامل في تبويب جديد.', 'The full report opened in a new tab.'],
+  'un.files.opened_older': ['فُتح التقرير كما هو الحين؛ عمل ثاني شغال، ويتحدّث التقرير بعد ما يخلص.', 'The report opened as it stands; other work is running, and it is rebuilt once that ends.'],
   'un.files.astext': ['يُعرض نصًا كما هو، ولا يُشغَّل.', 'Shown as text, as it is; nothing runs.'],
   'un.files.cut': ['الملف أكبر من 2 ميغابايت: تظهر بدايته فقط.', 'The file is larger than 2 MB: only its start is shown.'],
   'un.files.copypath': ['انسخ المسار', 'Copy the path'],

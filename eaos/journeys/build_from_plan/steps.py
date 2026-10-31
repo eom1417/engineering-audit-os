@@ -147,8 +147,8 @@ def _open(state):
 
 
 def build_read(path, project=None, start=1, end=None):
-    state = _state(project)
-    root = Path(_open(state)['root'])
+    """A file or folder of the open milestone's copy. It only reads: `_state` would make the project a build's, and its folder."""
+    root = Path(_open(project_state.load(Path(project or os.getcwd()).expanduser().resolve()) or {})['root'])
     file = agent_tools._inside(root, path or '.') if path not in ('', '.') else root
     if file.is_dir(): return _folder_listing(path, file)
     if not file.is_file(): raise ValueError(f'{path} does not exist in the copy yet')

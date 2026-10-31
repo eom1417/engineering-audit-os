@@ -667,6 +667,14 @@ class Direct(Base):
             return call
         return (lambda: {name: tool(name) for name in {a['id'] for a in actions.contract()['actions']}}), calls
 
+    def test_opening_the_report_is_work_it_waits_its_turn_and_stays_in_the_history_and_it_still_runs(self):
+        self.app.manager.tools, calls = self.fake_tools({'open_report': {'report_for_people': 'REPORT.html', 'opened_in_browser': False}})
+        created = self.post('/api/runs', {'action': 'open_report', 'inputs': {'show': False}})[1]['run']
+        self.assertNotIn('answer', created.get('result') or {}, 'not answered at once, as a reading action is')
+        self.assertEqual(self.app.wait(created['id'], ('done', 'failed'), 20)['state'], 'done')
+        self.assertEqual([name for name, _ in calls], ['open_report'])
+        self.assertIn(created['id'], [run['id'] for run in self.get('/api/runs')[1]['runs']])
+
     def test_a_reading_action_answers_at_once_and_a_job_is_followed_with_its_progress(self):
         from eaos.core.project import jobs
         self.app.manager.tools, calls = self.fake_tools({'status': {'next': 'audit'}, 'audit': {'job': 'audit-1', 'status': 'running'}})

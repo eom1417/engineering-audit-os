@@ -1,5 +1,13 @@
 # Changelog
 
+## Not yet versioned
+
+A tool MCP called read-only changed the project. Reading a file of a build turned a checked project into a build's, and made the
+folder and state of a project never started; an assistant told it only reads had no reason to be careful.
+
+- **`build_read` only reads:** no state, no folder, no `mode`; its answers are as they were.
+- **open_report rewrites the report and saves the state, so it is no longer declared read-only:** its `readOnlyHint` is now false and its `destructiveHint` false, the one break of the public contract here, agreed by the maintainers. Its name, arguments and answer stay. In the Studio it now waits its turn behind running work and stays in the history; the Studio's button waits up to half a minute for it, then opens the report as it stands and says so.
+
 ## 0.0.90 (2026-10-31)
 
 M18, the design library and the extension guide. A real project's look had grown by hand: its buttons drawn many ways, its colours a shade apart, and nothing a
