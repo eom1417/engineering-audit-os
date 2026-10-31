@@ -122,5 +122,48 @@ class OpeningTheReport(Home):
         self.assertNotIn('open_report', handover.READING)
 
 
+class AskingWhereTheProjectIs(Home):
+    """status is read-only once the project is settled; before that, its first call is what settles it."""
+
+    def checked(self):
+        with mock.patch.dict(by_rules.RUNNERS, engines=_no_engines, architecture=_no_engines), mock.patch.object(guided, 'tools_for_check', return_value={}):
+            agent_tools.state_of(str(self.project))
+            agent_tools.choose_branch('main', str(self.project), 'the work goes on here')
+            agent_tools._audit_job(str(self.project), {}, None)
+
+    def _everything_but_the_journal(self):
+        return {f'{root.name}/{name}': data for root in (self.project, self.home, self.root / 'out') for name, data in _files(root).items()
+                if not name.endswith('journal.jsonl')}
+
+    def test_on_a_settled_project_it_changes_no_state_no_project_file_and_no_report(self):
+        self.checked()
+        record = Path(project_state.load(self.project)['workspace']) / 'state.json'
+        record.write_text(json.dumps({**json.loads(record.read_text(encoding='utf-8')), 'updated': 'an older stamp'}), encoding='utf-8')   # a save would change it, even within one second
+        before = self._everything_but_the_journal()
+        for _ in range(2):
+            answer = _called(self.server, 'status', project=str(self.project))
+            self.assertEqual((answer['branch'], answer['checked']), ('main', True))
+            self.assertEqual(self._everything_but_the_journal(), before)
+
+    def test_its_first_call_settles_the_branch_so_a_later_switch_never_moves_the_work(self):
+        self.assertEqual(_called(self.server, 'status', project=str(self.project))['branch'], 'main')
+        self.assertEqual(project_state.load(self.project)['branch'], 'main')
+        subprocess.run(['git', '-C', str(self.project), 'checkout', '-qb', 'other'], check=True, capture_output=True)
+        self.assertEqual(_called(self.server, 'status', project=str(self.project))['branch'], 'main')
+
+    def test_the_person_can_answer_only_a_branch_question_it_recorded_having_asked(self):
+        for argv in (('checkout', '-qb', 'feature'), ('commit', '-q', '--allow-empty', '-m', 'more'), ('checkout', '-q', 'main')):
+            subprocess.run(['git', '-C', str(self.project), '-c', 'user.name=t', '-c', 'user.email=t@t', *argv], check=True, capture_output=True)
+        (self.project / 'more.py').write_text('x = 1\n', encoding='utf-8')
+        subprocess.run(['git', '-C', str(self.project), 'checkout', '-q', 'feature'], check=True, capture_output=True)
+        subprocess.run(['git', '-C', str(self.project), 'add', '-A'], check=True, capture_output=True)
+        subprocess.run(['git', '-C', str(self.project), '-c', 'user.name=t', '-c', 'user.email=t@t', 'commit', '-qm', 'more'], check=True, capture_output=True)
+        subprocess.run(['git', '-C', str(self.project), 'checkout', '-q', 'main'], check=True, capture_output=True)
+        with mock.patch('eaos.journeys.agent_tools.where.ANSWER_SECONDS', 0):
+            self.assertEqual(_called(self.server, 'choose_branch', branch='feature', person_said='feature', project=str(self.project))['status'], 'needs_the_person')
+            self.assertEqual(_called(self.server, 'status', project=str(self.project))['status'], 'needs_branch')
+            self.assertEqual(_called(self.server, 'choose_branch', branch='feature', person_said='feature', project=str(self.project))['status'], 'chosen')
+
+
 if __name__ == '__main__':
     unittest.main()
