@@ -132,7 +132,7 @@ def _not_now(state):
     if not guided.set_up(state, _head(state)): return {'status': 'not_set_up', 'what_now': 'Call run_setup first.'}, []
     if state.get('open_wave') or waiting_batch(state):
         return {'status': 'batch_waiting', 'what_now': 'A batch is open or waits for the person\'s decision: a batch of moves or of the '
-                                                       'context never mixes with another. Finish it, accept it or undo it first.'}, []
+                                                       'context never mixes with another. Finish it or close it with fix_abandon, accept it or undo it first.'}, []
     return None
 
 

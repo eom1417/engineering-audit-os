@@ -186,11 +186,11 @@ class Continuity(Base):
         self.assertEqual(agent_tools.status(str(self.project))['next']['tool'], 'run_setup',
                          'no new check is needed after EAOS merged its own fixes')
 
-    def test_a_merge_made_by_hand_is_recorded_its_branch_deleted_and_a_reverted_revert_is_done_again(self):
+    def test_a_merge_made_by_hand_is_recorded_its_branch_removed_by_what_writes_and_a_reverted_revert_is_done_again(self):
         self.batch(1, ['TASK-001', 'TASK-002'])
         git(self.project, 'merge', '-q', '--ff-only', 'eaos/wave-1')          # what the other assistant did
         status = agent_tools.status(str(self.project))
-        self.assertEqual(self.branches(), [])
+        self.assertEqual(self.branches(), ['eaos/wave-1'], 'reading where things stand removes nothing')
         self.assertEqual(project_state.load(self.project)['waves'][0]['status'], 'accepted')
         self.assertEqual((status['progress']['done'], status['progress']['total']), (2, 5))
         history = ledger.load(project_state.load(self.project))['history']
@@ -202,9 +202,32 @@ class Continuity(Base):
         state['waves'][-1]['status'] = 'accepted'
         guided.save(state)
         agent_tools.status(str(self.project))
+        self.assertEqual(self.branches(), ['eaos/wave-1', 'eaos/wave-2'])
+        agent_tools.accept(str(self.project))
         self.assertEqual(self.branches(), [])
         for _ in range(2): git(self.project, '-c', 'user.name=t', '-c', 'user.email=t@t', 'revert', '--no-edit', 'HEAD')
         self.assertEqual(ledger.sync(project_state.load(self.project))['totals']['done'], 3)
+
+    def test_a_stale_batch_read_keeps_its_cards_in_it_and_the_count_until_it_is_really_closed(self):
+        state = project_state.load(self.project)
+        copy = project_state.runtime_of(state) / 'candidates/WAVE-1'
+        subprocess.run(['git', 'clone', '-q', str(self.project), str(copy)], check=True)
+        base = git(copy, 'rev-parse', 'HEAD')
+        state['open_wave'] = {'number': 1, 'root': str(copy), 'base': base, 'cards': ['TASK-001'], 'kept': {}, 'failed': {}, 'tools': {}}
+        guided.publish(state)
+        guided.save(state)
+        before = ledger.load(state)['totals']
+        (self.project / 'src/e.js').write_text('export const e = 1;\n')
+        git(self.project, 'add', '-A')
+        git(self.project, '-c', 'user.name=a', '-c', 'user.email=a@b', 'commit', '-qm', 'the person works')
+        answer = agent_tools.status(str(self.project))
+        self.assertEqual((answer['progress'], answer['open_batch']['cards'], answer['retired_batch']), (before, ['TASK-001'], None))
+        state = project_state.load(self.project)
+        in_it = lambda s: {c['id'] for c in ledger.load(s)['cards'].values() if c['state'] == 'in_batch'}
+        self.assertEqual((in_it(state), copy.is_dir()), ({'TASK-001'}, True))
+        agent_tools.fix_start(str(self.project))
+        state = project_state.load(self.project)
+        self.assertEqual((state['waves'][-1]['status'], in_it(state), copy.exists()), ('superseded', set(), False))
 
     def test_a_new_check_after_the_merge_keeps_the_count_right(self):
         """The trial's numbers: 339 before, then '3 done, 339 left'. Here: 5 before; 2 merged; the new check finds 3 of
