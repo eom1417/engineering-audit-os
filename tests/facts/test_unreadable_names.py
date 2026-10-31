@@ -1,5 +1,7 @@
 """A file whose name is not valid UTF-8 never stops a check: everything else is read, the file is named as not read, the check
 says PARTIAL, and the project is left byte for byte as it was."""
+import contextlib
+import io
 import json
 import os
 import subprocess
@@ -108,6 +110,54 @@ class TheCheck(unittest.TestCase):
                 self.assertTrue(next(row for row in manifest['coverage'] if row['loop'] == 'understand')['big'])
                 for page in ('RUN.md', 'START-HERE.md'):
                     self.assertIn(SHOWN, (root / 'out' / page).read_text(encoding='utf-8'), page)
+
+
+class NothingElseToRead(unittest.TestCase):
+    """Every source file is unread: nothing was analysed, so the check is never COMPLETE, and it says which."""
+
+    def _audited(self, project):
+        out = project.parent / 'out'
+        with contextlib.redirect_stdout(io.StringIO()), contextlib.redirect_stderr(io.StringIO()):
+            code = cli.main(['audit', str(project), '--out', str(out), '--skip', 'engines', '--lang', 'en'])
+        return code, json.loads((out / 'run-manifest.json').read_text(encoding='utf-8')), out
+
+    def _says_it_all(self, project, shown):
+        code, manifest, out = self._audited(project)
+        self.assertNotEqual(code, 0)
+        self.assertEqual(manifest['status'], 'INCOMPLETE')
+        self.assertIn(shown, manifest['stages']['facts']['reason'])
+        self.assertTrue(next(row for row in manifest['coverage'] if row['loop'] == 'understand')['big'])
+        self.assertIn(shown, (out / 'RUN.md').read_text(encoding='utf-8'))
+
+    def test_every_source_file_badly_named(self):
+        with tempfile.TemporaryDirectory() as scratch:
+            project = Path(scratch) / 'app'
+            project.mkdir()
+            try: (project / BAD).write_bytes(b'def bad():\n    return 1\n')
+            except OSError as refused: self.skipTest(f'this file system refuses such a name: {refused}')
+            self._says_it_all(project, SHOWN)
+
+
+    def test_every_source_file_inside_a_badly_named_folder(self):
+        with tempfile.TemporaryDirectory() as scratch:
+            project = Path(scratch) / 'app'
+            folder = project / os.fsdecode(b'old\xff')
+            try: folder.mkdir(parents=True)
+            except OSError as refused: self.skipTest(f'this file system refuses such a name: {refused}')
+            (folder / 'inner.py').write_text('x = 1\n', encoding='utf-8')
+            self._says_it_all(project, 'old\\xff')
+
+    def test_a_project_with_nothing_to_read_stays_as_it_was(self):
+        with tempfile.TemporaryDirectory() as scratch:
+            project = Path(scratch) / 'app'
+            project.mkdir()
+            (project / 'notes.txt').write_text('notes\n', encoding='utf-8')
+            code, manifest, out = self._audited(project)
+            facts = manifest['stages']['facts']
+            self.assertNotEqual(code, 0)
+            self.assertEqual((manifest['status'], facts['reason_code']), ('INCOMPLETE', 'no_source_files'))
+            self.assertIn('holds no source file', facts['reason'])
+            self.assertIn('The folder holds no source file I can read', (out / 'RUN.md').read_text(encoding='utf-8'))
 
 
 if __name__ == '__main__':

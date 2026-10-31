@@ -73,7 +73,7 @@ def _reason(row):
     """{ar, en} of why a stage did not end ok: the catalog's words for its reason_code, else EAOS's own sentence."""
     from ...core.progress.reasons import reasons
     said = reasons().get(str(row.get('reason_code') or '')) or {}
-    named = f" {row['reason']}" if row.get('reason_code') == 'unread_names' else ''    # the words say what; these say which
+    named = f" {row['reason']}" if row.get('reason_code') in ('unread_names', 'no_source_unread') else ''    # the words say what; these say which
     return {lang: (said.get(lang) or row.get('reason') or '') + named for lang in ('ar', 'en')}
 
 

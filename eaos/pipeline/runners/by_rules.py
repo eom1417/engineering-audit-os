@@ -42,9 +42,10 @@ def facts(context):
     # an empty checkout used to be reported COMPLETE, with claims drawn from git history alone.
     # A site of pages alone (its script inside its .html) is a project too: it was refused, its app never run.
     from ...core.contracts.vocabulary import classify
-    if not any(classify(item['path']) == 'source' or item['path'].endswith(('.html', '.htm')) for item in context['source'].readable()):
-        raise SkipStage('the target holds no source file this tool reads, so no project was audited', code='no_source_files')
     unread = [row['path'] for row in context['collected']['unread_names']]
+    if not any(classify(item['path']) == 'source' or item['path'].endswith(('.html', '.htm')) for item in context['source'].readable()):
+        if unread: raise SkipStage(', '.join(_unread_said(unread)), code='no_source_unread')
+        raise SkipStage('the target holds no source file this tool reads, so no project was audited', code='no_source_files')
     return {'facts': context['collected']['facts'], 'sets': len(context['collected']['sets']), 'exclude': context['exclude'],
             **({'unread_names': _unread_said(unread)} if unread else {})}
 
