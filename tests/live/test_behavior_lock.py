@@ -245,7 +245,7 @@ class KindTests(Workspace):
         with mock.patch.object(behavior_lock, '_pass', side_effect=one_pass):
             recorded = behavior_lock._results(report, behavior_lock._run_specs(None, lock, None, Path(self.tmp), behavior_lock.LockPass('record', True)))
             after = behavior_lock._results(report, behavior_lock._run_specs(None, lock, None, Path(self.tmp), behavior_lock.LockPass('verify')))
-        self.assertEqual(ran[:2], [('playwright-record.json', (True, None, [], None, True)),
+        self.assertEqual([(name, how[:5]) for name, how in ran[:2]], [('playwright-record.json', (True, None, [], None, True)),
                                    ('playwright-record@admin.json', (True, 'admin', ['playwright/admin.spec.ts'], None, True))])
         with mock.patch.object(behavior_lock, '_pass', side_effect=one_pass):
             behavior_lock._run_specs(None, lock, None, Path(self.tmp), behavior_lock.LockPass('intended', True))
