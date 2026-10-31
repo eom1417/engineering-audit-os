@@ -1,6 +1,10 @@
 """What the first page says of a check is what is so (EAOS on itself, 2026-10-30): "78 problems, all fixed automatically"
 held 30 screen notes a person must look at, a red gap for a database the project does not have, a secret in a test's sample."""
+import json
+import tempfile
 import unittest
+from pathlib import Path
+from unittest import mock
 
 from eaos.analysis.assessments.data_keeping import unmeasured
 from eaos.analysis.target_state.projection import _secrets_item
@@ -21,6 +25,20 @@ class HonestSummary(unittest.TestCase):
         pages = {'writes_before': {'pages': 5}}
         self.assertEqual(unmeasured({**pages, 'database': {'why': 'none', 'none_declared': True}}), [])
         self.assertEqual(unmeasured({**pages, 'database': {'why': 'none'}}), ['none'])
+
+    def test_a_css_shadow_becomes_the_w3c_composite(self):
+        from eaos.analysis.assessments.one_source_look import _shadow
+        shadow = _shadow('rgba(0, 0, 0, 0.2) 0px 1px 3px 0px')
+        self.assertEqual((shadow['offsetY']['value'], shadow['blur']['value'], shadow['spread']['value'], shadow['inset']), (1, 3, 0, False))
+        self.assertEqual(len(shadow['color']['components']), 3)
+        self.assertEqual(len(_shadow('0 1px 2px rgba(0,0,0,.1), inset 0 0 1px #000')), 2)
+
+    def test_a_card_from_a_detector_not_measured_is_said_as_such(self):
+        from eaos.report.documents import start_here
+        with tempfile.TemporaryDirectory() as folder:
+            (Path(folder) / 'dossier.json').write_text(json.dumps({'claims': [{'id': 'C1', 'render': {'key': 'hotspot'}}, {'id': 'C2', 'render': {'key': 'never_judged'}}]}))
+            with mock.patch.object(start_here, 'measured_detectors', return_value={'hotspot'}):
+                self.assertEqual(start_here._unmeasured(folder, [{'claim_id': 'C1'}, {'claim_id': 'C2'}]), 1)
 
     def test_a_sample_in_a_tests_data_is_no_credential_of_the_project(self):
         fact = lambda path: {'location': {'path': path}, 'value': {'severity': 'high'}}

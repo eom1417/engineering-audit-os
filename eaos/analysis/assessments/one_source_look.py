@@ -121,7 +121,37 @@ def _dtcg_value(kind, value):
     if kind in ('font_size', 'spacing', 'radius'):
         px = _px(value)
         return None if px is None else ('dimension', {'value': px, 'unit': 'px'})
-    return ('number' if kind == 'z_index' else 'shadow'), value
+    if kind == 'shadow': return 'shadow', _shadow(value)
+    return 'number', value
+
+
+SHADOW = re.compile(r'(?P<color>rgba?\([^)]*\)|#[0-9a-fA-F]{3,8})|(?P<length>-?[\d.]+(?:px)?)|(?P<inset>inset)')
+
+
+def _dtcg_dimension(text):
+    return {'value': float(text.replace('px', '')), 'unit': 'px'}
+
+
+def _one_shadow(text):
+    """One shadow as the W3C composite, in whichever order the browser or the source wrote it."""
+    found = list(SHADOW.finditer(text))
+    lengths = [m['length'] for m in found if m['length']] + ['0', '0']
+    colour = next((m['color'] for m in found if m['color']), None)
+    return {'color': (_dtcg_value('color', colour) or (None, None))[1] if colour else None, 'offsetX': _dtcg_dimension(lengths[0]), 'offsetY': _dtcg_dimension(lengths[1]),
+            'blur': _dtcg_dimension(lengths[2]), 'spread': _dtcg_dimension(lengths[3]), 'inset': any(m['inset'] for m in found)}
+
+
+def _shadow(value):
+    """The W3C composite of a CSS shadow, an array when it has several; commas inside a colour do not part them."""
+    parts = [_one_shadow(part) for part in re.split(r',(?![^(]*\))', str(value))]
+    return parts[0] if len(parts) == 1 else parts
+
+
+def proposed(out):
+    """The tokens the look calls for, by kind, or {}: what design/tokens.proposed.json holds."""
+    from ...facts.store import facts
+    found = finding(facts(out, 'look_value', 'look_home'), out)
+    return found['evidence']['tokens'] if found else {}
 
 
 def _dtcg(kind, values):
