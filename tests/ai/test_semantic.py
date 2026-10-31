@@ -2,6 +2,7 @@
 import ast
 import json
 from pathlib import Path
+import shutil
 import tempfile
 import unittest
 from eaos.analysis.understanding.dossier import assemble
@@ -91,6 +92,18 @@ class SemanticTests(unittest.TestCase):
 SEMANTIC_FIXTURES = Path(__file__).resolve().parents[1] / 'fixtures/semantic'
 
 
+def deep_evidence(root):
+    """A project whose rule, in settlement.py, lies past the summary: eighty modules in one ring of imports around it."""
+    project = Path(root) / 'deep-evidence'
+    shutil.copytree(SEMANTIC_FIXTURES / 'deep-evidence', project)
+    for index in range(80):
+        after = (index + 1) % 80
+        (project / f'module_{index:02d}.py').write_text(f'from module_{after:02d} import helper_{after:02d}\n\n\n'
+                                                        f'def helper_{index:02d}(value):\n'
+                                                        f'    return helper_{after:02d}(value) if value else {index}\n', encoding='utf-8')
+    return project
+
+
 def collected(fixture, out):
     collect(fixture, out)
     return {name: json.loads(Path(out, 'facts', f'{name}.json').read_text(encoding='utf-8'))
@@ -145,14 +158,15 @@ class RetrievalTests(unittest.TestCase):
     has a reason."""
 
     def test_evidence_past_the_summary_is_retrievable_within_budget(self):
-        fixture = SEMANTIC_FIXTURES / 'deep-evidence'
         wanted = [{'path': 'settlement.py', 'start_line': 1, 'end_line': 8}]
-        with tempfile.TemporaryDirectory() as out:
+        with tempfile.TemporaryDirectory() as made, tempfile.TemporaryDirectory() as out:
+            fixture = deep_evidence(made)
             sets = collected(fixture, out)
             assemble(fixture, out, language='en')
             digest = semantic.digest_of(sets, json.loads(Path(out, 'dossier.json').read_text(encoding='utf-8')))
             self.assertNotIn('settlement.py', {c['path'] for c in digest['components']},
                              'the fixture no longer hides its evidence past the summary limit')
+            self.assertEqual(len(digest['components']), 60, 'the summary is full: what it leaves out is left out for its limit')
             session = SourceSession(fixture, out, sets)
             self.assertIn('settlement.py', session.allowed)
             self.assertIn('DISCOUNT_CEILING', json.dumps(session.retrieve(wanted), ensure_ascii=False))
