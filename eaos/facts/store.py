@@ -105,9 +105,11 @@ def by_id(out, ids):
     return found
 
 
-def write_index(out, target, entries):
-    """index.json is content-addressed; run.json carries the non-deterministic provenance."""
+def write_index(out, target, entries, unread_names=()):
+    """index.json is content-addressed; run.json carries the non-deterministic provenance. `unread_names`: the files and
+    folders no fact speaks of because their names are not valid UTF-8."""
     index = {'schema_version': SCHEMA_VERSION, 'sets': sorted(entries, key=lambda e: e['set'])}
+    if unread_names: index['unread_names'] = list(unread_names)
     (facts_dir(out) / 'index.json').write_text(serialise(index), encoding='utf-8')
     (facts_dir(out) / 'run.json').write_text(serialise(
         {'target': str(target), 'produced_at': now('auto'),

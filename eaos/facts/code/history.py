@@ -32,7 +32,7 @@ def git(target, args, timeout=120):
     env = {k: v for k, v in os.environ.items() if k in {'PATH', 'HOME', 'LANG', 'SystemRoot', 'WINDIR'}}
     env['GIT_OPTIONAL_LOCKS'] = '0'
     return subprocess.run(['git', '-C', str(target), '--no-pager', '-c', 'core.quotepath=false', '-c', 'gc.auto=0', *args],
-                          capture_output=True, text=True, env=env, timeout=timeout, check=False)
+                          capture_output=True, text=True, errors='backslashreplace', env=env, timeout=timeout, check=False)
 
 
 def available(target):

@@ -51,5 +51,5 @@ def state_digest(target):
                 stat = path.stat()
             except OSError:
                 continue
-            digest.update(f'{path.relative_to(target)}|{stat.st_size}|{stat.st_mtime_ns}\n'.encode('utf-8'))
+            digest.update(f'{path.relative_to(target)}|{stat.st_size}|{stat.st_mtime_ns}\n'.encode('utf-8', 'surrogateescape'))
     return digest.hexdigest()

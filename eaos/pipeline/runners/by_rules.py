@@ -18,6 +18,14 @@ from ..stages import SkipStage
 POLICY_FILE = 'eaos.policy.json'
 
 
+UNREAD_SHOWN = 10
+
+
+def _unread_said(paths):
+    """The names a person sees in red; all of them are in facts/index.json."""
+    return paths[:UNREAD_SHOWN] + ([f'+{len(paths) - UNREAD_SHOWN}'] if len(paths) > UNREAD_SHOWN else [])
+
+
 def facts(context):
     from ...facts.run import collect
     from ...facts.scope import declared_exclusions
@@ -34,10 +42,12 @@ def facts(context):
     # an empty checkout used to be reported COMPLETE, with claims drawn from git history alone.
     # A site of pages alone (its script inside its .html) is a project too: it was refused, its app never run.
     from ...core.contracts.vocabulary import classify
+    unread = [row['path'] for row in context['collected']['unread_names']]
     if not any(classify(item['path']) == 'source' or item['path'].endswith(('.html', '.htm')) for item in context['source'].readable()):
+        if unread: raise SkipStage(', '.join(_unread_said(unread)), code='no_source_unread')
         raise SkipStage('the target holds no source file this tool reads, so no project was audited', code='no_source_files')
-    return {'facts': context['collected']['facts'], 'sets': len(context['collected']['sets']),
-            'exclude': context['exclude']}
+    return {'facts': context['collected']['facts'], 'sets': len(context['collected']['sets']), 'exclude': context['exclude'],
+            **({'unread_names': _unread_said(unread)} if unread else {})}
 
 
 def engines(context):

@@ -1,6 +1,7 @@
 """Local, read-only target discovery and evidence orchestration. No LLM/network."""
 from __future__ import annotations
 import argparse
+import base64
 from contextlib import contextmanager
 import hashlib
 import json
@@ -61,20 +62,31 @@ def _scan_names(root, base, names, limits, found):
         _scan_file(root,base,name,limits['max_bytes'],found)
     return True
 
+def _set_aside_unread_names(root, base, names, found):
+    """A file or folder whose name is not valid UTF-8 cannot be said in a record, so it is not read; it is named instead,
+    with \\xNN for its bad bytes (as git's log reads, eaos/facts/code/history.py), and its bytes kept."""
+    for name in list(names):
+        try: name.encode('utf-8')
+        except UnicodeEncodeError:
+            names.remove(name)
+            raw = os.fsencode(os.path.relpath(os.path.join(base, name), root))
+            found['unread_names'].append({'path': raw.decode('utf-8', 'backslashreplace'), 'raw_base64': base64.b64encode(raw).decode()})
+
 def inventory(root, max_files=100000, max_bytes=2_000_000):
     root=Path(root).resolve()
     if not root.is_dir(): raise ValueError('Target must be a directory')
-    found={'files':[],'exclusions':[],'errors':[]}; limited=False
+    found={'files':[],'exclusions':[],'errors':[],'unread_names':[]}; limited=False
     limits={'max_files':max_files,'max_bytes':max_bytes}
     for base,dirs,names in os.walk(root,followlinks=False,onerror=lambda e:found['errors'].append(str(e))):
         dirs.sort();names.sort()
+        _set_aside_unread_names(root,base,dirs,found);_set_aside_unread_names(root,base,names,found)
         _prune_dirs(root,base,dirs,found['exclusions'])
         if not _scan_names(root,base,names,limits,found): limited=True;break
     files,exclusions,errors=found['files'],found['exclusions'],found['errors']
     manifest_names=sorted({f['path'] for f in files if Path(f['path']).name in STACKS or f['path'].endswith(('.csproj','.fsproj','.sln'))})
     stack_hints=sorted({STACKS.get(Path(p).name,'.NET') for p in manifest_names})
-    fingerprint=digest(json.dumps(files,sort_keys=True).encode())
-    return {'root':str(root),'created_at':now('auto'),'fingerprint':fingerprint,'limits':{'max_files':max_files,'max_bytes':max_bytes},'truncated':limited,'errors':errors,'exclusions':exclusions,'files':files,'manifest_candidates':manifest_names,'stack_hints':stack_hints,'infrastructure_candidates':[f['path'] for f in files if INFRA.search(f['path'])],'interpretation':'Filename hints only; confirm actual architecture, versions and deployed infrastructure with evidence.'}
+    fingerprint=digest(json.dumps(files+found['unread_names'],sort_keys=True).encode())
+    return {'root':str(root),'unread_names':found['unread_names'],'created_at':now('auto'),'fingerprint':fingerprint,'limits':{'max_files':max_files,'max_bytes':max_bytes},'truncated':limited,'errors':errors,'exclusions':exclusions,'files':files,'manifest_candidates':manifest_names,'stack_hints':stack_hints,'infrastructure_candidates':[f['path'] for f in files if INFRA.search(f['path'])],'interpretation':'Filename hints only; confirm actual architecture, versions and deployed infrastructure with evidence.'}
 
 def load_run(path):
     run=Path(path).resolve(); state=read(run/'run.json')

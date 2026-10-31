@@ -28,7 +28,7 @@ def communicate(process, timeout):
 def run_command(argv, timeout, **options):
     """Capture a command in its own process group; interruption or timeout kills its children too."""
     check_cancelled()
-    with subprocess.Popen(argv, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, start_new_session=True, **options) as child:  # nosemgrep: python.lang.security.audit.dangerous-subprocess-use-audit -- the one runner of list argvs its callers build, never a shell
+    with subprocess.Popen(argv, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, errors='backslashreplace', start_new_session=True, **options) as child:  # nosemgrep: python.lang.security.audit.dangerous-subprocess-use-audit -- the one runner of list argvs its callers build, never a shell
         try:
             out, err = communicate(child, timeout)
             return subprocess.CompletedProcess(argv, child.returncode, out, err)  # nosemgrep: python.lang.security.audit.dangerous-subprocess-use-audit -- only the record of the run above, nothing is started here

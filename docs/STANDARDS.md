@@ -53,6 +53,7 @@ for undefined names and unused imports (`console/eslint.config.js`).
 | A project's app runs only in its isolated copy (`eaos/live/isolation/sandbox.py`, `eaos/live/app/run.py`): its own database, port and scratch home; never the owner's real data | `test_sandbox` |
 | A project's state is read and written only through `core/project/state.py` | `test_consistency` |
 | Never one machine's path in code | `test_platforms` |
+| A file or folder whose name is not valid UTF-8 is never read, renamed or changed, and never stops a check: everything else is read, it is named in red and in `facts/index.json` (`unread_names`), and the check is PARTIAL, never COMPLETE | `tests/facts/test_unreadable_names.py` |
 | A simulated user acts only in the isolated copy: external services stubbed, dummy data only, within step, time and cost budgets; what needs a real service is reported as not covered | `test_experience_data` (services stubbed or not covered), `test_experience_seed` (data only in the run's own database), `test_experience_actor` (budgets; the app's text kept as data) |
 | Fixes of EAOS are proved on trial apps and on the compatibility corpus, never on a person's real project | review |
 | Nothing destructive or outward-facing (push to `main`, delete a remote branch, publish) without the maintainers | `main`'s protection; review for the rest |
