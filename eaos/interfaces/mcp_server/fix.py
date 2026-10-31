@@ -37,6 +37,12 @@ def _finding_tools(server, reading, working, _answer):
     def structure(project: str | None = None) -> str:
         return tools.structure(project)
 
+    @server.tool(annotations=reading, description="What the project's screens are really made of: how many looks each part has (buttons, inputs, "
+                 "cards...), how many values each kind has (colours, sizes...), near colours, how dates and numbers show, two libraries for one job.")
+    @_answer
+    def design(project: str | None = None) -> str:
+        return tools.design(project)
+
     @server.tool(annotations=reading, description='The plan of fixes: milestones in order and their cards (which EAOS can fix, which '
                  'were tried). Pass a milestone id for all of its cards.')
     @_answer

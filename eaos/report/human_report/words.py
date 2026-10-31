@@ -1,13 +1,13 @@
 """The fixed words of REPORT.html, Arabic and English: the page's sections, areas, severities, grades, relations, states."""
 
 
-SECTIONS = ('summary', 'gaps', 'layers', 'structure', 'system', 'target', 'plan')
+SECTIONS = ('summary', 'gaps', 'layers', 'design', 'structure', 'system', 'target', 'plan')
 HUNDRED = '<span data-meaning="the full score, and the file count a density is measured against">100</span>'
 
 W = {  # every fixed word of the page: (Arabic, English)
     'title': ('تقرير المشروع', 'Project report'),
     'summary': ('ملخص المشروع', 'Project summary'), 'gaps': ('الفجوات والمخاطر', 'Gaps and risks'), 'layers': ('النظام طبقات', 'The system in layers'),
-    'structure': ('خريطة البنية', 'Structure map'), 'system': ('خريطة النظام', 'System map'), 'target': ('البنية المستهدفة', 'Target'), 'plan': ('الخطة والتقدم', 'Plan and progress'),
+    'design': ('مكتبة التصميم حقتك', 'Your design library'), 'structure': ('خريطة البنية', 'Structure map'), 'system': ('خريطة النظام', 'System map'), 'target': ('البنية المستهدفة', 'Target'), 'plan': ('الخطة والتقدم', 'Plan and progress'),
     'security': ('الأمان', 'Security'), 'quality': ('جودة الكود', 'Code quality'),
     'performance': ('الأداء تحت الضغط', 'Performance under load'), 'ux': ('شكل الشاشات', 'How the screens look'),
     'maintainability': ('سهولة التطوير والاختبار', 'Ease of change and testing'),

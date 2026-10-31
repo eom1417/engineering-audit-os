@@ -230,7 +230,7 @@ def _page_test(route, target, name, guard):
             f"    if (process.env.EAOS_LOCK_UPDATE || fs.existsSync(test.info().snapshotPath('{name}.text.txt')))",
             f"      expect(words).toMatchSnapshot('{name}.text.txt');",
             # What it looks like, element by element (look_oracle.py), last: it stops the page's transitions.
-            f"    if (process.env.EAOS_LOCK_LOOK) {{ fs.mkdirSync(process.env.EAOS_LOCK_LOOK, {{ recursive: true }}); fs.writeFileSync(path.join(process.env.EAOS_LOCK_LOOK, `${{process.env.EAOS_LOCK_KIND || 'all'}}-{name}.json`), JSON.stringify(await snapshot(page))); }}",
+            f"    if (process.env.EAOS_LOCK_LOOK) {{ fs.mkdirSync(process.env.EAOS_LOCK_LOOK, {{ recursive: true }}); fs.writeFileSync(path.join(process.env.EAOS_LOCK_LOOK, `${{process.env.EAOS_LOCK_KIND || 'all'}}-{name}.json`), JSON.stringify(await snapshot(page, process.env.EAOS_LOCK_UPDATE ? {{ crops: path.join(process.env.EAOS_LOCK_LOOK, 'crops'), name: `${{process.env.EAOS_LOCK_KIND || 'all'}}-{name}` }} : {{}}))); }}",
             '  });']
 
 

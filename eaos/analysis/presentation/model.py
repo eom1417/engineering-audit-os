@@ -53,10 +53,10 @@ from pathlib import Path
 from ...core.contracts.decisions import unattended, waiting
 from ...core.language.plain import kind as plain_kind
 from ...core.language.words import unchecked
-from .counts import (all_card_count, architecture_counts, collection_count, density_counts, history_scale,  # noqa: F401  (the views read them here)
+from .counts import (drill_counts, system_details, all_card_count, architecture_counts, collection_count, density_counts, history_scale,  # noqa: F401  (the views read them here)
                      history_ticks, layer_counts, pipeline_counts, problems_left, remaining, structure_counts,
                      system_counts, unparsed_count)
-from .counts import drill_counts, system_details
+from ..design.inventory import with_pictures
 from ..planning.ranking import CONFIDENCE_WEIGHT
 from ...core.system.files import read_json
 
@@ -245,7 +245,7 @@ def records(report, progress=None):
     return {'rows': rows, 'statuses': statuses, 'coverage': coverage,
             'score': score(rows + accepted_risks(report), coverage.get('source_files'), statuses, known), 'plan': plan, 'target': target,
             'gap_matrix': {'rows': target.get('gap_matrix') or []}, 'manifest': read_json(report / 'run-manifest.json', {}) or {},
-            'dossier': dossier, 'progress': progress or {}, 'layers': read_json(report / 'layers.json')}
+            'dossier': dossier, 'progress': progress or {}, 'layers': read_json(report / 'layers.json'), 'design': with_pictures(report)}
 
 
 # ---------------------------------------------------------------- progress: the ledger and every task card

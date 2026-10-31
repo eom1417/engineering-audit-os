@@ -253,6 +253,20 @@ def _codes(codes, lang):
 # ---------------------------------------------------------------- what the check found, and the verbs
 
 @command
+def design(args, lang):
+    from ...analysis.design.inventory import CATALOG
+    from ...journeys.agent_tools import design as inventory
+    drawn = inventory(args.project)
+    if drawn.get('status') == 'not_read': return guided.box(lang, words('design_none', lang), commands=['eaos check --run-app'])
+    pick = 0 if lang == 'ar' else 1
+    for role, part in sorted(drawn['components'].items(), key=lambda item: -item[1]['looks']):
+        say(f"   {CATALOG['components'][role][pick]}: {words('design_looks', lang, looks=part['looks'], count=part['count'])}")
+    for kind, count in drawn['values'].items(): say(f"   {CATALOG['values'][kind]['words'][pick]}: {count}")
+    for job, names in drawn['libraries'].items(): say(f"   {job}: {', '.join(names)}")
+    return guided.box(lang, words('design_read', lang, pages=drawn['pages']), commands=['eaos problems'])
+
+
+@command
 def problems(args, lang):
     from ...journeys.agent_tools import findings
     found = findings(args.project, args.kind, args.where, args.text, args.fixable, args.limit, args.offset, args.area, args.severity)

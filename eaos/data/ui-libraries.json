@@ -1,0 +1,16 @@
+{
+ "schema_version": 1,
+ "about": "Which job each package of a project's manifests does (M18.11): two for one job is a finding, no likeness judged.",
+ "jobs": {
+  "ui_kit": {"words": ["مكتبات الواجهة", "UI kits"], "packages": ["@mui/material", "antd", "@chakra-ui/react", "@mantine/core", "react-bootstrap", "bootstrap", "@headlessui/react", "@radix-ui/themes", "semantic-ui-react", "vuetify", "element-plus"]},
+  "dates": {"words": ["مكتبات التواريخ", "Date libraries"], "packages": ["moment", "dayjs", "date-fns", "luxon"]},
+  "date_picker": {"words": ["منتقي التاريخ", "Date pickers"], "packages": ["react-datepicker", "react-day-picker", "flatpickr", "@mui/x-date-pickers"]},
+  "markdown": {"words": ["عرض Markdown", "Markdown renderers"], "packages": ["react-markdown", "marked", "markdown-it", "remark", "showdown"]},
+  "drag_drop": {"words": ["السحب والإفلات", "Drag and drop"], "packages": ["react-dnd", "@dnd-kit/core", "react-beautiful-dnd", "@hello-pangea/dnd", "sortablejs"]},
+  "charts": {"words": ["الرسوم البيانية", "Charts"], "packages": ["recharts", "chart.js", "echarts", "d3", "apexcharts", "victory", "nivo", "@nivo/core"]},
+  "icons": {"words": ["الأيقونات", "Icons"], "packages": ["lucide-react", "react-icons", "@heroicons/react", "@fortawesome/fontawesome-svg-core", "@mui/icons-material", "@tabler/icons-react", "feather-icons"]},
+  "toasts": {"words": ["التنبيهات المنبثقة", "Toasts"], "packages": ["react-hot-toast", "react-toastify", "sonner", "notistack"]},
+  "forms": {"words": ["النماذج", "Forms"], "packages": ["react-hook-form", "formik", "final-form", "react-final-form"]},
+  "css_in_js": {"words": ["CSS داخل الكود", "CSS in JS"], "packages": ["styled-components", "@emotion/react", "@emotion/styled", "@stitches/react", "jss"]}
+ }
+}

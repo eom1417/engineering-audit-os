@@ -3,7 +3,7 @@ GROUPS = (
     ('start', 'ابدأ من هنا: أوامر موجِّهة بكلام بسيط', 'Start here: guided commands in plain words',
      ('start', 'next', 'status', 'show', 'do', 'accept', 'undo', 'doctor', 'clean', 'assistant', 'handover', 'mcp', 'studio')),
     ('govern', 'الحوكمة كاملة من الطرفية، بدون الاستوديو', 'Full governance from a terminal, without the Studio',
-     ('check', 'watch', 'runs', 'stop', 'pause', 'resume', 'retry', 'waiting', 'answer', 'sign-in', 'problems', 'problem', 'fix', 'verify',
+     ('check', 'watch', 'runs', 'stop', 'pause', 'resume', 'retry', 'waiting', 'answer', 'sign-in', 'problems', 'problem', 'design', 'fix', 'verify',
       'explain', 'plan', 'branch', 'branches', 'projects', 'history', 'compare', 'usage', 'rules', 'govern')),
     ('run', 'الفحص والأدوات', 'The check and its tools', ('audit', 'tools', 'logic-flaws', 'experience')),
     ('cards', 'ما تشغّله بطاقات الإصلاح للتحقق', 'What a task card runs to check itself', ('facts', 'policy', 'decided', 'recheck')),

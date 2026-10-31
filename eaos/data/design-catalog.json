@@ -1,0 +1,36 @@
+{
+ "schema_version": 1,
+ "about": "What a design library holds (M18.9), the one source the inventory, its report and its words read. `properties`: the computed properties a value kind reads, or that make a component's look.",
+ "values": {
+  "color": {"words": ["الألوان", "Colours"], "properties": ["color", "background-color", "border-top-color", "outline-color", "fill", "stroke"]},
+  "font_family": {"words": ["الخطوط", "Font families"], "properties": ["font-family"]},
+  "font_size": {"words": ["أحجام الخط", "Font sizes"], "properties": ["font-size"]},
+  "font_weight": {"words": ["سماكة الخط", "Font weights"], "properties": ["font-weight"]},
+  "line_height": {"words": ["ارتفاع السطر", "Line heights"], "properties": ["line-height"]},
+  "letter_spacing": {"words": ["تباعد الحروف", "Letter spacing"], "properties": ["letter-spacing"]},
+  "spacing": {"words": ["المسافات", "Spacing"], "properties": ["padding-top", "padding-right", "padding-bottom", "padding-left", "margin-top", "margin-right", "margin-bottom", "margin-left", "row-gap", "column-gap"]},
+  "radius": {"words": ["الزوايا", "Corners"], "properties": ["border-top-left-radius"]},
+  "border_width": {"words": ["سماكة الحدود", "Border widths"], "properties": ["border-top-width"]},
+  "shadow": {"words": ["الظلال", "Shadows"], "properties": ["box-shadow"]},
+  "opacity": {"words": ["الشفافية", "Opacity"], "properties": ["opacity"]},
+  "z_index": {"words": ["الطبقات فوق بعض", "Stacking"], "properties": ["z-index"]},
+  "cursor": {"words": ["شكل المؤشر", "Mouse cursors"], "properties": ["cursor"]}
+ },
+ "ignored_values": ["normal", "none", "auto", "0px", "rgba(0, 0, 0, 0)", "1", "0", "default"],
+ "component_look": ["color", "background-color", "border-top-color", "border-top-width", "border-top-left-radius", "box-shadow", "font-size", "font-weight", "padding-top", "padding-left"],
+ "components": {
+  "button": ["الأزرار", "Buttons"], "link": ["الروابط", "Links"], "input": ["حقول الإدخال", "Inputs"], "checkbox": ["مربعات الاختيار", "Checkboxes"],
+  "radio": ["خيارات الراديو", "Radio buttons"], "switch": ["المفاتيح", "Switches"], "select": ["القوائم المنسدلة", "Selects"], "tab": ["التبويبات", "Tabs"],
+  "menuitem": ["عناصر القوائم", "Menu items"], "dialog": ["النوافذ المنبثقة", "Dialogs"], "table": ["الجداول", "Tables"], "card": ["البطاقات", "Cards"],
+  "heading": ["العناوين", "Headings"], "badge": ["الشارات", "Badges"], "tooltip": ["التلميحات", "Tooltips"], "alert": ["التنبيهات", "Alerts"]
+ },
+ "formats": {
+  "date": {"words": ["التواريخ", "Dates"], "forms": {"2026-01-31": "\\b\\d{4}-\\d{2}-\\d{2}\\b", "31/01/2026": "\\b\\d{1,2}/\\d{1,2}/\\d{2,4}\\b", "Jan 31, 2026": "\\b(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]* \\d{1,2}, \\d{4}\\b", "31 Jan 2026": "\\b\\d{1,2} (?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]* \\d{4}\\b", "٣١ يناير": "[\\d٠-٩]{1,2} (?:يناير|فبراير|مارس|أبريل|مايو|يونيو|يوليو|أغسطس|سبتمبر|أكتوبر|نوفمبر|ديسمبر)"}},
+  "time": {"words": ["الأوقات", "Times"], "forms": {"3:05 PM": "\\b\\d{1,2}:\\d{2}(?::\\d{2})? ?[AaPp][Mm]\\b", "15:05": "\\b\\d{1,2}:\\d{2}(?::\\d{2})?\\b(?! ?[AaPp][Mm])"}},
+  "relative": {"words": ["الوقت النسبي", "Relative times"], "forms": {"3 days ago": "\\b\\d+ (?:second|minute|hour|day|week|month|year)s? ago\\b", "منذ 3": "منذ [\\d٠-٩]+"}},
+  "currency": {"words": ["العملات", "Currency"], "forms": {"$12.50": "[$€£]\\s?\\d[\\d,]*(?:\\.\\d+)?", "12.50 USD": "\\b\\d[\\d,]*(?:\\.\\d+)? ?(?:USD|EUR|GBP|SAR)\\b", "12 ريال": "[\\d٠-٩][\\d٠-٩,.]* ?(?:ريال|ر\\.س)"}},
+  "percent": {"words": ["النسب", "Percentages"], "forms": {"12%": "\\b\\d+(?:\\.\\d+)?%", "٪١٢": "[٠-٩]+٪|٪[٠-٩]+"}},
+  "file_size": {"words": ["أحجام الملفات", "File sizes"], "forms": {"12 MB": "\\b\\d+(?:\\.\\d+)? ?(?:KB|MB|GB|TB)\\b"}},
+  "digits": {"words": ["شكل الأرقام", "Digits"], "forms": {"123": "\\b\\d{2,}\\b", "١٢٣": "[٠-٩]{2,}"}}
+ }
+}

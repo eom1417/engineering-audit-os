@@ -741,6 +741,39 @@
    }
   },
   {
+   "id": "design",
+   "tool": "design",
+   "group": "understand",
+   "label": {
+    "en": "Your design library",
+    "ar": "مكتبة التصميم"
+   },
+   "description": {
+    "en": "What your screens are really made of.",
+    "ar": "مما تتكون شاشاتك فعليًا."
+   },
+   "mode": "direct",
+   "needs_assistant": false,
+   "irreversible": false,
+   "needs_consent": false,
+   "returns_job": false,
+   "changes_code": false,
+   "inputs": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+     "project": {
+      "type": [
+       "string",
+       "null"
+      ],
+      "description": "The project folder; the Studio fills it with the project it serves."
+     }
+    },
+    "required": []
+   }
+  },
+  {
    "id": "design_brief",
    "tool": "design_brief",
    "group": "understand",
