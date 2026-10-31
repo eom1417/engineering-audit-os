@@ -7,6 +7,8 @@ import functools
 import json
 from pathlib import Path
 
+from ..contracts.card_kinds import KINDS
+
 CATALOG = Path(__file__).resolve().parents[2] / 'data/words.json'
 
 
@@ -99,15 +101,6 @@ TEMPLATES = {
         'hotspot': '{symbol} في {path}: تعقيده {branches} عبر {lines} سطرًا، في ملف ترتيبه {rank} في الانتباه',
         'large_module': '{path}: {lines} سطرًا و{symbols} تعريفًا، فوق حد {limit} سطر للوحدة الواحدة؛ يستورده {fan_in} ويستورد {fan_out}',
         'mutable_global': '{name} في {path} حالة على مستوى الوحدة تتغيّر أثناء التشغيل ({how}، سطر {line})',
-        'layer_finding': '{ar}',
-        'repository_finding': '{ar}',
-        'logic_flaw': '{ar}',
-        'experience_difficulty': '{ar}',
-        'real_data': '{ar}',
-        'old_engine': '{ar}',
-        'data_keeping': '{ar}',
-        'person_rule': '{ar}',
-        'one_source': '{ar}',
         'external_write': '{path} يكتب في {module}.{attribute}، وهي حالة لا يملكها',
         'untested': '{count} ملفًا يصل إليها مسار من نقطة دخول ولم ينفّذها أمر الاختبار',
         'policy': '{path} يستورد {to}، وهو ما تمنعه السياسة المعلنة ({from_layer} ← {to_layer})',
@@ -129,15 +122,6 @@ TEMPLATES = {
         'hotspot': '{symbol} in {path} has complexity {branches} over {lines} lines, in a file ranked {rank} for attention',
         'large_module': '{path} has {lines} lines and {symbols} definitions, past the limit of {limit} for one module; {fan_in} modules import it and it imports {fan_out}',
         'mutable_global': '{name} in {path} is module-level state changed at runtime ({how}, line {line})',
-        'layer_finding': '{en}',
-        'repository_finding': '{en}',
-        'logic_flaw': '{en}',
-        'experience_difficulty': '{en}',
-        'real_data': '{en}',
-        'old_engine': '{en}',
-        'data_keeping': '{en}',
-        'person_rule': '{en}',
-        'one_source': '{en}',
         'external_write': '{path} writes into {module}.{attribute}, state it does not own',
         'untested': '{count} files reachable from an entry point were never executed by the test command',
         'policy': '{path} imports {to}, which the declared policy forbids ({from_layer} → {to_layer})',
@@ -147,6 +131,9 @@ TEMPLATES = {
         'load_blocker': '{where}: {statement} — load blocker ({kind})',
     },
 }
+# A card that carries its own words says them as they are (eaos/core/contracts/card_kinds.py).
+for _language, _templates in TEMPLATES.items():
+    _templates.update({key: '{' + _language + '}' for key, kind in KINDS.items() if kind.own_text})
 IMPACTS = {
     'ar': {
         'load_blocker': 'الكلفة تنمو مع الحركة أو مع البيانات عند هذه النقطة؛ ما يعمل اليوم قد لا يعمل عند مضاعفة الحمل.',

@@ -3,6 +3,7 @@
 A pattern never invents a fix for a claim class it does not know; it says plainly that the change
 must be designed by hand, and still requires a runnable acceptance criterion.
 """
+from ...core.contracts.card_kinds import card_kind
 
 DO_NOTHING = {'option': 'لا نفعل شيئًا', 'option_en': 'Do nothing',
               'cost': 'صفر الآن', 'cost_en': 'zero now'}
@@ -43,14 +44,11 @@ QUERY_PATTERNS = {
 }
 
 
-# Card keys that are their own pattern, with or without a probe (M13, M14, M15).
-OWN_PATTERN = ('old_engine', 'data_keeping', 'one_source', 'person_rule')
-
-
 def _by_query(claim, specification):
     """The pattern the probe's query names, or None when the query names none."""
     query = specification.get('query')
-    if (claim.get('render') or {}).get('key') in OWN_PATTERN: return (claim.get('render') or {})['key']     # cards without a probe too
+    key = (claim.get('render') or {}).get('key')
+    if card_kind(key).own_pattern: return key     # cards without a probe too
     if query == 'dead_code_present':
         return 'remove_dead' if (claim.get('render') or {}).get('key') == 'dead_code' else 'dead_code'
     if query == 'engine_cluster_present':
@@ -310,7 +308,7 @@ def pattern_for(claim):
     pattern['name'] = name
     pattern['options'] = [*pattern['options'], dict(DO_NOTHING, verdict=cost_of_inaction(name))]
     render = claim.get('render') or {}
-    if render.get('key') in ('layer_finding', 'repository_finding', 'logic_flaw', 'experience_difficulty', 'real_data', *OWN_PATTERN):   # the finding's own fix (M6.11, M7.8)
+    if card_kind(render.get('key')).own_fix:   # the finding's own fix (M6.11, M7.8)
         pattern['change'] = (render.get('params') or {}).get('fix_ar') or pattern['change']
     if name == 'generic':
         reason = _generic_fallback_reason(claim)
