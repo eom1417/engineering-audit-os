@@ -163,6 +163,8 @@ def _ended(stage, context, outcome, seconds):
     if failed: return _row(stage, OK, 'these tools failed: ' + ', '.join(sorted(failed)), seconds, present, outcome, code='tools_failed')
     if outcome.get('assistant_lost'):   # its assistant answered part of it (ai_runners._partly): the check is PARTIAL
         return _row(stage, OK, outcome['assistant_lost']['why'], seconds, present, outcome, code='ai_partial')
+    if outcome.get('unread_names'):     # it read all but these: the check is PARTIAL, their names in red (core/progress/flow.py partial)
+        return _row(stage, OK, ', '.join(outcome['unread_names']), seconds, present, outcome, code='unread_names')
     if outcome.get('unmeasured'):       # it ran, and says what it could not read: never taken for clean (M15.0)
         return _row(stage, OK, 'not measured: ' + '; '.join(outcome['unmeasured']), seconds, present, outcome, code='unmeasured')
     return _row(stage, OK, '', seconds, present, outcome)

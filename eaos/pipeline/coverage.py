@@ -38,7 +38,7 @@ def _state(loop, rows):
 
 def _unmeasured(loop, rows):
     """The stages of `loop` that ran and said what they could not read (M15.0): a gap, never taken for clean."""
-    return [name for name in loop.stages if (rows.get(name) or {}).get('reason_code') == 'unmeasured']
+    return [name for name in loop.stages if (rows.get(name) or {}).get('reason_code') in ('unmeasured', 'unread_names')]
 
 
 def _missed(loop, rows):

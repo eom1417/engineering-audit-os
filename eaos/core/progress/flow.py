@@ -78,8 +78,10 @@ def incomplete(row):
 
 
 def partial(row):
-    """Whether a stage's row makes its run PARTIAL: required and skipped, or the assistant lost midway."""
-    return (row['necessity'] == REQUIRED and row['status'] == SKIPPED) or (row.get('detail') or {}).get('assistant_lost')
+    """Whether a stage's row makes its run PARTIAL: required and skipped, the assistant lost midway, or files it could not
+    read for their names."""
+    detail = row.get('detail') or {}
+    return (row['necessity'] == REQUIRED and row['status'] == SKIPPED) or detail.get('assistant_lost') or detail.get('unread_names')
 
 
 class Flow:

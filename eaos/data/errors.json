@@ -795,6 +795,10 @@
    "ar": "لم تُقرأ طبقات النظام في هذا الفحص، فلا شيء تُجرّب حدوده.",
    "en": "The layers were not read in this check, so there is nothing whose boundaries to try."
   },
+  "unread_names": {
+   "ar": "ما قرأت هذي الملفات أو المجلدات لأن أسماءها مو UTF-8 صالح، وقرأت الباقي، فالفحص جزئي. غيّر الأسماء لو تبيني أقرأها:",
+   "en": "These files or folders were not read because their names are not valid UTF-8; everything else was, so the check is partial. Rename them to have them read:"
+  },
   "unmeasured": {
    "ar": "المرحلة اشتغلت لكن جزء منها ما انقاس (مثلًا ما فيه قاعدة بيانات خاصة بالنسخة، أو ما انفتحت صفحة تحفظ): هذا الجزء ما يُحسب سليم، وتفاصيله في RUN.md.",
    "en": "The stage ran but part of it could not be measured (for example the copy has no database of its own, or no page that saves was opened): that part is never counted as clean; RUN.md says which."

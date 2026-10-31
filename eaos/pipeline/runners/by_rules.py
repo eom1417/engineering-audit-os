@@ -18,6 +18,14 @@ from ..stages import SkipStage
 POLICY_FILE = 'eaos.policy.json'
 
 
+UNREAD_SHOWN = 10
+
+
+def _unread_said(paths):
+    """The names a person sees in red; all of them are in facts/index.json."""
+    return paths[:UNREAD_SHOWN] + ([f'+{len(paths) - UNREAD_SHOWN}'] if len(paths) > UNREAD_SHOWN else [])
+
+
 def facts(context):
     from ...facts.run import collect
     from ...facts.scope import declared_exclusions
@@ -36,8 +44,9 @@ def facts(context):
     from ...core.contracts.vocabulary import classify
     if not any(classify(item['path']) == 'source' or item['path'].endswith(('.html', '.htm')) for item in context['source'].readable()):
         raise SkipStage('the target holds no source file this tool reads, so no project was audited', code='no_source_files')
-    return {'facts': context['collected']['facts'], 'sets': len(context['collected']['sets']),
-            'exclude': context['exclude']}
+    unread = [row['path'] for row in context['collected']['unread_names']]
+    return {'facts': context['collected']['facts'], 'sets': len(context['collected']['sets']), 'exclude': context['exclude'],
+            **({'unread_names': _unread_said(unread)} if unread else {})}
 
 
 def engines(context):

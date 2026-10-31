@@ -32,6 +32,7 @@ class Source:
         self.exclude = [prefix.strip('/') for prefix in [*exclude, *GENERATED] if prefix.strip('/')]
         self._text = {}
         self.files, self.excluded_files = self._split()
+        self.unread_names = [row for row in self.inventory.get('unread_names', ()) if not self.excluded(row['path'])]
 
     def _split(self):
         """The files the extractors read (in scope and not generated), and the paths of those left out."""

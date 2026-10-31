@@ -201,9 +201,9 @@ def collect(target, out, selected=None, max_commits=2000, source=None, exclude=(
     if cache:
         Path(cache).parent.mkdir(parents=True, exist_ok=True)       # the facts come before the runtime's other parts
         Path(cache).write_text(json.dumps(context['cache'], ensure_ascii=False), encoding='utf-8')
-    index = write_index(out, target, entries)
+    index = write_index(out, target, entries, source.unread_names)
     return {'target': str(target), 'out': str(out), 'fingerprint': source.fingerprint, 'sets': index['sets'],
             'facts': sum(e['facts'] for e in entries), 'reused_from_cache': reuse,
             'excluded_paths': len(source.excluded_files), 'exclude_patterns': list(exclude or []),
-            'exclusion_reasons': exclusion_reason_map,
+            'exclusion_reasons': exclusion_reason_map, 'unread_names': source.unread_names,
             'limits': 'Deterministic extraction only. No model was consulted and no semantic conclusion is implied.'}
