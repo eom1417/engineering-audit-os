@@ -7,6 +7,7 @@ assistant does are pipeline/runners/by_assistant.py's; RUNNERS, here, names ever
 import json
 from pathlib import Path
 
+from .design import design_gallery, design_inventory, guide_draft, proposed_tokens
 from .by_assistant import ideal, order, pipeline_gaps, proposals, roles, semantic, translate, triage, visual
 from .live_app import NO_RUN, _keep, _live, _ran
 from .experience import experience, replayed
@@ -202,34 +203,9 @@ def layers(context):
             'gaps': summary['gaps'], 'endpoints': summary['endpoints']}
 
 
-def _design_inventory(context):
-    """What the screens really show, from the pages the lock saved (eaos/analysis/design/inventory.py): design/inventory.json."""
-    from ...analysis.design.inventory import write as inventory
-    runtime = getattr(context, 'runtime', None)
-    if runtime:
-        inventory(Path(runtime) / 'behavior-lock' / 'look' / 'original', context.out, context.target)
-
-
-def _proposed_tokens(context):
-    """The tokens the look calls for, for the person and the card: design/tokens.proposed.json, W3C 2025.10."""
-    from ...analysis.assessments.one_source_look import proposed
-    tokens = proposed(context.out)
-    if not tokens: return
-    (context.out / 'design').mkdir(parents=True, exist_ok=True)
-    (context.out / 'design' / 'tokens.proposed.json').write_text(json.dumps(tokens, ensure_ascii=False, indent=1) + '\n', encoding='utf-8')
-
-
-def _guide_draft(context):
-    """The project's extension guide as EAOS would write it, in extending/ of the report (M18.3), for its card and batch."""
-    from ...analysis.repair import project_guide
-    drawn = project_guide.drawn_from_report(context.target, context.out)
-    if not drawn: return                 # a path that does not read the layers has none to draw it from
-    (context.out / 'extending').mkdir(parents=True, exist_ok=True)
-    (context.out / 'extending' / project_guide.NAME).write_text(project_guide.text(drawn, Path(context.target).name), encoding='utf-8')
-
-
 def claims(context):
     from ...analysis.understanding.dossier import assemble
+    design_inventory(context)
     from ...core.project.workspace import read, write
     result = assemble(context.target, context.out, run=context.get('audit_run'), language=context.language,
                       exclude=context.exclude, collected=context.get('collected'))
@@ -281,9 +257,9 @@ def reports(context):
     from ...report.documents.four_reports import write
     from ...report.documents.start_here import project_name, start_here
     diagrams(context.out)
-    _guide_draft(context)
-    _proposed_tokens(context)
-    _design_inventory(context)
+    guide_draft(context)
+    proposed_tokens(context)
+    design_gallery(context)
     start_here(context.out, context.language, project_name(context.target))
     return write(context.out, context.language)
 

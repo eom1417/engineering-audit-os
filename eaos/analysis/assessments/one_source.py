@@ -15,6 +15,7 @@ from pathlib import PurePosixPath
 from ...core.contracts.code_laws import NEAR_COPY, PATTERN_REPEATS
 from ...facts.duplication.element_trees import PRIMITIVES
 from ...facts.engine_findings import engine_records
+from ..design.findings import findings as design_findings
 from . import one_source_evidence, one_source_look
 
 TEST = re.compile(r'(^|/)(tests?|__tests__|spec|e2e)(/|$)|[._-](test|spec)\.[a-z]+$')
@@ -191,7 +192,7 @@ def findings(out, sets, root=None):
     """Every finding of one source per pattern, and what was not read (a tool that did not run)."""
     folders = folders_of(sets)
     look = one_source_look.finding((sets.get('patterns') or {}).get('facts') or [], out)
-    return _gated(out, sets, folders)[0] + idioms(sets, folders) + ([look] if look else []), unmeasured(sets)
+    return _gated(out, sets, folders)[0] + idioms(sets, folders) + ([look] if look else []) + design_findings(out), unmeasured(sets)
 
 
 def likenesses(out, sets):

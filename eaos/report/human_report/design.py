@@ -56,6 +56,16 @@ def _near(groups):
     return f'<div class="card"><h4>{T("ألوان متقاربة تبدو كأنها لون واحد", "Near colours that read as one")}</h4><ul class="small">{rows}</ul></div>'
 
 
+GALLERY = ('<!doctype html><html lang="ar" dir="rtl"><head><meta charset="utf-8"><title>{title}</title><style>body{{font:15px system-ui;margin:24px;max-width:1100px}}'
+           '.card{{border:1px solid #ddd;border-radius:8px;padding:12px;margin:12px 0}}table{{border-collapse:collapse}}td,th{{padding:6px 10px;border-bottom:1px solid #eee;text-align:start}}'
+           '</style></head><body><h1>{title}</h1>{body}</body></html>')
+
+
+def gallery(drawn):
+    """The project's parts on one page of its own, to open beside the code: design/gallery.html."""
+    return GALLERY.format(title='Design library', body=section_design({'design': drawn}))
+
+
 def section_design(m):
     drawn = m.get('design')
     if not drawn: return f'<div class="card">{T("التطبيق ما اشتغل في هذا الفحص، فما انقرأت شاشاته.", "The app did not run in this check, so its screens were not read.")}</div>'

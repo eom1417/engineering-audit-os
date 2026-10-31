@@ -4,7 +4,11 @@ lock and the style oracle say so: with nothing agreed, nothing may look differen
     proposal(target)    what it would do, nothing written: how many values, in how many files, where the tokens file goes
     make(batch)         made and proved in a clone of the authorised commit: the summary, `kept` the files, empty when refused
 """
+from pathlib import Path
+
 from ...analysis.design import tokens_codemod
+from ...analysis.design.findings import merges
+from ...core.system.files import read_json
 from ...analysis.repair.project_guide import tracked
 from ...live.behavior.lock import LockPass, failing_tests, verify_lock
 from ...live.behavior.look_oracle import look_changed
@@ -12,10 +16,14 @@ from .execute import commit_all, git, original_checks, own_batch, record_batch
 from .waves.batch import gates
 
 
-def proposal(target, agreed=None):
+def proposal(target, agreed=None, report=None):
     drawn = tokens_codemod.plan(target, tracked(target), agreed)
-    return {'tokens': len(drawn['tokens']), 'uses': drawn['uses'], 'files': sorted(drawn['files']), 'home': drawn['home'], 'refused': drawn['refused'],
+    inventory = read_json(Path(report) / 'design' / 'inventory.json') if report else None
+    return {'you_can_agree': merges(inventory)[:SUGGESTED], 'tokens': len(drawn['tokens']), 'uses': drawn['uses'], 'files': sorted(drawn['files']), 'home': drawn['home'], 'refused': drawn['refused'],
             'merges': list(agreed or ())}
+
+
+SUGGESTED = 30
 
 
 def _rules(agreed):
