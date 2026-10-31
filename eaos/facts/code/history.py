@@ -199,11 +199,15 @@ def _changes(chunk, prefix):
             'changed': [path for status, path in rows if status != 'D']}
 
 
+def _no_history(reason):
+    return {'facts': [], 'summary': {'commits_analysed': 0}, 'available': False, 'input_sha': digest(b''), 'reason': reason}
+
+
 def run(target, source=None, max_commits=2000, **options):
     target = Path(target)
-    if not available(target):
-        return {'facts': [], 'summary': {'commits_analysed': 0}, 'available': False, 'input_sha': digest(b''),
-                'reason': 'No git work tree at the target; history facts are unavailable for this snapshot.'}
+    if not available(target): return _no_history('No git work tree at the target; history facts are unavailable for this snapshot.')
+    if git(target, ['rev-parse', '--verify', '-q', 'HEAD']).returncode != 0:
+        return _no_history('The repository has no commit yet; history facts are unavailable for this snapshot.')
     raw = read_log(target, max_commits)
     input_sha = digest(raw.encode('utf-8'))
     facts, summary = extract(target, raw, input_sha, Settings(max_commits, **options), prefix_of(target))
