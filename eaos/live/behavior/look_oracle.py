@@ -70,7 +70,8 @@ def judged(original, now, allowed=None, control=None):
     original, now = Path(original), Path(now)
     names, read = {path.name for path in original.glob('*.json')}, {path.name for path in now.glob('*.json')}
     if not names: return 'nothing recorded to compare with: check the project again'
-    said = [f'{name}: not read again' for name in sorted(names - read)]
+    readable = {path.name for path in Path(control).glob('*.json')} if control else names      # a page that fails on the unchanged code too proves nothing either way
+    said = [f'{name}: not read again' for name in sorted((names & readable) - read)]
     for name in sorted(names & read): said += _beyond(original, now, name, allowed, noisy)
     return '' if not said else f"{len(said)} undeclared change(s) of the look: " + '; '.join(said[:SHOWN])
 

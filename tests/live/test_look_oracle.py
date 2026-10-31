@@ -79,6 +79,10 @@ class StyleOracle(unittest.TestCase):
                 shutil.copyfile(Path(self.tmp.name) / f'{name}.json', place / 'page.json')
             self.assertIn('undeclared', judged(original, now))
             self.assertEqual(judged(original, now, None, control), '')
+            (now / 'page.json').unlink()
+            self.assertIn('not read again', judged(original, now))
+            (control / 'page.json').unlink()
+            self.assertEqual(judged(original, now, None, control), '', 'a page that fails with no change at all is not the batch')
 
     def test_a_page_with_no_second_reading_or_no_recording_proves_nothing(self):
         empty = Path(self.tmp.name) / 'empty'

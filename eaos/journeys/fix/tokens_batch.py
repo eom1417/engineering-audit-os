@@ -6,7 +6,7 @@ lock and the style oracle say so: with nothing agreed, nothing may look differen
 """
 from ...analysis.design import tokens_codemod
 from ...analysis.repair.project_guide import tracked
-from ...live.behavior.lock import LockPass, verify_lock
+from ...live.behavior.lock import LockPass, failing_tests, verify_lock
 from ...live.behavior.look_oracle import look_changed
 from .execute import commit_all, git, original_checks, own_batch, record_batch
 from .waves.batch import gates
@@ -28,16 +28,19 @@ def _rules(agreed):
 
 
 def _proved(batch, root, base, rules):
-    """Why the batch is refused, '' when it stands. The look refused it: the same pass on the code as it was tells what on those pages moves by itself."""
+    """Why the batch is refused, '' when it stands. The lock or the look refused it: the same pass on the code as it was tells what on those pages
+    fails or moves by itself, and that is not this batch's."""
     name = f"design-{batch['number']}"
     why = gates({'before': original_checks(batch['target'], batch['runtime']), 'root': root, 'runtime': batch['runtime'], 'report': batch['report'], 'lock': True,
                  'declared': (), 'known': (), 'intended': None, 'look': rules}, name)
-    if 'of the look' not in why: return why
+    if 'behaviour lock' not in why and 'of the look' not in why: return why
+    control = f'{name}-control'
     head = git(root, 'rev-parse', 'HEAD').stdout.strip()
     git(root, 'reset', '--hard', '--quiet', base)
-    try: verify_lock(batch['report'], root, batch['runtime'], LockPass(f'{name}-control'))
+    try: verify_lock(batch['report'], root, batch['runtime'], LockPass(control))
     finally: git(root, 'reset', '--hard', '--quiet', head)
-    return look_changed(batch['runtime'], name, rules, control=f'{name}-control')
+    if failing_tests(batch['runtime'], name) - failing_tests(batch['runtime'], control): return why
+    return look_changed(batch['runtime'], name, rules, control=control)
 
 
 def make(batch):

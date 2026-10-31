@@ -24,7 +24,7 @@ def main(project):
     print('would name:', json.dumps({k: (len(v) if k == 'files' else v) for k, v in drawn.items()}, ensure_ascii=False)[:400])
     if drawn['refused']: return 0
     began = time.monotonic()
-    summary = make({'target': state['project'], 'runtime': runtime, 'number': 1, 'report': guided.report_of(state), 'deliver_as': 'eaos/proof/design-1'})
+    summary = make({'target': state['project'], 'runtime': runtime, 'number': 1, 'report': guided.report_of(state), 'deliver_as': 'proof/design-1'})
     print(f"{round(time.monotonic() - began)} s; kept {len(summary['kept'])} files; refused: {str(summary['refused'])[:1400]}")
     return 0 if summary['kept'] else 1
 

@@ -1,5 +1,5 @@
 """The style oracle at the gate (M18.8): on a baseline app already checked, the three outcomes a batch can have, each on its own copy through the
-lock as a batch runs it: a zero-change edit passes, a colour changed without a word is refused, the same colour declared passes.
+lock as a batch runs it: a zero-change edit passes, a colour changed without a word is refused (the pictures, at their tolerance, pass it), the same colour declared passes.
 
     python tools/judging/look_proof.py <the baseline app's folder, checked>
 """
@@ -47,7 +47,7 @@ def outcome(state, name, page, look):
     root, _ = own_batch(state['project'], runtime, f'LOOK-{name}')
     (Path(root) / PAGE).write_text(page, encoding='utf-8')
     commit_all(root, f'look proof: {name}')
-    verdict = verify_lock(report, root, runtime, LockPass(f'look-{name}', exact=look == []))
+    verdict = verify_lock(report, root, runtime, LockPass(f'look-{name}'))
     return verdict['failed'], look_changed(runtime, f'look-{name}', look)
 
 

@@ -221,7 +221,7 @@ def _page_test(route, target, name, guard):
             "    await page.waitForFunction(() => document.body.innerText.trim().length > 0, null, { timeout: 60000 }).catch(() => {});",
             f"    expect(messages.join('\\n')).toMatchSnapshot('{name}.console.txt');",
             # Soft: a picture that differs still lets its words be read, so a declared addition is judged by them (intended.py).
-            f"    await expect.soft(page).toHaveScreenshot('{name}.png', {{ fullPage: true, maxDiffPixelRatio: process.env.EAOS_LOCK_EXACT ? 0 : 0.01 }});",
+            f"    await expect.soft(page).toHaveScreenshot('{name}.png', {{ fullPage: true, maxDiffPixelRatio: 0.01 }});",
             # Its words too: a sentence changed is under 1% of a page's pixels (the fix proof, M7.0). Checked once recorded
             # (EAOS_LOCK_UPDATE, or a lock recorded before held no words); written where EAOS_LOCK_WORDS asks.
             "    const words = (await page.locator('body').innerText()).replace(/\\s+/g, ' ').trim();",
