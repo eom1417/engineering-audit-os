@@ -13,5 +13,8 @@
     "esbuild": "0.28.2",
     "eslint": "9.39.5",
     "globals": "17.13.0"
+  },
+  "overrides": {
+    "minimatch": "^11.0.1"
   }
 }

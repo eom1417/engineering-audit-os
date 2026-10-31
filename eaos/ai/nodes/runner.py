@@ -162,8 +162,10 @@ class Run:
 
     def _tiered(self, launcher, asks, asked, detail):
         """The answer on the stage's tier, asked again higher until it stands: a tier that failed, or left some batches
-        unanswered, one tier up; one that would close something (tiers.CLOSING) on the deep tier. So a cheaper model
-        never drops or closes anything alone."""
+        unanswered, one tier up; one that would close something (tiers.CLOSING) on the deep tier, about those subjects
+        alone where the node can ask them apart (spec.narrowed). So a cheaper model never drops or closes anything alone,
+        and what it did not close is not paid for twice."""
+        held = []
         while True:
             tier = getattr(launcher, 'tier', None)
             try: answer, critique = self._ask(launcher, asks, asked, detail)
@@ -172,10 +174,29 @@ class Run:
                 if self._stopped() or tiers.up(tier) is None: raise
                 self._up(launcher, tiers.up(tier), f'the {tier} tier failed: {short(problem, 200)}', (asks, asked))
                 continue
-            if tiers.up(tier) is None: return answer, critique
-            if self.unanswered: self._up(launcher, tiers.up(tier), f'the {tier} tier left {self.unanswered["failed"]} batches unanswered', (asks, asked))
-            elif tiers.closes(self.node.name, answer.get('decisions')): self._up(launcher, 'deep', f'the {tier} tier would close a subject', (asks, asked))
-            else: return answer, critique
+            closing = tiers.closes(self.node.name, answer.get('decisions'))
+            if tiers.up(tier) is None or not (self.unanswered or closing): return {**answer, 'decisions': held + (answer.get('decisions') or [])}, critique
+            asks = self._again(launcher, (answer, asks, asked, closing, held), detail)
+
+    def _again(self, launcher, job, detail):
+        """The asks of the next tier, its reason told: batches left unanswered go one tier up, what would close to the deep one."""
+        answer, asks, asked, closing, held = job
+        tier = launcher.tier
+        if self.unanswered:
+            self._up(launcher, tiers.up(tier), f'the {tier} tier left {self.unanswered["failed"]} batches unanswered', (asks, asked))
+            return asks
+        asks, kept = self._narrowed(answer, asks, closing, detail)
+        held += kept
+        self._up(launcher, 'deep', f'the {tier} tier would close {len(closing)} subject(s)', (asks, asked))
+        return asks
+
+    def _narrowed(self, answer, asks, closing, detail):
+        """(what the deep tier is asked, the decisions that stand as they are): only the subjects a cheaper tier would
+        close, where the node can ask them apart; else everything again."""
+        narrowed = getattr(self.spec, 'narrowed', None)
+        if not narrowed: return asks, []
+        subjects = {decision['subject'] for decision in closing}
+        return self._asks(narrowed(self.data, subjects), detail), [d for d in answer.get('decisions') or [] if d['subject'] not in subjects]
 
     def _up(self, launcher, tier, why, job):
         """The next ask on `tier`; `job` (asks, asked): the asks counted again."""

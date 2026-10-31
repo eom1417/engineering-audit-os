@@ -202,6 +202,11 @@ def subjects(data):
     return [c['id'] for c in data['cards']]
 
 
+def narrowed(data, asked):
+    """The bundle with only the cards of `asked` (a cheaper tier would set them aside: the deep tier judges them alone)."""
+    return {**data, 'cards': [card for card in data['cards'] if card['id'] in asked]}
+
+
 def known(report, data):
     return ideal.known_ids(report)
 
