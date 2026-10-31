@@ -1,6 +1,8 @@
 """What MCP calls read-only changes nothing, and what changes something is not called read-only: reading a build's file leaves
 the project's state alone, and opening the report, which rebuilds it, is handled as work by the assistants and the Studio."""
 import asyncio
+import contextlib
+import io
 import json
 import os
 import subprocess
@@ -10,6 +12,8 @@ from pathlib import Path
 from unittest import mock
 
 from eaos.core.project import state as project_state
+from eaos.core.system import launch
+from eaos.interfaces import cli
 from eaos.interfaces.mcp_server.govern import every
 from eaos.interfaces.mcp_server.server import build, reading as read_only
 from eaos.interfaces.studio_actions import chat
@@ -120,6 +124,81 @@ class OpeningTheReport(Home):
 
     def test_a_call_of_it_counts_as_a_step_in_the_handover(self):
         self.assertNotIn('open_report', handover.READING)
+
+
+class AskingWhereTheProjectIs(Home):
+    """status is read-only once the project is settled; before that, its first call is what settles it."""
+
+    def checked(self):
+        with mock.patch.dict(by_rules.RUNNERS, engines=_no_engines, architecture=_no_engines), mock.patch.object(guided, 'tools_for_check', return_value={}):
+            agent_tools.state_of(str(self.project))
+            agent_tools.choose_branch('main', str(self.project), 'the work goes on here')
+            agent_tools._audit_job(str(self.project), {}, None)
+
+    def _everything_but_the_journal(self):
+        return {f'{root.name}/{name}': data for root in (self.project, self.home, self.root / 'out') for name, data in _files(root).items()
+                if not name.endswith('journal.jsonl')}
+
+    def test_on_a_settled_project_it_changes_no_state_no_project_file_and_no_report(self):
+        self.checked()
+        record = Path(project_state.load(self.project)['workspace']) / 'state.json'
+        record.write_text(json.dumps({**json.loads(record.read_text(encoding='utf-8')), 'updated': 'an older stamp'}), encoding='utf-8')   # a save would change it, even within one second
+        before = self._everything_but_the_journal()
+        for _ in range(2):
+            answer = _called(self.server, 'status', project=str(self.project))
+            self.assertEqual((answer['branch'], answer['checked']), ('main', True))
+            self.assertEqual(self._everything_but_the_journal(), before)
+
+    def test_its_first_call_settles_the_branch_so_a_later_switch_never_moves_the_work(self):
+        self.assertEqual(_called(self.server, 'status', project=str(self.project))['branch'], 'main')
+        self.assertEqual(project_state.load(self.project)['branch'], 'main')
+        subprocess.run(['git', '-C', str(self.project), 'checkout', '-qb', 'other'], check=True, capture_output=True)
+        self.assertEqual(_called(self.server, 'status', project=str(self.project))['branch'], 'main')
+
+    def test_the_person_can_answer_only_a_branch_question_it_recorded_having_asked(self):
+        for argv in (('checkout', '-qb', 'feature'), ('commit', '-q', '--allow-empty', '-m', 'more'), ('checkout', '-q', 'main')):
+            subprocess.run(['git', '-C', str(self.project), '-c', 'user.name=t', '-c', 'user.email=t@t', *argv], check=True, capture_output=True)
+        (self.project / 'more.py').write_text('x = 1\n', encoding='utf-8')
+        subprocess.run(['git', '-C', str(self.project), 'checkout', '-q', 'feature'], check=True, capture_output=True)
+        subprocess.run(['git', '-C', str(self.project), 'add', '-A'], check=True, capture_output=True)
+        subprocess.run(['git', '-C', str(self.project), '-c', 'user.name=t', '-c', 'user.email=t@t', 'commit', '-qm', 'more'], check=True, capture_output=True)
+        subprocess.run(['git', '-C', str(self.project), 'checkout', '-q', 'main'], check=True, capture_output=True)
+        with mock.patch('eaos.journeys.agent_tools.where.ANSWER_SECONDS', 0):
+            self.assertEqual(_called(self.server, 'choose_branch', branch='feature', person_said='feature', project=str(self.project))['status'], 'needs_the_person')
+            self.assertEqual(_called(self.server, 'status', project=str(self.project))['status'], 'needs_branch')
+            self.assertEqual(_called(self.server, 'choose_branch', branch='feature', person_said='feature', project=str(self.project))['status'], 'chosen')
+
+
+class OpeningTheStudio(Home):
+    """It starts a server, or stops one to replace it, so MCP does not call it read-only; all it does stays as it was."""
+    RUNNING = {'port': 9, 'token': 't' * 32}
+
+    def test_mcp_does_not_call_it_read_only_nor_promise_its_updates_only_add(self):
+        hints = _tool(self.server, 'open_studio').annotations
+        self.assertFalse(hints.read_only_hint)
+        self.assertIsNone(hints.destructive_hint, 'it can replace a running server: by MCP, false would say it only adds')
+        self.assertFalse(hints.open_world_hint)
+        self.assertNotIn('open_studio', read_only())
+
+    def test_the_tool_still_starts_it_and_answers_as_it_did(self):
+        with mock.patch.object(launch, 'start', return_value=(self.RUNNING, True)) as started, mock.patch.object(launch, '_open', return_value=False):
+            answer = _called(self.server, 'open_studio', show=False, project=str(self.project))
+        started.assert_called_once()
+        self.assertEqual(sorted(answer), ['checked', 'live', 'opened_in_browser', 'started', 'studio', 'what_now'])
+        self.assertEqual((answer['studio'], answer['started'], answer['opened_in_browser']), (launch.url_of(self.RUNNING), True, False))
+
+    def test_the_terminal_still_opens_it_in_the_background_and_prints_its_address(self):
+        with mock.patch('eaos.core.toolchain.prepare'), mock.patch('eaos.core.toolchain.ready', return_value=True), \
+                mock.patch.object(launch, 'start', return_value=(self.RUNNING, False)), mock.patch.object(launch, '_open', return_value=False), \
+                contextlib.redirect_stdout(io.StringIO()) as printed:
+            code = cli.main(['studio', str(self.project), '--background', '--no-open'])
+        self.assertEqual((code, printed.getvalue().strip()), (0, f'EAOS Studio: {launch.url_of(self.RUNNING)}'))
+
+    def test_the_terminal_still_serves_it_in_the_foreground_by_default(self):
+        with mock.patch('eaos.interfaces.studio_server.server.run_foreground', return_value=0) as served:
+            self.assertEqual(cli.main(['studio', str(self.project), '--no-open']), 0)
+        served.assert_called_once()
+        self.assertEqual((served.call_args.args[0], served.call_args.kwargs['show']), (str(self.project), False))
 
 
 if __name__ == '__main__':

@@ -86,7 +86,8 @@ def _report_tools(server, reading, working, _answer):
         if (state or {}).get('mode') == 'build' and not guided.scan_done(state): return build_tools.open_blueprint(project, show)
         return tools.open_report(project, show)
 
-    @server.tool(annotations=reading, description='Open the live EAOS Studio of the project in the person\'s browser: every '
+    # Not read-only, for it starts a server or stops one to replace it; no destructive hint, for a running one can go.
+    @server.tool(annotations=reading.model_copy(update={'read_only_hint': False}), description='Open the live EAOS Studio of the project in the person\'s browser: every '
                  'card, map, plan and decision of the last check, updating by itself after every check, batch, merge and decision. '
                  'It runs on this computer and is reused while it runs. On a remote server whose ports your environment routes to '
                  'an https address (for example https://<project>--<port>.dev.example.com), pass that address once as `address`: '

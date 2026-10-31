@@ -7,6 +7,8 @@ folder and state of a project never started; an assistant told it only reads had
 
 - **`build_read` only reads:** no state, no folder, no `mode`; its answers are as they were.
 - **open_report rewrites the report and saves the state, so it is no longer declared read-only:** its `readOnlyHint` is now false, the one break of the public contract here, agreed by the maintainers; no `destructiveHint` is claimed, since it regenerates what is there. Its name, arguments and answer stay. In the Studio it now waits its turn behind running work and stays in the history; the Studio's button waits up to half a minute for it. Only a rebuild that ended done says the report opened; otherwise the report opens as it stands and the button says it may be outdated.
+- **open_studio starts a server or stops a running one to replace it, so it is no longer declared read-only:** its `readOnlyHint` is now false, a second agreed break of the public contract; no `destructiveHint` is claimed, since a running server can go. Its name, arguments, answer and what it does stay, in the terminal and the Studio's project switcher too. Its Studio action now waits its turn behind running work.
+- **`status` stays declared read-only, and that is an open exception, not a settled fact:** its first call and its syncing write (`docs/MCP.md`). On a settled project it writes only its journal line, and tests now hold that.
 
 ## 0.0.90 (2026-10-31)
 

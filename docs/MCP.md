@@ -44,6 +44,11 @@ and `tools`.
 `eaos mcp` exposes 66 tools. Every tool takes `project`, the project folder (by default, the folder the assistant was
 opened in). Long work returns a job, followed with `wait`. `status` always names the next tool to call.
 
+**An open exception: `status` is declared read-only and is not always.** On a settled project it writes only its journal line. Its first
+call makes the project's state and settles its branch, it records that the branch question was asked, it brings the state up to what
+git says, and it rebuilds a report an older EAOS made. An assistant or client must not take its `readOnlyHint` as a promise that
+nothing is written. Every other tool that acts says so.
+
 ### Orient and continue
 
 | Tool | What it does |
