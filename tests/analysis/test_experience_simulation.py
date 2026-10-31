@@ -101,8 +101,12 @@ class ExperienceCommandTest(unittest.TestCase):
     spends, its use counted with the check's."""
 
     def setUp(self):
-        self.tmp = Path(self.enterContext(tempfile.TemporaryDirectory()))
-        self.enterContext(mock.patch.dict('os.environ', {'EAOS_HOME': str(self.tmp / 'home')}))
+        scratch = tempfile.TemporaryDirectory()
+        self.addCleanup(scratch.cleanup)
+        self.tmp = Path(scratch.name)
+        patcher = mock.patch.dict('os.environ', {'EAOS_HOME': str(self.tmp / 'home')})
+        patcher.start()
+        self.addCleanup(patcher.stop)
         self.project, self.out = self.tmp / 'app', self.tmp / 'report'
         self.project.mkdir(); self.out.mkdir()
         self.assistant = mock.Mock(config={})

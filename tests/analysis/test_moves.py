@@ -96,6 +96,11 @@ class MoveTests(Workspace):
             self.assertIn(why, str(refused.exception))
             self.assertEqual(subprocess.run(['git', '-C', str(root), 'status', '--porcelain'], capture_output=True, text=True).stdout, '')
 
+    def test_a_test_is_named_the_same_whichever_python_ran_the_project(self):
+        before_3_11, since_3_11 = 'test_go (test_shop.T) ... ok\n', 'test_go (test_shop.T.test_go) ... ok\n'
+        self.assertEqual(move_gate.test_results(before_3_11), move_gate.test_results(since_3_11))
+        self.assertEqual(set(move_gate.test_results(before_3_11)), {('test_shop.T.test_go', 'passed')})
+
     def test_the_gate_reads_each_test_by_its_name_and_says_when_none_can_be_read(self):
         unittest_output = 'test_go (test_shop.T.test_go) ... ok\ntest_x (test_shop.T.test_x)\nA docstring. ... FAIL\n'
         pytest_output = 'PASSED tests/test_a.py::test_one\nFAILED tests/test_a.py::test_two - assert 1\n'

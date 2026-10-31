@@ -7,7 +7,7 @@ import unittest
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
-SHIPPED = [path for path in (ROOT / 'eaos').rglob('*.py') if 'templates' not in path.parts and 'rules' not in path.parts]
+SHIPPED = [path for path in (ROOT / 'eaos').rglob('*.py') if path.relative_to(ROOT).parts[1] not in ('templates', 'rules')]
 HOME_OF_TOML = ROOT / 'eaos/core/system/files.py'
 
 
@@ -34,7 +34,8 @@ class TheOldestPythonDeclared(unittest.TestCase):
     def test_toml_is_read_through_its_one_home_which_works_on_every_declared_python(self):
         found = [str(path.relative_to(ROOT)) for path in SHIPPED if path != HOME_OF_TOML
                  for node in ast.walk(ast.parse(path.read_text(encoding='utf-8')))
-                 if isinstance(node, ast.Import) and any(alias.name == 'tomllib' for alias in node.names)]
+                 if isinstance(node, ast.ImportFrom) and node.module == 'tomllib'
+                 or isinstance(node, ast.Import) and any(alias.name == 'tomllib' for alias in node.names)]
         self.assertEqual(found, [])
 
 

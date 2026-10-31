@@ -28,7 +28,7 @@ def expected_package_files(data):
 
 def package_data_patterns(root):
     try:import tomllib
-    except ImportError:return None
+    except ImportError:import tomli as tomllib
     config=tomllib.loads((Path(root)/'pyproject.toml').read_text())
     return config.get('tool',{}).get('setuptools',{}).get('package-data',{}).get('eaos')
 

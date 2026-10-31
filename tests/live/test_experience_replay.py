@@ -53,7 +53,9 @@ class ReplayTests(unittest.TestCase):
         self.server = ThreadingHTTPServer(('127.0.0.1', 0), App)
         threading.Thread(target=self.server.serve_forever, daemon=True).start()
         self.base = f'http://127.0.0.1:{self.server.server_port}'
-        self.report = Path(self.enterContext(tempfile.TemporaryDirectory()))
+        scratch = tempfile.TemporaryDirectory()
+        self.addCleanup(scratch.cleanup)
+        self.report = Path(scratch.name)
         self.journeys = self.report / 'experience' / actor.JOURNEYS
         with agent.Browser(self.base, self.journeys / 'buyer--profile') as browser:
             journey = actor.act(browser, PERSONA, GOAL, Scripted(*STEPS, {'action': 'done'}))

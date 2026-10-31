@@ -38,10 +38,16 @@ def _field_shape(value, depth):
     return type(value).__name__
 
 
+def _fields(node):
+    """A node's fields as Python 3.12 has them, so one code has one shape on every Python: `type_params` came in 3.12."""
+    yield from ast.iter_fields(node)
+    if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)) and 'type_params' not in node._fields: yield 'type_params', []
+
+
 def _python_shape(node, depth=0):
     """Render a Python AST as a normalised shape tree, with depth to bound recursion."""
     if depth > 60: return ('<over>',)
-    return (type(node).__name__, tuple((field, _field_shape(value, depth + 1)) for field, value in ast.iter_fields(node)
+    return (type(node).__name__, tuple((field, _field_shape(value, depth + 1)) for field, value in _fields(node)
                                        if field not in _UNSHAPED))
 
 

@@ -186,7 +186,8 @@ def _export_differences(before, after, mapping):
 def test_results(output):
     """{name: Counter of results} of every test the output names, or {'(counts)': Counter} when it names none."""
     found = Counter()
-    for _, name, result in UNITTEST.findall(output): found[(name, RESULT[result.lower()])] += 1
+    for test, name, result in UNITTEST.findall(output):      # before Python 3.11 unittest names the class, since then the test
+        found[(name if name.endswith(f'.{test}') else f'{name}.{test}', RESULT[result.lower()])] += 1
     for result, name in PYTEST.findall(output): found[(name, RESULT[result.lower()])] += 1
     for result, name, directive in TAP.findall(output): found[(name.strip(), 'skipped' if directive else RESULT[result.lower()])] += 1
     for mark, name in MARKED.findall(output): found[(name.strip(), RESULT[mark])] += 1
