@@ -35,7 +35,7 @@ def _package_names(root):
 def _pyproject_requirements(pyproject):
     """The requirement lines of pyproject.toml: its dependencies, then every optional group's."""
     if not pyproject.is_file(): return []
-    import tomllib
+    from ...core.system.files import tomllib
     try: data = tomllib.loads(pyproject.read_text(encoding='utf-8'))
     except (tomllib.TOMLDecodeError, UnicodeDecodeError): data = {}
     project = data.get('project') or {}

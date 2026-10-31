@@ -28,9 +28,12 @@ LIMITATIONS = [
 ]
 
 
+NO_COMMIT_YET = 'does not have any commits yet'     # git's words for it; a broken ref fails too, and says otherwise
+
+
 def git(target, args, timeout=120):
     env = {k: v for k, v in os.environ.items() if k in {'PATH', 'HOME', 'LANG', 'SystemRoot', 'WINDIR'}}
-    env['GIT_OPTIONAL_LOCKS'] = '0'
+    env.update(GIT_OPTIONAL_LOCKS='0', LC_ALL='C')     # C: NO_COMMIT_YET is read in git's own words
     return subprocess.run(['git', '-C', str(target), '--no-pager', '-c', 'core.quotepath=false', '-c', 'gc.auto=0', *args],
                           capture_output=True, text=True, errors='backslashreplace', env=env, timeout=timeout, check=False)
 
@@ -199,11 +202,15 @@ def _changes(chunk, prefix):
             'changed': [path for status, path in rows if status != 'D']}
 
 
+def _no_history(reason):
+    return {'facts': [], 'summary': {'commits_analysed': 0}, 'available': False, 'input_sha': digest(b''), 'reason': reason}
+
+
 def run(target, source=None, max_commits=2000, **options):
     target = Path(target)
-    if not available(target):
-        return {'facts': [], 'summary': {'commits_analysed': 0}, 'available': False, 'input_sha': digest(b''),
-                'reason': 'No git work tree at the target; history facts are unavailable for this snapshot.'}
+    if not available(target): return _no_history('No git work tree at the target; history facts are unavailable for this snapshot.')
+    if NO_COMMIT_YET in git(target, ['log', '-1']).stderr:
+        return _no_history('The repository has no commit yet; history facts are unavailable for this snapshot.')
     raw = read_log(target, max_commits)
     input_sha = digest(raw.encode('utf-8'))
     facts, summary = extract(target, raw, input_sha, Settings(max_commits, **options), prefix_of(target))

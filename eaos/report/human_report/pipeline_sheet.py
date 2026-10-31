@@ -38,7 +38,7 @@ def flowchart(section, pipeline):
     parts = [_edge(e, at) for e in section['edges'] if e['pipeline'] == pipeline['id'] and e['from'] in at and e['to'] in at]
     parts += [_stage_box(s, *at[s['id']]) for s in stages]
     return (f'<svg class="ps-svg" data-literal="pipeline stage labels and evidence" viewBox="0 0 {width} {height}" role="img" direction="ltr" '
-            f'aria-label="{esc(pipeline["title"])}: {M.pipeline_counts(section)['drawn'][pipeline['id']]} stages">'
+            f'aria-label="{esc(pipeline["title"])}: {M.pipeline_counts(section)["drawn"][pipeline["id"]]} stages">'
             '<defs><marker id="ps-arrow" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="6" markerHeight="6" orient="auto">'
             '<path d="M0,0 L8,4 L0,8 z" class="ps-arrow"/></marker></defs>' + ''.join(parts) + '</svg>')
 
@@ -87,7 +87,8 @@ def stage_table(section, pipelines):
         f'<td>{names(s["inputs"])}</td><td>{names(s["outputs"])}</td><td>{", ".join(code(t) for t in s["tools"][:4])}</td>'
         f'<td>{code(where(s["entry"]))}</td></tr>' for s in rows[:MOST_ROWS])
     more_count = M.pipeline_counts(section, pipelines, MOST_ROWS)['more']
-    more = (f'<p class="muted small">{both(f"و{number(more_count, "more pipeline stages in the Studio")} مرحلة أخرى في الاستوديو.", f"and {number(more_count, "more pipeline stages in the Studio")} more stages in the Studio.")}</p>'
+    more_said = number(more_count, 'more pipeline stages in the Studio')
+    more = (f'<p class="muted small">{both(f"و{more_said} مرحلة أخرى في الاستوديو.", f"and {more_said} more stages in the Studio.")}</p>'
             if more_count else '')
     head = ''.join(f'<th>{both(ar, en)}</th>' for ar, en in (('خط المعالجة', 'Pipeline'), ('المرحلة', 'Stage'), ('النوع', 'Kind'),
                                                              ('تأخذ', 'Takes'), ('تعطي', 'Gives'), ('الأدوات', 'Tools'), ('الدليل', 'Evidence')))
@@ -136,7 +137,7 @@ def _sheet_body(ar, en, product, counts, drawn):
     """The sheet around the drawn pipelines: those inside stages, the numbers, the stage table and the gap."""
     subs = [p for p in product if p.get('parent')]
     sub_line = (f'<p class="small">{both("خطوط معالجة داخل مراحلها:", "Pipelines inside its stages:")} '
-                + ', '.join(f'{code(p["title"])} ({number(counts['stages'][p['id']], "stages in this pipeline")})' for p in subs) + '</p>') if subs else ''
+                + ', '.join(f'{code(p["title"])} ({number(counts["stages"][p["id"]], "stages in this pipeline")})' for p in subs) + '</p>') if subs else ''
     confidence = counts['confidence']
     facts = (f'<p class="muted small">{both("الثقة", "Confidence")} {number(confidence, "pipeline confidence percent")}% · '
              + ' · '.join(f'{both(a, b)} {number((en["counts"].get(key) or {}).get("value", "—"), f"pipeline {key}")}'

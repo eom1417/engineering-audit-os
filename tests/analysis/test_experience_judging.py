@@ -46,7 +46,9 @@ def attempt(goal):
 
 class JudgingTests(unittest.TestCase):
     def setUp(self):
-        self.report = Path(self.enterContext(tempfile.TemporaryDirectory()))
+        scratch = tempfile.TemporaryDirectory()
+        self.addCleanup(scratch.cleanup)
+        self.report = Path(scratch.name)
         journeys = self.report / judging.JOURNEYS
         journeys.mkdir(parents=True)
         for name, journey in (('buyer--order', ORDER), ('buyer--profile', PROFILE)): (journeys / f'{name}.json').write_text(json.dumps(journey))

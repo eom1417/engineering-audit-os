@@ -44,8 +44,9 @@ def api_table(sm):
         rows.append(f'<tr data-search="{esc((a["key"] + " " + " ".join(callers) + " " + " ".join(a["features"])).lower())}"><td>{lit(a["method"])}</td><td>{lit(a["path"])}</td>'
                     f'<td>{some(sorted(set(reached)), "more pages")}<div class="small muted">{some(callers, "more files", 3)}</div></td>'
                     f'<td>{handler}</td><td>{some(data, "more tables and services")}</td><td>{some(a["features"], "more features", 3)}</td></tr>')
+    apis = num(M.collection_count(sm['apis']), 'APIs in the table')
     return (f'<details class="card" data-part="system-apis"><summary>{T("كل نقاط API كجدول", "Every API as a table")} '
-            f'<span class="g-meta">{T(f"النقاط: {num(M.collection_count(sm["apis"]), "APIs in the table")}", f"{num(M.collection_count(sm["apis"]), "APIs in the table")} APIs")}</span></summary>'
+            f'<span class="g-meta">{T(f"النقاط: {apis}", f"{apis} APIs")}</span></summary>'
             f'<div class="scroll"><table class="tbl sm-table"><thead><tr><th>{T("الطريقة", "Method")}</th><th>{T("المسار", "Path")}</th>'
             f'<th>{T("من يستدعيها (صفحات، ثم ملفات)", "Called from (pages, then files)")}</th><th>{T("ما يجيبها في الخادم", "Server handler")}</th>'
             f'<th>{T("الجداول والخدمات", "Tables and services")}</th><th>{T("الميزة", "Feature")}</th></tr></thead><tbody>{"".join(rows)}</tbody></table></div></details>')
