@@ -135,6 +135,11 @@ def subjects(data):
     return [page['id'] for page in data['pages']]
 
 
+def narrowed(data, asked):
+    """The bundle with only the pages of `asked` (a cheaper tier called them clean: the deep tier looks at them alone)."""
+    return {**data, 'pages': [page for page in data['pages'] if page['id'] in asked]}
+
+
 def known(report, data):
     return {page['id'] for page in data['pages']} | set(_pictures(data))
 

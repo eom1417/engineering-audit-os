@@ -86,6 +86,24 @@ class Escalation(unittest.TestCase):
         self.assertEqual(next(d for d in record['decisions'] if d['subject'] == 'TASK-001')['decision'], 'confirm',
                          'a cheaper model never closes a card alone')
 
+    def test_the_deep_tier_is_asked_only_about_what_the_cheaper_one_would_close(self):
+        # EAOS on itself (2026-10-30): 28 rejects of 211 cards asked all 211 again on the deep tier, 4 of triage's 10 minutes
+        asked = []
+        confirm = lambda card: decision(card, 'confirm', [card], detail={'harmed': 'the app users'})
+
+        class Recording(Tiered):
+            def __call__(self, name, prompt, schema):
+                asked.append((self.tier, schema['properties']['decisions']['items']['properties']['subject']['enum']))
+                return super().__call__(name, prompt, schema)
+
+        def make(tier):
+            if tier == 'light': return {'summary': '', 'decisions': [decision('TASK-001', 'reject', ['TASK-001']), confirm('TASK-002'), confirm('TASK-003')]}
+            return {'summary': '', 'decisions': [confirm('TASK-001')]}
+        record = self.triage(Recording(make))
+        self.assertEqual(asked[-1], ('deep', ['TASK-001']))
+        self.assertEqual({d['subject']: d['decision'] for d in record['decisions'] if d['subject'].startswith('TASK')},
+                         {'TASK-001': 'confirm', 'TASK-002': 'confirm', 'TASK-003': 'confirm'})
+
     def test_a_tier_that_fails_is_asked_again_one_tier_up_before_the_rules_decide(self):
         def make(tier):
             if tier == 'light': raise ValueError('not the asked JSON')
