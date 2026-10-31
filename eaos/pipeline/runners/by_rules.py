@@ -202,6 +202,15 @@ def layers(context):
             'gaps': summary['gaps'], 'endpoints': summary['endpoints']}
 
 
+def _proposed_tokens(context):
+    """The tokens the look calls for, for the person and the card: design/tokens.proposed.json, W3C 2025.10."""
+    from ...analysis.assessments.one_source_look import proposed
+    tokens = proposed(context.out)
+    if not tokens: return
+    (context.out / 'design').mkdir(parents=True, exist_ok=True)
+    (context.out / 'design' / 'tokens.proposed.json').write_text(json.dumps(tokens, ensure_ascii=False, indent=1) + '\n', encoding='utf-8')
+
+
 def _guide_draft(context):
     """The project's extension guide as EAOS would write it, in extending/ of the report (M18.3), for its card and batch."""
     from ...analysis.repair import project_guide
@@ -265,6 +274,7 @@ def reports(context):
     from ...report.documents.start_here import project_name, start_here
     diagrams(context.out)
     _guide_draft(context)
+    _proposed_tokens(context)
     start_here(context.out, context.language, project_name(context.target))
     return write(context.out, context.language)
 

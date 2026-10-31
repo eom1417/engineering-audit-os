@@ -10,6 +10,7 @@ from pathlib import Path
 from . import layers
 from ...core.language import plain
 from ...core.language.words import who_decided
+from ...analysis.claims.ledger import detector_of, measured_detectors
 from ...core.contracts.decisions import unattended
 from ...analysis.target_state.repair_or_rebuild import decide
 from .run import big_gaps
@@ -25,8 +26,15 @@ def summary_counts(report):
     ready = [t for t in tasks if unattended(t)]
     # A tool that broke, said with the counts: the check goes on from it (audit again_from=engines engines=[...]).
     engines = _read_json(Path(report) / 'run-manifest.json', {}).get('stages', {}).get('engines') or {}
-    return {'problems': len(tasks), 'ready': len(ready), 'decide': len(tasks) - len(ready),
+    return {'problems': len(tasks), 'ready': len(ready), 'decide': len(tasks) - len(ready), 'unmeasured': _unmeasured(report, tasks),
             'failed_tools': sorted((engines.get('detail') or {}).get('tools_failed') or {})}
+
+
+def _unmeasured(report, tasks):
+    """How many cards come from a detector whose precision was not measured yet: said, never taken as measured."""
+    claims = {claim.get('id'): claim for claim in (_read_json(Path(report) / 'dossier.json', {}) or {}).get('claims') or ()}
+    shown = measured_detectors()
+    return sum(1 for task in tasks if task.get('claim_id') in claims and detector_of(claims[task['claim_id']]) not in shown)
 
 
 def _say(ar, arabic, english): return arabic if ar else english
@@ -46,7 +54,9 @@ def _summary_lines(counts, ar):
             _say(ar, f"- **{counts['ready']}** منها يستطيع EAOS إصلاحها آليًا، ويتحقق بعد كل إصلاح أن برنامجك لم ينكسر.",
                  f"- **{counts['ready']}** of them EAOS can fix automatically, checking after each fix that your app still works."),
             _say(ar, f"- **{counts['decide']}** تحتاج قرارك أو نظرة شخص قبل أي تغيير.",
-                 f"- **{counts['decide']}** need your decision, or a person's look, before any change."), '',
+                 f"- **{counts['decide']}** need your decision, or a person's look, before any change."),
+            *([_say(ar, f"- **{counts['unmeasured']}** منها من كواشف لسا ما انقاست دقتها: اعتبرها مرشحة.",
+                    f"- **{counts['unmeasured']}** come from detectors whose precision is not measured yet: take them as candidates.")] if counts.get('unmeasured') else []), '',
             '## ' + _say(ar, 'أهم المشاكل', 'The main problems'), '']
 
 

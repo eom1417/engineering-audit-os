@@ -160,7 +160,7 @@ _DECLARED = (
           description="The person's own rules, each by its machine guard: held, broken and where, or not guarded and why (M16)"),
     Stage('load', produces=('load-model.json',), requires=('facts',), reads=('engines', 'baseline'),
           description='A cost record per entry point, with a stated projection at 1000x'),
-    Stage('claims', produces=('dossier.json', 'README.md'), requires=('facts', 'features', 'measure', 'load'), reads=('layers', 'layers_trial', 'experience', 'policy', 'rules'),
+    Stage('claims', produces=('dossier.json', 'README.md'), requires=('facts', 'features', 'measure', 'load'), reads=('layers', 'layers_trial', 'experience', 'policy', 'screens', 'rules'),
           description='Facts interpreted into a ledger of falsifiable claims'),
     Stage('probe', produces=('probes.json',), requires=('claims',), amends=('dossier.json',),
           description='Settle every claim whose truth can be decided mechanically'),

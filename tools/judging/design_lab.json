@@ -1,0 +1,23 @@
+{
+ "about": "The design lab (M18.6): open-source apps pinned for the stacks the corpus lacks, development data only. tools/corpus.json holds the others; M17's strangers stay unseen.",
+ "apps": [
+  {
+   "name": "material-kit-react",
+   "repository": "https://github.com/minimal-ui-kit/material-kit-react",
+   "commit": "69e780a40c455d664b2e13c525faf1d492a072a7",
+   "stack": "a component kit (MUI)"
+  },
+  {
+   "name": "square-react-dashboard",
+   "repository": "https://github.com/heysafronov/square-react-dashboard",
+   "commit": "f12759a0980299583134e6e7b9ba5d34521d47d5",
+   "stack": "CSS-in-JS (styled-components)"
+  },
+  {
+   "name": "taxonomy",
+   "repository": "https://github.com/shadcn-ui/taxonomy",
+   "commit": "298a8857c7128a0d121e7f699dfd729f23b3966d",
+   "stack": "Tailwind and shadcn"
+  }
+ ]
+}

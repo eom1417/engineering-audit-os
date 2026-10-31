@@ -71,6 +71,13 @@ def detector_of(claim):
     return 'unattributed'
 
 
+def measured_detectors():
+    """The detectors whose precision was measured and passed: a card from any other is shown, not yet measured."""
+    path = verdicts_path()
+    if path is None or not path.is_file(): return set()
+    return set(read(path).get('shown') or ())
+
+
 def verdicts_path():
     """The verdicts in force: $EAOS_DETECTOR_VERDICTS when it is set (empty: none, every detector shown), else the
     packaged file. The unit tests check each detector on its own fixture, so they run with none."""
