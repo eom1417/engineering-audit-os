@@ -46,6 +46,7 @@ engineering-audit-os/
       ideal/               the ideal, planned with a model on top of the rules
       nodes/               the AI nodes of the pipeline, declared as data, on framework.py (triage, plan orderer, ...)
     analysis/              judging by rules (nothing at the root but __init__.py)
+      design/              what the screens are made of (the inventory), its cards, and raw values named as tokens
       understanding/       what the program is: features, aspects, measurements, the dossier, the owner's intake and
                            engagement, the bounded source the model reads
       claims/              one ledger of everything asserted: claims from facts, records, layers, the repository, the

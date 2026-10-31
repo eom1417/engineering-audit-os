@@ -26,7 +26,7 @@ from .. import agent_tools, guided, catalog as journeys
 from . import look as build_look
 from .blueprint import (_plan, _state, answered, blueprint_answer, blueprint_design, blueprint_spec, blueprint_start,  # noqa: F401
                         folder, open_blueprint, publish, studio_build)
-from .checks import _checks, _git, _milestone_proof
+from .checks import _checks, _git, _milestone_proof, name_the_look
 from .look import read as _read
 
 from ...core.project import state as project_state
@@ -325,6 +325,7 @@ def _not_built(state):
 def _held(state, root, build, last, progress):
     """(what holds a milestone back, the finished product's look): its gates; the last one's requirements and screens too,
     pictured before it is delivered."""
+    name_the_look(root)
     problems = _gates(state, root, closing=last, progress=progress)
     if not last: return problems, None
     problems += _unbuilt(state, build)

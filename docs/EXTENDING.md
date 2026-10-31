@@ -107,6 +107,11 @@ piped answer stops at 64 KB, and prefer `impact` or `cypher` to `context`, which
 - **Test:** `tests/guards/test_studio_assets.py` (built from today's source, within its budgets), ESLint through
   `tools/quality.sh`; a split proved by `console/tools/same.cjs`.
 
+### A kind of value or part of the look
+- **Read:** `eaos/data/design-catalog.json`, `eaos/analysis/design/inventory.py`, `eaos/templates/screens/look.cjs`.
+- **Touch:** the kind in the catalogue (its words and properties; a part's role, in `roleOf` of `look.cjs` when no tag or ARIA role tells it). A value the codemod names: `eaos/analysis/design/tokens_codemod.py`. A card: `eaos/analysis/design/findings.py`, hidden until judged.
+- **Test:** `tests/analysis/test_design_inventory.py`, `tests/analysis/test_tokens_codemod.py`, `tests/live/test_look_oracle.py`; then `tools/judging/tokens_proof.py` on the lab.
+
 ### A word
 - **Read:** `eaos/data/words.json`, `eaos/core/language/words.py`.
 - **Touch:** every form beside the others in `words.json` (Arabic and English); a sentence composed with values stays

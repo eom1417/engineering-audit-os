@@ -69,6 +69,16 @@ class TokensCodemod(unittest.TestCase):
         self.assertEqual(drawn['home'], 'src/index.html')
         self.assertIn('<style>:root {', drawn['files']['src/index.html'])
 
+    def test_a_build_names_what_its_cards_wrote_and_commits_it(self):
+        import subprocess
+        from eaos.journeys.build_from_plan.checks import _git, name_the_look
+        self.files(src__app_css='.a{color:#111111}')
+        for argv in (['init', '-q'], ['add', '-A'], ['-c', 'user.name=t', '-c', 'user.email=t@t', 'commit', '-qm', 'one']): _git(self.root, *argv)
+        name_the_look(self.root)
+        self.assertIn('var(--color-text-1)', (self.root / 'src/app.css').read_text())
+        self.assertIn('tokens file', subprocess.run(['git', '-C', str(self.root), 'log', '-1', '--format=%s'], capture_output=True, text=True).stdout)
+        self.assertEqual(_git(self.root, 'status', '--porcelain').stdout, '')
+
     def test_apply_writes_the_files_and_the_tokens_file_and_a_data_folder_is_left(self):
         names = self.files(src__app_css='.a{color:#111}', dist__x_css='.a{color:#222}', tests__fixtures__a_css='.a{color:#333}')
         written = codemod.apply(self.root, codemod.plan(self.root, names))

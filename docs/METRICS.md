@@ -6,7 +6,7 @@ The numbers of EAOS, measured at each milestone end, oldest first. `tools/metric
 assistant (`tools/*_proof.py`) measure the journeys. Numbers are compared with the section before; a worse number
 needs its reason here.
 
-Latest: **0.0.89**, M16 (below). M7 (0.0.79) has no section of its own: what it changed is proved by the
+Latest: **0.0.90**, M18 (below). M7 (0.0.79) has no section of its own: what it changed is proved by the
 fix proof in the golden trial, not by a number.
 
 ## Baseline: 0.0.71 (2026-10-23), EAOS's own check of `develop`
@@ -213,6 +213,20 @@ The simulated users on three corpus apps of different kinds (`tools/experience_p
 
 The short simulation adds 11-62 s and 1-7 light calls to a complete check and confirmed nothing on these runs; the whole
 simulation found one real failure a person would meet. The replays cost nothing and are green.
+
+## After M18: 0.0.90 (2026-10-31), the design library and the guide
+
+| Measure | Value |
+|---|---|
+| Reading a page's look, the Studio (about 250 elements, hover, focus and pressed forced on the interactive ones) | **0.2 to 0.4 s** a page, about 150 KB saved |
+| The oracle on the baseline (`tools/judging/look_proof.py`) | a token kept; one colour off by one **refused**, which the lock's pictures passed; the same change declared kept |
+| Design batches, no token (`tools/judging/tokens_proof.py`) | plain CSS **kept** (agreed merges too), SCSS **kept**, MUI **kept**, Tailwind **kept**; styled-components not proved: its app needs an assistant to start |
+| The Studio's raw values | **0** (the codemod finds none) |
+| The inventory on the Studio, four pages | **11 looks for 44 buttons**, 6 for 45 links |
+| The guide, same tasks with and without, 2 runs a side | 21% fewer tokens on three small apps (target 30%, **not met**), 32% fewer files read, the same correctness; **-9%** on one large project |
+| EAOS's own guide (`docs/EXTENDING.md`) | 41% fewer tokens (target 40%) |
+| Tools | 43 to 37; none new |
+| Not measured | the whole check's time against the 10% budget (a full check on EAOS costs about $28 and 75 minutes); the inventory cards' precision (hidden until 20 are judged) |
 
 ## After M16: 0.0.89 (2026-10-28), the person's own rules
 

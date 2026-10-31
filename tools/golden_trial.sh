@@ -62,6 +62,9 @@ PY
 ( cd "$W/baseline" && EAOS_DETECTOR_VERDICTS="$W/verdicts.json" EAOS_SIGN_IN_WAIT=30 EAOS_OUTPUT="$W/baseline-output" "$EAOS" check --run-app --assistant none --lang en --watch >"$W/baseline.log" 2>&1 ) \
   || { tail -40 "$W/baseline.log"; exit 1; }
 "$(dirname "$EAOS")/python" "$HERE/tools/detection_baseline.py" "$W/baseline-output"
+# The style oracle at the gate, and a real design batch (M18.8, M18.18): before the fix proof, whose batch stays open.
+EAOS_DETECTOR_VERDICTS="$W/verdicts.json" EAOS_OUTPUT="$W/baseline-output" "$(dirname "$EAOS")/python" "$HERE/tools/judging/look_proof.py" "$W/baseline"
+EAOS_DETECTOR_VERDICTS="$W/verdicts.json" EAOS_OUTPUT="$W/baseline-output" "$(dirname "$EAOS")/python" "$HERE/tools/judging/tokens_proof.py" "$W/baseline" --merge
 # The fix proof (M7.0): a real batch on it, where one sound fix reaches the branch and every breaking one is refused.
 EAOS_DETECTOR_VERDICTS="$W/verdicts.json" "$(dirname "$EAOS")/python" "$HERE/tools/fix_proof.py" "$W/baseline"
 # The clean twin (M6.0, M6.12): the same app done right, checked the same way; any layer finding on it is refused.

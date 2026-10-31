@@ -1,5 +1,23 @@
 # Changelog
 
+## 0.0.90 (2026-10-31)
+
+M18, the design library and the extension guide. A real project's look had grown by hand: its buttons drawn many ways, its colours a shade apart, and nothing a
+fix could be held to: at the lock's tolerance a colour moved by one level passed unseen. EAOS now reads what the screens are made of from the running page, names
+every raw value in one tokens file with no model asked, and keeps that change only when it proves, element by element and state by state, that nothing looks different.
+
+- **One tool per job:** 43 tools to 37; CodeGraph, Enola, Trivy, CodeCharta, Temurin and Emerge retired, the code map EAOS's own.
+- **The guide:** `docs/EXTENDING.md`, held by a guard; every project gets its own from its layers and how it grew: a draft and a card in a check, kept by every fix batch and build.
+- **The style oracle:** every element's computed look in every state (`look.cjs`, `look_oracle.py`), a gate for a batch that declares its look.
+- **The inventory:** "buttons: 11 looks", values, near colours, formats, two libraries for one job: REPORT.html's "Your design library", `eaos design`, MCP `design`, `design/gallery.html`.
+- **Design batches:** `design_propose`, `design_make`: raw values named as tokens, what the person agrees to merge moved. Proved on plain CSS, SCSS, MUI and Tailwind.
+- **Honest reports:** "automatic" only for what the machine fixes and proves; a card says when its detector is not measured; no gap for a database an app does not have.
+- **Precision from judged labels:** `tools/judging/precision.py`.
+
+Not done, said plainly: a CSS-in-JS app (styled-components) stayed unproved, its app needing an assistant to start; values in MUI's `sx` and theme are not named; the cards of the
+inventory stay hidden until judged (bar: 20); components, formats and behaviours have no codemod: their fix is the assistant's; the guide saves 21% of the tokens on small apps
+against a target of 30%, and none on the one large project measured; behaviour probes, flows and dead CSS wait.
+
 ## 0.0.89 (2026-10-28)
 
 M16, the person's own rules. Behind vibe coding a person says the same requirement again and again ("the data lives
