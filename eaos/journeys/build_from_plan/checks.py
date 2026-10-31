@@ -68,6 +68,17 @@ def _run_script(root, env, scripts, script, say):
     return None
 
 
+def name_the_look(root):
+    """A project is born with one tokens file (M18.24): before a milestone's gates the values its cards wrote by hand are named, no model asked, as
+    one commit the gates then judge. What the codemod cannot place is left for the design review."""
+    from ...analysis.design import tokens_codemod
+    from ...analysis.repair.project_guide import tracked
+    drawn = tokens_codemod.plan(root, tracked(root))
+    if drawn['refused']: return
+    _git(root, 'add', '--', *tokens_codemod.apply(root, drawn))
+    _git(root, '-c', 'user.name=EAOS', '-c', 'user.email=eaos@localhost', 'commit', '-q', '-m', "The look's values named in one tokens file (EAOS)")
+
+
 def _milestone_proof(state, root, out, step, problems):
     """`problems` with what the repository's craft adds at a milestone's proof; none left, the extension guide of what is
     built so far (M18.3) is written and committed on the copy. `step`: (the card, or None at the proof; the last milestone?)."""
