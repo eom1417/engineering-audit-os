@@ -741,6 +741,39 @@
    }
   },
   {
+   "id": "design",
+   "tool": "design",
+   "group": "understand",
+   "label": {
+    "en": "Your design library",
+    "ar": "مكتبة التصميم"
+   },
+   "description": {
+    "en": "What your screens are really made of.",
+    "ar": "مما تتكون شاشاتك فعليًا."
+   },
+   "mode": "direct",
+   "needs_assistant": false,
+   "irreversible": false,
+   "needs_consent": false,
+   "returns_job": false,
+   "changes_code": false,
+   "inputs": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+     "project": {
+      "type": [
+       "string",
+       "null"
+      ],
+      "description": "The project folder; the Studio fills it with the project it serves."
+     }
+    },
+    "required": []
+   }
+  },
+  {
    "id": "design_brief",
    "tool": "design_brief",
    "group": "understand",
@@ -996,6 +1029,95 @@
     "properties": {
      "person_agreed": {
       "type": "boolean"
+     },
+     "project": {
+      "type": [
+       "string",
+       "null"
+      ],
+      "description": "The project folder; the Studio fills it with the project it serves."
+     }
+    },
+    "required": []
+   }
+  },
+  {
+   "id": "design_propose",
+   "tool": "design_propose",
+   "group": "setup",
+   "label": {
+    "en": "See what naming your look would do",
+    "ar": "شوف وش يسوي توحيد القيم"
+   },
+   "description": {
+    "en": "The raw values it would name as tokens, in which files; nothing is written.",
+    "ar": "القيم المكتوبة باليد اللي بيحولها لمتغيرات، وفي أي ملفات؛ وما ينكتب شي."
+   },
+   "mode": "direct",
+   "needs_assistant": false,
+   "irreversible": false,
+   "needs_consent": false,
+   "returns_job": false,
+   "changes_code": false,
+   "inputs": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+     "agreed": {
+      "type": [
+       "array",
+       "null"
+      ],
+      "items": {
+       "type": "object"
+      },
+      "description": "Values the person agreed to merge: {from, to}."
+     },
+     "project": {
+      "type": [
+       "string",
+       "null"
+      ],
+      "description": "The project folder; the Studio fills it with the project it serves."
+     }
+    },
+    "required": []
+   }
+  },
+  {
+   "id": "design_make",
+   "tool": "design_make",
+   "group": "setup",
+   "label": {
+    "en": "Name your look's values",
+    "ar": "حوّل قيم الشكل لمتغيرات"
+   },
+   "description": {
+    "en": "On a branch of its own, no assistant asked; kept only when proved that nothing looks different but what you agreed.",
+    "ar": "في فرع لحاله، بدون مساعد؛ وما يبقى إلا إذا انثبت إن الشكل ما تغيّر إلا باللي وافقت عليه."
+   },
+   "mode": "direct",
+   "needs_assistant": false,
+   "irreversible": false,
+   "needs_consent": true,
+   "returns_job": true,
+   "changes_code": true,
+   "inputs": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+     "person_agreed": {
+      "type": "boolean"
+     },
+     "agreed": {
+      "type": [
+       "array",
+       "null"
+      ],
+      "items": {
+       "type": "object"
+      },
+      "description": "Values the person agreed to merge: {from, to}."
      },
      "project": {
       "type": [

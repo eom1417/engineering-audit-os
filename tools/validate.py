@@ -5,7 +5,7 @@ import json
 R=Path(__file__).resolve().parents[1]
 
 # Files whose only home is the package itself: there is no canonical copy elsewhere to go stale against.
-PACKAGED_OWN=['errors.json','words.json','intents.json','toolchain.json','stacks.json','product-standard.json','detector-verdicts.json','studio-actions.json','pipeline-rules.json','design.json','journeys.json','translation-memory.json']
+PACKAGED_OWN=['design-catalog.json','ui-libraries.json','errors.json','words.json','intents.json','toolchain.json','stacks.json','product-standard.json','detector-verdicts.json','studio-actions.json','pipeline-rules.json','design.json','journeys.json','translation-memory.json']
 PACKAGED_ROOTS=['schemas','schemas/artifacts']
 # Packaged copies of files kept elsewhere in the repository: (packaged name, source).
 PACKAGED_COPIES=[('studio-actions.json','docs/studio-actions.json')]

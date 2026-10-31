@@ -104,7 +104,7 @@ def gates(batch, name):
         from ....live.behavior.lock import LockPass, verify_lock
         look = batch.get('look')
         verdict = verify_lock(batch['report'], batch['root'], batch['runtime'],
-                              LockPass(name, declared=batch['declared'], known=batch.get('known') or (), intended=batch.get('intended'), exact=look == []))
+                              LockPass(name, declared=batch['declared'], known=batch.get('known') or (), intended=batch.get('intended')))
         if verdict['failed']:      # every screen that differs, at once: one per run cost a batch hours
             from ....live.behavior.lock import failing_tests
             return (f"the behaviour lock broke on {verdict['failed']} of {verdict['specs']} specs: "

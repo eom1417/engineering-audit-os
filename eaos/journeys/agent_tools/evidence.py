@@ -136,6 +136,16 @@ def structure(project=None):
                           if (report / name).is_file()]}
 
 
+def design(project=None):
+    """What the project's screens are made of (design/inventory.json), pictures aside: how many looks per part, values per kind."""
+    state = state_of(project)
+    drawn = _read(_report(state) / 'design' / 'inventory.json') if (_report(state) / 'design' / 'inventory.json').is_file() else None
+    if not drawn: return {'status': 'not_read', 'what_now': 'The screens were not read: the app must run in a check (run_setup, then audit).'}
+    return {'pages': drawn['pages'], 'components': {role: {'count': part['count'], 'looks': part['distinct']} for role, part in drawn['components'].items()},
+            'values': {kind: part['distinct'] for kind, part in drawn['values'].items()}, 'near_colours': drawn['near_colours'][:10],
+            'formats': drawn['formats'], 'libraries': drawn['libraries'], 'motion': drawn['motion']}
+
+
 def _milestone_row(m, tasks, whole, tried_card, where):
     """One milestone with its cards (of `tasks`, by id): all of them when `whole`, else the first 25 and how many more."""
     cards = [tasks[i] for i in m['tasks'] if i in tasks]

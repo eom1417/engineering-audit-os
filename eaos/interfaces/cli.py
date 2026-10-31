@@ -197,6 +197,7 @@ def _rule_commands(command):
 def _card_commands(command):
     """The problems and the verbs on them, the branches, and the history."""
     from ..core.project.runs import contract
+    command('design', "What the screens are really made of: each part's looks, each kind's values, formats, libraries")
     q = command('problems', 'What the check found, most important first')
     from ..analysis.presentation.model import AREAS, SEVERITIES
     q.add_argument('--area', choices=AREAS, help="only this area, as the Studio's filter")

@@ -215,11 +215,11 @@ act('ac-start-check', async el => {
 const META = {
   audit: { group: 'check', icon: 'retry', opens: 'check' }, tools_check: { group: 'check', icon: 'tool' }, assistant_check: { group: 'check', icon: 'ai' },
   choose_branch: { group: 'check', icon: 'branch', opens: 'choose-branch' }, accept: { group: 'check', icon: 'seal', link: '/waiting' }, undo: { group: 'check', icon: 'seal', link: '/waiting' },
-  context_propose: { group: 'answers', icon: 'book' }, context_make: { group: 'build', icon: 'book' }, project_map: { group: 'build', icon: 'layers' },
+  design_propose: { group: 'answers', icon: 'layers' }, design_make: { group: 'build', icon: 'layers' }, context_propose: { group: 'answers', icon: 'book' }, context_make: { group: 'build', icon: 'book' }, project_map: { group: 'build', icon: 'layers' },
   run_setup: { group: 'app', icon: 'app' }, run_try: { group: 'app', icon: 'ai' }, safety_net: { group: 'app', icon: 'screen' },
   blueprint_start: { group: 'build', icon: 'folder' }, extend_start: { group: 'build', icon: 'plus' }, build_start: { group: 'build', icon: 'layers' },
   replan_ideal: { group: 'plan', icon: 'ai' }, run_nodes: { group: 'plan', icon: 'ai' },
-  status: { group: 'answers', icon: 'status' }, overview: { group: 'answers', icon: 'status' }, menu: { group: 'answers', icon: 'activity' },
+  design: { group: 'answers', icon: 'layers', link: '/report' }, status: { group: 'answers', icon: 'status' }, overview: { group: 'answers', icon: 'status' }, menu: { group: 'answers', icon: 'activity' },
   findings: { group: 'answers', icon: 'problems', link: '/problems' }, finding: { group: 'answers', icon: 'problems' }, impact: { group: 'answers', icon: 'map' },
   ask: { group: 'answers', icon: 'book' }, branches: { group: 'answers', icon: 'branch', link: '/project/branches' }, structure: { group: 'answers', icon: 'layers', link: '/report' },
   design_brief: { group: 'answers', icon: 'book' }, design_choose: { group: 'expert' }, plan: { group: 'answers', icon: 'layers', link: '/problems/plan' },

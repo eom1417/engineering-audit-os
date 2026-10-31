@@ -52,15 +52,27 @@ def _said(name, row):
     return f"{name}: {row['key']} ({row['state']}) {row['property']} {row['from']} -> {row['to']}"
 
 
-def judged(original, now, allowed=None):
+def _noisy(original, control):
+    """{(page, element)} that differ with no change at all, read on the code as it was: what moves by itself on those pages (a live value, a late part)."""
+    names = {path.name for path in Path(control).glob('*.json')}
+    return {(name[:-5], row['key']) for name in names if (Path(original) / name).is_file()
+            for row in compare(_read(Path(original) / name), _read(Path(control) / name))}
+
+
+def _beyond(original, now, name, allowed, noisy):
+    return [_said(name[:-5], row) for row in compare(_read(original / name), _read(now / name), allowed) if (name[:-5], row['key']) not in noisy]
+
+
+def judged(original, now, allowed=None, control=None):
     """What the pages saved in `now` changed against `original` beyond `allowed`, in words; '' when nothing did. A page with no
-    recording or no second reading proves nothing and is said."""
+    recording or no second reading proves nothing and is said. `control`: a reading of the unchanged code, whose differences are the pages' own."""
+    noisy = _noisy(original, control) if control else set()
     original, now = Path(original), Path(now)
-    names = {path.name for path in original.glob('*.json')}
+    names, read = {path.name for path in original.glob('*.json')}, {path.name for path in now.glob('*.json')}
     if not names: return 'nothing recorded to compare with: check the project again'
-    said = [f'{name}: not read again' for name in sorted(names - {path.name for path in now.glob('*.json')})]
-    for name in sorted(names & {path.name for path in now.glob('*.json')}):
-        said += [_said(name[:-5], row) for row in compare(_read(original / name), _read(now / name), allowed)]
+    readable = {path.name for path in Path(control).glob('*.json')} if control else names      # a page that fails on the unchanged code too proves nothing either way
+    said = [f'{name}: not read again' for name in sorted((names & readable) - read)]
+    for name in sorted(names & read): said += _beyond(original, now, name, allowed, noisy)
     return '' if not said else f"{len(said)} undeclared change(s) of the look: " + '; '.join(said[:SHOWN])
 
 
@@ -71,9 +83,12 @@ def declared(cards):
     return None if not told else [rule for rules in told for rule in rules]
 
 
-def look_changed(runtime, name, look):
-    """What a pass `name` changed beyond `look`, in words, '' when it did not, or when the batch says nothing of the look."""
+def look_changed(runtime, name, look, control=None):
+    """What a pass `name` changed beyond `look`, in words, '' when it did not, or when the batch says nothing of the look. The
+    reading is kept when it fails with no control read yet: a control pass may clear it; `control`: that pass, then removed too."""
     saved = Path(runtime) / 'behavior-lock' / 'look'
-    said = judged(saved / 'original', saved / name, look) if look is not None else ''
-    shutil.rmtree(saved / name, ignore_errors=True)
+    said = judged(saved / 'original', saved / name, look, saved / control if control else None) if look is not None else ''
+    if not said or control:
+        shutil.rmtree(saved / name, ignore_errors=True)
+        if control: shutil.rmtree(saved / control, ignore_errors=True)
     return said

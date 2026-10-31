@@ -249,7 +249,7 @@ class KindTests(Workspace):
                                    ('playwright-record@admin.json', (True, 'admin', ['playwright/admin.spec.ts'], None, True))])
         with mock.patch.object(behavior_lock, '_pass', side_effect=one_pass):
             behavior_lock._run_specs(None, lock, None, Path(self.tmp), behavior_lock.LockPass('intended', True))
-        self.assertFalse(ran[-1][1][-1], "a kept batch's screens recorded again never become the lock's original pictures")
+        self.assertFalse(ran[-1][1][4], "a kept batch's screens recorded again never become the lock's original pictures")
         self.assertIn({'path': 'playwright/admin.spec.ts', 'kind': 'admin', 'status': 'passed'}, recorded)
         (Path(self.tmp) / 'behavior-lock').mkdir(exist_ok=True)
         (Path(self.tmp) / 'behavior-lock/results.json').write_text(json.dumps({'results': recorded}))

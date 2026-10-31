@@ -37,6 +37,12 @@ def _finding_tools(server, reading, working, _answer):
     def structure(project: str | None = None) -> str:
         return tools.structure(project)
 
+    @server.tool(annotations=reading, description="What the project's screens are really made of: how many looks each part has (buttons, inputs, "
+                 "cards...), how many values each kind has (colours, sizes...), near colours, how dates and numbers show, two libraries for one job.")
+    @_answer
+    def design(project: str | None = None) -> str:
+        return tools.design(project)
+
     @server.tool(annotations=reading, description='The plan of fixes: milestones in order and their cards (which EAOS can fix, which '
                  'were tried). Pass a milestone id for all of its cards.')
     @_answer
@@ -126,6 +132,18 @@ def _context_tools(server, reading, working, _answer):
     @_answer
     def project_map(project: str | None = None, person_agreed: bool = False) -> str:
         return tools.project_map(project=project, person_agreed=person_agreed)
+
+    @server.tool(annotations=reading, description="What a batch of the look would do, nothing written: the raw values it names as tokens, in which files, where the one tokens "
+                 "file goes. agreed: [{from, to}], values the person agreed to merge.")
+    @_answer
+    def design_propose(agreed: list | None = None, project: str | None = None) -> str:
+        return tools.design_propose(project, agreed)
+
+    @server.tool(annotations=working, description="Make that batch in an isolated copy, no assistant asked, kept only when the style oracle proves nothing looks different but what "
+                 "was agreed; needs person_agreed=true after the person says yes. Returns a job.")
+    @_answer
+    def design_make(person_agreed: bool = False, agreed: list | None = None, project: str | None = None) -> str:
+        return tools.design_make(project=project, agreed=agreed, person_agreed=person_agreed)
 
     @server.tool(annotations=reading, description="What a batch of the assistants' context would do, nothing written: what the trim "
                  "archives and keeps once, the tokens saved, and the project's extension guide it writes (docs/EXTENDING.md and one "

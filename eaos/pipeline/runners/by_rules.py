@@ -202,6 +202,14 @@ def layers(context):
             'gaps': summary['gaps'], 'endpoints': summary['endpoints']}
 
 
+def _design_inventory(context):
+    """What the screens really show, from the pages the lock saved (eaos/analysis/design/inventory.py): design/inventory.json."""
+    from ...analysis.design.inventory import write as inventory
+    runtime = getattr(context, 'runtime', None)
+    if runtime:
+        inventory(Path(runtime) / 'behavior-lock' / 'look' / 'original', context.out, context.target)
+
+
 def _proposed_tokens(context):
     """The tokens the look calls for, for the person and the card: design/tokens.proposed.json, W3C 2025.10."""
     from ...analysis.assessments.one_source_look import proposed
@@ -275,6 +283,7 @@ def reports(context):
     diagrams(context.out)
     _guide_draft(context)
     _proposed_tokens(context)
+    _design_inventory(context)
     start_here(context.out, context.language, project_name(context.target))
     return write(context.out, context.language)
 
