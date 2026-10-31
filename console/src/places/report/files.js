@@ -1,9 +1,10 @@
 // The report's files (LIB-07): the report's text files (up to 400, the report_file action), each read as text in its
 // sheet (?sheet=file:<path>: at most 2 MB, never rendered) and downloaded from there; the report for people
 // (REPORT.html) opened in a tab of this browser through the open_report action.
-import { said, t, num, esc, icon, code, sheet, act, data, refresh, client, toast, closeSheetThen, offline } from 'eaos';
+import { TERMINAL, said, t, num, esc, icon, code, sheet, act, data, refresh, client, toast, closeSheetThen, offline } from 'eaos';
 import { search, count, nm, enc, matches, page } from '../kit/kit.js';
 import { read } from '../kit/reads.js';
+import { OPENED_WORDS, rebuildOutcome } from './rebuilt.js';
 
 const texts = new Map();
 /** A report file's text: read once (GET /api/report-file), null while it is read, false when it cannot be. */
@@ -60,10 +61,10 @@ act('un-openreport', async el => {
   el.disabled = true;
   const tab = window.open('', '_blank');        // in the click itself: a tab opened after an await is a blocked pop-up
   try {
-    await client.start({ action: 'open_report', inputs: { show: false } });   // rebuilt with the fixes so far; opened here, never on the server
+    const outcome = await rebuildOutcome(client, await client.start({ action: 'open_report', inputs: { show: false } }), TERMINAL);   // rebuilt with the fixes so far; opened here, never on the server
     const url = await data.reportPage();
     if (!url) throw new Error(t('un.files.unread'));
     tab.location = url;
-    closeSheetThen(() => toast(t('un.files.opened')));
+    closeSheetThen(() => toast(t(OPENED_WORDS[outcome]), { refusal: outcome !== 'done' }));
   } catch (e) { if (tab) tab.close(); el.disabled = false; toast(said(e), { refusal: true }); }
 });

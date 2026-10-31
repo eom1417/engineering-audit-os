@@ -1895,7 +1895,7 @@
   "open_report": {
    "annotations": {
     "open_world_hint": false,
-    "read_only_hint": true
+    "read_only_hint": false
    },
    "input": {
     "properties": {

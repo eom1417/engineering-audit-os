@@ -1,0 +1,9 @@
+[
+ {
+  "why": "open_report rewrites the report and saves the state, so it is no longer declared read-only",
+  "approved_by": "the maintainers, in their approval of the D3 and D4 batch, 2026-10-31",
+  "breaks": [
+   "open_report: read_only_hint changed"
+  ]
+ }
+]

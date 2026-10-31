@@ -201,6 +201,9 @@
   },
   "working_branch": "str"
  },
+ "empty:mcp:build_read": {
+  "error": "str"
+ },
  "empty:mcp:context_propose": {
   "archive": "array",
   "archive_file": "str",
@@ -658,6 +661,9 @@
    "[]": "str"
   },
   "working_branch": "str"
+ },
+ "saved-0.0.90:mcp:build_read": {
+  "error": "str"
  },
  "saved-0.0.90:mcp:context_propose": {
   "archive": "array",

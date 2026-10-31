@@ -28,10 +28,8 @@ UNSAVED = ('technical/human', 'technical/progress', 'technical/behavior-lock', '
 # Tools no contract run may call, with why; a new tool that reads or writes must be named here or called below.
 NOT_CALLED = {
     'open_studio': 'starts a server',
-    'open_report': 'rewrites the report and opens a browser, though declared read-only',
     'ask': 'asks the assistant',
     'tools_find': 'searches the web',
-    'build_read': 'writes mode=build into the state, though declared read-only',
 }
 EMPTY_WRITING = (
     'accept', 'act', 'build_edit', 'build_finish', 'build_skip', 'build_start', 'context_make', 'design_choose', 'design_make',
@@ -40,7 +38,7 @@ EMPTY_WRITING = (
 WRITING_ELSEWHERE = {
     'audit': 'tests/guards/test_journey.py', 'blueprint_start': 'tests/journeys/test_blueprint.py',
     'blueprint_spec': 'tests/journeys/test_blueprint.py', 'blueprint_design': 'tests/journeys/test_blueprint.py',
-    'choose_branch': 'tests/interfaces/test_mcp.py', 'note': 'tests/interfaces/test_mcp.py',
+    'open_report': 'tests/interfaces/test_read_only_tools.py', 'choose_branch': 'tests/interfaces/test_mcp.py', 'note': 'tests/interfaces/test_mcp.py',
     'rule': 'tests/analysis/test_person_rules.py', 'runs': 'tests/interfaces/test_parity.py',
     'waiting': 'tests/interfaces/test_parity.py', 'branch_change': 'tests/interfaces/test_mcp.py',
     'check_changed': 'not locked: it reads a change the fixture does not have',

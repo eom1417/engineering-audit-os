@@ -75,7 +75,8 @@ def _report_tools(server, reading, working, _answer):
     def report_file(name: str = '', offset: int = 0, limit: int = 20000, project: str | None = None) -> str:
         return tools.report_file(name, project, offset, limit)
 
-    @server.tool(annotations=reading, description='Open the report for people (REPORT.html: project summary, gaps and risks, structure '
+    # Not read-only, for it rebuilds the report and saves the state; no destructive hint, for what it regenerates is overwritten.
+    @server.tool(annotations=reading.model_copy(update={'read_only_hint': False}), description='Open the report for people (REPORT.html: project summary, gaps and risks, structure '
                  'map, plan and progress, in plain words) in the person\'s browser, rebuilt with the fixes so far. Offer it after '
                  'the check and after each batch of fixes. All outputs are in one folder (~/EAOS/<project>).')
     @_answer
