@@ -35,7 +35,22 @@ WORDS = {   # kind: (English, Arabic, fix in English, fix in Arabic); the findin
              "{written} قيمة للشكل مكتوبة خارج ملف الـ tokens ({by_kind}){seen_ar}",
              'Keep every colour, font size, spacing, radius, shadow and z-index in one tokens file ({home}) and use only its names.',
              'خلّ كل لون وحجم خط ومسافة وانحناء وظل وترتيب طبقات في ملف tokens واحد ({home})، واستخدم أسماءه بس.'),
+    'looks': ("{role}: {looks} different looks for {count} on the screens",
+              "{role}: {looks} شكل مختلف لـ{count} على الشاشات",
+              'Keep the variants the design needs as one component and move the others to it; what changes on the screen is shown first and needs your yes.',
+              'خلّ الأشكال اللي يحتاجها التصميم في مكوّن واحد وانقل الباقي له؛ واللي يتغير على الشاشة ينعرض أول ويحتاج موافقتك.'),
+    'formats': ("{format} are shown in {count} forms: {forms}",
+                "{format} تنعرض بـ{count} أشكال: {forms}",
+                'Write one helper on Intl that gives the form most used, and call it everywhere; another form shown is your decision.',
+                'اكتب دالة وحدة على Intl تعطي الشكل الأكثر استخدامًا، ونادِها من كل مكان؛ وأي شكل ثاني قرارك.'),
+    'libraries': ("Two or more libraries do one job ({job}): {names}",
+                  "أكثر من مكتبة لنفس الشغلة ({job}): {names}",
+                  'Choose one, move the uses to it and remove the others.',
+                  'اختر وحدة، وانقل الاستخدامات لها، واحذف الباقي.'),
 }
+
+
+DESIGN_KINDS = ('looks', 'formats', 'libraries')
 
 
 def _seen(evidence, lang):
@@ -76,6 +91,7 @@ def _probe(finding):
     """The probe that reads the code again: CONFIRMED while the detector still finds this pattern."""
     engines = {'near_copy': ['jscpd'], 'idiom': ['ast-grep']}.get(finding['kind'], [])
     key = finding['evidence'].get('form') or finding['evidence'].get('tag') or ''
+    if finding['kind'] in DESIGN_KINDS: return None         # read from the running app: only a new check can close it
     return {'probe_type': 'graph_query', 'specification': {'query': 'one_source_present', 'kind': finding['kind'], 'key': key,
                                                            'places': sorted({p['path'] for p in finding['evidence'].get('places') or []})[:40],
                                                            'engines': engines, 'expected': 'The detector still finds this pattern.'}}

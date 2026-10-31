@@ -67,9 +67,11 @@ def context_make(project=None, private_to=None, person_agreed=False):
 def design_propose(project=None, agreed=None):
     """What a batch of the look would do: raw values named as tokens, nothing written; `agreed`, values the person agreed to merge."""
     from ..fix.tokens_batch import proposal
-    drawn = proposal(guided.source(state_of(project)), agreed)
+    state = state_of(project)
+    drawn = proposal(guided.source(state), agreed, guided.report_of(state))
     return {**drawn, 'what_now': ('Tell the person, plainly: how many values, in how many files, where the one tokens file goes; no assistant is asked and nothing '
-                                  'may look different, which EAOS proves element by element. If they agree, call design_make with person_agreed=true.')}
+                                  'may look different, which EAOS proves element by element. `you_can_agree` are near colours and sizes off the scale: show each with how '
+                                  'often it is used; only those they accept go in `agreed`, and only those may change. Then design_make with person_agreed=true.')}
 
 
 def design_make(project=None, agreed=None, person_agreed=False):

@@ -4,7 +4,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from eaos.analysis.design import inventory as design
+from eaos.analysis.design import findings, inventory as design
 from eaos.report.human_report.design import section_design
 
 BLUE = {'color': 'rgb(255, 255, 255)', 'background-color': 'rgb(0, 0, 255)', 'font-size': '14px', 'border-top-left-radius': '4px'}
@@ -16,6 +16,29 @@ def page(*buttons, text=''):
     sigs = list(dict.fromkeys(json.dumps(look) for look in buttons))
     els = {f'body:0>button:{i}': {'default': sigs.index(json.dumps(look))} for i, look in enumerate(buttons)}
     return {'sigs': [json.loads(s) for s in sigs], 'els': els, 'roles': {key: 'button' for key in els}, 'text': text, 'motion': {'durations': {'0.2s': 1}, 'easings': {'ease': 1}}, 'crops': {}}
+
+
+def drawn_of(**more):
+    return {'components': {}, 'formats': {}, 'libraries': {}, 'near_colours': [], 'values': {}, **more}
+
+
+class Cards(unittest.TestCase):
+    def test_a_part_drawn_many_ways_is_a_card_and_a_small_set_of_variants_is_not(self):
+        part = lambda distinct, count: {'distinct': distinct, 'count': count, 'looks': [{'where': [{'page': 'a'}]}] * distinct}
+        found = findings._looks(drawn_of(components={'button': part(11, 44), 'tab': part(2, 40), 'dialog': part(5, 5)}))
+        self.assertEqual([row['place'] for row in found], ['button'])
+
+    def test_a_date_in_two_forms_is_a_card_and_digits_or_one_form_are_not(self):
+        rows = [{'form': 'a'}, {'form': 'b'}]
+        found = findings._formats(drawn_of(formats={'date': rows, 'digits': rows, 'time': rows[:1]}))
+        self.assertEqual([row['place'] for row in found], ['date'])
+
+    def test_what_a_person_may_agree_to_merge_goes_to_the_most_used_and_the_nearest_step(self):
+        values = {'color': {'rows': [{'value': 'rgb(1, 1, 1)', 'uses': 9}, {'value': 'rgb(2, 2, 2)', 'uses': 1}]},
+                  'font_size': {'rows': [{'value': f'{n}px', 'uses': 50} for n in (12, 14, 16, 18, 20, 24, 28, 32)] + [{'value': '15px', 'uses': 1}]}}
+        merged = findings.merges(drawn_of(values=values, near_colours=[['rgb(1, 1, 1)', 'rgb(2, 2, 2)']]))
+        self.assertIn({'kind': 'color', 'from': '#020202', 'to': '#010101', 'uses': 1}, merged)
+        self.assertIn({'kind': 'font_size', 'from': '15px', 'to': '14px', 'uses': 1}, merged)
 
 
 class Inventory(unittest.TestCase):
