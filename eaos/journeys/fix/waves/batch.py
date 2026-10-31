@@ -5,6 +5,7 @@ import tempfile
 from pathlib import Path
 
 from ....core import progress
+from ....live.behavior.look_oracle import declared as declared_look, look_changed
 from ....core.project.ledger import TRAILER, key
 from ..execute import git, original_checks, own_batch, project_checks, record, regressions, run_codemod
 from .acceptance import _still, batch_acceptance, engines_for
@@ -101,12 +102,14 @@ def gates(batch, name):
         if broken: return "the project's own check failed: " + ', '.join(broken)
     if batch['lock']:
         from ....live.behavior.lock import LockPass, verify_lock
+        look = batch.get('look')
         verdict = verify_lock(batch['report'], batch['root'], batch['runtime'],
-                              LockPass(name, declared=batch['declared'], known=batch.get('known') or (), intended=batch.get('intended')))
+                              LockPass(name, declared=batch['declared'], known=batch.get('known') or (), intended=batch.get('intended'), exact=look == []))
         if verdict['failed']:      # every screen that differs, at once: one per run cost a batch hours
             from ....live.behavior.lock import failing_tests
             return (f"the behaviour lock broke on {verdict['failed']} of {verdict['specs']} specs: "
                     + '; '.join(sorted(failing_tests(batch['runtime'], name)))[:600])
+        return look_changed(batch['runtime'], name, look)
     return ''
 
 
@@ -189,13 +192,17 @@ def finish_batch(report, target, runtime, wave, **options):
         say('regenerate')
         regenerate(batch['root'])
     progress.begin('gates')
-    batch.update(before=original_checks(target, batch['runtime']), declared=declared_screens(cards[c] for c in kept),
-                 intended=intended_screens(map(cards.get, kept)))
+    _declare(batch, target, [cards[c] for c in kept])
     kept = _through_gates(batch, kept, failed)
     _new_truth(batch, kept, cards)
     progress.begin('handover')
     _record_cards(batch, wave, kept, failed)
     return _write_wave(batch, wave, kept, failed)
+
+
+def _declare(batch, target, kept):
+    """What the gates hold the batch to: the checks before it, and what its cards say they change on the screens."""
+    batch.update(before=original_checks(target, batch['runtime']), declared=declared_screens(kept), look=declared_look(kept), intended=intended_screens(kept))
 
 
 def _accepted(batch, cards, kept, failed, repairs):
