@@ -3,8 +3,9 @@ and Streamlit, found from the project's files alone; how it installs, prepares i
 and the environment names its code reads. Deterministic: a Python app runs without an assistant (the corpus' four
 Python apps never started without one, M5.1)."""
 import re
-import tomllib
 from pathlib import Path
+
+from ...core.system.files import tomllib
 
 PY_ENV = re.compile(r'''os\.(?:environ\.get|getenv)\(\s*['"]([A-Z][A-Z0-9_]{2,})['"]|os\.environ\[\s*['"]([A-Z][A-Z0-9_]{2,})['"]\s*\]''')
 SKIP = {'.venv', 'venv', 'env', 'node_modules', '.git', 'tests', 'test', 'site-packages', '__pycache__', 'migrations'}

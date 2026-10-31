@@ -17,11 +17,11 @@ import ast
 import json
 import re
 import tempfile
-import tomllib
 from collections import Counter
 from pathlib import Path, PurePosixPath
 
 from .move_python import dotted
+from ...core.system.files import tomllib
 from ...core.system.files import read_json
 from ...facts.repository.craft import normal_path
 

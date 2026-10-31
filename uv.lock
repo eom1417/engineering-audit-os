@@ -503,7 +503,7 @@ wheels = [
 
 [[package]]
 name = "engineering-audit-os"
-version = "0.0.89"
+version = "0.0.90"
 source = { editable = "." }
 dependencies = [
     { name = "defusedxml" },
@@ -513,6 +513,7 @@ dependencies = [
     { name = "sse-starlette", version = "3.6.0", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.11'" },
     { name = "starlette", version = "1.7.0", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.11'" },
     { name = "starlette", version = "1.10.0", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.11'" },
+    { name = "tomli", marker = "python_full_version < '3.11'" },
     { name = "uvicorn" },
 ]
 
@@ -544,6 +545,7 @@ requires-dist = [
     { name = "pypdf", specifier = ">=5" },
     { name = "sse-starlette", specifier = ">=3.4,<4" },
     { name = "starlette", specifier = ">=1.7,<2" },
+    { name = "tomli", marker = "python_full_version < '3.11'", specifier = ">=2" },
     { name = "tree-sitter", marker = "extra == 'facts'", specifier = ">=0.21" },
     { name = "tree-sitter-language-pack", marker = "extra == 'facts'", specifier = ">=0.2" },
     { name = "uvicorn", specifier = ">=0.54,<1" },

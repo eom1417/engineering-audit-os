@@ -45,7 +45,7 @@ def declared(target):
 def _pyproject(pyproject):
     """[(line, where)] of the dependencies pyproject.toml declares in [project.dependencies]."""
     if not pyproject.is_file(): return []
-    import tomllib
+    from ...core.system.files import tomllib
     try: project = tomllib.loads(pyproject.read_text(encoding='utf-8')).get('project') or {}
     except (tomllib.TOMLDecodeError, UnicodeDecodeError): project = {}
     return [(line, 'pyproject.toml [project.dependencies]') for line in project.get('dependencies') or []]

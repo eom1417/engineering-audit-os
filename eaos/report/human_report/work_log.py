@@ -54,7 +54,8 @@ def _wl_status(h):
     now = _wl_now(job, work, waiting, busy)
     step = _wl_next_step(job, busy, work, waiting)
     p = h.get('progress') if isinstance(h.get('progress'), dict) else {}
-    tally = (f'<p class="small">{T(f"التقدم في فرعك: أُغلق {num(p.get("closed", 0), "cards closed")} من {num(p.get("total", 0), "cards in the plan")}", f"Progress in your branch: {num(p.get("closed", 0), "cards closed")} of {num(p.get("total", 0), "cards in the plan")} closed")}</p>' if p else '')
+    closed, total = num(p.get('closed', 0), 'cards closed'), num(p.get('total', 0), 'cards in the plan')
+    tally = (f'<p class="small">{T(f"التقدم في فرعك: أُغلق {closed} من {total}", f"Progress in your branch: {closed} of {total} closed")}</p>' if p else '')
     return (f'<div class="card wl-status"><h4>{T("أين وقفنا", "Where we stopped")}</h4>{_wl_last(h)}<ul class="small wl-now">{"".join(now)}</ul>'
             f'<p class="small"><b>{T("الخطوة التالية:", "The next step:")}</b> {step}</p>{tally}'
             + (f'<details><summary>{T("للمساعد الذكي الذي يكمل", "For the AI assistant that continues")}</summary>{tech(h["how_to_continue"])}</details>' if h.get('how_to_continue') else '')
@@ -96,7 +97,8 @@ def _wl_busy(busy):
              if busy.get('since') else '')
     by = f' {who(busy["by"])}' if busy.get('by') else ''
     read = [f for f in busy.get('files_read') or [] if isinstance(f, str)]
-    return (f'<li>{T(f"كان يعمل على البطاقة {lit(busy["card"])}", f"Was working on card {lit(busy["card"])}")}{by}{since}'
+    card = lit(busy['card'])
+    return (f'<li>{T(f"كان يعمل على البطاقة {card}", f"Was working on card {card}")}{by}{since}'
             + _wl_files_read(read)
             + (f'<div class="small">{T("آخر محاولة:", "Last try:", cls="lbl")} {tech(str(busy["last_try"])[:300])}</div>' if busy.get('last_try') else '')
             + '</li>')

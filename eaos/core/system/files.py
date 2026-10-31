@@ -3,6 +3,9 @@
 import json
 from pathlib import Path
 
+try: import tomllib     # the one home of reading TOML: every module takes it from here
+except ModuleNotFoundError: import tomli as tomllib     # Python 3.10, which pyproject.toml declares  # noqa: F401
+
 
 def read_json(path, default=None):
     """The JSON value a file holds; `default` when the file is missing, unreadable or not JSON."""
