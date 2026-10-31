@@ -1,0 +1,648 @@
+{
+  "contract_version": 1,
+  "tasks": [
+    {
+      "id": "TASK-001",
+      "claim_id": "CLM-001",
+      "title": "unreachable module `app/old_export.py`: no production entry point imports it",
+      "render": {
+        "key": "dead_code",
+        "params": {
+          "subject": "app/old_export.py",
+          "reason_ar": "لا تصله أي نقطة دخول إنتاجية",
+          "reason_en": "no production entry point reaches it"
+        }
+      },
+      "kind": "remediate",
+      "contract_version": 1,
+      "decision": {
+        "contract_version": 1,
+        "observation_uid": "OBS-8a0febb3b5e28fc6b6ba6ac5",
+        "kind": "repair",
+        "reason": "A confirmed observation violates an explicitly evidenced requirement.",
+        "readiness": "ready",
+        "blockers": [],
+        "checks": [
+          {
+            "id": "DEAD-FACT-003ba15513636d67",
+            "kind": "command",
+            "invariant": "Product code is reached from a production entry point, or named by something that is.",
+            "expected": "the next audit no longer reports the module app/old_export.py as dead code",
+            "expected_exit": 0,
+            "cwd": ".",
+            "argv": [
+              "{{PYTHON}}",
+              "-B",
+              "-c",
+              "import json, subprocess, sys, tempfile\nholder = tempfile.TemporaryDirectory(prefix='eaos-deadcode-'); tmp = holder.name\nr = subprocess.run([sys.executable, '-m', 'eaos', 'facts', '.', '--out', tmp])\nif r.returncode: sys.exit(r.returncode)\nfacts = json.load(open(tmp + '/facts/deadcode.json'))['facts']\nleft = [f for f in facts if (f['location']['path'], f['location']['symbol'], f['value']['rule']) == ('app/old_export.py', 'app/old_export.py', 'unreachable-module')]\nsys.exit(1 if left else 0)\n"
+            ],
+            "source_revision": "d87fb3846e65470b19c3f71c67d0ff56d893aaee0c2b5bb400348b7ba98f2cc8"
+          }
+        ],
+        "allowed_outcomes": []
+      },
+      "prerequisites": [],
+      "before": "unreachable module `app/old_export.py`: no production entry point imports it",
+      "after": "the module app/old_export.py is deleted, the audit no longer reports it, and nothing that imported it remains.",
+      "requirement_refs": [
+        "engagement.rules.remove_dead_code"
+      ],
+      "status": "planned",
+      "priority": 0.0,
+      "pattern": "remove_dead",
+      "paths": [
+        "app/old_export.py"
+      ],
+      "origin": "source",
+      "impact": "Code nobody runs is still read, maintained and reviewed, and can be switched back on without anyone noticing.",
+      "impact_render": {
+        "key": "dead_code",
+        "params": {
+          "subject": "app/old_export.py",
+          "reason_ar": "لا تصله أي نقطة دخول إنتاجية",
+          "reason_en": "no production entry point reaches it"
+        }
+      },
+      "evidence": {
+        "fact_ids": [
+          "FACT-003ba15513636d67"
+        ],
+        "evidence_ids": [],
+        "probe_ids": [
+          "PRB-001"
+        ],
+        "falsifier": "A production path that reaches it: an import, a call, or a registry entry naming it that the text search missed."
+      },
+      "blast_radius": {
+        "direct_dependents": [],
+        "transitive_dependents": [],
+        "flows": [],
+        "entry_points": [],
+        "covering_tests": [],
+        "coverage": {},
+        "change_partners": [],
+        "total": 0
+      },
+      "change": "احذف الملف أو الرمز، ثم احذف ما لا يستورده إلا هو، وشغّل الاختبارات: لا مسار إنتاجي يصل إليه ولا نص يذكر اسمه.",
+      "options": [
+        {
+          "option": "الحذف الآن مع إعادة التدقيق",
+          "cost": "منخفضة",
+          "verdict": "مختار: الدليل آلي بالكامل"
+        },
+        {
+          "option": "إبقاؤه بمالك وسبب مكتوب في eaos.engagement.json",
+          "cost": "صفر",
+          "verdict": "حين يكون تجريبيًا أو قادمًا"
+        },
+        {
+          "option": "لا نفعل شيئًا",
+          "option_en": "Do nothing",
+          "cost": "يبقى عبئًا على القراءة والمراجعة",
+          "cost_en": "stays a reading and review cost",
+          "verdict": "مرفوض ما دامت القاعدة قائمة"
+        },
+        {
+          "option": "لا نفعل شيئًا",
+          "option_en": "Do nothing",
+          "cost": "صفر الآن",
+          "cost_en": "zero now",
+          "verdict": "يبقى الكود الميت عبئًا على القراءة والصيانة، ويصعّب تغييرات لا تعرف بوجوده، وقد يُعاد تفعيله دون تحذير"
+        }
+      ],
+      "rollback": "revert واحد يعيد الملف أو الرمز كما كان.",
+      "acceptance": [
+        {
+          "command": "{{PYTHON}} -B -c 'import json, subprocess, sys, tempfile\nholder = tempfile.TemporaryDirectory(prefix='\"'\"'eaos-deadcode-'\"'\"'); tmp = holder.name\nr = subprocess.run([sys.executable, '\"'\"'-m'\"'\"', '\"'\"'eaos'\"'\"', '\"'\"'facts'\"'\"', '\"'\"'.'\"'\"', '\"'\"'--out'\"'\"', tmp])\nif r.returncode: sys.exit(r.returncode)\nfacts = json.load(open(tmp + '\"'\"'/facts/deadcode.json'\"'\"'))['\"'\"'facts'\"'\"']\nleft = [f for f in facts if (f['\"'\"'location'\"'\"']['\"'\"'path'\"'\"'], f['\"'\"'location'\"'\"']['\"'\"'symbol'\"'\"'], f['\"'\"'value'\"'\"']['\"'\"'rule'\"'\"']) == ('\"'\"'app/old_export.py'\"'\"', '\"'\"'app/old_export.py'\"'\"', '\"'\"'unreachable-module'\"'\"')]\nsys.exit(1 if left else 0)\n'",
+          "expect": "the next audit no longer reports the module app/old_export.py as dead code"
+        }
+      ],
+      "verify_command": [
+        "{{PYTHON}}",
+        "-B",
+        "-c",
+        "import json, subprocess, sys, tempfile\nholder = tempfile.TemporaryDirectory(prefix='eaos-deadcode-'); tmp = holder.name\nr = subprocess.run([sys.executable, '-m', 'eaos', 'facts', '.', '--out', tmp])\nif r.returncode: sys.exit(r.returncode)\nfacts = json.load(open(tmp + '/facts/deadcode.json'))['facts']\nleft = [f for f in facts if (f['location']['path'], f['location']['symbol'], f['value']['rule']) == ('app/old_export.py', 'app/old_export.py', 'unreachable-module')]\nsys.exit(1 if left else 0)\n"
+      ],
+      "effort": "S",
+      "effort_basis": {
+        "files": 1,
+        "dependents": 0
+      },
+      "effort_confidence": "A rule on the files it touches and its dependents (eaos/analysis/planning/roadmap.py), not a measured duration.",
+      "invariants": [
+        {
+          "invariant": "Product code is reached from a production entry point, or named by something that is.",
+          "source": "assessment",
+          "must_hold_after": true
+        },
+        {
+          "invariant": "A production path that reaches it: an import, a call, or a registry entry naming it that the text search missed.",
+          "source": "falsifier",
+          "must_hold_after": false,
+          "note": "the observation that would show this claim is wrong; after a repair it should hold"
+        }
+      ],
+      "harm": {
+        "business": {
+          "value": "unknown",
+          "basis": "not established: no requirement or incident evidences a business cost"
+        },
+        "reach": {
+          "value": 0,
+          "basis": "measured from the dependency graph",
+          "direct_dependents": 0,
+          "flows": 0
+        },
+        "effort": {
+          "value": "صغير",
+          "basis": "متوسطة: تغيير محصور في ملفات قليلة"
+        }
+      },
+      "finding_ids": [
+        "CLM-001"
+      ],
+      "claim_ids": [
+        "CLM-001"
+      ],
+      "section": "backend",
+      "codemod": {
+        "tool": "delete-file",
+        "command": "rm app/old_export.py",
+        "dry_run": {
+          "exit": 0,
+          "files_changed": 1
+        }
+      }
+    },
+    {
+      "id": "TASK-002",
+      "claim_id": "CLM-002",
+      "title": "unreachable module `app/old_mail.py`: no production entry point imports it",
+      "render": {
+        "key": "dead_code",
+        "params": {
+          "subject": "app/old_mail.py",
+          "reason_ar": "لا تصله أي نقطة دخول إنتاجية",
+          "reason_en": "no production entry point reaches it"
+        }
+      },
+      "kind": "remediate",
+      "contract_version": 1,
+      "decision": {
+        "contract_version": 1,
+        "observation_uid": "OBS-d2fa8ef1c84b5d1bda144e37",
+        "kind": "repair",
+        "reason": "A confirmed observation violates an explicitly evidenced requirement.",
+        "readiness": "ready",
+        "blockers": [],
+        "checks": [
+          {
+            "id": "DEAD-FACT-454d27e501cc7952",
+            "kind": "command",
+            "invariant": "Product code is reached from a production entry point, or named by something that is.",
+            "expected": "the next audit no longer reports the module app/old_mail.py as dead code",
+            "expected_exit": 0,
+            "cwd": ".",
+            "argv": [
+              "{{PYTHON}}",
+              "-B",
+              "-c",
+              "import json, subprocess, sys, tempfile\nholder = tempfile.TemporaryDirectory(prefix='eaos-deadcode-'); tmp = holder.name\nr = subprocess.run([sys.executable, '-m', 'eaos', 'facts', '.', '--out', tmp])\nif r.returncode: sys.exit(r.returncode)\nfacts = json.load(open(tmp + '/facts/deadcode.json'))['facts']\nleft = [f for f in facts if (f['location']['path'], f['location']['symbol'], f['value']['rule']) == ('app/old_mail.py', 'app/old_mail.py', 'unreachable-module')]\nsys.exit(1 if left else 0)\n"
+            ],
+            "source_revision": "d87fb3846e65470b19c3f71c67d0ff56d893aaee0c2b5bb400348b7ba98f2cc8"
+          }
+        ],
+        "allowed_outcomes": []
+      },
+      "prerequisites": [],
+      "before": "unreachable module `app/old_mail.py`: no production entry point imports it",
+      "after": "the module app/old_mail.py is deleted, the audit no longer reports it, and nothing that imported it remains.",
+      "requirement_refs": [
+        "engagement.rules.remove_dead_code"
+      ],
+      "status": "planned",
+      "priority": 0.0,
+      "pattern": "remove_dead",
+      "paths": [
+        "app/old_mail.py"
+      ],
+      "origin": "source",
+      "impact": "Code nobody runs is still read, maintained and reviewed, and can be switched back on without anyone noticing.",
+      "impact_render": {
+        "key": "dead_code",
+        "params": {
+          "subject": "app/old_mail.py",
+          "reason_ar": "لا تصله أي نقطة دخول إنتاجية",
+          "reason_en": "no production entry point reaches it"
+        }
+      },
+      "evidence": {
+        "fact_ids": [
+          "FACT-454d27e501cc7952"
+        ],
+        "evidence_ids": [],
+        "probe_ids": [
+          "PRB-002"
+        ],
+        "falsifier": "A production path that reaches it: an import, a call, or a registry entry naming it that the text search missed."
+      },
+      "blast_radius": {
+        "direct_dependents": [],
+        "transitive_dependents": [],
+        "flows": [],
+        "entry_points": [],
+        "covering_tests": [],
+        "coverage": {},
+        "change_partners": [],
+        "total": 0
+      },
+      "change": "احذف الملف أو الرمز، ثم احذف ما لا يستورده إلا هو، وشغّل الاختبارات: لا مسار إنتاجي يصل إليه ولا نص يذكر اسمه.",
+      "options": [
+        {
+          "option": "الحذف الآن مع إعادة التدقيق",
+          "cost": "منخفضة",
+          "verdict": "مختار: الدليل آلي بالكامل"
+        },
+        {
+          "option": "إبقاؤه بمالك وسبب مكتوب في eaos.engagement.json",
+          "cost": "صفر",
+          "verdict": "حين يكون تجريبيًا أو قادمًا"
+        },
+        {
+          "option": "لا نفعل شيئًا",
+          "option_en": "Do nothing",
+          "cost": "يبقى عبئًا على القراءة والمراجعة",
+          "cost_en": "stays a reading and review cost",
+          "verdict": "مرفوض ما دامت القاعدة قائمة"
+        },
+        {
+          "option": "لا نفعل شيئًا",
+          "option_en": "Do nothing",
+          "cost": "صفر الآن",
+          "cost_en": "zero now",
+          "verdict": "يبقى الكود الميت عبئًا على القراءة والصيانة، ويصعّب تغييرات لا تعرف بوجوده، وقد يُعاد تفعيله دون تحذير"
+        }
+      ],
+      "rollback": "revert واحد يعيد الملف أو الرمز كما كان.",
+      "acceptance": [
+        {
+          "command": "{{PYTHON}} -B -c 'import json, subprocess, sys, tempfile\nholder = tempfile.TemporaryDirectory(prefix='\"'\"'eaos-deadcode-'\"'\"'); tmp = holder.name\nr = subprocess.run([sys.executable, '\"'\"'-m'\"'\"', '\"'\"'eaos'\"'\"', '\"'\"'facts'\"'\"', '\"'\"'.'\"'\"', '\"'\"'--out'\"'\"', tmp])\nif r.returncode: sys.exit(r.returncode)\nfacts = json.load(open(tmp + '\"'\"'/facts/deadcode.json'\"'\"'))['\"'\"'facts'\"'\"']\nleft = [f for f in facts if (f['\"'\"'location'\"'\"']['\"'\"'path'\"'\"'], f['\"'\"'location'\"'\"']['\"'\"'symbol'\"'\"'], f['\"'\"'value'\"'\"']['\"'\"'rule'\"'\"']) == ('\"'\"'app/old_mail.py'\"'\"', '\"'\"'app/old_mail.py'\"'\"', '\"'\"'unreachable-module'\"'\"')]\nsys.exit(1 if left else 0)\n'",
+          "expect": "the next audit no longer reports the module app/old_mail.py as dead code"
+        }
+      ],
+      "verify_command": [
+        "{{PYTHON}}",
+        "-B",
+        "-c",
+        "import json, subprocess, sys, tempfile\nholder = tempfile.TemporaryDirectory(prefix='eaos-deadcode-'); tmp = holder.name\nr = subprocess.run([sys.executable, '-m', 'eaos', 'facts', '.', '--out', tmp])\nif r.returncode: sys.exit(r.returncode)\nfacts = json.load(open(tmp + '/facts/deadcode.json'))['facts']\nleft = [f for f in facts if (f['location']['path'], f['location']['symbol'], f['value']['rule']) == ('app/old_mail.py', 'app/old_mail.py', 'unreachable-module')]\nsys.exit(1 if left else 0)\n"
+      ],
+      "effort": "S",
+      "effort_basis": {
+        "files": 1,
+        "dependents": 0
+      },
+      "effort_confidence": "A rule on the files it touches and its dependents (eaos/analysis/planning/roadmap.py), not a measured duration.",
+      "invariants": [
+        {
+          "invariant": "Product code is reached from a production entry point, or named by something that is.",
+          "source": "assessment",
+          "must_hold_after": true
+        },
+        {
+          "invariant": "A production path that reaches it: an import, a call, or a registry entry naming it that the text search missed.",
+          "source": "falsifier",
+          "must_hold_after": false,
+          "note": "the observation that would show this claim is wrong; after a repair it should hold"
+        }
+      ],
+      "harm": {
+        "business": {
+          "value": "unknown",
+          "basis": "not established: no requirement or incident evidences a business cost"
+        },
+        "reach": {
+          "value": 0,
+          "basis": "measured from the dependency graph",
+          "direct_dependents": 0,
+          "flows": 0
+        },
+        "effort": {
+          "value": "صغير",
+          "basis": "متوسطة: تغيير محصور في ملفات قليلة"
+        }
+      },
+      "finding_ids": [
+        "CLM-002"
+      ],
+      "claim_ids": [
+        "CLM-002"
+      ],
+      "section": "backend",
+      "codemod": {
+        "tool": "delete-file",
+        "command": "rm app/old_mail.py",
+        "dry_run": {
+          "exit": 0,
+          "files_changed": 1
+        }
+      }
+    },
+    {
+      "id": "TASK-003",
+      "claim_id": "CLM-003",
+      "title": "unreachable module `app/old_report.py`: no production entry point imports it",
+      "render": {
+        "key": "dead_code",
+        "params": {
+          "subject": "app/old_report.py",
+          "reason_ar": "لا تصله أي نقطة دخول إنتاجية",
+          "reason_en": "no production entry point reaches it"
+        }
+      },
+      "kind": "remediate",
+      "contract_version": 1,
+      "decision": {
+        "contract_version": 1,
+        "observation_uid": "OBS-86d6ed7a0c3e010cc6a0d35b",
+        "kind": "repair",
+        "reason": "A confirmed observation violates an explicitly evidenced requirement.",
+        "readiness": "ready",
+        "blockers": [],
+        "checks": [
+          {
+            "id": "DEAD-FACT-0de6b2b4ef840623",
+            "kind": "command",
+            "invariant": "Product code is reached from a production entry point, or named by something that is.",
+            "expected": "the next audit no longer reports the module app/old_report.py as dead code",
+            "expected_exit": 0,
+            "cwd": ".",
+            "argv": [
+              "{{PYTHON}}",
+              "-B",
+              "-c",
+              "import json, subprocess, sys, tempfile\nholder = tempfile.TemporaryDirectory(prefix='eaos-deadcode-'); tmp = holder.name\nr = subprocess.run([sys.executable, '-m', 'eaos', 'facts', '.', '--out', tmp])\nif r.returncode: sys.exit(r.returncode)\nfacts = json.load(open(tmp + '/facts/deadcode.json'))['facts']\nleft = [f for f in facts if (f['location']['path'], f['location']['symbol'], f['value']['rule']) == ('app/old_report.py', 'app/old_report.py', 'unreachable-module')]\nsys.exit(1 if left else 0)\n"
+            ],
+            "source_revision": "d87fb3846e65470b19c3f71c67d0ff56d893aaee0c2b5bb400348b7ba98f2cc8"
+          }
+        ],
+        "allowed_outcomes": []
+      },
+      "prerequisites": [],
+      "before": "unreachable module `app/old_report.py`: no production entry point imports it",
+      "after": "the module app/old_report.py is deleted, the audit no longer reports it, and nothing that imported it remains.",
+      "requirement_refs": [
+        "engagement.rules.remove_dead_code"
+      ],
+      "status": "planned",
+      "priority": 0.0,
+      "pattern": "remove_dead",
+      "paths": [
+        "app/old_report.py"
+      ],
+      "origin": "source",
+      "impact": "Code nobody runs is still read, maintained and reviewed, and can be switched back on without anyone noticing.",
+      "impact_render": {
+        "key": "dead_code",
+        "params": {
+          "subject": "app/old_report.py",
+          "reason_ar": "لا تصله أي نقطة دخول إنتاجية",
+          "reason_en": "no production entry point reaches it"
+        }
+      },
+      "evidence": {
+        "fact_ids": [
+          "FACT-0de6b2b4ef840623"
+        ],
+        "evidence_ids": [],
+        "probe_ids": [
+          "PRB-003"
+        ],
+        "falsifier": "A production path that reaches it: an import, a call, or a registry entry naming it that the text search missed."
+      },
+      "blast_radius": {
+        "direct_dependents": [],
+        "transitive_dependents": [],
+        "flows": [],
+        "entry_points": [],
+        "covering_tests": [],
+        "coverage": {},
+        "change_partners": [],
+        "total": 0
+      },
+      "change": "احذف الملف أو الرمز، ثم احذف ما لا يستورده إلا هو، وشغّل الاختبارات: لا مسار إنتاجي يصل إليه ولا نص يذكر اسمه.",
+      "options": [
+        {
+          "option": "الحذف الآن مع إعادة التدقيق",
+          "cost": "منخفضة",
+          "verdict": "مختار: الدليل آلي بالكامل"
+        },
+        {
+          "option": "إبقاؤه بمالك وسبب مكتوب في eaos.engagement.json",
+          "cost": "صفر",
+          "verdict": "حين يكون تجريبيًا أو قادمًا"
+        },
+        {
+          "option": "لا نفعل شيئًا",
+          "option_en": "Do nothing",
+          "cost": "يبقى عبئًا على القراءة والمراجعة",
+          "cost_en": "stays a reading and review cost",
+          "verdict": "مرفوض ما دامت القاعدة قائمة"
+        },
+        {
+          "option": "لا نفعل شيئًا",
+          "option_en": "Do nothing",
+          "cost": "صفر الآن",
+          "cost_en": "zero now",
+          "verdict": "يبقى الكود الميت عبئًا على القراءة والصيانة، ويصعّب تغييرات لا تعرف بوجوده، وقد يُعاد تفعيله دون تحذير"
+        }
+      ],
+      "rollback": "revert واحد يعيد الملف أو الرمز كما كان.",
+      "acceptance": [
+        {
+          "command": "{{PYTHON}} -B -c 'import json, subprocess, sys, tempfile\nholder = tempfile.TemporaryDirectory(prefix='\"'\"'eaos-deadcode-'\"'\"'); tmp = holder.name\nr = subprocess.run([sys.executable, '\"'\"'-m'\"'\"', '\"'\"'eaos'\"'\"', '\"'\"'facts'\"'\"', '\"'\"'.'\"'\"', '\"'\"'--out'\"'\"', tmp])\nif r.returncode: sys.exit(r.returncode)\nfacts = json.load(open(tmp + '\"'\"'/facts/deadcode.json'\"'\"'))['\"'\"'facts'\"'\"']\nleft = [f for f in facts if (f['\"'\"'location'\"'\"']['\"'\"'path'\"'\"'], f['\"'\"'location'\"'\"']['\"'\"'symbol'\"'\"'], f['\"'\"'value'\"'\"']['\"'\"'rule'\"'\"']) == ('\"'\"'app/old_report.py'\"'\"', '\"'\"'app/old_report.py'\"'\"', '\"'\"'unreachable-module'\"'\"')]\nsys.exit(1 if left else 0)\n'",
+          "expect": "the next audit no longer reports the module app/old_report.py as dead code"
+        }
+      ],
+      "verify_command": [
+        "{{PYTHON}}",
+        "-B",
+        "-c",
+        "import json, subprocess, sys, tempfile\nholder = tempfile.TemporaryDirectory(prefix='eaos-deadcode-'); tmp = holder.name\nr = subprocess.run([sys.executable, '-m', 'eaos', 'facts', '.', '--out', tmp])\nif r.returncode: sys.exit(r.returncode)\nfacts = json.load(open(tmp + '/facts/deadcode.json'))['facts']\nleft = [f for f in facts if (f['location']['path'], f['location']['symbol'], f['value']['rule']) == ('app/old_report.py', 'app/old_report.py', 'unreachable-module')]\nsys.exit(1 if left else 0)\n"
+      ],
+      "effort": "S",
+      "effort_basis": {
+        "files": 1,
+        "dependents": 0
+      },
+      "effort_confidence": "A rule on the files it touches and its dependents (eaos/analysis/planning/roadmap.py), not a measured duration.",
+      "invariants": [
+        {
+          "invariant": "Product code is reached from a production entry point, or named by something that is.",
+          "source": "assessment",
+          "must_hold_after": true
+        },
+        {
+          "invariant": "A production path that reaches it: an import, a call, or a registry entry naming it that the text search missed.",
+          "source": "falsifier",
+          "must_hold_after": false,
+          "note": "the observation that would show this claim is wrong; after a repair it should hold"
+        }
+      ],
+      "harm": {
+        "business": {
+          "value": "unknown",
+          "basis": "not established: no requirement or incident evidences a business cost"
+        },
+        "reach": {
+          "value": 0,
+          "basis": "measured from the dependency graph",
+          "direct_dependents": 0,
+          "flows": 0
+        },
+        "effort": {
+          "value": "صغير",
+          "basis": "متوسطة: تغيير محصور في ملفات قليلة"
+        }
+      },
+      "finding_ids": [
+        "CLM-003"
+      ],
+      "claim_ids": [
+        "CLM-003"
+      ],
+      "section": "backend",
+      "codemod": {
+        "tool": "delete-file",
+        "command": "rm app/old_report.py",
+        "dry_run": {
+          "exit": 0,
+          "files_changed": 1
+        }
+      }
+    }
+  ],
+  "waves": [
+    {
+      "wave": 1,
+      "tasks": [
+        "TASK-001",
+        "TASK-002",
+        "TASK-003"
+      ],
+      "entry_condition": "Required predecessor decisions accepted; file conflicts serialized.",
+      "exit_condition": "Record check outcomes or an evidenced investigation decision."
+    }
+  ],
+  "milestones": [
+    {
+      "id": "M01",
+      "name": "stabilize",
+      "goal": "No known-vulnerable version, broken reference, dead code or open access gap remains.",
+      "exit": "Every card here passes its acceptance command, and the next audit raises none of these claims.",
+      "goal_ar": "لا يبقى إصدار معروف الثغرات، ولا مرجع معطّل، ولا كود ميت، ولا فجوة وصول مفتوحة.",
+      "exit_ar": "كل بطاقة هنا يمر أمر قبولها، ولا يثير التدقيق التالي أيًا من هذه الادعاءات.",
+      "tasks": [
+        "TASK-001",
+        "TASK-002",
+        "TASK-003"
+      ],
+      "strangler": false
+    }
+  ],
+  "sections": [
+    {
+      "section": "backend",
+      "tasks": [
+        "TASK-001",
+        "TASK-002",
+        "TASK-003"
+      ],
+      "depends_on": []
+    }
+  ],
+  "decisions": [
+    {
+      "contract_version": 1,
+      "observation_uid": "OBS-8a0febb3b5e28fc6b6ba6ac5",
+      "kind": "repair",
+      "reason": "A confirmed observation violates an explicitly evidenced requirement.",
+      "readiness": "ready",
+      "blockers": [],
+      "checks": [
+        {
+          "id": "DEAD-FACT-003ba15513636d67",
+          "kind": "command",
+          "invariant": "Product code is reached from a production entry point, or named by something that is.",
+          "expected": "the next audit no longer reports the module app/old_export.py as dead code",
+          "expected_exit": 0,
+          "cwd": ".",
+          "argv": [
+            "{{PYTHON}}",
+            "-B",
+            "-c",
+            "import json, subprocess, sys, tempfile\nholder = tempfile.TemporaryDirectory(prefix='eaos-deadcode-'); tmp = holder.name\nr = subprocess.run([sys.executable, '-m', 'eaos', 'facts', '.', '--out', tmp])\nif r.returncode: sys.exit(r.returncode)\nfacts = json.load(open(tmp + '/facts/deadcode.json'))['facts']\nleft = [f for f in facts if (f['location']['path'], f['location']['symbol'], f['value']['rule']) == ('app/old_export.py', 'app/old_export.py', 'unreachable-module')]\nsys.exit(1 if left else 0)\n"
+          ],
+          "source_revision": "d87fb3846e65470b19c3f71c67d0ff56d893aaee0c2b5bb400348b7ba98f2cc8"
+        }
+      ],
+      "allowed_outcomes": []
+    },
+    {
+      "contract_version": 1,
+      "observation_uid": "OBS-d2fa8ef1c84b5d1bda144e37",
+      "kind": "repair",
+      "reason": "A confirmed observation violates an explicitly evidenced requirement.",
+      "readiness": "ready",
+      "blockers": [],
+      "checks": [
+        {
+          "id": "DEAD-FACT-454d27e501cc7952",
+          "kind": "command",
+          "invariant": "Product code is reached from a production entry point, or named by something that is.",
+          "expected": "the next audit no longer reports the module app/old_mail.py as dead code",
+          "expected_exit": 0,
+          "cwd": ".",
+          "argv": [
+            "{{PYTHON}}",
+            "-B",
+            "-c",
+            "import json, subprocess, sys, tempfile\nholder = tempfile.TemporaryDirectory(prefix='eaos-deadcode-'); tmp = holder.name\nr = subprocess.run([sys.executable, '-m', 'eaos', 'facts', '.', '--out', tmp])\nif r.returncode: sys.exit(r.returncode)\nfacts = json.load(open(tmp + '/facts/deadcode.json'))['facts']\nleft = [f for f in facts if (f['location']['path'], f['location']['symbol'], f['value']['rule']) == ('app/old_mail.py', 'app/old_mail.py', 'unreachable-module')]\nsys.exit(1 if left else 0)\n"
+          ],
+          "source_revision": "d87fb3846e65470b19c3f71c67d0ff56d893aaee0c2b5bb400348b7ba98f2cc8"
+        }
+      ],
+      "allowed_outcomes": []
+    },
+    {
+      "contract_version": 1,
+      "observation_uid": "OBS-86d6ed7a0c3e010cc6a0d35b",
+      "kind": "repair",
+      "reason": "A confirmed observation violates an explicitly evidenced requirement.",
+      "readiness": "ready",
+      "blockers": [],
+      "checks": [
+        {
+          "id": "DEAD-FACT-0de6b2b4ef840623",
+          "kind": "command",
+          "invariant": "Product code is reached from a production entry point, or named by something that is.",
+          "expected": "the next audit no longer reports the module app/old_report.py as dead code",
+          "expected_exit": 0,
+          "cwd": ".",
+          "argv": [
+            "{{PYTHON}}",
+            "-B",
+            "-c",
+            "import json, subprocess, sys, tempfile\nholder = tempfile.TemporaryDirectory(prefix='eaos-deadcode-'); tmp = holder.name\nr = subprocess.run([sys.executable, '-m', 'eaos', 'facts', '.', '--out', tmp])\nif r.returncode: sys.exit(r.returncode)\nfacts = json.load(open(tmp + '/facts/deadcode.json'))['facts']\nleft = [f for f in facts if (f['location']['path'], f['location']['symbol'], f['value']['rule']) == ('app/old_report.py', 'app/old_report.py', 'unreachable-module')]\nsys.exit(1 if left else 0)\n"
+          ],
+          "source_revision": "d87fb3846e65470b19c3f71c67d0ff56d893aaee0c2b5bb400348b7ba98f2cc8"
+        }
+      ],
+      "allowed_outcomes": []
+    }
+  ],
+  "order": {
+    "source": "rules",
+    "steps": [],
+    "why": "The rules' order: the waves of PLAN/WAVES.md."
+  }
+}

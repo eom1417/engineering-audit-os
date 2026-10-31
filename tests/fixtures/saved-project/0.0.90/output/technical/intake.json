@@ -1,0 +1,104 @@
+{
+ "schema_version": 1,
+ "questions": [
+  {
+   "id": "critical_features",
+   "question": "Which features must never be lost or broken?",
+   "answer": [],
+   "status": "default",
+   "default_reason": "0 of 1 features are on a critical path in features.json"
+  },
+  {
+   "id": "concurrent_users",
+   "question": "How many users do you expect at the same time?",
+   "answer": 100,
+   "status": "default",
+   "default_reason": "a small production application; the load scenario is sized to it until the owner says otherwise"
+  },
+  {
+   "id": "personal_data",
+   "question": "Does the system store personal data (names, emails, phone numbers, national ids)?",
+   "answer": false,
+   "status": "default",
+   "default_reason": "no email, phone or CPF field, and no name on a person, in 0 tables and models"
+  },
+  {
+   "id": "payments",
+   "question": "Does the system take payments?",
+   "answer": false,
+   "status": "default",
+   "default_reason": "no payment flow is assumed unless the owner declares one"
+  },
+  {
+   "id": "hosting",
+   "question": "Where does the system run, and where should it run?",
+   "answer": "unknown",
+   "status": "default",
+   "default_reason": "no vercel.json at the root"
+  },
+  {
+   "id": "team_size",
+   "question": "How many people will work on it?",
+   "answer": 1,
+   "status": "default",
+   "default_reason": "a vibe-coded project usually has one maintainer"
+  },
+  {
+   "id": "availability_target",
+   "question": "What availability must it keep, in percent?",
+   "answer": 99.5,
+   "status": "default",
+   "default_reason": "a common target for a small production service (about 3.6 hours down a month)"
+  },
+  {
+   "id": "known_problems",
+   "question": "Which problems do you already know about?",
+   "answer": [],
+   "status": "default",
+   "default_reason": "none declared; the audit finds what it can"
+  }
+ ],
+ "run_command": null,
+ "scenarios": [
+  {
+   "id": "QS-001",
+   "kind": "load",
+   "stimulus": "100 users at the same time use every user-facing route",
+   "response": "every request is answered within the threshold",
+   "measure": {
+    "metric": "p95_ms",
+    "threshold": 800,
+    "unit": "ms"
+   },
+   "source": "default",
+   "question_id": "concurrent_users"
+  },
+  {
+   "id": "QS-002",
+   "kind": "latency",
+   "stimulus": "100 users at the same time use every user-facing route",
+   "response": "requests fail at no more than the threshold rate",
+   "measure": {
+    "metric": "error_rate",
+    "threshold": 0.01,
+    "unit": "ratio"
+   },
+   "source": "default",
+   "question_id": "concurrent_users"
+  },
+  {
+   "id": "QS-003",
+   "kind": "availability",
+   "stimulus": "the service runs for a month",
+   "response": "it answers its health check",
+   "measure": {
+    "metric": "availability",
+    "threshold": 99.5,
+    "unit": "percent"
+   },
+   "source": "default",
+   "question_id": "availability_target"
+  }
+ ],
+ "unknown_answers": []
+}

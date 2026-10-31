@@ -1,0 +1,2919 @@
+{
+ "prompts": [
+  "ask",
+  "audit",
+  "build",
+  "continue",
+  "fix",
+  "report",
+  "status",
+  "tasks",
+  "tools"
+ ],
+ "tools": {
+  "accept": {
+   "annotations": {
+    "destructive_hint": false,
+    "open_world_hint": false,
+    "read_only_hint": false
+   },
+   "input": {
+    "properties": {
+     "delete_after": {
+      "default": true,
+      "title": "Delete After",
+      "type": "boolean"
+     },
+     "merge_into": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "default": null,
+      "title": "Merge Into"
+     },
+     "person_agreed": {
+      "default": false,
+      "title": "Person Agreed",
+      "type": "boolean"
+     },
+     "project": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "default": null,
+      "title": "Project"
+     }
+    },
+    "title": "acceptArguments",
+    "type": "object"
+   }
+  },
+  "act": {
+   "annotations": {
+    "destructive_hint": false,
+    "open_world_hint": false,
+    "read_only_hint": false
+   },
+   "input": {
+    "properties": {
+     "assistant": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "default": null,
+      "title": "Assistant"
+     },
+     "auto_accept": {
+      "default": false,
+      "title": "Auto Accept",
+      "type": "boolean"
+     },
+     "confirm": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "default": null,
+      "title": "Confirm"
+     },
+     "group": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "default": null,
+      "title": "Group"
+     },
+     "ids": {
+      "anyOf": [
+       {
+        "items": {
+         "type": "string"
+        },
+        "type": "array"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "default": null,
+      "title": "Ids"
+     },
+     "op": {
+      "default": "preview",
+      "title": "Op",
+      "type": "string"
+     },
+     "person_agreed": {
+      "default": false,
+      "title": "Person Agreed",
+      "type": "boolean"
+     },
+     "project": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "default": null,
+      "title": "Project"
+     },
+     "verb": {
+      "title": "Verb",
+      "type": "string"
+     }
+    },
+    "required": [
+     "verb"
+    ],
+    "title": "actArguments",
+    "type": "object"
+   }
+  },
+  "ask": {
+   "annotations": {
+    "open_world_hint": false,
+    "read_only_hint": true
+   },
+   "input": {
+    "properties": {
+     "project": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "default": null,
+      "title": "Project"
+     },
+     "question": {
+      "title": "Question",
+      "type": "string"
+     }
+    },
+    "required": [
+     "question"
+    ],
+    "title": "askArguments",
+    "type": "object"
+   }
+  },
+  "assistant_check": {
+   "annotations": {
+    "open_world_hint": false,
+    "read_only_hint": true
+   },
+   "input": {
+    "properties": {
+     "assistant": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "default": null,
+      "title": "Assistant"
+     },
+     "fresh": {
+      "default": false,
+      "title": "Fresh",
+      "type": "boolean"
+     },
+     "project": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "default": null,
+      "title": "Project"
+     }
+    },
+    "title": "assistant_checkArguments",
+    "type": "object"
+   }
+  },
+  "audit": {
+   "annotations": {
+    "destructive_hint": false,
+    "open_world_hint": false,
+    "read_only_hint": false
+   },
+   "input": {
+    "properties": {
+     "again_from": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "default": null,
+      "title": "Again From"
+     },
+     "assistant": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "default": null,
+      "title": "Assistant"
+     },
+     "engines": {
+      "anyOf": [
+       {
+        "items": {
+         "type": "string"
+        },
+        "type": "array"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "default": null,
+      "title": "Engines"
+     },
+     "fixed": {
+      "default": false,
+      "title": "Fixed",
+      "type": "boolean"
+     },
+     "fresh": {
+      "default": false,
+      "title": "Fresh",
+      "type": "boolean"
+     },
+     "go_on": {
+      "default": false,
+      "title": "Go On",
+      "type": "boolean"
+     },
+     "mode": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "default": null,
+      "title": "Mode"
+     },
+     "paths": {
+      "anyOf": [
+       {
+        "items": {
+         "type": "string"
+        },
+        "type": "array"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "default": null,
+      "title": "Paths"
+     },
+     "person_agreed": {
+      "default": false,
+      "title": "Person Agreed",
+      "type": "boolean"
+     },
+     "project": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "default": null,
+      "title": "Project"
+     },
+     "published": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "default": null,
+      "title": "Published"
+     },
+     "run_app": {
+      "default": false,
+      "title": "Run App",
+      "type": "boolean"
+     },
+     "sign_in": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "default": null,
+      "title": "Sign In"
+     },
+     "use_assistant": {
+      "anyOf": [
+       {
+        "type": "boolean"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "default": null,
+      "title": "Use Assistant"
+     },
+     "without_ai": {
+      "default": false,
+      "title": "Without Ai",
+      "type": "boolean"
+     },
+     "without_tools": {
+      "default": false,
+      "title": "Without Tools",
+      "type": "boolean"
+     }
+    },
+    "title": "auditArguments",
+    "type": "object"
+   }
+  },
+  "blueprint_design": {
+   "annotations": {
+    "destructive_hint": false,
+    "open_world_hint": false,
+    "read_only_hint": false
+   },
+   "input": {
+    "properties": {
+     "project": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "default": null,
+      "title": "Project"
+     },
+     "stack": {
+      "anyOf": [
+       {
+        "additionalProperties": true,
+        "type": "object"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "default": null,
+      "title": "Stack"
+     }
+    },
+    "title": "blueprint_designArguments",
+    "type": "object"
+   }
+  },
+  "blueprint_spec": {
+   "annotations": {
+    "destructive_hint": false,
+    "open_world_hint": false,
+    "read_only_hint": false
+   },
+   "input": {
+    "properties": {
+     "project": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "default": null,
+      "title": "Project"
+     },
+     "spec": {
+      "additionalProperties": true,
+      "title": "Spec",
+      "type": "object"
+     }
+    },
+    "required": [
+     "spec"
+    ],
+    "title": "blueprint_specArguments",
+    "type": "object"
+   }
+  },
+  "blueprint_start": {
+   "annotations": {
+    "destructive_hint": false,
+    "open_world_hint": false,
+    "read_only_hint": false
+   },
+   "input": {
+    "properties": {
+     "project": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "default": null,
+      "title": "Project"
+     },
+     "source": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "default": null,
+      "title": "Source"
+     },
+     "text": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "default": null,
+      "title": "Text"
+     }
+    },
+    "title": "blueprint_startArguments",
+    "type": "object"
+   }
+  },
+  "branch_change": {
+   "annotations": {
+    "destructive_hint": false,
+    "open_world_hint": false,
+    "read_only_hint": false
+   },
+   "input": {
+    "properties": {
+     "confirm": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "default": null,
+      "title": "Confirm"
+     },
+     "confirm_unmerged": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "default": null,
+      "title": "Confirm Unmerged"
+     },
+     "name": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "default": null,
+      "title": "Name"
+     },
+     "op": {
+      "title": "Op",
+      "type": "string"
+     },
+     "person_agreed": {
+      "default": false,
+      "title": "Person Agreed",
+      "type": "boolean"
+     },
+     "project": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "default": null,
+      "title": "Project"
+     },
+     "target": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "default": null,
+      "title": "Target"
+     }
+    },
+    "required": [
+     "op"
+    ],
+    "title": "branch_changeArguments",
+    "type": "object"
+   }
+  },
+  "branch_view": {
+   "annotations": {
+    "open_world_hint": false,
+    "read_only_hint": true
+   },
+   "input": {
+    "properties": {
+     "base": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "default": null,
+      "title": "Base"
+     },
+     "name": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "default": null,
+      "title": "Name"
+     },
+     "op": {
+      "default": "inventory",
+      "title": "Op",
+      "type": "string"
+     },
+     "project": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "default": null,
+      "title": "Project"
+     },
+     "remote": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "default": null,
+      "title": "Remote"
+     }
+    },
+    "title": "branch_viewArguments",
+    "type": "object"
+   }
+  },
+  "branches": {
+   "annotations": {
+    "open_world_hint": false,
+    "read_only_hint": true
+   },
+   "input": {
+    "properties": {
+     "project": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "default": null,
+      "title": "Project"
+     }
+    },
+    "title": "branchesArguments",
+    "type": "object"
+   }
+  },
+  "build_edit": {
+   "annotations": {
+    "destructive_hint": false,
+    "open_world_hint": false,
+    "read_only_hint": false
+   },
+   "input": {
+    "properties": {
+     "card": {
+      "title": "Card",
+      "type": "string"
+     },
+     "edits": {
+      "items": {
+       "additionalProperties": true,
+       "type": "object"
+      },
+      "title": "Edits",
+      "type": "array"
+     },
+     "project": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "default": null,
+      "title": "Project"
+     },
+     "summary": {
+      "default": "",
+      "title": "Summary",
+      "type": "string"
+     }
+    },
+    "required": [
+     "card",
+     "edits"
+    ],
+    "title": "build_editArguments",
+    "type": "object"
+   }
+  },
+  "build_finish": {
+   "annotations": {
+    "destructive_hint": false,
+    "open_world_hint": false,
+    "read_only_hint": false
+   },
+   "input": {
+    "properties": {
+     "project": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "default": null,
+      "title": "Project"
+     }
+    },
+    "title": "build_finishArguments",
+    "type": "object"
+   }
+  },
+  "build_read": {
+   "annotations": {
+    "open_world_hint": false,
+    "read_only_hint": true
+   },
+   "input": {
+    "properties": {
+     "end": {
+      "anyOf": [
+       {
+        "type": "integer"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "default": null,
+      "title": "End"
+     },
+     "path": {
+      "default": ".",
+      "title": "Path",
+      "type": "string"
+     },
+     "project": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "default": null,
+      "title": "Project"
+     },
+     "start": {
+      "default": 1,
+      "title": "Start",
+      "type": "integer"
+     }
+    },
+    "title": "build_readArguments",
+    "type": "object"
+   }
+  },
+  "build_skip": {
+   "annotations": {
+    "destructive_hint": false,
+    "open_world_hint": false,
+    "read_only_hint": false
+   },
+   "input": {
+    "properties": {
+     "card": {
+      "title": "Card",
+      "type": "string"
+     },
+     "project": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "default": null,
+      "title": "Project"
+     },
+     "reason": {
+      "title": "Reason",
+      "type": "string"
+     }
+    },
+    "required": [
+     "card",
+     "reason"
+    ],
+    "title": "build_skipArguments",
+    "type": "object"
+   }
+  },
+  "build_start": {
+   "annotations": {
+    "destructive_hint": false,
+    "open_world_hint": false,
+    "read_only_hint": false
+   },
+   "input": {
+    "properties": {
+     "person_agreed": {
+      "default": false,
+      "title": "Person Agreed",
+      "type": "boolean"
+     },
+     "project": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "default": null,
+      "title": "Project"
+     }
+    },
+    "title": "build_startArguments",
+    "type": "object"
+   }
+  },
+  "check_changed": {
+   "annotations": {
+    "destructive_hint": false,
+    "open_world_hint": false,
+    "read_only_hint": false
+   },
+   "input": {
+    "properties": {
+     "base": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "default": null,
+      "title": "Base"
+     },
+     "project": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "default": null,
+      "title": "Project"
+     },
+     "staged": {
+      "default": false,
+      "title": "Staged",
+      "type": "boolean"
+     }
+    },
+    "title": "check_changedArguments",
+    "type": "object"
+   }
+  },
+  "choose_branch": {
+   "annotations": {
+    "destructive_hint": false,
+    "open_world_hint": false,
+    "read_only_hint": false
+   },
+   "input": {
+    "properties": {
+     "branch": {
+      "title": "Branch",
+      "type": "string"
+     },
+     "person_said": {
+      "default": "",
+      "title": "Person Said",
+      "type": "string"
+     },
+     "project": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "default": null,
+      "title": "Project"
+     }
+    },
+    "required": [
+     "branch"
+    ],
+    "title": "choose_branchArguments",
+    "type": "object"
+   }
+  },
+  "context_make": {
+   "annotations": {
+    "destructive_hint": false,
+    "open_world_hint": false,
+    "read_only_hint": false
+   },
+   "input": {
+    "properties": {
+     "person_agreed": {
+      "default": false,
+      "title": "Person Agreed",
+      "type": "boolean"
+     },
+     "private_to": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "default": null,
+      "title": "Private To"
+     },
+     "project": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "default": null,
+      "title": "Project"
+     }
+    },
+    "title": "context_makeArguments",
+    "type": "object"
+   }
+  },
+  "context_propose": {
+   "annotations": {
+    "open_world_hint": false,
+    "read_only_hint": true
+   },
+   "input": {
+    "properties": {
+     "private_to": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "default": null,
+      "title": "Private To"
+     },
+     "project": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "default": null,
+      "title": "Project"
+     }
+    },
+    "title": "context_proposeArguments",
+    "type": "object"
+   }
+  },
+  "design": {
+   "annotations": {
+    "open_world_hint": false,
+    "read_only_hint": true
+   },
+   "input": {
+    "properties": {
+     "project": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "default": null,
+      "title": "Project"
+     }
+    },
+    "title": "designArguments",
+    "type": "object"
+   }
+  },
+  "design_brief": {
+   "annotations": {
+    "open_world_hint": false,
+    "read_only_hint": true
+   },
+   "input": {
+    "properties": {
+     "product": {
+      "default": "",
+      "title": "Product",
+      "type": "string"
+     },
+     "project": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "default": null,
+      "title": "Project"
+     }
+    },
+    "title": "design_briefArguments",
+    "type": "object"
+   }
+  },
+  "design_choose": {
+   "annotations": {
+    "destructive_hint": false,
+    "open_world_hint": false,
+    "read_only_hint": false
+   },
+   "input": {
+    "properties": {
+     "content": {
+      "title": "Content",
+      "type": "string"
+     },
+     "project": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "default": null,
+      "title": "Project"
+     }
+    },
+    "required": [
+     "content"
+    ],
+    "title": "design_chooseArguments",
+    "type": "object"
+   }
+  },
+  "design_make": {
+   "annotations": {
+    "destructive_hint": false,
+    "open_world_hint": false,
+    "read_only_hint": false
+   },
+   "input": {
+    "properties": {
+     "agreed": {
+      "anyOf": [
+       {
+        "items": {},
+        "type": "array"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "default": null,
+      "title": "Agreed"
+     },
+     "person_agreed": {
+      "default": false,
+      "title": "Person Agreed",
+      "type": "boolean"
+     },
+     "project": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "default": null,
+      "title": "Project"
+     }
+    },
+    "title": "design_makeArguments",
+    "type": "object"
+   }
+  },
+  "design_propose": {
+   "annotations": {
+    "open_world_hint": false,
+    "read_only_hint": true
+   },
+   "input": {
+    "properties": {
+     "agreed": {
+      "anyOf": [
+       {
+        "items": {},
+        "type": "array"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "default": null,
+      "title": "Agreed"
+     },
+     "project": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "default": null,
+      "title": "Project"
+     }
+    },
+    "title": "design_proposeArguments",
+    "type": "object"
+   }
+  },
+  "experience": {
+   "annotations": {
+    "open_world_hint": false,
+    "read_only_hint": true
+   },
+   "input": {
+    "properties": {
+     "project": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "default": null,
+      "title": "Project"
+     }
+    },
+    "title": "experienceArguments",
+    "type": "object"
+   }
+  },
+  "extend_plan": {
+   "annotations": {
+    "destructive_hint": false,
+    "open_world_hint": false,
+    "read_only_hint": false
+   },
+   "input": {
+    "properties": {
+     "project": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "default": null,
+      "title": "Project"
+     },
+     "spec": {
+      "additionalProperties": true,
+      "title": "Spec",
+      "type": "object"
+     }
+    },
+    "required": [
+     "spec"
+    ],
+    "title": "extend_planArguments",
+    "type": "object"
+   }
+  },
+  "extend_start": {
+   "annotations": {
+    "destructive_hint": false,
+    "open_world_hint": false,
+    "read_only_hint": false
+   },
+   "input": {
+    "properties": {
+     "project": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "default": null,
+      "title": "Project"
+     },
+     "source": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "default": null,
+      "title": "Source"
+     },
+     "text": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "default": null,
+      "title": "Text"
+     }
+    },
+    "title": "extend_startArguments",
+    "type": "object"
+   }
+  },
+  "finding": {
+   "annotations": {
+    "open_world_hint": false,
+    "read_only_hint": true
+   },
+   "input": {
+    "properties": {
+     "id": {
+      "title": "Id",
+      "type": "string"
+     },
+     "project": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "default": null,
+      "title": "Project"
+     }
+    },
+    "required": [
+     "id"
+    ],
+    "title": "findingArguments",
+    "type": "object"
+   }
+  },
+  "findings": {
+   "annotations": {
+    "open_world_hint": false,
+    "read_only_hint": true
+   },
+   "input": {
+    "properties": {
+     "fixable_only": {
+      "default": false,
+      "title": "Fixable Only",
+      "type": "boolean"
+     },
+     "kind": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "default": null,
+      "title": "Kind"
+     },
+     "limit": {
+      "default": 30,
+      "title": "Limit",
+      "type": "integer"
+     },
+     "offset": {
+      "default": 0,
+      "title": "Offset",
+      "type": "integer"
+     },
+     "path": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "default": null,
+      "title": "Path"
+     },
+     "project": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "default": null,
+      "title": "Project"
+     },
+     "text": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "default": null,
+      "title": "Text"
+     }
+    },
+    "title": "findingsArguments",
+    "type": "object"
+   }
+  },
+  "fix_abandon": {
+   "annotations": {
+    "destructive_hint": false,
+    "open_world_hint": false,
+    "read_only_hint": false
+   },
+   "input": {
+    "properties": {
+     "project": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "default": null,
+      "title": "Project"
+     }
+    },
+    "title": "fix_abandonArguments",
+    "type": "object"
+   }
+  },
+  "fix_edit": {
+   "annotations": {
+    "destructive_hint": false,
+    "open_world_hint": false,
+    "read_only_hint": false
+   },
+   "input": {
+    "properties": {
+     "card": {
+      "title": "Card",
+      "type": "string"
+     },
+     "edits": {
+      "items": {
+       "additionalProperties": true,
+       "type": "object"
+      },
+      "title": "Edits",
+      "type": "array"
+     },
+     "project": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "default": null,
+      "title": "Project"
+     },
+     "summary": {
+      "default": "",
+      "title": "Summary",
+      "type": "string"
+     }
+    },
+    "required": [
+     "card",
+     "edits"
+    ],
+    "title": "fix_editArguments",
+    "type": "object"
+   }
+  },
+  "fix_finish": {
+   "annotations": {
+    "destructive_hint": false,
+    "open_world_hint": false,
+    "read_only_hint": false
+   },
+   "input": {
+    "properties": {
+     "leave_out": {
+      "default": false,
+      "title": "Leave Out",
+      "type": "boolean"
+     },
+     "project": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "default": null,
+      "title": "Project"
+     }
+    },
+    "title": "fix_finishArguments",
+    "type": "object"
+   }
+  },
+  "fix_read": {
+   "annotations": {
+    "open_world_hint": false,
+    "read_only_hint": true
+   },
+   "input": {
+    "properties": {
+     "end": {
+      "anyOf": [
+       {
+        "type": "integer"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "default": null,
+      "title": "End"
+     },
+     "path": {
+      "title": "Path",
+      "type": "string"
+     },
+     "project": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "default": null,
+      "title": "Project"
+     },
+     "start": {
+      "default": 1,
+      "title": "Start",
+      "type": "integer"
+     }
+    },
+    "required": [
+     "path"
+    ],
+    "title": "fix_readArguments",
+    "type": "object"
+   }
+  },
+  "fix_skip": {
+   "annotations": {
+    "destructive_hint": false,
+    "open_world_hint": false,
+    "read_only_hint": false
+   },
+   "input": {
+    "properties": {
+     "card": {
+      "title": "Card",
+      "type": "string"
+     },
+     "project": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "default": null,
+      "title": "Project"
+     },
+     "reason": {
+      "title": "Reason",
+      "type": "string"
+     }
+    },
+    "required": [
+     "card",
+     "reason"
+    ],
+    "title": "fix_skipArguments",
+    "type": "object"
+   }
+  },
+  "fix_start": {
+   "annotations": {
+    "destructive_hint": false,
+    "open_world_hint": false,
+    "read_only_hint": false
+   },
+   "input": {
+    "properties": {
+     "assistants": {
+      "default": 1,
+      "title": "Assistants",
+      "type": "integer"
+     },
+     "base": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "default": null,
+      "title": "Base"
+     },
+     "base_commit": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "default": null,
+      "title": "Base Commit"
+     },
+     "cards": {
+      "anyOf": [
+       {
+        "items": {
+         "type": "string"
+        },
+        "type": "array"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "default": null,
+      "title": "Cards"
+     },
+     "deliver_as": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "default": null,
+      "title": "Deliver As"
+     },
+     "merge_into": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "default": null,
+      "title": "Merge Into"
+     },
+     "project": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "default": null,
+      "title": "Project"
+     },
+     "size": {
+      "default": 10,
+      "title": "Size",
+      "type": "integer"
+     }
+    },
+    "title": "fix_startArguments",
+    "type": "object"
+   }
+  },
+  "history": {
+   "annotations": {
+    "open_world_hint": false,
+    "read_only_hint": true
+   },
+   "input": {
+    "properties": {
+     "a": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "default": null,
+      "title": "A"
+     },
+     "b": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "default": null,
+      "title": "B"
+     },
+     "op": {
+      "default": "list",
+      "title": "Op",
+      "type": "string"
+     },
+     "project": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "default": null,
+      "title": "Project"
+     }
+    },
+    "title": "historyArguments",
+    "type": "object"
+   }
+  },
+  "impact": {
+   "annotations": {
+    "open_world_hint": false,
+    "read_only_hint": true
+   },
+   "input": {
+    "properties": {
+     "project": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "default": null,
+      "title": "Project"
+     },
+     "target": {
+      "title": "Target",
+      "type": "string"
+     }
+    },
+    "required": [
+     "target"
+    ],
+    "title": "impactArguments",
+    "type": "object"
+   }
+  },
+  "logic_flaws": {
+   "annotations": {
+    "destructive_hint": false,
+    "open_world_hint": false,
+    "read_only_hint": false
+   },
+   "input": {
+    "properties": {
+     "minutes": {
+      "anyOf": [
+       {
+        "type": "integer"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "default": null,
+      "title": "Minutes"
+     },
+     "person_agreed": {
+      "default": false,
+      "title": "Person Agreed",
+      "type": "boolean"
+     },
+     "project": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "default": null,
+      "title": "Project"
+     }
+    },
+    "title": "logic_flawsArguments",
+    "type": "object"
+   }
+  },
+  "menu": {
+   "annotations": {
+    "open_world_hint": false,
+    "read_only_hint": true
+   },
+   "input": {
+    "properties": {
+     "lang": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "default": null,
+      "title": "Lang"
+     },
+     "project": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "default": null,
+      "title": "Project"
+     }
+    },
+    "title": "menuArguments",
+    "type": "object"
+   }
+  },
+  "note": {
+   "annotations": {
+    "destructive_hint": false,
+    "open_world_hint": false,
+    "read_only_hint": false
+   },
+   "input": {
+    "properties": {
+     "card": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "default": null,
+      "title": "Card"
+     },
+     "project": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "default": null,
+      "title": "Project"
+     },
+     "text": {
+      "title": "Text",
+      "type": "string"
+     }
+    },
+    "required": [
+     "text"
+    ],
+    "title": "noteArguments",
+    "type": "object"
+   }
+  },
+  "open_report": {
+   "annotations": {
+    "open_world_hint": false,
+    "read_only_hint": true
+   },
+   "input": {
+    "properties": {
+     "project": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "default": null,
+      "title": "Project"
+     },
+     "show": {
+      "default": true,
+      "title": "Show",
+      "type": "boolean"
+     }
+    },
+    "title": "open_reportArguments",
+    "type": "object"
+   }
+  },
+  "open_studio": {
+   "annotations": {
+    "open_world_hint": false,
+    "read_only_hint": true
+   },
+   "input": {
+    "properties": {
+     "address": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "default": null,
+      "title": "Address"
+     },
+     "project": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "default": null,
+      "title": "Project"
+     },
+     "show": {
+      "default": true,
+      "title": "Show",
+      "type": "boolean"
+     }
+    },
+    "title": "open_studioArguments",
+    "type": "object"
+   }
+  },
+  "overview": {
+   "annotations": {
+    "open_world_hint": false,
+    "read_only_hint": true
+   },
+   "input": {
+    "properties": {
+     "project": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "default": null,
+      "title": "Project"
+     }
+    },
+    "title": "overviewArguments",
+    "type": "object"
+   }
+  },
+  "plan": {
+   "annotations": {
+    "open_world_hint": false,
+    "read_only_hint": true
+   },
+   "input": {
+    "properties": {
+     "milestone": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "default": null,
+      "title": "Milestone"
+     },
+     "project": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "default": null,
+      "title": "Project"
+     }
+    },
+    "title": "planArguments",
+    "type": "object"
+   }
+  },
+  "project_map": {
+   "annotations": {
+    "destructive_hint": false,
+    "open_world_hint": false,
+    "read_only_hint": false
+   },
+   "input": {
+    "properties": {
+     "person_agreed": {
+      "default": false,
+      "title": "Person Agreed",
+      "type": "boolean"
+     },
+     "project": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "default": null,
+      "title": "Project"
+     }
+    },
+    "title": "project_mapArguments",
+    "type": "object"
+   }
+  },
+  "projects": {
+   "annotations": {
+    "open_world_hint": false,
+    "read_only_hint": true
+   },
+   "input": {
+    "properties": {
+     "project": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "default": null,
+      "title": "Project"
+     }
+    },
+    "title": "projectsArguments",
+    "type": "object"
+   }
+  },
+  "reorder": {
+   "annotations": {
+    "destructive_hint": false,
+    "open_world_hint": false,
+    "read_only_hint": false
+   },
+   "input": {
+    "properties": {
+     "order": {
+      "items": {
+       "type": "string"
+      },
+      "title": "Order",
+      "type": "array"
+     },
+     "project": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "default": null,
+      "title": "Project"
+     }
+    },
+    "required": [
+     "order"
+    ],
+    "title": "reorderArguments",
+    "type": "object"
+   }
+  },
+  "replan_ideal": {
+   "annotations": {
+    "destructive_hint": false,
+    "open_world_hint": false,
+    "read_only_hint": false
+   },
+   "input": {
+    "properties": {
+     "assistant": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "default": null,
+      "title": "Assistant"
+     },
+     "project": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "default": null,
+      "title": "Project"
+     }
+    },
+    "title": "replan_idealArguments",
+    "type": "object"
+   }
+  },
+  "report_file": {
+   "annotations": {
+    "open_world_hint": false,
+    "read_only_hint": true
+   },
+   "input": {
+    "properties": {
+     "limit": {
+      "default": 20000,
+      "title": "Limit",
+      "type": "integer"
+     },
+     "name": {
+      "default": "",
+      "title": "Name",
+      "type": "string"
+     },
+     "offset": {
+      "default": 0,
+      "title": "Offset",
+      "type": "integer"
+     },
+     "project": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "default": null,
+      "title": "Project"
+     }
+    },
+    "title": "report_fileArguments",
+    "type": "object"
+   }
+  },
+  "rule": {
+   "annotations": {
+    "destructive_hint": false,
+    "open_world_hint": false,
+    "read_only_hint": false
+   },
+   "input": {
+    "properties": {
+     "card": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "default": null,
+      "title": "Card"
+     },
+     "door": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "default": null,
+      "title": "Door"
+     },
+     "guard": {
+      "anyOf": [
+       {
+        "additionalProperties": true,
+        "type": "object"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "default": null,
+      "title": "Guard"
+     },
+     "id": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "default": null,
+      "title": "Id"
+     },
+     "on": {
+      "default": true,
+      "title": "On",
+      "type": "boolean"
+     },
+     "op": {
+      "title": "Op",
+      "type": "string"
+     },
+     "person_agreed": {
+      "default": false,
+      "title": "Person Agreed",
+      "type": "boolean"
+     },
+     "pin": {
+      "default": false,
+      "title": "Pin",
+      "type": "boolean"
+     },
+     "project": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "default": null,
+      "title": "Project"
+     },
+     "why": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "default": null,
+      "title": "Why"
+     },
+     "words": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "default": null,
+      "title": "Words"
+     },
+     "write": {
+      "default": false,
+      "title": "Write",
+      "type": "boolean"
+     }
+    },
+    "required": [
+     "op"
+    ],
+    "title": "ruleArguments",
+    "type": "object"
+   }
+  },
+  "rules": {
+   "annotations": {
+    "open_world_hint": false,
+    "read_only_hint": true
+   },
+   "input": {
+    "properties": {
+     "id": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "default": null,
+      "title": "Id"
+     },
+     "op": {
+      "default": "list",
+      "title": "Op",
+      "type": "string"
+     },
+     "project": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "default": null,
+      "title": "Project"
+     }
+    },
+    "title": "rulesArguments",
+    "type": "object"
+   }
+  },
+  "run_nodes": {
+   "annotations": {
+    "destructive_hint": false,
+    "open_world_hint": false,
+    "read_only_hint": false
+   },
+   "input": {
+    "properties": {
+     "fresh": {
+      "default": false,
+      "title": "Fresh",
+      "type": "boolean"
+     },
+     "nodes": {
+      "anyOf": [
+       {
+        "items": {
+         "type": "string"
+        },
+        "type": "array"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "default": null,
+      "title": "Nodes"
+     },
+     "project": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "default": null,
+      "title": "Project"
+     }
+    },
+    "title": "run_nodesArguments",
+    "type": "object"
+   }
+  },
+  "run_setup": {
+   "annotations": {
+    "destructive_hint": false,
+    "open_world_hint": false,
+    "read_only_hint": false
+   },
+   "input": {
+    "properties": {
+     "person_agreed": {
+      "default": false,
+      "title": "Person Agreed",
+      "type": "boolean"
+     },
+     "project": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "default": null,
+      "title": "Project"
+     }
+    },
+    "title": "run_setupArguments",
+    "type": "object"
+   }
+  },
+  "run_try": {
+   "annotations": {
+    "destructive_hint": false,
+    "open_world_hint": false,
+    "read_only_hint": false
+   },
+   "input": {
+    "properties": {
+     "mode": {
+      "default": "lock",
+      "title": "Mode",
+      "type": "string"
+     },
+     "project": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "default": null,
+      "title": "Project"
+     },
+     "proposal": {
+      "anyOf": [
+       {
+        "additionalProperties": true,
+        "type": "object"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "default": null,
+      "title": "Proposal"
+     }
+    },
+    "title": "run_tryArguments",
+    "type": "object"
+   }
+  },
+  "runs": {
+   "annotations": {
+    "destructive_hint": false,
+    "open_world_hint": false,
+    "read_only_hint": false
+   },
+   "input": {
+    "properties": {
+     "assistant": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "default": null,
+      "title": "Assistant"
+     },
+     "mode": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "default": null,
+      "title": "Mode"
+     },
+     "op": {
+      "default": "list",
+      "title": "Op",
+      "type": "string"
+     },
+     "paths": {
+      "anyOf": [
+       {
+        "items": {
+         "type": "string"
+        },
+        "type": "array"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "default": null,
+      "title": "Paths"
+     },
+     "project": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "default": null,
+      "title": "Project"
+     },
+     "published": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "default": null,
+      "title": "Published"
+     },
+     "run": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "default": null,
+      "title": "Run"
+     },
+     "sign_in": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "default": null,
+      "title": "Sign In"
+     }
+    },
+    "title": "runsArguments",
+    "type": "object"
+   }
+  },
+  "safety_net": {
+   "annotations": {
+    "destructive_hint": false,
+    "open_world_hint": false,
+    "read_only_hint": false
+   },
+   "input": {
+    "properties": {
+     "project": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "default": null,
+      "title": "Project"
+     }
+    },
+    "title": "safety_netArguments",
+    "type": "object"
+   }
+  },
+  "sign_in_forget": {
+   "annotations": {
+    "destructive_hint": false,
+    "open_world_hint": false,
+    "read_only_hint": false
+   },
+   "input": {
+    "properties": {
+     "person_agreed": {
+      "default": false,
+      "title": "Person Agreed",
+      "type": "boolean"
+     },
+     "project": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "default": null,
+      "title": "Project"
+     }
+    },
+    "title": "sign_in_forgetArguments",
+    "type": "object"
+   }
+  },
+  "status": {
+   "annotations": {
+    "open_world_hint": false,
+    "read_only_hint": true
+   },
+   "input": {
+    "properties": {
+     "project": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "default": null,
+      "title": "Project"
+     }
+    },
+    "title": "statusArguments",
+    "type": "object"
+   }
+  },
+  "structure": {
+   "annotations": {
+    "open_world_hint": false,
+    "read_only_hint": true
+   },
+   "input": {
+    "properties": {
+     "project": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "default": null,
+      "title": "Project"
+     }
+    },
+    "title": "structureArguments",
+    "type": "object"
+   }
+  },
+  "tools_add": {
+   "annotations": {
+    "destructive_hint": false,
+    "open_world_hint": false,
+    "read_only_hint": false
+   },
+   "input": {
+    "properties": {
+     "entry": {
+      "additionalProperties": true,
+      "title": "Entry",
+      "type": "object"
+     },
+     "person_agreed": {
+      "default": false,
+      "title": "Person Agreed",
+      "type": "boolean"
+     },
+     "project": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "default": null,
+      "title": "Project"
+     }
+    },
+    "required": [
+     "entry"
+    ],
+    "title": "tools_addArguments",
+    "type": "object"
+   }
+  },
+  "tools_check": {
+   "annotations": {
+    "destructive_hint": false,
+    "open_world_hint": false,
+    "read_only_hint": false
+   },
+   "input": {
+    "properties": {
+     "project": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "default": null,
+      "title": "Project"
+     },
+     "retry": {
+      "default": false,
+      "title": "Retry",
+      "type": "boolean"
+     }
+    },
+    "title": "tools_checkArguments",
+    "type": "object"
+   }
+  },
+  "tools_find": {
+   "annotations": {
+    "open_world_hint": false,
+    "read_only_hint": true
+   },
+   "input": {
+    "properties": {
+     "need": {
+      "title": "Need",
+      "type": "string"
+     },
+     "project": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "default": null,
+      "title": "Project"
+     }
+    },
+    "required": [
+     "need"
+    ],
+    "title": "tools_findArguments",
+    "type": "object"
+   }
+  },
+  "undo": {
+   "annotations": {
+    "destructive_hint": false,
+    "open_world_hint": false,
+    "read_only_hint": false
+   },
+   "input": {
+    "properties": {
+     "person_agreed": {
+      "default": false,
+      "title": "Person Agreed",
+      "type": "boolean"
+     },
+     "project": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "default": null,
+      "title": "Project"
+     }
+    },
+    "title": "undoArguments",
+    "type": "object"
+   }
+  },
+  "wait": {
+   "annotations": {
+    "open_world_hint": false,
+    "read_only_hint": true
+   },
+   "input": {
+    "properties": {
+     "job": {
+      "title": "Job",
+      "type": "string"
+     },
+     "project": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "default": null,
+      "title": "Project"
+     },
+     "seconds": {
+      "default": 50,
+      "title": "Seconds",
+      "type": "integer"
+     }
+    },
+    "required": [
+     "job"
+    ],
+    "title": "waitArguments",
+    "type": "object"
+   }
+  },
+  "waiting": {
+   "annotations": {
+    "destructive_hint": false,
+    "open_world_hint": false,
+    "read_only_hint": false
+   },
+   "input": {
+    "properties": {
+     "id": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "default": null,
+      "title": "Id"
+     },
+     "op": {
+      "default": "list",
+      "title": "Op",
+      "type": "string"
+     },
+     "option": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "default": null,
+      "title": "Option"
+     },
+     "person_said": {
+      "default": "",
+      "title": "Person Said",
+      "type": "string"
+     },
+     "project": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "default": null,
+      "title": "Project"
+     },
+     "text": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "default": null,
+      "title": "Text"
+     }
+    },
+    "title": "waitingArguments",
+    "type": "object"
+   }
+  }
+ }
+}

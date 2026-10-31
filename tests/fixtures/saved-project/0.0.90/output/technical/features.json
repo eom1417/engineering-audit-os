@@ -1,0 +1,23 @@
+{
+  "schema_version": 1,
+  "features": [
+    {
+      "name": "cli:shop",
+      "description": "أمر واحد، لا تلمس بيانات",
+      "surfaces": [
+        "pyproject.toml"
+      ],
+      "tables": [],
+      "writes": [],
+      "endpoints": [],
+      "files": [
+        "pyproject.toml"
+      ],
+      "evidence": [
+        "FACT-dd66bb9bf5dfe73d"
+      ],
+      "critical": false
+    }
+  ],
+  "unassigned_surfaces": []
+}

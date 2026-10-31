@@ -1,0 +1,5 @@
+[project]
+name = "shop"
+version = "0.1.0"
+[project.scripts]
+shop = "app.main:run"

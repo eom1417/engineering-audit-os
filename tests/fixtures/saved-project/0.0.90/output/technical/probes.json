@@ -1,0 +1,53 @@
+[
+  {
+    "id": "PRB-001",
+    "claim_id": "CLM-001",
+    "probe_type": "graph_query",
+    "specification": {
+      "query": "dead_code_present",
+      "path": "app/old_export.py",
+      "symbol": "app/old_export.py",
+      "rule": "unreachable-module",
+      "expected": "The candidate is still unreached and unreferenced in the current snapshot."
+    },
+    "requires_execution": false,
+    "status": "CONFIRMED",
+    "result": "unreachable module `app/old_export.py`: no production entry point imports it",
+    "ran_at": "2026-10-31T10:40:16.060480+00:00",
+    "searched": null
+  },
+  {
+    "id": "PRB-002",
+    "claim_id": "CLM-002",
+    "probe_type": "graph_query",
+    "specification": {
+      "query": "dead_code_present",
+      "path": "app/old_mail.py",
+      "symbol": "app/old_mail.py",
+      "rule": "unreachable-module",
+      "expected": "The candidate is still unreached and unreferenced in the current snapshot."
+    },
+    "requires_execution": false,
+    "status": "CONFIRMED",
+    "result": "unreachable module `app/old_mail.py`: no production entry point imports it",
+    "ran_at": "2026-10-31T10:40:16.060495+00:00",
+    "searched": null
+  },
+  {
+    "id": "PRB-003",
+    "claim_id": "CLM-003",
+    "probe_type": "graph_query",
+    "specification": {
+      "query": "dead_code_present",
+      "path": "app/old_report.py",
+      "symbol": "app/old_report.py",
+      "rule": "unreachable-module",
+      "expected": "The candidate is still unreached and unreferenced in the current snapshot."
+    },
+    "requires_execution": false,
+    "status": "CONFIRMED",
+    "result": "unreachable module `app/old_report.py`: no production entry point imports it",
+    "ran_at": "2026-10-31T10:40:16.060504+00:00",
+    "searched": null
+  }
+]

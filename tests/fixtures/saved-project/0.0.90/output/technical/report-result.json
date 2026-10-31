@@ -1,0 +1,17 @@
+{
+  "target": "{{PROJECT}}",
+  "out": "{{OUTPUT}}/technical",
+  "artifacts": [
+    "README.md"
+  ],
+  "claims": 3,
+  "claim_counts": {
+    "CONFIRMED": 3
+  },
+  "questions": 2,
+  "facts": 80,
+  "model_calls": 0,
+  "output_spec_violations": [],
+  "status": "READY",
+  "limits": "A dossier reports what was examined. Claims carry their confidence and their refutation; unexamined scope is listed, not implied."
+}

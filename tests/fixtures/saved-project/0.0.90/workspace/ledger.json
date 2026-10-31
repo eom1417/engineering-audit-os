@@ -1,0 +1,82 @@
+{
+ "schema_version": 1,
+ "started": "2026-10-31T10:40:16+00:00",
+ "plan_stamp": "b4a70c4377f6dd28e8d4d1d7965206a1653055a0@2026-10-31T10:40:16+00:00",
+ "cards": {
+  "1cf86b29e813": {
+   "key": "1cf86b29e813",
+   "id": "TASK-001",
+   "title": "unreachable module `app/old_export.py`: no production entry point imports it",
+   "pattern": "remove_dead",
+   "milestone": "M01",
+   "paths": [
+    "app/old_export.py"
+   ],
+   "state": "open",
+   "new": false,
+   "batch": null,
+   "at": null,
+   "why": "",
+   "commit": null,
+   "attempts": 0
+  },
+  "117faba2aec4": {
+   "key": "117faba2aec4",
+   "id": "TASK-002",
+   "title": "unreachable module `app/old_mail.py`: no production entry point imports it",
+   "pattern": "remove_dead",
+   "milestone": "M01",
+   "paths": [
+    "app/old_mail.py"
+   ],
+   "state": "open",
+   "new": false,
+   "batch": null,
+   "at": null,
+   "why": "",
+   "commit": null,
+   "attempts": 0
+  },
+  "03b8841fadaf": {
+   "key": "03b8841fadaf",
+   "id": "TASK-003",
+   "title": "unreachable module `app/old_report.py`: no production entry point imports it",
+   "pattern": "remove_dead",
+   "milestone": "M01",
+   "paths": [
+    "app/old_report.py"
+   ],
+   "state": "open",
+   "new": false,
+   "batch": null,
+   "at": null,
+   "why": "",
+   "commit": null,
+   "attempts": 0
+  }
+ },
+ "history": [
+  {
+   "at": "2026-10-31T10:40:16+00:00",
+   "event": "baseline",
+   "closed": 0,
+   "total": 3,
+   "percent": 0.0,
+   "commit": "b4a70c4377f6dd28e8d4d1d7965206a1653055a0"
+  }
+ ],
+ "updated": "2026-10-31T10:40:16+00:00",
+ "commit": "b4a70c4377f6dd28e8d4d1d7965206a1653055a0",
+ "totals": {
+  "total": 3,
+  "closed": 0,
+  "done": 0,
+  "resolved": 0,
+  "on_branch": 0,
+  "in_batch": 0,
+  "open": 3,
+  "skipped": 0,
+  "new": 0,
+  "percent": 0.0
+ }
+}

@@ -1,0 +1,102 @@
+{
+  "schema_version": 1,
+  "formula": "score = pct(complexity_max) x pct(churn) x (1 + pct(fan_in)), percentile ranks among the analysed files",
+  "items": [
+    {
+      "id": "DEBT-001",
+      "title": "unreachable module `app/old_export.py`: no production entry point imports it",
+      "category": "dead_code",
+      "severity": "low",
+      "witnesses": [
+        {
+          "tool": "eaos",
+          "finding_id": "FACT-003ba15513636d67",
+          "kind": "deterministic"
+        },
+        {
+          "tool": "eaos.probe",
+          "finding_id": "PRB-001",
+          "kind": "probe"
+        }
+      ],
+      "files": [
+        "app/old_export.py"
+      ],
+      "impact": "Code nobody runs is still read, maintained and reviewed, and can be switched back on without anyone noticing.",
+      "recommendation": "Delete it in one commit; the audit shows nothing reaches it.",
+      "claim_id": "CLM-001",
+      "priority": 0.0,
+      "hotspot": {
+        "file": "app/old_export.py",
+        "complexity_pct": 0.0,
+        "churn_pct": 0.0,
+        "fan_in_pct": 0.0,
+        "score": 0.0
+      }
+    },
+    {
+      "id": "DEBT-002",
+      "title": "unreachable module `app/old_mail.py`: no production entry point imports it",
+      "category": "dead_code",
+      "severity": "low",
+      "witnesses": [
+        {
+          "tool": "eaos",
+          "finding_id": "FACT-454d27e501cc7952",
+          "kind": "deterministic"
+        },
+        {
+          "tool": "eaos.probe",
+          "finding_id": "PRB-002",
+          "kind": "probe"
+        }
+      ],
+      "files": [
+        "app/old_mail.py"
+      ],
+      "impact": "Code nobody runs is still read, maintained and reviewed, and can be switched back on without anyone noticing.",
+      "recommendation": "Delete it in one commit; the audit shows nothing reaches it.",
+      "claim_id": "CLM-002",
+      "priority": 0.0,
+      "hotspot": {
+        "file": "app/old_mail.py",
+        "complexity_pct": 0.0,
+        "churn_pct": 0.0,
+        "fan_in_pct": 0.0,
+        "score": 0.0
+      }
+    },
+    {
+      "id": "DEBT-003",
+      "title": "unreachable module `app/old_report.py`: no production entry point imports it",
+      "category": "dead_code",
+      "severity": "low",
+      "witnesses": [
+        {
+          "tool": "eaos",
+          "finding_id": "FACT-0de6b2b4ef840623",
+          "kind": "deterministic"
+        },
+        {
+          "tool": "eaos.probe",
+          "finding_id": "PRB-003",
+          "kind": "probe"
+        }
+      ],
+      "files": [
+        "app/old_report.py"
+      ],
+      "impact": "Code nobody runs is still read, maintained and reviewed, and can be switched back on without anyone noticing.",
+      "recommendation": "Delete it in one commit; the audit shows nothing reaches it.",
+      "claim_id": "CLM-003",
+      "priority": 0.0,
+      "hotspot": {
+        "file": "app/old_report.py",
+        "complexity_pct": 0.0,
+        "churn_pct": 0.0,
+        "fan_in_pct": 0.0,
+        "score": 0.0
+      }
+    }
+  ]
+}

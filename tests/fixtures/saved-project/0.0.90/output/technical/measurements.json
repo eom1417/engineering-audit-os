@@ -1,0 +1,186 @@
+{
+  "schema_version": 1,
+  "files": [
+    {
+      "path": "app/__init__.py",
+      "language": "python",
+      "loc": 0,
+      "complexity_max": 1,
+      "duplicated_lines": null,
+      "churn": 1,
+      "last_changed": "2026-01-01T00:00:00+00:00",
+      "authors": 1,
+      "fan_in": 0,
+      "fan_out": 0,
+      "coverage": null,
+      "missing": [
+        {
+          "field": "duplicated_lines",
+          "reason": "jscpd did not run in this audit"
+        },
+        {
+          "field": "coverage",
+          "reason": "no test command was run"
+        }
+      ],
+      "sources": {
+        "loc": "eaos.metrics",
+        "complexity_max": "eaos.metrics (file body, no function)",
+        "churn": "git history",
+        "fan_in": "eaos.graph"
+      }
+    },
+    {
+      "path": "app/main.py",
+      "language": "python",
+      "loc": 3,
+      "complexity_max": 1,
+      "duplicated_lines": null,
+      "churn": 1,
+      "last_changed": "2026-01-01T00:00:00+00:00",
+      "authors": 1,
+      "fan_in": 0,
+      "fan_out": 1,
+      "coverage": null,
+      "missing": [
+        {
+          "field": "duplicated_lines",
+          "reason": "jscpd did not run in this audit"
+        },
+        {
+          "field": "coverage",
+          "reason": "no test command was run"
+        }
+      ],
+      "sources": {
+        "loc": "eaos.metrics",
+        "complexity_max": "eaos.metrics (branches + 1)",
+        "churn": "git history",
+        "fan_in": "eaos.graph"
+      }
+    },
+    {
+      "path": "app/old_export.py",
+      "language": "python",
+      "loc": 2,
+      "complexity_max": 1,
+      "duplicated_lines": null,
+      "churn": 1,
+      "last_changed": "2026-01-01T00:00:00+00:00",
+      "authors": 1,
+      "fan_in": 0,
+      "fan_out": 0,
+      "coverage": null,
+      "missing": [
+        {
+          "field": "duplicated_lines",
+          "reason": "jscpd did not run in this audit"
+        },
+        {
+          "field": "coverage",
+          "reason": "no test command was run"
+        }
+      ],
+      "sources": {
+        "loc": "eaos.metrics",
+        "complexity_max": "eaos.metrics (branches + 1)",
+        "churn": "git history",
+        "fan_in": "eaos.graph"
+      }
+    },
+    {
+      "path": "app/old_mail.py",
+      "language": "python",
+      "loc": 2,
+      "complexity_max": 1,
+      "duplicated_lines": null,
+      "churn": 1,
+      "last_changed": "2026-01-01T00:00:00+00:00",
+      "authors": 1,
+      "fan_in": 0,
+      "fan_out": 0,
+      "coverage": null,
+      "missing": [
+        {
+          "field": "duplicated_lines",
+          "reason": "jscpd did not run in this audit"
+        },
+        {
+          "field": "coverage",
+          "reason": "no test command was run"
+        }
+      ],
+      "sources": {
+        "loc": "eaos.metrics",
+        "complexity_max": "eaos.metrics (branches + 1)",
+        "churn": "git history",
+        "fan_in": "eaos.graph"
+      }
+    },
+    {
+      "path": "app/old_report.py",
+      "language": "python",
+      "loc": 2,
+      "complexity_max": 1,
+      "duplicated_lines": null,
+      "churn": 1,
+      "last_changed": "2026-01-01T00:00:00+00:00",
+      "authors": 1,
+      "fan_in": 0,
+      "fan_out": 0,
+      "coverage": null,
+      "missing": [
+        {
+          "field": "duplicated_lines",
+          "reason": "jscpd did not run in this audit"
+        },
+        {
+          "field": "coverage",
+          "reason": "no test command was run"
+        }
+      ],
+      "sources": {
+        "loc": "eaos.metrics",
+        "complexity_max": "eaos.metrics (branches + 1)",
+        "churn": "git history",
+        "fan_in": "eaos.graph"
+      }
+    },
+    {
+      "path": "app/prices.py",
+      "language": "python",
+      "loc": 2,
+      "complexity_max": 1,
+      "duplicated_lines": null,
+      "churn": 1,
+      "last_changed": "2026-01-01T00:00:00+00:00",
+      "authors": 1,
+      "fan_in": 1,
+      "fan_out": 0,
+      "coverage": null,
+      "missing": [
+        {
+          "field": "duplicated_lines",
+          "reason": "jscpd did not run in this audit"
+        },
+        {
+          "field": "coverage",
+          "reason": "no test command was run"
+        }
+      ],
+      "sources": {
+        "loc": "eaos.metrics",
+        "complexity_max": "eaos.metrics (branches + 1)",
+        "churn": "git history",
+        "fan_in": "eaos.graph"
+      }
+    }
+  ],
+  "not_measured": [
+    {
+      "path": "pyproject.toml",
+      "reason": "not parsed: NOT_SOURCE"
+    }
+  ],
+  "complete": 6
+}

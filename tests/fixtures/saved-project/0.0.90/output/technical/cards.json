@@ -1,0 +1,22 @@
+{
+  "schema_version": 1,
+  "decided_by": "rules",
+  "kept": [
+    "TASK-001",
+    "TASK-002",
+    "TASK-003"
+  ],
+  "design": [],
+  "set_aside": [],
+  "closed": [],
+  "doubted": [],
+  "resolved": {
+    "fix": 0,
+    "keep": 0,
+    "owner": 0,
+    "turned_to_fix": 0
+  },
+  "owner": [],
+  "ready": 3,
+  "why": "No triage by an assistant in this check: every card stands as the rules wrote it."
+}

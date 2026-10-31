@@ -1,0 +1,26 @@
+{
+ "schema_version": 1,
+ "project": "{{PROJECT}}",
+ "workspace": "{{WORKSPACE}}",
+ "started": "2026-10-31T10:40:07+00:00",
+ "questions": [
+  {
+   "id": "branch",
+   "kind": "choice",
+   "answer": "main",
+   "said": "the saved project",
+   "via": "assistant"
+  }
+ ],
+ "lang": "en",
+ "outputs": "{{OUTPUT}}",
+ "updated": "2026-10-31T10:40:16+00:00",
+ "branch": "main",
+ "home_branch": "main",
+ "scanned": "2026-10-31T10:40:16+00:00",
+ "scanned_with": "an-older-version",
+ "scanned_commit": "b4a70c4377f6dd28e8d4d1d7965206a1653055a0",
+ "scanned_branch": "main",
+ "scanned_detached": false,
+ "scanned_dirty": false
+}
