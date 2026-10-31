@@ -50,15 +50,23 @@ piped answer stops at 64 KB, and prefer `impact` or `cypher` to `context`, which
 
 ### A detector and its card
 - **Read:** `eaos/analysis/assessments/data_keeping.py` and `eaos/analysis/claims/from_keeping.py` (M14),
-  `eaos/analysis/claims/ledger.py`, `eaos/analysis/claims/probe_queries.py`, `eaos/data/detector-verdicts.json`.
+  `eaos/core/contracts/card_kinds.py`, `eaos/analysis/claims/ledger.py`, `eaos/analysis/claims/probe_queries.py`.
 - **Touch, in order:** (1) the fact: a `facts/<folder>/` module, an engine, a rule or a live stage that records what is
   there; (2) the assessment `eaos/analysis/assessments/<kind>.py` that sorts it on evidence; (3) the claims module
-  `eaos/analysis/claims/from_<kind>.py`, joined in `probe_queries.py`; (4) the words: the kind in `eaos/data/words.json`
-  `kinds`, the card's pattern in `eaos/analysis/presentation/model.py` `PATTERNS`; (5) the remediation in
-  `eaos/analysis/repair/remediation.py`; (6) the check paths that run it, `eaos/core/contracts/check_paths.py`;
-  (7) its planted case and an example that must stay (the recipe below); (8) a detector not yet measured precise stays
-  hidden in `eaos/data/detector-verdicts.json` with its reason.
-- **Test:** `tests/analysis/test_<kind>.py` (one behaviour each), then the detection baseline.
+  `eaos/analysis/claims/from_<kind>.py`, joined in the ledger's `BUILDERS` (a fact's claims, in numbering order) or
+  `eaos/analysis/claims/from_runs.py` (what the runs of the copy left), its `present` in `QUERIES` and the fact set it reads in `QUERY_REQUIRES` of
+  `probe_queries.py`; (4) **the kind's one row in `eaos/core/contracts/card_kinds.py`**: its detector, whether it is its own
+  pattern, carries its own fix, its own words and its own debt category; a key not there is refused when a claim is built, and
+  no other file repeats these; (5) the words: a sentence in `TEMPLATES` of `eaos/core/language/words.py` unless it carries its own,
+  the kind in `eaos/data/words.json` `kinds`, the card's area and severity in `eaos/analysis/presentation/model.py` `PATTERNS`;
+  (6) the remediation in `eaos/analysis/repair/remediation.py`: its `PATTERNS` and `cost_of_inaction`, its query in
+  `QUERY_PATTERNS`; (7) the check paths that run it, `eaos/core/contracts/check_paths.py`; (8) its planted case and an example
+  that must stay (the recipe below).
+- **Precision:** `eaos/data/detector-verdicts.json` holds what was measured. A detector under its bar in `hidden` is kept
+  aside, never shown; one in `shown` is shown; **one in neither is shown too, counted as not measured yet** in START-HERE,
+  until it is judged (`tools/judging/precision.py`). The name is the kind's detector and subtype, `data_keeping:<kind>`.
+- **Test:** `tests/analysis/test_<kind>.py` (one behaviour each), `tests/analysis/test_card_kinds.py`, then the detection
+  baseline.
 
 ### A codemod family
 - **Read:** `eaos/analysis/repair/codemods.py` (`MECHANICAL`, `card_for`), `eaos/templates/codemods/remove-declaration.cjs`,

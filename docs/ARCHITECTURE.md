@@ -101,7 +101,7 @@ engineering-audit-os/
     core/                  what every layer reads; it imports nothing of EAOS
       project/             a project's records: places, state, runs, ledger, jobs, branches, workspace, repo context, and
                            rules.py (the person's own rules: their words, scope, history, breaks; one per project)
-      contracts/           artifacts, documents, decisions, check paths, the code laws, the owner's share, untrusted text
+      contracts/           artifacts, documents, decisions, check paths, the card kinds, the code laws, the owner's share, untrusted text
       language/            the words in both languages, plain words, a person's intents, the language check
       system/              processes, resources, files (the one JSON reader), the clock (the time now, written once),
                            the web, a local database, the version, usage, the Studio's launch and who may talk to it

@@ -17,6 +17,7 @@ not only the product, so a reader sees why a place is hot.
 from pathlib import Path
 
 from ...core import progress
+from ...core.contracts.card_kinds import card_kind
 from ...core.system.files import read_json
 
 FORMULA = 'score = pct(complexity_max) x pct(churn) x (1 + pct(fan_in)), percentile ranks among the analysed files'
@@ -53,8 +54,6 @@ RECOMMENDATIONS = {
     'dead_code': 'Delete it in one commit; the audit shows nothing reaches it.',
 }
 CREDENTIAL_SEVERITY = {'public': 'low', 'test': 'low'}
-# The debt category of a card kind that carries its own severity (M13, M14, M15).
-OWN_CATEGORY = {'old_engine': 'dead_code', 'data_keeping': 'data', 'one_source': 'maintainability', 'person_rule': 'reliability'}
 # Personal values whose check digits were verified (an IBAN, a Saudi national id, a card number): a lookup, not a guess.
 CHECKED_VALUES = ('IBAN_CODE', 'SA_NATIONAL_ID', 'CREDIT_CARD')
 
@@ -186,7 +185,7 @@ def _layered(render, category, severity):
     (eaos/analysis/layers/catalog.py); any other item's as they were."""
     key, params = render.get('key'), render.get('params') or {}
     if key == 'repository_finding': return 'maintainability', 'low'      # never raises the risk grade (M7.8)
-    if key in OWN_CATEGORY: return OWN_CATEGORY[key], params.get('severity') or 'medium'
+    if card_kind(key).debt_category: return card_kind(key).debt_category, params.get('severity') or 'medium'
     if key in ('logic_flaw', 'experience_difficulty', 'real_data'): return params.get('category') or 'reliability', params.get('severity') or 'medium'
     if key != 'layer_finding': return category, severity
     return LAYER_CATEGORY.get(params.get('boundary'), 'architecture'), params.get('severity') or 'medium'

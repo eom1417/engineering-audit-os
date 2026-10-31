@@ -17,6 +17,7 @@ from .from_repository import repository_findings
 from .from_facts import (broken_code, cochanges, cycles, dead_code, external_writes, hotspots, large_modules,
                          mutable_globals, policy_violations, trace_gaps, vulnerable_dependencies)
 from ..assessments.weaknesses import SECURITY, claims as weaknesses
+from ...core.contracts.card_kinds import KINDS, card_kind
 from ...core.contracts.vocabulary import schema_errors
 from ...core.language.words import IMPACTS
 from ...core.project.workspace import DATA, read, write
@@ -52,19 +53,14 @@ STATEMENT_LIMIT = 600
 VERDICTS = DATA / 'detector-verdicts.json'
 
 
-# The card keys whose detector is one of their params: (the detector's prefix, the param).
-DETECTED_BY = {'engine_cluster': ('engine_cluster', 'kind'), 'layer_finding': ('layer', 'rule'),
-               'repository_finding': ('repository', 'rule'), 'logic_flaw': ('logic', 'class'),
-               'experience_difficulty': ('experience', 'kind'), 'real_data': ('real_data', 'kind'),
-               'old_engine': ('old_engine', 'kind'), 'data_keeping': ('data_keeping', 'kind'), 'one_source': ('one_source', 'kind')}
 
 
 def detector_of(claim):
     """The detector a claim comes from: its card key, an engine cluster's kind, or the import-cycle check."""
     render = claim.get('render') or {}
     key = render.get('key')
-    if key in DETECTED_BY:
-        prefix, param = DETECTED_BY[key]
+    if card_kind(key).detector:
+        prefix, param = card_kind(key).detector
         return prefix + ':' + str((render.get('params') or {}).get(param))
     if key: return key
     if str(claim.get('statement', '')).startswith('Import cycle between'): return 'import_cycle'
@@ -150,6 +146,12 @@ def _unowned_acceptance(claim):
     return not claim['disposition'].get('owner') or not claim['disposition'].get('reason')
 
 
+def _unknown_kind(claim):
+    """A card kind nobody registered: refused when built, since it would be shown generic, its detector and own fix lost."""
+    key = (claim.get('render') or {}).get('key')
+    return [f'unknown card kind {key!r}: register it in eaos/core/contracts/card_kinds.py'] if key and key not in KINDS else []
+
+
 def _claim_errors(claim, known):
     """The epistemic rules one claim breaks; `known`: (evidence ids, fact ids) to resolve against."""
     known_evidence, known_facts = known
@@ -163,6 +165,7 @@ def _claim_errors(claim, known):
     found += _unknown(claim.get('evidence_ids', []), known_evidence, 'evidence')
     found += _unknown(claim.get('fact_ids', []), known_facts, 'fact')
     if _unowned_acceptance(claim): found.append('an accepted risk needs an owner and a reason')
+    found += _unknown_kind(claim)
     return found
 
 
