@@ -64,7 +64,7 @@ def _components(pages):
         row['pages'].add(name)
         if len(row['where']) < PLACES: row['where'].append({'page': name, 'element': key})
         row['crop'] = row['crop'] or (pages[name].get('crops') or {}).get(key)
-    return {role: {'count': sum(r['count'] for r in looks.values()), 'looks': _looks(looks)} for role, looks in sorted(groups.items())}
+    return {role: {'count': sum(r['count'] for r in looks.values()), 'distinct': len(looks), 'looks': _looks(looks)} for role, looks in sorted(groups.items())}
 
 
 def _looks(looks):

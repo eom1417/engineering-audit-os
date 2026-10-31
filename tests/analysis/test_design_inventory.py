@@ -30,12 +30,12 @@ class Inventory(unittest.TestCase):
     def test_a_part_drawn_three_ways_is_counted_as_three_looks_with_where_each_is(self):
         drawn = self.drawn({'a': page(BLUE, BLUE, ROUND), 'b': page(NEAR)})
         buttons = drawn['components']['button']
-        self.assertEqual((buttons['count'], len(buttons['looks'])), (4, 3))
+        self.assertEqual((buttons['count'], buttons['distinct']), (4, 3))
         self.assertEqual((buttons['looks'][0]['count'], buttons['looks'][0]['where'][0]['page']), (2, 'a'))
         self.assertEqual(drawn['values']['radius']['distinct'], 2)
 
     def test_near_colours_are_named_and_a_part_used_one_way_is_one_look(self):
-        self.assertEqual(len(self.drawn({'a': page(BLUE, BLUE)})['components']['button']['looks']), 1)
+        self.assertEqual(self.drawn({'a': page(BLUE, BLUE)})['components']['button']['distinct'], 1)
         self.assertTrue(any({'rgb(0, 0, 255)', 'rgb(0, 1, 255)'} <= set(group) for group in self.drawn({'a': page(BLUE, NEAR)})['near_colours']))
 
     def test_a_date_shown_three_ways_is_three_forms_and_a_time_two(self):

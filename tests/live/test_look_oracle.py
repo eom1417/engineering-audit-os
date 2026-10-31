@@ -70,6 +70,16 @@ class StyleOracle(unittest.TestCase):
         self.assertEqual(self.changes('colour', allowed), [])
         self.assertTrue(self.changes('border', allowed))
 
+    def test_what_moves_by_itself_on_a_page_is_read_from_the_unchanged_code_and_set_aside(self):
+        import tempfile as temp
+        with temp.TemporaryDirectory() as folder:
+            original, now, control = [Path(folder) / name for name in ('o', 'n', 'c')]
+            for place, name in ((original, 'plain'), (now, 'colour'), (control, 'colour')):
+                place.mkdir()
+                shutil.copyfile(Path(self.tmp.name) / f'{name}.json', place / 'page.json')
+            self.assertIn('undeclared', judged(original, now))
+            self.assertEqual(judged(original, now, None, control), '')
+
     def test_a_page_with_no_second_reading_or_no_recording_proves_nothing(self):
         empty = Path(self.tmp.name) / 'empty'
         empty.mkdir(exist_ok=True)

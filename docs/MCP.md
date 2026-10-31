@@ -125,6 +125,7 @@ opened in). Long work returns a job, followed with `wait`. `status` always names
 | `context_propose`, `context_make` | The assistants' context trimmed on a branch of its own, every instruction kept, with the project's extension guide (`docs/EXTENDING.md`, drawn from its layers and how it grew) and one line in the context files pointing at it |
 | `project_map` | GitNexus's map of the project for its assistant, with the person's yes: the index outside the project, its area skills where git does not take them, its MCP registered |
 | `design` | What the project's screens are really made of: how many looks each part has, values per kind, near colours, formats, two libraries for one job |
+| `design_propose`, `design_make` | The look's raw values named as tokens on a branch of their own, no assistant asked, kept only when proved that nothing looks different but what the person agreed to merge |
 | `fix_start` | Open a batch in an isolated copy: the next cards EAOS can fix (or the ids passed), with their automatic fixes (codemods) applied and checked. Options set in the fix preview: `base`, `deliver_as`, `merge_into`, `base_commit`, `assistants` |
 | `fix_read` | Read a file (or list a folder) in the batch's copy, with line numbers |
 | `fix_edit` | Make one card's change, then check it at once: the problem is gone, no new broken code, no endpoint gone. A change that fails is taken back with the reason. Returns a job |

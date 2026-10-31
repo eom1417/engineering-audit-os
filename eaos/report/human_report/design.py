@@ -20,7 +20,7 @@ def _look(look):
 
 def _component(role, part):
     ar, en = CATALOG['components'][role]
-    count, looks = num(part['count'], f'{en} on the screens'), num(len(part['looks']), f'distinct looks of {en}')
+    count, looks = num(part['count'], f'{en} on the screens'), num(part['distinct'], f'distinct looks of {en}')
     rows = ''.join(_look(look) for look in part['looks'][:SHOWN_LOOKS])
     head = f'<tr><th>{T("الشكل", "The look")}</th><th>{T("كم مرة", "How many")}</th><th>{T("في كم صفحة", "On pages")}</th><th>{T("مثال", "Example")}</th></tr>'
     return (f'<div class="card" data-design-role="{esc(role)}"><h4>{T(f"{ar}: {looks} شكل لـ{count}", f"{en}: {looks} looks for {count}")}</h4>'
@@ -61,6 +61,6 @@ def section_design(m):
     if not drawn: return f'<div class="card">{T("التطبيق ما اشتغل في هذا الفحص، فما انقرأت شاشاته.", "The app did not run in this check, so its screens were not read.")}</div>'
     pages = num(drawn['pages'], 'pages the inventory read')
     head = f'<div class="card"><p>{T(f"من {pages} صفحة، في حالاتها: عادي، hover، focus، ضغط.", f"From {pages} pages, in their states: normal, hover, focus, pressed.")}</p></div>'
-    order = sorted(drawn['components'].items(), key=lambda item: -len(item[1]['looks']))
+    order = sorted(drawn['components'].items(), key=lambda item: -item[1]['distinct'])
     return (head + ''.join(_component(role, part) for role, part in order) + _libraries(drawn['libraries']) + _formats(drawn['formats']) + _near(drawn['near_colours'])
             + ''.join(_value_kind(kind, part) for kind, part in drawn['values'].items()))

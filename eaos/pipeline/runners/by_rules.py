@@ -205,8 +205,9 @@ def layers(context):
 def _design_inventory(context):
     """What the screens really show, from the pages the lock saved (eaos/analysis/design/inventory.py): design/inventory.json."""
     from ...analysis.design.inventory import write as inventory
-    if context.get('runtime'):
-        inventory(Path(context.runtime) / 'behavior-lock' / 'look' / 'original', context.out, context.target)
+    runtime = getattr(context, 'runtime', None)
+    if runtime:
+        inventory(Path(runtime) / 'behavior-lock' / 'look' / 'original', context.out, context.target)
 
 
 def _proposed_tokens(context):
