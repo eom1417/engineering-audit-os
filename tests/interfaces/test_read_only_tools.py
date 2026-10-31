@@ -88,10 +88,11 @@ class ReadingABuildsFile(Home):
 
 
 class OpeningTheReport(Home):
-    def test_mcp_does_not_call_it_read_only_and_says_it_destroys_nothing(self):
+    def test_mcp_does_not_call_it_read_only_nor_promise_its_updates_only_add(self):
         hints = _tool(self.server, 'open_report').annotations
         self.assertFalse(hints.read_only_hint)
-        self.assertFalse(hints.destructive_hint)
+        self.assertIsNone(hints.destructive_hint, 'it regenerates what is there: by MCP, false would say it only adds')
+        self.assertFalse(hints.open_world_hint)
 
     def test_it_rewrites_the_page_and_saves_the_state_which_is_why_it_is_not_reading(self):
         with mock.patch.dict(by_rules.RUNNERS, engines=_no_engines, architecture=_no_engines), mock.patch.object(guided, 'tools_for_check', return_value={}):
