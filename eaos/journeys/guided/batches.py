@@ -4,22 +4,23 @@ branch chosen.
 
 from ...core.project import branches, jobs
 from ...core.project.state import waiting_batch
-from .project import PUBLISHERS, _branch_exists, _git, publish, report_of, same_code, save, tip
+from .project import PUBLISHERS, _branch_exists, _git, fresh, publish, report_of, save_after_report, same_code, save, tip
 from ...core.system.clock import now
 
 
 def close_batch(state, status, why='', via='assistant'):
     """Close the open batch without handing anything over: its copy is removed, it is recorded in `waves` with `status`
     (abandoned, superseded) and `why`; the ledger and the Studio follow, so its cards can be picked again at once."""
-    wave = state.get('open_wave')
-    if not wave: return None
-    record = {'number': wave['number'], 'base': wave.get('base'), 'cards': wave['cards'], 'kept': {},
-              'failed': wave.get('failed') or {} if status == 'abandoned' else {}, 'branch': None, 'status': status, 'via': via,
-              'keys': wave.get('keys') or {}, **{k: wave[k] for k in ('deliver_as', 'merge_into', 'base_branch') if k in wave}}
-    if why: record['why'] = why
-    state.setdefault('waves', []).append(record)
-    state.pop('open_wave', None)
-    save(state)
+    with fresh(state):
+        wave = state.get('open_wave')
+        if not wave: return None
+        record = {'number': wave['number'], 'base': wave.get('base'), 'cards': wave['cards'], 'kept': {},
+                  'failed': wave.get('failed') or {} if status == 'abandoned' else {}, 'branch': None, 'status': status, 'via': via,
+                  'keys': wave.get('keys') or {}, **{k: wave[k] for k in ('deliver_as', 'merge_into', 'base_branch') if k in wave}}
+        if why: record['why'] = why
+        state.setdefault('waves', []).append(record)
+        state.pop('open_wave', None)
+        save(state)
     publish(state)
     return record
 
@@ -87,15 +88,21 @@ def reconcile(state, tidy=True):
     """Bring the state up to what git says, however the person or their assistant merged: a batch whose branch (or
     whose last commit) is in the current branch is accepted; one whose branch is gone without that is undone. With
     `tidy`, an accepted batch's branch is deleted: what only reads where things stand passes False. When something
-    changed, the ledger and REPORT.html follow at once. The changed batches."""
-    changed = [wave for wave in state.get('waves') or [] if _settle(state, wave, tidy)]
+    changed, the ledger and REPORT.html follow at once, with no lock held. `state` itself becomes what is on disk. The changed batches."""
+    if not (tidy or _something_to_settle(state)): return []     # a read with nothing to settle writes nothing
+    with fresh(state):
+        changed = [wave for wave in state.get('waves') or [] if _settle(state, wave, tidy)]
+        if changed: save(state)
     if changed:
-        save(state)
         if state.get('mode') in PUBLISHERS: PUBLISHERS[state['mode']](state)
         else:
             publish(state, event='merged')
-        save(state)
+        save_after_report(state)
     return changed
+
+
+def _something_to_settle(state):
+    return any(_settle(state, dict(wave), False) for wave in state.get('waves') or [])
 
 
 def _drop_branch(state, wave):
@@ -144,6 +151,7 @@ def merge(state, wave, into=None, delete_after=True):
         if done.returncode:
             _git(project, 'merge', '--abort')
             return 'conflict'
+    save(state)         # the choices made for this merge: reconcile goes on from what is on disk
     reconcile(state)
     return 'merged'
 
@@ -171,6 +179,7 @@ def _merge_elsewhere(state, wave, into):
         if made.returncode: return 'conflict'
         after = made.stdout.strip()
     if _git(project, 'update-ref', '-m', f"EAOS: merge {wave['branch']}", ref, after, before).returncode: return 'conflict'
+    save(state)         # the choices made for this merge: reconcile goes on from what is on disk
     reconcile(state)
     return 'merged'
 

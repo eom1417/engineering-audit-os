@@ -293,7 +293,7 @@ def prepare(project=None):
     if guided.scan_done(state):
         guided.reconcile(state)
         guided.publish(state)
-        guided.save(state)
+        guided.save_after_report(state)
     return state, report
 
 

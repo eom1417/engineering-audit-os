@@ -26,6 +26,7 @@ from .commands import COMMANDS, STEPS, TERMINAL, USER_COMMANDS, clean, do, main,
 from .doctor import assistant_row, doctor, doctor_rows  # noqa: F401
 from .person import (LINE, Declined, NeedsAnswer, ToolsMissing, answered, ask, box, catalog, explain,  # noqa: F401
                      progress_printer, say, show_error)
+from .project import fresh, save_after_report  # noqa: F401
 from .project import (PUBLISHERS, REPORT_PARTS, RESUME, _branch_exists, _git, _saved_note, chosen_assistant,  # noqa: F401
                       language, log_failure, outputs, publish, publish_fixes, report_of, report_stamp, safety_holds,
                       same_code, save, scan_done, set_up, source, tip)

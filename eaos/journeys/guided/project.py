@@ -1,10 +1,12 @@
 """A project as the journeys keep it: its outputs folder, its state saved, its report and the page people read, the
 code of the branch EAOS works on, and whether a check, a run and a safety net still hold for it.
 """
+import fcntl
 import json
 import os
 import shutil
 import traceback
+from contextlib import contextmanager
 from pathlib import Path
 
 from ...core.project import branches, state as project_state
@@ -72,6 +74,29 @@ def save(state):
     waves.draw(state, runtime_of(state))
     project_state.write(state)
     waves.saved(state, runtime_of(state), before)
+
+
+@contextmanager
+def fresh(state):
+    """`state` itself made what is on disk now, under the state's lock: what comes after a slow read saves on this, not over
+    what was written meanwhile. Taken after the jobs' lock, never nested, and let go before any report is rebuilt."""
+    folder = Path(state['workspace'])
+    folder.mkdir(parents=True, exist_ok=True)
+    with open(folder / 'state.lock', 'a') as lock:
+        fcntl.flock(lock, fcntl.LOCK_EX)
+        on_disk = project_state.of_workspace(folder)
+        if isinstance(on_disk, dict):
+            state.clear()
+            state.update(on_disk)
+        yield state
+
+
+def save_after_report(state):
+    """All a report's rebuilding adds to the state, its outputs folder the first time, saved on what is on disk now."""
+    outputs = state.get('outputs')
+    with fresh(state):
+        if outputs: state.setdefault('outputs', outputs)
+        save(state)
 
 
 def language(requested=None, state=None):
