@@ -710,3 +710,71 @@ class TheThirdReview(Clean):
             said = self.clean()
         self.assertIn('WAVE-1', said)
         self.assertRemoved(gone)
+
+
+class TheLastReview(Clean):
+    def test_a_filled_submodule_under_a_name_git_quotes(self):
+        copy = self.copy()
+        inner = copy / 'مكتبة'
+        inner.mkdir()
+        git(inner, 'init', '-q', '-b', 'main')
+        (inner / 'x.py').write_text(UNIQUE)
+        git(inner, 'add', '-A')
+        git(inner, 'commit', '-qm', 'only here')
+        git(copy, 'add', 'مكتبة')
+        git(copy, 'commit', '-qm', 'the gitlink')
+        git(self.project, 'fetch', '-q', str(copy), 'HEAD:refs/heads/eaos/main/wave-1')
+        self.assertKept(copy, self.clean())
+
+    def test_a_copy_left_as_it_was_cloned_goes_when_the_project_drops_another_branch(self):
+        git(self.project, 'checkout', '-qb', 'side')
+        (self.project / 'side.py').write_text('1\n')
+        git(self.project, 'add', '-A')
+        git(self.project, 'commit', '-qm', 'on a side branch')
+        git(self.project, 'checkout', '-q', 'main')
+        copy = self.copy()
+        git(self.project, 'branch', '-qD', 'side')
+        self.clean()
+        self.assertRemoved(copy)
+
+    def test_a_copy_of_a_project_on_no_branch_goes(self):
+        git(self.project, 'checkout', '-q', '--detach')
+        (self.project / 'x.py').write_text('1\n')
+        git(self.project, 'add', '-A')
+        git(self.project, 'commit', '-qm', 'on no branch')
+        copy = self.copy()
+        self.clean()
+        self.assertRemoved(copy)
+
+    def test_a_copy_that_fetched_what_the_project_rewrote_after_its_clone_goes(self):
+        copy = self.copy()
+        git(self.project, 'commit', '-q', '--amend', '-m', 'rewritten')
+        git(copy, 'fetch', '-q', 'origin')
+        self.clean()
+        self.assertRemoved(copy)
+
+    def test_a_commit_pushed_over_a_branch_it_came_with_stays(self):
+        copy = self.copy()
+        (copy / 'new.py').write_text(UNIQUE)
+        git(copy, 'add', '-A')
+        git(copy, 'commit', '-qm', 'made here')
+        git(self.project, 'checkout', '-q', '--detach')
+        git(copy, 'push', '-q', 'origin', 'HEAD:main')
+        git(self.project, 'checkout', '-q', 'main')
+        git(self.project, 'reset', '-q', '--hard', 'HEAD~1')
+        self.assertKept(copy, self.clean())
+
+    def test_many_commits_on_no_ref_of_the_copy_are_looked_at_once(self):
+        copy = self.copy()
+        for number in range(3):
+            git(copy, 'commit', '-q', '--allow-empty', '-m', f'made {number}')
+        git(self.project, 'fetch', '-q', str(copy), 'HEAD:refs/heads/kept')
+        calls = []
+        real = copies._git
+        def counted(where, *args):
+            calls.append(args)
+            return real(where, *args)
+        with mock.patch.object(copies, '_git', counted):
+            self.clean()
+        self.assertRemoved(copy)
+        self.assertLessEqual(sum('--contains' in call for call in calls), 1, 'one call whatever the commits')
