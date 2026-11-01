@@ -129,6 +129,14 @@ class AReadLeavesThem(Leftovers):
 
 
 class AnOpenBatch(OpenBatch):
+    def test_keeps_its_copy_when_a_closed_batch_on_disk_has_its_number(self):
+        (self.copy / 'only-here.js').write_text(UNIQUE)
+        state = project_state.load(self.project)
+        state['waves'] = [{'number': 1, 'status': 'abandoned', 'cards': [], 'kept': {}, 'failed': {}}]
+        project_state.write(state)
+        guided.save(state)
+        self.assertEqual((self.copy / 'only-here.js').read_text(), UNIQUE)
+
     def test_stays_untouched_through_saves_and_reads_beside_a_closed_one(self):
         state = project_state.load(self.project)
         state['open_wave']['number'] = 2
