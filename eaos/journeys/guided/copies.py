@@ -1,7 +1,7 @@
 """What `eaos clean` may remove of the isolated copies under each project's runtimes: only a copy proved to hold nothing of
 anyone's. No work is open or waiting on it (the state and the runs say, never its name), nothing in it is uncommitted, each
-commit made in it is in a branch of the person's project (those it came with, as its origin refs say, are not its own, whatever
-the project did with them since), and whatever git ignores there the project ignores too (node_modules: rebuilt). A copy's
+commit made in it is held by a ref of the person's project (those it came with, as its origin refs said when it was cloned,
+are not its own, whatever the project did with them since), and whatever git ignores there the project ignores too (node_modules: rebuilt). A copy's
 reflog is not counted: every change a check took back is in it. Whatever cannot be proved stays, and is said: a copy may hold
 the only trace of a change."""
 import shutil
@@ -75,13 +75,18 @@ def _stopped_ones_ended(candidates):
     for marker in candidates.glob(f'{REMOVING}*{PROVED}'):
         aside = marker.with_name(marker.name.removesuffix(PROVED))
         if not marker.is_file() or (aside.is_dir() and marker.read_text() != _identity(aside)): continue    # not what it names
-        size = _size(aside) if aside.is_dir() else 0
-        shutil.rmtree(aside, ignore_errors=True)
-        if aside.exists(): failed.append((aside, 'failed'))
-        else:
-            marker.unlink()
-            freed += size
+        gone, left = _finished(aside, marker)
+        freed, failed = freed + gone, failed + left
     return freed, failed
+
+
+def _finished(aside, marker):
+    """(bytes freed, what would not go), the mark going last."""
+    size = _size(aside) if aside.is_dir() else 0
+    shutil.rmtree(aside, ignore_errors=True)
+    if aside.exists(): return 0, [(aside, 'failed')]
+    marker.unlink()
+    return size, []
 
 
 def _identity(folder):
@@ -115,25 +120,23 @@ def _removed(proved):
     """(bytes freed, those that would not go)."""
     freed, failed = 0, []
     for copy in proved:
-        size, aside = _size(copy), copy.with_name(REMOVING + copy.name)
+        aside = copy.with_name(REMOVING + copy.name)
         marker = aside.with_name(aside.name + PROVED)
-        if not _moved_aside(copy, aside, marker):
-            failed.append((copy, 'failed'))
-            continue
-        shutil.rmtree(aside, ignore_errors=True)
-        if aside.exists(): failed.append((aside, 'failed'))
-        else:
-            marker.unlink()
-            freed += size
+        if _moved_aside(copy, aside, marker):
+            gone, left = _finished(aside, marker)
+            freed, failed = freed + gone, failed + left
+        else: failed.append((aside if aside.exists() else copy, 'failed'))
     return freed, failed
 
 
 def _moved_aside(copy, aside, marker):
     """Moved first: stopped before the mark is written, the copy is intact and only judged again."""
     if marker.exists(): return False
-    try: copy.rename(aside)
-    except OSError: return False
-    marker.write_text(_identity(aside))
+    try:
+        copy.rename(aside)
+        marker.write_text(_identity(aside))
+    except OSError:
+        return False
     return True
 
 
@@ -198,8 +201,10 @@ def _own_repository(copy):
 
 
 def _has_repositories(copy):
-    linked = _git(copy, *QUIET, 'ls-files', '--stage')
-    return linked.returncode or any(line.startswith('160000 ') for line in linked.stdout.splitlines()) or \
+    """Repositories inside, which git would not look into: filled submodules, or linked work folders."""
+    stage = _git(copy, *QUIET, 'ls-files', '--stage')
+    links = [line.split('\t', 1)[1] for line in stage.stdout.splitlines() if line.startswith('160000 ')]
+    return stage.returncode or any(path.is_dir() and any(path.iterdir()) for path in (copy / link for link in links)) or \
         any((copy / '.git' / inner).exists() for inner in ('modules', 'worktrees'))
 
 
@@ -219,9 +224,17 @@ def _rebuilt(row, project):
 
 
 def _commits_only_here(copy, project):
-    made = _git(copy, 'rev-list', 'HEAD', '--all', '--not', '--remotes=origin')
+    kinds = _git(copy, 'for-each-ref', '--format=%(objecttype) %(*objecttype)')
+    if kinds.returncode or {'blob', 'tree'} & set(kinds.stdout.split()): return 'unreadable' if kinds.returncode else 'commits'
+    made = _git(copy, 'rev-list', 'HEAD', '--all', '--not', *_as_cloned(copy))
     if made.returncode: return 'unreadable'
     for commit in made.stdout.split():
         found = _git(project, 'for-each-ref', '--contains', commit, '--count=1')
         if found.returncode or not found.stdout.strip(): return 'commits'
     return None
+
+
+def _as_cloned(copy):
+    """What its origin refs said when it was cloned, by their reflogs' first lines: they move with a push or a fetch of its own."""
+    firsts = (log.read_text(errors='replace').split('\n', 1)[0] for log in (copy / '.git/logs/refs/remotes/origin').rglob('*') if log.is_file())
+    return [first.split()[1] for first in firsts if 'clone:' in first]

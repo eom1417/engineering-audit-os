@@ -192,7 +192,7 @@ def _say_cleaned(lang, pictures, freed, kept):
             else f"Removed the temporary copies{' and the old screen pictures' if pictures else ''} and freed {freed / 2 ** 30:.1f} GB. Reports are kept")
     if kept: done = (f"حذفت ما ثبت أنه لا يحمل عملًا ووفّرت {freed / 2 ** 30:.1f} GB. بقي {len(kept)} مما لم يثبت" if ar
                      else f"Removed what is proved to hold nothing and freed {freed / 2 ** 30:.1f} GB. {len(kept)} stay, not proved")
-    box(lang, done, status='warn' if kept else 'ok', note=[f"{copy}: {copies.WHY[why][0 if ar else 1]}" for copy, why in kept],
+    box(lang, done, status='warn' if kept else 'ok', note=[f"{str(copy).encode('utf-8', 'replace').decode()}: {copies.WHY[why][0 if ar else 1]}" for copy, why in kept],
         where=home(), commands=['eaos next'])
 
 

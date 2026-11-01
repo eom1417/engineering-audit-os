@@ -649,3 +649,64 @@ class TheSecondReview(Clean):
         git(copy, 'commit', '-qm', 'made here')
         git(self.project, 'commit', '-q', '--allow-empty', '--amend', '-m', 'rewritten')
         self.assertKept(copy, self.clean())
+
+
+class TheThirdReview(Clean):
+    def made_in(self, copy):
+        (copy / 'new.py').write_text(UNIQUE)
+        git(copy, 'add', '-A')
+        git(copy, 'commit', '-qm', 'made here')
+
+    def test_a_commit_pushed_from_the_copy_to_a_branch_since_deleted(self):
+        copy = self.copy()
+        self.made_in(copy)
+        git(copy, 'push', '-q', 'origin', 'HEAD:refs/heads/x')
+        git(self.project, 'branch', '-qD', 'x')
+        self.assertKept(copy, self.clean())
+
+    def test_a_commit_fetched_back_to_the_copy_from_a_branch_since_deleted(self):
+        copy = self.copy()
+        self.made_in(copy)
+        git(self.project, 'fetch', '-q', str(copy), 'HEAD:refs/heads/x')
+        git(copy, 'fetch', '-q', 'origin')
+        git(self.project, 'branch', '-qD', 'x')
+        self.assertKept(copy, self.clean())
+
+    def test_a_tag_on_a_file_no_commit_holds(self):
+        copy = self.copy()
+        (copy / '.git' / 'tmp').write_text(UNIQUE)
+        git(copy, 'tag', 'keep', git(copy, 'hash-object', '-w', '.git/tmp'))
+        self.assertKept(copy, self.clean())
+
+    def test_a_project_with_a_submodule_not_filled_in_the_copy_still_cleans(self):
+        head = git(self.project, 'rev-parse', 'HEAD')
+        git(self.project, 'update-index', '--add', '--cacheinfo', f'160000,{head},lib')
+        git(self.project, 'commit', '-qm', 'a submodule')
+        git(self.project, 'checkout', '-q', '--', '.')
+        copy = self.copy()
+        self.clean()
+        self.assertRemoved(copy)
+
+    def test_a_folder_named_what_cannot_be_printed_is_still_named(self):
+        folder = os.path.join(os.fsencode(Path(self.state()['workspace']) / 'runtime' / 'candidates'), b'caf\xe9')
+        os.makedirs(folder)
+        with open(os.path.join(folder, b'left.py'), 'w') as left: left.write(UNIQUE)
+        raw = io.BytesIO()
+        strict = io.TextIOWrapper(raw, encoding='utf-8', errors='strict', write_through=True)
+        self.addCleanup(strict.detach)
+        with contextlib.redirect_stdout(strict):
+            self.assertEqual(cli.main(['clean', '--lang', 'en']), 0)
+        self.assertIn(b'caf', raw.getvalue())
+        self.assertTrue(os.path.isdir(folder))
+
+    def test_a_mark_that_cannot_be_written_stops_no_other_copy(self):
+        other = self.make('other')
+        kept, gone = self.copy('WAVE-1'), self.copy('WAVE-1', project=other)
+        write = Path.write_text
+        def full(path, *args, **options):
+            if path.name.endswith('.proved') and kept.parent in path.parents: raise OSError('no space left')
+            return write(path, *args, **options)
+        with mock.patch.object(Path, 'write_text', full):
+            said = self.clean()
+        self.assertIn('WAVE-1', said)
+        self.assertRemoved(gone)
