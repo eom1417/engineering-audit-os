@@ -274,7 +274,7 @@ class Continuity(Base):
         with mock.patch.object(agent_tools.fixing, '_start', return_value={'status': 'started'}) as started:
             self.assertEqual(agent_tools.fix_start(str(self.project), cards=['TASK-001'])['status'], 'started')
         self.assertEqual(started.call_args[0][2], {'cards': ['TASK-001'], 'deliver_as': 'eaos/master/wave-1', 'merge_into': 'master',
-                                                         'assistants': 1})
+                                                         'assistants': 1, 'scanned': project_state.load(self.project)['scanned']})
         # A batch whose fix_finish was refused stayed open, and every later fix_start answered "not in batch 1".
         # A batch whose fix_finish was refused stayed open, and every later fix_start answered "not in batch 1".
         state = project_state.load(self.project)

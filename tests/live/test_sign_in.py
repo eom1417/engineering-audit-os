@@ -282,7 +282,11 @@ class SignInTests(unittest.TestCase):
         from eaos.journeys import guided
         home = self.root / 'home'
         with mock.patch.dict(os.environ, {'EAOS_HOME': str(home)}):
-            state = home / 'projects/shop/runtime/session.json'
+            project = self.root / 'shop'
+            project.mkdir()
+            workspace = project_state.workspace(project)
+            project_state.write({'project': str(project), 'workspace': str(workspace)})
+            state = workspace / 'runtime/session.json'
             state.parent.mkdir(parents=True)
             state.write_text(json.dumps({'cookies': [], 'origins': []}))
             sign_in.mark(state)

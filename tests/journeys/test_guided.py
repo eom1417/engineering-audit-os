@@ -200,6 +200,9 @@ class Bulk(unittest.TestCase):
                 path = report / name if not name.startswith('branches') else report.parent / name
                 path.parent.mkdir(parents=True, exist_ok=True)
                 path.write_text('x')
+            project = _project(Path(folder) / 'c')
+            (report.parent / '.eaos-project').write_text(str(project) + '\n')
+            project_state.write({'project': str(project), 'workspace': str(project_state.workspace(project)), 'outputs': str(report.parent)})
             with redirect_stdout(io.StringIO()):
                 guided.clean(Namespace(lang='en', pictures=False, project='.'))
                 self.assertTrue((report / 'live/screens').exists(), 'pictures go only when asked')
