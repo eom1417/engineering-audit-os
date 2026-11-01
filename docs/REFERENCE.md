@@ -155,7 +155,7 @@ read [MCP.md](MCP.md).
 |---|---|---|
 | `eaos doctor [project]` | `--fix` `--lang` `--yes` | Is this computer ready? Python 3.10+, git, Node.js 22+ (for JavaScript projects and some tools), the project saved in git, the checking tools, the tools that run and fix your app, a temporary PostgreSQL, an AI assistant, and 5 GB free. Every missing piece with its fix. `--fix`: install what is missing. |
 | `eaos tools {install,doctor}` | `--stage {assessment,execution}` `--project PROJECT` `--only NAMES` `--skip NAMES` `--json` | Install the external tools at their pinned versions (each download checked against its pinned checksum, no administrator rights), or report what is installed. `--project`: first what this project's check needs. `--only` and `--skip` take comma-separated names. |
-| `eaos clean [project]` | `--pictures` `--lang` `--yes` | Remove the temporary copies, caches and saved app sign-ins EAOS made; reports and state stay. `--pictures`: also the reports' screen pictures and the assistant's raw runs (a new check takes them again). |
+| `eaos clean [project]` | `--pictures` `--lang` `--yes` | Remove the temporary copies that hold nothing, caches and saved app sign-ins EAOS made, and name what stays and why; reports and state stay. `--pictures`: also the reports' screen pictures and the assistant's raw runs (a new check takes them again). |
 | `eaos govern <project>` | `--answer ID` `--option OPTION` `--text TEXT` | The headless host that starts a project's runs while no Studio runs. The other commands start it themselves; you do not need to run it. |
 
 ## Advanced: card acceptance
@@ -278,7 +278,7 @@ In `technical/`:
 
 **EAOS's own state**: `~/.eaos/` (`EAOS_HOME`): `app/` (EAOS itself), `tools/` (the external tools), `projects/<name>-<id>/`
 (each project's workspace: state, runs, isolated copies, your rules in `rules.json`; never inside your project), `remote-origin` (the Studio's
-address on a remote server). `eaos clean` removes the temporary copies there.
+address on a remote server). `eaos clean` removes the temporary copies there that hold nothing, and names the ones it keeps.
 
 ## The code
 

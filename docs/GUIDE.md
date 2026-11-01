@@ -378,7 +378,7 @@ assistant, and at least 5 GB free. `eaos doctor --fix` installs what is missing.
 | "The port it needs is used by another program" | Close the other program (a dev server in another window, say), then `eaos next`. |
 | "Installing your project's libraries failed" | Check that your project runs for you (`npm install`, then `npm run dev`), then `eaos next`. |
 | "The check cannot use AI now: … is not answering" | Sign your assistant in again (type `claude` or `codex` in a Terminal), then ask again. |
-| "The disk is full" | `eaos clean` removes the temporary copies; `eaos clean --pictures` also the old screen pictures. Reports stay. |
+| "The disk is full" | `eaos clean` removes the temporary copies that hold nothing, and names the ones it keeps; `eaos clean --pictures` also the old screen pictures. Reports stay. |
 | A step took too long, or you stopped it | What was done is saved: `eaos next` goes on from where it stopped. |
 | Anything else | Ask your assistant "what happened?". If it happens again, send the `logs/` folder to whoever helps you. |
 
