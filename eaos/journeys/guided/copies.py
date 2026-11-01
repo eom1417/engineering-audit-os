@@ -17,7 +17,7 @@ from .project import _git
 REMOVING, PROVED = '.removing-', '.proved'       # a proved copy moved aside, and a file naming that very folder: a stop leaves it to the next clean
 # What a copy's or this computer's settings could hide or run while it is looked at; its filters are its own, EAOS made it.
 QUIET = ('-c', 'core.fsmonitor=false', '-c', 'core.excludesFile=', '-c', 'core.ignoreCase=false', '-c', 'core.hooksPath=/dev/null')
-UNREADABLE = (OSError, ValueError, KeyError, TypeError, AttributeError)
+UNREADABLE = (OSError, ValueError, KeyError, IndexError, TypeError, AttributeError)
 WHY = {'unknown': ('حالة المشروع مفقودة أو لا تُقرأ', "the project's state is missing or does not read"),
        'project': ('مجلد المشروع غير موجود للمقارنة', "the project's folder is not there to compare with"),
        'working': ('عمل يجري أو ينتظر، أو سجل مهمة أو تشغيل لا يُقرأ (jobs وruns في مجلد المشروع)',
@@ -236,6 +236,7 @@ def _commits_only_here(copy, project):
 def _as_cloned(copy):
     """What its origin refs said when it was cloned. A ref with no reflog has not moved since, and the first line of one that
     has says what it held before; one the copy made itself held nothing. A push or a fetch of its own moves them."""
+    if _git(copy, 'config', '--bool', 'core.logAllRefUpdates').stdout.strip() == 'false': return []      # no reflog says anything then
     refs = _git(copy, 'for-each-ref', '--format=%(objectname) %(refname)', 'refs/remotes/origin').stdout.splitlines()
     return [sha for sha in (_cloned_value(copy, *row.split()) for row in refs) if sha]
 
@@ -243,5 +244,5 @@ def _as_cloned(copy):
 def _cloned_value(copy, now, ref):
     log = copy / '.git' / 'logs' / ref
     if not log.is_file(): return now
-    before = log.read_text(errors='replace').split(maxsplit=1)[0]
-    return before if set(before) != {'0'} else None
+    words = log.read_text(errors='replace').split(maxsplit=1)
+    return words[0] if words and set(words[0]) != {'0'} else None

@@ -753,6 +753,23 @@ class TheLastReview(Clean):
         self.clean()
         self.assertRemoved(copy)
 
+    def test_a_reflog_emptied_by_time_stops_nothing(self):
+        copy = self.copy()
+        for log in (copy / '.git' / 'logs' / 'refs' / 'remotes' / 'origin').rglob('*'):
+            if log.is_file(): log.write_text('')
+        self.clean()
+        self.assertRemoved(copy)
+
+    def test_a_copy_that_keeps_no_reflog_cannot_say_what_it_came_with(self):
+        copy = self.copy()
+        git(copy, 'config', 'core.logAllRefUpdates', 'false')
+        (copy / 'new.py').write_text(UNIQUE)
+        git(copy, 'add', '-A')
+        git(copy, 'commit', '-qm', 'made here')
+        git(copy, 'push', '-q', 'origin', 'HEAD:refs/heads/x')
+        git(self.project, 'branch', '-qD', 'x')
+        self.assertKept(copy, self.clean())
+
     def test_a_commit_pushed_over_a_branch_it_came_with_stays(self):
         copy = self.copy()
         (copy / 'new.py').write_text(UNIQUE)
