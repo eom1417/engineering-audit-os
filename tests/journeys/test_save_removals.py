@@ -120,6 +120,7 @@ class AReadLeavesThem(Leftovers):
             with self.subTest(found=found):
                 before = self.leftovers((1, 2, 3, 4))
                 state = project_state.load(self.project)
+                state['waves'][-1]['kind'] = 'moves'
                 (Path(state['workspace']) / 'state.json').write_text(found)
                 guided.save(state)
                 self.assertEqual(self.kept(), before)
@@ -225,13 +226,38 @@ class ClosingOtherKinds(Leftovers):
         self.assertFalse((self.runtime / 'candidates' / 'BUILD-3').exists())
         self.assertEqual(self.kept(), before)
 
-    def test_a_batch_of_moves_keeps_the_patches_to_the_last_two(self):
-        self.leftovers((1, 2))
+    def test_a_batch_of_moves_is_no_closing_and_takes_the_place_of_no_patches(self):
+        before = self.leftovers((1, 2))
         state = project_state.load(self.project)
         state['waves'].append({'number': 3, 'kind': 'moves', 'status': 'applied', 'cards': [], 'kept': []})
         guided.save(state)
-        self.assertFalse((self.runtime / 'waves' / 'wave-1').exists())
-        self.assertTrue((self.runtime / 'waves' / 'wave-2').exists())
+        self.assertEqual(self.kept(), before)
+
+    def test_the_patches_kept_are_of_the_last_two_fix_batches_whatever_came_between(self):
+        self.leftovers((1, 2))
+        state = project_state.load(self.project)
+        state['waves'].append({'number': 3, 'kind': 'moves', 'status': 'applied', 'cards': [], 'kept': []})
+        state['open_wave'] = {'number': 4, 'root': str(self.runtime / 'candidates' / 'WAVE-4'), 'cards': [], 'kept': {}, 'failed': {}, 'tools': {}}
+        project_state.write(state)
+        guided.close_batch(state, 'abandoned', 'x')
+        self.assertEqual(sorted(p.name for p in (self.runtime / 'waves').iterdir()), ['wave-2'], 'wave-1 is past the last two: 2 and 4')
+
+    def test_a_log_that_cannot_be_removed_does_not_fail_a_closing_already_written(self):
+        self.leftovers((1,))
+        state = project_state.load(self.project)
+        copy = self.runtime / 'candidates' / 'WAVE-2'
+        copy.mkdir()
+        log = self.runtime / 'runtime' / 'checks-wave-2-bisect-ab12-1-log.json'
+        log.write_text('{}')
+        state['open_wave'] = {'number': 2, 'root': str(copy), 'cards': [], 'kept': {}, 'failed': {}, 'tools': {}}
+        project_state.write(state)
+        unlink = Path.unlink
+        def held(path, *args, **options):
+            if path == log: raise PermissionError('held')
+            return unlink(path, *args, **options)
+        with mock.patch.object(Path, 'unlink', held):
+            guided.close_batch(state, 'abandoned', 'x')
+        self.assertEqual((project_state.load(self.project)['waves'][-1]['number'], copy.exists()), (2, False))
 
 
 class WhenTheStateCannotBeWritten(OpenBatch):

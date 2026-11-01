@@ -35,17 +35,23 @@ def saved(state, runtime, before):
     for closed in closing:
         shutil.rmtree(Path(runtime) / 'candidates' / _copy_name(closed), ignore_errors=True)
         if closed.get('via') == 'build': continue      # a build's number may be a fix batch's too, and it has no bisection
-        for log in (Path(runtime) / 'runtime').glob(f"checks-wave-{closed['number']}-bisect-*-log.json"): log.unlink()
+        _bisection_logs_removed(runtime, closed['number'])
     if closing:
         for number in set(older(state)) - set(older(before)): shutil.rmtree(Path(runtime) / 'waves' / f'wave-{number}', ignore_errors=True)
 
 
+def _bisection_logs_removed(runtime, number):
+    for log in (Path(runtime) / 'runtime').glob(f'checks-wave-{number}-bisect-*-log.json'):
+        try: log.unlink()
+        except OSError: pass      # as the copy's removal: the closing is written, and this does not undo it
+
+
 def _closing(state, before):
-    """The records this save adds for a batch `before` held open, or for a batch of moves or context, which never is. A state
-    that does not read, is another branch's, or holds no such batch closes nothing, whatever an older state in memory says."""
+    """The records this save adds for a batch `before` held open. A state that does not read, is another branch's, or holds
+    no such batch closes nothing, whatever an older state in memory says."""
     if not isinstance(before, dict) or before.get('branch') not in (None, state.get('branch')): return []
     opened, known = _held_open(before), {_copy_name(wave) for wave in before.get('waves') or []}
-    return [wave for wave in state.get('waves') or [] if _copy_name(wave) not in known and (_copy_name(wave) in opened or wave.get('kind'))]
+    return [wave for wave in state.get('waves') or [] if _copy_name(wave) in opened - known]
 
 
 def _held_open(state):
@@ -62,8 +68,9 @@ KEPT_BATCHES = 2     # the batches whose patches stay beside the run and in the 
 
 def older(state):
     """The numbers of the closed batches past the last KEPT_BATCHES: their patches go (eight batches had kept 18 MB
-    twice, beside the run and in the outputs); their branches and the state's record of them stay."""
-    numbers = sorted({wave['number'] for wave in state.get('waves') or []})
+    twice, beside the run and in the outputs); their branches and the state's record of them stay. A batch of moves or
+    context has none here, so it takes no batch's place."""
+    numbers = sorted({wave['number'] for wave in state.get('waves') or [] if not wave.get('kind')})
     return numbers[:-KEPT_BATCHES]
 
 
