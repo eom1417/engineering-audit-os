@@ -921,6 +921,49 @@ class ACleanStoppedHalfway(Clean):
         self.clean()
         self.assertEqual(list(aside.parent.iterdir()), [])
 
+    def test_a_folder_that_cannot_be_removed_leaves_its_git_so_the_next_clean_can_end_it(self):
+        copy = self.copy()
+        (copy / 'src').mkdir()
+        (copy / 'src' / 'a.py').write_text('1\n')
+        git(copy, 'add', '-A')
+        git(copy, 'commit', '-qm', 'a folder')
+        git(self.project, 'fetch', '-q', str(copy), 'HEAD:refs/heads/kept')
+        aside = copy.with_name('.removing-WAVE-1')
+        rmtree = shutil.rmtree
+        def held(path, *args, **options):
+            if Path(path).name != 'src': rmtree(path, *args, **options)
+        with mock.patch.object(shutil, 'rmtree', held):
+            said = self.clean()
+        self.assertIn(str(aside), said)
+        self.assertTrue((aside / '.git').is_dir(), 'a failure takes no more than a stop does')
+        self.clean()
+        self.assertEqual(list(aside.parent.iterdir()), [])
+
+    def test_a_copy_removed_by_hand_while_this_waits_for_its_turn_stops_nothing(self):
+        gone_by_hand, gone = self.copy('WAVE-1'), self.copy('WAVE-2')
+        real = jobs.alone
+        @contextlib.contextmanager
+        def its_turn(project, *args):
+            shutil.rmtree(gone_by_hand)
+            with real(project, *args): yield
+        with mock.patch.object(jobs, 'alone', its_turn):
+            said = self.clean()
+        self.assertNotIn(str(gone_by_hand), said, 'it is simply gone')
+        self.assertRemoved(gone)
+
+    def test_a_copy_removed_by_hand_as_it_is_moved_aside_stops_nothing(self):
+        lost, other = self.copy('WAVE-1'), self.make('other')
+        gone = self.copy('WAVE-1', project=other)
+        rename = Path.rename
+        def by_hand(path, target):
+            if path == lost:
+                shutil.rmtree(lost)
+                raise FileNotFoundError(path)
+            return rename(path, target)
+        with mock.patch.object(Path, 'rename', by_hand):
+            self.clean()
+        self.assertRemoved(gone)
+
     def test_a_file_that_cannot_be_removed_names_that_copy_and_stops_no_other(self):
         stuck, gone = self.copy('WAVE-1'), self.copy('WAVE-2')
         aside = stuck.with_name('.removing-WAVE-1')

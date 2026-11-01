@@ -77,12 +77,18 @@ def _listed(folder):
 def _judged(folder, copies):
     """Under the jobs' lock, from the state as it is now: a job that ended while this waited may have opened a batch."""
     state = of_workspace(folder)
+    copies = _still_there(copies)
     why = _none_may_go(folder, state)
     if why: return 0, [(copy, why) for copy in copies]
     opened = _open_folders(state)
     rows = {copy: _why_kept_or_unreadable(copy, state['project'], opened) for copy in copies}
     gone, failed = _removed([copy for copy in rows if not rows[copy]])
     return gone, failed + [(copy, rows[copy]) for copy in rows if rows[copy]]
+
+
+def _still_there(copies):
+    """They were listed before this waited its turn."""
+    return [copy for copy in copies if copy.exists() or copy.is_symlink()]
 
 
 def _none_may_go(folder, state):
@@ -110,10 +116,11 @@ def _removed(proved):
     """(bytes freed, those that would not go, where they are now)."""
     freed, failed = 0, []
     for copy in proved:
+        size = _size(copy)
         aside = copy if _going(copy) else _moved_aside(copy)
-        size = _size(aside) if aside else 0
         if aside and _deleted(aside): freed += size
-        else: failed.append((aside or next(path for path in (copy, copy.with_name(REMOVING + copy.name)) if path.exists()), 'failed'))
+        elif aside or copy.exists(): failed.append((aside or copy, 'failed'))
+        elif copy.with_name(REMOVING + copy.name).exists(): failed.append((copy.with_name(REMOVING + copy.name), 'failed'))
     return freed, failed
 
 
@@ -137,9 +144,10 @@ def _deleted(aside):
             else: entry.unlink(missing_ok=True)
     except OSError:
         return False
+    if {entry.name for entry in aside.iterdir()} - {'.git'}: return False      # what would not go keeps its proof
     shutil.rmtree(aside, ignore_errors=True)
     if aside.exists(): return False
-    _marker(aside).unlink()
+    _marker(aside).unlink(missing_ok=True)
     return True
 
 
