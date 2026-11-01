@@ -270,7 +270,9 @@ A build card passes the same gates against the blueprint ([BUILD-FROM-PLAN.md](B
   `plan` reconcile with git on every call and remove no branch: a branch merged by hand is recorded, and what writes next
   (`fix_start`, `accept`, `undo`, `open_report`, the next `eaos next`, opening the Studio) removes it; a branch deleted
   unmerged counts as undone. An open batch that no longer fits stays open with its copy: `status` says why in `next`,
-  and `fix_start`, `fix_abandon` or the next check closes it.
+  and `fix_start`, `fix_abandon` or the next check closes it. It takes no change: `fix_edit`, `fix_skip` and `fix_finish`
+  answer `stale_batch` and change nothing, and their jobs look again before applying a change or handing it over. A batch
+  with a kept change goes on when the code moves on: its merge says the rest.
   After merging EAOS's own fixes, no new check or run is needed.
 - **Hand-over** (`eaos/journeys/handover.py`): the MCP server writes every call to `journal.jsonl` (when, which
   assistant, which tool, which card, the result), `note` adds the reason, and `HANDOVER.md` is rewritten after every

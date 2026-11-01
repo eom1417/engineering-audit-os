@@ -47,6 +47,7 @@ def finish_job(project, arguments, progress):
     from .regenerate import keep_guide, regenerate
     from .waves import GatesFailed, finish_batch
     state = project_state.load(project)
+    if stop := guided.stale_refusal(state): return stop
     wave = state['open_wave']
     was = guided._git(wave['root'], 'rev-parse', 'HEAD').stdout.strip()
     repairs = wave.get('repairs') or []
@@ -54,6 +55,7 @@ def finish_job(project, arguments, progress):
         summary = finish_batch(guided.report_of(state), guided.source(state), project_state.runtime_of(state), wave, lock=True,
                                say=lambda kind, *_: _phase(project, kind, progress), repairs=repairs,
                                bisect=bool(arguments.get('leave_out')) or len(repairs) >= REPAIRS,
+                               before_writing=lambda: guided.refuse_if_stale(project_state.load(project)),
                                regenerate=lambda root: (regenerate(root, project_state.runtime_of(state), wave['base'], wave['number']),
                                                         keep_guide(root, guided.report_of(state), state['project'], wave['number'])))
     except BaseException as problem:   # the batch stays as it was, even stopped mid-way: its copy back to its kept changes
@@ -61,12 +63,19 @@ def finish_job(project, arguments, progress):
         guided._git(wave['root'], 'reset', '--hard', '--quiet', was or wave['base'])
         guided._git(wave['root'], 'clean', '-fdq')
         state = project_state.load(project)
+        if isinstance(problem, guided.StaleBatch): return _no_hand_over(state, problem)
         if isinstance(problem, GatesFailed): return _repair_asked(state, problem, len(repairs))
         if not isinstance(problem, Exception): raise          # stopped by the person: nothing failed, the batch goes on
         state['open_wave']['last_error'] = f'{type(problem).__name__}: {problem}'[:500]
         guided.save(state)
         raise
     return _handed_over(project, wave, summary)
+
+
+def _no_hand_over(state, stale):
+    state['open_wave'].pop('phases', None)      # the live map shows no hand-over that never came
+    guided.save(state)
+    return stale.answer
 
 
 def _phase(project, kind, progress):

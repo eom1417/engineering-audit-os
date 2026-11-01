@@ -176,11 +176,11 @@ def finish_batch(report, target, runtime, wave, **options):
     then the project's checks and the behaviour lock once (options['lock'], default True). When they fail, GatesFailed
     asks for a repair, unless options['bisect'] (default True): then halving finds the culprits, left out. The kept
     commits become the wave's branch in the candidate, its patches and wave.json beside the run, and one execution.json
-    row per card. options['say'] names each step; options['regenerate'] rebuilds the files the build makes."""
+    row per card, unless options['before_writing'] raises first. options['say'] names each step; options['regenerate'] rebuilds the build's files."""
     say, regenerate = options.get('say') or (lambda *_: None), options.get('regenerate') or (lambda root: None)
     batch = {'report': Path(report), 'root': Path(wave['root']), 'runtime': Path(runtime), 'base': wave['base'],
              'name': f"wave-{wave['number']}", 'lock': options.get('lock', True), 'say': say,
-             'bisect': options.get('bisect', True), 'regenerate': regenerate}
+             'bisect': options.get('bisect', True), 'regenerate': regenerate, 'before_writing': options.get('before_writing')}
     cards = {card['id']: card for card in plan(batch['report'])['tasks'] if card['id'] in set(wave['cards'])}
     kept, failed = dict(wave['kept']), dict(wave['failed'])
     say('acceptance')
@@ -350,6 +350,7 @@ def _without_culprits(batch, kept, failed):
 
 
 def _record_cards(batch, wave, kept, failed):
+    if batch['before_writing']: batch['before_writing']()
     for card_id in wave['cards']:
         ok = card_id in kept
         record(batch['runtime'], {'id': card_id, 'tool': wave['tools'].get(card_id, 'assistant'),

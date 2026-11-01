@@ -28,18 +28,45 @@ def close_batch(state, status, why='', via='assistant'):
     return record
 
 
+class StaleBatch(Exception):
+    """A change stopped because the batch no longer fits. Leaving lanes.changing this way saves nothing. `answer`: the refusal."""
+
+    def __init__(self, answer):
+        super().__init__(answer['why'])
+        self.answer = answer
+
+
 def why_stale(state):
-    """Why the open batch no longer fits, or None: its base is not the code of the branch EAOS works on now (a commit of
-    the person's came after it), or the check on record numbered its cards again (a card id of the batch is another
-    problem now). It only says: `status` reports this, and retire_stale_batch acts on it."""
+    """Why the open batch no longer fits, or None, and None under its own work (a status call retired a batch mid hand-over:
+    KeyError 'open_wave', two hours lost). It only says: `status` reports this, and retire_stale_batch acts on it."""
     wave = state.get('open_wave')
-    # never under its own work (a status call retired a batch mid hand-over: KeyError 'open_wave', two hours lost)
     if not wave or jobs.fixing(state['project']): return None
+    return _no_longer_fits(state, wave)
+
+
+def _no_longer_fits(state, wave):
+    """Its base is not the code of the branch EAOS works on now (a commit of the person's came after it), or the check on
+    record numbered its cards again (a card id of the batch is another problem now); else None."""
     now = tip(state)
     built_on = wave.get('source_commit') or wave.get('base')         # a batch continued on a work branch: its branch's commit
     if now and not same_code(state, built_on, now) and not wave.get('kept'):    # kept changes go on: their merge says
         return f"the code moved on since the batch opened (it was built on {str(built_on)[:12]}, the branch is at {now[:12]})"
     return _renumbered(state, wave)
+
+
+def stale_refusal(state):
+    """What a tool or job that changes the open batch answers when it no longer fits, the batch as it was; else None. Refusing
+    removes nothing, so another job running hides nothing here, and a batch's own job can ask."""
+    wave = state.get('open_wave')
+    if not (wave and (why := _no_longer_fits(state, wave))): return None
+    return {'status': 'stale_batch', 'batch': wave['number'], 'why': why,
+            'what_now': 'The batch is as it was: it no longer fits, so it takes no change. fix_start closes it and opens the next '
+                        'one; fix_abandon only closes it; its cards can be picked again. A helper of this batch closes nothing: '
+                        'it says so and ends its turn.'}
+
+
+def refuse_if_stale(state):
+    if stop := stale_refusal(state): raise StaleBatch(stop)
 
 
 def retire_stale_batch(state):
