@@ -274,8 +274,8 @@ A build card passes the same gates against the blueprint ([BUILD-FROM-PLAN.md](B
   answer `stale_batch` and change nothing, and their jobs look again before applying a change or handing it over. A batch
   with a kept change goes on when the code moves on: its merge says the rest. A save removes only what it closes, once
   the state is written; what an older EAOS, a failed removal or a crash left stays. `eaos clean` removes such a copy only
-  when it is proved to hold nothing (`eaos/journeys/guided/copies.py`) and names the ones it keeps, with why; it does not
-  touch old patches or bisection logs.
+  when it is proved to hold nothing, no ignored file included (`eaos/journeys/guided/copies.py`), and names the ones it keeps,
+  with why, for the person to remove by hand; it does not touch old patches or bisection logs.
   After merging EAOS's own fixes, no new check or run is needed.
 - **Hand-over** (`eaos/journeys/handover.py`): the MCP server writes every call to `journal.jsonl` (when, which
   assistant, which tool, which card, the result), `note` adds the reason, and `HANDOVER.md` is rewritten after every

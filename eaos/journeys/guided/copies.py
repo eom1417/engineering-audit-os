@@ -1,9 +1,10 @@
 """What `eaos clean` may remove of the isolated copies under each project's runtimes: only a copy proved to hold nothing of
-anyone's. No work is open or waiting on it (the state and the runs say, never its name), nothing in it is uncommitted, each
-commit made in it is held by the person's project (those it came with, as its origin refs said when it was cloned, are not its
-own, whatever the project did with them since), and whatever git ignores there the project ignores too (node_modules: rebuilt). A copy's
-reflog is not counted: every change a check took back is in it. Whatever cannot be proved stays, and is said: a copy may hold
-the only trace of a change."""
+anyone's. No work is open or waiting on it (the state and the runs say, never its name), nothing in it is uncommitted or
+ignored, and each commit made in it is held by the person's project (those it came with, as its origin refs said when it was
+cloned, are not its own, whatever the project did with them since). An ignored file stays whatever its name: that git ignores
+it says nothing of what is in it, and nothing here can tell a rebuilt node_modules from a patched one or a .env. Inside its .git
+only refs count: a reflog (every change a check took back is in it), a dropped stash, an object no ref holds or a loose file there
+do not. Whatever cannot be proved stays, and is said: a copy may hold the only trace of a change."""
 import shutil
 from pathlib import Path
 
@@ -14,7 +15,9 @@ from ...core.project.state import of_workspace
 from ...core.system.files import read_json
 from .project import _git
 
-REMOVING, PROVED = '.removing-', '.proved'       # a proved copy moved aside, and a file naming that very folder: a stop leaves it to the next clean
+# A proved copy moved aside, and the file saying that what is missing from it went by a clean: a stop leaves both, and the next
+# clean proves what is left again, under the same lock, so nothing added since goes. Its .git goes last: it is the proof.
+REMOVING, PROVED = '.removing-', '.proved'
 # What a copy's or this computer's settings could hide or run while it is looked at; its filters are its own, EAOS made it.
 QUIET = ('-c', 'core.fsmonitor=false', '-c', 'core.excludesFile=', '-c', 'core.ignoreCase=false', '-c', 'core.hooksPath=/dev/null')
 UNREADABLE = (OSError, ValueError, KeyError, IndexError, TypeError, AttributeError)
@@ -27,6 +30,8 @@ WHY = {'unknown': ('حالة المشروع مفقودة أو لا تُقرأ', 
        'inner': ('فيها مستودعات خاصة بها', 'it holds repositories of its own'),
        'unreadable': ('تعذرت قراءتها', 'it could not be read'),
        'uncommitted': ('فيها تغييرات غير محفوظة', 'it holds uncommitted changes'),
+       'ignored': ('فيها ملفات يتجاهلها git، قد تكون فريدة: احذفها بيدك إن لم تحتجها',
+                   "it holds files git ignores, which may be unique: remove it by hand if you do not need them"),
        'commits': ('فيها commits غير موجودة في المشروع', "it holds commits that are not in the project"),
        'failed': ('تعذر حذفها', 'it could not be removed')}
 
@@ -49,48 +54,24 @@ def working(folder):
 
 
 def _project_cleared(folder):
-    freed, kept, copies = _listed(folder)
-    if not copies: return freed, kept
+    copies = _listed(folder)
+    if not copies: return 0, []
     try:
-        with jobs.alone(of_workspace(folder)['project']): gone, left = _judged(folder, copies)     # no job starts while copies go
+        with jobs.alone(of_workspace(folder)['project']): return _judged(folder, copies)     # no job starts while copies go
     except jobs.Busy:
-        gone, left = 0, [(copy, 'working') for copy in copies]
+        return 0, [(copy, 'working') for copy in copies]
     except UNREADABLE:
-        gone, left = 0, [(copy, 'unknown') for copy in copies if copy.exists()]
-    return freed + gone, kept + left
+        return 0, [(copy, 'unknown') for copy in copies if copy.exists()]
 
 
 def _listed(folder):
-    """(bytes freed ending a stopped clean, what would not go, the copies to judge) of every runtime of this project."""
-    freed, kept, copies = 0, [], []
+    """The copies to judge, of every runtime of this project; a mark whose copy went goes. Nothing else goes before the lock."""
+    copies = []
     for candidates in (*folder.glob('runtime/candidates'), *folder.glob('runtime-*/candidates')):
-        gone, left = _stopped_ones_ended(candidates)
-        freed, kept = freed + gone, kept + left
+        for marker in candidates.glob(f'{REMOVING}*{PROVED}'):
+            if marker.is_file() and not marker.with_name(marker.name.removesuffix(PROVED)).exists(): marker.unlink()
         copies += [entry for entry in candidates.iterdir() if entry.is_dir() or entry.is_symlink()]
-    return freed, kept, copies
-
-
-def _stopped_ones_ended(candidates):
-    freed, failed = 0, []
-    for marker in candidates.glob(f'{REMOVING}*{PROVED}'):
-        aside = marker.with_name(marker.name.removesuffix(PROVED))
-        if not marker.is_file() or (aside.is_dir() and marker.read_text() != _identity(aside)): continue    # not what it names
-        gone, left = _finished(aside, marker)
-        freed, failed = freed + gone, failed + left
-    return freed, failed
-
-
-def _finished(aside, marker):
-    """(bytes freed, what would not go), the mark going last."""
-    size = _size(aside) if aside.is_dir() else 0
-    shutil.rmtree(aside, ignore_errors=True)
-    if aside.exists(): return 0, [(aside, 'failed')]
-    marker.unlink()
-    return size, []
-
-
-def _identity(folder):
-    return str(folder.stat().st_ino)
+    return copies
 
 
 def _judged(folder, copies):
@@ -116,27 +97,49 @@ def _size(folder):
     return size(folder)
 
 
+def _marker(copy):
+    return copy.with_name(copy.name + PROVED)
+
+
+def _going(copy):
+    """Whether a clean that stopped had proved this copy: what is missing from it, and only that, went by that clean."""
+    return copy.name.startswith(REMOVING) and _marker(copy).is_file()
+
+
 def _removed(proved):
-    """(bytes freed, those that would not go)."""
+    """(bytes freed, those that would not go, where they are now)."""
     freed, failed = 0, []
     for copy in proved:
-        aside = copy.with_name(REMOVING + copy.name)
-        marker = aside.with_name(aside.name + PROVED)
-        if _moved_aside(copy, aside, marker):
-            gone, left = _finished(aside, marker)
-            freed, failed = freed + gone, failed + left
-        else: failed.append((aside if aside.exists() else copy, 'failed'))
+        aside = copy if _going(copy) else _moved_aside(copy)
+        size = _size(aside) if aside else 0
+        if aside and _deleted(aside): freed += size
+        else: failed.append((aside or next(path for path in (copy, copy.with_name(REMOVING + copy.name)) if path.exists()), 'failed'))
     return freed, failed
 
 
-def _moved_aside(copy, aside, marker):
-    """Moved first: stopped before the mark is written, the copy is intact and only judged again."""
-    if marker.exists(): return False
+def _moved_aside(copy):
+    """The copy's new place; None when it stayed. Stopped before the mark is written, it is intact and only judged again."""
+    aside = copy.with_name(REMOVING + copy.name)
     try:
         copy.rename(aside)
-        marker.write_text(_identity(aside))
+        _marker(aside).touch()
+    except OSError:
+        return None
+    return aside
+
+
+def _deleted(aside):
+    """Whether all of it went: its .git last, it proves the rest if this stops; the mark after it."""
+    try:
+        for entry in aside.iterdir():
+            if entry.name == '.git': continue
+            if entry.is_dir() and not entry.is_symlink(): shutil.rmtree(entry, ignore_errors=True)
+            else: entry.unlink(missing_ok=True)
     except OSError:
         return False
+    shutil.rmtree(aside, ignore_errors=True)
+    if aside.exists(): return False
+    _marker(aside).unlink()
     return True
 
 
@@ -181,7 +184,7 @@ def _why_kept(copy, project, opened):
     if not any(copy.iterdir()): return None
     if not _own_repository(copy): return 'folder'
     if _has_repositories(copy): return 'inner'
-    return _uncommitted(copy, project) or _commits_only_here(copy, project)
+    return _why_its_files_stay(copy) or _commits_only_here(copy, project)
 
 
 def _open_folders(state):
@@ -208,19 +211,20 @@ def _has_repositories(copy):
         any((copy / '.git' / inner).exists() for inner in ('modules', 'worktrees'))
 
 
-def _uncommitted(copy, project):
-    """Why what is in the copy's files is not all in its commits or rebuilt, or None: a file git was told not to look at, a
-    change, an untracked file, or an ignored one the project itself would not ignore."""
+def _why_its_files_stay(copy):
+    """Why what is in the copy's files is not all in its commits, or None: a file git was told not to look at, a change, an
+    untracked file, or an ignored one. A copy a stopped clean had proved may miss files: that clean took them."""
     status = _git(copy, *QUIET, 'status', '--porcelain', '-z', '--untracked-files=all', '--ignored=matching', '--ignore-submodules=none')
     looked_at = _git(copy, *QUIET, 'ls-files', '-v')
     if status.returncode or looked_at.returncode: return 'unreadable'
-    rows = [row for row in status.stdout.split('\0') if row]
-    hidden = any(line[:1] != 'H' for line in looked_at.stdout.splitlines())
-    return 'uncommitted' if hidden or not all(_rebuilt(row, project) for row in rows) else None
+    if any(line[:1] != 'H' for line in looked_at.stdout.splitlines()): return 'uncommitted'
+    rows = _rows_left(status.stdout, _going(copy))
+    if not rows: return None
+    return 'ignored' if all(row.startswith('!! ') for row in rows) else 'uncommitted'
 
 
-def _rebuilt(row, project):
-    return row.startswith('!! ') and not _git(project, *QUIET, 'check-ignore', '-q', '--no-index', '--', row[3:]).returncode
+def _rows_left(status, going):
+    return [row for row in status.split('\0') if row and not (going and row.startswith(' D '))]
 
 
 def _commits_only_here(copy, project):
