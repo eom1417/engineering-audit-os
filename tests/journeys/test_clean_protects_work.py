@@ -355,7 +355,7 @@ class AgainAndInterrupted(Clean):
             raise KeyboardInterrupt
         with mock.patch.object(shutil, 'rmtree', stopped), contextlib.redirect_stdout(io.StringIO()), contextlib.redirect_stderr(io.StringIO()):
             self.assertNotEqual(cli.main(['clean', '--lang', 'en']), 0)
-        self.assertIn('.removing-WAVE-1', [p.name for p in copy.parent.iterdir()])
+        self.assertEqual(sorted(p.name for p in copy.parent.iterdir()), ['.removing-WAVE-1', '.removing-WAVE-1.proved'])
         self.clean()
         self.assertEqual([p.name for p in copy.parent.iterdir()], [], 'nothing half removed stays behind for ever')
 
@@ -557,3 +557,95 @@ class TheRestWaitsForWorkToo(Clean):
         self.assertTrue(session.is_file())
         self.assertTrue(pictures.is_dir())
         self.assertIn(str(guided_outputs / 'technical'), said)
+
+
+class TheSecondReview(Clean):
+    def test_a_repository_inside_as_a_tracked_gitlink(self):
+        copy = self.copy()
+        inner = copy / 'lib'
+        inner.mkdir()
+        git(inner, 'init', '-q', '-b', 'main')
+        (inner / 'x.py').write_text(UNIQUE)
+        git(inner, 'add', '-A')
+        git(inner, 'commit', '-qm', 'only here')
+        git(copy, 'add', 'lib')
+        git(copy, 'commit', '-qm', 'the gitlink')
+        git(self.project, 'fetch', '-q', str(copy), 'HEAD:refs/heads/eaos/main/wave-1')
+        self.assertKept(copy, self.clean())
+
+    def test_a_file_hidden_by_a_copy_that_ignores_case(self):
+        copy = self.copy()
+        git(copy, 'config', 'core.ignoreCase', 'true')
+        (copy / 'APP.PY').write_text(UNIQUE)
+        self.assertKept(copy, self.clean())
+
+    def test_a_file_named_as_the_mark_of_a_proved_copy_proves_nothing(self):
+        copy = self.copy('.removing-X')
+        (copy / 'new.py').write_text(UNIQUE)
+        (copy.parent / '.removing-X.proved').write_text('')
+        self.assertKept(copy, self.clean())
+        self.assertEqual((copy / 'new.py').read_text(), UNIQUE)
+
+    def test_a_folder_named_as_the_mark_blocks_nothing(self):
+        kept, gone = self.copy('.removing-X'), self.copy('WAVE-2')
+        (kept / 'new.py').write_text(UNIQUE)
+        (kept.parent / '.removing-X.proved').mkdir()
+        self.assertKept(kept, self.clean())
+        self.assertRemoved(gone)
+
+    def test_a_live_job_keeps_its_sessions_with_the_state_gone(self):
+        session = project_state.runtime_of(self.state()) / 'session.json'
+        session.parent.mkdir(parents=True, exist_ok=True)
+        session.write_text(json.dumps({'cookies': [], 'origins': []}))
+        record = Path(self.state()['workspace']) / 'state.json'
+        jobs._write({'id': 'audit-1', 'kind': 'audit', 'project': str(self.project), 'status': 'running', 'pid': os.getpid(), 'arguments': {}})
+        record.unlink()
+        self.clean()
+        self.assertTrue(session.is_file())
+
+    def test_a_hook_in_a_copy_does_not_run(self):
+        copy = self.copy()
+        ran = self.root / 'ran'
+        hook = copy / '.git' / 'hooks' / 'post-index-change'
+        hook.parent.mkdir(exist_ok=True)
+        hook.write_text(f'#!/bin/sh\ntouch {ran}\n')
+        hook.chmod(0o755)
+        (copy / 'app.py').write_text('print(1)\n')     # the same bytes, a new time: git looks and refreshes
+        self.clean()
+        self.assertFalse(ran.exists())
+
+    def test_a_name_git_cannot_decode_keeps_that_copy_alone_and_says_it_could_not_read_it(self):
+        kept, gone = self.copy('WAVE-1'), self.copy('WAVE-2')
+        with open(os.path.join(os.fsencode(kept), b'caf\xe9.py'), 'w') as odd: odd.write(UNIQUE)
+        said = self.clean()
+        self.assertKept(kept, said)
+        self.assertIn(copies.WHY['unreadable'][1], said)
+        self.assertRemoved(gone)
+
+    def test_an_outputs_folder_with_a_mark_that_does_not_read_stops_nothing(self):
+        out = self.root / 'out' / 'shop'
+        (out / 'technical').mkdir(parents=True)
+        (out / '.eaos-project').write_bytes(b'\xff\xfe')
+        self.clean('--pictures')
+
+    def test_a_copy_nothing_was_done_in_goes_when_the_project_later_moved_its_branches(self):
+        git(self.project, 'branch', 'gone-later')
+        deleted = self.copy('WAVE-1')
+        git(deleted, 'checkout', '-q', 'gone-later')
+        (self.project / 'x.py').write_text('1\n')
+        git(self.project, 'add', '-A')
+        git(self.project, 'commit', '-qm', 'more')
+        rewritten = self.copy('WAVE-2')
+        git(self.project, 'branch', '-qD', 'gone-later')
+        git(self.project, 'commit', '-q', '--amend', '-m', 'rewritten')
+        self.clean()
+        self.assertRemoved(rewritten)
+        self.assertRemoved(deleted)
+
+    def test_a_commit_made_in_the_copy_stays_when_the_project_later_moved_its_branches(self):
+        copy = self.copy()
+        (copy / 'new.py').write_text(UNIQUE)
+        git(copy, 'add', '-A')
+        git(copy, 'commit', '-qm', 'made here')
+        git(self.project, 'commit', '-q', '--allow-empty', '--amend', '-m', 'rewritten')
+        self.assertKept(copy, self.clean())

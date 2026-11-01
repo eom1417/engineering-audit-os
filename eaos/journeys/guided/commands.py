@@ -209,7 +209,8 @@ def _pictures_cleared():
 
 def _report_in_use(report):
     marker = next((folder / '.eaos-project' for folder in report.parents if (folder / '.eaos-project').is_file()), None)
-    return bool(marker) and copies.working(workspace(marker.read_text(encoding='utf-8').strip()))
+    try: return bool(marker) and copies.working(workspace(marker.read_text(encoding='utf-8').strip()))
+    except (OSError, ValueError): return True      # whose it is cannot be told
 
 
 def resume(args):
