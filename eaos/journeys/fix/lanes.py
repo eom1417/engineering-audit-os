@@ -169,5 +169,6 @@ def changing(project):
     loses what another wrote."""
     state = {'workspace': str(workspace(project))}
     with guided.fresh(state):
+        if 'project' not in state: raise LookupError(f'the state of {project} does not read')     # never saved over it
         yield state
         guided.save(state)

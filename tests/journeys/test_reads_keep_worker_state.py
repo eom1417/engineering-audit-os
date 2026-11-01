@@ -7,7 +7,7 @@ from unittest import mock
 from eaos.core.project import state as project_state
 from eaos.interfaces.mcp_server.server import functions
 from eaos.interfaces.studio_server import server as studio_server
-from eaos.journeys import agent_tools, guided
+from eaos.journeys import agent_tools, check as check_journey, guided
 from eaos.journeys.agent_tools import fixing
 from eaos.journeys.fix import finish as batch_finish, lanes
 from eaos.journeys.fix.waves import batch as batch_steps
@@ -178,3 +178,20 @@ class TheLocks(Interleaved):
         thread.join(SECONDS)
         self.assertFalse(thread.is_alive(), 'fix_start deadlocked on the state lock')
         self.assertEqual(self.on_disk()['waves'][-1]['status'], 'accepted')
+
+    def test_a_write_of_the_lanes_on_a_state_that_does_not_read_leaves_it_as_it_is(self):
+        record = project_state.workspace(self.project) / 'state.json'
+        record.write_text('{ not json')
+        with self.assertRaises(LookupError):
+            with lanes.changing(self.where): pass
+        self.assertEqual(record.read_text(), '{ not json')
+
+
+class ACheckThatClosesABatch(Interleaved):
+    def test_it_keeps_what_it_stamped(self):
+        self.person_commits()
+        head = git(self.project, 'rev-parse', 'HEAD')
+        with mock.patch('eaos.journeys.check.check', return_value={}), mock.patch('eaos.journeys.check.remedies.apply', return_value={}), mock.patch('eaos.journeys.check.source', return_value=self.project):
+            check_journey.run(project_state.load(self.project), {})
+        state = self.on_disk()
+        self.assertEqual((state['scanned_commit'], state.get('open_wave'), state['waves'][-1]['status']), (head, None, 'superseded'))
