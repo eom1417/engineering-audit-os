@@ -1,11 +1,9 @@
 """The batches handed over and the branch EAOS works on: a batch closed, a stale one retired, a branch taken in, the
 branch chosen.
 """
-import shutil
-from pathlib import Path
 
 from ...core.project import branches, jobs
-from ...core.project.state import runtime_of, waiting_batch
+from ...core.project.state import waiting_batch
 from .project import PUBLISHERS, _branch_exists, _git, publish, report_of, same_code, save, tip
 from ...core.system.clock import now
 
@@ -15,8 +13,6 @@ def close_batch(state, status, why='', via='assistant'):
     (abandoned, superseded) and `why`; the ledger and the Studio follow, so its cards can be picked again at once."""
     wave = state.get('open_wave')
     if not wave: return None
-    root, runtime = Path(wave.get('root') or '/').resolve(), runtime_of(state).resolve()
-    if runtime in root.parents: shutil.rmtree(root, ignore_errors=True)
     record = {'number': wave['number'], 'base': wave.get('base'), 'cards': wave['cards'], 'kept': {},
               'failed': wave.get('failed') or {} if status == 'abandoned' else {}, 'branch': None, 'status': status, 'via': via,
               'keys': wave.get('keys') or {}, **{k: wave[k] for k in ('deliver_as', 'merge_into', 'base_branch') if k in wave}}

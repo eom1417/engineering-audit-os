@@ -23,4 +23,4 @@ A wave is the flow `fix` of the live map (FLOW), drawn from the state at each sa
 from .batch import (BATCH_ENGINES, GatesFailed, apply, change, commit, culprits, declared_screens, drop_last,  # noqa: F401
                     edit_gates, failing_output, finish_batch, gates, merged, open_batch, rebuild, undo, without)
 from .cards import SIZE, next_batch, plan, ready_cards, too_early, with_prerequisites  # noqa: F401
-from .live_map import FLOW, publish, saved  # noqa: F401
+from .live_map import FLOW, draw, publish, saved  # noqa: F401

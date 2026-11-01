@@ -2,7 +2,7 @@
 the Studio and every stage read and write it here and nowhere else (M3.2): what was chosen and asked, the check on
 record, the batches, each branch's part (eaos/core/project/branches.py KEYS).
 
-The journeys save it through eaos/journeys/guided/ save, which first tidies the batches (eaos/journeys/fix/waves.saved).
+The journeys save it through eaos/journeys/guided/ save, which then removes what that save closed (eaos/journeys/fix/waves.saved).
 """
 import json
 import os
