@@ -1,11 +1,11 @@
 """The user commands of the guided way in, each ending with the next-step box, and the steps `eaos next` walks."""
 import json
-import shutil
 from pathlib import Path
 
 from ...core.project import branches
 from ...core.project.state import current, load, looks_like_project
 from ...core.project.places import home, outputs_root, workspace
+from . import copies
 from .batches import reconcile
 from .checking import choose_assistant, later_steps, scan
 from .doctor import doctor, doctor_rows
@@ -162,40 +162,55 @@ def status(args):
 
 
 def clean(args):
-    """Remove the isolated copies, caches and app sessions EAOS made; reports and state stay. With --pictures, the screen
+    """Remove the isolated copies proved to hold nothing (guided/copies.py), caches and app sessions EAOS made; reports and state stay. With --pictures, the screen
     pictures, the crawl and the assistant's raw runs of every report (eaos/pipeline/run.py PICTURES): a new check
     takes them again."""
     lang = language(args.lang)
-    freed = 0
-    if (pictures := getattr(args, 'pictures', False)): freed += _pictures_cleared()
+    pictures = getattr(args, 'pictures', False)
+    freed, kept = _pictures_cleared() if pictures else (0, [])
     from ...live.isolation.sandbox import sweep                     # a live run's folder (held) stays: another project's check runs on
-    from ...live.access.sign_in import forget                    # the sessions of the apps: a check asks to sign in again
     freed += sum(sweep(folder) for folder in (home() / 'projects').glob('*/runtime*/sandbox'))
-    for folder in (home() / 'projects').glob('*'): forget(folder)
-    freed += _copies_removed()
-    box(lang, (f"حذفت النسخ المؤقتة{' وصور الشاشات القديمة' if pictures else ''} ووفّرت {freed / 2 ** 30:.1f} GB. التقارير باقية" if lang == 'ar'
-               else f"Removed the temporary copies{' and the old screen pictures' if pictures else ''} and freed {freed / 2 ** 30:.1f} GB. Reports are kept"),
-        where=home(), commands=['eaos next'])
+    kept += _sessions_forgotten()
+    gone, left = copies.cleared()
+    _say_cleaned(lang, pictures, freed + gone, kept + left)
     return 0
 
 
+def _sessions_forgotten():
+    """The sessions of the apps removed: a check asks to sign in again. A project's work going on keeps its own: what stayed."""
+    from ...live.access.sign_in import forget
+    kept = []
+    for folder in (home() / 'projects').glob('*'):
+        if copies.working(folder): kept.append((folder, 'working'))
+        else: forget(folder)
+    return kept
+
+
+def _say_cleaned(lang, pictures, freed, kept):
+    ar = lang == 'ar'
+    done = (f"حذفت النسخ المؤقتة{' وصور الشاشات القديمة' if pictures else ''} ووفّرت {freed / 2 ** 30:.1f} GB. التقارير باقية" if ar
+            else f"Removed the temporary copies{' and the old screen pictures' if pictures else ''} and freed {freed / 2 ** 30:.1f} GB. Reports are kept")
+    if kept: done = (f"حذفت ما ثبت أنه لا يحمل عملًا ووفّرت {freed / 2 ** 30:.1f} GB. بقي {len(kept)} مما لم يثبت" if ar
+                     else f"Removed what is proved to hold nothing and freed {freed / 2 ** 30:.1f} GB. {len(kept)} stay, not proved")
+    box(lang, done, status='warn' if kept else 'ok', note=[f"{str(copy).encode('utf-8', 'replace').decode()}: {copies.WHY[why][0 if ar else 1]}" for copy, why in kept],
+        where=home(), commands=['eaos next'])
+
+
 def _pictures_cleared():
-    """The screen pictures, crawl and raw assistant runs of every report removed (PICTURES); the bytes freed."""
+    """The screen pictures, crawl and raw assistant runs of every report removed (PICTURES), but those of a project with work
+    going on: (the bytes freed, what stayed)."""
     from ...pipeline.run import PICTURES, clear
-    freed = 0
+    freed, kept = 0, []
     for report in (*outputs_root().glob('*/technical'), *outputs_root().glob('*/branches/*/technical')):
-        freed += clear(report, PICTURES)
-    return freed
+        if _report_in_use(report): kept.append((report, 'working'))
+        else: freed += clear(report, PICTURES)
+    return freed, kept
 
 
-def _copies_removed():
-    """The isolated copies of every project's batches removed; the bytes freed."""
-    freed = 0
-    for folder in (home() / 'projects').glob('*/runtime/candidates'):
-        for copy in [p for p in folder.iterdir() if p.is_dir()]:
-            freed += sum(f.stat().st_size for f in copy.rglob('*') if f.is_file() and not f.is_symlink())
-            shutil.rmtree(copy, ignore_errors=True)
-    return freed
+def _report_in_use(report):
+    marker = next((folder / '.eaos-project' for folder in report.parents if (folder / '.eaos-project').is_file()), None)
+    try: return bool(marker) and copies.working(workspace(marker.read_text(encoding='utf-8').strip()))
+    except (OSError, ValueError): return True      # whose it is cannot be told
 
 
 def resume(args):
