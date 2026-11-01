@@ -110,6 +110,16 @@ class OpenReportAndTheStudio(Interleaved):
         self.run_read(dict(self.readers())['open_report'], lambda: agent_tools.fix_abandon(self.where))
         self.assertAbandoned()
 
+    def test_a_state_broken_or_gone_meanwhile_is_not_written_over_with_the_earlier_one(self):
+        record = project_state.workspace(self.project) / 'state.json'
+        for name, change, left in (('broken', lambda: record.write_text('{ not json'), '{ not json'), ('not a state', lambda: record.write_text('{}'), '{}'), ('gone', record.unlink, None)):
+            with self.subTest(state=name):
+                good = record.read_text()
+                with self.assertRaises(LookupError):
+                    self.run_read(dict(self.readers())['open_report'], change)
+                self.assertEqual(record.read_text() if record.exists() else None, left)
+                record.write_text(good)
+
     def test_it_still_saves_and_opens_with_nothing_else_going_on(self):
         answer = agent_tools.open_report(self.where, show=False)
         self.assertTrue(answer['report_for_people'])

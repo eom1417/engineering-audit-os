@@ -79,15 +79,17 @@ def save(state):
 @contextmanager
 def fresh(state):
     """`state` itself made what is on disk now, under the state's lock: what comes after a slow read saves on this, not over
-    what was written meanwhile. Taken after the jobs' lock, never nested, and let go before any report is rebuilt."""
+    what was written meanwhile. Taken after the jobs' lock, never nested, and let go before any report is rebuilt. A state on
+    disk that does not read or is gone stops it (LookupError): nothing in memory is ever saved over it."""
     folder = Path(state['workspace'])
     folder.mkdir(parents=True, exist_ok=True)
     with open(folder / 'state.lock', 'a') as lock:
         fcntl.flock(lock, fcntl.LOCK_EX)
         on_disk = project_state.of_workspace(folder)
-        if isinstance(on_disk, dict):
-            state.clear()
-            state.update(on_disk)
+        if not (isinstance(on_disk, dict) and on_disk.get('project') and on_disk.get('workspace')):
+            raise LookupError(f'the state in {folder} is missing or does not read: nothing was changed')
+        state.clear()
+        state.update(on_disk)
         yield state
 
 
