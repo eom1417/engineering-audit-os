@@ -1,6 +1,7 @@
 """A batch that no longer fits takes no change. Reading leaves it open with its copy (test_safe_reads), so fix_edit, fix_skip
 and fix_finish refuse it themselves, and the jobs they start look again before applying a change or handing it over. A
 refusal removes nothing: fix_start and fix_abandon close it. A batch with kept changes goes on when the code moves on."""
+import contextlib
 import subprocess
 from pathlib import Path
 from unittest import mock
@@ -145,6 +146,15 @@ class WhatItsJobsSee(Batch):
         wave = project_state.load(self.project)['open_wave']
         self.assertEqual((wave['kept'], git(self.copy, 'rev-parse', 'HEAD')), ({}, head), 'one kept change would let the stale batch go on')
 
+    def test_fix_skip_records_nothing_when_the_code_moves_on_while_it_waits_its_turn(self):
+        @contextlib.contextmanager
+        def its_turn(*_):
+            self.person_commits()
+            yield
+        with mock.patch.object(jobs, 'alone', its_turn):
+            self.assertRefused(agent_tools.fix_skip('TASK-001', 'no safe change', self.where))
+        self.assertEqual(project_state.load(self.project)['open_wave']['failed'], {})
+
     def test_a_finish_job_does_not_run_once_the_code_moved_on(self):
         self.person_commits()
         guided.save(project_state.load(self.project))
@@ -199,6 +209,11 @@ class WithSeveralAssistants(Batch):
     def test_fix_finish_refuses_it_and_never_asks_to_wait_for_the_others(self):
         with mock.patch.object(lanes, 'WAIT', 0):
             self.assertRefused(agent_tools.fix_finish(self.where))
+        self.assertEqual(self.everything(), self.before)
+
+    def test_fix_skip_refuses_it_at_once_while_a_job_runs(self):
+        with mock.patch.object(jobs, 'running', return_value={'id': 'j', 'kind': 'fix_edit', 'progress': None}), mock.patch.object(fixing, 'WAIT', 0):
+            self.assertRefused(agent_tools.fix_skip('TASK-002', 'x', self.where))
         self.assertEqual(self.everything(), self.before)
 
     def test_a_helper_is_told_it_closes_nothing(self):

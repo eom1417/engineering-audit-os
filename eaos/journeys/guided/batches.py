@@ -62,7 +62,7 @@ def stale_refusal(state):
     return {'status': 'stale_batch', 'batch': wave['number'], 'why': why,
             'what_now': 'The batch is as it was: it no longer fits, so it takes no change. fix_start closes it and opens the next '
                         'one; fix_abandon only closes it; its cards can be picked again. A helper of this batch closes nothing: '
-                        'it says so and ends its turn.'}
+                        'it says so and ends its turn. A job still running ends first: fix_start closes nothing under it.'}
 
 
 def refuse_if_stale(state):

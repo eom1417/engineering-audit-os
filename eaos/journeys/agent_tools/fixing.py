@@ -342,7 +342,9 @@ def _not_kept(broke, exit_code, still):
 
 
 def fix_skip(card, reason, project=None):
-    project = state_of(project)['project']
+    state = state_of(project)
+    if stop := guided.stale_refusal(state): return stop     # at once, not after its turn
+    project = state['project']
     try:
         with jobs.alone(project, WAIT), lanes.changing(project) as state:      # no change is checked while its copy is rebuilt
             wave = _open(state)
