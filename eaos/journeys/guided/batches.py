@@ -1,11 +1,9 @@
 """The batches handed over and the branch EAOS works on: a batch closed, a stale one retired, a branch taken in, the
 branch chosen.
 """
-import shutil
-from pathlib import Path
 
 from ...core.project import branches, jobs
-from ...core.project.state import runtime_of, waiting_batch
+from ...core.project.state import waiting_batch
 from .project import PUBLISHERS, _branch_exists, _git, publish, report_of, same_code, save, tip
 from ...core.system.clock import now
 
@@ -15,8 +13,6 @@ def close_batch(state, status, why='', via='assistant'):
     (abandoned, superseded) and `why`; the ledger and the Studio follow, so its cards can be picked again at once."""
     wave = state.get('open_wave')
     if not wave: return None
-    root, runtime = Path(wave.get('root') or '/').resolve(), runtime_of(state).resolve()
-    if runtime in root.parents: shutil.rmtree(root, ignore_errors=True)
     record = {'number': wave['number'], 'base': wave.get('base'), 'cards': wave['cards'], 'kept': {},
               'failed': wave.get('failed') or {} if status == 'abandoned' else {}, 'branch': None, 'status': status, 'via': via,
               'keys': wave.get('keys') or {}, **{k: wave[k] for k in ('deliver_as', 'merge_into', 'base_branch') if k in wave}}
@@ -28,18 +24,51 @@ def close_batch(state, status, why='', via='assistant'):
     return record
 
 
-def retire_stale_batch(state):
-    """The open batch, retired (superseded, with why) when it no longer fits: its base is not the code of the branch EAOS
-    works on now (a commit of the person's came after it), or the check on record numbered its cards again (a card id
-    of the batch is another problem now). Called by `status`, `fix_start` and after every check. The record, or None."""
+class StaleBatch(Exception):
+    """A change stopped because the batch no longer fits. Leaving lanes.changing this way saves nothing. `answer`: the refusal."""
+
+    def __init__(self, answer):
+        super().__init__(answer['why'])
+        self.answer = answer
+
+
+def why_stale(state):
+    """Why the open batch no longer fits, or None, and None under its own work (a status call retired a batch mid hand-over:
+    KeyError 'open_wave', two hours lost). It only says: `status` reports this, and retire_stale_batch acts on it."""
     wave = state.get('open_wave')
-    # never under its own work (a status call retired a batch mid hand-over: KeyError 'open_wave', two hours lost)
     if not wave or jobs.fixing(state['project']): return None
-    now, why = tip(state), None
+    return _no_longer_fits(state, wave)
+
+
+def _no_longer_fits(state, wave):
+    """Its base is not the code of the branch EAOS works on now (a commit of the person's came after it), or the check on
+    record numbered its cards again (a card id of the batch is another problem now); else None."""
+    now = tip(state)
     built_on = wave.get('source_commit') or wave.get('base')         # a batch continued on a work branch: its branch's commit
     if now and not same_code(state, built_on, now) and not wave.get('kept'):    # kept changes go on: their merge says
-        why = f"the code moved on since the batch opened (it was built on {str(built_on)[:12]}, the branch is at {now[:12]})"
-    else: why = _renumbered(state, wave)
+        return f"the code moved on since the batch opened (it was built on {str(built_on)[:12]}, the branch is at {now[:12]})"
+    return _renumbered(state, wave)
+
+
+def stale_refusal(state):
+    """What a tool or job that changes the open batch answers when it no longer fits, the batch as it was; else None. Refusing
+    removes nothing, so another job running hides nothing here, and a batch's own job can ask."""
+    wave = state.get('open_wave')
+    if not (wave and (why := _no_longer_fits(state, wave))): return None
+    return {'status': 'stale_batch', 'batch': wave['number'], 'why': why,
+            'what_now': 'The batch is as it was: it no longer fits, so it takes no change. fix_start closes it and opens the next '
+                        'one; fix_abandon only closes it; its cards can be picked again. A helper of this batch closes nothing: '
+                        'it says so and ends its turn. A job still running ends first: fix_start closes nothing under it.'}
+
+
+def refuse_if_stale(state):
+    if stop := stale_refusal(state): raise StaleBatch(stop)
+
+
+def retire_stale_batch(state):
+    """The open batch closed as superseded, with why, when it no longer fits; its copy goes with it. Only what the person
+    asked to work does this, `fix_start` and every check: reading where things stand removes nothing. The record, or None."""
+    why = why_stale(state)
     return close_batch(state, 'superseded', why, via='eaos') if why else None
 
 
@@ -54,11 +83,12 @@ def _renumbered(state, wave):
     return None
 
 
-def reconcile(state):
+def reconcile(state, tidy=True):
     """Bring the state up to what git says, however the person or their assistant merged: a batch whose branch (or
-    whose last commit) is in the current branch is accepted, and its branch deleted; one whose branch is gone without
-    that is undone. When something changed, the ledger and REPORT.html follow at once. The changed batches."""
-    changed = [wave for wave in state.get('waves') or [] if _settle(state, wave)]
+    whose last commit) is in the current branch is accepted; one whose branch is gone without that is undone. With
+    `tidy`, an accepted batch's branch is deleted: what only reads where things stand passes False. When something
+    changed, the ledger and REPORT.html follow at once. The changed batches."""
+    changed = [wave for wave in state.get('waves') or [] if _settle(state, wave, tidy)]
     if changed:
         save(state)
         if state.get('mode') in PUBLISHERS: PUBLISHERS[state['mode']](state)
@@ -68,15 +98,19 @@ def reconcile(state):
     return changed
 
 
-def _settle(state, wave):
+def _drop_branch(state, wave):
+    """A merged batch's branch goes, unless the person chose to keep it after merging."""
+    if not wave.get('keep_branch'): _git(state['project'], 'branch', '-D', wave['branch'])
+
+
+def _settle(state, wave, tidy):
     """Whether git just accepted the batch (its branch, or its last commit, is in the branch it goes into) or undid it
-    (its branch is gone without that); an accepted batch's branch is deleted unless the person keeps it."""
+    (its branch is gone without that); with `tidy`, an accepted batch's branch is deleted unless the person keeps it."""
     branch, status = wave.get('branch'), wave.get('status')
     if not branch or status not in ('applied', 'superseded', 'accepted'): return False
     exists = _branch_exists(state, branch)
     last, inside = _in_target(state, wave, exists)
-    drop = exists and not wave.get('keep_branch')       # the person may have chosen to keep it after merging
-    if drop and inside: _git(state['project'], 'branch', '-D', branch)       # merged: its branch goes
+    if tidy and inside and exists: _drop_branch(state, wave)
     if status == 'accepted': return False
     if inside:                                          # merged into the branch EAOS works on
         wave.update(status='accepted', merged_at=now(), tip=last)

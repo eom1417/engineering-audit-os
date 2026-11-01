@@ -159,7 +159,7 @@ def _milestone_row(m, tasks, whole, tried_card, where):
 def plan(project=None, milestone=None):
     from ...core.project.ledger import keys, sync
     state = state_of(project)
-    guided.reconcile(state)
+    guided.reconcile(state, tidy=False)
     report = _report(state)
     data = _read(report / 'plan.json')
     rows = data.get('tasks') or []

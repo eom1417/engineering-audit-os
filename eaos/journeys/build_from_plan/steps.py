@@ -359,7 +359,7 @@ def _covering(plan):
 def status(project=None):
     from .. import handover
     state = _state(project)
-    guided.reconcile(state)
+    guided.reconcile(state, tidy=False)
     plan, bp, build = _plan(state), state.get('blueprint') or {}, state.get('open_build')
     done = [r['milestone'] for r in state.get('built') or []]
     answer = {'project': state['project'], 'mode': 'build from a plan', 'outputs_folder': str(guided.outputs(state)),

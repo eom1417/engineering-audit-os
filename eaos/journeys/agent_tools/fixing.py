@@ -270,6 +270,7 @@ def fix_read(path, project=None, start=1, end=None):
 def fix_edit(card, edits, summary='', project=None):
     state = state_of(project)
     wave = _open(state)
+    if stop := guided.stale_refusal(state): return stop
     if card == batch_finish.REPAIR and not wave.get('gates_failed'): raise ValueError('no repair is asked: fix_finish asks for one when needed')
     if card != batch_finish.REPAIR and card not in wave['cards']: raise ValueError(f"{card} is not in batch {wave['number']}: {', '.join(wave['cards'])}")
     if card in wave['kept']: return {'status': 'already_kept', 'what_now': 'This card is already fixed in the batch.'}
@@ -277,13 +278,19 @@ def fix_edit(card, edits, summary='', project=None):
     return lanes.take(state['project'], card, edits) or _start('fix_edit', state, {'card': card, 'edits': edits, 'summary': summary})
 
 
+def _planned(report, card_id):
+    from ..fix.waves import plan as read_plan
+    return next(t for t in read_plan(report)['tasks'] if t['id'] == card_id)
+
+
 def _fix_edit_job(project, arguments, progress):
-    from ..fix.waves import commit, drop_last, edit_gates, plan as read_plan
+    from ..fix.waves import commit, drop_last, edit_gates
     state = project_state.load(project)
     wave, report = state['open_wave'], guided.report_of(state)
     root, card_id = Path(wave['root']), arguments['card']
+    if stop := guided.stale_refusal(state): return {**stop, 'card': card_id, 'kept': False}
     repair = card_id == batch_finish.REPAIR
-    card = batch_finish.repair_card(wave) if repair else next(t for t in read_plan(report)['tasks'] if t['id'] == card_id)
+    card = batch_finish.repair_card(wave) if repair else _planned(report, card_id)
     try:
         changed = _apply(root, arguments['edits'])
         commit(root, card, 'assistant')
@@ -302,14 +309,24 @@ def _fix_edit_job(project, arguments, progress):
         return {'card': card_id, 'kept': False, 'why': why, 'files': changed,
                 'what_now': 'The change was taken back. Fix the cause and send fix_edit again, or fix_skip with the reason.'}
     if repair: return batch_finish.repaired(project_state.load(project), root, changed, diff)
+    try: wave = _record_kept(project, root, card_id, arguments.get('summary') or '')
+    except guided.StaleBatch as stale:
+        drop_last(root)
+        return {**stale.answer, 'card': card_id, 'kept': False}
+    left = lanes.mine(wave, lanes.untried(wave, wave['cards']))
+    return {'card': card_id, 'kept': True, 'files': changed, 'diff': diff, 'left': left, 'what_now': lanes.next_step(wave, left)}
+
+
+def _record_kept(project, root, card_id, summary):
+    """The change recorded on the batch, unless the code moved on during its checks (one kept change would let the batch go on)."""
     with lanes.changing(project) as state:
+        guided.refuse_if_stale(state)
         wave = state['open_wave']
         wave['kept'][card_id] = guided._git(root, 'rev-parse', 'HEAD').stdout.strip()
         wave['tools'][card_id] = 'assistant'
         wave['failed'].pop(card_id, None)
-        wave.setdefault('summaries', {})[card_id] = arguments.get('summary') or ''
-    left = lanes.mine(wave, lanes.untried(wave, wave['cards']))
-    return {'card': card_id, 'kept': True, 'files': changed, 'diff': diff, 'left': left, 'what_now': lanes.next_step(wave, left)}
+        wave.setdefault('summaries', {})[card_id] = summary
+    return wave
 
 
 def _refused(project, card_id, why):
@@ -325,14 +342,19 @@ def _not_kept(broke, exit_code, still):
 
 
 def fix_skip(card, reason, project=None):
-    project = state_of(project)['project']
-    with jobs.alone(project, WAIT), lanes.changing(project) as state:      # no change is checked while its copy is rebuilt
-        wave = _open(state)
-        if card not in wave['cards']: raise ValueError(f"{card} is not in batch {wave['number']}")
-        if card in wave['kept']:
-            from ..fix.waves import without
-            without(wave, card)
-        wave['failed'][card] = f'skipped: {reason}'[:300]
+    state = state_of(project)
+    if stop := guided.stale_refusal(state): return stop     # at once, not after its turn
+    project = state['project']
+    try:
+        with jobs.alone(project, WAIT), lanes.changing(project) as state:      # no change is checked while its copy is rebuilt
+            wave = _open(state)
+            guided.refuse_if_stale(state)
+            if card not in wave['cards']: raise ValueError(f"{card} is not in batch {wave['number']}")
+            if card in wave['kept']:
+                from ..fix.waves import without
+                without(wave, card)
+            wave['failed'][card] = f'skipped: {reason}'[:300]
+    except guided.StaleBatch as stale: return stale.answer
     return {'card': card, 'skipped': True, 'left': lanes.mine(wave, lanes.untried(wave, wave['cards']))}
 
 
@@ -341,7 +363,7 @@ def fix_finish(project=None, leave_out=False):
     for a repair on top of them (fix_edit with card REPAIR) instead of leaving sound cards out; `leave_out`, or after
     REPAIRS repairs, the cards responsible are found and left out."""
     state = state_of(project)
-    if stop := lanes.not_yours(state) or lanes.finish_wait(state['project']): return stop
+    if stop := lanes.not_yours(state) or guided.stale_refusal(state) or lanes.finish_wait(state['project']): return stop
     wave = _open(state_of(project))
     left = [c for c in wave['cards'] if c not in wave['kept'] and c not in wave['failed']]
     if left: return {'status': 'cards_left', 'left': left, 'what_now': 'Fix them with fix_edit or skip them with fix_skip first.'}

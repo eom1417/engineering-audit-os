@@ -66,9 +66,12 @@ def outputs(state):
 
 
 def save(state):
-    """The state written (eaos/core/project/state.py), the open batch drawn and the closed ones' copies removed first."""
-    waves.saved(state, runtime_of(state))
+    """The state written (eaos/core/project/state.py): the open batch drawn first (it stamps the state), and only once it is
+    written the removals of what this save closed, so a failed write loses no copy of a batch still open on disk."""
+    before = project_state.of_workspace(state['workspace'])
+    waves.draw(state, runtime_of(state))
     project_state.write(state)
+    waves.saved(state, runtime_of(state), before)
 
 
 def language(requested=None, state=None):

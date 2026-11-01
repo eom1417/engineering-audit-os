@@ -55,6 +55,16 @@ class Home(unittest.TestCase):
             subprocess.run(['git', '-C', str(self.project), '-c', 'user.name=t', '-c', 'user.email=t@t', *argv], check=True, capture_output=True)
         self.server = build(every)
 
+    def checked(self):
+        with mock.patch.dict(by_rules.RUNNERS, engines=_no_engines, architecture=_no_engines), mock.patch.object(guided, 'tools_for_check', return_value={}):
+            agent_tools.state_of(str(self.project))
+            agent_tools.choose_branch('main', str(self.project), 'the work goes on here')
+            agent_tools._audit_job(str(self.project), {}, None)
+
+    def _everything_but_the_journal(self):
+        return {f'{root.name}/{name}': data for root in (self.project, self.home, self.root / 'out') for name, data in _files(root).items()
+                if not name.endswith('journal.jsonl')}
+
 
 class ReadingABuildsFile(Home):
     def test_a_project_never_started_is_answered_and_nothing_is_made(self):
@@ -128,16 +138,6 @@ class OpeningTheReport(Home):
 
 class AskingWhereTheProjectIs(Home):
     """status is read-only once the project is settled; before that, its first call is what settles it."""
-
-    def checked(self):
-        with mock.patch.dict(by_rules.RUNNERS, engines=_no_engines, architecture=_no_engines), mock.patch.object(guided, 'tools_for_check', return_value={}):
-            agent_tools.state_of(str(self.project))
-            agent_tools.choose_branch('main', str(self.project), 'the work goes on here')
-            agent_tools._audit_job(str(self.project), {}, None)
-
-    def _everything_but_the_journal(self):
-        return {f'{root.name}/{name}': data for root in (self.project, self.home, self.root / 'out') for name, data in _files(root).items()
-                if not name.endswith('journal.jsonl')}
 
     def test_on_a_settled_project_it_changes_no_state_no_project_file_and_no_report(self):
         self.checked()

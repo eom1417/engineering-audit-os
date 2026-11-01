@@ -75,8 +75,8 @@ def _unanswered(asked, person_said):
     return (f'the question was put {None if since is None else int(since)} seconds ago: nobody answers that fast, so the '
             'person has not answered yet')
 
-def _batches(wave, retired):     # status' open and retired batches
-    return {'open_batch': {k: wave.get(k) for k in ('number', 'cards', 'kept', 'failed', 'last_error', 'deliver_as', 'merge_into', 'direct', 'continues')} if wave else None, 'retired_batch': {k: retired.get(k) for k in ('number', 'why')} if retired else None}
+def _batches(wave):     # status' open batch; `retired_batch` stays in the answer, null: status closes none, and says in `next` why one no longer fits
+    return {'open_batch': {k: wave.get(k) for k in ('number', 'cards', 'kept', 'failed', 'last_error', 'deliver_as', 'merge_into', 'direct', 'continues')} if wave else None, 'retired_batch': None}
 
 
 def status(project=None):
@@ -90,11 +90,11 @@ def status(project=None):
         return {'project': state['project'], 'branch': None, **asking, 'next': {'tool': 'choose_branch', 'why': 'the project has '
                 'more than one branch with different code: the person chooses which one EAOS works on'},
                 'handover': handover.brief(state)}
-    guided.reconcile(state)
-    retired, head, checked = guided.retire_stale_batch(state), _head(state), guided.scan_done(state)
+    guided.reconcile(state, tidy=False)
+    head, checked = _head(state), guided.scan_done(state)
     waiting = waiting_batch(state)
     busy = jobs.running(state['project'])
-    answer = {**_facts(state, head, checked), **_batches(state.get('open_wave'), retired),
+    answer = {**_facts(state, head, checked), **_batches(state.get('open_wave')),
               'waiting_branch': waiting['branch'] if waiting else None,
               'running_job': busy['id'] if busy else None}
     step = _next_step(state, head, checked, busy, waiting)
@@ -124,7 +124,14 @@ def _next_step(state, head, checked, busy, waiting):
     if not checked: return ('audit', 'the project has not been checked')
     if (pending := remedies.pending(guided.report_of(state))): return ('audit', f'again_from={pending}: a remedy EAOS knows was not tried on it yet')
     if waiting: return ('accept or undo', f"the fixes on {waiting['branch']} wait for the person's decision")
-    return _batch_step(state, state.get('open_wave')) or _setup_step(state, head)
+    return _stale_step(state, head) or _batch_step(state, state.get('open_wave')) or _setup_step(state, head)
+
+
+def _stale_step(state, head):
+    """The step past an open batch that no longer fits: never to go on with it, and it is still there; None without one."""
+    if not (why := guided.why_stale(state)): return None
+    tool, step = _setup_step(state, head)
+    return tool, f"{step} (batch {state['open_wave']['number']} no longer fits: {why}; it is still open, fix_start or fix_abandon closes it)"
 
 
 def _batch_step(state, wave):

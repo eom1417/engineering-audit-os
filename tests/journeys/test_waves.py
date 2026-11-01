@@ -171,14 +171,14 @@ class HandOverTests(unittest.TestCase):
         with self.assertRaises(ValueError, msg='a wave that kept nothing hands nothing over'):
             waves.apply(project, {'kept': [], 'branch': 'eaos/wave-1', 'root': '/nowhere'})
 
-    def test_a_closed_batchs_copy_goes_at_the_next_save_and_one_still_opening_stays(self):
+    def test_a_closing_save_removes_the_closed_batchs_copy_and_one_still_opening_stays(self):
         with tempfile.TemporaryDirectory() as runtime:
             copies = Path(runtime) / 'candidates'
             for name in ('WAVE-1', 'BUILD-2', 'WAVE-3'): (copies / name).mkdir(parents=True)
             logs = Path(runtime) / 'runtime'
             logs.mkdir()
             for name in ('wave-1', 'wave-1-bisect-ab12cd34-2', 'wave-3-bisect-ab12cd34-2'): (logs / f'checks-{name}-log.json').write_text('{}')
-            waves.saved({'waves': [{'number': 1}, {'number': 2, 'via': 'build'}]}, runtime)
+            waves.saved({'waves': [{'number': 1}, {'number': 2, 'via': 'build'}]}, runtime, {'waves': [], 'open_wave': {'number': 1}, 'open_build': {'number': 2}})
             self.assertEqual([p.name for p in copies.iterdir()], ['WAVE-3'])
             self.assertEqual(sorted(p.name for p in logs.iterdir()), ['checks-wave-1-log.json', 'checks-wave-3-bisect-ab12cd34-2-log.json'],
                              "a closed batch keeps its gates' summary, not its bisection's logs")

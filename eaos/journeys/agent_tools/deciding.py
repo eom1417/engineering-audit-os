@@ -41,7 +41,7 @@ def _not_merged(outcome, wave):
     if outcome == 'conflict':
         return {'status': 'conflict', 'branch': wave['branch'],
                 'what_now': f"The person's branch changed in the same places since the fixes; nothing was merged. Ask whether to merge "
-                            f"{wave['branch']} by hand, resolving the conflict; once it is merged, `status` records it and deletes the branch."}
+                            f"{wave['branch']} by hand, resolving the conflict; once it is merged, `status` records it and the next fix_start removes the branch."}
     return None
 
 

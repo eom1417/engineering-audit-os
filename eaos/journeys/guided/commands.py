@@ -145,7 +145,7 @@ def advance(state, args):
 
 def status(args):
     state = current(args.project)
-    reconcile(state)
+    reconcile(state, tidy=False)
     lang = language(args.lang, state)
     say(('مشروع' if lang == 'ar' else 'Project') + f": {state['project']}\n{branches.fresh_line(state, lang)}")
     upcoming = next_step(state)

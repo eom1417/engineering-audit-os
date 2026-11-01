@@ -46,7 +46,7 @@ opened in). Long work returns a job, followed with `wait`. `status` always names
 
 **An open exception: `status` is declared read-only and is not always.** On a settled project it writes only its journal line. Its first
 call makes the project's state and settles its branch, it records that the branch question was asked, it brings the state up to what
-git says, and it rebuilds a report an older EAOS made. An assistant or client must not take its `readOnlyHint` as a promise that
+git says, and it rebuilds a report an older EAOS made. It removes no branch and no open batch's copy. An assistant or client must not take its `readOnlyHint` as a promise that
 nothing is written. Every other tool that acts says so.
 
 ### Orient and continue
@@ -266,8 +266,15 @@ A build card passes the same gates against the blueprint ([BUILD-FROM-PLAN.md](B
   branch waiting for a decision, done (merged), gone in a later check, or needs a decision. The report reads the
   progress from the ledger alone and never counts a waiting branch as done.
 - **Merging** (`eaos/journeys/guided/batches.py`, `merge` and `reconcile`): `accept` merges (fast-forward, else a clean
-  merge; a conflict is aborted, so nothing changes), deletes the branch and rebuilds the report. `status` reconciles
-  with git on every call: a branch merged by hand is recorded and deleted, a branch deleted unmerged counts as undone.
+  merge; a conflict is aborted, so nothing changes), deletes the branch and rebuilds the report. `status`, `menu` and
+  `plan` reconcile with git on every call and remove no branch: a branch merged by hand is recorded, and what writes next
+  (`fix_start`, `accept`, `undo`, `open_report`, the next `eaos next`, opening the Studio) removes it; a branch deleted
+  unmerged counts as undone. An open batch that no longer fits stays open with its copy: `status` says why in `next`,
+  and `fix_start`, `fix_abandon` or the next check closes it. It takes no change: `fix_edit`, `fix_skip` and `fix_finish`
+  answer `stale_batch` and change nothing, and their jobs look again before applying a change or handing it over. A batch
+  with a kept change goes on when the code moves on: its merge says the rest. A save removes only what it closes, once
+  the state is written; what an older EAOS, a failed removal or a crash left stays. `eaos clean` removes only the copies
+  under the first branch's runtime, an open batch's too; the rest is removed by hand.
   After merging EAOS's own fixes, no new check or run is needed.
 - **Hand-over** (`eaos/journeys/handover.py`): the MCP server writes every call to `journal.jsonl` (when, which
   assistant, which tool, which card, the result), `note` adds the reason, and `HANDOVER.md` is rewritten after every
