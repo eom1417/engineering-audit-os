@@ -70,7 +70,7 @@ def read(job, project):
 
 
 def _alive(pid):
-    if not pid: return True                 # not launched yet: the launcher writes the pid next
+    if not pid: return True                 # no pid told: only `alone` can say it never started
     try: os.kill(pid, 0)
     except ProcessLookupError: return False
     except PermissionError: return True
@@ -118,15 +118,45 @@ class Busy(Exception):
 
 @contextmanager
 def alone(project, wait=0):
-    """The project's jobs held: none starts, and none runs once the one running ended, waited for up to `wait` seconds
-    (Busy after it)."""
+    """The project's jobs held, on a lock never waited on: none starts while this holds it, and it holds it only once none is
+    running, tried for up to `wait` seconds (Busy after it). A launch it finds cut short is failed first. Never taken twice
+    at once, nor inside a job, whose own record is running, nor inside lanes.changing."""
     folder(project).mkdir(parents=True, exist_ok=True)
+    until = time.monotonic() + wait
     with open(folder(project) / '.turn.lock', 'a') as turn:
-        fcntl.flock(turn, fcntl.LOCK_EX)
-        until = time.monotonic() + wait
-        while (busy := running(project)) and time.monotonic() < until: time.sleep(1)
-        if busy: raise Busy(busy)
+        while True:
+            busy = _busy_or_none(project, turn)
+            if not busy: break
+            if time.monotonic() >= until: raise Busy(busy)
+            time.sleep(0.2)
         yield
+
+
+def _busy_or_none(project, turn):
+    """What holds the project; None when `turn` now holds its lock and no job is running."""
+    try: fcntl.flock(turn, fcntl.LOCK_EX | fcntl.LOCK_NB)
+    except BlockingIOError: return running(project) or {'id': None, 'kind': 'step', 'progress': None}
+    _launches_that_failed(project)
+    return running(project)
+
+
+def _launches_that_failed(project):
+    """Under the lock a launcher holds until it wrote the pid, so none is at work: a record with no pid and no process of
+    its job never started. Age proves nothing: systemd can start a job and tell no pid in time."""
+    for path in folder(project).glob('*.json'):
+        record = read_json(path, {})
+        if not (isinstance(record, dict) and record.get('status') == 'running' and record.get('id') and not record.get('pid')): continue
+        if _has_process(record['id']): continue
+        record = read_json(path, {})        # as it is now: a worker may have ended while it was looked for
+        if record.get('status') == 'running' and not record.get('pid'):
+            record.update(status='failed', ended=now(), error='the job never started: its launch was cut short; start it again')
+            _write(record)
+
+
+def _has_process(job):
+    """Whether a process of the job exists; when that cannot be told, it may."""
+    try: return subprocess.run(['pgrep', '-f', f'eaos.core.project.jobs {job}'], capture_output=True, timeout=10).returncode != 1
+    except (OSError, subprocess.SubprocessError): return True
 
 
 def start(kind, project, arguments, runner='eaos.journeys.agent_tools'):

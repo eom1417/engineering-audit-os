@@ -275,8 +275,13 @@ A build card passes the same gates against the blueprint ([BUILD-FROM-PLAN.md](B
   with a kept change goes on when the code moves on: its merge says the rest. A save removes only what it closes, once
   the state is written; what an older EAOS, a failed removal or a crash left stays. `eaos clean` removes such a copy only
   when it is proved to hold nothing, no ignored file included (`eaos/journeys/guided/copies.py`), and names the ones it keeps,
-  with why, for the person to remove by hand; it does not touch old patches or bisection logs.
-  After merging EAOS's own fixes, no new check or run is needed.
+  with why, for the person to remove by hand; it does not touch old patches or bisection logs. A copy found where a new
+  one goes is never deleted: it moves aside as `<name>.left-<id>`. After merging EAOS's own fixes, no new check or run is
+  needed.
+- **Active work**: `fix_abandon`, `fix_start`, `fix_skip`, `build_start` and `eaos clean` work under the lock jobs start
+  by (`jobs.alone`), on the state read there, and never wait on it. When a job holds the project the tools answer
+  `status: busy` with `error` and `what_now` and change nothing, `fix_abandon` also when a run is queued; `eaos clean` keeps
+  that project's files and names them. That lock is never nested, nor taken inside a job or inside `lanes.changing`.
 - **Hand-over** (`eaos/journeys/handover.py`): the MCP server writes every call to `journal.jsonl` (when, which
   assistant, which tool, which card, the result), `note` adds the reason, and `HANDOVER.md` is rewritten after every
   step. The next assistant calls `status` and finds `handover`: the open work and what is left of it, what the person

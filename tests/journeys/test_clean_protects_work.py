@@ -944,7 +944,7 @@ class ACleanStoppedHalfway(Clean):
         real = jobs.alone
         @contextlib.contextmanager
         def its_turn(project, *args):
-            shutil.rmtree(gone_by_hand)
+            shutil.rmtree(gone_by_hand, ignore_errors=True)
             with real(project, *args): yield
         with mock.patch.object(jobs, 'alone', its_turn):
             said = self.clean()
@@ -1057,7 +1057,7 @@ class ACleanStoppedHalfway(Clean):
             with real(project, *args): yield
         with mock.patch.object(jobs, 'alone', watched):
             self.clean()
-        self.assertEqual((seen, aside.exists()), ([True], False), 'nothing goes before the lock is held')
+        self.assertEqual((set(seen), aside.exists()), ({True}, False), 'nothing goes before the lock is held')
 
     def test_cleaning_again_and_again_says_what_stays_and_only_that(self):
         kept, gone = self.copy('WAVE-1'), self.copy('WAVE-2')

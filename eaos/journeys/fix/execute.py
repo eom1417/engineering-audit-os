@@ -5,6 +5,7 @@ eaos/journeys/fix/waves; the assistant's edits come through the MCP tools (eaos/
 Nothing is written to the original project; the candidate is a clone, and its commit is the reviewable change.
 """
 import json
+import os
 import re
 import subprocess
 from pathlib import Path
@@ -16,12 +17,22 @@ def git(where, *args):
     return subprocess.run(['git', '-C', str(where), *args], capture_output=True, text=True)
 
 
+def set_aside(copy):
+    """Nothing EAOS finds where a new copy goes is deleted: it may hold the only trace of a change. An empty folder goes; the
+    rest moves beside it under a name of its own, where `eaos clean` judges it as any copy."""
+    copy = Path(copy)
+    if copy.is_dir() and not copy.is_symlink() and not any(copy.iterdir()): return copy.rmdir()
+    if not (copy.exists() or copy.is_symlink()): return None
+    aside = None
+    while aside is None or aside.exists() or aside.is_symlink(): aside = copy.with_name(f'{copy.name}.left-{os.urandom(6).hex()}')
+    return copy.rename(aside)
+
+
 def candidate(target, runtime, card_id):
     """A clone of the authorised commit, fresh for this card."""
-    import shutil
     grant = json.loads((Path(runtime) / 'authorization.json').read_text(encoding='utf-8'))
     where = Path(runtime) / 'candidates' / card_id
-    shutil.rmtree(where, ignore_errors=True)
+    set_aside(where)
     where.parent.mkdir(parents=True, exist_ok=True)
     for args in (('clone', '--quiet', '--no-hardlinks', str(target), str(where)),):
         done = subprocess.run(['git', *args], capture_output=True, text=True)

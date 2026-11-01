@@ -177,13 +177,10 @@ def clean(args):
 
 
 def _sessions_forgotten():
-    """The sessions of the apps removed: a check asks to sign in again. A project's work going on keeps its own: what stayed."""
+    """The sessions of the apps removed: a check asks to sign in again. A project with work going on, or that cannot be told,
+    keeps its own: what stayed."""
     from ...live.access.sign_in import forget
-    kept = []
-    for folder in (home() / 'projects').glob('*'):
-        if copies.working(folder): kept.append((folder, 'working'))
-        else: forget(folder)
-    return kept
+    return [(folder, 'held') for folder in (home() / 'projects').glob('*') if not copies.when_idle(folder, lambda place=folder: forget(place))]
 
 
 def _say_cleaned(lang, pictures, freed, kept):
@@ -198,19 +195,25 @@ def _say_cleaned(lang, pictures, freed, kept):
 
 def _pictures_cleared():
     """The screen pictures, crawl and raw assistant runs of every report removed (PICTURES), but those of a project with work
-    going on: (the bytes freed, what stayed)."""
+    going on, or whose folder does not say which project it is: (the bytes freed, what stayed)."""
     from ...pipeline.run import PICTURES, clear
-    freed, kept = 0, []
+    freed, kept = [], []
     for report in (*outputs_root().glob('*/technical'), *outputs_root().glob('*/branches/*/technical')):
-        if _report_in_use(report): kept.append((report, 'working'))
-        else: freed += clear(report, PICTURES)
-    return freed, kept
+        folder = _project_of(report)
+        if not (folder and copies.when_idle(folder, lambda place=report: freed.append(clear(place, PICTURES)))): kept.append((report, 'held'))
+    return sum(freed), kept
 
 
-def _report_in_use(report):
-    marker = next((folder / '.eaos-project' for folder in report.parents if (folder / '.eaos-project').is_file()), None)
-    try: return bool(marker) and copies.working(workspace(marker.read_text(encoding='utf-8').strip()))
-    except (OSError, ValueError): return True      # whose it is cannot be told
+def _project_of(report):
+    """The project's EAOS folder for this report, only when its outputs folder's mark and that project's state agree; else None."""
+    outputs = report.parent if report.parent.parent == outputs_root() else report.parents[2]
+    try:
+        project = (outputs / '.eaos-project').read_text(encoding='utf-8').strip()
+        state = load(project) if project else None
+    except (OSError, ValueError):
+        return None
+    if not isinstance(state, dict) or state.get('project') != project or Path(state.get('outputs') or '/').resolve() != outputs.resolve(): return None
+    return workspace(project)
 
 
 def resume(args):

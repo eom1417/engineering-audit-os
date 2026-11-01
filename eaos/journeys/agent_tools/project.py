@@ -115,6 +115,15 @@ def _job_answer(job, seconds, project):
             'what_now': f'Call `wait` with job="{job}" to follow it; keep going until it is done.'}
 
 
+def busy_answer(record):
+    """What a tool answers when something holds the project and it did nothing: `error` makes a Studio run say so, not `done`."""
+    job = record['id']
+    return {'job': job, 'status': 'busy', 'kind': record['kind'], 'progress': record.get('progress'),
+            'error': f"a {record['kind']} is running for this project, so nothing was done",
+            'what_now': (f'Another piece of work is running for this project: call `wait` with job="{job}" first, then ask again.' if job else
+                         'Another step is at work on this project: ask again in a moment.')}
+
+
 def _start(kind, state, arguments, seconds=WAIT, runner='eaos.journeys.agent_tools', watch=False):  # limits: parameters -- the job and how it is waited for, run and watched, each set apart by its callers
     """Start a job once the project's running one ended (waited for up to `seconds`: eaos/journeys/fix/lanes.py), and answer as `_job_answer`
     does. `watch`: the live Studio is opened on its map first (once, before the job writes anything), its address in `watch`."""
@@ -123,8 +132,7 @@ def _start(kind, state, arguments, seconds=WAIT, runner='eaos.journeys.agent_too
     try:
         with jobs.alone(state['project'], seconds): job = jobs.start(kind, state['project'], arguments, runner=runner)
     except jobs.Busy as busy:
-        return {'job': busy.record['id'], 'status': 'busy', 'kind': busy.record['kind'], 'progress': busy.record['progress'],
-                'what_now': f"Another piece of work is running for this project: call `wait` with job=\"{busy.record['id']}\" first."}
+        return busy_answer(busy.record)
     answer = _job_answer(job, seconds, state['project'])
     if studio and route == '/tools':
         answer.update(watch=studio['studio'], what_now=TOOLS_FIRST)

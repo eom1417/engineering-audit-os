@@ -18,11 +18,12 @@ At the end the person takes the last branch in (accept, from agent_tools) and ev
 """
 import os
 import shutil
-import subprocess
 import tempfile
 from pathlib import Path
 
 from .. import agent_tools, guided, catalog as journeys
+from .milestone_copy import _milestone_copy
+from ...core.project import jobs
 from . import look as build_look
 from .blueprint import (_plan, _state, answered, blueprint_answer, blueprint_design, blueprint_spec, blueprint_start,  # noqa: F401
                         folder, open_blueprint, publish, studio_build)
@@ -67,47 +68,16 @@ def _next_milestone(state, plan):
     return next((m for m in plan['milestones'] if any(c not in done for c in m['tasks'])), None)
 
 
-def _milestone_copy(state, runtime, number):
-    """The isolated copy of milestone `number` on its own branch, stacked on the branch the last milestone ended on."""
-    root = runtime / 'candidates' / f'BUILD-{number}'
-    shutil.rmtree(root, ignore_errors=True)
-    root.parent.mkdir(parents=True, exist_ok=True)
-    clone = subprocess.run(['git', 'clone', '-q', '--no-hardlinks', state['project'], str(root)], capture_output=True, text=True)
-    if clone.returncode: raise RuntimeError(f'could not copy the project: {clone.stderr[-300:]}')
-    previous = (state.get('built') or [None])[-1]
-    if previous and previous.get('branch'):             # stacked: this milestone starts where the last one ended
-        _git(root, 'fetch', '-q', state['project'], f"{previous['branch']}:{previous['branch']}")
-        _git(root, 'checkout', '-q', previous['branch'])
-    _git(root, 'checkout', '-q', '-b', f'eaos/build-{number}')
-    if number == 1: _commit_blueprint(state, root)
-    return root
-
-
 def build_start(project=None, person_agreed=False):
     state = _state(project)
     if state.get('open_build'): return _open_answer(state['open_build'])
-    plan = _plan(state)
-    if not plan: return {'status': 'no_blueprint', 'what_now': 'Call blueprint_start, blueprint_spec and blueprint_design first.'}
-    if not person_agreed and not (state.get('consent') or {}).get('build'):
-        return {'status': 'needs_agreement', 'ask_the_person': CONSENT,
-                'what_now': 'Ask the person this, in their language. Only if they say yes, call build_start with person_agreed=true.'}
-    state['consent'] = {**(state.get('consent') or {}), 'build': True, 'at': now()}
-    started = _ensure_git(state)
-    milestone = _next_milestone(state, plan)
-    if milestone is None:
-        guided.save(state)
-        return {'status': 'built', 'what_now': 'Every milestone is built. Ask the person whether to take the last branch in '
-                                               '(accept with person_agreed=true), then offer the audit of the built project.'}
-    from ...live.app.setup import authorize, owner
-    runtime = project_state.runtime_of(state)
-    authorize(state['project'], runtime, owner(state['project']))
-    number = len(state.get('built') or []) + 1
-    root = _milestone_copy(state, runtime, number)
-    build = {'number': number, 'milestone': milestone['id'], 'root': str(root), 'base': _git(root, 'rev-parse', 'HEAD').stdout.strip(),
-             'cards': milestone['tasks'], 'kept': {}, 'skipped': {}, 'installed': None, 'began': now('milliseconds')}
-    state['open_build'] = build
-    guided.save(state)
-    publish(state)
+    try:
+        with jobs.alone(state['project']): answer, opened = _milestone_opened(project, person_agreed)     # the copy and its record, as one
+    except jobs.Busy as busy:
+        return agent_tools.busy_answer(busy.record)
+    if answer: return answer
+    state, started, milestone, root = opened
+    publish(state)                  # after the lock: the build is on record, and a report takes long
     cards = _cards(state)
     return {'status': 'opened', 'milestone': {'id': milestone['id'], 'name': milestone['name']}, 'copy': str(root),
             'git_started': started, 'cards': [_brief(cards[c]) for c in milestone['tasks']],
@@ -118,18 +88,32 @@ def build_start(project=None, person_agreed=False):
                         'fails comes back with the reasons: fix them and send it again. Then build_finish.'}
 
 
-def _commit_blueprint(state, root):
-    """The target as part of the project: its policy at the top, the blueprint in docs/blueprint/."""
-    where = folder(state)
-    shutil.copyfile(where / 'eaos.policy.json', Path(root) / 'eaos.policy.json')
-    docs = Path(root) / 'docs' / 'blueprint'
-    docs.mkdir(parents=True, exist_ok=True)
-    for source in [where / name for name in ('BLUEPRINT.md', 'product-spec.json', 'stack.json', 'plan.json')] + \
-            [guided.report_of(state) / 'target-architecture.json']:
-        if source.is_file(): shutil.copyfile(source, docs / source.name)
-    _git(root, 'add', '-A')
-    _git(root, '-c', 'user.name=EAOS', '-c', 'user.email=eaos@localhost', 'commit', '-q', '-m',
-         'The blueprint: target structure, policy and build plan (EAOS)')
+def _milestone_opened(project, person_agreed):
+    """(the answer when nothing opened, else None and (the state, whether git was started here, the milestone, its copy)), read
+    and written under the jobs' lock: no clean takes the copy before its record, no second call opens the same one."""
+    state = _state(project)
+    if state.get('open_build'): return _open_answer(state['open_build']), None
+    plan = _plan(state)
+    if not plan: return {'status': 'no_blueprint', 'what_now': 'Call blueprint_start, blueprint_spec and blueprint_design first.'}, None
+    if not person_agreed and not (state.get('consent') or {}).get('build'):
+        return {'status': 'needs_agreement', 'ask_the_person': CONSENT,
+                'what_now': 'Ask the person this, in their language. Only if they say yes, call build_start with person_agreed=true.'}, None
+    state['consent'] = {**(state.get('consent') or {}), 'build': True, 'at': now()}
+    started = _ensure_git(state)
+    milestone = _next_milestone(state, plan)
+    if milestone is None:
+        guided.save(state)
+        return {'status': 'built', 'what_now': 'Every milestone is built. Ask the person whether to take the last branch in '
+                                               '(accept with person_agreed=true), then offer the audit of the built project.'}, None
+    from ...live.app.setup import authorize, owner
+    runtime = project_state.runtime_of(state)
+    authorize(state['project'], runtime, owner(state['project']))
+    number = len(state.get('built') or []) + 1
+    root = _milestone_copy(state, runtime, number)
+    state['open_build'] = {'number': number, 'milestone': milestone['id'], 'root': str(root), 'base': _git(root, 'rev-parse', 'HEAD').stdout.strip(),
+                           'cards': milestone['tasks'], 'kept': {}, 'skipped': {}, 'installed': None, 'began': now('milliseconds')}
+    guided.save(state)
+    return None, (state, started, milestone, root)
 
 
 def _brief(card):

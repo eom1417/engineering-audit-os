@@ -158,7 +158,7 @@ class Branches(unittest.TestCase):
         with mock.patch.object(agent_tools.fixing, '_start', return_value={'status': 'started'}) as started:
             agent_tools.fix_start(str(self.project), base='develop', base_commit=develop[:7], merge_into='develop')
         self.assertEqual(started.call_args[0][2], {'cards': ['TASK-001', 'TASK-002', 'TASK-003', 'TASK-004', 'TASK-005'],
-                                                   'deliver_as': 'eaos/develop/wave-1', 'merge_into': 'develop', 'assistants': 1})
+                                                   'deliver_as': 'eaos/develop/wave-1', 'merge_into': 'develop', 'assistants': 1, 'scanned': project_state.load(self.project)['scanned']})
         self.assertEqual(agent_tools.delivery(project_state.load(self.project)), ('eaos/develop/wave-1', 'main'),
                          'by default it merges into the branch open in the project folder')
         # Accept merges into the branch the preview named, here release, a branch neither checked out nor worked on.
@@ -210,7 +210,7 @@ class Branches(unittest.TestCase):
         self.assertEqual(first['branch'], 'eaos/develop/wave-1')
         with mock.patch.object(agent_tools.fixing, '_start', return_value={'status': 'started'}) as started:
             agent_tools.fix_start(str(self.project), cards=['TASK-002'], deliver_as='eaos/develop/wave-1')
-        self.assertEqual(started.call_args[0][2], {'cards': ['TASK-002'], 'deliver_as': 'eaos/develop/wave-1', 'merge_into': 'main', 'assistants': 1},
+        self.assertEqual(started.call_args[0][2], {'cards': ['TASK-002'], 'deliver_as': 'eaos/develop/wave-1', 'merge_into': 'main', 'assistants': 1, 'scanned': project_state.load(self.project)['scanned']},
                          'a waiting work branch is no refusal when the batch goes on it')
         second = self.batch('TASK-002', deliver_as='eaos/develop/wave-1', merge_into='develop')
         self.assertEqual((second['branch'], second['continued_on']), ('eaos/develop/wave-1', 'eaos/develop/wave-1'))

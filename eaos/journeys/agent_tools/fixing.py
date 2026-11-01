@@ -12,19 +12,14 @@ from ...core.project.state import waiting_batch
 from ...live.app import setup as live_setup
 from .edits import _apply, _inside
 from .evidence import _ready
-from .project import WAIT, _head, _read, _report, _start, state_of
+from .closing import _open, _settled, fix_abandon  # noqa: F401
+from .project import WAIT, _head, _read, _report, _start, busy_answer, state_of
 from .running import CONSENT, _consented
 from ...core.system.clock import now
 from ...analysis.rules.held import brief
 
 
 # ---------------------------------------------------------------- fixing
-
-def _open(state):
-    wave = state.get('open_wave')
-    if not wave: raise LookupError('no batch is open: call fix_start first')
-    return wave
-
 
 def _brief(card, rules=()):
     """A card as the assistant reads it, with the person's rules that hold for it (M16.4): keep each, or the change is refused."""
@@ -73,9 +68,8 @@ def fix_start(project=None, cards=None, size=10, base=None, deliver_as=None, mer
     it), or the base branch itself (direct: the batch lands on it once it passes, no branch is left); `merge_into`, the branch accept merges them into (default the branch
     open in the project folder); `base_commit`, the commit the preview showed for `base`: when the branch moved since,
     nothing opens (status base_moved) and the preview is made again. `assistants`: how many fix it at once (eaos/journeys/fix/lanes.py)."""
-    state = state_of(project)
-    guided.reconcile(state)
-    guided.retire_stale_batch(state)
+    stop, state = _settled(project)
+    if stop: return stop
     if state.get('open_wave'): return _still_open(state['open_wave'])
     stop, state = _on_base(state, base, base_commit)
     if stop: return stop
@@ -84,7 +78,7 @@ def fix_start(project=None, cards=None, size=10, base=None, deliver_as=None, mer
     stop = _not_ready(state, deliver_as)
     if stop: return stop
     stop, chosen = _chosen(state, cards, size)
-    return stop or _start('fix_start', state, {'cards': chosen, 'deliver_as': deliver_as, 'merge_into': merge_into, 'assistants': assistants}, watch=True)
+    return stop or _start('fix_start', state, {'cards': chosen, 'deliver_as': deliver_as, 'merge_into': merge_into, 'assistants': assistants, 'scanned': state.get('scanned')}, watch=True)
 
 
 def _still_open(wave):
@@ -165,19 +159,10 @@ def _no_safety_net(state):
                         'plainly that EAOS cannot protect this project yet and why (why); do not retry the fixes.'}
 
 
-def fix_abandon(project=None):
-    """Close the open batch without handing anything over: its copy is removed and its cards can be picked again."""
-    state = state_of(project)
-    if stop := lanes.not_yours(state): return stop
-    wave = _open(state)
-    guided.close_batch(state, 'abandoned', wave.get('last_error') or '')
-    return {'status': 'abandoned', 'batch': wave['number'], 'cards': wave['cards'],
-            'what_now': 'Tell the person the batch was closed and nothing in their project changed.'}
-
-
 def _fix_start_job(project, arguments, progress):
     from ..fix.waves import open_batch, plan as read_plan
     state = project_state.load(project)
+    if stop := _no_longer_so(state, arguments): return stop
     report, runtime = guided.report_of(state), project_state.runtime_of(state)
     number = len(state.get('waves') or []) + 1
     source = guided.source(state)
@@ -203,6 +188,15 @@ def _fix_start_job(project, arguments, progress):
                         'fix_edit. Keep every feature, route and behaviour, and every rule of the person\'s a card lists in your_rules (a '
                         'change that breaks one is refused). When every card is kept or skipped, call fix_finish.',
             **lanes.told(helpers)}
+
+
+def _no_longer_so(state, arguments):
+    """What changed between the asking and this job's turn, so that it opens nothing: a batch open, a decision or an agreement
+    now missing, or a new check that may have numbered the cards again."""
+    if state.get('open_wave'): return _still_open(state['open_wave'])
+    if state.get('scanned') != arguments.get('scanned', state.get('scanned')):
+        return {'status': 'plan_changed', 'what_now': 'A new check came since this batch was asked for: call fix_start again.'}
+    return _not_ready(state, arguments.get('deliver_as'))
 
 
 def _agreement_kept(state, source, runtime):
@@ -355,6 +349,7 @@ def fix_skip(card, reason, project=None):
                 without(wave, card)
             wave['failed'][card] = f'skipped: {reason}'[:300]
     except guided.StaleBatch as stale: return stale.answer
+    except jobs.Busy as busy: return busy_answer(busy.record)
     return {'card': card, 'skipped': True, 'left': lanes.mine(wave, lanes.untried(wave, wave['cards']))}
 
 

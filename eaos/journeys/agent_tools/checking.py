@@ -1,5 +1,6 @@
 """The check (audit): the person's choices for its AI, kept; the assistant's readiness; the check as a job; its overview."""
 from .. import check_choices, guided
+from ..fix import lanes
 from ...core.project import branches
 from ...core.language import plain
 from ...live.access import sign_in as signing
@@ -15,6 +16,11 @@ from .where import _branch, _older_check
 
 # ---------------------------------------------------------------- diagnosis
 
+def _not_yet(state):
+    """Why no check starts: a check closes a batch that no longer fits, not a helper's to do; or the branch question."""
+    return lanes.not_yours(state) or _branch(state)
+
+
 def audit(project=None, fresh=False, use_assistant=None, without_tools=False, assistant=None, without_ai=False, again_from=None, engines=None,
           paths=None, mode=None, sign_in=None, published=None, run_app=False, go_on=False, fixed=False, person_agreed=False):  # limits: parameters -- the audit tool's arguments, one for one (MCP server and CLI)
     """`use_assistant`, `assistant`: the person's choice for the check's AI, kept (one not ready stops it, with why);
@@ -23,8 +29,8 @@ def audit(project=None, fresh=False, use_assistant=None, without_tools=False, as
     is fixed; `person_agreed`: their yes to a remedy's question (eaos/pipeline/remedies.py): the app runs, from setup."""
     run_app, again_from = remedies.agreed(run_app, again_from, person_agreed)
     state = state_of(project)
-    asking = _branch(state)
-    if asking: return asking
+    stop = _not_yet(state)
+    if stop: return stop
     state = _keep_ai_choice(state, use_assistant, assistant)
     if check_choices.keep(state, mode, sign_in, run_app): guided.save(state)
     # A check on record stands until asked for anew (fresh): one started because the code moved on stopped fixes (2026-10-10).

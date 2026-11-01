@@ -23,6 +23,7 @@ QUIET = ('-c', 'core.fsmonitor=false', '-c', 'core.excludesFile=', '-c', 'core.i
 UNREADABLE = (OSError, ValueError, KeyError, IndexError, TypeError, AttributeError)
 WHY = {'unknown': ('حالة المشروع مفقودة أو لا تُقرأ', "the project's state is missing or does not read"),
        'project': ('مجلد المشروع غير موجود للمقارنة', "the project's folder is not there to compare with"),
+       'held': ('قد يكون عمل جارٍ أو في الانتظار، أو لا يُعرف مشروعها', 'work may be going on or waiting, or whose it is cannot be told'),
        'working': ('عمل يجري أو ينتظر، أو سجل مهمة أو تشغيل لا يُقرأ (jobs وruns في مجلد المشروع)',
                    "work is running or waiting, or a job's or a run's record does not read (jobs and runs in the project's folder)"),
        'open': ('دفعة مفتوحة', 'a batch is open on it'),
@@ -47,10 +48,22 @@ def cleared():
     return freed, kept
 
 
-def working(folder):
-    """Whether a job or a run of this project's EAOS folder may still need its files, or that cannot be told."""
-    try: return _waiting(folder)
-    except UNREADABLE: return True
+def when_idle(folder, remove):
+    """`remove()` under the jobs' lock, once the state read there names this folder's project and no job or run may still need
+    its files; whether it ran. A job asking to start meanwhile waits for it."""
+    try:
+        with jobs.alone(of_workspace(folder)['project']):
+            if _cannot_tell(of_workspace(folder), folder) == 'unknown' or _waiting(folder): return False
+            remove()
+            return True
+    except (jobs.Busy, *UNREADABLE):
+        return False
+
+
+def queued(folder):
+    """Whether a run waits its turn in this project's folder, or a run's record does not say."""
+    records = [_record(path, 'state') for path in (folder / 'runs').glob('*/run.json')]
+    return any(record is None or record['state'] == 'queued' for record in records)
 
 
 def _project_cleared(folder):
