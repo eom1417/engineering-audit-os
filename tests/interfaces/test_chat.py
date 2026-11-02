@@ -15,7 +15,8 @@ class ChatTests(unittest.TestCase):
         # The owner, 2026-10-14: an assistant that helps inside the work, governed: it may read and diagnose, and every
         # change waits for the person
         from eaos.interfaces.mcp_server.server import reading as read_only
-        reading = read_only()           # the server's own tools marked read-only, wherever each is defined
+        from eaos.interfaces.studio_actions.centre import ANSWERED_AT_ONCE
+        reading = read_only() | set(ANSWERED_AT_ONCE)    # the server's own tools marked read-only, wherever each is defined, and these
         self.assertLessEqual(set(chat.READ_TOOLS), reading, 'a tool that works is out of the conversation\'s reach')
         actions = SimpleNamespace(contract={'actions': [{'id': 'audit'}, {'id': 'run_try'}]},
                                   store=mock.Mock(load=lambda run: {'id': run} if run == 'r1' else (_ for _ in ()).throw(KeyError(run))))

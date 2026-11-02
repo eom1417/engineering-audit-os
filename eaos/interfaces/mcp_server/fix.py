@@ -43,7 +43,7 @@ def _finding_tools(server, reading, working, _answer):
     def design(project: str | None = None) -> str:
         return tools.design(project)
 
-    @server.tool(annotations=reading, description='The plan of fixes: milestones in order and their cards (which EAOS can fix, which '
+    @server.tool(annotations=working, description='The plan of fixes: milestones in order and their cards (which EAOS can fix, which '
                  'were tried). Pass a milestone id for all of its cards.')
     @_answer
     def plan(milestone: str | None = None, project: str | None = None) -> str:

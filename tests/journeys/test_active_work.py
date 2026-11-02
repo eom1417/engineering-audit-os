@@ -691,6 +691,47 @@ class AJobWithNoProcessKnown(Work):
         self.assertTrue(self.copy.is_dir())
 
 
+class AnEditCutShort(Work):
+    """A stop or a kill leaves a change in the copy no record holds: the next edit starts from what is recorded."""
+
+    def test_the_next_edit_is_not_checked_over_a_commit_left_by_a_stop(self):
+        def stopped(*_):
+            raise KeyboardInterrupt
+        with mock.patch('eaos.journeys.fix.waves.edit_gates', stopped), self.assertRaises(KeyboardInterrupt):
+            self.edit_job()
+        self.assertEqual((self.copy / 'src/a.js').read_text().splitlines()[0], 'export const a = 2;', 'what the stop left')
+        seen = []
+        def gates(*_):
+            seen.append((self.copy / 'src/a.js').read_text().splitlines()[0])
+            return [], 0, None
+        with mock.patch('eaos.journeys.fix.waves.edit_gates', gates):
+            fixing._fix_edit_job(self.where, {'card': 'TASK-002', 'edits': [{'path': 'src/n.js', 'content': 'x\n'}], 'summary': ''}, lambda *_: None)
+        self.assertEqual(seen, ['export const a = 1;'])
+        self.assertEqual(list(self.wave()['kept']), ['TASK-002'])
+
+    def test_a_kill_between_the_write_and_the_commit_leaves_nothing_behind(self):
+        (self.copy / 'src/a.js').write_text('half written\n')
+        (self.copy / 'src/new.js').write_text('half written\n')
+        with mock.patch('eaos.journeys.fix.waves.edit_gates', return_value=([], 0, None)):
+            self.assertTrue(self.edit_job()['kept'])
+        self.assertFalse((self.copy / 'src/new.js').exists())
+
+    def test_kept_changes_a_killed_hand_over_rewrote_are_not_thrown_away(self):
+        self.keep_one()
+        git(self.copy, '-c', 'user.name=a', '-c', 'user.email=a@b', 'commit', '-q', '--amend', '-m', 'rebuilt by the hand-over')
+        with mock.patch('eaos.journeys.fix.waves.edit_gates', return_value=([], 0, None)):
+            fixing._fix_edit_job(self.where, {'card': 'TASK-002', 'edits': [{'path': 'src/n.js', 'content': 'x\n'}], 'summary': ''}, lambda *_: None)
+        self.assertTrue((self.copy / 'src/kept.js').is_file(), 'nothing says what it may drop: it drops nothing')
+
+    def test_what_is_kept_stays_when_the_next_edit_starts(self):
+        self.keep_one()
+        kept = self.wave()['kept']['TASK-001']
+        with mock.patch('eaos.journeys.fix.waves.edit_gates', return_value=([], 0, None)):
+            self.assertTrue(fixing._fix_edit_job(self.where, {'card': 'TASK-002', 'edits': [{'path': 'src/n.js', 'content': 'x\n'}], 'summary': ''}, lambda *_: None)['kept'])
+        self.assertTrue(git(self.copy, 'merge-base', '--is-ancestor', kept, 'HEAD') == '')
+        self.assertTrue((self.copy / 'src/kept.js').is_file())
+
+
 class SkippingDuringAJob(Work):
     def test_it_answers_busy_and_records_nothing(self):
         _job(self.project)
