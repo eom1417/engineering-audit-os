@@ -23,9 +23,8 @@ def _settled(project):
     try:
         with jobs.alone(state['project']):
             if stop := lanes.not_yours(state_of(project)): return stop, state
-            with lanes.changing(state['project']) as state:     # no write of the lanes comes back over a closing
-                guided.reconcile(state)
-                guided.retire_stale_batch(state)
+            guided.reconcile(state)
+            guided.retire_stale_batch(state)
     except jobs.Busy as busy:
         return busy_answer(busy.record), state
     return None, state
@@ -40,9 +39,8 @@ def fix_abandon(project=None):
             if stop := lanes.not_yours(state): return stop
             _open(state)
             if copies.queued(Path(state['workspace'])): return _a_run_is_queued()
-            with lanes.changing(where) as state:        # no write of the lanes comes back over the closing
-                wave = _open(state)
-                guided.close_batch(state, 'abandoned', wave.get('last_error') or '')
+            wave = _open(state)
+            guided.close_batch(state, 'abandoned', wave.get('last_error') or '')
     except jobs.Busy as busy:
         return busy_answer(busy.record)
     return {'status': 'abandoned', 'batch': wave['number'], 'cards': wave['cards'],

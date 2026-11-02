@@ -247,7 +247,7 @@ def open_report(project=None, show=True):
     _report(state)
     guided.reconcile(state)
     page = guided.publish(state)
-    guided.save(state)
+    guided.save_after_report(state)
     opened = False
     if show and page.suffix == '.html':
         import webbrowser

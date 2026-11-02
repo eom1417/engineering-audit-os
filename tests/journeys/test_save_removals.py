@@ -290,7 +290,8 @@ class WhenTheEarlierStateCannotBeRead(OpenBatch):
         (self.copy / 'only-here.js').write_text(UNIQUE)
         state = project_state.load(self.project)
         prior(Path(state['workspace']) / 'state.json')
-        guided.close_batch(state, 'abandoned', 'x')
+        with self.assertRaises(LookupError):
+            guided.close_batch(state, 'abandoned', 'x')
         self.assertEqual((self.copy / 'only-here.js').read_text(), UNIQUE)
 
     def test_an_unreadable_one_removes_nothing(self):

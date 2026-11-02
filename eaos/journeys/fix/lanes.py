@@ -16,7 +16,6 @@ had not tried goes to the end too. fix_finish hands the batch over once every la
     wave['helpers']  {run: lane}                            wave['later']    [card, ...]
     wave['released'] [lane, ...]
 """
-import fcntl
 import os
 import time
 from contextlib import contextmanager
@@ -168,8 +167,7 @@ def finish_wait(project):
 def changing(project):
     """The project's state, loaded under its lock and saved when the block ends: what the lanes write, at once, never
     loses what another wrote."""
-    with open(workspace(project) / 'state.lock', 'a') as lock:
-        fcntl.flock(lock, fcntl.LOCK_EX)
-        state = project_state.load(project)
+    state = {'workspace': str(workspace(project))}
+    with guided.fresh(state):
         yield state
         guided.save(state)

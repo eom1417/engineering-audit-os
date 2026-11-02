@@ -7,7 +7,7 @@ from pathlib import Path
 
 from ..core.project import branches, state as project_state
 from .guided.batches import retire_stale_batch
-from .guided.project import chosen_assistant, publish, report_of, save, source, tip
+from .guided.project import chosen_assistant, publish, report_of, save, save_after_report, source, tip
 from ..core.system.version_info import digest
 from ..pipeline import check, remedies
 from ..report.documents.start_here import start_here
@@ -27,7 +27,8 @@ def run(state, options, again_from=None, go_on=False):
     if not (out / 'START-HERE.md').is_file(): start_here(out, state.get('lang') or 'en', Path(state['project']).name)
     state = project_state.load(state['project'])            # as the check's stages left it
     state.update(scanned=now(), scanned_with=digest(), **read)
+    save(state)                                             # closing a batch goes on from what is on disk
     retire_stale_batch(state)
     page = publish(state)
-    save(state)
+    save_after_report(state)
     return done, state, page
