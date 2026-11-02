@@ -13,7 +13,7 @@ import lock as public_contract  # noqa: E402  (beside this file)
 FIX, SERVER, CLI, TOOL = 'interfaces/mcp_server/fix.py', 'interfaces/mcp_server/server.py', 'interfaces/cli.py', 'def fix_skip(card: str, reason: str, project: str | None = None)'
 GOALS = "['onboarding','debugging','evolution','architecture']"
 OUT = "q.add_argument('target');q.add_argument('--out',required=True)\n    q.add_argument('--lang',choices=['ar','en'],default='ar')"
-READING = "@server.tool(annotations=reading, description='Where this project"
+READING = "@server.tool(annotations=reading, description='The project\\'s branches"
 STATUS = "    result = status_of(project)\n"
 SKIP = "    @server.tool(annotations=working, description='Leave a card of the open batch out"
 # name, what the comparison must say (a break's or an addition's own words; None: neither), the file under eaos/, the text,
@@ -25,7 +25,7 @@ MUTATIONS = (
     ('MCP optional became required', ('break', 'choose_branch.person_said: optional became required'), SERVER, "person_said: str = '', project", 'person_said: str, project'),
     ('MCP new required parameter', ('break', 'fix_skip: new required parameter why'), FIX, TOOL, 'def fix_skip(card: str, reason: str, why: str, project: str | None = None)'),
     ('MCP kind narrowed', ('break', 'status.project: kind narrowed'), SERVER, 'def status(project: str | None = None)', "def status(project: str = '.')"),
-    ('MCP read-only tool writes', ('break', 'status: read_only_hint changed'), SERVER, READING, READING.replace('reading', 'working')),
+    ('MCP read-only tool writes', ('break', 'branches: read_only_hint changed'), SERVER, READING, READING.replace('reading', 'working')),
     ('MCP answer lost a key', ('break', 'empty:mcp:status: answer lost next'), SERVER, STATUS, STATUS + "    result.pop('next', None)\n"),
     ('MCP error became an exception', ('break', 'empty:mcp:design: answer lost error'), SERVER, "        except LookupError as problem:\n            result = {'error': str(problem)}\n",
      '        except LookupError as problem:\n            raise\n'),
