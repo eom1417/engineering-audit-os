@@ -31,6 +31,8 @@ NOT_CALLED = {
     'ask': 'asks the assistant',
     'tools_find': 'searches the web',
 }
+# Not declared read-only, as they settle the state, but read like the rest: their answers stay held.
+ANSWERED = ('status', 'menu', 'plan')
 EMPTY_WRITING = (
     'accept', 'act', 'build_edit', 'build_finish', 'build_skip', 'build_start', 'context_make', 'design_choose', 'design_make',
     'extend_plan', 'fix_abandon', 'fix_edit', 'fix_finish', 'fix_skip', 'fix_start', 'reorder', 'safety_net', 'undo')
@@ -150,7 +152,7 @@ def new_project(where):
 
 def reading_tools(mcp):
     declared = mcp_declared(mcp)['tools']
-    return {name: tool for name, tool in declared.items() if tool['annotations'].get('read_only_hint') and name not in NOT_CALLED}
+    return {name: tool for name, tool in declared.items() if (tool['annotations'].get('read_only_hint') or name in ANSWERED) and name not in NOT_CALLED}
 
 
 def _required(tool, known=None):
@@ -204,7 +206,7 @@ def accounting(tools):
     """How each tool is held: called here, or by the test that drives it, or why nothing holds it yet; a new one must say."""
     def how(name, tool):
         if name in NOT_CALLED: return f'not called: {NOT_CALLED[name]}'
-        if tool['annotations'].get('read_only_hint'): return 'called on an empty and on a saved project'
+        if tool['annotations'].get('read_only_hint') or name in ANSWERED: return 'called on an empty and on a saved project'
         if name in EMPTY_WRITING: return 'called on an empty project; its success is not locked'
         return WRITING_ELSEWHERE.get(name, UNACCOUNTED)
     return {name: how(name, tool) for name, tool in tools.items()}

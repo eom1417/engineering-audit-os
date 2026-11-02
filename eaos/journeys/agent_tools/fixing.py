@@ -283,6 +283,7 @@ def _fix_edit_job(project, arguments, progress):
     wave, report = state['open_wave'], guided.report_of(state)
     root, card_id = Path(wave['root']), arguments['card']
     if stop := guided.stale_refusal(state): return {**stop, 'card': card_id, 'kept': False}
+    _back_to_what_is_recorded(root, wave)
     repair = card_id == batch_finish.REPAIR
     card = batch_finish.repair_card(wave) if repair else _planned(report, card_id)
     try:
@@ -309,6 +310,15 @@ def _fix_edit_job(project, arguments, progress):
         return {**stale.answer, 'card': card_id, 'kept': False}
     left = lanes.mine(wave, lanes.untried(wave, wave['cards']))
     return {'card': card_id, 'kept': True, 'files': changed, 'diff': diff, 'left': left, 'what_now': lanes.next_step(wave, left)}
+
+
+def _back_to_what_is_recorded(root, wave):
+    """The copy as its record says: a job stopped or killed may have left a change no record holds, which the next edit
+    would be checked over. What the project ignores stays."""
+    recorded = {*wave['kept'].values(), *(wave.get('repairs') or [])}
+    made = guided._git(root, 'rev-list', f"{wave['base']}..HEAD").stdout.split()
+    guided._git(root, 'reset', '--hard', '--quiet', next((commit for commit in made if commit in recorded), wave['base']))
+    guided._git(root, 'clean', '-fdq')
 
 
 def _record_kept(project, root, card_id, summary):

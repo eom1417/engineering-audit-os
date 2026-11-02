@@ -145,7 +145,7 @@ def _way_tools(server, reading, working):
     """Where things stand, the branches and the one to work on, and the menu."""
     from ...journeys import agent_tools as tools
 
-    @server.tool(annotations=reading, description='Where this project is in the EAOS way, the next tool to call, the progress, and the '
+    @server.tool(annotations=working, description='Where this project is in the EAOS way, the next tool to call, the progress, and the '
                  'handover (what the last assistant did and noted, and how to continue without asking the person again). Call it '
                  'first, every session.')
     @_answer
@@ -167,7 +167,7 @@ def _way_tools(server, reading, working):
     def choose_branch(branch: str, person_said: str = '', project: str | None = None) -> str:
         return tools.choose_branch(branch, project, person_said)
 
-    @server.tool(annotations=reading, description='What to offer the person who typed /eaos alone, or asked what EAOS can do: '
+    @server.tool(annotations=working, description='What to offer the person who typed /eaos alone, or asked what EAOS can do: '
                  'the options that make sense for this project now, the recommended one first, each with its words in their language, '
                  'a description from the project\'s own numbers, and what to do once it is chosen; cut into pages of at most four. '
                  'Show it as a choice (how_to_show). ' + PROJECT_DOC)
@@ -341,7 +341,7 @@ def functions():
 
 
 def reading():
-    """The tools marked read-only: they change nothing, so the Studio answers them at once."""
+    """The tools marked read-only: they change nothing."""
     return {tool.name for tool in build()._tool_manager.list_tools() if tool.annotations and tool.annotations.read_only_hint}
 
 

@@ -30,11 +30,16 @@ def _server_tools():
     return mcp_server.functions()
 
 
+# They bring the state up to what git says and settle a first use, so they are not read-only, but they remove nothing and
+# take no longer than a read: the Studio answers them at once too, and its conversation may call them (chat.READ_TOOLS).
+ANSWERED_AT_ONCE = ('status', 'menu', 'plan')
+
+
 @functools.lru_cache(maxsize=1)
 def reading_tools():
-    """The tools the MCP server marks read-only: they answer at once and are not queued."""
+    """The tools answered at once, not queued: those the MCP server marks read-only, and ANSWERED_AT_ONCE."""
     from ..mcp_server import server as mcp_server
-    return mcp_server.reading()
+    return mcp_server.reading() | set(ANSWERED_AT_ONCE)
 
 
 def _refusal(problem):

@@ -44,7 +44,7 @@ BREAKS = (
     ('a parameter narrowed', lambda s: _set(TOOLS(s)['status']['input']['properties']['project'], anyOf=[{'type': 'string'}]), 'status.project: kind narrowed'),
     ('a parameter default changed', lambda s: _set(TOOLS(s)['status']['input']['properties']['project'], default='.'), 'status.project: default changed'),
     ('values taken from a parameter', lambda s: _set(TOOLS(s)['status']['input']['properties']['project'], anyOf=[{'type': 'string', 'enum': ['one']}, {'type': 'null'}]), 'status.project: fewer values accepted'),
-    ('a read-only tool now writes', lambda s: _set(TOOLS(s)['status']['annotations'], read_only_hint=False), 'status: read_only_hint changed'),
+    ('a read-only tool now writes', lambda s: _set(TOOLS(s)['branches']['annotations'], read_only_hint=False), 'branches: read_only_hint changed'),
     ('a writing tool called read-only', lambda s: _set(TOOLS(s)['fix_skip']['annotations'], read_only_hint=True), 'fix_skip: read_only_hint changed'),
     ('a command removed', lambda s: s['cli'].pop('facts'), 'CLI command facts removed'),
     ('an argument removed', lambda s: s['cli']['audit'].remove(_argument(s, 'audit', '--goal')), 'audit: argument --goal removed'),

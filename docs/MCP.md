@@ -44,10 +44,7 @@ and `tools`.
 `eaos mcp` exposes 66 tools. Every tool takes `project`, the project folder (by default, the folder the assistant was
 opened in). Long work returns a job, followed with `wait`. `status` always names the next tool to call.
 
-**An open exception: `status` is declared read-only and is not always.** On a settled project it writes only its journal line. Its first
-call makes the project's state and settles its branch, it records that the branch question was asked, it brings the state up to what
-git says, and it rebuilds a report an older EAOS made. It removes no branch and no open batch's copy. An assistant or client must not take its `readOnlyHint` as a promise that
-nothing is written. Every other tool that acts says so.
+**`status`, `menu` and `plan` are not declared read-only:** they bring the state up to what git says, and `status` and `menu` settle a first use (the state, the branch, the question asked), and they rebuild a report an older EAOS made. They remove nothing: no branch, no copy. On a settled project they write only their journal line. The Studio answers them at once, and its conversation may call them.
 
 ### Orient and continue
 

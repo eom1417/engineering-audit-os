@@ -12,5 +12,17 @@
   "breaks": [
    "open_studio: read_only_hint changed"
   ]
+ },
+ {
+  "why": "status, menu and plan bring the state up to what git says and settle a first use, so they are no longer declared read-only",
+  "approved_by": "the owner, in their explicit approval of MCP Step 2, 2026-11-02",
+  "breaks": [
+   "menu: destructive_hint changed",
+   "menu: read_only_hint changed",
+   "plan: destructive_hint changed",
+   "plan: read_only_hint changed",
+   "status: destructive_hint changed",
+   "status: read_only_hint changed"
+  ]
  }
 ]

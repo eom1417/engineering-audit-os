@@ -1814,8 +1814,9 @@
   },
   "menu": {
    "annotations": {
+    "destructive_hint": false,
     "open_world_hint": false,
-    "read_only_hint": true
+    "read_only_hint": false
    },
    "input": {
     "properties": {
@@ -1988,8 +1989,9 @@
   },
   "plan": {
    "annotations": {
+    "destructive_hint": false,
     "open_world_hint": false,
-    "read_only_hint": true
+    "read_only_hint": false
    },
    "input": {
     "properties": {
@@ -2633,8 +2635,9 @@
   },
   "status": {
    "annotations": {
+    "destructive_hint": false,
     "open_world_hint": false,
-    "read_only_hint": true
+    "read_only_hint": false
    },
    "input": {
     "properties": {

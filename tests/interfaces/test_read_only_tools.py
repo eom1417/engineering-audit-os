@@ -127,7 +127,19 @@ class OpeningTheReport(Home):
         reading = read_only()
         self.assertNotIn('open_report', reading)
         self.assertIn('build_read', reading)
-        self.assertIn('status', reading)
+
+    def test_what_settles_the_project_as_it_answers_does_not_call_itself_read_only(self):
+        for name in ('status', 'menu', 'plan'):
+            with self.subTest(tool=name):
+                self.assertFalse(_tool(self.server, name).annotations.read_only_hint)
+                self.assertFalse(_tool(self.server, name).annotations.destructive_hint, 'it removes nothing')
+
+    def test_the_studio_still_answers_them_at_once_and_its_conversation_still_reaches_them(self):
+        from eaos.interfaces.studio_actions.centre import reading_tools
+        for name in ('status', 'menu', 'plan'):
+            with self.subTest(tool=name):
+                self.assertIn(name, reading_tools())
+                self.assertIn(name, chat.READ_TOOLS)
 
     def test_the_conversation_inside_the_studio_cannot_reach_it(self):
         self.assertNotIn('open_report', chat.READ_TOOLS)
