@@ -88,8 +88,9 @@ def host(project, answer=None, idle=HOST_IDLE):
             except OSError:
                 if not answer: return 0
             quiet = time.monotonic()
-            while time.monotonic() - quiet < idle:
+            while True:         # looked at last, right before leaving: a sleep that ran late never ends a run in hand
                 if _busy(actions): quiet = time.monotonic()
+                elif time.monotonic() - quiet >= idle: break
                 time.sleep(1)
     finally:
         actions.close()

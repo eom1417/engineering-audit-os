@@ -1076,6 +1076,16 @@ class Headless(unittest.TestCase):
         while self.govern._held(core.store.folder / 'host.lock') and time.monotonic() < end: time.sleep(0.2)
         self.assertFalse(self.govern._held(core.store.folder / 'host.lock'), 'the host leaves once nothing is queued or active')
 
+    def test_a_host_never_leaves_while_work_is_in_hand_however_late_it_wakes(self):
+        asked = []
+        def busy(_):
+            asked.append(True)
+            return len(asked) < 4
+        real = time.sleep
+        with mock.patch.object(self.govern, '_busy', busy), mock.patch.object(self.govern.time, 'sleep', lambda _: real(0.05)):
+            self.govern.host(str(self.project), idle=0.01)      # each sleep outlasts the idle time, as on a loaded computer
+        self.assertEqual(len(asked), 4, 'it left with work in hand: the run stays running for ever')
+
     def test_an_answer_given_in_the_terminal_is_told_as_given_there_never_as_the_studios(self):
         question = {'options': [{'id': 'yes', 'label': {'en': 'Yes, run it', 'ar': 'نعم'}}, {'id': 'no', 'label': {'en': 'No', 'ar': 'لا'}}]}
         self.assertIn('answered in the Studio: Yes, run it', prompts.answer(question, 'yes', None, 'en'))
