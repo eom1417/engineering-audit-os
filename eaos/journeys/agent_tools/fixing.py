@@ -314,9 +314,11 @@ def _fix_edit_job(project, arguments, progress):
 
 def _back_to_what_is_recorded(root, wave):
     """The copy as its record says: a job stopped or killed may have left a change no record holds, which the next edit
-    would be checked over. What the project ignores stays."""
+    would be checked over. What the project ignores stays. When a recorded commit is not there, a hand-over killed midway
+    rewrote them: nothing says what may go, so nothing goes, and the batch's end rebuilds from what is kept."""
     recorded = {*wave['kept'].values(), *(wave.get('repairs') or [])}
     made = guided._git(root, 'rev-list', f"{wave['base']}..HEAD").stdout.split()
+    if not recorded <= set(made): return
     guided._git(root, 'reset', '--hard', '--quiet', next((commit for commit in made if commit in recorded), wave['base']))
     guided._git(root, 'clean', '-fdq')
 

@@ -716,6 +716,13 @@ class AnEditCutShort(Work):
             self.assertTrue(self.edit_job()['kept'])
         self.assertFalse((self.copy / 'src/new.js').exists())
 
+    def test_kept_changes_a_killed_hand_over_rewrote_are_not_thrown_away(self):
+        self.keep_one()
+        git(self.copy, '-c', 'user.name=a', '-c', 'user.email=a@b', 'commit', '-q', '--amend', '-m', 'rebuilt by the hand-over')
+        with mock.patch('eaos.journeys.fix.waves.edit_gates', return_value=([], 0, None)):
+            fixing._fix_edit_job(self.where, {'card': 'TASK-002', 'edits': [{'path': 'src/n.js', 'content': 'x\n'}], 'summary': ''}, lambda *_: None)
+        self.assertTrue((self.copy / 'src/kept.js').is_file(), 'nothing says what it may drop: it drops nothing')
+
     def test_what_is_kept_stays_when_the_next_edit_starts(self):
         self.keep_one()
         kept = self.wave()['kept']['TASK-001']
