@@ -59,6 +59,24 @@ class SemanticTests(unittest.TestCase):
         self.assertEqual([claim['id'] for claim in semantic['claims']], [added['id']])
         self.assertEqual(added['artifacts'], ['semantic.json'])
 
+    def test_a_claim_that_eaos_own_verdict_is_wrong_corrects_eaos_and_never_reaches_the_persons_plan(self):
+        # A FastAPI template: the model rightly said EAOS's "no health route" contradicted the facts, and that became a
+        # task in the person's plan. EAOS's own mistake is EAOS's to correct.
+        def corrects(digest, call):
+            answer = grounded(digest, call)
+            answer['claims'].append({'statement': 'The verdict that there is no health route contradicts the route /utils/health-check/',
+                                     'claim_type': 'eaos_verdict', 'fact_ids': [digest['components'][0]['fact_id']],
+                                     'falsifier': 'No handler serves /utils/health-check/', 'basis': 'observed'})
+            return answer
+        with tempfile.TemporaryDirectory() as tmp:
+            out = self.prepared(tmp)
+            self.assertEqual(run(FIXTURE, out, ScriptedSemanticProvider(corrects))['claims'], 1)
+            dossier = json.loads((out / 'dossier.json').read_text())
+            semantic = json.loads((out / 'semantic.json').read_text())
+        self.assertFalse([c for c in dossier['claims'] if 'health route' in c['statement']])
+        self.assertEqual([row['statement'] for row in semantic['eaos_corrections']],
+                         ['The verdict that there is no health route contradicts the route /utils/health-check/'])
+
     def test_an_ungrounded_answer_is_fed_back_and_a_persistently_invalid_one_fails_loudly(self):
         def invented(digest, call):
             if call == 1:

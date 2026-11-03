@@ -15,7 +15,8 @@ from ..facts.store import read_set
 from ..core.project.workspace import read, write
 
 from ..facts.run import ALL_SETS as SETS
-TYPES = {'responsibility', 'contract', 'business_rule', 'cause', 'structure', 'capability_gap'}
+# `eaos_verdict`: one of EAOS's own verdicts is wrong. It is EAOS's to correct, kept apart, never a claim of the person's.
+TYPES = {'responsibility', 'contract', 'business_rule', 'cause', 'structure', 'capability_gap', 'eaos_verdict'}
 MAX_ROUNDS = 3
 SYSTEM = (
     'GOAL\nYou are the semantic layer of an engineering audit. Interpret the deterministic facts of this repository for '
@@ -32,7 +33,8 @@ SYSTEM = (
     'WHAT TO RETURN\nOne JSON object and nothing else: {"claims":[{"statement","claim_type","fact_ids","falsifier",'
     '"basis","basis_source","reasoning","probe_suggestion","assessment"}],"questions":["..."]}\n'
     '- statement: one full sentence. claim_type: one of responsibility, contract, business_rule, cause, structure, '
-    'capability_gap.\n'
+    'capability_gap, or eaos_verdict when the claim is that a verdict of this audit (in `aspects`) is wrong: that '
+    'corrects the audit, not the project.\n'
     '- fact_ids: at least one id that appears in the digest (a `fact_id`, or the id of a supplied source range).\n'
     '- falsifier: the observation that would show the claim wrong, one full sentence.\n'
     '- basis: "documented" (someone wrote it down: name where in basis_source), "observed" (the code shows it) or '
@@ -234,7 +236,7 @@ def _converse(provider, digest, sources, max_rounds, language):
 ASSESSMENT_KEYS = {'violated_invariant', 'requirement_refs', 'evidence_refs', 'before', 'after', 'proposed_change'}
 
 
-def _claims_of(response, first):
+def _claims_of(rows, first):
     """The model's claims as ledger claims, numbered from `first`, every one a hypothesis to investigate."""
     return [ledger.make(index, row['statement'][:600], row['claim_type'], 'HYPOTHESIS',
                         ['model_inference'], [], row['falsifier'],
@@ -245,7 +247,12 @@ def _claims_of(response, first):
                         assessment={key: value for key, value in row.get('assessment', {}).items() if key in ASSESSMENT_KEYS},
                         basis=row['basis'], basis_source=row.get('basis_source'),
                         artifacts=['semantic.json'])
-            for index, row in enumerate(response['claims'], start=first)]
+            for index, row in enumerate(rows, start=first)]
+
+
+def _split(rows):
+    """(the claims about the project, the claims that a verdict of the audit itself is wrong: EAOS's to correct)."""
+    return [r for r in rows if r['claim_type'] != 'eaos_verdict'], [r for r in rows if r['claim_type'] == 'eaos_verdict']
 
 
 def _count_claims(dossier, calls):
@@ -279,7 +286,8 @@ def run(target, out, provider, max_rounds=MAX_ROUNDS, language='ar'):
     known = {fact['id'] for data in sets.values() for fact in data['facts']}
     digest, sources = _full_digest(target, out, sets, dossier, known)
     response, calls = _converse(provider, digest, sources, max_rounds, language)
-    produced = _claims_of(response, len(dossier['claims']) + 1)
+    rows, corrections = _split(response['claims'])
+    produced = _claims_of(rows, len(dossier['claims']) + 1)
     problems = ledger.errors(produced, (), known)
     if problems: raise ValueError('Semantic claims rejected by the ledger: ' + '; '.join(problems[:5]))
     added = [claim for claim in produced if not _restates(claim, dossier['claims'])]
@@ -288,7 +296,7 @@ def run(target, out, provider, max_rounds=MAX_ROUNDS, language='ar'):
     questions = _questions(response)
     dossier['questions'] += questions
     write(dossier_path, dossier)
-    write(out / 'semantic.json', {'claims': added, 'questions': questions,
+    write(out / 'semantic.json', {'claims': added, 'questions': questions, 'eaos_corrections': corrections,
                                   'provider': provider.identity(), 'digest_components': len(digest['components']), 'source_omissions': sources.omissions,
                                   'digest_omissions': digest['omissions'], 'source_ranges': digest.get('source_ranges', [])})
     return {'target': str(target), 'out': str(out), 'claims': len(added), 'questions': len(questions), 'calls': calls,
