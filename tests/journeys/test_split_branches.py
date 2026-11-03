@@ -1,7 +1,8 @@
 """A batch handed over as branches a reviewer can merge one by one (eaos/journeys/fix/split.py): beside the whole branch,
 one branch per kind of card, made from the base with only that kind's commits; a kind that does not stand alone is named,
-not made."""
+not made; undo removes them with the batch's branch."""
 import json
+import os
 import subprocess
 import unittest
 from pathlib import Path
@@ -74,6 +75,19 @@ class SplitTests(unittest.TestCase):
     def test_a_batch_of_one_kind_is_not_split(self):
         project, report, runtime, wave, summary = batch([('T1', 'split_module', 'one.py', '1\n'), ('T2', 'hotspot', 'two.py', '2\n')])
         self.assertEqual(split.split((report, runtime, project), wave, summary), {})
+
+    def test_undo_removes_the_branches_the_batch_was_split_into(self):
+        from eaos.journeys import agent_tools, guided
+        project, report, runtime, wave, summary = batch([('T1', 'upgrade_dependency', 'requirements.txt', 'fastapi==1\n'),
+                                                         ('T2', 'design_review', 'site.css', 'a {}\n')])
+        with mock.patch.dict(os.environ, {'EAOS_HOME': scratch()}):
+            with PASSING:
+                made = split.split((report, runtime, project), wave, summary)
+            state = agent_tools.state_of(str(project))
+            state['waves'] = [{'number': 1, 'branch': 'eaos/wave-1', 'status': 'applied', **made}]
+            guided.save(state)
+            self.assertEqual(agent_tools.undo(str(project), person_agreed=True)['status'], 'undone')
+        self.assertEqual(git(project, 'branch', '--list', 'eaos/wave-1*'), '', 'nothing EAOS made is left behind')
 
 
 if __name__ == '__main__':

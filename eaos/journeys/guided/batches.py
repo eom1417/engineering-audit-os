@@ -106,8 +106,11 @@ def _something_to_settle(state):
 
 
 def _drop_branch(state, wave):
-    """A merged batch's branch goes, unless the person chose to keep it after merging."""
+    """A merged batch's branch goes, unless the person chose to keep it after merging; the branches of each kind it was
+    split into go in any case (eaos/journeys/fix/split.py): all of them are in it."""
+    from ..fix.split import drop
     if not wave.get('keep_branch'): _git(state['project'], 'branch', '-D', wave['branch'])
+    drop(state['project'], wave)
 
 
 def _settle(state, wave, tidy):
