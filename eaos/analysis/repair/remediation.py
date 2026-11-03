@@ -4,6 +4,7 @@ A pattern never invents a fix for a claim class it does not know; it says plainl
 must be designed by hand, and still requires a runnable acceptance criterion.
 """
 from ...core.contracts.card_kinds import card_kind
+from ...core.language.words import IMPACTS, impact_of
 
 DO_NOTHING = {'option': 'لا نفعل شيئًا', 'option_en': 'Do nothing',
               'cost': 'صفر الآن', 'cost_en': 'zero now'}
@@ -306,7 +307,9 @@ def pattern_for(claim):
     name = classify(claim)
     pattern = dict(PATTERNS[name])
     pattern['name'] = name
-    pattern['options'] = [*pattern['options'], dict(DO_NOTHING, verdict=cost_of_inaction(name))]
+    # A layer card's cost of doing nothing is its boundary's why, the one sentence its card says (words.IMPACTS).
+    verdict = impact_of(claim, 'ar').rstrip('.') if name == 'layer_boundary' else cost_of_inaction(name)
+    pattern['options'] = [*pattern['options'], dict(DO_NOTHING, verdict=verdict)]
     render = claim.get('render') or {}
     if card_kind(render.get('key')).own_fix:   # the finding's own fix (M6.11, M7.8)
         pattern['change'] = (render.get('params') or {}).get('fix_ar') or pattern['change']
@@ -352,7 +355,7 @@ def cost_of_inaction(name):
         'upgrade_dependency': 'تبقى ثغرة منشورة، بإصلاح منشور، في إصدار يشحنه المشروع لكل مستخدم',
         'remove_dead': 'يبقى الكود الميت عبئًا على القراءة والصيانة، ويصعّب تغييرات لا تعرف بوجوده، وقد يُعاد تفعيله دون تحذير',
         'security_weakness': 'يبقى باب مفتوح لمن يرسل مدخلًا مصممًا أو يجد السر، ولا يظهر أثره إلا بعد الاستغلال',
-        'layer_boundary': 'يبقى الحد مفتوحًا: سرّ أو بيانات أو قاعدة يصل إليها من لا يملكها',
+        'layer_boundary': IMPACTS['ar']['layer_finding'].rstrip('.'),
         'repository_craft': 'يبقى الوصول لأي شي في الريبو أبطأ وأصعب على كل مهندس ومساعد، وتكلّف كل جلسة توكنز أكثر',
         'real_data': 'تبقى بيانات الناس أو سجلات البرنامج تنتقل مع كل نسخة من الكود، وتطلع في الشاشات حتى لو قاعدة البيانات فاضية',
         'one_source': 'يبقى الشي الواحد مكتوب في أكثر من مكان: كل تعديل يتكرر، وأول تعديل ينسى مكان يخلّي الشاشات أو السلوك يختلف',
