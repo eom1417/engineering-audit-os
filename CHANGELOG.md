@@ -6,6 +6,9 @@ A first trial on five real projects planned 69 dependency cards as fixable that 
 were bun's, uv's or Go's, which EAOS cannot rewrite), refused to run a Go app at all, called development tools
 "shipped to every user", and gave an Angular app 42 cards for five packages it names.
 
+- **A page is recorded with its random numbers held still,** as its clock already was: a game drew its first tiles
+  with `Math.random`, so two loads of its page had different words, the safety net held nothing and no batch could
+  open (a first trial had passed by luck: two loads of six differ).
 - **A batch upgrades a vulnerable Go module itself:** one `go get <module>@v<fixed>` for every module of the card, then
   `go mod tidy`, in a module cache of its own removed after, never another toolchain downloaded (a second trial: a Go
   app ran and its batch opened, but its module cards could never pass). A fix may raise the `go` line of go.mod.

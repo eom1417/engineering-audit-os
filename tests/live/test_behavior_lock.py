@@ -39,6 +39,14 @@ class RouteTests(Workspace):
         self.assertEqual(listed[0], '/logout (ends the session or changes data: not called)')
 
 
+    def test_a_page_is_recorded_with_its_random_numbers_held_still(self):
+        # Second trial on real projects: a game drew its first tiles with Math.random, so no two loads of its page had the
+        # same words, the safety net held nothing and no batch could open (the first trial passed by luck).
+        from eaos.live.behavior.specs import playwright_spec
+        spec, _ = playwright_spec({'name': 'game'}, [('/', ('page', 'GET', None))])
+        self.assertIn('Math.random', spec)
+        self.assertLess(spec.index('Math.random'), spec.index('page.goto'), 'held before the page runs')
+
 class BuildTests(Workspace):
     def report(self, features, entries, files=None):
         out, target = Path(self.tmp) / 'out', Path(self.tmp) / 'project'
