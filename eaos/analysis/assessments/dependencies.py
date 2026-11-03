@@ -14,14 +14,15 @@ from ..understanding.engagement import rules_for
 from ..repair.remediation import PATTERNS, cited
 
 
-def _check_argv(ecosystem, name, advisories):
-    """Re-scan into a private directory; exit 0 only when the package carries none of these advisories."""
+def _check_argv(wanted):
+    """Re-scan into a private directory; exit 0 only when no package carries its advisories. `wanted`:
+    {'<ecosystem>:<name>@': [advisory ids]}, one package, or every package of a lock file card."""
     return recheck('eaos-deps-', "data = json.load(open(tmp + '/facts/external.json'))\n"
                    "if 'osv-scanner' not in (data.get('summary') or {}).get('engines_observed', []): sys.exit(2)\n"
-                   f"prefix, wanted = {f'{ecosystem}:{name}@'!r}, set({sorted(advisories)!r})\n"
+                   f"wanted = {dict((prefix, sorted(ids)) for prefix, ids in wanted.items())!r}\n"
                    "left = [f for f in data['facts'] if f['kind'] == 'engine_finding' and f['value'].get('kind') == 'vulnerability'\n"
-                   "        and str(f['location'].get('symbol', '')).startswith(prefix)\n"
-                   "        and wanted & set(next((m['value'] for m in f['value']['measurements'] if m['name'] == 'advisory_ids'), []))]\n"
+                   "        and any(str(f['location'].get('symbol', '')).startswith(prefix) and set(ids) & set(next((m['value']\n"
+                   "                for m in f['value']['measurements'] if m['name'] == 'advisory_ids'), [])) for prefix, ids in wanted.items())]\n"
                    "sys.exit(1 if left else 0)\n", engines=('syft', 'osv-scanner'))
 
 
@@ -34,12 +35,38 @@ UNABLE = {'lock': ('no lock file names it, only the inventory found it; upgrade 
                       'أداة {tool} مو موجودة على هذا الجهاز، فشغّل بنفسك `{command}` واعتمد {lock}')}
 
 
-def _unable(fact, name, fixed):
+def _unable(fact, upgrades):
     """(blockers, the words added to the change) when a batch cannot upgrade this lock file itself, else ([], '')."""
-    manual = manual_upgrade(fact['location'].get('path') or '', name, fixed)
-    if manual is None: return [], ''
+    manuals = [manual_upgrade(fact['location'].get('path') or '', name, fixed) for _, name, _, fixed, _ in upgrades]
+    if manuals[0] is None: return [], ''
+    manual = {**manuals[0], 'command': ' && '.join(m['command'] for m in manuals if m['command'])}
     en, ar = (text.format(**manual) for text in UNABLE[manual['why']])
     return ['EAOS cannot make this upgrade itself: ' + en + '.'], ' EAOS ما يقدر يسويها بنفسه: ' + ar + '.'
+
+
+# The change of a lock file card: every package it gathers, each to its own fixed version.
+GROUP_CHANGE = ('رقِّ في ملف القفل هذي الحزم اللي ما يذكرها المشروع بنفسه، كل وحدة لإصدارها المصلَّح أو أحدث، بأداة الحزم نفسها، '
+                'ثم شغّل الاختبارات: {packages}.')
+
+
+def _upgrade(fact):
+    """(ecosystem, name, installed, fixed, advisories) of one vulnerable locked version."""
+    ecosystem, _, rest = str(fact['location'].get('symbol')).partition(':')
+    name, _, installed = rest.rpartition('@')
+    return ecosystem, name, installed, measured(fact, 'fixed_in'), measured(fact, 'advisory_ids') or []
+
+
+def _words(upgrades):
+    """(expected, after, proposed change) of one package's card, or of a lock file card's packages."""
+    names = ', '.join(name for _, name, _, _, _ in upgrades)
+    advisories = sorted({advisory for upgrade in upgrades for advisory in upgrade[4]})
+    expected = f'the next scan reports none of {", ".join(advisories)} for {names}'
+    if len(upgrades) > 1:
+        return (expected, f'{names} are at their fixed versions or later, and the scan reports none of their advisories.',
+                GROUP_CHANGE.format(packages='، '.join(f'{name} من {installed} إلى {fixed}' for _, name, installed, fixed, _ in upgrades)))
+    _, name, installed, fixed, _ = upgrades[0]
+    return (expected, f'{name} is at {fixed} or later in every lockfile, and the scan reports none of its advisories.',
+            PATTERNS['upgrade_dependency']['change'].format(name=name, installed=installed, fixed=fixed))
 
 
 def measured(fact, name):
@@ -47,30 +74,27 @@ def measured(fact, name):
 
 
 def build_assessment(claim, fact_sets, target):
-    """{'assessment': ..., 'checks': [...]} for a fixable vulnerable dependency under the upgrade rule, else None."""
-    if target is None or (claim.get('render') or {}).get('key') != 'vulnerable_dependency':
+    """{'assessment': ..., 'checks': [...]} for a fixable vulnerable dependency, or a lock file's, under the upgrade
+    rule, else None. A lock file card is fixable only when every package it gathers has a fix."""
+    if target is None or (claim.get('render') or {}).get('key') not in ('vulnerable_dependency', 'vulnerable_lockfile'):
         return None
     rules, _ = rules_for(target)
     rule = rules['upgrade_vulnerable_dependencies']
     if not rule['value']: return None
-    fact = next(iter(cited(claim, fact_sets, 'external')), None)
-    if fact is None or not measured(fact, 'fixed_in'): return None
-    ecosystem, _, rest = str(fact['location'].get('symbol')).partition(':')
-    name, _, installed = rest.rpartition('@')
-    fixed, advisories = measured(fact, 'fixed_in'), measured(fact, 'advisory_ids') or []
-    blockers, manual = _unable(fact, name, fixed)
-    check = {'id': 'DEP-' + fact['id'], 'kind': 'command',
+    facts = list(cited(claim, fact_sets, 'external'))
+    if not facts or not all(measured(fact, 'fixed_in') for fact in facts): return None
+    upgrades = [_upgrade(fact) for fact in facts]
+    (expected, after, change), (blockers, manual) = _words(upgrades), _unable(facts[0], upgrades)
+    check = {'id': 'DEP-' + facts[0]['id'], 'kind': 'command',
              'invariant': 'No locked dependency is a version with a published, fixed vulnerability.',
-             'expected': f'the next scan reports none of {", ".join(advisories)} for {name}', 'expected_exit': 0, 'cwd': '.',
-             'argv': _check_argv(ecosystem, name, advisories), 'source_revision': fingerprint(target)}
+             'expected': expected, 'expected_exit': 0, 'cwd': '.', 'source_revision': fingerprint(target),
+             'argv': _check_argv({f'{ecosystem}:{name}@': ids for ecosystem, name, _, _, ids in upgrades})}
     return {'assessment': {
                 'violated_invariant': check['invariant'],
                 'requirement_refs': ['engagement.rules.upgrade_vulnerable_dependencies'],
-                'evidence_refs': [fact['id']],
+                'evidence_refs': [fact['id'] for fact in facts],
                 'reviewed_by': (f"engagement rule upgrade_vulnerable_dependencies ({rule['source']}): {rule['why']} "
                                 'The evidence is a database lookup of the locked version; no human judgement is claimed.'),
-                'before': fact['value']['message'],
-                'after': f'{name} is at {fixed} or later in every lockfile, and the scan reports none of its advisories.',
-                'proposed_change': PATTERNS['upgrade_dependency']['change'].format(name=name, installed=installed, fixed=fixed) + manual,
-                **({'blockers': blockers} if blockers else {})},
+                'before': '; '.join(fact['value']['message'] for fact in facts), 'after': after,
+                'proposed_change': change + manual, **({'blockers': blockers} if blockers else {})},
             'checks': [check]}

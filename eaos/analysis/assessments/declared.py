@@ -3,8 +3,9 @@
 A lock file holds what is installed, not why: the manifests in its folder and its workspace members (package.json
 `workspaces`, pyproject.toml `[tool.uv.workspace] members`) say which packages the project names itself. package.json:
 dependencies, optional and peer ones are `prod`, devDependencies `dev`; pyproject.toml: PEP 621 dependencies and
-extras and Poetry's main dependencies are `prod`, `[dependency-groups]` and Poetry's groups `dev`. Python names are
-compared in their normal form (PEP 503); a package no manifest names is pulled in by another one.
+extras and Poetry's main dependencies are `prod`, `[dependency-groups]` and Poetry's groups `dev`; go.mod: a require not
+marked `// indirect` is `prod` (Go has no development dependencies). Names are compared
+in Python's normal form (PEP 503); a package no manifest names is pulled in by another one.
 """
 import re
 from pathlib import Path, PurePosixPath
@@ -12,11 +13,12 @@ from pathlib import Path, PurePosixPath
 from ...core.system.files import read_json, tomllib
 from ...engines.security.syft import REQUIREMENT
 
+GO_REQUIRE = re.compile(r'^\s*(?:require\s+)?([\w.~/-]+\.[\w.~/-]+)\s+v\d\S*\s*(//\s*indirect)?', re.M)
 JSON_SCOPES = {'dependencies': 'prod', 'optionalDependencies': 'prod', 'peerDependencies': 'prod', 'devDependencies': 'dev'}
 
 
 def normal(name):
-    """A Python package's normal name; any other name is unchanged but for its case."""
+    """A name in Python's normal form (PEP 503), applied to every ecosystem so one comparison serves them all."""
     return re.sub(r'[-_.]+', '-', str(name)).lower()
 
 
@@ -27,7 +29,15 @@ def declared(target, lock):
     for where in [folder, *_members(folder)]:
         for scope, found in _package_json(read_json(where / 'package.json', {}) or {}) + _pyproject(_toml(where)):
             names[scope] |= {normal(name) for name in found}
+        names['prod'] |= _go_requires(where / 'go.mod')
     return names
+
+
+def _go_requires(go_mod):
+    """The modules go.mod requires itself, not those it only records for another one (`// indirect`)."""
+    try: text = go_mod.read_text(encoding='utf-8')
+    except (OSError, UnicodeDecodeError): return set()
+    return {normal(name) for name, indirect in GO_REQUIRE.findall(text) if not indirect}
 
 
 def _toml(folder):

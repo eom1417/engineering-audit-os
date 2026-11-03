@@ -20,7 +20,7 @@ KINDS = {
     **{key: CardKind() for key in (
         'broken_code', 'cochange', 'cycle', 'dead_code', 'dead_code_review', 'duplicated_rule', 'external_write', 'hotspot',
         'large_module', 'load_blocker', 'mutable_global', 'policy', 'redundant_work', 'security_weakness', 'trace_gap', 'untested',
-        'vulnerable_dependency')},
+        'vulnerable_dependency', 'vulnerable_lockfile')},
     'engine_cluster': CardKind(detector=('engine_cluster', 'kind')),
     'layer_finding': CardKind(detector=('layer', 'rule'), **_SAYS_ITSELF),
     'repository_finding': CardKind(detector=('repository', 'rule'), **_SAYS_ITSELF),

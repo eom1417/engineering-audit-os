@@ -58,6 +58,7 @@
   "engine_cluster:cycle",
   "hotspot",
   "mutable_global",
-  "vulnerable_dependency"
+  "vulnerable_dependency",
+  "vulnerable_lockfile"
  ]
 }

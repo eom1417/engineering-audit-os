@@ -8,7 +8,8 @@ The mechanical families (eaos/rules/codemods.json) and their tools:
   upgrade_dependency (npm)          a direct dependency: npm install pkg@fixed; a transitive one:
                                     overrides["pkg@>=vulnerable <=fixed"] = fixed in package.json (that version's
                                     copies only), then npm install; both --package-lock-only
-                                    --ignore-scripts, so no project code runs
+                                    --ignore-scripts, so no project code runs. A lock file card's packages:
+                                    every override, then each install once
 Each card gets codemod {tool, command, dry_run {exit, files_changed}}. The dry run is the real command on a
 copy made by eaos.live.testing.verify.isolated_copy; files_changed counts files added, removed or modified there. A tool
 that changes nothing did nothing, and says so with files_changed 0. The project is never written.
@@ -126,8 +127,15 @@ def _commands(card, copy):
     if kind == 'jscodeshift':
         binary = which('jscodeshift')
         return [([binary, '-t', str(TRANSFORM), '--parser=tsx', f"--name={detail['symbol']}", detail['path']], None)] if binary else None
-    if kind == 'npm': return _npm_steps(detail, which('npm') or 'npm', copy)
+    if kind == 'npm': return _group_steps(detail.get('group') or [detail], which('npm') or 'npm', copy)
     return None
+
+
+def _group_steps(members, binary, copy):
+    """Every package's steps, the edits of the manifests first, then each install once."""
+    steps = [step for member in members for step in _npm_steps(member, binary, copy)]
+    installs = {tuple(step): (step, text) for step, text in steps if not callable(step)}
+    return [(step, text) for step, text in steps if callable(step)] + list(installs.values())
 
 
 def _run_step(step, description, copy):
@@ -187,8 +195,10 @@ def card_for(task, facts_by_id, target):
         fact = next(iter(facts), None)
         return {'kind': 'delete-file', 'path': fact['location']['path']} if fact else None
     if pattern == 'upgrade_dependency':
-        fact = next(iter(facts), None)
-        return _upgrade_card(fact, target) if fact else None
+        # A lock file card's packages each get their own change, and the card passes or fails whole.
+        members = [_upgrade_card(fact, target) for fact in facts]
+        if not members or None in members: return None
+        return members[0] if len(members) == 1 else {'kind': 'npm', 'group': members}
     return None
 
 
