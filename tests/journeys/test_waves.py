@@ -214,7 +214,9 @@ class RebuildTests(unittest.TestCase):
         from eaos.journeys.fix.execute import project_checks, regressions
 
         class Run:
-            def __init__(self, *_, **__): self.profile, self.log = {'checks': [['npm', 'test']]}, []
+            def __init__(self, *_, **__):
+                self.profile, self.log = {'checks': [['npm', 'test']]}, []
+                self.sandbox, self.commit = mock.Mock(copy=Path('copy')), 'HEAD'
             def setup(self):
                 self.log += [{'argv': ['npm', 'ci', '--no-audit', '--no-fund'], 'exit': 1}, {'argv': ['npm', 'install', '--no-audit', '--no-fund'], 'exit': 0}]
             def run(self, argv, **_): return 0, '', ''
@@ -224,6 +226,40 @@ class RebuildTests(unittest.TestCase):
             after = project_checks('copy', 'runtime', 'S09', 'edit', python=False)
         before = [{'argv': ['npm', 'ci', '--no-audit', '--no-fund'], 'exit': 0, 'failing': []}, {'argv': ['npm', 'test'], 'exit': 0, 'failing': []}]
         self.assertEqual(regressions(before, after), ['npm ci --no-audit --no-fund'])
+
+    def test_a_check_that_rewrites_the_files_is_named_and_is_no_gate(self):
+        # Trial on real projects: a project's lint reached `biome --write` and always passed by fixing the files it checked
+        from eaos.journeys.fix.execute import project_checks, regressions, rewrites
+        root = repository()
+        copy = Path(scratch()) / 'copy'
+        copy.mkdir()
+        (copy / 'a.txt').write_text('a\n')
+
+        class Run:
+            def __init__(self, *_, **__):
+                self.profile, self.log, self.commit = {'checks': [['npm', 'run', 'lint'], ['npm', 'test']]}, [], git(root, 'rev-parse', 'HEAD')
+                self.sandbox = mock.Mock(copy=copy)
+            def setup(self): pass
+            def run(self, argv, **_):
+                if 'lint' in argv: (copy / 'a.txt').write_text('fixed\n')
+                return 0, '', ''
+            def stop(self): pass
+            def record(self, name): pass
+        with mock.patch('eaos.live.app.run.LiveRun', Run):
+            after = project_checks(root, 'runtime', 'S09', 'edit', python=False)
+        self.assertEqual([row.get('writes') for row in after], [['a.txt'], None])
+        self.assertEqual((copy / 'a.txt').read_text(), 'a\n', 'the files it rewrote are restored for the next check')
+        self.assertEqual(rewrites(after), ['npm run lint'])
+        before = [{'argv': ['npm', 'run', 'lint'], 'exit': 0, 'failing': []}]
+        self.assertEqual(regressions(before, [{**after[0], 'exit': 1}]), [], 'its exit is no gate')
+        from eaos.journeys.fix import finish
+        runtime = Path(scratch())
+        (runtime / 'runtime').mkdir()
+        (runtime / 'runtime/checks-original.json').write_text(json.dumps({'checks': after}))
+        with mock.patch.object(finish.project_state, 'runtime_of', return_value=runtime):
+            keys, words = finish._said_too({}, {})
+        self.assertEqual(keys['checks_rewriting'], ['npm run lint'])
+        self.assertIn('rewrite the files instead of checking them, so no fix was held to them: npm run lint.', words)
 
     def test_a_codemod_that_fails_says_why_in_its_own_words(self):
         # Trial on real projects (2026-11-02): eight dependency upgrades failed, each recorded as its command line only

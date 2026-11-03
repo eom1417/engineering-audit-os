@@ -18,6 +18,14 @@ were bun's, uv's or Go's, which EAOS cannot rewrite), refused to run a Go app at
   `-other`, made from the base with only that kind's commits and kept only when they apply alone and that kind's cards
   pass their acceptance there; a kind that does not stand alone is named. `fix_finish` answers `split_branches` and
   `not_split`; accept and undo remove these branches with the batch's.
+- **Each run of a project's checks gets a database of its own, a copy of the run's:** they shared the run's database and
+  never emptied it, so a test writing a real row passed once and failed on every later run, refusing a sound edit. The
+  copy holds what setup wrote, nothing an earlier checks run wrote, and is dropped when the checks end; the run's own
+  database is never written by them.
+- **A project's check that rewrites its files is no gate, and is named at the hand-over:** a lint reaching
+  `biome --write` always passed by fixing the files it checked. A check that changes the copy's committed files has
+  them put back, its exit no longer counts, and the hand-over says "this check rewrites files instead of checking
+  them" (`checks_rewriting`).
 
 A tool MCP called read-only changed the project. Reading a file of a build turned a checked project into a build's, and made the
 folder and state of a project never started; an assistant told it only reads had no reason to be careful.

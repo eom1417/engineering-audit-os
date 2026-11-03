@@ -148,14 +148,18 @@ def _handed_over(project, wave, summary):
 
 def _said_too(state, wave):
     """What the person hears beside the fixes, ({answer keys}, the words for the assistant): the project's own checks
-    that could not run on the original (eaos/journeys/fix/execute.py not_run, from the run's record of them, never run
-    again), and the files a card changed beyond its own (beyond)."""
-    from .execute import not_run
-    unrun = not_run((read_json(Path(project_state.runtime_of(state)) / 'runtime/checks-original.json') or {}).get('checks') or [])
+    that could not run on the original or rewrite the files instead of checking them (eaos/journeys/fix/execute.py
+    not_run, rewrites, from the run's record of them, never run again), and the files a card changed beyond its own
+    (beyond)."""
+    from .execute import not_run, rewrites
+    checks = (read_json(Path(project_state.runtime_of(state)) / 'runtime/checks-original.json') or {}).get('checks') or []
+    unrun, writing = not_run(checks), rewrites(checks)
     wider = wave.get('beyond') or {}
-    return {'checks_not_run': unrun, 'beyond_the_cards': wider}, (
+    return {'checks_not_run': unrun, 'checks_rewriting': writing, 'beyond_the_cards': wider}, (
         (f" Tell them too that EAOS could not run these checks of theirs here, so no fix was held to them: {', '.join(unrun)} "
          "(the program each needs is missing on this computer)." if unrun else '')
+        + (f" Tell them these checks of theirs rewrite the files instead of checking them, so no fix was held to them: "
+           f"{', '.join(writing)}." if writing else '')
         + (" Name to them each file a card changed beyond its own (beyond_the_cards) and why its fix needed it." if wider else ''))
 
 
