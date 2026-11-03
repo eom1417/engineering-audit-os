@@ -263,6 +263,15 @@ class VerifyTests(unittest.TestCase):
                                                                         {'path': '/x', 'status': 404, 'text': 'c'}]}
         self.assertIn('answered', live_setup._failure(missing, '', out_of_reach=True), 'a page not found is no database error')
 
+    def test_an_api_without_a_home_page_runs_when_one_of_its_known_routes_answers(self):
+        # A real Gin API: / answered 404 while its routes answered, and the setup recorded that the app did not run.
+        page = {'path': '/', 'status': 404, 'text': '404 page not found', 'others': [
+            {'path': '/api/articles', 'status': 200, 'text': '{"articles":[]}'}, {'path': '/api/user', 'status': 401, 'text': ''},
+            {'path': '/api/users/login', 'status': 422, 'text': '{"errors":{}}'}]}
+        self.assertEqual(live_setup._failure(page, ''), '')
+        nowhere = {**page, 'others': [{'path': '/api/articles', 'status': 404, 'text': '404 page not found'}]}
+        self.assertIn('/ answered 404', live_setup._failure(nowhere, ''), 'no known route answered: the app does not run')
+
     def test_with_its_database_out_of_reach_and_no_other_screen_known_the_pages_its_files_make_are_opened(self):
         app = project({'package.json': {'scripts': {'dev': 'next dev'}, 'dependencies': {'next': '15'}}, 'app/page.tsx': '', 'app/login/page.tsx': ''})
         first, visits = {'path': '/', 'status': 500, 'others': []}, {'others': [{'path': '/login', 'status': 200}]}
