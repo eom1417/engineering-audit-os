@@ -11,6 +11,9 @@ were bun's, uv's or Go's, which EAOS cannot rewrite), refused to run a Go app at
   security (an access gap, an injection or other weakness, a secret, a vulnerable dependency) now stays in the plan for
   the person's review, never fixed automatically and outside the owner's one-in-ten share; any other doubted card still
   closes as not proven.
+- **A card the assistant closed as not proven is listed apart, with why:** `cards.json` `doubted` names each doubted
+  card with its title, why and whether it was closed, and the Studio's decisions show each closed one as "closed by
+  your assistant, not proven" beside the cards it rejected.
 - **A page is recorded with its random numbers held still,** as its clock already was: a game drew its first tiles
   with `Math.random`, so two loads of its page had different words, the safety net held nothing and no batch could
   open (a first trial had passed by luck: two loads of six differ).

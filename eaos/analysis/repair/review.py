@@ -351,7 +351,7 @@ def cards_record(cards, verdicts, resolved, outcome):
             'design': [t['id'] for t in design if t['id'] not in closed],
             'set_aside': _set_aside(tasks, rejected, verdicts),
             'closed': _closed(tasks + design, closed, resolved),
-            'doubted': _doubted(verdicts, rejected),
+            'doubted': _doubted(tasks, verdicts, closed),
             'resolved': {'fix': _count(kept, 'fix'), 'keep': len(closed), 'owner': len(owner), 'turned_to_fix': len(turned)},
             'owner': [t['id'] for t in owner],
             'ready': sum(map(ready, kept)),
@@ -381,7 +381,9 @@ def _set_aside(tasks, rejected, verdicts):
             for t in tasks if t['id'] in rejected]
 
 
-def _doubted(verdicts, rejected):
-    """The cards the triage doubted, each with why."""
-    return [{'card': card, 'why': v.get('why')} for card, v in sorted(verdicts.items())
-            if v.get('decision') == 'doubt' and card not in rejected]
+def _doubted(tasks, verdicts, closed):
+    """The cards the triage doubted, each with why and whether the assistant closed it as not proven (`closed`: shown
+    to the person apart, eaos/ai/ideal/studio.py) or it waits for the person's review (a security card)."""
+    return [{'card': t['id'], 'claim_id': t.get('claim_id'), 'title': t.get('title'), 'why': verdicts[t['id']].get('why'),
+             'closed': t['id'] in closed} for t in sorted(tasks, key=lambda t: t['id'])
+            if (verdicts.get(t['id']) or {}).get('decision') == 'doubt']

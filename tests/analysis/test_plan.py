@@ -212,8 +212,17 @@ class ResolutionTests(unittest.TestCase):
             (out / 'nodes/card_triage').mkdir(parents=True)
             (out / 'nodes/card_triage/verdicts.json').write_text(json.dumps({'method': 'model', 'verdicts': verdicts}))
             verdicts, rejected, design, resolved = card_review.decided(out, tasks, True, False)
-        self.assertEqual({card: row['resolution'] for card, row in resolved.items()}, {'TASK-004': 'keep'},
-                         'the security cards are never closed by a doubt: they wait for the person')
+            self.assertEqual({card: row['resolution'] for card, row in resolved.items()}, {'TASK-004': 'keep'},
+                             'the security cards are never closed by a doubt: they wait for the person')
+            record = card_review.cards_record((tasks, [], tasks[:2]), verdicts, resolved, (rejected, {'TASK-004'}, []))
+            (out / 'cards.json').write_text(json.dumps(record))
+            from eaos.ai.ideal.planner import disagreements
+            rows = {row['id']: row for row in disagreements(out, 'en')}
+        # any other doubted card is closed, but listed apart for the person as closed by the assistant, not proven, with why
+        self.assertEqual([(row['card'], row['closed']) for row in record['doubted']],
+                         [('TASK-004', True), ('TASK-010', False), ('TASK-016', False)])
+        self.assertEqual(list(rows), ['disagree-TASK-004'])
+        self.assertIn('your assistant closed it as not proven. TASK-004: who reaches it is not shown', rows['disagree-TASK-004']['question'])
 
 
 def graph_claim(query, **specification):

@@ -211,7 +211,8 @@ def disagreements(report, lang='ar'):
     target = read_json(Path(report) / 'target-architecture.json', {}) or {}
     cards = read_json(Path(report) / 'cards.json', {}) or {}
     return ([_disagreement(row, ar) for row in target.get('disagreements') or []]
-            + [_set_aside(row, ar) for row in cards.get('set_aside') or []])
+            + [_set_aside(row, ar) for row in cards.get('set_aside') or []]
+            + [_set_aside(row, ar, NOT_PROVEN) for row in cards.get('doubted') or [] if row.get('closed')])
 
 
 def _disagreement(row, ar):
@@ -228,12 +229,19 @@ def _disagreement(row, ar):
             'blocks': [], 'state': 'answered', 'answer': kept, 'plan': None, 'asked': '', 'tool': None}
 
 
-def _set_aside(row, ar):
-    """The inbox row of one card the rules wrote and the assistant rejected: out of the plan."""
-    question = (f"{row['card']}: القواعد كتبت البطاقة «{_short(row.get('title'), 160)}» ومساعدك رفضها. {row.get('why') or ''}" if ar else
-                f"{row['card']}: the rules wrote the card \"{_short(row.get('title'), 160)}\" and your assistant rejected it. {row.get('why') or ''}")
+# What the assistant did to a card the rules wrote ({ar, en}) and where that left it: rejected, out of the plan; doubted
+# and closed as not proven (eaos/analysis/repair/review.py).
+REJECTED = ({'ar': 'رفضها', 'en': 'rejected it'}, {'ar': 'خارج الخطة', 'en': 'out of the plan'})
+NOT_PROVEN = ({'ar': 'أغلقها لأنها ما ثبتت', 'en': 'closed it as not proven'}, {'ar': 'مغلقة، ما ثبتت', 'en': 'closed, not proven'})
+
+
+def _set_aside(row, ar, done=REJECTED):
+    """The inbox row of one card the rules wrote and the assistant took out: rejected, or doubted and closed."""
+    did, left = (words['ar' if ar else 'en'] for words in done)
+    question = (f"{row['card']}: القواعد كتبت البطاقة «{_short(row.get('title'), 160)}» ومساعدك {did}. {row.get('why') or ''}" if ar else
+                f"{row['card']}: the rules wrote the card \"{_short(row.get('title'), 160)}\" and your assistant {did}. {row.get('why') or ''}")
     return {'id': f"disagree-{_slug(row['card'])}", 'question': _short(question, 600),
-            'recommendation': 'رأي مساعدك: البطاقة خارج الخطة' if ar else "your assistant's view: the card is out of the plan",
-            'options': [{'id': 'assistant', 'label': 'خارج الخطة' if ar else 'out of the plan'},
+            'recommendation': f'رأي مساعدك: البطاقة {left}' if ar else f"your assistant's view: the card is {left}",
+            'options': [{'id': 'assistant', 'label': left},
                         {'id': 'rule', 'label': 'في الخطة' if ar else 'in the plan'}],
             'blocks': [], 'state': 'answered', 'answer': 'assistant', 'plan': None, 'asked': '', 'tool': None}
