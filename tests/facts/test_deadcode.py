@@ -197,7 +197,10 @@ class DeadCodeTests(unittest.TestCase):
                      'mail/package.json': '{"name": "emails", "scripts": {"export": "email export --outDir ../out"}}',
                      'mail/emails/welcome.tsx': ('import { Button } from "../ui/Button"\n'
                                                  'export default function Welcome() { return Button() }\nWelcome.PreviewProps = {}\n'),
-                     'mail/ui/Button.tsx': 'export function Button() { return 1 }\n'})
+                     'mail/ui/Button.tsx': 'export function Button() { return 1 }\n',
+                     'mail/emails/test_email.tsx': ('import { Callout } from "../ui/Callout"\n'
+                                                    'export default function TestEmail() { return Callout() }\n'),
+                     'mail/ui/Callout.tsx': 'export function Callout() { return 2 }\n'})
         self.assertFalse([key for key in found if key[1].startswith('mail/')], found)
 
     def test_a_default_export_is_used_by_whoever_loads_its_module(self):

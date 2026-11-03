@@ -25,7 +25,8 @@ TYPES={'object':dict,'array':list,'string':str,'null':type(None),'boolean':bool,
 
 
 def _is_test(name, parts):
-    return bool(parts & {'tests','test','__tests__','spec'}) or bool(re.search(r'(^test_|[._](test|spec)\.)',name))
+    # Only pytest names a test by a `test_` prefix: `test_email.tsx` is an email and Go's `test_helpers.go` is compiled in.
+    return bool(parts & {'tests','test','__tests__','spec'}) or bool(re.search(r'(^test_.*\.py$|[._](test|spec)\.)',name))
 
 
 def _kind_by_suffix(suffix, name):
