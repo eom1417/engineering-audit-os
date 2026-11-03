@@ -25,10 +25,11 @@ def _spec(card):
     return json.loads(argv[argv.index('--spec') + 1]) if 'recheck' in argv and '--spec' in argv else None
 
 
-def batch_acceptance(report, cards, root, collected=None):
+def batch_acceptance(report, cards, root, collected=None, runtime=None):
     """{card id: exit code} for every card's acceptance, from one collection of facts on `root` (`collected`,
     when the caller already made it, with engines_for(cards)). A `recheck --spec` acceptance and the dead-code check
-    are read from that collection; anything else runs as written."""
+    are read from that collection; a failing-tests card runs its command again (`runtime`: the run's, for the profile);
+    anything else runs as written."""
     from ....facts.run import collect, read_available
     with tempfile.TemporaryDirectory(prefix='eaos-wave-facts-') as scratch:
         out = Path(collected or scratch)
@@ -36,7 +37,8 @@ def batch_acceptance(report, cards, root, collected=None):
         sets = read_available(out)
         dead = {(f['location'].get('path'), f['location'].get('symbol'), f['value'].get('rule'))
                 for f in (sets.get('deadcode') or {}).get('facts', [])}
-        return {card['id']: _acceptance_exit(card, sets, dead, out, root) for card in cards}
+        where = {'out': out, 'root': root, 'runtime': runtime}
+        return {card['id']: _acceptance_exit(card, sets, dead, where) for card in cards}
 
 
 # What a probe reads beside the collection, made again on the copy as eaos recheck makes it (eaos/analysis/claims/recheck.py
@@ -63,13 +65,36 @@ def _still(card, out, root):
     """What a card's own probe still finds on the copy, in its words; '' when its check is not a probe."""
     from ....facts.run import read_available
     spec = _spec(card)
+    if _tests_command(spec): return f"the project's tests do not pass on the copy: {_tests_command(spec)}"
     return _decided(spec, read_available(out), out, root)[1] if spec else ''
 
 
-def _acceptance_exit(card, sets, dead, out, root):
-    """One card's acceptance exit: read from the collection when it is a probe or the dead-code check, else run."""
-    argv, spec = card.get('verify_command') or [], _spec(card)
-    if spec: return _probe_exit(spec, sets, out, root)
+def _tests_command(spec):
+    """The command of a failing-tests card (eaos/analysis/layers/operations.py _failing), or None for any other probe."""
+    specification = (spec or {}).get('specification') or {}
+    return (specification.get('params') or {}).get('command') if specification.get('rule') == 'tests-failing' else None
+
+
+def _tests_exit(spec, root, runtime):
+    """A failing-tests card: its command run again on the copy as the gates run it (eaos/journeys/fix/execute.py
+    project_checks), never read from the code. 0 when it passes; 2 when it could not run here (no profile, the program
+    missing, the setup failed)."""
+    from ..execute import project_checks
+    from ....live.isolation.sandbox import AuthorizationError
+    command = _tests_command(spec)
+    if not (runtime and command): return 2
+    try: rows = project_checks(root, runtime, 'S09', 'acceptance')
+    except (RuntimeError, OSError, AuthorizationError): return 2
+    row = next((r for r in rows if ' '.join(map(str, r['argv'])) == command), None)
+    return 2 if row is None or row['exit'] in (126, 127) else 0 if row['exit'] == 0 else 1
+
+
+def _acceptance_exit(card, sets, dead, where):
+    """One card's acceptance exit: read from the collection when it is a probe or the dead-code check, else run;
+    `where`: {'out', 'root', 'runtime'}."""
+    argv, spec, root = card.get('verify_command') or [], _spec(card), where['root']
+    if _tests_command(spec): return _tests_exit(spec, root, where['runtime'])
+    if spec: return _probe_exit(spec, sets, where['out'], root)
     found = DEADCODE.search(argv[-1]) if argv else None
     if found: return 1 if found.groups() in dead else 0
     if argv: return subprocess.run(argv, cwd=root, capture_output=True, text=True, timeout=1800).returncode  # nosemgrep: python.lang.security.audit.dangerous-subprocess-use-audit -- a card's acceptance check, a list argv run in the candidate copy, no shell

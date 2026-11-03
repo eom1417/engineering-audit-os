@@ -108,6 +108,17 @@ class OrderTests(unittest.TestCase):
                     mock.patch('eaos.analysis.layers.check'), mock.patch('eaos.analysis.layers.facts_of', return_value=facts):
                 self.assertEqual(wave_batch.batch_acceptance(scratch(), [card], scratch()), {'L': exit})
 
+    def test_a_failing_tests_card_passes_only_when_its_command_passes_on_the_copy(self):
+        # Trial on real projects (2026-11-02): a failing-tests card's recheck read the code alone and would call it gone
+        spec = {'probe_type': 'graph_query', 'specification': {'query': 'boundary_finding_present', 'rule': 'tests-failing',
+                                                               'path': '*', 'params': {'failed': 3, 'total': 40, 'command': 'npm run test'}}}
+        card = {'id': 'T', 'verify_command': ['eaos', 'recheck', '--spec', json.dumps(spec), '.']}
+        for code, runtime, exit in ((0, 'runtime', 0), (1, 'runtime', 1), (127, 'runtime', 2), (0, None, 2)):
+            rows = [{'argv': ['npm', 'run', 'lint'], 'exit': 0, 'failing': []}, {'argv': ['npm', 'run', 'test'], 'exit': code, 'failing': []}]
+            with mock.patch('eaos.facts.run.collect'), mock.patch('eaos.facts.run.read_available', return_value={}), \
+                    mock.patch('eaos.journeys.fix.execute.project_checks', return_value=rows):
+                self.assertEqual(wave_batch.batch_acceptance(scratch(), [card], scratch(), runtime=runtime), {'T': exit}, (code, runtime))
+
 class RebuildTests(unittest.TestCase):
     def test_a_module_is_split_only_after_its_complex_functions_and_a_split_tried_too_early_comes_back(self):
         # EAOS, 2026-10-15: five module splits went into batches before their simplifications, failed, never came back
@@ -211,7 +222,7 @@ class FinishTests(unittest.TestCase):
         base = git(root, 'rev-parse', 'HEAD')
         kept = {card['id']: commit_file(root, card['paths'][0], card['id']) for card in cards}
         broken = lambda batch, name: 'the project\'s own check failed: test' if (Path(batch['root']) / '2.txt').exists() else ''
-        with mock.patch.object(wave_batch, 'batch_acceptance', side_effect=lambda report, cards, root: {c['id']: 0 for c in cards}
+        with mock.patch.object(wave_batch, 'batch_acceptance', side_effect=lambda report, cards, root, **_: {c['id']: 0 for c in cards}
                                | {'T4': 1}), \
                 mock.patch.object(wave_batch, 'original_checks', return_value=['test']), mock.patch.object(wave_batch, 'gates', side_effect=broken), \
                 mock.patch.object(wave_batch, '_against_control', return_value=False):
@@ -242,7 +253,7 @@ class FinishTests(unittest.TestCase):
                                                 else "the project's own check failed: a cycle")
         finish = lambda repairs, bisect: waves.finish_batch(report, project, runtime, wave(root, base, kept),
                                                            lock=False, repairs=repairs, bisect=bisect)
-        with mock.patch.object(wave_batch, 'batch_acceptance', side_effect=lambda report, cards, root: {c['id']: 0 for c in cards}), \
+        with mock.patch.object(wave_batch, 'batch_acceptance', side_effect=lambda report, cards, root, **_: {c['id']: 0 for c in cards}), \
                 mock.patch.object(wave_batch, 'original_checks', return_value=['test']), mock.patch.object(wave_batch, 'gates', side_effect=together), \
                 mock.patch.object(wave_batch, '_against_control', return_value=False):
             with self.assertRaises(waves.GatesFailed) as asked:
@@ -265,7 +276,7 @@ class FinishTests(unittest.TestCase):
         base = git(root, 'rev-parse', 'HEAD')
         kept = {card['id']: commit_file(root, card['paths'][0], card['id']) for card in cards}
         live_page = lambda batch, name: '' if 'problems' in (batch.get('known') or ()) else 'the behaviour lock broke on 1 of 2 specs'
-        with mock.patch.object(wave_batch, 'batch_acceptance', side_effect=lambda report, cards, root: {c['id']: 0 for c in cards}), \
+        with mock.patch.object(wave_batch, 'batch_acceptance', side_effect=lambda report, cards, root, **_: {c['id']: 0 for c in cards}), \
                 mock.patch.object(wave_batch, 'original_checks', return_value=[]), mock.patch.object(wave_batch, 'gates', side_effect=live_page), \
                 mock.patch('eaos.live.behavior.lock.verify_lock') as control, \
                 mock.patch('eaos.live.behavior.lock.failing_tests', return_value={'problems'}):

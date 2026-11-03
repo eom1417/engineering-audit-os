@@ -34,7 +34,7 @@ def edit_gates(where, root, card, changed, repair):
         laws = debt(report, out, changed, had=_sizes_before(root, changed))
         broke = (new_breakage(report, root, collected=out) + words(laws) + app_breakage(project, runtime, root, changed)
                  + (rules_gate(*held[0], root, changed, laws) if held and held[0][1] else []))
-        exit_code = None if repair else batch_acceptance(report, [card], root, collected=out).get(card['id'])
+        exit_code = None if repair else batch_acceptance(report, [card], root, collected=out, runtime=runtime).get(card['id'])
         return broke, exit_code, _still(card, out, root) if exit_code not in (0, None) else ''
 
 
@@ -207,7 +207,7 @@ def _declare(batch, target, kept):
 
 def _accepted(batch, cards, kept, failed, repairs):
     """The kept cards whose problem is gone and whose commit still applies beside the others (the repairs on top)."""
-    exits = batch_acceptance(batch['report'], [cards[c] for c in kept], batch['root'])
+    exits = batch_acceptance(batch['report'], [cards[c] for c in kept], batch['root'], runtime=batch['runtime'])
     for card_id, code in exits.items():     # no check of its own (None): kept on the gates, as fix_edit keeps it
         if code not in (0, None): failed[card_id] = f'its problem is still there (acceptance exited {code})'
     _rebuilt_without(batch, kept, failed, repairs)
