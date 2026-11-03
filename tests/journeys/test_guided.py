@@ -91,6 +91,16 @@ class Journey(unittest.TestCase):
                 ended.add(command)
         self.assertEqual(ended, set(guided.USER_COMMANDS))
 
+    def test_the_end_of_a_fix_names_the_diff_to_read_and_how_to_take_it_or_throw_it(self):
+        state = self.saved()
+        state['waves'] = [{'number': 1, 'status': 'applied', 'branch': 'eaos/main/wave-1', 'base': 'abc', 'merge_into': 'main'}]
+        guided.save(state)
+        printed = io.StringIO()
+        with redirect_stdout(printed):
+            terminal._ended({'state': 'done', 'verb': 'fix', 'id': 'r1'}, 'en', self.project)
+        for command in ('git diff main...eaos/main/wave-1', 'eaos accept', 'eaos undo'):
+            self.assertIn(command, printed.getvalue())
+
     def test_start_scans_next_knows_where_the_person_is_and_the_project_folder_is_never_written(self):
         before = subprocess.run(['git', 'status', '--porcelain', '--ignored'], cwd=self.project, capture_output=True, text=True).stdout
         code, printed = run('start', self.project)
