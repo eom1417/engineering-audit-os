@@ -189,3 +189,13 @@ class DeadCodeTests(unittest.TestCase):
                      'src/hooks/orphan.ts': 'export function lonely() { return 1 }\n'})
         self.assertFalse([key for key in found if 'useMobile' in key[1] or key[1] == 'useIsMobile'], found)
         self.assertIn(('unreachable-module', 'src/hooks/orphan.ts'), found)
+
+    def test_a_tool_that_loads_a_folder_by_convention_reaches_it(self):
+        # A react-email package runs `email export`, which renders every file in its emails/ folder; no import names
+        # them, so each email and the ui parts they use were called unreachable.
+        found = run({'package.json': '{"name": "web", "main": "src/main.js"}', 'src/main.js': 'console.log(1)\n',
+                     'mail/package.json': '{"name": "emails", "scripts": {"export": "email export --outDir ../out"}}',
+                     'mail/emails/welcome.tsx': ('import { Button } from "../ui/Button"\n'
+                                                 'export default function Welcome() { return Button() }\nWelcome.PreviewProps = {}\n'),
+                     'mail/ui/Button.tsx': 'export function Button() { return 1 }\n'})
+        self.assertFalse([key for key in found if key[1].startswith('mail/')], found)

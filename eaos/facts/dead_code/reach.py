@@ -27,6 +27,9 @@ RELATIVE_LITERAL = re.compile(r'''['"`](\.{1,2}/[^'"`\s${}]+)['"`]''')
 PATH_LITERAL = re.compile(r'''['"`]([\w-][\w.-]*(?:/[\w.-]+)+\.\w+)['"`]''')
 # Folders a package ships as data, loaded by path at run time: templates and rules.
 DATA_FOLDERS = {'templates', 'rules'}
+# Tools a script runs that load every file of a folder by convention, so no import names those files: (the command, the
+# folder it loads, the option that names another one). The react-email CLI renders every file in emails/, or `--dir <x>`.
+CONVENTION_FOLDERS = ((re.compile(r'(?:^|[;&|]\s*)(?:npx\s+)?email\s+(?:build|export|dev)\b'), 'emails', '--dir'),)
 
 
 def _source_of(base, file, known):
@@ -104,7 +107,19 @@ def _manifest_seeds(path, text, known):
     for script in (manifest.get('scripts') or {}).values():
         seeds |= {_source_of(base, file, known) or str(base / file).lstrip('./')
                   for file in re.findall(r'[\w./-]+\.(?:[cm]?[jt]sx?|py)\b', str(script))}
+        seeds |= _convention_seeds(base, str(script), known)
     return seeds
+
+
+def _convention_seeds(base, script, known):
+    """The files of every folder a tool the script runs loads by convention (CONVENTION_FOLDERS)."""
+    out = set()
+    for command, folder, option in CONVENTION_FOLDERS:
+        if not command.search(script): continue
+        named = re.search(re.escape(option) + r'[= ]\s*([\w./-]+)', script)
+        root = _normalised(base, named.group(1) if named else folder)
+        out |= {path for path in known if root and path.startswith(root + '/')}
+    return out
 
 
 def _file_seeds(source, path, known):
