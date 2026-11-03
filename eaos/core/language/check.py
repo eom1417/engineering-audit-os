@@ -8,6 +8,8 @@ rest of the answer kept as it is. Ids, paths and code names are never texts for 
 import json
 import re
 
+from .bilingual import wrong
+
 ARABIC = re.compile('[؀-ۿ]')
 WORD = re.compile(r'\b[A-Za-z]{2,}\b')
 FOR_THE_PERSON = frozenset({'title', 'why', 'summary', 'question', 'recommendation', 'words', 'text', 'label', 'reason',
@@ -19,6 +21,13 @@ def foreign(text, lang):
     """True when `text` is a sentence (four words or more) the person does not read: no Arabic letter in an Arabic
     Studio. An English Studio reads every text EAOS's assistants write."""
     return lang == 'ar' and isinstance(text, str) and not ARABIC.search(text) and len(WORD.findall(text)) >= 4
+
+
+def mostly_foreign(text, lang):
+    """`foreign`, or, in an Arabic Studio, a message of four words or more whose words beyond its code, paths and names are
+    mostly not Arabic (bilingual.wrong): a closing summary mostly English passed `foreign` on its one Arabic word (trial
+    on real projects)."""
+    return foreign(text, lang) or (lang == 'ar' and isinstance(text, str) and len(WORD.findall(text)) >= 4 and wrong(text, lang))
 
 
 def foreign_texts(answer, lang):

@@ -6,7 +6,7 @@ import threading
 import time
 
 from ...ai.assistant import headless as adapters, prompts, tiers
-from ...core.language.check import foreign, restate
+from ...core.language.check import mostly_foreign, restate
 from . import lane_assistants as helpers
 
 from ...core.project import state as project_state
@@ -183,9 +183,15 @@ class Turns:
         if asked and not self._waiting_branches() - set(record.get('branches_before') or []): return prompts.consent_question(asked)
 
     def _readable(self, run, words):
-        """The assistant's last words in the person's language: asked of it again once when they are not (eaos/core/language/check.py)."""
+        """The assistant's last words in the person's language: asked of it again once when they are not (eaos/core/language/check.py);
+        still not, they are kept as they are and the run says so."""
         adapter = self.adapters.get(self.store.load(run).get('assistant'))
-        if not foreign(words, self.lang) or adapter is None: return words
-        try: said = adapters.ask(adapter, restate({'text': words}, [words], self.lang), SAID, self.store.path(run) / 'language', tier=tiers.tier_of('translation'))
-        except Exception: return words
-        return str((said['answer'] or {}).get('text') or words)
+        if not mostly_foreign(words, self.lang) or adapter is None: return words
+        try: said = str((adapters.ask(adapter, restate({'text': words}, [words], self.lang), SAID, self.store.path(run) / 'language',
+                                      tier=tiers.tier_of('translation'))['answer'] or {}).get('text') or '')
+        except Exception: said = ''
+        if said and not mostly_foreign(said, self.lang): return said
+        self.store.append(run, 'check', {'en': "The assistant's last words are not in your language, even asked again",
+                                         'ar': 'كلام المساعد الأخير مو بلغتك، حتى بعد ما طُلب منه مرة ثانية'},
+                          {'name': 'language', 'passed': False, 'summary': 'the closing words stayed mostly in another language'})
+        return words
