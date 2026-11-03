@@ -76,3 +76,14 @@ class VisitorTests(unittest.TestCase):
         self.assertEqual([(r['kind'], r.get('unseen')) for r in seen], [('visitor', None), ('visitor', None)])
         self.assertEqual(pages._visitor(context, (None, 'http://h', [(None, out / 'none.json')]), groups, None), [],
                          'a check that never signed in pictured them already')
+
+
+class NotFoundTests(unittest.TestCase):
+    def test_pages_that_answered_404_are_named_with_the_mount_the_check_does_not_follow(self):
+        # a real Express app mounted its router under /api in another file: its pages were opened without it, all 404
+        from eaos.pipeline.runners import pages
+        rows = [{'url': 'http://h/', 'http': 200}, {'url': 'http://h/user', 'http': 404}, {'url': 'http://h/user', 'http': 404}]
+        said = pages._not_found(rows)
+        self.assertIn('/user', said[0])
+        self.assertIn('prefix', said[0])
+        self.assertEqual(pages._not_found(rows[:1]), [])
