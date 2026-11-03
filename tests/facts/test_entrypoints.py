@@ -78,6 +78,20 @@ class EntryPointTests(unittest.TestCase):
         route = next(f['value'] for f in data['facts'] if f['value']['surface'] == 'http')
         self.assertEqual((route['handler'], route['framework']), ('s.handleIndex', 'go_http'))
 
+    def test_express_routes_mounted_under_a_prefix_in_another_file_carry_it(self):
+        # A real Express app: an index router mounts the sub-routers and another file mounts it under /api; its pages
+        # were opened at /articles and answered 404.
+        data = load_files({
+            'src/main.ts': "import express from 'express';\nimport routes from './routes/routes';\n"
+                           "const app = express();\napp.use(routes);\napp.get('/', (req, res) => res.json({}));\n",
+            'src/routes/routes.ts': "import { Router } from 'express';\nimport articles from './article/article.controller';\n"
+                                    "const api = Router()\n  .use(articles);\n\nexport default Router().use('/api', api);\n",
+            'src/routes/article/article.controller.ts': "import { Router } from 'express';\nconst router = Router();\n"
+                                                        "router.get('/articles', async (req, res) => res.json([]));\n"
+                                                        "export default router;\n"})
+        http = {(f['value']['http_method'], f['value']['route']) for f in data['facts'] if f['value']['surface'] == 'http'}
+        self.assertEqual(http, {('GET', '/'), ('GET', '/api/articles')})
+
 
 class TaskRunnerScriptTests(unittest.TestCase):
     """A package.json script or a Makefile target is an entry point when it runs a file of the repository;

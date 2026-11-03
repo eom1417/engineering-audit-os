@@ -204,9 +204,10 @@ ready; a stage that did not run says why, and a tool that failed is named. Any o
 | Plan | `order` `steps` |
 | Hand over | `reports` `translate` |
 
-A known limit of `crawl` and `screens`: the routes of the code are read file by file, so an Express or Koa router that
-another file mounts under a prefix (`.use('/api', router)`) has its pages opened without that prefix. When pages answer
-404, `screens` names them and this limit, and the check counts them as not measured.
+`crawl` and `screens` open the routes the code declares; an Express or Koa router that another file mounts under a
+prefix (`.use('/api', router)`, through any chain of routers) is opened at that prefix. A prefix built at runtime, or a
+router passed through a function, is not followed: when pages answer 404, `screens` names them and the check counts
+them as not measured.
 
 The stages that ask your assistant, and the guards on what it says: [AI-IN-THE-PIPELINE.md](AI-IN-THE-PIPELINE.md).
 
