@@ -3,10 +3,13 @@
 OSV-Scanner's lookup is deterministic: this locked version is listed as affected, and the advisory names
 the version that fixes it. When the engagement rule `upgrade_vulnerable_dependencies` holds (a declared
 default the project can turn off in eaos.engagement.json), the claim carries the assessment a ready card
-needs. Its reviewer of record is that rule, never an invented person. Its check re-runs Syft and
-OSV-Scanner on the changed copy and passes only when none of the original advisories remain for the package.
+needs; when no tool of EAOS rewrites the lock file (MANAGERS of eaos/analysis/repair/codemods.py), the
+assessment carries blockers instead, naming the command the person runs. Its reviewer of record is that
+rule, never an invented person. Its check re-runs Syft and OSV-Scanner on the changed copy and passes only
+when none of the original advisories remain for the package.
 """
 from ..repair.acceptance import fingerprint, recheck
+from ..repair.codemods import manual_upgrade
 from ..understanding.engagement import rules_for
 from ..repair.remediation import PATTERNS, cited
 
@@ -20,6 +23,23 @@ def _check_argv(ecosystem, name, advisories):
                    "        and str(f['location'].get('symbol', '')).startswith(prefix)\n"
                    "        and wanted & set(next((m['value'] for m in f['value']['measurements'] if m['name'] == 'advisory_ids'), []))]\n"
                    "sys.exit(1 if left else 0)\n", engines=('syft', 'osv-scanner'))
+
+
+# Why a batch cannot make the change itself, for the assistant (en) and the person (ar), with the command they run.
+UNABLE = {'lock': ('no lock file names it, only the inventory found it; upgrade what brings it in',
+                   'ما فيه ملف قفل يذكرها، لقاها جرد المكونات بس، فرقِّ الحزمة اللي تجيبها'),
+          'tool': ('EAOS has no tool that rewrites {lock}; run `{command}` and commit {lock}',
+                   'ما عنده أداة تعيد كتابة {lock}، فشغّل بنفسك `{command}` واعتمد {lock}'),
+          'missing': ('{tool} is not installed here; run `{command}` and commit {lock}',
+                      'أداة {tool} مو موجودة على هذا الجهاز، فشغّل بنفسك `{command}` واعتمد {lock}')}
+
+
+def _unable(fact, name, fixed):
+    """(blockers, the words added to the change) when a batch cannot upgrade this lock file itself, else ([], '')."""
+    manual = manual_upgrade(fact['location'].get('path') or '', name, fixed)
+    if manual is None: return [], ''
+    en, ar = (text.format(**manual) for text in UNABLE[manual['why']])
+    return ['EAOS cannot make this upgrade itself: ' + en + '.'], ' EAOS ما يقدر يسويها بنفسه: ' + ar + '.'
 
 
 def measured(fact, name):
@@ -38,6 +58,7 @@ def build_assessment(claim, fact_sets, target):
     ecosystem, _, rest = str(fact['location'].get('symbol')).partition(':')
     name, _, installed = rest.rpartition('@')
     fixed, advisories = measured(fact, 'fixed_in'), measured(fact, 'advisory_ids') or []
+    blockers, manual = _unable(fact, name, fixed)
     check = {'id': 'DEP-' + fact['id'], 'kind': 'command',
              'invariant': 'No locked dependency is a version with a published, fixed vulnerability.',
              'expected': f'the next scan reports none of {", ".join(advisories)} for {name}', 'expected_exit': 0, 'cwd': '.',
@@ -50,5 +71,6 @@ def build_assessment(claim, fact_sets, target):
                                 'The evidence is a database lookup of the locked version; no human judgement is claimed.'),
                 'before': fact['value']['message'],
                 'after': f'{name} is at {fixed} or later in every lockfile, and the scan reports none of its advisories.',
-                'proposed_change': PATTERNS['upgrade_dependency']['change'].format(name=name, installed=installed, fixed=fixed)},
+                'proposed_change': PATTERNS['upgrade_dependency']['change'].format(name=name, installed=installed, fixed=fixed) + manual,
+                **({'blockers': blockers} if blockers else {})},
             'checks': [check]}

@@ -122,3 +122,16 @@ class ClaimTests(Workspace):
         (Path(self.tmp) / 'eaos.engagement.json').write_text(json.dumps({'rules': {'upgrade_vulnerable_dependencies': False}}))
         [claim] = self.claims()
         self.assertNotIn('assessment', claim)
+
+    def test_a_vulnerable_dependency_whose_lock_eaos_cannot_regenerate_is_blocked_naming_its_tool(self):
+        # A bun project's 42 dependency cards were all planned fixable, and none could pass: no tool of EAOS rewrites bun.lock.
+        from eaos.core.contracts.decisions import decide
+        self.assertEqual(decide(self.claims()[0])['readiness'], 'ready')
+        for path, tool in (('web/bun.lock', 'bun update picomatch'), ('sbom.cdx.json', 'no lock file')):
+            self.FACT = {**self.FACT, 'location': {**self.FACT['location'], 'path': path}}
+            [claim] = self.claims()
+            for triage in ({}, {'decision': 'confirm', 'resolution': 'fix'}):
+                decision = decide({**claim, 'triage': triage})
+                self.assertEqual(decision['readiness'], 'blocked')
+                self.assertTrue(any(tool in blocker for blocker in decision['blockers']), decision['blockers'])
+

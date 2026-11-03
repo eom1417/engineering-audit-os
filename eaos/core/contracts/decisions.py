@@ -106,6 +106,7 @@ def _kind_and_reason(claim, assessment, disposition, triage, resolution):
 def _repair_blockers(checks, resolution, assessment):
     reasons = [] if checks else ['No acceptance check attached.']
     for check in checks: reasons.extend(check_errors(check))
+    reasons += assessment.get('blockers') or []  # what no triage lifts: a change no tool of EAOS can make (a lock file it cannot rewrite)
     # The assistant's triage is the review of a change it decided, and its change is the "after".
     if resolution == 'fix': return reasons
     if not assessment.get('reviewed_by'): reasons.append('The engineering decision has not been reviewed.')

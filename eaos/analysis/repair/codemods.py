@@ -242,6 +242,31 @@ def _lock_folders_with(target, package, version):
     return found
 
 
+# Each lock file's package manager and the command a person runs to move one package in it. A batch upgrades only a
+# lock file whose manager has a codemod (rules/codemods.json) and is installed: a card no tool can pass is not fixable.
+MANAGERS = {'package-lock.json': ('npm', 'npm install {package}@{fixed}'), 'bun.lock': ('bun', 'bun update {package}'),
+            'bun.lockb': ('bun', 'bun update {package}'), 'pnpm-lock.yaml': ('pnpm', 'pnpm update {package}'),
+            'yarn.lock': ('yarn', 'yarn up {package}'), 'uv.lock': ('uv', 'uv lock --upgrade-package {package}'),
+            'poetry.lock': ('poetry', 'poetry update {package}'), 'Pipfile.lock': ('pipenv', 'pipenv update {package}'),
+            'go.mod': ('go', 'go get {package}@v{fixed} && go mod tidy'), 'go.sum': ('go', 'go get {package}@v{fixed} && go mod tidy'),
+            'Cargo.lock': ('cargo', 'cargo update -p {package} --precise {fixed}'),
+            'Gemfile.lock': ('bundle', 'bundle update {package}'), 'composer.lock': ('composer', 'composer update {package}')}
+
+
+def manual_upgrade(path, package, fixed):
+    """Why a batch cannot move `package` in the lock file at `path`, as {'why', 'tool', 'lock', 'command'}; None when it
+    can, or when the site is no lock file (a requirements.txt is a text edit). 'lock' is a component no lock file names."""
+    from ...engines.process import which
+    lock = PurePosixPath(path).name
+    if lock == 'sbom.cdx.json': return {'why': 'lock', 'tool': '', 'lock': lock, 'command': ''}
+    if lock not in MANAGERS: return None
+    tool, command = MANAGERS[lock]
+    command = command.format(package=package, fixed=str(fixed).removeprefix('v'))
+    if tool not in json.loads(RULES.read_text(encoding='utf-8'))['upgrade_dependency']:
+        return {'why': 'tool', 'tool': tool, 'lock': lock, 'command': command}
+    return None if which(tool) else {'why': 'missing', 'tool': tool, 'lock': lock, 'command': command}
+
+
 MECHANICAL = ('remove_dead', 'dead_code', 'leftover', 'upgrade_dependency')
 
 

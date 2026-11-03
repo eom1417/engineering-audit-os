@@ -254,6 +254,12 @@
       "type": "string"
      }
     },
+    "blockers": {
+     "type": "array",
+     "items": {
+      "type": "string"
+     }
+    },
     "prerequisites": {
      "type": "array",
      "items": {
