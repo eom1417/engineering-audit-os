@@ -34,7 +34,8 @@ def _claim(fact, add):
                                                    'fix_ar': value['fix_ar'], 'path': where['path'], 'line': where.get('start_line')}},
         probe_spec={'probe_type': 'graph_query',
                     'specification': {'query': 'boundary_finding_present', 'rule': value['rule'], 'path': where['path'],
-                                      'params': value['params'], 'expected': 'The layers still show this finding.'}},
+                                      'params': value['params'], 'expected': 'The layers still show this finding.',
+                                      **({'live': True} if value.get('live') else {})}},
         impact={'scenario': value['fix_en']})
 
 
