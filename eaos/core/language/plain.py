@@ -32,3 +32,10 @@ def stage(name, language):
     """What EAOS says while a stage runs (eaos/data/words.json `doing`); a stage it does not know by its own name."""
     found = catalog()['stages'].get(name)
     return found['doing'][0 if language == 'ar' else 1] if found else name
+
+
+def known_beginning(text, table):
+    """(the Arabic of the first known English beginning `text` holds, what follows that beginning), from `table`
+    ((English, Arabic), ...); None when it holds none."""
+    text = text or ''
+    return next(((ar, text[text.index(en) + len(en):]) for en, ar in table if en in text), None)

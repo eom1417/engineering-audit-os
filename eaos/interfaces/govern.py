@@ -32,6 +32,7 @@ from .govern_words import WORDS, text_of
 from ..core.system.files import read_json
 
 SIGN_IN = 'sign-in'          # what waits for the person while the check waits for their sign-in (eaos/live/access/sign_in.py)
+PACED = 3                    # steps done before a time left is said: one step's pace says little
 HOST_IDLE = int(os.environ.get('EAOS_HOST_IDLE') or 120)   # seconds the host stays once nothing is queued or active (tests: less)
 # What a branch change previews, then does (BranchControl's methods), and the body both take.
 BRANCH_OPS = {'merge': ('preview_merge', 'merge'), 'delete': ('preview_delete', 'delete'), 'protect': ('preview_protect', 'protect'),
@@ -70,8 +71,17 @@ def wake(project, answer=None):
     question, option, text = answer or (None, None, None)
     argv = [sys.executable, '-m', 'eaos', 'govern', str(actions.project), *(['--answer', question] if question else []),
             *(['--option', option] if option else []), *(['--text', text] if text else [])]
-    launch.detach(state, argv, launch.own_env(**{HEADLESS: '1'}), 'govern.log', 'wb')   # one host's words, written again by the next
+    env, log = launch.own_env(**{HEADLESS: '1'}), launch.log_path(state, 'govern.log')
+    log.write_bytes(b'')        # one host's words, written again by the next
+    unit = f"{launch.service_name(state, 'govern')}-{time.time_ns()}"   # where Studios are services, so is the host: a session that ends cannot end it
+    if not (launch.durable() and launch.as_unit(unit, argv, env, {'description': 'EAOS queue host', 'log': log, 'cwd': state['workspace']})):
+        launch.detach(state, argv, env, 'govern.log')
     return True
+
+
+def wake_queued(project):
+    """The host woken when a run waits in the queue, so a run queued from a session that ended starts when the person looks."""
+    if core(project).store.queue(): wake(project)
 
 
 def host(project, answer=None, idle=HOST_IDLE):
@@ -180,20 +190,27 @@ def control(project, operation, run=None):
 
 def progress(actions, record):
     """Where a run is: its stage (done of total), the minutes left at its pace so far, and what the assistant used."""
-    last = next((e['data'] for e in reversed(actions.store.events(record['id'])) if e['kind'] == 'progress'), {})
+    steps = [e for e in actions.store.events(record['id']) if e['kind'] == 'progress']
+    last = steps[-1]['data'] if steps else {}
     done, total = last.get('done') or 0, last.get('total') or 0
     used = _used(actions, record) or {}
-    return {'stage': last.get('stage'), 'done': done, 'total': total, **_pace(record, done, total),
+    return {'stage': last.get('stage'), 'done': done, 'total': total, **_pace(record, _first_step(steps, last.get('stage')), done, total),
             'cost_usd': used.get('cost_usd'), 'tokens': sum(used.get(k) or 0 for k in ('input', 'cache_write', 'output', 'thinking'))}
 
 
-def _pace(record, done, total):
-    """{seconds, minutes_left}: how long the run has worked, and what is left of it at its pace so far."""
+def _first_step(steps, stage):
+    """When the first step of `stage` was done, among the progress events `steps`; None before it."""
+    return next((e['at'] for e in steps if e['data'].get('stage') == stage and (e['data'].get('done') or 0) >= 1), None)
+
+
+def _pace(record, first, done, total):
+    """{seconds, minutes_left}: how long the run has worked, and what is left of it at the pace since the stage's first
+    step (`first`, when it was done: a Fix's app setup before its first card is no card's time), said from the PACED-th."""
+    now = datetime.now(timezone.utc)
     began = datetime.fromisoformat(record['started']) if record.get('started') else None
-    elapsed = (datetime.now(timezone.utc) - began).total_seconds() if began else 0
-    running = done and total and record.get('state') == 'running'
-    return {'seconds': round(elapsed) if began else None,
-            'minutes_left': round(elapsed / done * (total - done) / 60) if running else None}
+    running = first and done >= PACED and total and record.get('state') == 'running'
+    return {'seconds': round((now - began).total_seconds()) if began else None,
+            'minutes_left': round((now - datetime.fromisoformat(first)).total_seconds() / (done - 1) * (total - done) / 60) if running else None}
 
 
 def _used(actions, record):

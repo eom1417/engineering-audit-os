@@ -134,6 +134,7 @@ def _ask_inline(project, question, lang):
 def follow(project, run, lang):
     """A run, live: its events as they come; every half minute the time since it began, its stage, the time left and
     the cost so far; its questions. Back when it ends, or on Ctrl-C while it goes on."""
+    from .branches import ended         # (that module imports this one)
     actions, after, asked, shown, beat = govern.core(project), 0, None, None, 0.0
     try:
         while True:
@@ -142,7 +143,7 @@ def follow(project, run, lang):
                 asked = govern.SIGN_IN
                 say(f"🔑 {words('sign_in_waits', lang)}\n   eaos sign-in")
             after = _said_since(actions, run, after, lang)
-            if record.get('state') in TERMINAL: return _ended(record, lang)
+            if record.get('state') in TERMINAL: return ended(record, lang, project)
             asked = _asked_once(project, record, asked, lang)
             line = _status_line(actions, record, lang) if time.monotonic() - beat > 30 else None
             if line and line != shown: say(line); shown, beat = line, time.monotonic()
@@ -169,19 +170,10 @@ def _asked_once(project, record, asked, lang):
     return asked
 
 
-def _ended(record, lang):
-    state = text_of(contract()['lifecycle']['states'][record['state']], lang)
-    ok = record['state'] == 'done'
-    after = ['eaos problems', 'eaos waiting'] if ok else [f"eaos retry {record['id']}", 'eaos runs']
-    counts = ((record.get('result') or {}).get('answer') or {}).get('counts') if isinstance((record.get('result') or {}).get('answer'), dict) else None
-    guided.box(lang, words('ended', lang, state=state), status='ok' if ok else 'warn', commands=after,
-               note=words('checked', lang, problems=counts.get('problems'), ready=counts.get('ready')) if counts else None)
-    return 0 if ok else 2
-
-
 @command
 def runs(args, lang):
     actions = govern.core(args.project)
+    govern.wake_queued(args.project)
     rows = actions.runs({'all': '1'} if args.all else {})['runs']
     states = contract()['lifecycle']['states']
     for row in rows[:30]:
@@ -318,6 +310,9 @@ def act(args, lang):
     """fix, verify, explain or plan: the preview printed, the person's yes for a Fix (it changes code), then the run."""
     project, verb, auto = _project(args), args.command, bool(getattr(args, 'auto_accept', False))
     if auto: refuse_in_studio_run('auto_accept')
+    if not args.ids and not args.group:     # never every card: the person names the ones to run
+        guided.box(lang, words('no_cards', lang), status='warn', commands=['eaos problems --fixable', f'eaos {verb} TASK-001 TASK-002', f'eaos {verb} --group severity=high'])
+        return 3
     shown = govern.verb_preview(project, verb, govern.selection_of(args.ids, args.group), auto, args.assistant)
     _show_preview(shown, lang)
     label = text_of(contract_verb(verb)['label'], lang)

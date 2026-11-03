@@ -219,7 +219,9 @@ class StateView:
                'continuable': [], 'branches': offered}
         row = next((r for r in locals_ if r[0] == base), None)
         if row is None:
-            out['problem'] = say(f'There is no branch named {base} in this project.', f'ما فيه فرع اسمه {base} في هذا المشروع.', 'no_base')
+            out['problem'] = say(f'There is no branch named {base} in this project.', f'ما فيه فرع اسمه {base} في هذا المشروع.', 'no_base') if base else \
+                say('This project is on no branch (a detached HEAD). Switch to one first: git switch <branch>.',
+                    'المشروع مو على أي فرع (HEAD منفصل). انتقل لفرع أول: git switch <اسم الفرع>.', 'detached')
             return out
         out['base'] = {'branch': base, 'commit': row[1], 'short': row[1][:7], 'when': row[2] or None, 'checked_out': base == head['branch']}
         view = self._fix_view(state, base, working)

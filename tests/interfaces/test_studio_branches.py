@@ -121,6 +121,12 @@ class Inventory(Repo):
         self.assertEqual((inventory['git'], inventory['branches']), (False, []))
 
 
+    def test_a_fix_on_a_detached_head_says_to_switch_to_a_branch(self):
+        git(self.project, 'switch', '-q', '--detach', 'main')
+        problem = self.app.branches.fix_where()['problem']
+        self.assertEqual(problem['code'], 'detached', 'never "no branch named None"')
+        self.assertIn('git switch', problem['en'])
+
 class Selecting(Repo):
     def test_choosing_the_branch_to_analyse_changes_the_context_never_the_checkout(self):
         before = git(self.project, 'rev-parse', 'HEAD'), git(self.project, 'symbolic-ref', '--short', 'HEAD')

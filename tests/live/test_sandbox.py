@@ -64,6 +64,23 @@ class SandboxTests(Workspace):
         self.write_grant(stages=['S08'], commit='0' * 40)
         self.assertIn('granted for commit', sandbox.refusal(self.grant, 'S08', head, self.project), 'an unrelated commit')
 
+    def test_a_submodule_is_in_the_copy_at_its_pinned_commit_and_one_not_here_is_named(self):
+        # a real Angular app's API lived in a submodule: the copy had an empty folder, and its setup fetched the latest
+        library = Path(self.tmp) / 'library'
+        library.mkdir()
+        (library / 'api.txt').write_text('pinned\n')
+        git(library, 'init', '-q'); git(library, 'add', '.'); git(library, '-c', 'user.name=t', '-c', 'user.email=t@t', 'commit', '-qm', 'one')
+        pinned = git(library, 'rev-parse', 'HEAD')
+        for name in ('lib', 'away'):
+            git(self.project, '-c', 'protocol.file.allow=always', 'submodule', 'add', '-q', str(library), name)
+        head = self.commit('submodules')
+        (library / 'api.txt').write_text('latest\n')
+        git(library, '-c', 'user.name=t', '-c', 'user.email=t@t', 'commit', '-qam', 'two')
+        git(self.project, 'submodule', 'deinit', '-q', '-f', 'away')
+        copy = sandbox.committed_copy(self.project, head, Path(self.tmp) / 'copy')
+        self.assertEqual((copy / 'lib/api.txt').read_text(), 'pinned\n')
+        self.assertEqual([(row['path'], row['commit']) for row in sandbox.unfilled(self.project, head)], [('away', pinned)])
+
     def test_the_copy_is_the_authorised_commit_without_env_files_or_unallowed_secrets_and_the_project_stays_as_it_was(self):
         (self.project / '.gitignore').write_text('.env\n')
         (self.project / '.env.example').write_text('DATABASE_URL=\n')

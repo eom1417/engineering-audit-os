@@ -324,6 +324,10 @@ class Adapters(unittest.TestCase):
         for needle in ('-x = 1', '+new', '(deleted)'): self.assertIn(needle, data['diff'])
         checks = adapters.result_events('wait', {}, {'status': 'done', 'result': {'kept': False, 'card': 'TASK-1', 'why': 'a test broke'}})
         self.assertEqual((checks[0][0], checks[0][2]['passed']), ('check', False))
+        why = "the problem is still there: the card's own check still finds it (exit 1)"
+        _, words, _, detail = adapters.result_events('wait', {}, {'status': 'done', 'result': {'kept': False, 'card': 'TASK-1', 'why': why}})[0]
+        self.assertIsNone(re.search(r'[A-Za-z]{3,} [A-Za-z]{3,} [A-Za-z]{3,}', words['ar']), 'no English sentence inside an Arabic line')
+        self.assertIn('exit 1', detail)
 
     def test_an_assistant_starts_with_this_eaos_only_without_the_person_only_tools_and_is_told_the_eaos_way(self):
         with tempfile.TemporaryDirectory() as folder:
@@ -1107,3 +1111,52 @@ class Headless(unittest.TestCase):
         core.manager.answer(f'{run}-q1', 'no', via='terminal')                    # "no": the run ends here, nothing starts
         said = next(e for e in core.store.events(run) if e['kind'] == 'answer')
         self.assertEqual((said['text']['en'], said['text']['ar'], said['data']['via']), ('You answered in the terminal: No', 'جاوبت في الطرفية: لا', 'terminal'))
+
+    def test_a_verb_with_no_card_refuses_and_says_how_to_choose(self):
+        import argparse
+        import contextlib
+        import io
+        from eaos.interfaces.terminal import commands
+        printed = io.StringIO()
+        with contextlib.redirect_stdout(printed):
+            code = commands.act(argparse.Namespace(command='fix', project=str(self.project), ids=[], group=None, lang='en', yes=True,
+                                                   assistant=None, auto_accept=False))
+        self.assertEqual(code, 3)
+        self.assertIn('eaos problems --fixable', printed.getvalue(), 'a fix of nothing named: it says how to choose the cards')
+
+    def test_where_studios_are_services_the_queue_host_is_one_too(self):
+        # a run queued from a session that ended waited for the next `eaos watch`: the runner ended the host with it
+        from eaos.core.system import launch
+        with mock.patch.object(launch, 'durable', return_value=True), mock.patch.object(launch, 'as_unit', return_value=True) as unit, \
+                mock.patch.object(launch, 'detach') as detached:
+            self.assertTrue(self.govern.wake(self.project))
+        self.assertTrue(unit.call_args.args[0].startswith('eaos-govern-'))
+        detached.assert_not_called()
+
+    def test_looking_at_the_runs_wakes_the_host_only_when_a_run_is_queued(self):
+        import argparse
+        import contextlib
+        import io
+        from eaos.interfaces.terminal import commands
+        core = self.govern.core(str(self.project))
+        self.addCleanup(core.close)
+        asked = lambda: commands.runs(argparse.Namespace(command='runs', project=str(self.project), all=False, lang='en'))
+        with mock.patch.object(self.govern, 'wake') as woken, contextlib.redirect_stdout(io.StringIO()):
+            asked()
+            woken.assert_not_called()
+            core.create({'action': 'note', 'inputs': {'text': 'queued from a session that ended'}})
+            asked()
+        woken.assert_called_once()
+
+    def test_time_left_is_paced_from_the_first_card_and_said_from_the_third(self):
+        # a fix's first card comes after the app's setup: one card done once said 661 minutes left for three
+        from datetime import datetime, timedelta, timezone
+        core = self.govern.core(str(self.project))
+        self.addCleanup(core.close)
+        now = datetime.now(timezone.utc)
+        record = {'id': 'r1', 'state': 'running', 'started': (now - timedelta(minutes=20)).isoformat()}
+        def tried(done, before):
+            return {'kind': 'progress', 'at': (now - timedelta(minutes=before)).isoformat(), 'data': {'stage': 'cards', 'done': done, 'total': 10}}
+        for events, left in (([tried(1, 4), tried(2, 2), tried(3, 0)], 14), ([tried(1, 4), tried(2, 0)], None)):
+            with mock.patch.object(core.store, 'events', return_value=events):
+                self.assertEqual(self.govern.progress(core, record)['minutes_left'], left)

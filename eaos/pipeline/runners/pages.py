@@ -55,7 +55,16 @@ def screens(context):
     studio(context)
     return {'pages': len(groups), 'screens': len(rows), 'failing': sum(bool(r.get('failures')) for r in rows),
             'lighthouse': (speed.get('scores') or {}).get('performance'),
-            'kinds': covered and sum(k['reached'] for k in covered['kinds'])}
+            'kinds': covered and sum(k['reached'] for k in covered['kinds']), 'unmeasured': _not_found(rows)}
+
+
+def _not_found(rows):
+    """The limitation the pages that answered 404 say: the routes are read file by file, so a router another file
+    mounts under a prefix (`.use('/api', router)`) has its pages opened without it."""
+    from urllib.parse import urlsplit
+    paths = sorted({urlsplit(row['url']).path or '/' for row in rows if row.get('http') == 404})
+    return [f"{len(paths)} page(s) answered 404 ({', '.join(paths[:10])}): a router mounted under a prefix in another file "
+            "(`.use('/api', router)`) is not followed, so its pages may have been opened without that prefix"] if paths else []
 
 
 def _pictured(context, app, groups, measured):

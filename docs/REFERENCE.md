@@ -96,7 +96,7 @@ read [MCP.md](MCP.md).
 | Command | Options | What it does |
 |---|---|---|
 | `eaos watch [run]` | `--project` `--lang` | Follow a run live: the time since it began, the stage, the time left, the cost so far, and its questions. |
-| `eaos runs` | `--all` `--project` `--lang` | The runs: running, queued and ended. `--all`: also those already read. |
+| `eaos runs` | `--all` `--project` `--lang` | The runs: running, queued and ended. `--all`: also those already read. A run still queued with nothing to start it is started. |
 | `eaos stop [run]` | `--project` `--lang` | Stop a run. |
 | `eaos pause [run]` | `--project` `--lang` | Pause a run. |
 | `eaos resume [run]` | `--project` `--lang` | Resume a paused run. |
@@ -120,10 +120,10 @@ read [MCP.md](MCP.md).
 
 | Command | Options | What it does |
 |---|---|---|
-| `eaos fix [ids…]` | `--group by=value` `--assistant` `--auto-accept` `--yes` `--project` `--lang` | Fix these cards. A preview first (cards, files, time, risk), then the run in an isolated copy. What passes every gate is handed over as a branch. `--auto-accept`: merge it by itself when its checks pass. |
-| `eaos verify [ids…]` | `--group` `--assistant` `--yes` `--project` `--lang` | Your assistant reads the code each card points at and records whether the problem is still there, already gone, or a false alarm. Changes nothing. A preview first. |
-| `eaos explain [ids…]` | `--group` `--assistant` `--yes` `--project` `--lang` | Your assistant explains each card in plain words: what is wrong, why it matters, what fixing it would change. Changes nothing. A preview first. |
-| `eaos plan [ids…]` | `--group` `--assistant` `--yes` `--project` `--lang` | Your assistant proposes an order of batches, what waits for what, and each batch's risk. Changes nothing. A preview first. |
+| `eaos fix <ids…>` | `--group by=value` `--assistant` `--auto-accept` `--yes` `--project` `--lang` | Fix these cards (their ids, or `--group`; with neither it changes nothing and names `eaos problems --fixable`). A preview first (cards, files, time, risk), then the run in an isolated copy. What passes every gate is handed over as a branch. `--auto-accept`: merge it by itself when its checks pass. |
+| `eaos verify <ids…>` | `--group` `--assistant` `--yes` `--project` `--lang` | Your assistant reads the code each card points at and records whether the problem is still there, already gone, or a false alarm. Changes nothing. A preview first. |
+| `eaos explain <ids…>` | `--group` `--assistant` `--yes` `--project` `--lang` | Your assistant explains each card in plain words: what is wrong, why it matters, what fixing it would change. Changes nothing. A preview first. |
+| `eaos plan <ids…>` | `--group` `--assistant` `--yes` `--project` `--lang` | Your assistant proposes an order of batches, what waits for what, and each batch's risk. Changes nothing. A preview first. |
 | `eaos accept [project]` | `--lang` `--yes` | Take the latest batch of fixes into your branch (merge its branch). Says what will happen and asks first. |
 | `eaos undo [project]` | `--lang` `--yes` | Throw the latest batch of fixes away (delete its branch). Asks first. |
 | `eaos branch [name]` | `--yes` `--project` `--lang` | The branch EAOS checks and fixes: the list, or move to one. Each branch has its own report and progress. |
@@ -203,6 +203,10 @@ ready; a stage that did not run says why, and a tool that failed is named. Any o
 | Envision the target | `ideal` `pipeline_gaps` `reconcile` |
 | Plan | `order` `steps` |
 | Hand over | `reports` `translate` |
+
+A known limit of `crawl` and `screens`: the routes of the code are read file by file, so an Express or Koa router that
+another file mounts under a prefix (`.use('/api', router)`) has its pages opened without that prefix. When pages answer
+404, `screens` names them and this limit, and the check counts them as not measured.
 
 The stages that ask your assistant, and the guards on what it says: [AI-IN-THE-PIPELINE.md](AI-IN-THE-PIPELINE.md).
 

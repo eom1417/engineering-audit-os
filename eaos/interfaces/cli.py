@@ -70,7 +70,10 @@ def guided_command(args):
     from ..journeys import handover  # noqa: F401
     from .terminal import commands as terminal, branches as terminal_branches  # noqa: F401  (register the work log, the terminal's check, accept and undo)
     from ..journeys.guided import main as guided_main
-    return guided_main(args)
+    from . import govern
+    done = guided_main(args)
+    if args.command == 'status' and done == 0: govern.wake_queued(args.project)
+    return done
 
 
 def studio_command(args):
