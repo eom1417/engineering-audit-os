@@ -3,6 +3,7 @@
 import re
 from pathlib import Path
 from ...core.system.files import read_json
+from ...core.language.plain import known_beginning
 
 VIEWS = ('system', 'change', 'journeys', 'paths', 'data_paths', 'infra', 'pipeline', 'plan_order')
 OPERATIONS = ('retain', 'refactor', 'rebuild', 'merge', 'delete', 'new')
@@ -28,5 +29,5 @@ GUARD_WORDS = (('it would delete files the owner protects (a critical feature or
 
 def guard_words(why, ar):
     """A guard's reason in the person's language: the Arabic of its known beginning, else as it was written."""
-    if not ar: return why
-    return next((words + why[why.index(en) + len(en):] for en, words in GUARD_WORDS if en in (why or '')), why)
+    found = known_beginning(why, GUARD_WORDS) if ar else None
+    return found[0] + found[1] if found else why

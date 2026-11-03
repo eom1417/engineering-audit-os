@@ -4,6 +4,8 @@ import difflib
 import json
 import re
 
+from ...core.language.plain import known_beginning
+
 READS = {'finding': 'id', 'fix_read': 'path', 'build_read': 'path', 'report_file': 'name', 'Read': 'file_path', 'Grep': 'pattern', 'Glob': 'pattern'}
 EDITS = ('fix_edit', 'build_edit')
 
@@ -76,14 +78,22 @@ def _progress_events(tool, payload):
              {'batch': payload.get('batch'), 'done': progress.get('done'), 'total': progress.get('total'), 'stage': progress.get('stage')}, None)]
 
 
+# Why a change was taken back (eaos/journeys/agent_tools/fixing.py), in Arabic: the beginning of each; the rest, the
+# technical words, is the event's detail.
+EDIT_WHY = (('the problem is still there', 'المشكلة باقية: فحص البطاقة نفسه ما زال يلقاها'),
+            ('it broke something or broke the code laws', 'كسر شي أو خالف قوانين الكود'),
+            ('the edit could not be applied', 'ما انطبق التعديل على الملف'))
+
+
 def _kept_events(result, arguments):
     """A card's verdict, when the answer says whether its change was kept."""
     if not isinstance(result.get('kept'), bool): return []
     card = result.get('card') or (arguments or {}).get('card')
     why = str(result.get('why') or '')[:400]
+    known = known_beginning(why, EDIT_WHY)
     return [('check', {'en': f"{card}: {'the change passed its checks' if result['kept'] else 'the change was taken back: ' + why}",
-                       'ar': f"{card}: {'التغيير نجح في الفحص' if result['kept'] else 'التغيير أُرجع: ' + why}"},
-             {'name': 'card gates', 'card': card, 'passed': result['kept'], 'summary': why}, None)]
+                       'ar': f"{card}: {'التغيير نجح في الفحص' if result['kept'] else 'التغيير أُرجع: ' + (known[0] if known else why)}"},
+             {'name': 'card gates', 'card': card, 'passed': result['kept'], 'summary': why}, None if result['kept'] else why)]
 
 
 def _handed_events(tool, result):

@@ -324,6 +324,10 @@ class Adapters(unittest.TestCase):
         for needle in ('-x = 1', '+new', '(deleted)'): self.assertIn(needle, data['diff'])
         checks = adapters.result_events('wait', {}, {'status': 'done', 'result': {'kept': False, 'card': 'TASK-1', 'why': 'a test broke'}})
         self.assertEqual((checks[0][0], checks[0][2]['passed']), ('check', False))
+        why = "the problem is still there: the card's own check still finds it (exit 1)"
+        _, words, _, detail = adapters.result_events('wait', {}, {'status': 'done', 'result': {'kept': False, 'card': 'TASK-1', 'why': why}})[0]
+        self.assertIsNone(re.search(r'[A-Za-z]{3,} [A-Za-z]{3,} [A-Za-z]{3,}', words['ar']), 'no English sentence inside an Arabic line')
+        self.assertIn('exit 1', detail)
 
     def test_an_assistant_starts_with_this_eaos_only_without_the_person_only_tools_and_is_told_the_eaos_way(self):
         with tempfile.TemporaryDirectory() as folder:

@@ -80,7 +80,6 @@ CHAINS = {'blueprint_start': 'then do what its answer says through to blueprint_
 def build(verb, cards, project, lang='ar', action=None, inputs=None, labels=None, where=None, lane=None):  # limits: parameters -- a run's request, each part by name, from a run record or a preview
     """The prompt of a run: a verb over cards, or one assistant action with its inputs (and, for a Fix, where the person
     chose to build and deliver it, with how many assistants fix it at once; `lane`: a Fix run beside the first one)."""
-    language = NAMES.get(lang, NAMES['en'])
     if verb: task = _over_cards(verb, cards, where, lane)
     else:
         label = (labels or {}).get(action, {}).get('en', action)
@@ -89,7 +88,12 @@ def build(verb, cards, project, lang='ar', action=None, inputs=None, labels=None
                 + (f', with these inputs from the person: {json.dumps(shown, ensure_ascii=False)}' if shown else '')
                 + '. Call `status` first; ' + CHAINS.get(action, 'do what the step needs and no more.'))
     return (f'{task}\n\nThe project is the current folder ({project.name}). This request comes from the EAOS Studio, where the '
-            f'person follows every step. {ASK}\nWrite every message in {language}, the short notes between tools too: the person reads them live in the Studio.')
+            f'person follows every step. {ASK}\n{_written_in(lang)}: the person reads them live in the Studio.')
+
+
+def _written_in(lang):
+    """The language every message of a session is written in, said when it starts and again when it resumes."""
+    return f"Write every message in {NAMES.get(lang, NAMES['en'])}, the short notes between tools too"
 
 
 def _over_cards(verb, cards, where, lane):
@@ -164,7 +168,7 @@ def answer(question, option, text, lang='ar', done=None, via='studio'):  # limit
     else:
         parts = [f"The person answered {WHERE[via]['en']}: {said} (option \"{option}\")"] + ([f'They added: {text}'] if text else [])
     if done: parts.append(f'EAOS already ran {done[0]} for this answer; its result: {json.dumps(done[1], ensure_ascii=False)[:1500]}.')
-    parts.append('Go on from where you stopped.')
+    parts.append(f'Go on from where you stopped. {_written_in(lang)}.')
     return ' '.join(parts)
 
 
