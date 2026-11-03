@@ -31,7 +31,7 @@ def run_setup(project=None, person_agreed=False):
     source = guided.source(state)
     live_setup.authorize(source, runtime, live_setup.owner(state['project']))
     detected = live_setup.detect(source, guided.report_of(state))
-    detected['facts']['submodules_not_in_copy'] = [{**row, 'fill': f"at its pinned commit {row['commit']}, never the latest"} for row in unfilled(source, head)]
+    detected.setdefault('facts', {})['submodules_not_in_copy'] = [{**row, 'fill': f"at its pinned commit {row['commit']}, never the latest"} for row in unfilled(source, head)]
     (runtime / 'setup').mkdir(parents=True, exist_ok=True)
     (runtime / 'setup/detected.json').write_text(json.dumps(detected, ensure_ascii=False, indent=1) + '\n', encoding='utf-8')
     run_profile.write_profile(runtime, live_setup.kept(runtime, detected['profile']))     # its secrets kept: a session holds

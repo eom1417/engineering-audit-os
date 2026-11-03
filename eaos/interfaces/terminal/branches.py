@@ -7,7 +7,6 @@ from ...journeys import guided
 from ..mcp_server.server import refuse_in_studio_run
 from ..govern_words import WORDS, text_of, words
 from ...core.project import state as project_state
-from ...core.project.runs import contract
 from .commands import _project, _said, agreed, command, say
 
 
@@ -108,23 +107,6 @@ def branches(args, lang):
     agreed(project, 'branches ' + ('protect' if args.op == 'unprotect' else args.op), question, args.yes)
     done = govern.branch_change(project, args.op, preview, preview['confirm']['token'], (preview.get('confirm_unmerged') or {}).get('token'))
     guided.box(lang, text_of(_said(actions, done['run']), lang), commands=['eaos branches', 'eaos status'])
-
-
-def ended(record, lang, project):
-    """The box that ends a run followed in the terminal (commands.follow): its state, and what to copy next."""
-    state = text_of(contract()['lifecycle']['states'][record['state']], lang)
-    ok = record['state'] == 'done'
-    counts = ((record.get('result') or {}).get('answer') or {}).get('counts') if isinstance((record.get('result') or {}).get('answer'), dict) else None
-    guided.box(lang, words('ended', lang, state=state), status='ok' if ok else 'warn', commands=_after(record, ok, project),
-               note=words('checked', lang, problems=counts.get('problems'), ready=counts.get('ready')) if counts else None)
-    return 0 if ok else 2
-
-
-def _after(record, ok, project):
-    """What to copy after a run: a fix that handed a batch over names the diff to read, accept and undo."""
-    wave = project_state.waiting_batch(project_state.load(project) or {}) if ok and record.get('verb') == 'fix' else None
-    if wave: return [f"git diff {wave.get('merge_into') or wave['base'][:12]}...{wave['branch']}", 'eaos accept', 'eaos undo']
-    return ['eaos problems', 'eaos waiting'] if ok else [f"eaos retry {record['id']}", 'eaos runs']
 
 
 guided.COMMANDS.update(accept=accept, undo=undo)    # eaos start's steps name them (registered here: see guided)

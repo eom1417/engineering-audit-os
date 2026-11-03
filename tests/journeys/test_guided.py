@@ -14,6 +14,7 @@ from unittest import mock
 
 from eaos.journeys import guided
 from eaos.interfaces.terminal import commands as terminal, branches as terminal_branches  # noqa: F401  (the terminal's check, accept and undo, registered in guided)
+from eaos.interfaces.terminal import run_end
 from eaos.core.project import state as project_state
 from eaos.report.documents.start_here import start_here
 
@@ -97,7 +98,7 @@ class Journey(unittest.TestCase):
         guided.save(state)
         printed = io.StringIO()
         with redirect_stdout(printed):
-            terminal_branches.ended({'state': 'done', 'verb': 'fix', 'id': 'r1'}, 'en', self.project)
+            run_end.ended({'state': 'done', 'verb': 'fix', 'id': 'r1'}, 'en', self.project)
         for command in ('git diff main...eaos/main/wave-1', 'eaos accept', 'eaos undo'):
             self.assertIn(command, printed.getvalue())
 

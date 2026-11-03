@@ -134,7 +134,7 @@ def _ask_inline(project, question, lang):
 def follow(project, run, lang):
     """A run, live: its events as they come; every half minute the time since it began, its stage, the time left and
     the cost so far; its questions. Back when it ends, or on Ctrl-C while it goes on."""
-    from .branches import ended         # (that module imports this one)
+    from .run_end import ended
     actions, after, asked, shown, beat = govern.core(project), 0, None, None, 0.0
     try:
         while True:
