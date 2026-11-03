@@ -6,6 +6,10 @@ Each builder is `build(fact_sets, add, target)`: `add(statement, claim_type, con
 appends one claim to the ledger and returns it, so a builder can bind an acceptance check to it. `target` is the audited
 root, or None in a fixture.
 """
+from pathlib import PurePosixPath
+
+from ..assessments.dependencies import build_assessment as dependency_assessment, measured as _measured
+
 # A claim statement is one decidable sentence, and the schema caps it at 600 characters. An
 # eighty-module cycle listed every member and the whole dossier failed to assemble; the members
 # live in the fact, so the sentence names enough of them to recognise and says how many more.
@@ -272,15 +276,61 @@ def _advisory(fact):
 
 
 def vulnerable_dependencies(fact_sets, add, target):
-    # A locked version the advisory database lists as affected is a deterministic finding: one engine suffices.
+    # A locked version the advisory database lists as affected is a deterministic finding: one engine suffices. A package
+    # the project names itself is a card of its own; those it does not, with a fix, are one card per lock file.
+    pulled = {}
     for fact in filter(_advisory, (fact_sets.get('external') or {}).get('facts', [])):
-        claim = _vulnerable(fact, add)
-        if target is not None:
-            from ..assessments.dependencies import build_assessment as dependency_assessment
-            _assess(claim, dependency_assessment(claim, fact_sets, target))
+        named, scope = _place(fact, target)
+        if named or not _groupable(fact): _assessed(_vulnerable(fact, add, scope), fact_sets, target)
+        else: pulled.setdefault(fact['location']['path'], []).append((fact, scope))
+    for lock, members in sorted(pulled.items()): _assessed(_lockfile(lock, members, add), fact_sets, target)
 
 
-def _vulnerable(fact, add):
+def _assessed(claim, fact_sets, target):
+    if target is not None: _assess(claim, dependency_assessment(claim, fact_sets, target))
+
+
+def _groupable(fact):
+    """A fixed advisory in a lock file a package manager writes (not the inventory, not a requirements file)."""
+    from ..repair.codemods import MANAGERS
+    return bool(_measured(fact, 'fixed_in')) and PurePosixPath(fact['location'].get('path') or '').name in MANAGERS
+
+
+def _place(fact, target):
+    """(whether the manifests beside its lock file name the package, its scope): `dev` when only developing or building
+    pulls it in, by its lock file (package-lock.json) or by the manifests naming it only for development
+    (eaos/analysis/assessments/declared.py); else ''. Without a target or a manifest, every package is its own card."""
+    dev = 'dev' if 'dev' in (_measured(fact, 'dependency_groups') or []) else ''
+    if target is None: return True, dev
+    from ..assessments.declared import declared, normal
+    names = declared(target, fact['location'].get('path') or '')
+    package = normal(str(fact['location'].get('symbol')).partition(':')[2].rpartition('@')[0])
+    every = names['prod'] | names['dev']
+    return package in every or not every, 'dev' if package in names['dev'] - names['prod'] else dev
+
+
+def _lockfile(lock, members, add):
+    """One card for the packages of a lock file the project does not name itself: it passes or fails whole."""
+    from ...engines.security.osv_scanner import SEVERITIES
+    facts = [fact for fact, _ in members]
+    named = [str(fact['location'].get('symbol')).partition(':')[2] for fact in facts]
+    worst = max((_measured(fact, 'severity') or 'medium' for fact in facts), key=SEVERITIES.index)
+    shown = ', '.join(named[:5]) + (' …' if len(named) > 5 else '')
+    return add(f'{lock}: {len(facts)} packages the project does not name itself have known vulnerabilities ({shown}), '
+               f'highest {worst}', 'risk', 'CONFIRMED', ['static_fact'],
+               'The locked versions being others, or the OSV database withdrawing the advisories.',
+               fact_ids=[fact['id'] for fact in facts],
+               render={'key': 'vulnerable_lockfile', 'params': {
+                   'lockfile': lock, 'count': len(facts), 'packages': shown, 'severity': worst,
+                   'scope': 'dev' if all(scope == 'dev' for _, scope in members) else ''}},
+               probe_spec=graph_query('vulnerable_dependency_present', lockfile=lock, scope='transitive', engines=['osv-scanner'],
+                                      targets=sorted(fact['location'].get('symbol') for fact in facts),
+                                      expected='One of these package versions is still reported vulnerable.'),
+               impact={'scenario': 'Packages this project does not name itself, locked in it, have published vulnerabilities; '
+                                   'their fixes are published too.'})
+
+
+def _vulnerable(fact, add, scope):
     value = fact.get('value') or {}
     numbers = {m['name']: m['value'] for m in value.get('measurements') or []}
     ecosystem, _, rest = str(fact['location'].get('symbol')).partition(':')
@@ -292,7 +342,7 @@ def _vulnerable(fact, add):
                render={'key': 'vulnerable_dependency',
                        'params': {'package': package, 'installed': installed, 'count': len(ids),
                                   'ids': ', '.join(ids[:3]) + (' …' if len(ids) > 3 else ''),
-                                  'severity': numbers.get('severity'), 'fixed': numbers.get('fixed_in') or '—'}},
+                                  'severity': numbers.get('severity'), 'fixed': numbers.get('fixed_in') or '—', 'scope': scope}},
                probe_spec=graph_query('vulnerable_dependency_present', package=fact['location'].get('symbol'), engines=[value['engine']],
                                        expected='The same package version is still reported vulnerable.'),
-               impact={'scenario': 'Every user runs a version with a published vulnerability; the fix is published too.'})
+               impact={'scenario': 'A version locked in this project has a published vulnerability; the fix is published too.'})

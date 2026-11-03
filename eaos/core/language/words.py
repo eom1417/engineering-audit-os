@@ -95,6 +95,7 @@ TEMPLATES = {
         'dead_code_review': 'مرشح للمراجعة: {subject} ({reason_ar})',
         'broken_code': 'كود معطّل في {path}:{line}: `{subject}` ({reason_ar})',
         'vulnerable_dependency': 'الاعتمادية {package}@{installed} فيها {count} ثغرة معروفة ({ids})، أعلاها {severity}؛ الإصلاح في {fixed}',
+        'vulnerable_lockfile': '{lockfile}: {count} حزم ما يذكرها المشروع بنفسه فيها ثغرات معروفة ({packages})، أعلاها {severity}',
         'duplicated_rule': '{name} معرّف في {count} مواضع ({places})' ,
         'duplicated_rule_differs': '{name} معرّف في {count} مواضع **بقيم مختلفة** ({places})',
         'trace_gap': 'تدفق {flow} ({surface} {route}) يتوقف عند {count} استدعاءات لا يمكن حلّها',
@@ -116,6 +117,7 @@ TEMPLATES = {
         'dead_code_review': 'Review candidate: {subject} ({reason_en})',
         'broken_code': 'Broken code at {path}:{line}: `{subject}` ({reason_en})',
         'vulnerable_dependency': 'Dependency {package}@{installed} has {count} known vulnerabilities ({ids}), highest {severity}; fixed in {fixed}',
+        'vulnerable_lockfile': '{lockfile}: {count} packages the project does not name itself have known vulnerabilities ({packages}), highest {severity}',
         'duplicated_rule': '{name} is defined in {count} places ({places})',
         'duplicated_rule_differs': '{name} is defined in {count} places **with different values** ({places})',
         'trace_gap': 'Flow {flow} ({surface} {route}) stops at {count} unresolvable calls',
@@ -150,7 +152,9 @@ IMPACTS = {
         'dead_code': 'كود لا يشغّله أحد يبقى يُقرأ ويُصان ويُراجع، ويمكن أن يعود للعمل دون أن ينتبه أحد.',
         'dead_code_review': 'لا يستخدمه المنتج؛ الاختبارات وحدها تذكره: إما يُحذف معها، أو هو عقد تثبّته عمدًا.',
         'broken_code': 'يفشل هذا السطر أول مرة يُنفَّذ فيها، أو يضلّل قارئ الوثيقة؛ لم يلتقطه أي اختبار.',
-        'vulnerable_dependency': 'ثغرة منشورة بإصلاح منشور في إصدار يُشحن لكل مستخدم؛ لم يُثبت بعد أن الكود المصاب يُستدعى من هذا المشروع.',
+        'vulnerable_dependency': 'ثغرة منشورة بإصلاح منشور في إصدار مقفل في هذا المشروع؛ لم يُثبت بعد أن الكود المصاب يُستدعى منه.',
+        'vulnerable_lockfile': 'ثغرات منشورة بإصلاحات منشورة في حزم تجيبها حزم ثانية ومقفلة في هذا المشروع؛ تُرقّى كلها مع بعض أو ما تُرقّى، ولم يُثبت بعد أن الكود المصاب يُستدعى منه.',
+        'vulnerable_dependency_dev': 'ثغرة منشورة بإصلاح منشور في أداة تُستخدم وقت التطوير أو البناء؛ ما توصل للمستخدمين إلا إذا البناء شحنها معه.',
         'duplicated_rule': 'تعديل القاعدة في موضع دون الآخر يجعل مسارين يختلفان.',
         'duplicated_rule_differs': 'تعديل القاعدة في موضع دون الآخر يجعل مسارين يختلفان — وهما مختلفان أصلًا.',
         'trace_gap': 'سلوك نقطة الدخول هذه غير مرئي بالكامل من المصدر وحده.',
@@ -188,7 +192,9 @@ IMPACTS = {
         'dead_code': 'Code nobody runs is still read, maintained and reviewed, and can be switched back on without anyone noticing.',
         'dead_code_review': 'The product does not use it; only tests name it: delete it with them, or it is a contract they pin on purpose.',
         'broken_code': 'This fails the first time it runs, or misleads the reader of the document; no test caught it.',
-        'vulnerable_dependency': 'A published vulnerability with a published fix, shipped to every user; whether this project calls the affected code is not yet shown.',
+        'vulnerable_dependency': 'A published vulnerability with a published fix, in a version locked in this project; whether this project calls the affected code is not yet shown.',
+        'vulnerable_lockfile': 'Published vulnerabilities with published fixes, in packages others pull in and locked in this project; they are upgraded together or not at all, and whether this project calls the affected code is not yet shown.',
+        'vulnerable_dependency_dev': 'A published vulnerability with a published fix, in a tool used while developing or building; it reaches users only if the build ships it.',
         'duplicated_rule': 'Editing the rule in one place and not the other makes two paths disagree.',
         'duplicated_rule_differs': 'Editing the rule in one place and not the other makes two paths disagree, and they already differ.',
         'trace_gap': 'The behavior of this entry point is not fully visible from source alone.',
@@ -223,11 +229,16 @@ def _layer_impact(boundary, language):
     return key if key in IMPACTS.get(language, {}) else 'layer_finding'
 
 
+def _impact_key(key, params, language):
+    """The key of a claim's why: a layer card's by its boundary, a dependency only development pulls in its own."""
+    if key == 'layer_finding': return _layer_impact(params.get('boundary'), language)
+    return 'vulnerable_dependency_dev' if key in ('vulnerable_dependency', 'vulnerable_lockfile') and params.get('scope') == 'dev' else key
+
+
 def impact_of(claim, language):
     render = claim.get('render') or {}
-    key = _render_key(render)
     params = render.get('params') or {}
-    if key == 'layer_finding': key = _layer_impact(params.get('boundary'), language)
+    key = _impact_key(_render_key(render), params, language)
     if key == 'engine_cluster' and params.get('impact_key') in IMPACTS.get(language, {}):
         try: return IMPACTS[language][params['impact_key']].format(**params)
         except (KeyError, IndexError, ValueError): pass
@@ -258,6 +269,7 @@ FALSIFIERS = {
         'dead_code_review': 'اختبار يثبّته عقدًا يعتمد عليه المنتج، أو مسار إنتاجي فات البحث النصي.',
         'broken_code': 'أن يكون الاسم أو الملف أو الأمر موجودًا فعلًا: تعريف، أو ملف، أو أمر فرعي فات القراءة النصية.',
         'vulnerable_dependency': 'أن يكون الإصدار المقفل غير الإصدار المذكور، أو أن تسحب قاعدة OSV الإعلان.',
+        'vulnerable_lockfile': 'أن تكون الإصدارات المقفلة غير المذكورة، أو أن تسحب قاعدة OSV الإعلانات.',
     },
     'en': {},
 }

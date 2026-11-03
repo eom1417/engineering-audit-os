@@ -8,7 +8,8 @@ The mechanical families (eaos/rules/codemods.json) and their tools:
   upgrade_dependency (npm)          a direct dependency: npm install pkg@fixed; a transitive one:
                                     overrides["pkg@>=vulnerable <=fixed"] = fixed in package.json (that version's
                                     copies only), then npm install; both --package-lock-only
-                                    --ignore-scripts, so no project code runs
+                                    --ignore-scripts, so no project code runs. A lock file card's packages:
+                                    every override, then each install once
 Each card gets codemod {tool, command, dry_run {exit, files_changed}}. The dry run is the real command on a
 copy made by eaos.live.testing.verify.isolated_copy; files_changed counts files added, removed or modified there. A tool
 that changes nothing did nothing, and says so with files_changed 0. The project is never written.
@@ -126,8 +127,15 @@ def _commands(card, copy):
     if kind == 'jscodeshift':
         binary = which('jscodeshift')
         return [([binary, '-t', str(TRANSFORM), '--parser=tsx', f"--name={detail['symbol']}", detail['path']], None)] if binary else None
-    if kind == 'npm': return _npm_steps(detail, which('npm') or 'npm', copy)
+    if kind == 'npm': return _group_steps(detail.get('group') or [detail], which('npm') or 'npm', copy)
     return None
+
+
+def _group_steps(members, binary, copy):
+    """Every package's steps, the edits of the manifests first, then each install once."""
+    steps = [step for member in members for step in _npm_steps(member, binary, copy)]
+    installs = {tuple(step): (step, text) for step, text in steps if not callable(step)}
+    return [(step, text) for step, text in steps if callable(step)] + list(installs.values())
 
 
 def _run_step(step, description, copy):
@@ -186,10 +194,15 @@ def card_for(task, facts_by_id, target):
     if pattern == 'leftover':
         fact = next(iter(facts), None)
         return {'kind': 'delete-file', 'path': fact['location']['path']} if fact else None
-    if pattern == 'upgrade_dependency':
-        fact = next(iter(facts), None)
-        return _upgrade_card(fact, target) if fact else None
+    if pattern == 'upgrade_dependency': return _upgrades_card(facts, target)
     return None
+
+
+def _upgrades_card(facts, target):
+    """A lock file card's packages each get their own change, and the card passes or fails whole; one package: its own."""
+    members = [_upgrade_card(fact, target) for fact in facts]
+    if not members or None in members: return None
+    return members[0] if len(members) == 1 else {'kind': 'npm', 'group': members}
 
 
 def _removal_card(facts):
@@ -240,6 +253,31 @@ def _lock_folders_with(target, package, version):
         if any(key.split('node_modules/')[-1] == package and (row or {}).get('version') == version for key, row in packages.items()):
             found.append(str(PurePosixPath(lock.relative_to(target).as_posix()).parent))
     return found
+
+
+# Each lock file's package manager and the command a person runs to move one package in it. A batch upgrades only a
+# lock file whose manager has a codemod (rules/codemods.json) and is installed: a card no tool can pass is not fixable.
+MANAGERS = {'package-lock.json': ('npm', 'npm install {package}@{fixed}'), 'bun.lock': ('bun', 'bun update {package}'),
+            'bun.lockb': ('bun', 'bun update {package}'), 'pnpm-lock.yaml': ('pnpm', 'pnpm update {package}'),
+            'yarn.lock': ('yarn', 'yarn up {package}'), 'uv.lock': ('uv', 'uv lock --upgrade-package {package}'),
+            'poetry.lock': ('poetry', 'poetry update {package}'), 'Pipfile.lock': ('pipenv', 'pipenv update {package}'),
+            'go.mod': ('go', 'go get {package}@v{fixed} && go mod tidy'), 'go.sum': ('go', 'go get {package}@v{fixed} && go mod tidy'),
+            'Cargo.lock': ('cargo', 'cargo update -p {package} --precise {fixed}'),
+            'Gemfile.lock': ('bundle', 'bundle update {package}'), 'composer.lock': ('composer', 'composer update {package}')}
+
+
+def manual_upgrade(path, package, fixed):
+    """Why a batch cannot move `package` in the lock file at `path`, as {'why', 'tool', 'lock', 'command'}; None when it
+    can, or when the site is no lock file (a requirements.txt is a text edit). 'lock' is a component no lock file names."""
+    from ...engines.process import which
+    lock = PurePosixPath(path).name
+    if lock == 'sbom.cdx.json': return {'why': 'lock', 'tool': '', 'lock': lock, 'command': ''}
+    if lock not in MANAGERS: return None
+    tool, command = MANAGERS[lock]
+    command = command.format(package=package, fixed=str(fixed).removeprefix('v'))
+    if tool not in json.loads(RULES.read_text(encoding='utf-8'))['upgrade_dependency']:
+        return {'why': 'tool', 'tool': tool, 'lock': lock, 'command': command}
+    return None if which(tool) else {'why': 'missing', 'tool': tool, 'lock': lock, 'command': command}
 
 
 MECHANICAL = ('remove_dead', 'dead_code', 'leftover', 'upgrade_dependency')

@@ -234,9 +234,11 @@ class Sandbox:
 
     def caches(self):
         """Where the run's package managers cache (pip, npm, and what follows XDG): inside TMPDIR, removed with the run,
-        even when the profile moves HOME to a folder that stays (EAOS on itself: 160 MB of npm and pip caches kept)."""
+        even when the profile moves HOME to a folder that stays (EAOS on itself: 160 MB of npm and pip caches kept). Go's
+        module cache is read-only unless -modcacherw (a run would leave it), and Go never downloads another toolchain."""
         cache = str(self.tmp / 'cache')
-        return {'XDG_CACHE_HOME': cache, 'PIP_CACHE_DIR': cache + '/pip', 'npm_config_cache': cache + '/npm'}
+        return {'XDG_CACHE_HOME': cache, 'PIP_CACHE_DIR': cache + '/pip', 'npm_config_cache': cache + '/npm',
+                'GOMODCACHE': cache + '/go', 'GOFLAGS': '-modcacherw', 'GOTOOLCHAIN': 'local'}
 
     def _record(self):
         record = {'schema_version': 1, 'backend': 'unshare' if self.offline else 'process', 'own_view': not self.refused,

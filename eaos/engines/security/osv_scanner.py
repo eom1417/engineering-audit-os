@@ -80,8 +80,10 @@ def _add_package(merged, row, site):
     # A Go module is `5.2.1` read from go.mod and `v5.2.1` from the SBOM: one package, in OSV's form (its fixes have no v).
     if package.get('ecosystem') == 'Go' and str(version).startswith('v'): version = version[1:]
     key = (package.get('ecosystem'), package.get('name'), version)
-    entry = merged.setdefault(key, {'sites': set(), 'advisories': {}})
+    entry = merged.setdefault(key, {'sites': set(), 'advisories': {}, 'groups': {}})
     entry['sites'].add(site)
+    # The groups a lock file puts the package in (package-lock.json: `dev` when only development pulls it in).
+    entry['groups'][site] = set(row.get('dependency_groups', ()))
     scores = {vid: group.get('max_severity') for group in row.get('groups') or [] for vid in group.get('ids') or []}
     for vulnerability in row.get('vulnerabilities') or []:
         entry['advisories'][vulnerability['id']] = _advisory(vulnerability, scores.get(vulnerability['id']), key)
@@ -105,6 +107,7 @@ def normalise(payload, target, found):
         ids = sorted(advisories)
         # The SBOM is a report file, not the project's: it is a site only when no lockfile names the package.
         sites = sorted(entry['sites'] - {'sbom.cdx.json'}) or ['sbom.cdx.json']
+        groups = sorted(set.intersection(*(entry['groups'][site] for site in sites)))
         message = (f"{name}@{installed} ({ecosystem}) has {len(ids)} known "
                    f"{'vulnerability' if len(ids) == 1 else 'vulnerabilities'} ({', '.join(ids[:5])}"
                    f"{' …' if len(ids) > 5 else ''}), highest {worst}; "
@@ -113,7 +116,8 @@ def normalise(payload, target, found):
             NAME, found, 'osv.vulnerable_dependency', 'vulnerability',
             subject('package', f'{ecosystem}:{name}@{installed}', sites[0], None), message,
             measurements=[measurement('severity', worst), measurement('advisories', len(ids)),
-                          measurement('fixed_in', upgrade), measurement('advisory_ids', ids)],
+                          measurement('fixed_in', upgrade), measurement('advisory_ids', ids),
+                          measurement('dependency_groups', groups)],
             method=DETERMINISTIC, raw_ref='osv-scanner/osv.json', sites=[{'path': site, 'line': None} for site in sites]))
     return findings
 

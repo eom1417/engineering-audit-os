@@ -60,8 +60,10 @@ def _load_blocker(specification, sets):
 
 
 def _vulnerable(specification, sets):
+    """Confirmed while the package version, or any of a lock file card's (its `targets`), is still reported."""
+    wanted = set(specification.get('targets') or [specification.get('package')])
     for fact in sets['external']['facts']:
-        if fact['kind'] == 'engine_finding' and fact['location'].get('symbol') == specification['package'] \
+        if fact['kind'] == 'engine_finding' and fact['location'].get('symbol') in wanted \
                 and (fact['value'] or {}).get('kind') == 'vulnerability':
             return 'CONFIRMED', fact['value']['message']
     return 'REFUTED', 'the scan no longer reports this package version as vulnerable'

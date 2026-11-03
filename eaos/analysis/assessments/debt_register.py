@@ -22,10 +22,11 @@ from ...core.system.files import read_json
 
 FORMULA = 'score = pct(complexity_max) x pct(churn) x (1 + pct(fan_in)), percentile ranks among the analysed files'
 SEVERITIES = ('low', 'medium', 'high', 'critical')
+DEPENDENCY_KEYS = ('vulnerable_dependency', 'vulnerable_lockfile')
 DETERMINISTIC_FACTS = ('committed_credential', 'broken_code')
 # render key (or engine kind) -> (category, severity when the evidence says nothing more precise)
 KEYS = {
-    'vulnerable_dependency': ('supply_chain', None), 'security_weakness': ('security', None), 'broken_code': ('reliability', None),
+    'vulnerable_dependency': ('supply_chain', None), 'vulnerable_lockfile': ('supply_chain', None), 'security_weakness': ('security', None), 'broken_code': ('reliability', None),
     'dead_code': ('dead_code', 'low'), 'dead_code_review': ('dead_code', 'low'), 'leftover': ('dead_code', 'low'),
     'load_blocker': ('reliability', 'medium'), 'trace_gap': ('reliability', 'low'), 'mutable_global': ('reliability', 'medium'),
     'cycle': ('architecture', 'medium'), 'cochange': ('architecture', 'low'), 'hotspot': ('maintainability', 'medium'),
@@ -135,8 +136,8 @@ def _second_witnesses(facts, all_facts, category):
 
 def _severity(claim, key, default, facts):
     # Archived code does not run: whatever it breaks is a leftover to remove, not a product defect.
-    if claim.get('origin') == 'archive' and key != 'vulnerable_dependency': return 'low'
-    if key in ('vulnerable_dependency', 'security_weakness'): return _stated_severity(claim)
+    if claim.get('origin') == 'archive' and key not in DEPENDENCY_KEYS: return 'low'
+    if key in DEPENDENCY_KEYS + ('security_weakness',): return _stated_severity(claim)
     if key == 'broken_code': return 'high' if claim.get('claim_type') == 'risk' else 'medium'
     if key == 'engine_cluster': return _cluster_severity(claim)
     return default or 'medium'

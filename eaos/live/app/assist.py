@@ -4,6 +4,7 @@ import json
 import re
 from pathlib import Path
 from ...core.system.files import read_json
+from .profile import SAID
 
 ENV_EXAMPLES = ('.env.example', '.env.sample', '.env.template', '.env.local.example', '.env.development.example', 'example.env')
 
@@ -17,13 +18,12 @@ local database EAOS provides. You do not change the app. You answer with one JSO
 "env" is the complete environment: it replaces the current one, so keep what still applies. For "start",
 "install" and "prepare", null keeps the current value and [] removes it (no prepare commands at all).
 "database": "none" when the app runs without one locally; "postgres" gives it EAOS's local PostgreSQL.
-The app may be written in any language: JavaScript, or Python (a server it starts itself, its own command line, or
-uvicorn and gunicorn). When the current profile starts nothing ("start": ["true"]), EAOS found no JavaScript web
-app: read the documentation and say how to install and start the app's web server, on 127.0.0.1 and the profile's
-"port". Rules, each one enforced: every address is http://127.0.0.1 or http://localhost; no real secret (generate
-values); no command that deploys, publishes, or reaches a hosted service; every command starts with npm, npx, pnpm,
-yarn, bun, node, corepack, python, python3, pip, pip3, uv, poetry, uvicorn or gunicorn; commands run in the app's
-folder.
+The app may be written in any language: JavaScript, Python (a server it starts itself, its own command line, or
+uvicorn and gunicorn), or Go (`go mod download`, then `go run .`). When the current profile starts nothing
+("start": ["true"]), EAOS found no JavaScript web app: read the documentation and say how to install and start the
+app's web server, on 127.0.0.1 and the profile's "port". Rules, each one enforced: every address is http://127.0.0.1 or http://localhost; no real secret (generate
+values); no command that deploys, publishes, or reaches a hosted service; every command starts with one of: """ + SAID + """;
+commands run in the app's folder.
 Use "{database_url}" for the local database's address, and "{run_dir}" (an empty folder of the run's own,
 outside the app, made for you) for any folder the app needs outside its code: backups, uploads, data. Never
 create folders with commands. The seed script runs with Node after the app starts,

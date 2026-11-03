@@ -2,6 +2,17 @@
 
 ## Not yet versioned
 
+A first trial on five real projects planned 69 dependency cards as fixable that no batch could fix (their lock files
+were bun's, uv's or Go's, which EAOS cannot rewrite), refused to run a Go app at all, called development tools
+"shipped to every user", and gave an Angular app 42 cards for five packages it names.
+
+- **A dependency card is ready only when EAOS can rewrite its lock file:** otherwise it says which tool and which command
+  the person runs themselves.
+- **Go runs an app in the safe app run:** `go` joins the runners, said to the assistant from the one list; the system Go,
+  never another toolchain downloaded (`GOTOOLCHAIN=local`), its module cache removable.
+- **A vulnerable package only development pulls in is said so,** its severity unchanged.
+- **One card per dependency the project names, one per lock file for the rest:** that card passes or fails whole.
+
 A tool MCP called read-only changed the project. Reading a file of a build turned a checked project into a build's, and made the
 folder and state of a project never started; an assistant told it only reads had no reason to be careful.
 
