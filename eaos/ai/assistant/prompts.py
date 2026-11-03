@@ -27,10 +27,15 @@ ASK = ('When you need the person (their agreement to run the app, a choice only 
 WHERE = {'studio': {'en': 'in the Studio', 'ar': 'في الاستوديو'}, 'terminal': {'en': 'in the terminal', 'ar': 'في الطرفية'}}
 ACTS = ('fix_abandon',)                    # what an answer may make the Studio do itself (eaos/interfaces/studio_actions/runs.py)
 
+# How a card is changed, in a Fix and in a lane beside it.
+EDIT = ('fix_edit, keeping the code laws of the EAOS instructions (least code, one home for every rule, nothing dead), to the '
+        "card's files and to what it asks: a change to any other file is kept only with fix_edit's beyond_why, why each "
+        'such file must change')
+
 VERBS = {
     'fix': ('Use the eaos tools to fix these cards of this project safely, end to end, without coming back between steps. '
             'Follow `status`: audit if it says so, then run_setup, run_try until the app runs, safety_net, then fix_start with '
-            'exactly these cards, and for each card: finding and fix_read, then fix_edit, keeping the code laws of the EAOS instructions (least code, one home for every rule, nothing dead). A card you cannot fix (its change '
+            'exactly these cards, and for each card: finding and fix_read, then ' + EDIT + '. A card you cannot fix (its change '
             'keeps failing the checks, or no safe change exists) gets fix_skip with its reason, and you go on with the next '
             'card: one card never stops the batch. Try every card yourself first: why an earlier batch skipped it is no '
             'reason now (EAOS\'s checks change), so skip only after your own change was refused. When every card was tried, call fix_finish, even if some were skipped; if it '
@@ -53,8 +58,7 @@ VERBS = {
 # A Fix run started beside the first one in speed mode (eaos/interfaces/studio_actions/lane_assistants.py): its lane of the batch only.
 LANE = ('Use the eaos tools to fix these cards of the batch another assistant of the EAOS Studio opened: you are one of several '
         'assistants fixing it at the same time, each its own cards and files. For each card: finding and fix_read, then '
-        'fix_edit, keeping the code laws of the EAOS instructions (least code, one home for every rule, nothing dead). A card '
-        'you cannot fix (its change keeps failing the checks, or no safe change exists) gets fix_skip with its reason; when '
+        + EDIT + '. A card you cannot fix (its change keeps failing the checks, or no safe change exists) gets fix_skip with its reason; when '
         'fix_edit answers that another assistant is changing one of its files, leave the card (it is fixed at the end) and go '
         'on with the next one. Never ask the person anything, the batch waits on no question of yours: a card that needs '
         'their choice gets fix_skip with that question as its reason. Never call fix_start, fix_finish or fix_abandon: the '

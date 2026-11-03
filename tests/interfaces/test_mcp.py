@@ -196,6 +196,32 @@ class ToolTests(Home):
         state = project_state.load(self.project)
         self.assertEqual((state['waves'][-1]['status'], state.get('open_wave')), ('abandoned', None))
 
+    def test_a_change_beyond_its_cards_files_is_kept_only_with_why(self):
+        # Trial on real projects (2026-11-02): a dialog's card changed 13 files, adding a password toggle and a full-width
+        # button nobody asked for; the other 12 files were only named at the hand-over
+        state = agent_tools.state_of(str(self.project))
+        report = guided.report_of(state)
+        report.mkdir(parents=True)
+        (report / 'plan.json').write_text(json.dumps({'tasks': [{'id': 'TASK-001', 'title': 'Split the dialog', 'paths': ['src/a.js']}]}))
+        copy = Path(self.tmp.name) / 'copy'
+        subprocess.run(['git', 'clone', '-q', str(self.project), str(copy)], check=True)
+        base = guided._git(copy, 'rev-parse', 'HEAD').stdout.strip()
+        state['open_wave'] = {'number': 1, 'root': str(copy), 'base': base, 'cards': ['TASK-001'], 'kept': {}, 'failed': {}, 'tools': {}}
+        guided.save(state)
+        edits = [{'path': 'src/a.js', 'find': 'a = 1', 'replace': 'a = 3'}, {'path': 'src/b.js', 'content': 'export const c = 1;\n'}]
+        edit = lambda **more: agent_tools._fix_edit_job(str(self.project), {'card': 'TASK-001', 'edits': edits, 'summary': 'Split the dialog', **more}, lambda *_: None)
+        with mock.patch('eaos.facts.run.collect'), mock.patch('eaos.journeys.fix.execute.new_breakage', return_value=[]), \
+                mock.patch('eaos.journeys.fix.waves.batch.batch_acceptance', return_value={'TASK-001': 0}):
+            refused = edit()
+            self.assertEqual((refused['kept'], refused['beyond_the_card']), (False, ['src/b.js']))
+            self.assertIn('beyond_why', refused['what_now'])
+            self.assertEqual((guided._git(copy, 'rev-parse', 'HEAD').stdout.strip(), (copy / 'src/b.js').exists()), (base, False))
+            kept = edit(beyond_why='the one-source gate made it move the shared constant')
+        self.assertTrue(kept['kept'])
+        self.assertEqual(project_state.load(self.project)['open_wave']['beyond'],
+                         {'TASK-001': {'files': ['src/b.js'], 'why': 'the one-source gate made it move the shared constant'}})
+        self.assertIn('src/b.js: the one-source gate made it move the shared constant', guided._git(copy, 'log', '-1', '--format=%B').stdout)
+
     def test_assistants_fixing_one_batch_at_once_keep_to_their_own_files_and_it_is_handed_over_once_all_are_done(self):
         # speed mode: one batch, one copy and branch, two assistants; a change to a file the other one holds is never tried
         state = agent_tools.state_of(str(self.project))

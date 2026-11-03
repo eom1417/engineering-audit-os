@@ -10,7 +10,7 @@ from ...core.project import branches, jobs, rules as rule_registry, state as pro
 from ..fix.branch import commit_of, direct_target, merge_target
 from ...core.project.state import waiting_batch
 from ...live.app import setup as live_setup
-from .edits import _apply, _inside
+from .edits import _committed, _inside
 from .evidence import _ready
 from .closing import _open, _settled, fix_abandon  # noqa: F401
 from .project import WAIT, _head, _read, _report, _start, busy_answer, state_of
@@ -266,7 +266,7 @@ def fix_read(path, project=None, start=1, end=None):
             'text': '\n'.join(f'{n:>5}  {lines[n - 1]}' for n in range(start, end + 1))}
 
 
-def fix_edit(card, edits, summary='', project=None):
+def fix_edit(card, edits, summary='', project=None, beyond_why=''):
     state = state_of(project)
     wave = _open(state)
     if stop := guided.stale_refusal(state): return stop
@@ -274,7 +274,7 @@ def fix_edit(card, edits, summary='', project=None):
     if card != batch_finish.REPAIR and card not in wave['cards']: raise ValueError(f"{card} is not in batch {wave['number']}: {', '.join(wave['cards'])}")
     if card in wave['kept']: return {'status': 'already_kept', 'what_now': 'This card is already fixed in the batch.'}
     if not edits: raise ValueError('no edit was sent')
-    return lanes.take(state['project'], card, edits) or _start('fix_edit', state, {'card': card, 'edits': edits, 'summary': summary})
+    return lanes.take(state['project'], card, edits) or _start('fix_edit', state, {'card': card, 'edits': edits, 'summary': summary, 'beyond_why': beyond_why})
 
 
 def _planned(report, card_id):
@@ -283,7 +283,7 @@ def _planned(report, card_id):
 
 
 def _fix_edit_job(project, arguments, progress):
-    from ..fix.waves import commit, drop_last, edit_gates
+    from ..fix.waves import drop_last, edit_gates
     state = project_state.load(project)
     wave, report = state['open_wave'], guided.report_of(state)
     root, card_id = Path(wave['root']), arguments['card']
@@ -291,14 +291,8 @@ def _fix_edit_job(project, arguments, progress):
     _back_to_what_is_recorded(root, wave)
     repair = card_id == batch_finish.REPAIR
     card = batch_finish.repair_card(wave) if repair else _planned(report, card_id)
-    try:
-        changed = _apply(root, arguments['edits'])
-        commit(root, card, arguments.get('summary', ''))
-    except (ValueError, RuntimeError, OSError, UnicodeDecodeError) as problem:
-        guided._git(root, 'checkout', '--quiet', '--', '.')
-        guided._git(root, 'clean', '-fdq')
-        return {'card': card_id, 'kept': False, 'why': f'the edit could not be applied: {problem}',
-                'what_now': 'Nothing changed. Read the file again with fix_read and send a corrected edit.'}
+    (changed, outside), stop = _committed(root, card, arguments, repair)
+    if stop: return {'card': card_id, 'kept': False, **stop}
     progress(0, 1, 'checking the change: the problem is gone, nothing broke, no endpoint disappeared')
     holding = (state['project'], rule_registry.holding(state['project'], state, None if repair else card_id, wave['number']))
     broke, exit_code, still = edit_gates((report, guided.source(state), project_state.runtime_of(state), holding), root, card, changed, repair)
@@ -309,8 +303,7 @@ def _fix_edit_job(project, arguments, progress):
         return {'card': card_id, 'kept': False, 'why': why, 'files': changed,
                 'what_now': 'The change was taken back. Fix the cause and send fix_edit again, or fix_skip with the reason.'}
     if repair: return batch_finish.repaired(project_state.load(project), root, changed, diff)
-    outside = batch_finish.beyond(card, changed)
-    try: wave = _record_kept(project, root, card_id, arguments.get('summary') or '', outside)
+    try: wave = _record_kept(project, root, card_id, arguments.get('summary') or '', {'files': outside, 'why': arguments.get('beyond_why', '').strip()})
     except guided.StaleBatch as stale:
         drop_last(root)
         return {**stale.answer, 'card': card_id, 'kept': False}
@@ -332,7 +325,7 @@ def _back_to_what_is_recorded(root, wave):
 
 def _record_kept(project, root, card_id, summary, outside):
     """The change recorded on the batch, unless the code moved on during its checks (one kept change would let the batch go on);
-    `outside`: the files it changed beyond its card's own (eaos/journeys/fix/finish.py beyond), named at the hand-over."""
+    `outside`: the files it changed beyond its card's own (eaos/journeys/fix/finish.py beyond) and why, said at the hand-over."""
     with lanes.changing(project) as state:
         guided.refuse_if_stale(state)
         wave = state['open_wave']
@@ -340,9 +333,7 @@ def _record_kept(project, root, card_id, summary, outside):
         wave['tools'][card_id] = 'assistant'
         wave['failed'].pop(card_id, None)
         wave.setdefault('summaries', {})[card_id] = summary
-        if outside:
-            held = wave.setdefault('beyond', {})
-            held[card_id] = sorted({*held.get(card_id, []), *outside})
+        if outside['files']: wave.setdefault('beyond', {})[card_id] = outside
     return wave
 
 
