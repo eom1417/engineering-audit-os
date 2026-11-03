@@ -11,7 +11,7 @@ AUTHENTICATION = re.compile(
     r'verify_token|jwt\.verify|jwtVerify|getServerSession|getSession|getToken|currentUser|current_user|getUser|get_user|'
     r'getAuth|requireUser|require_user|login_required|LoginRequired\w*|jwt_required|passport\.authenticate|withAuth|'
     r'withApiAuth\w*|isLoggedIn|is_logged_in|checkAuth|check_auth|protect\w*|auth\.protect|clerkClient|validateRequest|'
-    r'validateSession|lucia\.\w+|IsAuthenticated|permission_classes|get_current_user\w*|Security\(|HTTPBearer|OAuth2PasswordBearer)\b'
+    r'validateSession|lucia\.\w+|IsAuthenticated|permission_classes|get_current_\w*user\w*|Current(?:Active)?User|Security\(|HTTPBearer|OAuth2PasswordBearer)\b'
     r'|\b(?:req|request)\.(?:user|auth|session\.user(?:Id)?)\b|\bawait\s+auth\(\)|\bsession\?*\.user\b|\buser\s*=\s*await\s+auth\('
     # a handler that answers 401 checks who is signed in, whatever it calls the check
     r'|[(,=\s]401\b')
