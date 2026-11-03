@@ -26,6 +26,7 @@ engineering-audit-os/
     journeys/              the person's journeys: check.py, check_choices.py, extend.py, handover.py, catalog.py
       fix/                 fixing in batches: selection, execute (the sandbox and the gates), lanes, regenerate, finish,
                            the move and context batches; waves/ a batch fixed at once and handed over as a branch
+                           (split: also one branch per kind of fix)
       build_from_plan/     build from a plan: the blueprint, the assistant's steps, the checks and the look
       agent_tools/         what an assistant does EAOS with (the tools behind MCP)
       guided/              the guided way in: `eaos start`, `next`, `status`, `doctor`, `clean`

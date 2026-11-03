@@ -12,6 +12,12 @@ were bun's, uv's or Go's, which EAOS cannot rewrite), refused to run a Go app at
   never another toolchain downloaded (`GOTOOLCHAIN=local`), its module cache removable.
 - **A vulnerable package only development pulls in is said so,** its severity unchanged.
 - **One card per dependency the project names, one per lock file for the rest:** that card passes or fails whole.
+- **A batch is also handed over as one branch per kind of fix:** a reviewer rejected every branch, one of which mixed
+  dependency upgrades, refactors and visual fixes in 30 files, so nothing could be merged in pieces. The batch's branch
+  stays whole; when its fixes are of more than one kind, each kind also gets `<branch>-deps`, `-refactor`, `-look` or
+  `-other`, made from the base with only that kind's commits and kept only when they apply alone and that kind's cards
+  pass their acceptance there; a kind that does not stand alone is named. `fix_finish` answers `split_branches` and
+  `not_split`; accept and undo remove these branches with the batch's.
 
 A tool MCP called read-only changed the project. Reading a file of a build turned a checked project into a build's, and made the
 folder and state of a project never started; an assistant told it only reads had no reason to be careful.
