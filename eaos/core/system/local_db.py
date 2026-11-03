@@ -172,19 +172,20 @@ class LocalPostgres:
                   f"-h 127.0.0.1 -p {port} -k {self.sockets}", 'start')
         state = {'port': port, 'bin': str(bin_dir)}
         self.state.write_text(json.dumps(state))
-        self._psql(state, "select format('drop database %I', datname) from pg_database where datname ~ (:'copy' || '[0-9a-f]{8}$') \\gexec",
+        self._psql(state, "select format('drop database %I with (force)', datname) from pg_database where datname ~ (:'copy' || '[0-9a-f]{8}$') \\gexec",
                    copy=COPY)
         return self.url(state)
 
     def _sweep(self, bin_dir):
         """Stop and remove every database whose runtime is gone: none of them can be asked for again."""
         for note in self.data.parent.glob('*.from'):
-            root = Path(note.read_text(encoding='utf-8'))
+            try: root = Path(note.read_text(encoding='utf-8'))
+            except FileNotFoundError: continue          # another run's sweep took it first
             if root.exists(): continue
             data = note.with_suffix('')
             self._run(bin_dir, 'pg_ctl', '-D', str(data), '-m', 'immediate', 'stop', check=False)
             for folder in (data, _sockets(root)): shutil.rmtree(folder, ignore_errors=True)
-            note.unlink()
+            note.unlink(missing_ok=True)
 
     def url(self, state, database='postgres'):
         return f"postgresql://postgres:{self.password_file.read_text().strip()}@127.0.0.1:{state['port']}/{database}"
@@ -233,9 +234,8 @@ class LocalPostgres:
     def stop(self):
         """Leave the server, and stop it when no other run holds it (its data stays)."""
         state = self.running()
-        for name in self._copies if state else []:     # its connections end first: a check may leave one open
-            self._psql(state, "select pg_terminate_backend(pid) from pg_stat_activity where datname = :'name'", name=name)
-            self._psql(state, 'drop database if exists :"name"', name=name)
+        for name in self._copies if state else []:     # FORCE ends its connections in the same step: a check may leave one open
+            self._psql(state, 'drop database if exists :"name" with (force)', name=name)
         self._copies = []
         if self._held is not None:
             self._held.close()

@@ -705,7 +705,7 @@ class AnEditCutShort(Work):
             seen.append((self.copy / 'src/a.js').read_text().splitlines()[0])
             return [], 0, None
         with mock.patch('eaos.journeys.fix.waves.edit_gates', gates):
-            fixing._fix_edit_job(self.where, {'card': 'TASK-002', 'edits': [{'path': 'src/n.js', 'content': 'x\n'}], 'summary': ''}, lambda *_: None)
+            fixing._fix_edit_job(self.where, {'card': 'TASK-002', 'edits': [{'path': 'src/n.js', 'content': 'x\n'}], 'summary': '', 'beyond_why': 'a file beside the card, on purpose'}, lambda *_: None)
         self.assertEqual(seen, ['export const a = 1;'])
         self.assertEqual(list(self.wave()['kept']), ['TASK-002'])
 
@@ -720,14 +720,14 @@ class AnEditCutShort(Work):
         self.keep_one()
         git(self.copy, '-c', 'user.name=a', '-c', 'user.email=a@b', 'commit', '-q', '--amend', '-m', 'rebuilt by the hand-over')
         with mock.patch('eaos.journeys.fix.waves.edit_gates', return_value=([], 0, None)):
-            fixing._fix_edit_job(self.where, {'card': 'TASK-002', 'edits': [{'path': 'src/n.js', 'content': 'x\n'}], 'summary': ''}, lambda *_: None)
+            fixing._fix_edit_job(self.where, {'card': 'TASK-002', 'edits': [{'path': 'src/n.js', 'content': 'x\n'}], 'summary': '', 'beyond_why': 'a file beside the card, on purpose'}, lambda *_: None)
         self.assertTrue((self.copy / 'src/kept.js').is_file(), 'nothing says what it may drop: it drops nothing')
 
     def test_what_is_kept_stays_when_the_next_edit_starts(self):
         self.keep_one()
         kept = self.wave()['kept']['TASK-001']
         with mock.patch('eaos.journeys.fix.waves.edit_gates', return_value=([], 0, None)):
-            self.assertTrue(fixing._fix_edit_job(self.where, {'card': 'TASK-002', 'edits': [{'path': 'src/n.js', 'content': 'x\n'}], 'summary': ''}, lambda *_: None)['kept'])
+            self.assertTrue(fixing._fix_edit_job(self.where, {'card': 'TASK-002', 'edits': [{'path': 'src/n.js', 'content': 'x\n'}], 'summary': '', 'beyond_why': 'a file beside the card, on purpose'}, lambda *_: None)['kept'])
         self.assertTrue(git(self.copy, 'merge-base', '--is-ancestor', kept, 'HEAD') == '')
         self.assertTrue((self.copy / 'src/kept.js').is_file())
 
