@@ -125,17 +125,21 @@ def _not_ready(state, deliver_as):
 
 def _chosen(state, cards, size):
     """(why nothing opens, or None; the batch's cards): those asked for, else the next ready ones."""
-    from ..fix.waves import kept_apart, next_batch, plan as read_plan, too_early, with_prerequisites
+    from ..fix.waves import next_batch, plan as read_plan, with_prerequisites
     report = _report(state)
     known = {t['id']: t for t in read_plan(report)['tasks']}
     chosen = with_prerequisites(report, state, list(dict.fromkeys(cards))) if cards else next_batch(report, state, size=min(max(int(size), 1), 25))
     unknown = [c for c in chosen if c not in known]
     if unknown: raise ValueError(f'not cards of this plan: {", ".join(unknown[:5])}')
-    if (undecided := _undecided(chosen, known)): return undecided, chosen
-    if apart := kept_apart([known[c] for c in chosen]): return apart, chosen
-    if early := too_early(state, [known[c] for c in chosen]): return early, chosen
-    if not chosen: return {'status': 'nothing_to_fix', 'what_now': 'No fixable card is left; the rest need the person\'s decision (see plan).'}, chosen
-    return None, chosen
+    return _not_opening(state, chosen, known), chosen
+
+
+def _not_opening(state, chosen, known):
+    """Why a batch of `chosen` does not open: none, some need a decision, are repository craft or wait for others; else None."""
+    from ..fix.waves import kept_apart, too_early
+    if not chosen: return {'status': 'nothing_to_fix', 'what_now': 'No fixable card is left; the rest need the person\'s decision (see plan).'}
+    taken = [known[c] for c in chosen]
+    return _undecided(chosen, known) or kept_apart(taken) or too_early(state, taken)
 
 
 def _undecided(chosen, known):
@@ -289,7 +293,7 @@ def _fix_edit_job(project, arguments, progress):
     card = batch_finish.repair_card(wave) if repair else _planned(report, card_id)
     try:
         changed = _apply(root, arguments['edits'])
-        commit(root, card, arguments.get('summary') or '')
+        commit(root, card, arguments.get('summary', ''))
     except (ValueError, RuntimeError, OSError, UnicodeDecodeError) as problem:
         guided._git(root, 'checkout', '--quiet', '--', '.')
         guided._git(root, 'clean', '-fdq')

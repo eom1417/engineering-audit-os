@@ -103,13 +103,17 @@ def _split(chosen, fixing):
     cards not done yet (its `waits`, decisions.waiting) is left out: it goes in a later batch, once they are done; when
     `fixing`, so is repository craft, which goes in a batch of its own."""
     if not chosen: raise SelectionError('the selection names no card', 'الاختيار ما فيه أي بطاقة')
-    run = [card for card in chosen if card.get('state', 'open') in OPEN and not card.get('waits') and not (fixing and own_batch(card))]
+    run = [card for card in chosen if _runs(card, fixing)]
     left = [_left(card) for card in chosen if card not in run]
     if not run:
         raise SelectionError('no selected card can run now: ' + ', '.join(f"{c['id']} ({c['why']})" for c in left[:5]),
                              'ولا بطاقة من المختارة تقدر تشتغل الحين (متعامل معها، أو تنتظر بطاقات قبلها): '
                              + '، '.join(c['id'] for c in left[:5]))
     return run, left
+
+
+def _runs(card, fixing):
+    return card.get('state', 'open') in OPEN and not card.get('waits') and not (fixing and own_batch(card))
 
 
 def _left(card):
