@@ -6,6 +6,10 @@ A first trial on five real projects planned 69 dependency cards as fixable that 
 were bun's, uv's or Go's, which EAOS cannot rewrite), refused to run a Go app at all, called development tools
 "shipped to every user", and gave an Angular app 42 cards for five packages it names.
 
+- **An API has no screen pictured:** when the code declares http routes and no page, and the first page answers JSON
+  or 404, the screens stage stops (`api_only`) and its GET routes are what the behaviour lock records, by request
+  (a second trial: an Express API's JSON answers were pictured as pages, and their phone width and missing
+  `<title>` became a card no fix could pass).
 - **An app runs when one of its known routes answers,** not only its first page: an API has no home page, so a 404
   at `/` is no failure while a route the code declares answers with a page (2xx, 3xx) or a refusal of its own
   code (any 4xx but 404: a sign-in asked, input refused). A 404 is never an answer (a second trial: a Gin API ran

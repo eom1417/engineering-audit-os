@@ -87,3 +87,24 @@ class NotFoundTests(unittest.TestCase):
         self.assertIn('/user', said[0])
         self.assertIn('prefix', said[0])
         self.assertEqual(pages._not_found(rows[:1]), [])
+
+
+class ApiTests(unittest.TestCase):
+    def test_an_api_has_no_page_pictured_its_get_routes_are_the_locks_request_tests(self):
+        # A real Express API: its first page answered JSON, and the screens pictured it and two routes as pages; the
+        # phone width and the missing <title> of a JSON answer became a card no fix could pass.
+        from unittest import mock
+        from eaos.pipeline.runners import pages
+        from eaos.pipeline.stages import SkipStage
+        out = Path(scratch())
+        (out / 'facts').mkdir()
+        (out / 'live').mkdir()
+        (out / 'facts/entrypoints.json').write_text(json.dumps({'facts': [
+            {'kind': 'entry_point', 'value': {'surface': 'http', 'route': '/api/tags', 'http_method': 'GET'}}]}))
+        context = mock.MagicMock(out=out)
+        for text, api in (('{"status":"API is running on /api"}', True), ('<html>Welcome</html>', False)):
+            (out / 'live/setup.json').write_text(json.dumps({'page': {'path': '/', 'status': 200, 'text': text}}))
+            with mock.patch('eaos.pipeline.runners.live_app.sessions', side_effect=RuntimeError('opened')):
+                with self.assertRaises(SkipStage if api else RuntimeError) as raised:
+                    pages.screens(context)
+            if api: self.assertEqual(raised.exception.code, 'api_only')
