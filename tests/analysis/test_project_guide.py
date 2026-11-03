@@ -200,6 +200,8 @@ class ProjectGuideTests(Workspace):
     def test_the_commands_are_the_projects_own(self):
         root = Path(self.tmp)
         self.assertEqual(extending.commands(root, {'manage.py', 'go.mod'}), ['python manage.py test', 'go test ./...'])
+        (root / 'package.json').write_text(json.dumps({'scripts': {'test': 'x'}}), encoding='utf-8')
+        self.assertEqual(extending.commands(root, {'package.json', 'bun.lock'}), ['bun run test'])
 
     def test_the_guide_is_named_after_the_project_not_its_batch_copy(self):
         copy = self.repo().rename(Path(self.tmp) / 'WAVE-1')
