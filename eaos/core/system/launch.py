@@ -108,8 +108,8 @@ def durable():
     return chosen == 'systemd' and Path('/run/systemd/system').is_dir() and bool(shutil.which('systemd-run'))
 
 
-def service_name(state):
-    return 'eaos-studio-' + re.sub(r'[^A-Za-z0-9_-]', '-', Path(state['workspace']).name)
+def service_name(state, kind='studio'):
+    return f'eaos-{kind}-' + re.sub(r'[^A-Za-z0-9_-]', '-', Path(state['workspace']).name)
 
 
 def _as_service(state, argv, env, log):

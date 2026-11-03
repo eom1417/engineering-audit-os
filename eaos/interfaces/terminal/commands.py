@@ -185,6 +185,7 @@ def _ended(record, lang, project):
 @command
 def runs(args, lang):
     actions = govern.core(args.project)
+    govern.wake_queued(args.project)
     rows = actions.runs({'all': '1'} if args.all else {})['runs']
     states = contract()['lifecycle']['states']
     for row in rows[:30]:

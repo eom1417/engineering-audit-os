@@ -70,8 +70,17 @@ def wake(project, answer=None):
     question, option, text = answer or (None, None, None)
     argv = [sys.executable, '-m', 'eaos', 'govern', str(actions.project), *(['--answer', question] if question else []),
             *(['--option', option] if option else []), *(['--text', text] if text else [])]
-    launch.detach(state, argv, launch.own_env(**{HEADLESS: '1'}), 'govern.log', 'wb')   # one host's words, written again by the next
+    env, log = launch.own_env(**{HEADLESS: '1'}), launch.log_path(state, 'govern.log')
+    log.write_bytes(b'')        # one host's words, written again by the next
+    unit = f"{launch.service_name(state, 'govern')}-{time.time_ns()}"   # where Studios are services, so is the host: a session that ends cannot end it
+    if not (launch.durable() and launch.as_unit(unit, argv, env, {'description': 'EAOS queue host', 'log': log, 'cwd': state['workspace']})):
+        launch.detach(state, argv, env, 'govern.log')
     return True
+
+
+def wake_queued(project):
+    """The host woken when a run waits in the queue, so a run queued from a session that ended starts when the person looks."""
+    if core(project).store.queue(): wake(project)
 
 
 def host(project, answer=None, idle=HOST_IDLE):

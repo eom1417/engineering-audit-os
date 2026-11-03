@@ -1114,3 +1114,27 @@ class Headless(unittest.TestCase):
                                                    assistant=None, auto_accept=False))
         self.assertEqual(code, 3)
         self.assertIn('eaos problems --fixable', printed.getvalue(), 'a fix of nothing named: it says how to choose the cards')
+
+    def test_where_studios_are_services_the_queue_host_is_one_too(self):
+        # a run queued from a session that ended waited for the next `eaos watch`: the runner ended the host with it
+        from eaos.core.system import launch
+        with mock.patch.object(launch, 'durable', return_value=True), mock.patch.object(launch, 'as_unit', return_value=True) as unit, \
+                mock.patch.object(launch, 'detach') as detached:
+            self.assertTrue(self.govern.wake(self.project))
+        self.assertTrue(unit.call_args.args[0].startswith('eaos-govern-'))
+        detached.assert_not_called()
+
+    def test_looking_at_the_runs_wakes_the_host_only_when_a_run_is_queued(self):
+        import argparse
+        import contextlib
+        import io
+        from eaos.interfaces.terminal import commands
+        core = self.govern.core(str(self.project))
+        self.addCleanup(core.close)
+        asked = lambda: commands.runs(argparse.Namespace(command='runs', project=str(self.project), all=False, lang='en'))
+        with mock.patch.object(self.govern, 'wake') as woken, contextlib.redirect_stdout(io.StringIO()):
+            asked()
+            woken.assert_not_called()
+            core.create({'action': 'note', 'inputs': {'text': 'queued from a session that ended'}})
+            asked()
+        woken.assert_called_once()
