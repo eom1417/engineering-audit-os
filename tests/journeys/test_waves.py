@@ -97,6 +97,17 @@ class OrderTests(unittest.TestCase):
         self.assertEqual(collect.call_count, 1)
         self.assertEqual(exits, {'D': 0, 'G': 1, 'P': 0})
 
+    def test_a_layer_card_is_judged_by_the_layers_read_again_on_the_copy(self):
+        # Trial on real projects (2026-11-02): every layer card of a batch exited 2, "the boundaries facts are not present"
+        spec = {'probe_type': 'graph_query', 'specification': {'query': 'boundary_finding_present', 'rule': 'ui-database',
+                                                               'path': 'web/Orders.jsx', 'params': {}}}
+        card = {'id': 'L', 'verify_command': ['eaos', 'recheck', '--spec', json.dumps(spec), '.']}
+        shown = {'location': {'path': 'web/Orders.jsx'}, 'value': {'rule': 'ui-database', 'params': {}}}
+        for facts, exit in (([], 0), ([shown], 1)):
+            with mock.patch('eaos.facts.run.collect'), mock.patch('eaos.facts.run.read_available', return_value={}), \
+                    mock.patch('eaos.analysis.layers.check'), mock.patch('eaos.analysis.layers.facts_of', return_value=facts):
+                self.assertEqual(wave_batch.batch_acceptance(scratch(), [card], scratch()), {'L': exit})
+
 class RebuildTests(unittest.TestCase):
     def test_a_module_is_split_only_after_its_complex_functions_and_a_split_tried_too_early_comes_back(self):
         # EAOS, 2026-10-15: five module splits went into batches before their simplifications, failed, never came back

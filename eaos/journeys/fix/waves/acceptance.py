@@ -15,10 +15,14 @@ def engines_for(cards):
     from ..execute import GATE_ENGINES
     named = set()
     for card in cards:
-        argv = card.get('verify_command') or []
-        if 'recheck' in argv and '--spec' in argv:
-            named |= set((json.loads(argv[argv.index('--spec') + 1]).get('specification') or {}).get('engines') or [])
+        named |= set(((_spec(card) or {}).get('specification') or {}).get('engines') or [])
     return sorted(set(GATE_ENGINES) | named)
+
+
+def _spec(card):
+    """The probe a `recheck --spec` acceptance asks, or None when the card's check is not a probe."""
+    argv = card.get('verify_command') or []
+    return json.loads(argv[argv.index('--spec') + 1]) if 'recheck' in argv and '--spec' in argv else None
 
 
 def batch_acceptance(report, cards, root, collected=None):
@@ -36,8 +40,9 @@ def batch_acceptance(report, cards, root, collected=None):
 
 
 # What a probe reads beside the collection, made again on the copy as eaos recheck makes it (eaos/analysis/claims/recheck.py
-# MORE): the load model, and a person's rule's own guard (M16), whose stored finding is the check's, never the copy's.
-AGAIN = ('load_blocker_present', 'rule_broken')
+# MORE): the load model, the layers (never in the collection, eaos/facts/run.py), and a person's rule's own guard (M16),
+# whose stored finding is the check's, never the copy's.
+AGAIN = ('load_blocker_present', 'boundary_finding_present', 'rule_broken')
 
 
 def _decided(spec, sets, out, root):
@@ -57,16 +62,14 @@ def _probe_exit(spec, sets, out, root):
 def _still(card, out, root):
     """What a card's own probe still finds on the copy, in its words; '' when its check is not a probe."""
     from ....facts.run import read_available
-    argv = card.get('verify_command') or []
-    if not ('recheck' in argv and '--spec' in argv): return ''
-    return _decided(json.loads(argv[argv.index('--spec') + 1]), read_available(out), out, root)[1]
+    spec = _spec(card)
+    return _decided(spec, read_available(out), out, root)[1] if spec else ''
 
 
 def _acceptance_exit(card, sets, dead, out, root):
     """One card's acceptance exit: read from the collection when it is a probe or the dead-code check, else run."""
-    argv = card.get('verify_command') or []
-    if 'recheck' in argv and '--spec' in argv:
-        return _probe_exit(json.loads(argv[argv.index('--spec') + 1]), sets, out, root)
+    argv, spec = card.get('verify_command') or [], _spec(card)
+    if spec: return _probe_exit(spec, sets, out, root)
     found = DEADCODE.search(argv[-1]) if argv else None
     if found: return 1 if found.groups() in dead else 0
     if argv: return subprocess.run(argv, cwd=root, capture_output=True, text=True, timeout=1800).returncode  # nosemgrep: python.lang.security.audit.dangerous-subprocess-use-audit -- a card's acceptance check, a list argv run in the candidate copy, no shell
