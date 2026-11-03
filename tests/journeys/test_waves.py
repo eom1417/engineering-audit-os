@@ -189,6 +189,16 @@ class RebuildTests(unittest.TestCase):
         before = [{'argv': ['npm', 'ci', '--no-audit', '--no-fund'], 'exit': 0, 'failing': []}, {'argv': ['npm', 'test'], 'exit': 0, 'failing': []}]
         self.assertEqual(regressions(before, after), ['npm ci --no-audit --no-fund'])
 
+    def test_a_codemod_that_fails_says_why_in_its_own_words(self):
+        # Trial on real projects (2026-11-02): eight dependency upgrades failed, each recorded as its command line only
+        import sys
+        from eaos.journeys.fix.execute import run_codemod
+        step = [sys.executable, '-c', "import sys; sys.stderr.write('npm error ERESOLVE could not resolve'); sys.exit(1)"]
+        with mock.patch('eaos.analysis.repair.codemods.card_for', return_value={'kind': 'x'}), \
+                mock.patch('eaos.analysis.repair.codemods._commands', return_value=[(step, None)]), mock.patch('eaos.facts.store.by_id'):
+            with self.assertRaisesRegex(RuntimeError, 'exited 1: npm error ERESOLVE could not resolve'):
+                run_codemod({'id': 'T1'}, scratch(), scratch())
+
 class HandOverTests(unittest.TestCase):
     def test_the_branch_arrives_without_touching_the_current_branch_or_unsaved_edits(self):
         project = repository()
