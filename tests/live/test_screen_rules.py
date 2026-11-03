@@ -79,7 +79,7 @@ class VisitorTests(unittest.TestCase):
 
 
 class NotFoundTests(unittest.TestCase):
-    def test_pages_that_answered_404_are_named_with_the_mount_the_check_does_not_follow(self):
+    def test_pages_that_answered_404_are_named_as_not_measured(self):
         # a real Express app mounted its router under /api in another file: its pages were opened without it, all 404
         from eaos.pipeline.runners import pages
         rows = [{'url': 'http://h/', 'http': 200}, {'url': 'http://h/user', 'http': 404}, {'url': 'http://h/user', 'http': 404}]

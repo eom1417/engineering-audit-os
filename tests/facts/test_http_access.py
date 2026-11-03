@@ -26,7 +26,7 @@ class HttpAccessTests(unittest.TestCase):
         from types import SimpleNamespace
         from eaos.facts.frameworks import js_web
         def routes(text):
-            context = SimpleNamespace(text=text, rel='src/x.ts', line_of=lambda i: text[:i].count('\n') + 1, symbol_at=lambda line: None)
+            context = SimpleNamespace(text=text, rel='src/x.ts', line_of=lambda i: text[:i].count('\n') + 1, symbol_at=lambda line: None, prepared={})
             return [(r['http_method'], r['route']) for r in js_web.detect(context)]
         self.assertEqual(routes(USER), [])
         self.assertEqual(routes('import { Hono } from "hono";\nconst api = new Hono();\napi.get("/health", health);\n'), [('GET', '/health')])

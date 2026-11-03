@@ -1,6 +1,9 @@
 """Express, Fastify, Koa and Next.js route surfaces."""
 import re
 
+from . import js_mounts
+prepare = js_mounts.prepare  # the mounts of every file, before any one is read
+
 LANGUAGES = ('javascript', 'typescript', 'tsx')
 # `route` is Hono's mount (app.route('/api/admin', adminRouter)): a whole group of endpoints under one path.
 ROUTE = re.compile(r'\b(?P<object>app|router|server|fastify|api|hono)\.(?P<method>get|post|put|patch|delete|all|use|route)\(\s*(?P<quote>[\'"`])(?P<route>[^\'"`]*)(?P=quote)\s*,\s*(?P<handler>[\w.]+)?', re.M)
@@ -10,20 +13,24 @@ NEXT_HANDLER = re.compile(r'export\s+(?:default\s+)?(?:async\s+)?function\s+(?P<
 NEXT_METHOD = re.compile(r'export\s+(?:async\s+)?function\s+(?P<method>GET|POST|PUT|PATCH|DELETE)\s*\(', re.M)
 
 
-def _express_route(context, match):
-    """One `app.get('/x', handler)`: its method (MOUNT for Hono's route) and its handler, else the enclosing symbol."""
+def _express_routes_of(context, match):
+    """One `app.get('/x', handler)`: its method (MOUNT for Hono's route) and its handler, else the enclosing symbol; a
+    route per prefix another file mounts it under, the path as written kept in `declared`."""
     line = context.line_of(match.start())
     handler = match.group('handler')
     if handler in {'async', 'function', 'await', 'new'}: handler = None
     method = 'MOUNT' if match.group('method') == 'route' else match.group('method').upper()
-    return {'surface': 'http', 'route': match.group('route'), 'http_method': method,
-            'handler': handler or context.symbol_at(line), 'framework': 'express_like', 'line': line}
+    declared = match.group('route')
+    return [{'surface': 'http', 'route': js_mounts.join(prefix, declared), 'http_method': method,
+             'handler': handler or context.symbol_at(line), 'framework': 'express_like', 'line': line,
+             **({'declared': declared} if prefix else {})}
+            for prefix in js_mounts.prefixes_of(context.prepared.get(__name__), match.group('object'))]
 
 
 def _express_routes(context):
     server_file = bool(SERVER_FILE.search(context.text))
-    return [_express_route(context, match) for match in ROUTE.finditer(context.text)
-            if server_file or match.group('object') not in ('api', 'hono')]
+    return [route for match in ROUTE.finditer(context.text) if server_file or match.group('object') not in ('api', 'hono')
+            for route in _express_routes_of(context, match)]
 
 
 def _next_routes(context):

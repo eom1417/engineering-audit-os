@@ -39,7 +39,7 @@ named no branch, English reasons in Arabic lines, routes opened without their pr
 - **The queue host survives the shell that woke it:** where Studios are systemd services, the host that starts queued runs is a transient unit of its own, as jobs are; elsewhere it is detached as before. `eaos runs` and `eaos status` wake it when a run is queued, and only then.
 - **Time left is paced from the stage's first step and said from the third:** a Fix's app setup before its first card no longer counts as that card's time (661 minutes said for three cards).
 - **Why a change was taken back is said in Arabic** for its known reasons; the English reason is the event's detail. A resumed assistant session is reminded of the language of its messages; what the assistant writes between tools remains its own words.
-- **A named limit, not a fix:** routes a router mounts under a prefix in another file (`.use('/api', router)`) are opened without it; `screens` names the pages that answered 404 and this limit, and counts them as not measured.
+- **Routes a router mounts under a prefix in another file carry it:** `.use('/api', router)` (on the app, a router or a `Router()` chain, or Hono's `.route`) is followed to the file the router is imported from, through nested mounts, so `GET /articles` is read as `GET /api/articles`. `screens` still names the pages that answered 404 and counts them as not measured.
 - **Submodules reach the isolated copy at their pinned commit** when checked out here; one that is not is never fetched, but named with its path and pinned commit in the run's limitations and to the setup assistant.
 
 Five strangers' projects, checked as they came (a browser game, a FastAPI full-stack template, an Angular app, an Nx Express

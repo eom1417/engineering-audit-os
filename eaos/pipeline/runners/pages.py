@@ -59,12 +59,11 @@ def screens(context):
 
 
 def _not_found(rows):
-    """The limitation the pages that answered 404 say: the routes are read file by file, so a router another file
-    mounts under a prefix (`.use('/api', router)`) has its pages opened without it."""
+    """The pages that answered 404: the code declares them, the running app did not serve them there."""
     from urllib.parse import urlsplit
     paths = sorted({urlsplit(row['url']).path or '/' for row in rows if row.get('http') == 404})
-    return [f"{len(paths)} page(s) answered 404 ({', '.join(paths[:10])}): a router mounted under a prefix in another file "
-            "(`.use('/api', router)`) is not followed, so its pages may have been opened without that prefix"] if paths else []
+    return [f"{len(paths)} page(s) answered 404 ({', '.join(paths[:10])}): the code declares them but the app did not serve "
+            "them there (a prefix built at runtime, or a router passed through a function, is not followed)"] if paths else []
 
 
 def _pictured(context, app, groups, measured):
