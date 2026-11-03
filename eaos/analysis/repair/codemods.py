@@ -227,7 +227,20 @@ def _upgrades_card(facts, target):
     """A lock file card's packages each get their own change, and the card passes or fails whole; one package: its own."""
     members = [_upgrade_card(fact, target) for fact in facts]
     if not members or None in members: return None
-    return members[0] if len(members) == 1 else {'kind': members[0]['kind'], 'group': members}
+    return members[0] if len(members) == 1 else {'kind': members[0]['kind'], 'group': _past_vulnerable(members)}
+
+
+def _past_vulnerable(members):
+    """Each package's target moved on while it is another vulnerable version of the card (1.5.4 fixed in 1.6.8, itself
+    fixed in 1.6.11: both go to 1.6.11), so no step puts back a version the card removes. Another line of the package
+    (a 1.x beside a 2.x) keeps its own."""
+    fixes = {(member['package'], member['version']): member['fixed'] for member in members}
+    for member in members:
+        seen = set()
+        while (member['package'], member['fixed']) in fixes and member['fixed'] not in seen:
+            seen.add(member['fixed'])
+            member['fixed'] = fixes[(member['package'], member['fixed'])]
+    return members
 
 
 def _removal_card(facts):

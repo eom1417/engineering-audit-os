@@ -133,6 +133,16 @@ class CodemodTests(Workspace):
         self.assertEqual(json.loads(written)['overrides'], {'brace-expansion@>=1.1.11 <=1.1.21': '1.1.21', 'brace-expansion@>=2.0.1 <=2.1.7': '2.1.7'})
         self.assertTrue(written.startswith('{\n  "name"'), 'the file keeps its own indent')
 
+    def test_a_fixed_version_that_is_itself_vulnerable_is_passed_to_the_next_fix(self):
+        # A first trial on real projects: seroval 1.5.4 was fixed in 1.6.8, itself vulnerable and fixed in 1.6.11; the
+        # lock file card moved the 1.5.4 copy onto 1.6.8 and its check could never pass.
+        root = self.project({'package.json': '{"dependencies": {"vite": "8"}}', 'bun.lock': '{}', 'uv.lock': ''})
+        for lock, ecosystem in (('bun.lock', 'npm'), ('uv.lock', 'PyPI')):
+            facts = {f'F{n}': upgrade(lock, f'{ecosystem}:seroval@{version}', fixed)[1]['F']
+                     for n, (version, fixed) in enumerate((('1.5.4', '1.6.8'), ('1.6.8', '1.6.11')))}
+            card = card_for({'pattern': 'upgrade_dependency', 'evidence': {'fact_ids': list(facts)}}, facts, root)
+            self.assertEqual([member['fixed'] for member in card['group']], ['1.6.11', '1.6.11'])
+
     def test_every_card_starts_from_the_untouched_project_and_no_copy_outlives_the_run(self):
         # A large project dry-runs hundreds of cards: one copy, restored between cards, and gone afterwards.
         root = self.project({'a.py': 'def gone():\n    return 1\n\n\ndef kept():\n    return 2\n', 'old.txt': 'x\n'})

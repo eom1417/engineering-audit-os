@@ -12,6 +12,9 @@ were bun's, uv's or Go's, which EAOS cannot rewrite), refused to run a Go app at
   never another toolchain downloaded (`GOTOOLCHAIN=local`), its module cache removable.
 - **A vulnerable package only development pulls in is said so,** its severity unchanged.
 - **One card per dependency the project names, one per lock file for the rest:** that card passes or fails whole.
+- **A lock file card never puts back a version it removes:** when one vulnerable version's fix is another vulnerable
+  version of the same package (1.5.4 fixed in 1.6.8, itself fixed in 1.6.11), both go to the later fix, in npm's, bun's
+  and uv's locks alike; another line of the package keeps its own fix.
 - **A batch upgrades a package in a `uv.lock` itself:** one `uv lock --upgrade-package pkg==fixed` for the card's packages,
   writing only the lock, with the uv EAOS's installer brought. Without uv, the card still says so.
 - **A batch upgrades a package in a `bun.lock` itself,** as in npm's lock: `bun add` at the fixed version, or an override
