@@ -115,11 +115,13 @@ def _score(state, wave, summary):
 def _handed_over(project, wave, summary):
     """The batch closed: its record among the waves, its branch in the project when it kept something."""
     from .waves import apply as hand_over
+    from .split import said as split_said, split
     state = project_state.load(project)
     score = _score(state, wave, summary)
     record = _record(state, wave, summary)
     if summary['kept']:
         hand_over(state['project'], summary)
+        record.update(split((guided.report_of(state), project_state.runtime_of(state), state['project']), wave, summary))
         record['status'] = 'applied'
         record['tip'] = guided._git(state['project'], 'rev-parse', summary['branch']).stdout.strip()
         state['applied'] = True
@@ -133,14 +135,15 @@ def _handed_over(project, wave, summary):
     if wave.get('direct') and record['status'] == 'applied':
         return _land(state['project'], record, files)
     said, words = _said_too(state, wave)
+    pieces, piece_words = split_said(record)
     return {'batch': wave['number'], 'branch': summary['branch'] if summary['kept'] else None, 'kept': summary['kept'],
-            'failed': summary['failed'], 'changes': summary['stat'], 'files': files[-4000:], **score, **said,
+            'failed': summary['failed'], 'changes': summary['stat'], 'files': files[-4000:], **score, **said, **pieces,
             **({'continued_on': wave['continues']} if wave.get('continues') else {}),
             'what_now': (f"Tell the person, in plain words, what was fixed and that it is on the branch {summary['branch']}; "
                          "their current branch is unchanged. Ask whether to take it in (accept) or throw it away (undo). "
                          "The report counts these fixes as done only once they are taken in."
                          if summary['kept'] else 'No change passed every gate; nothing reached the project.')
-                        + words}
+                        + piece_words + words}
 
 
 def _said_too(state, wave):

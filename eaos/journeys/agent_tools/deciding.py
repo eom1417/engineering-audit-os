@@ -68,7 +68,10 @@ def undo(project=None, person_agreed=False):
                                   'what_now': 'Only if the person says yes, call undo again with person_agreed=true.'}
     outcome = drop(state['project'], wave['branch'])
     if outcome == 'merged': return {'status': 'merged', 'what_now': 'It is merged already; undoing it is a git revert, the person\'s decision.'}
-    for each in [w for w in state.get('waves') or [] if w.get('status') == 'applied' and w.get('branch') == wave['branch']]: each['status'] = 'undone'  # every batch on it
+    from ..fix.split import drop as drop_split
+    for each in [w for w in state.get('waves') or [] if w.get('status') == 'applied' and w.get('branch') == wave['branch']]:
+        each['status'] = 'undone'                                       # every batch on it, and the branches of each kind
+        drop_split(state['project'], each)
     guided.save(state)
     guided.publish(state)
     return {'status': 'undone', 'branch': wave['branch']}

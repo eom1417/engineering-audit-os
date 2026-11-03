@@ -165,6 +165,11 @@ not change until you agree.
   report and the progress up to date in the same step, then tells you how much of the total is closed.
 - Say **"undo the fixes"**: the branch of fixes is deleted, and your project is as it was.
 
+When a batch holds fixes of more than one kind (dependency upgrades, code structure, the look, the rest), the same fixes
+also wait on one branch per kind, such as `…/wave-1-deps` and `…/wave-1-refactor`, each holding only its
+kind's fixes, so a reviewer can merge them one by one with git. A kind whose fixes do not stand alone is named, not
+split. Merging or undoing the batch removes these branches too.
+
 Then say **"continue fixing"**. Each batch is a new branch, and you decide every time. A new batch does not start while
 the last one's branch waits for you, and no new check is needed after EAOS's fixes are merged.
 
