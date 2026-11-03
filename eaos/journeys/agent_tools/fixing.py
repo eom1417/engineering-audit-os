@@ -1,12 +1,13 @@
 """A batch of fixes: opened on the cards chosen (fix_start), the assistant's reads and edits checked as they come
 (fix_read, fix_edit, fix_skip), and closed (fix_finish, fix_abandon).
 """
-import subprocess
 from pathlib import Path
 
 from ..fix import finish as batch_finish, lanes
 from .. import guided
 from ...core.project import branches, jobs, rules as rule_registry, state as project_state
+from ..fix.automatic import automatic_fixes
+from ..fix.waves.cards import kept_in_part
 from ..fix.branch import commit_of, direct_target, merge_target
 from ...core.project.state import waiting_batch
 from ...live.app import setup as live_setup
@@ -180,7 +181,7 @@ def _fix_start_job(project, arguments, progress):
             'base_branch': state.get('branch') or branches.checked_out(state['project']),
             'deliver_as': arguments.get('deliver_as'), 'merge_into': arguments.get('merge_into')}
     _settle_delivery(state, wave, root)
-    _automatic_fixes(wave, [cards[c] for c in arguments['cards']], root, report, progress)
+    automatic_fixes(wave, [cards[c] for c in arguments['cards']], root, report, progress)
     helpers = lanes.open_lanes(wave, cards, arguments.get('assistants'))
     state = project_state.load(project)
     state['open_wave'] = wave
@@ -188,6 +189,7 @@ def _fix_start_job(project, arguments, progress):
     rule_registry.settle(state['project'], state)          # the rules said for the next batch now hold for this one
     guided.publish(state)
     return {'batch': number, 'copy': str(root), 'fixed_automatically': list(wave['kept']), 'failed': wave['failed'],
+            'kept_in_part': kept_in_part(wave),
             'to_do': [_brief(cards[c], brief(state['project'], state, c, number)) for c in lanes.mine(wave, lanes.untried(wave, arguments['cards']))],
             'what_now': 'For each card in to_do: read it with `finding`, read the code with fix_read, then send the change with '
                         'fix_edit. Keep every feature, route and behaviour, and every rule of the person\'s a card lists in your_rules (a '
@@ -227,29 +229,6 @@ def _settle_delivery(state, wave, root):
         if fetched.returncode or guided._git(root, 'reset', '--hard', '--quiet', tip).returncode:
             raise RuntimeError(f"could not start from {wave['deliver_as']}: {fetched.stderr[-300:]}")
         wave.update(base=tip, source_commit=wave['base'], continues=wave['deliver_as'])
-
-
-def _automatic_fixes(wave, cards, root, report, progress):
-    """The cards with a codemod, fixed by it in the copy: each kept, or taken back when it fails or breaks something."""
-    from ..fix.waves import change, commit, drop_last
-    from ..fix.execute import new_breakage
-    automatic = [c for c in cards if ((c.get('codemod') or {}).get('dry_run') or {}).get('files_changed', 0) > 0]
-    for index, card in enumerate(automatic, 1):
-        card_id = card['id']
-        progress(index, len(automatic) + 1, f'automatic fix of {card_id}')
-        try:
-            tool, _ = change(card, root, report)
-            sha = commit(root, card)
-            broke = new_breakage(report, root)
-            if broke:
-                drop_last(root)
-                wave['failed'][card_id] = f'its automatic fix broke something: {broke[0]}'
-                continue
-            wave['kept'][card_id], wave['tools'][card_id] = sha, tool
-        except (ValueError, RuntimeError, OSError, subprocess.CalledProcessError) as problem:
-            guided._git(root, 'reset', '--hard', '--quiet', 'HEAD')
-            guided._git(root, 'clean', '-fdq')
-            wave['failed'][card_id] = f'{type(problem).__name__}: {problem}'[:300]
 
 
 def fix_read(path, project=None, start=1, end=None):

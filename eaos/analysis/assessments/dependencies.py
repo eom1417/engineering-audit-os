@@ -26,6 +26,12 @@ def _check_argv(wanted):
                    "sys.exit(1 if left else 0)\n", engines=('syft', 'osv-scanner'))
 
 
+def check_of(facts):
+    """The check of a card upgrading the packages of `facts`: none of their advisories is left (a lock file card kept in
+    part is held to the packages it moved, eaos/journeys/agent_tools/fixing.py)."""
+    return _check_argv({f'{ecosystem}:{name}@': ids for ecosystem, name, _, _, ids in map(_upgrade, facts)})
+
+
 # Why a batch cannot make the change itself, for the assistant (en) and the person (ar), with the command they run.
 UNABLE = {'lock': ('no lock file names it, only the inventory found it; upgrade what brings it in',
                    'ما فيه ملف قفل يذكرها، لقاها جرد المكونات بس، فرقِّ الحزمة اللي تجيبها'),
@@ -92,7 +98,7 @@ def build_assessment(claim, fact_sets, target):
     check = {'id': 'DEP-' + facts[0]['id'], 'kind': 'command',
              'invariant': 'No locked dependency is a version with a published, fixed vulnerability.',
              'expected': expected, 'expected_exit': 0, 'cwd': '.', 'source_revision': fingerprint(target),
-             'argv': _check_argv({f'{ecosystem}:{name}@': ids for ecosystem, name, _, _, ids in upgrades})}
+             'argv': check_of(facts)}
     return {'assessment': {
                 'violated_invariant': check['invariant'],
                 'requirement_refs': ['engagement.rules.upgrade_vulnerable_dependencies'],

@@ -289,6 +289,53 @@ class RebuildTests(unittest.TestCase):
         commit_file(root, 'b.txt', 'b')
         self.assertEqual(_dependencies_broken(root), [], 'a commit that changes no dependency is not read again')
 
+    def test_a_lock_file_card_that_fails_whole_keeps_the_packages_that_pass_one_by_one(self):
+        # Second trial on real projects: a lock file card of 32 packages left the dependency tree invalid through one of
+        # them, and the 31 sound upgrades were lost with it
+        from eaos.engines.process import which
+        from eaos.journeys.fix.automatic import automatic_fixes
+        from eaos.journeys.fix.execute import _dependencies_broken
+        if not which('npm'): self.skipTest('npm is not installed')
+        root = repository()
+        commit_file(root, 'package.json', '{"name": "shop", "version": "1.0.0", "dependencies": {"a": "1.0.0"}}')
+        commit_file(root, 'package-lock.json', json.dumps({'name': 'shop', 'version': '1.0.0', 'lockfileVersion': 3, 'requires': True, 'packages': {
+            '': {'name': 'shop', 'version': '1.0.0', 'dependencies': {'a': '1.0.0'}},
+            'node_modules/a': {'version': '1.0.0', 'dependencies': {'b': '^1.0.0', 'c': '^1.0.0'}},
+            'node_modules/b': {'version': '1.0.0'}, 'node_modules/c': {'version': '1.0.0'}}}))
+
+        def bump(member):
+            def step():
+                lock = json.loads((root / 'package-lock.json').read_text())
+                lock['packages'][f"node_modules/{member['package']}"]['version'] = member['fixed']
+                (root / 'package-lock.json').write_text(json.dumps(lock))
+            return step, f"bump {member['package']}"
+        members = [{'kind': 'npm', 'package': 'b', 'version': '1.0.0', 'fixed': '2.0.0'},
+                   {'kind': 'npm', 'package': 'c', 'version': '1.0.0', 'fixed': '1.0.1'}]
+        facts = {f'F-{m["package"]}': {'id': f'F-{m["package"]}', 'location': {'symbol': f'npm:{m["package"]}@1.0.0'},
+                                       'value': {'measurements': [{'name': 'advisory_ids', 'value': [f'GHSA-{m["package"]}']}]}}
+                 for m in members}
+        card = {'id': 'TASK-1', 'title': 'Upgrade the lock file', 'key': 'k1', 'evidence': {'fact_ids': list(facts)},
+                'codemod': {'command': 'npm install', 'dry_run': {'files_changed': 1}}}
+        wave = {'kept': {}, 'failed': {}, 'tools': {}}
+        with mock.patch('eaos.analysis.repair.codemods.card_for', return_value={'kind': 'npm', 'group': members}), \
+                mock.patch('eaos.analysis.repair.codemods._commands', lambda detail, copy: [bump(m) for m in detail.get('group') or [detail]]), \
+                mock.patch('eaos.facts.store.by_id', return_value=facts), \
+                mock.patch('eaos.journeys.fix.automatic.new_breakage', lambda report, where: _dependencies_broken(where)):
+            automatic_fixes(wave, [card], root, scratch(), lambda *_: None)
+        self.assertEqual((list(wave['kept']), wave['failed']), (['TASK-1'], {}))
+        partial = wave['partial']['TASK-1']
+        self.assertEqual(partial['left'], {'b@1.0.0': 'the dependency tree is no longer valid: invalid: b@2.0.0 node_modules/b'})
+        check = partial['verify_command'][-1]
+        self.assertIn("'npm:c@': ['GHSA-c']", check)
+        self.assertNotIn('npm:b@', check, 'the card claims only the package it moved')
+        lock = json.loads(git(root, 'show', 'HEAD:package-lock.json'))['packages']
+        self.assertEqual((lock['node_modules/b']['version'], lock['node_modules/c']['version']), ('1.0.0', '1.0.1'))
+        self.assertEqual(git(root, 'rev-list', '--count', 'HEAD'), '4', 'one commit for the card')
+        report = Path(scratch())
+        (report / 'plan.json').write_text(json.dumps({'tasks': [{**card, 'verify_command': ['whole card check']}]}))
+        held = waves.cards.wave_cards(report, {**wave, 'cards': ['TASK-1']})['TASK-1']['verify_command']
+        self.assertEqual(held, partial['verify_command'], 'its acceptance is the packages it moved')
+
 class HandOverTests(unittest.TestCase):
     def test_the_branch_arrives_without_touching_the_current_branch_or_unsaved_edits(self):
         project = repository()

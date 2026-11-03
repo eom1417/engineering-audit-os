@@ -6,6 +6,11 @@ A first trial on five real projects planned 69 dependency cards as fixable that 
 were bun's, uv's or Go's, which EAOS cannot rewrite), refused to run a Go app at all, called development tools
 "shipped to every user", and gave an Angular app 42 cards for five packages it names.
 
+- **A lock file card that fails whole is tried package by package:** each upgrade is kept only when it runs and npm
+  still finds the dependency tree valid; the card is kept for those, its acceptance holds it to them alone, and each
+  package left is named with why, in the commit, the batch's record and the answer (a second trial: one package of 32
+  left an API's tree invalid, and the 31 sound upgrades were lost with it). The packages left stay open: the next check
+  finds them again.
 - **A documented command's file is looked for from the folders the document names** (a `cd` target, a top-level
   folder it mentions) before it is called broken: a full-stack template's docs run `bash scripts/prestart.sh` "from
   the `backend` directory", and a second trial called three of its documents broken code.

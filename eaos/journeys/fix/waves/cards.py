@@ -18,6 +18,25 @@ def plan(report):
     return data
 
 
+def wave_cards(report, wave):
+    """{id: card} of a batch's cards from the plan; a lock file card kept in part (wave['partial'], fix/automatic.py) is
+    held to the check of the packages it moved."""
+    partial = wave.get('partial') or {}
+    return {card['id']: {**card, **({'verify_command': partial[card['id']]['verify_command']} if card['id'] in partial else {})}
+            for card in plan(report)['tasks'] if card['id'] in set(wave['cards'])}
+
+
+def kept_in_part(wave):
+    """{card: {package: why it was left}} of the lock file cards the batch kept in part."""
+    return {card: part['left'] for card, part in (wave.get('partial') or {}).items()}
+
+
+def left_in_part(wave, card_id):
+    """The words naming the packages a lock file card kept in part left as they were, with why; '' for any other card."""
+    left = kept_in_part(wave).get(card_id)
+    return '; left as they were: ' + '; '.join(f'{name} ({why})' for name, why in left.items()) if left else ''
+
+
 def ready_cards(report, state=None):
     """The ready cards in the plan's order: milestone by milestone, and inside one, as the plan lists them; without a card
     the ledger holds other than open, nor one tried before (the state's `tried`, by key: a new check numbers the cards
