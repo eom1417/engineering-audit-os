@@ -158,19 +158,33 @@ def _uv_steps(members, executable):
 
 
 def _go_steps(members, executable, copy):
-    """One `go get` moving every module to its fixed version, then `go mod tidy`: go.mod and go.sum alone are written,
-    the modules fetched into a cache of its own, removed after; Go never downloads another toolchain."""
-    folder, wanted = Path(copy) / members[0]['folder'], [f"{m['package']}@v{str(m['fixed']).removeprefix('v')}" for m in members]
-    return [(lambda: _go(executable, folder, wanted), f"go get {' '.join(wanted)} && go mod tidy")]
+    """Each module moved to its fixed version by its own `go get`, unless an earlier one already moved it past (a fixed
+    x/net needs a newer x/sys: asking x/sys at its own fix in the same go get is refused), then `go mod tidy`: go.mod and
+    go.sum alone are written, the modules fetched into a cache of its own, removed after; Go never downloads another toolchain."""
+    folder, wanted = Path(copy) / members[0]['folder'], [(m['package'], 'v' + str(m['fixed']).removeprefix('v')) for m in members]
+    return [(lambda: _go(executable, folder, wanted), f"go get {' '.join(f'{p}@{v}' for p, v in wanted)} && go mod tidy")]
 
 
 def _go(executable, folder, wanted):
     import os
     with tempfile.TemporaryDirectory(prefix='eaos-go-') as cache:
         env = {**os.environ, 'GOMODCACHE': cache, 'GOFLAGS': '-modcacherw', 'GOTOOLCHAIN': 'local'}
-        for argv in ([executable, 'get', *wanted], [executable, 'mod', 'tidy']):
-            done = subprocess.run(argv, cwd=folder, capture_output=True, text=True, timeout=600, env=env)  # nosemgrep: python.lang.security.audit.dangerous-subprocess-use-audit -- go at its path, a list argv built here, in an isolated copy, no shell
-            if done.returncode: raise OSError(f"go {argv[1]} exited {done.returncode}: {(done.stderr or done.stdout).strip()[-240:]}")
+        run = lambda *argv: _go_run([executable, *argv], folder, env)
+        for module, fixed in wanted:
+            if _semver(run('list', '-m', '-f', '{{.Version}}', module).strip()) < _semver(fixed): run('get', f'{module}@{fixed}')
+        run('mod', 'tidy')
+
+
+def _go_run(argv, folder, env):
+    done = subprocess.run(argv, cwd=folder, capture_output=True, text=True, timeout=600, env=env)  # nosemgrep: python.lang.security.audit.dangerous-subprocess-use-audit -- go at its path, a list argv built here, in an isolated copy, no shell
+    if done.returncode: raise OSError(f"go {argv[1]} exited {done.returncode}: {(done.stderr or done.stdout).strip()[-240:]}")
+    return done.stdout
+
+
+def _semver(version):
+    """A Go module version, comparable: v1.2.3 above its pre-releases and pseudo-versions (v1.2.4-0.2026... is below v1.2.4)."""
+    base, _, pre = version.removeprefix('v').partition('-')
+    return (*(int(part) if part.isdigit() else 0 for part in (base.split('.') + ['0', '0'])[:3]), not pre)
 
 
 def _group_steps(members, executable, copy):
