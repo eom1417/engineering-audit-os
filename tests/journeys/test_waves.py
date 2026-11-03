@@ -261,6 +261,27 @@ class RebuildTests(unittest.TestCase):
         self.assertEqual(keys['checks_rewriting'], ['npm run lint'])
         self.assertIn('rewrite the files instead of checking them, so no fix was held to them: npm run lint.', words)
 
+    def test_a_fix_that_raises_the_go_line_of_go_mod_says_so_in_its_commit_and_at_the_hand_over(self):
+        # Second trial on real projects: a Go module upgrade raised go.mod's `go` line, so everyone building the
+        # project needs a newer Go, and neither the commit nor the hand-over said it.
+        from eaos.journeys.fix import finish
+        root = repository()
+        (root / 'svc').mkdir()
+        base = commit_file(root, 'svc/go.mod', 'module example.com/svc\n\ngo 1.21\n\nrequire golang.org/x/net v0.10.0\n')
+        (root / 'svc/go.mod').write_text('module example.com/svc\n\ngo 1.26\n\ntoolchain go1.26.1\n\nrequire golang.org/x/net v0.40.0\n')
+        wave_batch.commit(root, {'id': 'TASK-007', 'title': 'Upgrade golang.org/x/net', 'key': 'k'}, 'Upgrade golang.org/x/net to v0.40.0')
+        body = git(root, 'log', '-1', '--format=%b')
+        self.assertIn('svc/go.mod now needs Go 1.26 (was 1.21)', body)
+        self.assertIn('svc/go.mod now needs the toolchain go1.26.1', body)
+        runtime = Path(scratch())
+        with mock.patch.object(finish.project_state, 'runtime_of', return_value=runtime):
+            keys, words = finish._said_too({'project': str(root)}, {'base': base}, 'HEAD')
+        self.assertEqual(keys['go_raised'], ['svc/go.mod now needs Go 1.26 (was 1.21)', 'svc/go.mod now needs the toolchain go1.26.1'])
+        self.assertIn('svc/go.mod now needs Go 1.26 (was 1.21)', words)
+        (root / 'a.txt').write_text('c\n')
+        wave_batch.commit(root, {'id': 'TASK-008', 'title': 'Change a', 'key': 'k2'})
+        self.assertNotIn('go.mod', git(root, 'log', '-1', '--format=%b'), 'a change that leaves go.mod alone says nothing of it')
+
     def test_a_codemod_that_fails_says_why_in_its_own_words(self):
         # Trial on real projects (2026-11-02): eight dependency upgrades failed, each recorded as its command line only
         import sys

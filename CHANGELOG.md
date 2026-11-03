@@ -20,6 +20,9 @@ were bun's, uv's or Go's, which EAOS cannot rewrite), refused to run a Go app at
 - **A batch upgrades a vulnerable Go module itself:** one `go get <module>@v<fixed>` for every module of the card, then
   `go mod tidy`, in a module cache of its own removed after, never another toolchain downloaded (a second trial: a Go
   app ran and its batch opened, but its module cards could never pass). A fix may raise the `go` line of go.mod.
+- **A fix that raises the Go a go.mod needs says so:** when a kept change raises a go.mod's `go` line, or adds or raises
+  its `toolchain`, the card's commit body and the hand-over (`fix_finish` `go_raised`) name it, "go.mod now needs Go
+  1.26 (was 1.21)": everyone who builds the project then needs that Go.
 - **A dependency card is ready only when EAOS can rewrite its lock file:** otherwise it says which tool and which command
   the person runs themselves.
 - **Go runs an app in the safe app run:** `go` joins the runners, said to the assistant from the one list; the system Go,
