@@ -87,7 +87,7 @@ class ProjectGuideTests(Workspace):
     def test_written_with_one_pointer_line_again_and_again_the_same_and_what_the_person_wrote_stays(self):
         root = self.repo()
         self.commit(root, {'AGENTS.md': '# Ours\n'}, 'context')
-        written = project_guide.write(root, self.drawn(root))
+        written = project_guide.write(root, self.drawn(root), 'shop')
         self.assertEqual(sorted(written), ['AGENTS.md', 'docs/EXTENDING.md'])
         agents = (root / 'AGENTS.md').read_text(encoding='utf-8')
         self.assertEqual(agents.count('docs/EXTENDING.md'), 1)
@@ -95,18 +95,18 @@ class ProjectGuideTests(Workspace):
         with (root / 'docs/EXTENDING.md').open('a', encoding='utf-8') as guide: guide.write('My own note.\n')
         git(root, 'add', '-A')
         git(root, 'commit', '-qm', 'guide')
-        self.assertEqual(project_guide.write(root, self.drawn(root)), [])
+        self.assertEqual(project_guide.write(root, self.drawn(root), 'shop'), [])
         self.assertIn('My own note.', (root / 'docs/EXTENDING.md').read_text(encoding='utf-8'))
 
     def test_no_context_file_makes_agents_and_a_claude_that_reads_it(self):
         root = self.repo()
-        project_guide.write(root, self.drawn(root))
+        project_guide.write(root, self.drawn(root), 'shop')
         self.assertEqual((root / 'CLAUDE.md').read_text(encoding='utf-8'), '@AGENTS.md\n')
         self.assertIn(project_guide.POINTER_BEGIN, (root / 'AGENTS.md').read_text(encoding='utf-8'))
 
     def test_a_moved_home_is_followed_and_a_gone_file_is_a_stale_path(self):
         root = self.repo()
-        project_guide.write(root, self.drawn(root))
+        project_guide.write(root, self.drawn(root), 'shop')
         git(root, 'add', '-A')
         git(root, 'commit', '-qm', 'guide')
         moves.apply(root, [{'from': 'src/router.tsx', 'to': 'src/core/router.tsx'}])
@@ -185,7 +185,7 @@ class ProjectGuideTests(Workspace):
         root = self.repo()
         report = Path(self.tmp) / 'report'
         with mock.patch.object(project_guide, 'pinned_ids', return_value=[]):
-            project_guide.write(root, self.drawn(root))
+            project_guide.write(root, self.drawn(root), 'shop')
             git(root, 'add', '-A')
             git(root, 'commit', '-qm', 'guide')
             base = git(root, 'rev-parse', 'HEAD').strip()
@@ -200,3 +200,8 @@ class ProjectGuideTests(Workspace):
     def test_the_commands_are_the_projects_own(self):
         root = Path(self.tmp)
         self.assertEqual(extending.commands(root, {'manage.py', 'go.mod'}), ['python manage.py test', 'go test ./...'])
+
+    def test_the_guide_is_named_after_the_project_not_its_batch_copy(self):
+        copy = self.repo().rename(Path(self.tmp) / 'WAVE-1')
+        project_guide.write(copy, self.drawn(copy), 'shop')
+        self.assertIn('# Extending shop\n', (copy / 'docs/EXTENDING.md').read_text(encoding='utf-8'))

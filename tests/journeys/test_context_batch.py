@@ -59,7 +59,7 @@ class ContextBatchTests(unittest.TestCase):
         runtime = project_state.runtime_of(project_state.load(self.project))
         (runtime / 'authorization.json').write_text(json.dumps({'commit': git(self.project, 'rev-parse', 'HEAD')}))
         self.assertEqual(context_batch.proposal(self.project, report=report)['guide']['path'], 'docs/EXTENDING.md')
-        summary = context_batch.make({'target': self.project, 'runtime': runtime, 'number': 1, 'report': report, 'deliver_as': 'eaos/main/context-1'})
+        summary = context_batch.make({'target': self.project, 'runtime': runtime, 'number': 1, 'report': report, 'project': str(self.project), 'deliver_as': 'eaos/main/context-1'})
         self.assertIn('docs/EXTENDING.md', summary['kept'])
         root = Path(summary['root'])
         self.assertEqual(git(root, 'show', 'HEAD:AGENTS.md').count('docs/EXTENDING.md'), 1)

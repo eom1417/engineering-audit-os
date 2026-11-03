@@ -50,7 +50,7 @@ def keep_guide(root, report, project, number, base):
     path = project_guide.existing(root, base)
     if not path or not _moved_named(root, base, path): return None
     drawn = project_guide.drawn_from_report(root, report, project)
-    if not drawn or not project_guide.refresh(root, path, drawn): return None
+    if not drawn or not project_guide.refresh(root, path, drawn, Path(project).name): return None
     try: return commit(root, {'id': 'EXTENDING', 'title': 'Update the extension guide for the moved files', 'key': f'extending-{number}'}, 'eaos')
     except RuntimeError: return None
 

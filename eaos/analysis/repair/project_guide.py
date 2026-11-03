@@ -159,23 +159,23 @@ def _keep_below(old, new):
     return new + old.split(END, 1)[1].lstrip('\n') if END in old else new + ('\n' + old if old.strip() else '')
 
 
-def refresh(root, path, drawn):
-    """The guide at `path` written in `root` (a copy) from `drawn`, what the person wrote below its end line kept; whether
-    its text changed."""
+def refresh(root, path, drawn, name):
+    """The guide of the project called `name` at `path`, written in `root` (a copy, whose folder is no name of the project)
+    from `drawn`, what the person wrote below its end line kept; whether its text changed."""
     target = Path(root) / path
     old = target.read_text(encoding='utf-8') if target.is_file() else ''
-    new = _keep_below(old, text(drawn, Path(root).name))
+    new = _keep_below(old, text(drawn, name))
     if new == old: return False
     target.parent.mkdir(parents=True, exist_ok=True)
     target.write_text(new, encoding='utf-8')
     return True
 
 
-def write(root, drawn):
-    """The guide and its pointer written in `root` (a copy); the files whose text changed."""
+def write(root, drawn, name):
+    """The guide of the project called `name` and its pointer written in `root` (a copy); the files whose text changed."""
     path = place(tracked(root))
     line = f'Adding anything to this project starts at `{path}`: the files to read and to touch, in order, per kind of addition.'
-    written = [path] if refresh(root, path, drawn) else []
+    written = [path] if refresh(root, path, drawn, name) else []
     return written + context_files.hold_block(root, POINTER_BEGIN, POINTER_END, line)
 
 

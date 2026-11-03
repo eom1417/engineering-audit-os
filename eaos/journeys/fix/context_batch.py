@@ -53,7 +53,7 @@ def proposal(target, private_to=None, report=None):
 def make(batch):
     """The trim made and checked in a copy, the extension guide and its pointer with it when `report` holds a check: the
     summary, `kept` the files written, empty when refused (why in `refused`). `batch`: {target, runtime, number,
-    private_to, report, deliver_as}."""
+    private_to, report, project, deliver_as}."""
     batch = {**batch, 'kind': 'context', 'items': []}
     root, base = own_batch(batch['target'], batch['runtime'], f"CONTEXT-{batch['number']}")
     if (why := private_problem(batch.get('private_to')) or _ignored(root, _extra(batch))): return record_batch(batch, root, base, [], [why])
@@ -79,7 +79,7 @@ def _guide_written(root, batch):
     """The guide and its pointer written in the copy; the files of them git takes."""
     drawn = project_guide.drawn_from_report(root, batch.get('report'), batch.get('project'))
     if not drawn: return []
-    written = project_guide.write(root, drawn)
+    written = project_guide.write(root, drawn, Path(batch['project']).name)
     return [path for path in written if path not in project_guide.written_ignored(root, written)]
 
 
