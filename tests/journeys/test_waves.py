@@ -172,6 +172,23 @@ class RebuildTests(unittest.TestCase):
                          ({'T1': git(root, 'rev-parse', 'HEAD')}, {'T3': 'its change no longer applies once T2 was skipped'}))
 
 
+    def test_a_lock_that_installs_only_unfrozen_fails_the_gate(self):
+        # Trial on real projects (2026-11-02): a dependency card left a lock npm ci refused; the gate's npm install fallback
+        # passed, the checks ran green, and the broken lock went into the delivered branch
+        from eaos.journeys.fix.execute import project_checks, regressions
+
+        class Run:
+            def __init__(self, *_, **__): self.profile, self.log = {'checks': [['npm', 'test']]}, []
+            def setup(self):
+                self.log += [{'argv': ['npm', 'ci', '--no-audit', '--no-fund'], 'exit': 1}, {'argv': ['npm', 'install', '--no-audit', '--no-fund'], 'exit': 0}]
+            def run(self, argv, **_): return 0, '', ''
+            def stop(self): pass
+            def record(self, name): pass
+        with mock.patch('eaos.live.app.run.LiveRun', Run):
+            after = project_checks('copy', 'runtime', 'S09', 'edit', python=False)
+        before = [{'argv': ['npm', 'ci', '--no-audit', '--no-fund'], 'exit': 0, 'failing': []}, {'argv': ['npm', 'test'], 'exit': 0, 'failing': []}]
+        self.assertEqual(regressions(before, after), ['npm ci --no-audit --no-fund'])
+
 class HandOverTests(unittest.TestCase):
     def test_the_branch_arrives_without_touching_the_current_branch_or_unsaved_edits(self):
         project = repository()

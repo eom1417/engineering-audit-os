@@ -149,10 +149,11 @@ def app_breakage(project, runtime, root, changed):
 
 
 def project_checks(target, runtime, stage, name, python=True):
-    """[{argv, exit}] of the run profile's checks on target, installed in a sandbox copy, and its Python tests (the
-    profile's checks run in the app's folder; a Python suite beside it is the project's too; `python` false: the
-    profile's alone); [] when there are none. Every command's output tail is kept in runtime/checks-<name>-log.json."""
-    from ...live.app.run import LiveRun
+    """[{argv, exit}] of the run profile's checks on target, installed in a sandbox copy (its install held to the lock,
+    `npm ci`, a row too), and its Python tests (the profile's checks run in the app's folder; a Python suite beside it is
+    the project's too; `python` false: the profile's alone); [] when there are none. Every command's output tail is kept
+    in runtime/checks-<name>-log.json."""
+    from ...live.app.run import LiveRun, _unfrozen
     live = LiveRun(target, runtime, stage)
     from ...live.testing.verify import python_tests
     checks = [(argv, False) for argv in live.profile.get('checks') or []] + \
@@ -160,7 +161,8 @@ def project_checks(target, runtime, stage, name, python=True):
     if not checks: return []
     try:
         live.setup()
-        rows = []
+        # the lock installing as it is, a check of its own: setup's fallback to an unfrozen install hides a broken lock
+        rows = [{'argv': r['argv'], 'exit': r['exit'], 'failing': []} for r in live.log if _unfrozen(r['argv'])]
         for argv, at_root in checks:
             code, out, err = live.run(argv, timeout=1800, at_root=at_root)
             rows.append({'argv': argv, 'exit': code, 'failing': failing(out + err)})
