@@ -199,3 +199,11 @@ class DeadCodeTests(unittest.TestCase):
                                                  'export default function Welcome() { return Button() }\nWelcome.PreviewProps = {}\n'),
                      'mail/ui/Button.tsx': 'export function Button() { return 1 }\n'})
         self.assertFalse([key for key in found if key[1].startswith('mail/')], found)
+
+    def test_a_default_export_is_used_by_whoever_loads_its_module(self):
+        # An email the react-email CLI renders was called an unused function: a default export's name is written by
+        # no one who loads it.
+        found = run({'package.json': '{"name": "w", "main": "src/main.tsx"}',
+                     'src/main.tsx': 'export default function Home() { return 1 }\nexport function named() {}\n'})
+        self.assertNotIn(('unused-symbol', 'Home'), found)
+        self.assertIn(('unused-symbol', 'named'), found)

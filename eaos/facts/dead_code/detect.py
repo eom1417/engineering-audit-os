@@ -44,6 +44,8 @@ LIMITATIONS = [
     'A method of a class body is not judged: it is called through an object whose type is not resolved here. One '
     'assigned to a name (`Grid.prototype.empty = ...`) is judged by its last name, and any occurrence of that name '
     'keeps it.',
+    'A default export is not judged by its name, which whoever loads it never writes; its module\'s reachability '
+    'judges it.',
     'A built output named by a script (dist/, build/, out/, dist-<name>/) is traced back to its source by path; a '
     'build that renames or bundles differently leaves that entry unseen.',
 ]
@@ -156,9 +158,13 @@ def _judgeable_symbol(path, value, name, scope):
     return _judgeable_name(name, scope['judged'])
 
 
-def _declares(text, start):
-    # `declare global { interface Window {...} }` extends a type the platform owns; nothing names it to use it.
-    return 'declare ' in '\n'.join(text.split('\n')[max(0, start - 4):start])
+def _never_named(text, start):
+    """Whether the symbol declared at `start` is one no user names to use it."""
+    lines = text.split('\n')
+    # `declare global { interface Window {...} }` extends a type the platform owns. `export default function Home()`:
+    # whoever loads the module (a framework, a CLI, `import Anything from`) never writes the name; the module's own
+    # reachability judges it.
+    return 'declare ' in '\n'.join(lines[max(0, start - 4):start]) or bool(re.match(r'\s*export\s+default\b', (lines[start - 1:start] or [''])[0]))
 
 
 def _noun(text, start, kind):
@@ -174,7 +180,7 @@ def _symbol_finding(fact, scope):
     if not _judgeable_symbol(path, value, name, scope): return None
     text = scope['refs'].texts.get(path) or ''
     start = location.get('start_line') or 1
-    if _declares(text, start): return None
+    if _never_named(text, start): return None
     # `Grid.prototype.empty = ...` is called as `.empty()`: the name to look for is its last one.
     count, tests = scope['refs'].outside(name.rsplit('.', 1)[-1], path, (start, location.get('end_line') or 0))
     if count: return None
