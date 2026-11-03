@@ -100,6 +100,11 @@ class References:
             self.texts[path] = text
             (self.tests if _is_test(path) else self.product)[path] = _tokens(text)
 
+    def read(self, source, paths):
+        """Add the text of excluded files the product runs (a vendored ui kit): what they name is used."""
+        for path in paths:
+            if (text := source.text(path)) is not None: self.texts[path], self.product[path] = text, _tokens(text)
+
     def texts_of(self, paths):
         """{path: text} of the given paths it holds the text of."""
         return {p: self.texts[p] for p in paths if p in self.texts}
@@ -212,6 +217,7 @@ def run(target, source, symbols=None, resolved=None, entry_points=None, **option
     refs = References(source)
     texts = refs.texts_of(code)
     seeds, reached, whole, test_importers = _walk(source, known, texts, resolved or [], entry_points or [])
+    refs.read(source, reached - known)
     fixtures = _rule_fixtures(code, texts)
     sha = source.content_fingerprint
     # With no production entry point, nothing says who uses the code: a library's public names serve callers

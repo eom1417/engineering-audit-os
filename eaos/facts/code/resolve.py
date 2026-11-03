@@ -298,15 +298,20 @@ def _resolution(edge, candidates, matches, context):
     return 'UNRESOLVED', None, None, None
 
 
+def _target(importer, edge, context):
+    """(resolution, to_path, target_kind, package_path, matches) of the import `edge` (language, module, level)."""
+    language, module, level = edge
+    candidates = _candidates(language, importer, module, level, context)
+    matches = _matches(language, importer, module, candidates, context)
+    return *_resolution(edge, candidates, matches, context), matches
+
+
 def _module_edge(row, context):
     """(resolution, module_edge fact) of one import observation."""
     importer = row['location']['path']
     module = row['value']['module']
     language = row['value'].get('language') or language_of(importer)
-    level = row['value'].get('level', 0)
-    candidates = _candidates(language, importer, module, level, context)
-    matches = _matches(language, importer, module, candidates, context)
-    resolution, value, target_kind, package_path = _resolution((language, module, level), candidates, matches, context)
+    resolution, value, target_kind, package_path, matches = _target(importer, (language, module, row['value'].get('level', 0)), context)
     return resolution, make('module_edge', NAME, VERSION, row['input_sha'],
                             {'path': importer, 'start_line': row['location'].get('start_line')},
                             {'module': module, 'language': language, 'to_path': value,
@@ -314,6 +319,29 @@ def _module_edge(row, context):
                              'candidates': matches[:5] if resolution == 'AMBIGUOUS' else matches,
                              'import_fact_id': row['id']},
                             resolution=resolution, limitations=LIMITATIONS)
+
+
+def vendored_edges(source, paths):
+    """{excluded file: the files it imports}, from `paths` and every excluded file they import in turn.
+
+    A vendored folder (components/ui) stays out of the analysed system, so no import edge leaves it; but what it
+    imports back from the project (`@/hooks/useMobile`) runs whenever it runs. Only dead code reads these edges: on the
+    architecture graph a vendored file would bring somebody else's code into the layer checks."""
+    context = _context(source, {item['path'] for item in source.readable()})
+    edges, pending = {}, set(paths)
+    while pending:
+        path = pending.pop()
+        edges[path] = _imported(path, context)
+        pending |= {to for to in edges[path] if to in context['out_of_scope']} - edges.keys()
+    return edges
+
+
+def _imported(path, context):
+    """The snapshot or excluded files the file at `path` imports."""
+    from .syntax import parse_text
+    units, _, _, language = parse_text(path, context['source'].text(path) or '')
+    targets = (_target(path, (language, entry['module'], entry['level']), context) for entry in (units[1] if units else []))
+    return {to_path or package for _, to_path, kind, package, _ in targets if to_path or kind == 'excluded'}
 
 
 def _context(source, known):

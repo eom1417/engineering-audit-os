@@ -8,6 +8,7 @@ from collections import defaultdict
 from pathlib import PurePosixPath
 
 from ..code import bundled
+from ..code.resolve import vendored_edges
 from ..source import classify
 
 ENTRY_FILES = ('__main__.py', 'manage.py', 'wsgi.py', 'asgi.py', 'main.py', 'app.py')
@@ -118,7 +119,8 @@ def _edges(resolved):
     graph, test_importers = defaultdict(set), defaultdict(set)
     for fact in resolved:
         if fact.get('kind') != 'module_edge': continue
-        to_path = (fact.get('value') or {}).get('to_path')
+        value = fact.get('value') or {}
+        to_path = value.get('to_path') or (value.get('package_path') if value.get('target_kind') == 'excluded' else None)
         path = (fact.get('location') or {}).get('path')
         if not (path and to_path): continue
         (test_importers[to_path].add(path) if _is_test(path) else graph[path].add(to_path))
@@ -239,9 +241,12 @@ def _bundles(source, known):
             for found in bundled.entries(path, source.text(path) or '', known)}
 
 def _walk(source, known, texts, resolved, entry_points):
-    """(seeds, reached, whole, test_importers): what the product reaches from its roots, and the files read whole.
-    `texts`: the text of each code file."""
+    """(seeds, reached, whole, test_importers): what the product reaches from its roots (excluded files it walks
+    through included), and the files read whole. `texts`: the text of each code file."""
     graph, test_importers = _edges(resolved)
+    # An excluded (vendored) file the project imports is walked through: what it imports back from the project is used.
+    for path, imports in vendored_edges(source, {to for edges in graph.values() for to in edges} - known).items():
+        graph[path] |= imports
     seeds = _seeds(source, known, entry_points)
     reached = _reachable(_roots(source, known, seeds), graph, texts)
     # Package data and files loaded by a path literal are run or read whole by something else (a test runner, k6,

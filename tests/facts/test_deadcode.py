@@ -176,3 +176,16 @@ class DeadCodeTests(unittest.TestCase):
                                      'Grid.prototype.never = function () { return 0; };\nmodule.exports = Grid;\n')})
         self.assertNotIn(('unused-symbol', 'Grid.prototype.empty'), found)
         self.assertIn(('unused-symbol', 'Grid.prototype.never'), found)
+
+    def test_what_a_vendored_component_imports_from_the_project_is_used(self):
+        # A web app's copied-in ui kit (components/ui, out of the analysis) imported `@/hooks/useMobile`; the hook was
+        # called dead, since the walk stopped at the kit and its text was never read.
+        found = run({'package.json': '{"name": "web", "main": "src/main.tsx"}',
+                     'tsconfig.json': '{"compilerOptions": {"paths": {"@/*": ["./src/*"]}}}',
+                     'src/main.tsx': 'import { Sidebar } from "@/components/ui/sidebar"\nSidebar()\n',
+                     'src/components/ui/sidebar.tsx': ('import { useIsMobile } from "@/hooks/useMobile"\n'
+                                                       'export function Sidebar() { return useIsMobile() }\n'),
+                     'src/hooks/useMobile.ts': 'export function useIsMobile() { return false }\n',
+                     'src/hooks/orphan.ts': 'export function lonely() { return 1 }\n'})
+        self.assertFalse([key for key in found if 'useMobile' in key[1] or key[1] == 'useIsMobile'], found)
+        self.assertIn(('unreachable-module', 'src/hooks/orphan.ts'), found)
