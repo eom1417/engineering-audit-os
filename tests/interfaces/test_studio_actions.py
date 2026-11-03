@@ -1138,3 +1138,16 @@ class Headless(unittest.TestCase):
             core.create({'action': 'note', 'inputs': {'text': 'queued from a session that ended'}})
             asked()
         woken.assert_called_once()
+
+    def test_time_left_is_paced_from_the_first_card_and_said_from_the_third(self):
+        # a fix's first card comes after the app's setup: one card done once said 661 minutes left for three
+        from datetime import datetime, timedelta, timezone
+        core = self.govern.core(str(self.project))
+        self.addCleanup(core.close)
+        now = datetime.now(timezone.utc)
+        record = {'id': 'r1', 'state': 'running', 'started': (now - timedelta(minutes=20)).isoformat()}
+        def tried(done, before):
+            return {'kind': 'progress', 'at': (now - timedelta(minutes=before)).isoformat(), 'data': {'stage': 'cards', 'done': done, 'total': 10}}
+        for events, left in (([tried(1, 4), tried(2, 2), tried(3, 0)], 14), ([tried(1, 4), tried(2, 0)], None)):
+            with mock.patch.object(core.store, 'events', return_value=events):
+                self.assertEqual(self.govern.progress(core, record)['minutes_left'], left)
