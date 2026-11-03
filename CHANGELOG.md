@@ -6,6 +6,9 @@ A first trial on five real projects planned 69 dependency cards as fixable that 
 were bun's, uv's or Go's, which EAOS cannot rewrite), refused to run a Go app at all, called development tools
 "shipped to every user", and gave an Angular app 42 cards for five packages it names.
 
+- **A batch upgrades a vulnerable Go module itself:** one `go get <module>@v<fixed>` for every module of the card, then
+  `go mod tidy`, in a module cache of its own removed after, never another toolchain downloaded (a second trial: a Go
+  app ran and its batch opened, but its module cards could never pass). A fix may raise the `go` line of go.mod.
 - **A dependency card is ready only when EAOS can rewrite its lock file:** otherwise it says which tool and which command
   the person runs themselves.
 - **Go runs an app in the safe app run:** `go` joins the runners, said to the assistant from the one list; the system Go,

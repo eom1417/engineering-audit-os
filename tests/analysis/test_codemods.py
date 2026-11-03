@@ -121,6 +121,24 @@ class CodemodTests(Workspace):
         self.assertIn('name = "idna"\nversion = "3.7"', (root / 'uv.lock').read_text())
         self.assertFalse((root / '.venv').exists())
 
+    def test_a_go_mod_card_moves_its_modules_with_go_and_leaves_no_module_cache(self):
+        # Second trial on real projects: a Go app ran and its batch opened, but no card of a go.mod had a codemod, so
+        # its vulnerable modules could never pass.
+        root = self.project({'go.mod': 'module m\n\ngo 1.21\n'})
+        members = [card_for(*upgrade('go.mod', f'Go:{name}@{version}', fixed), root)
+                   for name, version, fixed in (('golang.org/x/text', '0.21.0', '0.22.0'), ('github.com/golang-jwt/jwt/v5', 'v5.2.1', '5.2.2'))]
+        self.assertEqual(_commands({'kind': 'go', 'group': members}, root)[0][1],
+                         'go get golang.org/x/text@v0.22.0 github.com/golang-jwt/jwt/v5@v5.2.2 && go mod tidy')
+        if not binary('go'): self.skipTest('go is not installed')
+        root = self.project({'go.mod': 'module m\n\ngo 1.21\n\nrequire golang.org/x/text v0.21.0\n',
+                             'main.go': 'package main\n\nimport _ "golang.org/x/text/language"\n\nfunc main() {}\n'})
+        card = card_for(*upgrade('go.mod', 'Go:golang.org/x/text@0.21.0', '0.22.0'), root)
+        code, shown = _run_steps(_commands(card, root), root)
+        if code and 'dial tcp' in ' '.join(shown): self.skipTest('the Go module proxy is unreachable')
+        self.assertEqual(code, 0, shown)
+        self.assertIn('golang.org/x/text v0.22.0', (root / 'go.mod').read_text())
+        self.assertTrue((root / 'go.sum').is_file())
+
     def test_two_versions_of_one_package_are_overridden_each_at_its_own(self):
         # Trial on real projects (2026-11-02): the 2.x upgrade of a package overwrote its 1.x override, so every copy was
         # forced to 2.x, below what its consumers ask and undoing the 1.x fix
