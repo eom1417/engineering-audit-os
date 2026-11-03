@@ -120,10 +120,10 @@ read [MCP.md](MCP.md).
 
 | Command | Options | What it does |
 |---|---|---|
-| `eaos fix [ids…]` | `--group by=value` `--assistant` `--auto-accept` `--yes` `--project` `--lang` | Fix these cards. A preview first (cards, files, time, risk), then the run in an isolated copy. What passes every gate is handed over as a branch. `--auto-accept`: merge it by itself when its checks pass. |
-| `eaos verify [ids…]` | `--group` `--assistant` `--yes` `--project` `--lang` | Your assistant reads the code each card points at and records whether the problem is still there, already gone, or a false alarm. Changes nothing. A preview first. |
-| `eaos explain [ids…]` | `--group` `--assistant` `--yes` `--project` `--lang` | Your assistant explains each card in plain words: what is wrong, why it matters, what fixing it would change. Changes nothing. A preview first. |
-| `eaos plan [ids…]` | `--group` `--assistant` `--yes` `--project` `--lang` | Your assistant proposes an order of batches, what waits for what, and each batch's risk. Changes nothing. A preview first. |
+| `eaos fix <ids…>` | `--group by=value` `--assistant` `--auto-accept` `--yes` `--project` `--lang` | Fix these cards (their ids, or `--group`; with neither it changes nothing and names `eaos problems --fixable`). A preview first (cards, files, time, risk), then the run in an isolated copy. What passes every gate is handed over as a branch. `--auto-accept`: merge it by itself when its checks pass. |
+| `eaos verify <ids…>` | `--group` `--assistant` `--yes` `--project` `--lang` | Your assistant reads the code each card points at and records whether the problem is still there, already gone, or a false alarm. Changes nothing. A preview first. |
+| `eaos explain <ids…>` | `--group` `--assistant` `--yes` `--project` `--lang` | Your assistant explains each card in plain words: what is wrong, why it matters, what fixing it would change. Changes nothing. A preview first. |
+| `eaos plan <ids…>` | `--group` `--assistant` `--yes` `--project` `--lang` | Your assistant proposes an order of batches, what waits for what, and each batch's risk. Changes nothing. A preview first. |
 | `eaos accept [project]` | `--lang` `--yes` | Take the latest batch of fixes into your branch (merge its branch). Says what will happen and asks first. |
 | `eaos undo [project]` | `--lang` `--yes` | Throw the latest batch of fixes away (delete its branch). Asks first. |
 | `eaos branch [name]` | `--yes` `--project` `--lang` | The branch EAOS checks and fixes: the list, or move to one. Each branch has its own report and progress. |

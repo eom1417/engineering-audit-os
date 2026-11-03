@@ -6,6 +6,8 @@ WORDS = {
                         'ar': 'المستخدمون المحاكَون ({simulation}): حتى {minutes} دقيقة، وطلبات المساعد {calls}.'},
     'started': {'en': 'Started in the background ({run}); nothing in your project changes. Follow it, or close this window: it goes on.',
                 'ar': 'بدأ في الخلفية ({run})؛ ما يتغير شي في مشروعك. تابعه، أو سكّر هالنافذة: يكمل.'},
+    'no_cards': {'en': 'Name the cards to run: their ids, or a group (--group area=… or severity=…). `eaos problems --fixable` lists the ones that can be fixed.',
+                 'ar': 'حدد البطاقات اللي تبي تشغلها: بأرقامها، أو بمجموعة (--group area=… أو severity=…). `eaos problems --fixable` يعرض اللي تنصلح.'},
     'queued_run': {'en': 'Queued: {label} ({run}).', 'ar': 'في الطابور: {label} ({run}).'},
     'checked': {'en': '{problems} problem(s) found, {ready} of them can be fixed automatically', 'ar': 'لقيت {problems} مشكلة، منها {ready} تنصلح آليًا'},
     'left': {'en': 'about {minutes} min left', 'ar': 'باقي حوالي {minutes} دقيقة'},

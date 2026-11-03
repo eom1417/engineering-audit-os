@@ -1102,3 +1102,15 @@ class Headless(unittest.TestCase):
         core.manager.answer(f'{run}-q1', 'no', via='terminal')                    # "no": the run ends here, nothing starts
         said = next(e for e in core.store.events(run) if e['kind'] == 'answer')
         self.assertEqual((said['text']['en'], said['text']['ar'], said['data']['via']), ('You answered in the terminal: No', 'جاوبت في الطرفية: لا', 'terminal'))
+
+    def test_a_verb_with_no_card_refuses_and_says_how_to_choose(self):
+        import argparse
+        import contextlib
+        import io
+        from eaos.interfaces.terminal import commands
+        printed = io.StringIO()
+        with contextlib.redirect_stdout(printed):
+            code = commands.act(argparse.Namespace(command='fix', project=str(self.project), ids=[], group=None, lang='en', yes=True,
+                                                   assistant=None, auto_accept=False))
+        self.assertEqual(code, 3)
+        self.assertIn('eaos problems --fixable', printed.getvalue(), 'a fix of nothing named: it says how to choose the cards')

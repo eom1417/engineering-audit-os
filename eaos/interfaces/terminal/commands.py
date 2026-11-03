@@ -318,6 +318,9 @@ def act(args, lang):
     """fix, verify, explain or plan: the preview printed, the person's yes for a Fix (it changes code), then the run."""
     project, verb, auto = _project(args), args.command, bool(getattr(args, 'auto_accept', False))
     if auto: refuse_in_studio_run('auto_accept')
+    if not args.ids and not args.group:     # never every card: the person names the ones to run
+        guided.box(lang, words('no_cards', lang), status='warn', commands=['eaos problems --fixable', f'eaos {verb} TASK-001 TASK-002', f'eaos {verb} --group severity=high'])
+        return 3
     shown = govern.verb_preview(project, verb, govern.selection_of(args.ids, args.group), auto, args.assistant)
     _show_preview(shown, lang)
     label = text_of(contract_verb(verb)['label'], lang)
