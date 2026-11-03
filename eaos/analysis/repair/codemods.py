@@ -5,12 +5,13 @@ The mechanical families (eaos/rules/codemods.json) and their tools:
   remove_dead, unused symbol        jscodeshift with eaos/templates/codemods/remove-declaration.cjs (JS/TS),
                                     or python-ast: the definition's lines, from the syntax tree (Python)
   leftover                          delete-file
-  upgrade_dependency (npm, bun)     a direct dependency: npm install pkg@fixed (bun add); a transitive one:
+  upgrade_dependency (npm, bun, uv) a direct dependency: npm install pkg@fixed (bun add); a transitive one:
                                     overrides["pkg@>=vulnerable <=fixed"] = fixed in package.json (that version's
                                     copies only), then npm install (bun install); npm's --package-lock-only,
                                     bun's --lockfile-only, both --ignore-scripts, so nothing is installed and no
                                     project code runs. A lock file card's packages: every override, then each
-                                    install once
+                                    install once. uv: one `uv lock --upgrade-package pkg==fixed` per lock file,
+                                    every package of the card in it
 Each card gets codemod {tool, command, dry_run {exit, files_changed}}. The dry run is the real command on a
 copy made by eaos.live.testing.verify.isolated_copy; files_changed counts files added, removed or modified there. A tool
 that changes nothing did nothing, and says so with files_changed 0. The project is never written.
@@ -87,9 +88,10 @@ def _names_of(node):
 
 
 def binary(tool):
-    """Where a codemod's tool is: EAOS's own first, then the computer's."""
+    """Where a codemod's tool is: EAOS's own first (uv: the one its installer brought), then the computer's."""
+    from ...core.toolchain.pins import uv
     from ...engines.process import which
-    return which(tool)
+    return uv() if tool == 'uv' else which(tool)
 
 
 NPM_FLAGS = ['--package-lock-only', '--ignore-scripts', '--no-audit', '--no-fund', '--loglevel=error']
@@ -136,8 +138,22 @@ def _commands(card, copy):
     if kind == 'jscodeshift':
         found = binary('jscodeshift')
         return [([found, '-t', str(TRANSFORM), '--parser=tsx', f"--name={detail['symbol']}", detail['path']], None)] if found else None
-    if kind in LOCK_ONLY: return _group_steps(detail.get('group') or [detail], binary(kind) or kind, copy)
+    if kind in (*LOCK_ONLY, 'uv'): return _upgrade_steps(detail, copy)
     return None
+
+
+def _upgrade_steps(card, copy):
+    """The steps of an upgrade card, one package's or a lock file card's, by its lock file's tool."""
+    members, executable = card.get('group') or [card], binary(card['kind']) or card['kind']
+    return _uv_steps(members, executable) if card['kind'] == 'uv' else _group_steps(members, executable, copy)
+
+
+def _uv_steps(members, executable):
+    """One `uv lock` moving every package to its fixed version: the lock alone is written, nothing installed or built
+    for the project."""
+    folder = members[0]['folder']
+    pins = [part for member in members for part in ('--upgrade-package', f"{member['package']}=={member['fixed']}")]
+    return [([executable, 'lock', *pins, *(['--directory', folder] if folder != '.' else [])], None)]
 
 
 def _group_steps(members, executable, copy):
@@ -241,6 +257,7 @@ def _upgrade_card(fact, target):
     lock = PurePosixPath(fact['location'].get('path') or 'package-lock.json')
     kind, folder = _upgrade_tools().get(lock.name), str(lock.parent)
     if not kind or not fixed or not (Path(target) / lock).is_file(): return None
+    if kind not in LOCK_ONLY: return {'kind': kind, 'package': package, 'version': version, 'fixed': fixed, 'folder': folder}
     folders = _upgrade_folders(target, lock, package, version)
     return {'kind': kind, 'package': package, 'version': version, 'fixed': fixed, 'direct': _direct_in(target, folder, package), 'folder': folder,
             'folders': [(where, _direct_in(target, where, package)) for where in folders]}

@@ -135,12 +135,12 @@ class ClaimTests(Workspace):
                 self.assertEqual(decision['readiness'], 'blocked')
                 self.assertTrue(any(tool in blocker for blocker in decision['blockers']), decision['blockers'])
 
-    def test_a_bun_lock_is_ready_when_its_tool_is_here_and_names_the_tool_when_it_is_not(self):
-        # A first trial on real projects: every bun.lock card went to the person, though bun rewrites a lock without
-        # installing anything.
+    def test_a_bun_or_uv_lock_is_ready_when_its_tool_is_here_and_names_the_tool_when_it_is_not(self):
+        # A first trial on real projects: every bun.lock and uv.lock card went to the person, though bun and uv rewrite a
+        # lock without installing anything.
         from unittest import mock
         from eaos.core.contracts.decisions import decide
-        for path, tool in (('web/bun.lock', 'bun'),):
+        for path, tool in (('web/bun.lock', 'bun'), ('uv.lock', 'uv')):
             self.FACT = {**self.FACT, 'location': {**self.FACT['location'], 'path': path}}
             with mock.patch('eaos.analysis.repair.codemods.binary', return_value=tool):
                 self.assertEqual(decide(self.claims()[0])['readiness'], 'ready')

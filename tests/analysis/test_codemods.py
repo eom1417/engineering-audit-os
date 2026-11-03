@@ -105,6 +105,22 @@ class CodemodTests(Workspace):
         self.assertIn('"picomatch@2.3.2"', (root / 'bun.lock').read_text())
         self.assertFalse((root / 'node_modules').exists())
 
+    def test_a_uv_lock_card_is_one_uv_lock_run_that_installs_nothing(self):
+        # A first trial on real projects: no card of a uv.lock had a codemod, so none could ever pass.
+        root = self.project({'uv.lock': ''})
+        members = [card_for(*upgrade('uv.lock', f'PyPI:{name}@1', fixed), root) for name, fixed in (('idna', '3.7'), ('dnspython', '2.9.0'))]
+        steps = _commands({'kind': 'uv', 'group': members}, root)
+        self.assertEqual([step[1:] for step, _ in steps], [['lock', '--upgrade-package', 'idna==3.7', '--upgrade-package', 'dnspython==2.9.0']])
+        if not binary('uv'): self.skipTest('uv is not installed')
+        (root / 'uv.lock').unlink()
+        root = self.project({'pyproject.toml': '[project]\nname = "f"\nversion = "0"\nrequires-python = ">=3.9"\ndependencies = ["requests==2.32.3"]\n'})
+        if subprocess.run([binary('uv'), 'lock', '--upgrade-package', 'idna==3.6'], cwd=root, capture_output=True).returncode:
+            self.skipTest('the Python package index is unreachable')
+        card = card_for(*upgrade('uv.lock', 'PyPI:idna@3.6', '3.7'), root)
+        self.assertEqual(_run_steps(_commands(card, root), root)[0], 0)
+        self.assertIn('name = "idna"\nversion = "3.7"', (root / 'uv.lock').read_text())
+        self.assertFalse((root / '.venv').exists())
+
     def test_two_versions_of_one_package_are_overridden_each_at_its_own(self):
         # Trial on real projects (2026-11-02): the 2.x upgrade of a package overwrote its 1.x override, so every copy was
         # forced to 2.x, below what its consumers ask and undoing the 1.x fix
