@@ -76,7 +76,10 @@ def packages(payload, target):
 def _add_package(merged, row, site):
     """One package row of a source: its site and its advisories joined to the package's entry."""
     package = row.get('package') or {}
-    key = (package.get('ecosystem'), package.get('name'), package.get('version'))
+    version = package.get('version')
+    # A Go module is `5.2.1` read from go.mod and `v5.2.1` from the SBOM: one package, in OSV's form (its fixes have no v).
+    if package.get('ecosystem') == 'Go' and str(version).startswith('v'): version = version[1:]
+    key = (package.get('ecosystem'), package.get('name'), version)
     entry = merged.setdefault(key, {'sites': set(), 'advisories': {}})
     entry['sites'].add(site)
     scores = {vid: group.get('max_severity') for group in row.get('groups') or [] for vid in group.get('ids') or []}
