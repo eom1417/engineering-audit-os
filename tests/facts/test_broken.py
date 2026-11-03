@@ -40,6 +40,16 @@ class BrokenProjectTests(unittest.TestCase):
         self.assertNotIn(('missing-import', './realworld/specs/e2e/playwright.base'), found)
         self.assertIn(('missing-import', './gone'), found)
 
+    def test_a_command_that_runs_build_output_is_not_stale(self):
+        # An Nx API's README runs `node dist/api/main.js`, which its build makes: no dist/ is committed, and the command
+        # was called stale. Without a build script, the same command still is.
+        files = {'package.json': '{"scripts": {"build": "tsc"}}', 'src/main.ts': 'export const x = 1;\n',
+                 'README.md': '```\nnode dist/api/main.js\npython tools/gone.py\n```\n'}
+        found = self.run_on(files)
+        self.assertNotIn(('stale-instruction', 'node dist/api/main.js'), found)
+        self.assertIn(('stale-instruction', 'python tools/gone.py'), found)
+        self.assertIn(('stale-instruction', 'node dist/api/main.js'), self.run_on({**files, 'package.json': '{"scripts": {"start": "node x.js"}}'}))
+
     def test_a_missing_import_and_stale_commands_in_docs_are_reported(self):
         found = self.run_on({
             'pyproject.toml': '[project.scripts]\ntool = "tool.cli:main"\n',

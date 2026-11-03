@@ -21,6 +21,7 @@ import symtable
 from pathlib import PurePosixPath
 
 from .. import make
+from ..dead_code.reach import BUILD_OUTPUT
 from ..source import classify, language_of
 
 NAME = 'broken'
@@ -29,7 +30,8 @@ LIMITATIONS = [
     'Undefined names are judged for Python only; a module with a star import is skipped, since any name may come from it.',
     'Names injected at runtime (exec, globals() writes, module __getattr__) are invisible and would be reported; none is assumed.',
     'Documented commands are checked against the CLI subcommands the code declares with argparse, the npm scripts in '
-    'package.json, and the files in the snapshot; a command another tool provides is not judged.',
+    'package.json, and the files in the snapshot (or, with a build script, in a build output folder nothing of which '
+    'is committed); a command another tool provides is not judged.',
 ]
 BUILTINS = set(dir(builtins)) | {'__file__', '__name__', '__doc__', '__spec__', '__package__', '__loader__', '__builtins__',
                                  '__path__', '__annotations__', '__dict__', '__module__', '__qualname__', '__class__'}
@@ -183,7 +185,15 @@ def _script_exists(command, all_scripts):
 def _file_exists(file, doc, scripts, everything):
     # A command documented at the root is often run from the app's own folder (the one with package.json).
     bases = [PurePosixPath(doc).parent] + [PurePosixPath(folder) for folder in scripts]
-    return '/' not in file or file in everything or any(str(base / file) in everything for base in bases)
+    return '/' not in file or file in everything or any(str(base / file) in everything for base in bases) or _built(file, scripts, everything)
+
+
+def _built(file, scripts, everything):
+    """Whether `file` is what the project's build makes: under a build output folder (dist/, build/) of which nothing is
+    committed, in a project with a `build` script (`node dist/api/main.js` runs what `nx build` writes)."""
+    top = file.split('/', 1)[0]
+    return (bool(BUILD_OUTPUT.match(top)) and any('build' in names for names in scripts.values())
+            and not any(path.startswith(top + '/') for path in everything))
 
 
 def _unknown_files(span, doc, scripts, everything):
