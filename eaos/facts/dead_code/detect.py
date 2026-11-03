@@ -41,7 +41,9 @@ LIMITATIONS = [
     'in a reached module names it from the module\'s folder or one above it.',
     'Package data (templates/ and rules/ folders, declared package-data globs) is reached and not judged name by '
     'name; a semgrep rule test (`# ruleid:` lines) is a fixture, never a candidate.',
-    'Methods are not judged: a method is called through an object whose type is not resolved here.',
+    'A method of a class body is not judged: it is called through an object whose type is not resolved here. One '
+    'assigned to a name (`Grid.prototype.empty = ...`) is judged by its last name, and any occurrence of that name '
+    'keeps it.',
     'A built output named by a script (dist/, build/, out/, dist-<name>/) is traced back to its source by path; a '
     'build that renames or bundles differently leaves that entry unseen.',
 ]
@@ -168,7 +170,8 @@ def _symbol_finding(fact, scope):
     text = scope['refs'].texts.get(path) or ''
     start = location.get('start_line') or 1
     if _declares(text, start): return None
-    count, tests = scope['refs'].outside(name, path, (start, location.get('end_line') or 0))
+    # `Grid.prototype.empty = ...` is called as `.empty()`: the name to look for is its last one.
+    count, tests = scope['refs'].outside(name.rsplit('.', 1)[-1], path, (start, location.get('end_line') or 0))
     if count: return None
     module = str(PurePosixPath(path).with_suffix(''))
     how = f'referenced only by tests ({", ".join(tests[:3])})' if tests else 'no reference outside its definition'

@@ -166,3 +166,13 @@ class DeadCodeTests(unittest.TestCase):
                      'web/words.ts': 'export type BranchWord = string;\nexport function words() { return 1; }\n'})
         self.assertFalse([key for key in found if key[1] != 'BranchWord'], found)
         self.assertIn('unused type', found[('unused-symbol', 'BranchWord')])
+
+    def test_a_method_assigned_to_a_prototype_is_judged_by_its_own_name(self):
+        # A browser game's every `GameManager.prototype.x` method was called unused: the counter looked for the dotted
+        # name, which no token ever is.
+        found = run({'package.json': '{"name": "g", "main": "src/main.js"}',
+                     'src/main.js': 'const Grid = require("./grid.js");\nnew Grid().empty();\n',
+                     'src/grid.js': ('function Grid() {}\nGrid.prototype.empty = function () { return []; };\n'
+                                     'Grid.prototype.never = function () { return 0; };\nmodule.exports = Grid;\n')})
+        self.assertNotIn(('unused-symbol', 'Grid.prototype.empty'), found)
+        self.assertIn(('unused-symbol', 'Grid.prototype.never'), found)
