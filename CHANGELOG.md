@@ -6,6 +6,9 @@ A first trial on five real projects planned 69 dependency cards as fixable that 
 were bun's, uv's or Go's, which EAOS cannot rewrite), refused to run a Go app at all, called development tools
 "shipped to every user", and gave an Angular app 42 cards for five packages it names.
 
+- **A Gin route carries its group's prefix:** `v1 := r.Group("/api")` in a file, and a sub-group handed to a
+  register function (`users.Register(v1.Group("/users"))`) in any file, are followed, a test's own router left out
+  (a second trial: a Gin API's routes were read as `/feed` and `/:username`, so the safety net recorded their 404s).
 - **A page is recorded with its random numbers held still,** as its clock already was: a game drew its first tiles
   with `Math.random`, so two loads of its page had different words, the safety net held nothing and no batch could
   open (a first trial had passed by luck: two loads of six differ).

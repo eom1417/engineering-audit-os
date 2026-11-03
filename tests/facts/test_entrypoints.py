@@ -92,6 +92,18 @@ class EntryPointTests(unittest.TestCase):
         http = {(f['value']['http_method'], f['value']['route']) for f in data['facts'] if f['value']['surface'] == 'http'}
         self.assertEqual(http, {('GET', '/'), ('GET', '/api/articles')})
 
+    def test_gin_routes_registered_on_a_group_carry_its_prefix(self):
+        # A real Gin API: main makes the /api group and hands sub-groups to each package's register function; its
+        # routes were read as /feed and /:username, and the behaviour lock recorded their 404s.
+        data = load_files({
+            'hello.go': 'package main\n\nfunc main() {\n    r := gin.Default()\n    v1 := r.Group("/api")\n'
+                        '    articles.ArticlesRegister(v1.Group("/articles"))\n    ping := r.Group("/api/ping")\n'
+                        '    ping.GET("/", func(c *gin.Context) {})\n}\n',
+            'articles/routers.go': 'package articles\n\nfunc ArticlesRegister(router *gin.RouterGroup) {\n'
+                                   '    router.GET("/feed", ArticleFeed)\n    router.GET("", ArticleList)\n}\n'})
+        http = {(f['value']['http_method'], f['value']['route']) for f in data['facts'] if f['value']['surface'] == 'http'}
+        self.assertEqual(http, {('GET', '/api/articles/feed'), ('GET', '/api/articles'), ('GET', '/api/ping')})
+
 
 class TaskRunnerScriptTests(unittest.TestCase):
     """A package.json script or a Makefile target is an entry point when it runs a file of the repository;
