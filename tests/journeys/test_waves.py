@@ -199,6 +199,24 @@ class RebuildTests(unittest.TestCase):
             with self.assertRaisesRegex(RuntimeError, 'exited 1: npm error ERESOLVE could not resolve'):
                 run_codemod({'id': 'T1'}, scratch(), scratch())
 
+    def test_a_dependency_change_that_breaks_a_consumers_range_is_refused_at_its_commit(self):
+        # Trial on real projects (2026-11-02): an upgrade put esbuild out of the range a build plugin asks; its own gate saw
+        # nothing, the install broke, and eight later upgrades failed on it
+        from eaos.engines.process import which
+        from eaos.journeys.fix.execute import _dependencies_broken
+        if not which('npm'): self.skipTest('npm is not installed')
+        lock = lambda b: json.dumps({'name': 'shop', 'version': '1.0.0', 'lockfileVersion': 3, 'requires': True, 'packages': {
+            '': {'name': 'shop', 'version': '1.0.0', 'dependencies': {'a': '1.0.0'}},
+            'node_modules/a': {'version': '1.0.0', 'dependencies': {'b': '^1.0.0'}}, 'node_modules/b': {'version': b}}})
+        root = repository()
+        commit_file(root, 'package.json', '{"name": "shop", "version": "1.0.0", "dependencies": {"a": "1.0.0"}}')
+        commit_file(root, 'package-lock.json', lock('1.0.0'))
+        self.assertEqual(_dependencies_broken(root), [])
+        commit_file(root, 'package-lock.json', lock('2.0.0'))
+        self.assertEqual(_dependencies_broken(root), ['the dependency tree is no longer valid: invalid: b@2.0.0 node_modules/b'])
+        commit_file(root, 'b.txt', 'b')
+        self.assertEqual(_dependencies_broken(root), [], 'a commit that changes no dependency is not read again')
+
 class HandOverTests(unittest.TestCase):
     def test_the_branch_arrives_without_touching_the_current_branch_or_unsaved_edits(self):
         project = repository()

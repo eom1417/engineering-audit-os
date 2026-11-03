@@ -8,7 +8,8 @@ import json
 import os
 import re
 import subprocess
-from pathlib import Path
+import tempfile
+from pathlib import Path, PurePosixPath
 
 from ...core.contracts.artifact_rules import contracts, validate
 from ...core.system.clock import now
@@ -120,7 +121,7 @@ def new_breakage(report, root, collected=None):
         if collected: out = str(collected)
         else: collect(root, out, ['syntax', 'resolve', 'graph', 'broken', 'domain', 'runtime', 'secrets', 'config']
                       + (['entrypoints'] if had is not None else []))
-        broke = words(structure(report, out, policy)) + _layers_broken(report, root, out)
+        broke = words(structure(report, out, policy)) + _layers_broken(report, root, out) + _dependencies_broken(root)
         has = surfaces(json.loads((Path(out) / 'facts/entrypoints.json').read_text(encoding='utf-8'))['facts']) if had is not None else set()
     if had is not None:
         broke += [f'the endpoint {method} {route} is gone' for method, route in sorted(had - has, key=str)]
@@ -132,6 +133,39 @@ def _layers_broken(report, root, out):
     from ...analysis import layers
     before = layers.read(Path(report) / layers.RECORD)
     return layers.introduced(before, layers.check(root, out)) if before else []
+
+
+NPM_FILES = ('package.json', 'package-lock.json')
+
+
+def _dependencies_broken(root):
+    """What the last commit broke in the dependency tree npm reads from a package.json and its lock (npm ls: no install,
+    no network, no script): a version out of the range its consumer asks, a lock behind its package.json. Trial on real
+    projects (2026-11-02): an upgrade that put a package out of a plugin's range was seen only once the install broke,
+    and the upgrades after it failed on it. npm only; a commit that changes neither file is not read."""
+    from ...engines.process import which
+    npm, changed = which('npm'), git(root, 'diff', '--name-only', 'HEAD~1', 'HEAD').stdout.split('\n')
+    folders = sorted({str(PurePosixPath(path).parent) for path in changed if PurePosixPath(path).name in NPM_FILES})
+    broke = []
+    for folder in folders if npm else []:
+        new = _npm_problems(npm, Path(root) / folder)
+        if not new: continue
+        with tempfile.TemporaryDirectory(prefix='eaos-dependencies-') as before:
+            for name in NPM_FILES:
+                shown = git(root, 'show', f'HEAD~1:{PurePosixPath(folder, name)}')
+                if shown.returncode == 0: (Path(before) / name).write_text(shown.stdout, encoding='utf-8')
+            new -= _npm_problems(npm, Path(before))
+        broke += [f'the dependency tree is no longer valid: {problem}' for problem in sorted(new)]
+    return broke
+
+
+def _npm_problems(npm, folder):
+    """The problems `npm ls` finds in a folder's package.json and lock, without the folder's path."""
+    if not (folder / 'package.json').is_file(): return set()
+    done = subprocess.run([npm, 'ls', '--all', '--package-lock-only', '--json'], cwd=folder, capture_output=True, text=True, timeout=120)  # nosemgrep: python.lang.security.audit.dangerous-subprocess-use-audit -- npm at its path, a fixed list argv, reading the lock only (no install, no script)
+    try: problems = json.loads(done.stdout).get('problems') or []
+    except ValueError: return set()
+    return {problem.replace(f'{folder.resolve()}/', '').replace(f'{folder}/', '') for problem in problems}
 
 
 # The engines that answer in seconds: they run on every change a batch makes (eaos/journeys/fix/waves edit_gates): the
