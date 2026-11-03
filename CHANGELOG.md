@@ -12,6 +12,9 @@ were bun's, uv's or Go's, which EAOS cannot rewrite), refused to run a Go app at
   never another toolchain downloaded (`GOTOOLCHAIN=local`), its module cache removable.
 - **A vulnerable package only development pulls in is said so,** its severity unchanged.
 - **One card per dependency the project names, one per lock file for the rest:** that card passes or fails whole.
+- **A batch upgrades a package in a `bun.lock` itself,** as in npm's lock: `bun add` at the fixed version, or an override
+  of the vulnerable version then `bun install`, writing only the lock and package.json, running no script. Without bun,
+  the card still says so and names the command.
 
 A tool MCP called read-only changed the project. Reading a file of a build turned a checked project into a build's, and made the
 folder and state of a project never started; an assistant told it only reads had no reason to be careful.

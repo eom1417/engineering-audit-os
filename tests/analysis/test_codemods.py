@@ -7,7 +7,7 @@ import tempfile
 
 from shared_fixture import Workspace
 
-from eaos.analysis.repair.codemods import TRANSFORM, _commands, attach, card_for, dry_run, remove_python
+from eaos.analysis.repair.codemods import TRANSFORM, _commands, _run_steps, attach, binary, card_for, dry_run, remove_python
 from eaos.engines.process import state_digest, which
 
 
@@ -85,6 +85,25 @@ class CodemodTests(Workspace):
         self.assertEqual(result['files_changed'], 2)
         self.assertIn('override picomatch@>=2.3.1 <=2.3.2 with 2.3.2 in package.json', command)
         self.assertEqual(state_digest(root), before)
+
+    def test_a_bun_lock_is_rewritten_by_bun_without_installing(self):
+        # A first trial on real projects: no card of a bun.lock had a codemod, so none could ever pass.
+        root = self.project({'package.json': '{"devDependencies": {"vitest": "4"}}', 'bun.lock': '{}'})
+        steps = _commands(card_for(*upgrade('bun.lock', 'npm:vitest@4.1.6', '4.1.11'), root), root)
+        self.assertEqual([step[1:] for step, _ in steps], [['add', 'vitest@4.1.11', '--lockfile-only', '--ignore-scripts']])
+        steps = _commands(card_for(*upgrade('bun.lock', 'npm:nanoid@3.3.12', '3.3.18'), root), root)
+        self.assertEqual([callable(step) or step[1:] for step, _ in steps], [True, ['install', '--lockfile-only', '--ignore-scripts']])
+        # The real bun, on a lock holding the vulnerable version: only the lock and its manifest change.
+        if not binary('bun'): self.skipTest('bun is not installed')
+        (root / 'bun.lock').unlink()
+        root = self.project({'package.json': json.dumps({'name': 'f', 'dependencies': {'micromatch': '4.0.5'}, 'overrides': {'picomatch': '2.3.1'}})})
+        if subprocess.run([binary('bun'), 'install', '--lockfile-only', '--ignore-scripts'], cwd=root, capture_output=True).returncode:
+            self.skipTest('the npm registry is unreachable')
+        (root / 'package.json').write_text(json.dumps({'name': 'f', 'dependencies': {'micromatch': '4.0.5'}}))
+        card = card_for(*upgrade('bun.lock', 'npm:picomatch@2.3.1', '2.3.2'), root)
+        self.assertEqual(_run_steps(_commands(card, root), root)[0], 0)
+        self.assertIn('"picomatch@2.3.2"', (root / 'bun.lock').read_text())
+        self.assertFalse((root / 'node_modules').exists())
 
     def test_two_versions_of_one_package_are_overridden_each_at_its_own(self):
         # Trial on real projects (2026-11-02): the 2.x upgrade of a package overwrote its 1.x override, so every copy was

@@ -5,11 +5,12 @@ The mechanical families (eaos/rules/codemods.json) and their tools:
   remove_dead, unused symbol        jscodeshift with eaos/templates/codemods/remove-declaration.cjs (JS/TS),
                                     or python-ast: the definition's lines, from the syntax tree (Python)
   leftover                          delete-file
-  upgrade_dependency (npm)          a direct dependency: npm install pkg@fixed; a transitive one:
+  upgrade_dependency (npm, bun)     a direct dependency: npm install pkg@fixed (bun add); a transitive one:
                                     overrides["pkg@>=vulnerable <=fixed"] = fixed in package.json (that version's
-                                    copies only), then npm install; both --package-lock-only
-                                    --ignore-scripts, so no project code runs. A lock file card's packages:
-                                    every override, then each install once
+                                    copies only), then npm install (bun install); npm's --package-lock-only,
+                                    bun's --lockfile-only, both --ignore-scripts, so nothing is installed and no
+                                    project code runs. A lock file card's packages: every override, then each
+                                    install once
 Each card gets codemod {tool, command, dry_run {exit, files_changed}}. The dry run is the real command on a
 copy made by eaos.live.testing.verify.isolated_copy; files_changed counts files added, removed or modified there. A tool
 that changes nothing did nothing, and says so with files_changed 0. The project is never written.
@@ -85,16 +86,25 @@ def _names_of(node):
             ([node.target.id] if isinstance(node, ast.AnnAssign) and isinstance(node.target, ast.Name) else []))
 
 
+def binary(tool):
+    """Where a codemod's tool is: EAOS's own first, then the computer's."""
+    from ...engines.process import which
+    return which(tool)
+
+
 NPM_FLAGS = ['--package-lock-only', '--ignore-scripts', '--no-audit', '--no-fund', '--loglevel=error']
+# Each package.json manager's (command that sets one dependency, flags that write only the lock and run no script of the
+# project, the flag naming the folder). bun keeps a dev dependency in devDependencies and reads npm's overrides keys.
+LOCK_ONLY = {'npm': ('install', NPM_FLAGS, '--prefix'), 'bun': ('add', ['--lockfile-only', '--ignore-scripts'], '--cwd')}
 
 
-def _npm_steps(detail, binary, copy):
-    """In each folder: a direct dependency installed at its fixed version; a transitive one overridden, then installed."""
-    steps = []
+def _manifest_steps(detail, executable, copy):
+    """In each folder: a direct dependency set at its fixed version; a transitive one overridden, then installed."""
+    steps, (add, flags, at) = [], LOCK_ONLY[detail['kind']]
     for folder, direct in detail.get('folders') or [(detail.get('folder', '.'), detail['direct'])]:
-        prefix = ['--prefix', folder] if folder != '.' else []
+        prefix = [at, folder] if folder != '.' else []
         if direct:
-            steps.append(([binary, 'install', f"{detail['package']}@{detail['fixed']}", *NPM_FLAGS, *prefix], None))
+            steps.append(([executable, add, f"{detail['package']}@{detail['fixed']}", *flags, *prefix], None))
         else:
             # Only the vulnerable version's copies, never every copy of the package: another major line keeps its own
             # (npm keeps a key's range only when it holds the fixed version too; a key of one version moves one copy).
@@ -102,7 +112,7 @@ def _npm_steps(detail, binary, copy):
             manifest = Path(copy) / folder / 'package.json'
             steps += [(lambda manifest=manifest, key=key: _override(manifest, key, detail['fixed']),
                        f"override {key} with {detail['fixed']} in {PurePosixPath(folder, 'package.json')}"),
-                      ([binary, 'install', *NPM_FLAGS, *prefix], None)]
+                      ([executable, 'install', *flags, *prefix], None)]
     return steps
 
 
@@ -117,7 +127,6 @@ def _override(manifest, key, fixed):
 
 def _commands(card, copy):
     """[(argv, None) or (callable, description)] for one card, in the copy."""
-    from ...engines.process import which
     kind, detail = card['kind'], card
     if kind == 'delete-file':
         return [(lambda: (copy / detail['path']).unlink(), f"rm {shlex.quote(detail['path'])}")]
@@ -125,15 +134,15 @@ def _commands(card, copy):
         return [(lambda: remove_python(copy / detail['path'], detail['symbol']),
                  f"python-ast remove {detail['symbol']} from {detail['path']}")]
     if kind == 'jscodeshift':
-        binary = which('jscodeshift')
-        return [([binary, '-t', str(TRANSFORM), '--parser=tsx', f"--name={detail['symbol']}", detail['path']], None)] if binary else None
-    if kind == 'npm': return _group_steps(detail.get('group') or [detail], which('npm') or 'npm', copy)
+        found = binary('jscodeshift')
+        return [([found, '-t', str(TRANSFORM), '--parser=tsx', f"--name={detail['symbol']}", detail['path']], None)] if found else None
+    if kind in LOCK_ONLY: return _group_steps(detail.get('group') or [detail], binary(kind) or kind, copy)
     return None
 
 
-def _group_steps(members, binary, copy):
+def _group_steps(members, executable, copy):
     """Every package's steps, the edits of the manifests first, then each install once."""
-    steps = [step for member in members for step in _npm_steps(member, binary, copy)]
+    steps = [step for member in members for step in _manifest_steps(member, executable, copy)]
     installs = {tuple(step): (step, text) for step, text in steps if not callable(step)}
     return [(step, text) for step, text in steps if callable(step)] + list(installs.values())
 
@@ -202,7 +211,7 @@ def _upgrades_card(facts, target):
     """A lock file card's packages each get their own change, and the card passes or fails whole; one package: its own."""
     members = [_upgrade_card(fact, target) for fact in facts]
     if not members or None in members: return None
-    return members[0] if len(members) == 1 else {'kind': 'npm', 'group': members}
+    return members[0] if len(members) == 1 else {'kind': members[0]['kind'], 'group': members}
 
 
 def _removal_card(facts):
@@ -224,23 +233,30 @@ def _direct_in(target, where, package):
 
 
 def _upgrade_card(fact, target):
-    """An npm upgrade to the fixed version, in every folder whose lock file holds the vulnerable version."""
-    ecosystem, _, rest = str(fact['location'].get('symbol')).partition(':')
-    package, _, version = rest.rpartition('@')
+    """An upgrade to the fixed version by the lock file's own tool (rules/codemods.json); npm's in every folder whose
+    lock file holds the vulnerable version."""
+    package, _, version = str(fact['location'].get('symbol')).partition(':')[2].rpartition('@')
     fixed = next((m['value'] for m in fact['value'].get('measurements') or [] if m['name'] == 'fixed_in'), None)
     # The lock file the scanner read names the folder: an app in app/ has its manifest there, not at the root.
-    folder = str(PurePosixPath(fact['location'].get('path') or 'package-lock.json').parent)
-    if ecosystem != 'npm' or not fixed or not (Path(target) / folder / 'package-lock.json').is_file(): return None
-    folders = _upgrade_folders(target, folder, package, version)
-    return {'kind': 'npm', 'package': package, 'version': version, 'fixed': fixed, 'direct': _direct_in(target, folder, package), 'folder': folder,
+    lock = PurePosixPath(fact['location'].get('path') or 'package-lock.json')
+    kind, folder = _upgrade_tools().get(lock.name), str(lock.parent)
+    if not kind or not fixed or not (Path(target) / lock).is_file(): return None
+    folders = _upgrade_folders(target, lock, package, version)
+    return {'kind': kind, 'package': package, 'version': version, 'fixed': fixed, 'direct': _direct_in(target, folder, package), 'folder': folder,
             'folders': [(where, _direct_in(target, where, package)) for where in folders]}
 
 
-def _upgrade_folders(target, folder, package, version):
+def _upgrade_tools():
+    """{lock file name: the tool whose codemod rewrites it}."""
+    return json.loads(RULES.read_text(encoding='utf-8'))['upgrade_dependency']
+
+
+def _upgrade_folders(target, lock, package, version):
     """The folder of the lock file the scanner read, then the others holding the same version, each with a package.json."""
     # The same vulnerable version in another lock file of the project (a server/ beside the app) is the same
-    # problem: the card's acceptance scans the whole project, so every such lock file is upgraded with it.
-    folders = [folder] + [where for where in _lock_folders_with(target, package, version) if where != folder]
+    # problem: the card's acceptance scans the whole project, so every such lock file is upgraded with it (npm's).
+    others = _lock_folders_with(target, package, version) if lock.name == 'package-lock.json' else []
+    folders = [str(lock.parent)] + [where for where in others if where != str(lock.parent)]
     return [where for where in folders if (Path(target) / where / 'package.json').is_file()]
 
 
@@ -256,7 +272,7 @@ def _lock_folders_with(target, package, version):
 
 
 # Each lock file's package manager and the command a person runs to move one package in it. A batch upgrades only a
-# lock file whose manager has a codemod (rules/codemods.json) and is installed: a card no tool can pass is not fixable.
+# lock file that has a codemod (rules/codemods.json) whose tool is installed: a card no tool can pass is not fixable.
 MANAGERS = {'package-lock.json': ('npm', 'npm install {package}@{fixed}'), 'bun.lock': ('bun', 'bun update {package}'),
             'bun.lockb': ('bun', 'bun update {package}'), 'pnpm-lock.yaml': ('pnpm', 'pnpm update {package}'),
             'yarn.lock': ('yarn', 'yarn up {package}'), 'uv.lock': ('uv', 'uv lock --upgrade-package {package}'),
@@ -269,15 +285,14 @@ MANAGERS = {'package-lock.json': ('npm', 'npm install {package}@{fixed}'), 'bun.
 def manual_upgrade(path, package, fixed):
     """Why a batch cannot move `package` in the lock file at `path`, as {'why', 'tool', 'lock', 'command'}; None when it
     can, or when the site is no lock file (a requirements.txt is a text edit). 'lock' is a component no lock file names."""
-    from ...engines.process import which
     lock = PurePosixPath(path).name
     if lock == 'sbom.cdx.json': return {'why': 'lock', 'tool': '', 'lock': lock, 'command': ''}
     if lock not in MANAGERS: return None
     tool, command = MANAGERS[lock]
     command = command.format(package=package, fixed=str(fixed).removeprefix('v'))
-    if tool not in json.loads(RULES.read_text(encoding='utf-8'))['upgrade_dependency']:
+    if lock not in _upgrade_tools():
         return {'why': 'tool', 'tool': tool, 'lock': lock, 'command': command}
-    return None if which(tool) else {'why': 'missing', 'tool': tool, 'lock': lock, 'command': command}
+    return None if binary(tool) else {'why': 'missing', 'tool': tool, 'lock': lock, 'command': command}
 
 
 MECHANICAL = ('remove_dead', 'dead_code', 'leftover', 'upgrade_dependency')
