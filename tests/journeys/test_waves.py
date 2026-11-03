@@ -411,6 +411,19 @@ class PythonSuiteGateTests(unittest.TestCase):
         after = [{'argv': argv, 'exit': 1, 'failing': failing('FAIL: test_old (tests.test_a.A.test_old)\nERROR: test_new (tests.test_a.A.test_new)\n')}]
         self.assertEqual(regressions(before, after), ['python -m unittest (1 new failing: test_new (tests.test_a.A.test_new))'])
 
+    def test_a_jest_suite_already_failing_counts_its_new_failures(self):
+        # Trial on real projects (2026-11-02): the delivered branch had one more failing jest test than the original; no
+        # gate saw it, the test gate read only TAP, unittest and pytest
+        from eaos.journeys.fix.execute import failing, regressions
+        old = ('FAIL api src/tests/services/auth.service.test.ts\n  \u25cf AuthService \u203a login \u203a should throw an error\n\n'
+               '    expect(received).rejects.toThrow()\n\n  \u25cf Console\n\n    console.log\nTests:       1 failed, 26 passed, 27 total\n')
+        new = old.replace('FAIL api src/tests/services/auth.service.test.ts\n',
+                          'FAIL api src/tests/services/auth.service.test.ts\n  \u25cf AuthService \u203a createUser \u203a should create new user \n')
+        argv = ['npm', 'run', 'test']
+        self.assertEqual(regressions([{'argv': argv, 'exit': 1, 'failing': failing(old)}], [{'argv': argv, 'exit': 1, 'failing': failing(new)}]),
+                         ['npm run test (1 new failing: AuthService \u203a createUser \u203a should create new user)'])
+        self.assertEqual(failing(' FAIL  src/a.test.ts > cart > adds one\n'), ['cart > adds one'], 'vitest says it on one line')
+
 
 if __name__ == '__main__':
     unittest.main()

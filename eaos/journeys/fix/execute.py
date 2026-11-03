@@ -186,11 +186,13 @@ def original_checks(target, runtime):
 
 TAP_FAILURE = re.compile(r'^\s*not ok \d+ - (.+?)(?:\s+#.*)?$', re.M)
 PYTHON_FAILURE = re.compile(r'^(?:(?:FAIL|ERROR): (\S+ \([^)]*\))|FAILED (\S+))', re.M)   # unittest, pytest -q
+JEST_FAILURE = re.compile(r'^\s*(?:\u25cf|FAIL\s+\S+\s+>)\s+(?!Console$)(.+?)\s*$', re.M)   # jest: "● Suite › name"; vitest: "FAIL file > name"
 
 
 def failing(output):
-    """The names of the failing tests a TAP reporter (node --test, tap...), unittest or pytest printed: sorted, unique."""
-    return sorted(set(TAP_FAILURE.findall(output)) | {a or b for a, b in PYTHON_FAILURE.findall(output)})
+    """The names of the failing tests a TAP reporter (node --test, tap...), unittest, pytest, jest or vitest printed:
+    sorted, unique."""
+    return sorted(set(TAP_FAILURE.findall(output)) | set(JEST_FAILURE.findall(output)) | {a or b for a, b in PYTHON_FAILURE.findall(output)})
 
 
 def regressions(before, after):
