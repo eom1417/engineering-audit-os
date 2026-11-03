@@ -73,16 +73,20 @@ def measured(fact, name):
     return next((m['value'] for m in (fact.get('value') or {}).get('measurements') or [] if m['name'] == name), None)
 
 
+def _upgradable(claim, fact_sets, target):
+    """(the upgrade rule, the facts the claim cites) when the rule holds and every fact has a fix, else (None, [])."""
+    if target is None or (claim.get('render') or {}).get('key') not in ('vulnerable_dependency', 'vulnerable_lockfile'):
+        return None, []
+    rule = rules_for(target)[0]['upgrade_vulnerable_dependencies']
+    facts = list(cited(claim, fact_sets, 'external')) if rule['value'] else []
+    return rule, facts if facts and all(measured(fact, 'fixed_in') for fact in facts) else []
+
+
 def build_assessment(claim, fact_sets, target):
     """{'assessment': ..., 'checks': [...]} for a fixable vulnerable dependency, or a lock file's, under the upgrade
     rule, else None. A lock file card is fixable only when every package it gathers has a fix."""
-    if target is None or (claim.get('render') or {}).get('key') not in ('vulnerable_dependency', 'vulnerable_lockfile'):
-        return None
-    rules, _ = rules_for(target)
-    rule = rules['upgrade_vulnerable_dependencies']
-    if not rule['value']: return None
-    facts = list(cited(claim, fact_sets, 'external'))
-    if not facts or not all(measured(fact, 'fixed_in') for fact in facts): return None
+    rule, facts = _upgradable(claim, fact_sets, target)
+    if not facts: return None
     upgrades = [_upgrade(fact) for fact in facts]
     (expected, after, change), (blockers, manual) = _words(upgrades), _unable(facts[0], upgrades)
     check = {'id': 'DEP-' + facts[0]['id'], 'kind': 'command',

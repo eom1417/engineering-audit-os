@@ -194,12 +194,15 @@ def card_for(task, facts_by_id, target):
     if pattern == 'leftover':
         fact = next(iter(facts), None)
         return {'kind': 'delete-file', 'path': fact['location']['path']} if fact else None
-    if pattern == 'upgrade_dependency':
-        # A lock file card's packages each get their own change, and the card passes or fails whole.
-        members = [_upgrade_card(fact, target) for fact in facts]
-        if not members or None in members: return None
-        return members[0] if len(members) == 1 else {'kind': 'npm', 'group': members}
+    if pattern == 'upgrade_dependency': return _upgrades_card(facts, target)
     return None
+
+
+def _upgrades_card(facts, target):
+    """A lock file card's packages each get their own change, and the card passes or fails whole; one package: its own."""
+    members = [_upgrade_card(fact, target) for fact in facts]
+    if not members or None in members: return None
+    return members[0] if len(members) == 1 else {'kind': 'npm', 'group': members}
 
 
 def _removal_card(facts):
