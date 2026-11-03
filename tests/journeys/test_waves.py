@@ -469,6 +469,14 @@ class PythonSuiteGateTests(unittest.TestCase):
                          ['npm run test (1 new failing: AuthService \u203a createUser \u203a should create new user)'])
         self.assertEqual(failing(' FAIL  src/a.test.ts > cart > adds one\n'), ['cart > adds one'], 'vitest says it on one line')
 
+    def test_a_check_that_cannot_run_here_is_named_never_silent(self):
+        # Trial on real projects (2026-11-02): both checks of a project exited 127 (their program not found) on the original
+        # and every gate; a check already failing with no names is no gate, so the lint gate was off and nobody was told
+        from eaos.journeys.fix.execute import not_run
+        rows = [{'argv': ['bun', 'run', 'lint'], 'exit': 127, 'failing': []}, {'argv': ['bun', 'run', 'test'], 'exit': 127, 'failing': []},
+                {'argv': ['npm', 'test'], 'exit': 1, 'failing': []}]
+        self.assertEqual(not_run(rows), ['bun run lint', 'bun run test'])
+
 
 if __name__ == '__main__':
     unittest.main()

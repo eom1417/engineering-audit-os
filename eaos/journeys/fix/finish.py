@@ -7,9 +7,12 @@ them out, halving finds the cards responsible. A batch that passes becomes a bra
 on its base branch when the person chose so.
 """
 
+from pathlib import Path
+
 from .. import guided
 from ...core.project import state as project_state
 from ...core.system.clock import now
+from ...core.system.files import read_json
 
 REPAIR = 'REPAIR'        # the card of a repair on top of the batch
 REPAIRS = 3             # repairs tried before the cards responsible are left out
@@ -129,13 +132,24 @@ def _handed_over(project, wave, summary):
     files = guided._git(state['project'], 'diff', '--stat', f"{wave['base']}..{summary['branch']}").stdout.strip() if summary['kept'] else ''
     if wave.get('direct') and record['status'] == 'applied':
         return _land(state['project'], record, files)
+    unrun = _not_run(state)
     return {'batch': wave['number'], 'branch': summary['branch'] if summary['kept'] else None, 'kept': summary['kept'],
-            'failed': summary['failed'], 'changes': summary['stat'], 'files': files[-4000:], **score,
+            'failed': summary['failed'], 'changes': summary['stat'], 'files': files[-4000:], **score, 'checks_not_run': unrun,
             **({'continued_on': wave['continues']} if wave.get('continues') else {}),
             'what_now': (f"Tell the person, in plain words, what was fixed and that it is on the branch {summary['branch']}; "
                          "their current branch is unchanged. Ask whether to take it in (accept) or throw it away (undo). "
                          "The report counts these fixes as done only once they are taken in."
-                         if summary['kept'] else 'No change passed every gate; nothing reached the project.')}
+                         if summary['kept'] else 'No change passed every gate; nothing reached the project.')
+                        + (f" Tell them too that EAOS could not run these checks of theirs here, so no fix was held to them: "
+                           f"{', '.join(unrun)} (the program each needs is missing on this computer)." if unrun else '')}
+
+
+def _not_run(state):
+    """The project's own checks that could not run on the original (eaos/journeys/fix/execute.py not_run), read from
+    the run's record of them, never run again."""
+    from .execute import not_run
+    kept = read_json(Path(project_state.runtime_of(state)) / 'runtime/checks-original.json') or {}
+    return not_run(kept.get('checks') or [])
 
 
 def _record(state, wave, summary):

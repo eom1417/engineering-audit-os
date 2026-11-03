@@ -235,6 +235,12 @@ def failing(output):
     return sorted(set(TAP_FAILURE.findall(output)) | set(JEST_FAILURE.findall(output)) | {a or b for a, b in PYTHON_FAILURE.findall(output)})
 
 
+def not_run(checks):
+    """The project's own checks that could not run here (exit 126 or 127: their program missing or not allowed): no gate
+    held a change to them, which the person is told, never silent."""
+    return [' '.join(map(str, check['argv'])) for check in checks if check['exit'] in (126, 127)]
+
+
 def regressions(before, after):
     """What the change broke: a check that passed and now fails, or, for a test suite already failing on the
     original, a test that passed and now fails. A failure the original already had is not the change's."""
