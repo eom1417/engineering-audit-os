@@ -161,8 +161,8 @@ def _said_too(state, wave):
 
 def beyond(card, changed):
     """The files a card's change touched outside its own paths (each a file or a folder; '*', or none named: every file is
-    its own). Named at the hand-over, never refused: the one-source gate may rightly make a fix reach the copies of what
-    it changes (trial on real projects, 2026-11-02: a dialog's card changed 13 files, 12 never named)."""
+    its own). Kept only with the assistant's why (agent_tools/edits.py), named with it at the hand-over: the one-source gate
+    may rightly make a fix reach the copies of what it changes (trial on real projects: a dialog's card changed 13 files)."""
     paths = [path.rstrip('/') for path in card.get('paths') or []]
     if not paths or '*' in paths: return []
     return [path for path in changed if not any(path == own or path.startswith(own + '/') for own in paths)]

@@ -1435,6 +1435,11 @@
    },
    "input": {
     "properties": {
+     "beyond_why": {
+      "default": "",
+      "title": "Beyond Why",
+      "type": "string"
+     },
      "card": {
       "title": "Card",
       "type": "string"

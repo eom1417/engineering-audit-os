@@ -843,6 +843,22 @@ class Direct(Base):
         self.assertEqual(calls, [('accept', {'person_agreed': True, 'project': str(self.project.resolve())})])
         self.assertTrue(next(e for e in reversed(self.app.store.events('r-chosen')) if e['kind'] == 'result')['data']['auto_accept'])
 
+    def test_closing_words_mostly_not_in_arabic_are_asked_once_again_and_kept_and_said_when_still_not(self):
+        # Trial on real projects (2026-11-02): under --lang ar the closing summary came back mostly English; its one Arabic
+        # word let it through
+        self.app.store.save({'id': 'r-lang', 'action': 'fix', 'verb': 'fix', 'mode': 'assistant', 'state': 'running', 'assistant': 'claude',
+                             'label': {'en': 'x', 'ar': 'x'}, 'created': '0'}, new=True)
+        words = 'تم. Fixed the AddUser dialog: split it into two components and moved the shared fields into `FormFields.tsx`.'
+        arabic = 'تم: قسّمت نافذة إضافة المستخدم إلى مكوّنين ونقلت الحقول المشتركة إلى `FormFields.tsx`.'
+        with mock.patch.object(adapters, 'ask', return_value={'answer': {'text': arabic}}):
+            self.assertEqual(self.app.manager._readable('r-lang', words), arabic)
+            self.assertEqual(self.app.manager._readable('r-lang', arabic), arabic)
+        with mock.patch.object(adapters, 'ask', return_value={'answer': {'text': words}}) as asked:
+            self.assertEqual(self.app.manager._readable('r-lang', words), words)
+        self.assertEqual(asked.call_count, 1, 'asked once, never again')
+        said = [e for e in self.app.store.events('r-lang') if e['kind'] == 'check']
+        self.assertEqual([(e['data']['name'], e['data']['passed']) for e in said], [('language', False)])
+
 class Plan(Base):
     def test_a_plan_given_in_the_studio_draws_the_blueprint_of_a_new_folder_beside_the_project(self):
         import base64
