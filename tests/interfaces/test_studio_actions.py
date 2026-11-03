@@ -332,6 +332,8 @@ class Adapters(unittest.TestCase):
         refused = argv[argv.index('--disallowedTools') + 1:]
         for tool in ('Bash', 'Edit', 'Write', 'mcp__eaos__accept', 'mcp__eaos__undo', 'mcp__eaos__choose_branch'): self.assertIn(tool, refused)
         self.assertIn('--strict-mcp-config', argv)
+        # Trial on real projects (2026-11-02): a fixing run, its built-in tools never named, launched a subagent
+        self.assertEqual(argv[argv.index('--tools') + 1], 'Read,Grep,Glob', 'no built-in tool beyond reading')
         self.assertEqual(argv[-2:], ['--resume', 's1'])
         self.assertEqual(config['mcpServers']['eaos']['env']['EAOS_STUDIO_RUN'], 'r1')
         self.assertEqual(config['mcpServers']['eaos']['args'][-1], 'mcp')
