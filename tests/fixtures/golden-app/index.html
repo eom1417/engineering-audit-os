@@ -23,9 +23,10 @@ setTimeout(() => {
   document.body.append(document.getElementById('app').content.cloneNode(true));
   addEventListener('hashchange', draw); draw(); setInterval(draw, 1000); show();
   // The about screen shows a random tip, as many apps do: it can never be locked, and must not cost the other screens.
+  // From crypto, which the recording does not hold still (it holds Math.random, as a game's tiles need).
   // Large random digits: always far over the 1% of pixels two recordings may differ by (a random colour was not).
   const tip = document.createElement('p'); tip.style.cssText = 'font:900 96px monospace;word-break:break-all';
-  tip.textContent = Array.from({ length: 40 }, () => Math.floor(Math.random() * 10)).join(''); if (location.hash === '#/about') document.body.append(tip);
+  tip.textContent = Array.from(crypto.getRandomValues(new Uint8Array(40)), (byte) => byte % 10).join(''); if (location.hash === '#/about') document.body.append(tip);
 }, 4000);
 </script>
 </body></html>
