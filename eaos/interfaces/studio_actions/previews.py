@@ -119,7 +119,7 @@ class Previews:
 
     def _verb_preview(self, out, verb, body):
         """The cards a verb would take and leave out, and where a Fix would build."""
-        cards, left = selecting.resolve(body.get('selection'), self._studio())
+        cards, left = selecting.resolve(body.get('selection'), self._studio(), verb)
         out.update(selecting.preview_of(verb, cards, left, self._past(verb)))
         if verb == 'fix' and self._has_commits(): out.update(where=self.branches.fix_where(body.get('where'), _group_name(body.get('selection'))), speed=helpers.speed(self.project, cards))
 

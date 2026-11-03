@@ -307,7 +307,7 @@ class Actions(Previews, Decisions):
         verb, action = kind
         inputs, selection, where, auto = given
         needed = self.verbs[verb]['needs_assistant'] if verb else self.actions[action]['needs_assistant']
-        cards, left = selecting.resolve(selection, self._studio()) if verb else ([], [])
+        cards, left = selecting.resolve(selection, self._studio(), verb) if verb else ([], [])
         label = _run_label(verb, self.verbs[verb]['label'] if verb else self.actions[action]['label'], cards)
         assistant = self._assistant(body.get('assistant'), needed)
         run = _run_id()

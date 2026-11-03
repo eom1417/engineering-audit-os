@@ -97,6 +97,15 @@ class OrderTests(unittest.TestCase):
         self.assertEqual(collect.call_count, 1)
         self.assertEqual(exits, {'D': 0, 'G': 1, 'P': 0})
 
+    def test_repository_craft_never_goes_in_a_fix_batch(self):
+        # five real projects: an assistant fixed "no map for extending" inside a fix batch, writing the guide and CLAUDE.md there
+        report = Path(scratch())
+        card = lambda i, pattern: {'id': i, 'kind': 'remediate', 'pattern': pattern, 'decision': {'readiness': 'ready'}}
+        (report / 'plan.json').write_text(json.dumps({'tasks': [card('CRAFT', 'repository_craft'), card('FIX', 'duplication')], 'milestones': []}))
+        self.assertEqual(waves.next_batch(report, {}), ['FIX'])
+        self.assertEqual(waves.kept_apart([card('CRAFT', 'repository_craft'), card('FIX', 'duplication')])['own_batch'], ['CRAFT'])
+        self.assertIsNone(waves.kept_apart([card('FIX', 'duplication')]))
+
     def test_a_layer_card_is_judged_by_the_layers_read_again_on_the_copy(self):
         # Trial on real projects (2026-11-02): every layer card of a batch exited 2, "the boundaries facts are not present"
         spec = {'probe_type': 'graph_query', 'specification': {'query': 'boundary_finding_present', 'rule': 'ui-database',

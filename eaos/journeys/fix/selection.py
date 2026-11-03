@@ -4,6 +4,7 @@ The cards come from the Studio data of the latest check (`studio/cards.json`, an
 those groups): the same data the page showed, so the preview names what the person saw. Only open cards run.
 """
 from pathlib import Path
+from ...core.contracts.decisions import own_batch
 from ...core.project import state as project_state
 from ...analysis.target_state.repair_or_rebuild import fix_minutes
 from ...core.system.files import read_json
@@ -39,11 +40,12 @@ def studio_folder(project):
     return folder if folder.is_dir() else None
 
 
-def resolve(selection, folder):
-    """(cards to run, cards left out with why): every card the selection names, in the order of cards.json."""
+def resolve(selection, folder, verb):
+    """(cards to run, cards left out with why): every card the selection names, in the order of cards.json; a Fix leaves
+    repository craft out (decisions.own_batch)."""
     cards = _checked_cards(selection, folder)
     wanted = _wanted(selection, cards, folder)
-    return _split([card for card in cards if card['id'] in wanted])
+    return _split([card for card in cards if card['id'] in wanted], verb == 'fix')
 
 
 def _checked_cards(selection, folder):
@@ -96,11 +98,12 @@ def _listed(by, value, folder):
     return {c for row in rows if str(row.get(field)) == value for c in row.get('cards') or []}
 
 
-def _split(chosen):
+def _split(chosen, fixing):
     """(open cards to run, the others with why they are left out); an error when none is left to run. A card waiting for
-    cards not done yet (its `waits`, decisions.waiting) is left out: it goes in a later batch, once they are done."""
+    cards not done yet (its `waits`, decisions.waiting) is left out: it goes in a later batch, once they are done; when
+    `fixing`, so is repository craft, which goes in a batch of its own."""
     if not chosen: raise SelectionError('the selection names no card', 'الاختيار ما فيه أي بطاقة')
-    run = [card for card in chosen if card.get('state', 'open') in OPEN and not card.get('waits')]
+    run = [card for card in chosen if card.get('state', 'open') in OPEN and not card.get('waits') and not (fixing and own_batch(card))]
     left = [_left(card) for card in chosen if card not in run]
     if not run:
         raise SelectionError('no selected card can run now: ' + ', '.join(f"{c['id']} ({c['why']})" for c in left[:5]),
@@ -111,6 +114,9 @@ def _split(chosen):
 
 def _left(card):
     """A card left out of the run, with why in both languages."""
+    if own_batch(card) and card.get('state', 'open') in OPEN:
+        return {'id': card['id'], 'why': 'repository craft: it goes in its own batch (moves or the context), never with fixes',
+                'why_ar': 'ترتيب للريبو: ينحل في دفعة لحاله (نقل ملفات أو ملفات الكونتكست)، مو مع الإصلاحات'}
     if card.get('state', 'open') in OPEN:
         names = ', '.join(card['waits'])
         return {'id': card['id'], 'why': f'waits for {names} (done first)', 'why_ar': f'تنتظر {names} (تنحل قبلها)'}
