@@ -103,9 +103,34 @@ def committed_copy(target, commit, destination):
     archive = subprocess.run(['git', '-C', str(target), 'archive', '--format=tar', commit], capture_output=True)
     if archive.returncode: raise AuthorizationError(f'could not read commit {commit[:12]}: {archive.stderr.decode()[-200:]}')
     subprocess.run(['tar', '-x', '-C', str(destination)], input=archive.stdout, check=True)
+    for row in submodules(target, commit):        # a submodule at the commit it pins, when it is checked out here
+        if row['here']:
+            pinned = subprocess.run(['git', '-C', str(Path(target) / row['path']), 'archive', '--format=tar', row['commit']], capture_output=True, check=True)
+            subprocess.run(['tar', '-x', '-C', str(destination / row['path'])], input=pinned.stdout, check=True)
     for path in destination.rglob('.env*'):
         if path.is_file() and not path.name.endswith(ENV_EXAMPLES): path.unlink()
     return destination
+
+
+def submodules(target, commit):
+    """The submodules `commit` pins: [{path, commit, url, here}], `here` when the project's checkout of it holds that
+    commit (a submodule never initialised, or at another commit without this one, is not here)."""
+    tree = subprocess.run(['git', '-C', str(target), 'ls-tree', '-r', commit], capture_output=True, text=True).stdout
+    pinned = {path: meta.split()[2] for meta, _, path in (line.partition('\t') for line in tree.splitlines()) if meta.startswith('160000 ')}
+    listed = subprocess.run(['git', '-C', str(target), 'config', '--blob', f'{commit}:.gitmodules', '--get-regexp', r'\.(path|url)$'],
+                            capture_output=True, text=True).stdout.split('\n') if pinned else []
+    keys = dict(line.split(' ', 1) for line in listed if ' ' in line)
+    urls = {keys[key]: keys.get(key[:-len('path')] + 'url') for key in keys if key.endswith('.path')}
+    return [{'path': path, 'commit': sha, 'url': urls.get(path), 'here': _holds(Path(target) / path, sha)} for path, sha in pinned.items()]
+
+
+def _holds(folder, sha):
+    return (folder / '.git').exists() and not subprocess.run(['git', '-C', str(folder), 'cat-file', '-e', f'{sha}^{{commit}}'], capture_output=True).returncode
+
+
+def unfilled(target, commit):
+    """The submodules `commit` pins that its copy cannot hold (eaos never fetches one): [{path, commit, url}]."""
+    return [{key: row[key] for key in ('path', 'commit', 'url')} for row in submodules(target, commit) if not row['here']]
 
 
 def _tail(path, size=2000):
@@ -187,6 +212,8 @@ class Sandbox:
         self.limitations += ['the processor and memory are shared with the checks of other projects',
                              "the person's own assistant runs outside this sandbox"]
         if not self.offline: self.limitations.append('network not isolated')
+        self.limitations += [f"the submodule {row['path']} is not in the copy: it is not checked out here at its pinned commit {row['commit'][:12]}"
+                             for row in unfilled(self.target, commit)]
         self._record()
 
     def environment(self, extra=None, argv=None):
