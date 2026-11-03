@@ -25,10 +25,13 @@ import subprocess
 from pathlib import Path
 
 from . import branches
+from ...core.language import plain
+from ...core.language.check import ARABIC
 from ...core.system.files import read_json
 from ...core.system.clock import now
 
 TRAILER = 'EAOS-Card'
+SUBJECT, HISTORY = 72, 20      # a commit subject's length at most; the project's own recent commits its language is read from
 NUMBERS = re.compile(r'\d+')
 CLOSED = ('done',)
 
@@ -54,6 +57,33 @@ def keys(cards):
         seen[plain] = seen.get(plain, -1) + 1
         out[card['id']] = key(card, seen[plain])
     return out
+
+
+def message(root, card, summary=''):
+    """The message of the commit of `card` in the copy at `root`, as a maintainer reads it: a subject saying what changed
+    (the first line of the assistant's `summary`, else the card's title), in the language of the project's own commits
+    (English unless most of them are Arabic: the card's English kind then), never cut mid-word; then the why the summary
+    gives; the card's id and key last (only the key is read back, walk). Five real projects got subjects cut mid-word and
+    Arabic ones in English repositories."""
+    first, _, why = (summary or '').strip().partition('\n')
+    arabic = _commits_in_arabic(root)
+    said = next((text for text in (first.strip(), card.get('title') or '') if text and (arabic or not ARABIC.search(text))),
+                None) or plain.problem(card.get('pattern'), 'en')[0]
+    body = [why.strip()] if why.strip() else []
+    return '\n\n'.join([_cut(said), *body, f"EAOS-Task: {card['id']}\n{TRAILER}: {card.get('key') or key(card)}"])
+
+
+def _commits_in_arabic(root):
+    """Whether most of the project's own recent commits (not EAOS's) have Arabic subjects."""
+    log = _git(root, 'log', f'-{HISTORY}', '--no-merges', '--format=%an%x00%s').stdout.splitlines()
+    subjects = [line.split('\x00', 1)[1] for line in log if '\x00' in line and not line.startswith('EAOS\x00')]
+    return sum(bool(ARABIC.search(subject)) for subject in subjects) * 2 > len(subjects)
+
+
+def _cut(text):
+    """`text` within SUBJECT characters, cut at the last word that fits."""
+    if len(text) <= SUBJECT: return text
+    return text[:SUBJECT + 1].rsplit(' ', 1)[0].rstrip(' ,;:-') or text[:SUBJECT]
 
 
 def path(state):

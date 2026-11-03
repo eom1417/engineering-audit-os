@@ -126,7 +126,7 @@ class Branches(unittest.TestCase):
         subprocess.run(['git', 'clone', '-q', '-b', 'develop', str(self.project), str(copy)], check=True)
         git(copy, 'checkout', '-q', '-b', 'eaos/wave-1')
         (copy / 'fix.js').write_text('// a fix\n')
-        eaos_commit(copy, cards['TASK-001'], 'assistant')
+        eaos_commit(copy, cards['TASK-001'])
         git(self.project, 'fetch', '-q', str(copy), 'eaos/wave-1:eaos/wave-1')
         state = project_state.load(self.project)
         state['waves'] = [{'number': 1, 'base': state['scanned_commit'], 'cards': ['TASK-001'], 'kept': ['TASK-001'], 'failed': {},
@@ -167,7 +167,7 @@ class Branches(unittest.TestCase):
         subprocess.run(['git', 'clone', '-q', '-b', 'develop', str(self.project), str(copy)], check=True)
         (copy / 'fix.js').write_text('// a fix\n')
         cards = {c['id']: c for c in read_plan(guided.report_of(state))['tasks']}
-        eaos_commit(copy, cards['TASK-001'], 'assistant')
+        eaos_commit(copy, cards['TASK-001'])
         git(self.project, 'fetch', '-q', str(copy), '+HEAD:refs/heads/eaos/develop/wave-1')
         state = project_state.load(self.project)
         state['waves'] = [{'number': 1, 'base': develop, 'cards': ['TASK-001'], 'kept': ['TASK-001'], 'failed': {}, 'merge_into': 'release',
@@ -193,7 +193,7 @@ class Branches(unittest.TestCase):
         root = Path(wave['root'])
         (root / f'{card}.js').write_text(f'// {card} fixed\n')
         cards = {c['id']: c for c in read_plan(guided.report_of(state))['tasks']}
-        wave['kept'][card] = eaos_commit(root, cards[card], 'assistant')
+        wave['kept'][card] = eaos_commit(root, cards[card])
         guided.save(state)
         with mock.patch('eaos.journeys.fix.waves.batch.gates', return_value=''), mock.patch('eaos.journeys.fix.waves.batch.original_checks', return_value={}), \
                 mock.patch('eaos.journeys.fix.waves.batch.batch_acceptance', side_effect=lambda report, chosen, root, **_: {c['id']: None for c in chosen}):

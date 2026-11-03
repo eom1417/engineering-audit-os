@@ -44,6 +44,16 @@ subagent; checks that could not run, and files changed beyond a card, were never
 - **Said, never silent:** a codemod that fails keeps the end of what it printed; the hand-over names the project's checks that could not run here (exit 126/127) and each file a card changed beyond its own paths (`checks_not_run`, `beyond_the_cards`; fix_edit's `beyond_the_card`).
 - **The fixing assistant is given only Read, Grep and Glob** beside EAOS's own tools: no subagent, shell or scheduler.
 
+The branches of that trial were not ones a maintainer would merge as they came: every fix branch added `AGENTS.md`, a
+`CLAUDE.md` and `docs/EXTENDING.md` the person never asked for, the guide titled after the batch's copy ("Extending
+WAVE-1") and telling a bun project to run npm, and commit subjects cut mid-word at 72 characters, in Arabic in English
+repositories, over "Executed by EAOS" bodies.
+
+- **A fix batch writes no guide and no context file the project did not have:** it refreshes the guide EAOS wrote only when the project held it at the batch's base and the batch moved or removed a path it names; context files are never touched there. Making the guide stays with `context_make`, on a branch of its own. This replaces "kept by every fix batch" of 0.0.90.
+- **Repository-craft cards stay out of fix batches:** `fix_start` refuses one by name (`own_batch`, pointing to `moves_propose` and `context_propose`), the next batch never takes one, and a Fix selection in the Studio or the terminal leaves it out with why.
+- **The guide is named after the project** and reads bun's text lock (`bun.lock`): one table of package managers for the guide and the intake.
+- **Commit messages say what changed:** the subject is the first line of the assistant's `fix_edit` summary, else the card's title, in the language of the project's own recent commits (English unless most are Arabic), cut at a word within 72 characters; the summary's why follows; the card's id (`EAOS-Task`) and key (`EAOS-Card`) are trailers. No "Executed by EAOS" line in any batch.
+
 ## 0.0.90 (2026-10-31)
 
 M18, the design library and the extension guide. A real project's look had grown by hand: its buttons drawn many ways, its colours a shade apart, and nothing a
@@ -51,7 +61,7 @@ fix could be held to: at the lock's tolerance a colour moved by one level passed
 every raw value in one tokens file with no model asked, and keeps that change only when it proves, element by element and state by state, that nothing looks different.
 
 - **One tool per job:** 43 tools to 37; CodeGraph, Enola, Trivy, CodeCharta, Temurin and Emerge retired, the code map EAOS's own.
-- **The guide:** `docs/EXTENDING.md`, held by a guard; every project gets its own from its layers and how it grew: a draft and a card in a check, kept by every fix batch and build.
+- **The guide:** `docs/EXTENDING.md`, held by a guard; every project gets its own from its layers and how it grew: a draft and a card in a check, kept by every build (a fix batch only refreshes one the project has, since the first strangers' trial).
 - **The style oracle:** every element's computed look in every state (`look.cjs`, `look_oracle.py`), a gate for a batch that declares its look.
 - **The inventory:** "buttons: 11 looks", values, near colours, formats, two libraries for one job: REPORT.html's "Your design library", `eaos design`, MCP `design`, `design/gallery.html`.
 - **Design batches:** `design_propose`, `design_make`: raw values named as tokens, what the person agrees to merge moved. Proved on plain CSS, SCSS, MUI and Tailwind.

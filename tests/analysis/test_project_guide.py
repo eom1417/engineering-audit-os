@@ -87,7 +87,7 @@ class ProjectGuideTests(Workspace):
     def test_written_with_one_pointer_line_again_and_again_the_same_and_what_the_person_wrote_stays(self):
         root = self.repo()
         self.commit(root, {'AGENTS.md': '# Ours\n'}, 'context')
-        written = project_guide.write(root, self.drawn(root))
+        written = project_guide.write(root, self.drawn(root), 'shop')
         self.assertEqual(sorted(written), ['AGENTS.md', 'docs/EXTENDING.md'])
         agents = (root / 'AGENTS.md').read_text(encoding='utf-8')
         self.assertEqual(agents.count('docs/EXTENDING.md'), 1)
@@ -95,18 +95,18 @@ class ProjectGuideTests(Workspace):
         with (root / 'docs/EXTENDING.md').open('a', encoding='utf-8') as guide: guide.write('My own note.\n')
         git(root, 'add', '-A')
         git(root, 'commit', '-qm', 'guide')
-        self.assertEqual(project_guide.write(root, self.drawn(root)), [])
+        self.assertEqual(project_guide.write(root, self.drawn(root), 'shop'), [])
         self.assertIn('My own note.', (root / 'docs/EXTENDING.md').read_text(encoding='utf-8'))
 
     def test_no_context_file_makes_agents_and_a_claude_that_reads_it(self):
         root = self.repo()
-        project_guide.write(root, self.drawn(root))
+        project_guide.write(root, self.drawn(root), 'shop')
         self.assertEqual((root / 'CLAUDE.md').read_text(encoding='utf-8'), '@AGENTS.md\n')
         self.assertIn(project_guide.POINTER_BEGIN, (root / 'AGENTS.md').read_text(encoding='utf-8'))
 
     def test_a_moved_home_is_followed_and_a_gone_file_is_a_stale_path(self):
         root = self.repo()
-        project_guide.write(root, self.drawn(root))
+        project_guide.write(root, self.drawn(root), 'shop')
         git(root, 'add', '-A')
         git(root, 'commit', '-qm', 'guide')
         moves.apply(root, [{'from': 'src/router.tsx', 'to': 'src/core/router.tsx'}])
@@ -170,16 +170,40 @@ class ProjectGuideTests(Workspace):
                      '## The areas', '| src/data |', 'Before merging: `npm run lint`'):
             self.assertIn(said, text)
 
-    def test_a_fix_batch_carries_the_guide_as_its_own_commit_and_only_when_it_changed(self):
+    def test_a_fix_batch_never_writes_a_guide_or_a_context_file_the_project_did_not_have(self):
+        from eaos.journeys.fix.regenerate import keep_guide
+        root = self.repo()
+        base = git(root, 'rev-parse', 'HEAD').strip()
+        self.commit(root, {'src/pages/Home.tsx': 'fixed'}, 'a fix')
+        with mock.patch.object(project_guide, 'pinned_ids', return_value=[]):
+            self.assertIsNone(keep_guide(root, Path(self.tmp) / 'report', str(root), 1, base))
+        self.assertEqual(git(root, 'status', '--porcelain'), '')
+        for made in ('AGENTS.md', 'CLAUDE.md', 'docs/EXTENDING.md'): self.assertFalse((root / made).exists(), made)
+
+    def test_a_fix_batch_updates_an_existing_guide_only_when_it_moved_a_path_the_guide_names(self):
         from eaos.journeys.fix.regenerate import keep_guide
         root = self.repo()
         report = Path(self.tmp) / 'report'
         with mock.patch.object(project_guide, 'pinned_ids', return_value=[]):
-            self.assertTrue(keep_guide(root, report, str(root), 1))
-            self.assertIn('docs/EXTENDING.md', git(root, 'show', '--name-only', '--format=', 'HEAD'))
-            self.assertIsNone(keep_guide(root, report, str(root), 2))
-            self.assertIsNone(keep_guide(root, Path(self.tmp) / 'no-check', str(root), 3))
+            project_guide.write(root, self.drawn(root), 'shop')
+            git(root, 'add', '-A')
+            git(root, 'commit', '-qm', 'guide')
+            base = git(root, 'rev-parse', 'HEAD').strip()
+            self.commit(root, {'README.md': 'changed'}, 'a fix')
+            self.assertIsNone(keep_guide(root, report, str(root), 1, base))
+            git(root, 'mv', 'src/pages/About.tsx', 'src/pages/AboutPage.tsx')
+            git(root, 'commit', '-qm', 'a move')
+            self.assertTrue(keep_guide(root, report, str(root), 1, base))
+        self.assertEqual(git(root, 'show', '--name-only', '--format=', 'HEAD').split(), ['docs/EXTENDING.md'])
+        self.assertIn('`src/pages/AboutPage.tsx`', (root / 'docs/EXTENDING.md').read_text(encoding='utf-8'))
 
     def test_the_commands_are_the_projects_own(self):
         root = Path(self.tmp)
         self.assertEqual(extending.commands(root, {'manage.py', 'go.mod'}), ['python manage.py test', 'go test ./...'])
+        (root / 'package.json').write_text(json.dumps({'scripts': {'test': 'x'}}), encoding='utf-8')
+        self.assertEqual(extending.commands(root, {'package.json', 'bun.lock'}), ['bun run test'])
+
+    def test_the_guide_is_named_after_the_project_not_its_batch_copy(self):
+        copy = self.repo().rename(Path(self.tmp) / 'WAVE-1')
+        project_guide.write(copy, self.drawn(copy), 'shop')
+        self.assertIn('# Extending shop\n', (copy / 'docs/EXTENDING.md').read_text(encoding='utf-8'))

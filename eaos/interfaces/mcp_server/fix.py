@@ -216,6 +216,8 @@ def _edit_tools(server, reading, working, _answer):
                  'is gone, no new broken code, no endpoint gone. Edits: [{"path", "find", "replace"}] (find occurs exactly once), '
                  '[{"path", "content"}] for a whole or new file, [{"path", "delete": true}]. Any file of the project may change. A change '
                  'that fails is taken back with the reason. card="REPAIR" when fix_finish asks for a repair on top of the batch. '
+                 'summary: the commit message, in the language of the project\'s own commits (English unless they are not): one '
+                 'line under 72 characters saying what changed; then, only for a change that is not obvious, a blank line and why. '
                  'Returns a job.')
     @_answer
     def fix_edit(card: str, edits: list[dict], summary: str = '', project: str | None = None) -> str:

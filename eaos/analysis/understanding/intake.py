@@ -24,6 +24,9 @@ NAMED = re.compile(r'\b(name|full_?name|first_?name|last_?name|nome)\b\s*[?]?\s*
 PERSON = re.compile(r'user|profile|customer|client|member|employee|driver|operator|person|patient|student|contact', re.I)
 END = re.compile(r'^\s*(\);|\}|class\s|create\s|export\s|interface\s|type\s)', re.I)
 BLOCK = 60
+# A JavaScript project's package manager, by its lock (bun's text lock and its older binary one); npm without one.
+# eaos/live/app/detect.py LOCKFILES says the same for running the app: analysis may not import live.
+RUNNERS = (('bun.lock', 'bun'), ('bun.lockb', 'bun'), ('pnpm-lock.yaml', 'pnpm'), ('yarn.lock', 'yarn'))
 
 
 def questions():
@@ -79,10 +82,9 @@ def run_command(target):
     package = read_json(Path(target) / 'package.json')
     if package is None: return None
     scripts = package.get('scripts') or {}
-    runner = next((tool for lock, tool in (('bun.lock', 'bun run'), ('bun.lockb', 'bun run'), ('pnpm-lock.yaml', 'pnpm run'),
-                                          ('yarn.lock', 'yarn')) if (Path(target) / lock).is_file()), 'npm run')
+    runner = next((tool for lock, tool in RUNNERS if (Path(target) / lock).is_file()), 'npm')
     script = next((name for name in ('preview', 'start', 'dev') if name in scripts), None)
-    return f'{runner} {script}' if script else None
+    return f'{runner} run {script}' if script else None
 
 
 def defaults(target, out):

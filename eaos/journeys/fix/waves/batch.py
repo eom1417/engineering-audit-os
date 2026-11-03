@@ -6,7 +6,7 @@ from pathlib import Path
 
 from ....core import progress
 from ....live.behavior.look_oracle import declared as declared_look, look_changed
-from ....core.project.ledger import TRAILER, key
+from ....core.project.ledger import message
 from ..execute import git, original_checks, own_batch, project_checks, record, regressions, run_codemod
 from .acceptance import _still, batch_acceptance, engines_for
 from .cards import plan
@@ -60,10 +60,10 @@ def change(card, root, report):
     return 'codemod', card['codemod']['command']
 
 
-def commit(root, card, tool):
+def commit(root, card, summary=''):
     git(root, 'add', '-A')
     done = git(root, '-c', 'user.name=EAOS', '-c', 'user.email=eaos@localhost', 'commit', '--quiet', '-m',
-               f"{card['id']}: {card['title'][:70]}\n\nExecuted by EAOS ({tool}).\n\n{TRAILER}: {card.get('key') or key(card)}")
+               message(root, card, summary))
     if done.returncode: raise RuntimeError('the change left nothing to commit')
     return git(root, 'rev-parse', 'HEAD').stdout.strip()
 

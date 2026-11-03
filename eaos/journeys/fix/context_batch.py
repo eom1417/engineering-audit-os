@@ -53,7 +53,7 @@ def proposal(target, private_to=None, report=None):
 def make(batch):
     """The trim made and checked in a copy, the extension guide and its pointer with it when `report` holds a check: the
     summary, `kept` the files written, empty when refused (why in `refused`). `batch`: {target, runtime, number,
-    private_to, report, deliver_as}."""
+    private_to, report, project, deliver_as}."""
     batch = {**batch, 'kind': 'context', 'items': []}
     root, base = own_batch(batch['target'], batch['runtime'], f"CONTEXT-{batch['number']}")
     if (why := private_problem(batch.get('private_to')) or _ignored(root, _extra(batch))): return record_batch(batch, root, base, [], [why])
@@ -66,8 +66,8 @@ def make(batch):
     if (stray := sorted(set(_changed(root)) - allowed)):
         git(root, 'reset', '--hard', '--quiet', base)
         return record_batch(batch, root, base, [], [f'the trim would write files that are not the context: {", ".join(stray[:5])}'])
-    commit_all(root, f"Trim the assistants' context: {done['archived']} done item(s) archived, {done['tokens_before'] - done['tokens_after']} "
-                     f"tokens fewer every session; the extension guide kept\n\nExecuted by EAOS (context batch).\n\n{TRAILER}: context")
+    commit_all(root, f"Trim the assistants' context and keep the extension guide\n\n{done['archived']} done item(s) archived, "
+                     f"{done['tokens_before'] - done['tokens_after']} tokens fewer every session.\n\n{TRAILER}: context")
     if (lost := _not_committed(root, written)):
         git(root, 'reset', '--hard', '--quiet', base)
         return record_batch(batch, root, base, [], [f'the commit does not hold what the trim checked: {", ".join(lost[:5])}'])
@@ -79,7 +79,7 @@ def _guide_written(root, batch):
     """The guide and its pointer written in the copy; the files of them git takes."""
     drawn = project_guide.drawn_from_report(root, batch.get('report'), batch.get('project'))
     if not drawn: return []
-    written = project_guide.write(root, drawn)
+    written = project_guide.write(root, drawn, Path(batch['project']).name)
     return [path for path in written if path not in project_guide.written_ignored(root, written)]
 
 

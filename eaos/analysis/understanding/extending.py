@@ -12,12 +12,12 @@ from pathlib import Path, PurePosixPath
 from ...core.contracts.vocabulary import classify
 from ...core.system.files import read_json
 from ...facts.code.history import additions
+from .intake import RUNNERS
 
 RULES = Path(__file__).resolve().parents[2] / 'rules' / 'extending-recipes.json'
 READ, TOUCH, SHOWN = 5, 6, 8          # the files read and touched per recipe; the commits of a kind read, the newest first
 RANK_OF_TEST = 9
 FOLDERS, AREAS, AREA_FILES = 3, 12, 3
-LOCKS = (('pnpm-lock.yaml', 'pnpm'), ('yarn.lock', 'yarn'), ('bun.lockb', 'bun'))
 SCRIPTS = ('typecheck', 'lint', 'test', 'build')
 LONE_TEST = re.compile(r'(^|/)tests?\.py$')
 WIRING = 2                # the files named for wiring a new one in
@@ -199,7 +199,7 @@ def _area_name(members):
 
 
 def _runner(tree):
-    return next((runner for lock, runner in LOCKS if lock in tree), 'npm')
+    return next((runner for lock, runner in RUNNERS if lock in tree), 'npm')
 
 
 def _npm_scripts(root, tree):

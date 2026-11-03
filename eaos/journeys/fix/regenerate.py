@@ -14,7 +14,7 @@ from .execute import git
 from ...live.app.run import LiveRun, load_profile
 from ...live.isolation.sandbox import AuthorizationError
 
-CARD = {'id': 'REGENERATED', 'title': 'the files the build generates, rebuilt from the batch\'s own source'}
+CARD = {'id': 'REGENERATED', 'title': "Rebuild the files the build generates from the batch's source"}
 
 
 def regenerate(root, runtime, base, number):
@@ -35,20 +35,32 @@ def regenerate(root, runtime, base, number):
         live.stop()
         live.record(f'runtime/regenerate-wave-{number}-log.json')
     if not changed: return None
-    try: return commit(root, {**CARD, 'key': f'regenerated-{number}'}, 'eaos')
+    try: return commit(root, {**CARD, 'key': f'regenerated-{number}'})
     except RuntimeError: return None
 
 
-def keep_guide(root, report, project, number):
-    """The project's extension guide (M18.3) written or brought up to date as one commit on top of the batch, from the
-    check's own read; None when the check has no layers or nothing changed. A batch never fails for its guide."""
+def keep_guide(root, report, project, number, base):
+    """The project's extension guide (M18.3) brought up to date as one commit on top of the batch, from the check's own
+    read, only when the project held one at `base` and the batch moved or removed a path it names; else None. A fix batch
+    never writes a guide or a context file the project did not have: a guide is made by the context batch, on a branch of
+    its own (DECISIONS "Repository craft"; on five real projects every fix branch carried three files the person never
+    asked for). A batch never fails for its guide."""
     from .waves import commit
     from ...analysis.repair import project_guide
+    path = project_guide.existing(root, base)
+    if not path or not _moved_named(root, base, path): return None
     drawn = project_guide.drawn_from_report(root, report, project)
-    written = project_guide.write(root, drawn) if drawn else []
-    if not written: return None
-    try: return commit(root, {'id': 'EXTENDING', 'title': "the project's extension guide, kept with this batch", 'key': f'extending-{number}'}, 'eaos')
+    if not drawn or not project_guide.refresh(root, path, drawn, Path(project).name): return None
+    try: return commit(root, {'id': 'EXTENDING', 'title': 'Update the extension guide for the moved files', 'key': f'extending-{number}'})
     except RuntimeError: return None
+
+
+def _moved_named(root, base, path):
+    """Whether the batch moved or removed, since `base`, a file the guide at `path` names."""
+    rows = [line.split('\t') for line in git(root, 'diff', '--name-status', '-M', f'{base}..HEAD').stdout.splitlines()]
+    gone = [row[1] for row in rows if len(row) > 1 and row[0][:1] in 'DR']
+    guide = git(root, 'show', f'{base}:{path}').stdout
+    return any(f'`{old}`' in guide for old in gone)
 
 
 def _bring_back(root, copy):

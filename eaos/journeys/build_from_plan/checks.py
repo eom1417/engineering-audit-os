@@ -92,7 +92,7 @@ def _keep_guide(state, root, out):
     from ...analysis.layers import check
     from ...analysis.repair import project_guide
     drawn = project_guide.extending.draft(root, out, project_guide.tracked(root), check(root, out), project_guide.pinned_ids(state['project']))
-    written = project_guide.write(root, drawn)
+    written = project_guide.write(root, drawn, Path(state['project']).name)
     if written:
         _git(root, 'add', '--', *written)
         _git(root, '-c', 'user.name=EAOS', '-c', 'user.email=eaos@localhost', 'commit', '-q', '-m', 'The extension guide, kept with what was built (EAOS)')

@@ -33,7 +33,7 @@ def open_step(wave):
 
 def repair_card(wave):
     number = len(wave.get('repairs') or []) + 1
-    return {'id': REPAIR, 'title': 'the batch\'s changes pass the project\'s checks together', 'key': f"repair-{wave['number']}-{number}"}
+    return {'id': REPAIR, 'title': "Make the batch's changes pass the project's checks together", 'key': f"repair-{wave['number']}-{number}"}
 
 
 def repaired(state, root, changed, diff):
@@ -60,7 +60,7 @@ def finish_job(project, arguments, progress):
                                bisect=bool(arguments.get('leave_out')) or len(repairs) >= REPAIRS,
                                before_writing=lambda: guided.refuse_if_stale(project_state.load(project)),
                                regenerate=lambda root: (regenerate(root, project_state.runtime_of(state), wave['base'], wave['number']),
-                                                        keep_guide(root, guided.report_of(state), state['project'], wave['number'])))
+                                                        keep_guide(root, guided.report_of(state), state['project'], wave['number'], wave['base'])))
     except BaseException as problem:   # the batch stays as it was, even stopped mid-way: its copy back to its kept changes
         guided._git(wave['root'], 'cherry-pick', '--abort')
         guided._git(wave['root'], 'reset', '--hard', '--quiet', was or wave['base'])

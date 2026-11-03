@@ -66,7 +66,7 @@ class Base(unittest.TestCase):
         for card_id in fixed:
             target = self.project / 'src' / f'fix-{card_id}.js'
             target.write_text(f'// {card_id}\n')
-            eaos_commit(self.project, cards[card_id], 'assistant')
+            eaos_commit(self.project, cards[card_id])
         tip = git(self.project, 'rev-parse', 'HEAD')
         git(self.project, 'checkout', '-q', here)
         state = project_state.load(self.project)
@@ -121,7 +121,7 @@ class Continuity(Base):
         base = git(copy, 'rev-parse', 'HEAD')
         (copy / 'src/a.js').write_text('// fixed\n')
         cards = {c['id']: c for c in read_plan(guided.report_of(state))['tasks']}
-        kept = eaos_commit(copy, cards['TASK-001'], 'assistant')
+        kept = eaos_commit(copy, cards['TASK-001'])
         state['open_wave'] = {'number': 1, 'root': str(copy), 'base': base, 'cards': ['TASK-001'], 'kept': {'TASK-001': kept},
                               'failed': {}, 'tools': {}, 'keys': {'TASK-001': cards['TASK-001']['key']}}
         guided.save(state)

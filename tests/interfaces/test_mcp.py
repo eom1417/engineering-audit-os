@@ -34,7 +34,7 @@ def wave_branch(project, name='eaos/wave-1', file='src/a.js', text='export const
     run('checkout', '-q', '-b', name)
     (Path(project) / file).write_text(text)
     run('add', '-A')
-    run('-c', 'user.name=EAOS', '-c', 'user.email=eaos@localhost', 'commit', '-qm', 'TASK-001: a fix\n\nExecuted by EAOS (assistant).\n\nEAOS-Card: 0123456789ab')
+    run('-c', 'user.name=EAOS', '-c', 'user.email=eaos@localhost', 'commit', '-qm', 'Fix a thing\n\nEAOS-Task: TASK-001\nEAOS-Card: 0123456789ab')
     run('checkout', '-q', here)
     return run('rev-parse', name)
 

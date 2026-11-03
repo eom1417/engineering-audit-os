@@ -58,7 +58,7 @@ def make(batch):
     drawn = tokens_codemod.plan(root, tracked(root), agreed)
     if drawn['refused']: return record_batch(batch, root, base, [], [drawn['refused']])
     written = tokens_codemod.apply(root, drawn)
-    commit_all(root, f"Name the look's values: {len(drawn['tokens'])} tokens in {drawn['home']}, {len(written)} files\n\nExecuted by EAOS (design batch), no assistant.", written)
+    commit_all(root, f"Name the look's values: {len(drawn['tokens'])} tokens in {drawn['home']}, {len(written)} files", written)
     try: why = _proved(batch, root, base, _rules(agreed))
     except RuntimeError as problem: why = f'nothing proves it, so it is not kept: {str(problem)[:300]}'
     if why: return record_batch(batch, root, base, [], [why])

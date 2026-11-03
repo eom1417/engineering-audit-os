@@ -143,6 +143,12 @@ def ready(card):
     return card.get('kind') in ('remediate', 'build') and (card.get('decision') or {}).get('readiness') == 'ready'
 
 
+def own_batch(card):
+    """Whether the card is repository craft (moves, the context, the extension guide): fixed by a batch of its own on its
+    own branch, never with fixes (DECISIONS "Repository craft"). A plan's card says it by its pattern, the Studio's by its kind."""
+    return (card.get('pattern') or card.get('kind')) == 'repository_craft'
+
+
 def unattended(card):
     """Whether a batch fixes the card and the machine alone proves it: not a part still to build, not a question to look
     into, and no check a person must read. What a person is told EAOS fixes by itself."""

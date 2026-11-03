@@ -383,19 +383,19 @@ class Selection(Base):
     def test_every_kind_of_selection_resolves_to_open_cards_is_refused_with_its_reason_or_previewed(self):
         (self.studio / 'gaps.json').write_text(json.dumps({'gaps': [{'id': 'g1', 'component': 'orders', 'cards': ['TASK-002', 'TASK-003']}]}))
         (self.studio / 'operations.json').write_text(json.dumps({'operations': [{'id': 'op1', 'cards': ['TASK-004']}]}))
-        ids = lambda s: [c['id'] for c in selection.resolve(s, self.studio)[0]]
+        ids = lambda s: [c['id'] for c in selection.resolve(s, self.studio, 'fix')[0]]
         for chosen, expected in ((('severity', 'high'), ['TASK-001', 'TASK-004']), (('area', 'security'), ['TASK-002']),
                                  (('component', 'orders'), ['TASK-002']), (('gap', 'g1'), ['TASK-002']), (('operation', 'op1'), ['TASK-004'])):
             self.assertEqual(ids({'kind': 'group', 'group': {'by': chosen[0], 'value': chosen[1]}}), expected, chosen)
         self.assertEqual(ids({'kind': 'step', 'step': 'M2'}), ['TASK-004'])
         self.assertEqual(ids({'kind': 'card', 'cards': ['TASK-002', 'TASK-001']}), ['TASK-002'])
-        _, left = selection.resolve({'kind': 'cards', 'cards': ['TASK-001', 'TASK-003']}, self.studio)
+        _, left = selection.resolve({'kind': 'cards', 'cards': ['TASK-001', 'TASK-003']}, self.studio, 'fix')
         self.assertEqual(left, [{'id': 'TASK-003', 'why': 'already done', 'why_ar': 'متعامل معها: انحلّت'}])
         (self.studio / 'gaps.json').unlink()
         for bad, why in (({'kind': 'cards', 'cards': ['NOPE']}, 'no card named'), ({'kind': 'cards', 'cards': ['TASK-003']}, 'can run now'),
                          ({'kind': 'group', 'group': {'by': 'gap', 'value': 'g'}}, 'gap register'), ({'kind': 'x'}, 'kind'),
                          ({'kind': 'step', 'step': 'M9'}, 'names no card')):
-            with self.assertRaisesRegex(selection.SelectionError, why): selection.resolve(bad, self.studio)
+            with self.assertRaisesRegex(selection.SelectionError, why): selection.resolve(bad, self.studio, 'fix')
         self.assertEqual(self.post('/api/actions/fix/preview', {'verb': 'fix', 'selection': {'kind': 'cards', 'cards': ['NOPE']}})[0], 400)
         (self.studio / 'cards.json').write_text(json.dumps({'cards': [card(f'TASK-{n:03d}') for n in range(10, 32)]}))
         status, preview = self.post('/api/actions/fix/preview', {'verb': 'fix', 'selection': {'kind': 'group', 'group': {'by': 'severity', 'value': 'high'}}})
@@ -406,6 +406,11 @@ class Selection(Base):
         self.assertTrue(preview['confirm']['token'] and preview['on_failure']['ar'])
         status, preview = self.post('/api/actions/explain/preview', {'verb': 'explain', 'selection': {'kind': 'card', 'cards': ['TASK-010']}})
         self.assertEqual((preview['risk']['level'], preview['confirm'], preview['batches']), ('low', None, []))
+        (self.studio / 'cards.json').write_text(json.dumps({'cards': [card('TASK-001'), card('TASK-002', kind='repository_craft')]}))
+        fixing, left = selection.resolve({'kind': 'cards', 'cards': ['TASK-001', 'TASK-002']}, self.studio, 'fix')
+        self.assertEqual(([c['id'] for c in fixing], [c['id'] for c in left]), (['TASK-001'], ['TASK-002']))
+        self.assertIn('its own batch', left[0]['why'])
+        self.assertEqual(len(selection.resolve({'kind': 'cards', 'cards': ['TASK-001', 'TASK-002']}, self.studio, 'explain')[0]), 2)
 
 
 def until(condition, seconds):
