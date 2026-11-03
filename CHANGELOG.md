@@ -1,6 +1,13 @@
 # Changelog
 
-## Not yet versioned
+## 0.0.91 (2026-11-03)
+
+The first trial on projects EAOS had never seen (five, of five kinds, then the same five again). The first round
+found false cards, fixes kept that should not have been, branches no maintainer would merge and whole languages that
+could not be fixed; every one of them was fixed, and the second round fixed what it found in turn. Then: 2048 2 of 2
+cards fixed (was 1 of 4, 3 false), a Gin API 3 of 3 (was none), an Angular app 7 of 7 (was 1 of 45), a FastAPI
+template 6 of 10 (was 14 of 62, 13 false), an Express API 5 of 14.
+
 
 A first trial on five real projects planned 69 dependency cards as fixable that no batch could fix (their lock files
 were bun's, uv's or Go's, which EAOS cannot rewrite), refused to run a Go app at all, called development tools
