@@ -117,10 +117,13 @@ class JointDecision(TemporaryWorkspace):
         self.assertFalse(set(core.values()) & {i['claim_id'] for i in self.read('joint', 'debt-register.json')['items']})
         self.assertEqual({d['kind'] for d in self.read('joint', 'plan.json')['decisions']
                           if d['observation_uid'] in {claims[c]['uid'] for c in core.values()}}, {'retain'})
-        # A doubted card is neither fixed blind nor handed to the person: it closes as not proven, judged again next check.
-        doubted = next(row for row in cards['closed'] if row['card'] == 'TASK-002')
-        self.assertTrue(doubted['why'].startswith('Not proven by its evidence'), doubted)
-        self.assertNotIn(doubted['claim_id'], {t['claim_id'] for t in plan['tasks']})
+        # A doubted card is never fixed blind; a security one (a write with no sign-in check) is not closed unseen either:
+        # it stays for the person to review, outside the owner's share of questions.
+        from eaos.core.contracts.decisions import DOUBTED
+        doubted = next(t for t in plan['tasks'] if t['id'] == 'TASK-002')
+        self.assertEqual((doubted['decision']['readiness'], doubted['triage']['decision']), ('needs_review', 'doubt'))
+        self.assertIn(DOUBTED, doubted['decision']['blockers'])
+        self.assertNotIn('TASK-002', {row['card'] for row in cards['closed']} | set(cards['owner']))
         gap = lambda run: {r['component']: r for r in self.read(run, 'target-architecture.json')['gap_matrix']}['T-core']
         self.assertTrue(core.keys() <= set(gap('rules')['blocking_tasks']))
         self.assertFalse(core.keys() & set(gap('joint')['blocking_tasks']))

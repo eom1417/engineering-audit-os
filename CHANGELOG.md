@@ -6,6 +6,11 @@ A first trial on five real projects planned 69 dependency cards as fixable that 
 were bun's, uv's or Go's, which EAOS cannot rewrite), refused to run a Go app at all, called development tools
 "shipped to every user", and gave an Angular app 42 cards for five packages it names.
 
+- **A security card the assistant doubts is shown to the person, never closed unseen:** a second trial closed a write
+  with no sign-in check and a template without autoescape (CWE-79) as "not proven". A doubted card whose area is
+  security (an access gap, an injection or other weakness, a secret, a vulnerable dependency) now stays in the plan for
+  the person's review, never fixed automatically and outside the owner's one-in-ten share; any other doubted card still
+  closes as not proven.
 - **A page is recorded with its random numbers held still,** as its clock already was: a game drew its first tiles
   with `Math.random`, so two loads of its page had different words, the safety net held nothing and no batch could
   open (a first trial had passed by luck: two loads of six differ).

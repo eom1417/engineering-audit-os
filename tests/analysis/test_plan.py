@@ -192,6 +192,29 @@ class ResolutionTests(unittest.TestCase):
         self.assertLessEqual(len(record['owner']), max(1, len(record['kept']) // 10))
         self.assertTrue(all(tasks[c]['kind'] == 'remediate' and tasks[c]['decision']['readiness'] == 'ready' for c in record['design']))
 
+    def test_a_doubted_security_card_stays_for_the_person_and_any_other_doubted_card_closes_as_not_proven(self):
+        # Second trial on real projects: the triage doubted a write with no sign-in check and a Jinja template without
+        # autoescape (CWE-79), and both closed unseen as not proven.
+        with tempfile.TemporaryDirectory() as tmp:
+            out = Path(tmp)
+            claims = [{'id': 'CLM-003', 'render': {'key': 'layer_finding', 'params': {'rule': 'unguarded-write', 'boundary': 'endpoints'}}},
+                      {'id': 'CLM-019', 'render': {'key': 'security_weakness', 'params': {'labels': 'CWE-79'}}},
+                      {'id': 'CLM-002', 'render': {'key': 'layer_finding', 'params': {'rule': 'untested-write', 'boundary': 'tests'}}}]
+            (out / 'dossier.json').write_text(json.dumps({'claims': claims}))
+            items = [{'claim_id': 'CLM-003', 'category': 'security', 'severity': 'medium'},
+                     {'claim_id': 'CLM-019', 'category': 'security', 'severity': 'medium'},
+                     {'claim_id': 'CLM-002', 'category': 'reliability', 'severity': 'medium'}]
+            (out / 'debt-register.json').write_text(json.dumps({'items': items}))
+            tasks = [{'id': 'TASK-010', 'claim_id': 'CLM-003', 'pattern': 'layer_boundary', 'title': 'POST /private/users/ writes with no sign-in check'},
+                     {'id': 'TASK-016', 'claim_id': 'CLM-019', 'pattern': 'security_weakness', 'title': 'semgrep reports CWE-79 in backend/app/utils.py'},
+                     {'id': 'TASK-004', 'claim_id': 'CLM-002', 'pattern': 'layer_boundary', 'title': 'POST /password-recovery writes and no test reaches it'}]
+            verdicts = [{'card': t['id'], 'decision': 'doubt', 'why': f"{t['id']}: who reaches it is not shown", 'source': 'model'} for t in tasks]
+            (out / 'nodes/card_triage').mkdir(parents=True)
+            (out / 'nodes/card_triage/verdicts.json').write_text(json.dumps({'method': 'model', 'verdicts': verdicts}))
+            verdicts, rejected, design, resolved = card_review.decided(out, tasks, True, False)
+        self.assertEqual({card: row['resolution'] for card, row in resolved.items()}, {'TASK-004': 'keep'},
+                         'the security cards are never closed by a doubt: they wait for the person')
+
 
 def graph_claim(query, **specification):
     return {'probe_spec': {'probe_type': 'graph_query', 'specification': {'query': query, **specification}}}

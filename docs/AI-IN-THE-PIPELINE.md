@@ -57,7 +57,7 @@ assistant decide with them, applies the decisions through deterministic guards, 
 | `plan`, `target`, `proposals` | rules | The candidate cards and the tools' target proposal |
 | `triage` | AI | Each candidate card confirmed, doubted or rejected on its own evidence, with why |
 | `visual` | AI | What a person would notice on each screen picture, each finding with its picture and a region inside it |
-| `cards` | guard | The verdicts applied once: a rejected card leaves the plan and its claim is refuted; a doubted one waits for a person and is never fixed automatically; each visual finding becomes a design card |
+| `cards` | guard | The verdicts applied once: a rejected card leaves the plan and its claim is refuted; a doubted security card waits for a person and is never fixed automatically, any other doubted card closes as not proven; each visual finding becomes a design card |
 | `ideal` | AI | Each target proposal accepted, modified or rejected, with evidence, then critiqued |
 | `pipeline_gaps` | AI | How each broken pipeline rule is closed, then reviewed |
 | `reconcile` | guard | The final target: the assistant's decision where it cites evidence and passes the guards (a known component, the owner's policy and protected features kept), the rule's elsewhere; every component says who decided it (`agreed`, `ai_modified`, `rule_only`, `disagreement`, `ai_added`) |
@@ -80,7 +80,9 @@ its facts (those carrying a measurement first) and a short excerpt of the code a
   (`detail.harmed`), cites the facts that show it, and names the boundary it breaks when it is one. A confirm that
   names no one harmed is kept as a doubt.
 - **doubt** when the evidence neither shows nor contradicts it. A doubted card is judged again on up to 12 of its
-  facts; one still doubted waits for a person and is never fixed automatically.
+  facts; one still doubted is never fixed automatically. A security card (an access gap, an injection or other
+  weakness, a secret, a vulnerable dependency: its area in the reports) waits for a person's review, outside the owner's
+  share of questions; any other closes as not proven and the next check judges it again.
 - **reject** when the evidence contradicts it: a false alarm, set aside, and its rule is told. A reject on the light
   tier is always asked again on the deep tier.
 
