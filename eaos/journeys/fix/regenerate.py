@@ -14,7 +14,7 @@ from .execute import git
 from ...live.app.run import LiveRun, load_profile
 from ...live.isolation.sandbox import AuthorizationError
 
-CARD = {'id': 'REGENERATED', 'title': 'the files the build generates, rebuilt from the batch\'s own source'}
+CARD = {'id': 'REGENERATED', 'title': "Rebuild the files the build generates from the batch's source"}
 
 
 def regenerate(root, runtime, base, number):
@@ -35,7 +35,7 @@ def regenerate(root, runtime, base, number):
         live.stop()
         live.record(f'runtime/regenerate-wave-{number}-log.json')
     if not changed: return None
-    try: return commit(root, {**CARD, 'key': f'regenerated-{number}'}, 'eaos')
+    try: return commit(root, {**CARD, 'key': f'regenerated-{number}'})
     except RuntimeError: return None
 
 
@@ -51,7 +51,7 @@ def keep_guide(root, report, project, number, base):
     if not path or not _moved_named(root, base, path): return None
     drawn = project_guide.drawn_from_report(root, report, project)
     if not drawn or not project_guide.refresh(root, path, drawn, Path(project).name): return None
-    try: return commit(root, {'id': 'EXTENDING', 'title': 'Update the extension guide for the moved files', 'key': f'extending-{number}'}, 'eaos')
+    try: return commit(root, {'id': 'EXTENDING', 'title': 'Update the extension guide for the moved files', 'key': f'extending-{number}'})
     except RuntimeError: return None
 
 

@@ -153,6 +153,33 @@ class RebuildTests(unittest.TestCase):
             self.assertEqual(waves.with_prerequisites(report, state, ['SPLIT']), ['SIMPLIFY', 'SPLIT'], 'asked alone, it brings it')
             self.assertIsNone(waves.too_early(state, [card('SIMPLIFY'), card('SPLIT', ['SIMPLIFY'])]))
 
+    def test_a_commit_says_what_changed_in_the_projects_language_cut_at_a_word(self):
+        # five real projects: subjects cut mid-word at 72, Arabic subjects in English repositories, "Executed by EAOS" bodies
+        root = repository()
+        card = {'id': 'TASK-V001', 'title': 'زر القائمة الجانبية صغير جدًا على الجوال', 'pattern': 'design_review', 'key': '0123456789ab'}
+        said = lambda what: git(root, 'log', '-1', f'--format={what}')
+        commit_file(root, 'a.txt', 'b\n')      # the change comes back below, as EAOS's commit
+        git(root, 'reset', '-q', '--soft', 'HEAD~1')
+        wave_batch.commit(root, card, 'Enlarge the sidebar toggle on phones\n\nIt is the only way to the menu there.')
+        self.assertEqual(said('%s'), 'Enlarge the sidebar toggle on phones')
+        self.assertIn('It is the only way to the menu there.', said('%b'))
+        self.assertIn('EAOS-Card: 0123456789ab', said('%b'))
+        self.assertIn('TASK-V001', said('%b'))
+        self.assertNotIn('Executed by', said('%B'))
+        title = 'Simplify the parser of the configuration files so that every assistant and engineer reads it at once'
+        for name, text in (('b.txt', 'b'), ('c.txt', 'c')):
+            (root / name).write_text(text)
+            wave_batch.commit(root, {**card, 'title': title if name == 'b.txt' else card['title']})
+            subject = said('%s')
+            self.assertLessEqual(len(subject), 72)
+            self.assertNotRegex(subject, '[\u0600-\u06ff]')
+        self.assertTrue(title.startswith(git(root, 'log', '-1', '--skip=1', '--format=%s') + ' '))
+        for subject in ('إصلاح صفحة الدخول', 'صفحة الطلبات'):
+            git(root, '-c', 'user.name=t', '-c', 'user.email=t@t', 'commit', '-q', '--allow-empty', '-m', subject)
+        (root / 'd.txt').write_text('d')
+        wave_batch.commit(root, card)
+        self.assertEqual(said('%s'), card['title'], 'a repository whose own commits are Arabic')
+
     def test_the_branch_is_the_base_plus_exactly_the_kept_commits_and_the_card_at_fault_is_found_by_halving(self):
         root = repository()
         base = git(root, 'rev-parse', 'HEAD')

@@ -235,7 +235,7 @@ def _automatic_fixes(wave, cards, root, report, progress):
         progress(index, len(automatic) + 1, f'automatic fix of {card_id}')
         try:
             tool, _ = change(card, root, report)
-            sha = commit(root, card, tool)
+            sha = commit(root, card)
             broke = new_breakage(report, root)
             if broke:
                 drop_last(root)
@@ -289,7 +289,7 @@ def _fix_edit_job(project, arguments, progress):
     card = batch_finish.repair_card(wave) if repair else _planned(report, card_id)
     try:
         changed = _apply(root, arguments['edits'])
-        commit(root, card, 'assistant')
+        commit(root, card, arguments.get('summary') or '')
     except (ValueError, RuntimeError, OSError, UnicodeDecodeError) as problem:
         guided._git(root, 'checkout', '--quiet', '--', '.')
         guided._git(root, 'clean', '-fdq')

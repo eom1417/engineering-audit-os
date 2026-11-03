@@ -40,7 +40,7 @@ class Batch(Base):
     def keep_one(self):
         """TASK-001 kept in the copy, as an edit leaves it: a real commit, recorded on the batch."""
         (self.copy / 'src' / 'kept.js').write_text('// kept\n')
-        kept = eaos_commit(self.copy, self.cards['TASK-001'], 'assistant')
+        kept = eaos_commit(self.copy, self.cards['TASK-001'])
         state = project_state.load(self.project)
         state['open_wave']['kept']['TASK-001'] = kept
         guided.save(state)

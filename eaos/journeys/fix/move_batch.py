@@ -195,7 +195,7 @@ def make(batch):
     except Unmovable as problem: return record_batch(batch, root, base, [], [f'the move tool refused: {problem}'])
     touched = [*before['mapping'], *made['rewritten'], *made['created'], *before['mapping'].values()]   # never what a run left
     commit_all(root, f"Move {made['moved']} file(s) to their place\n\n" + '\n'.join(f"  {m['from']} -> {m['to']}" for m in batch['moves'])
-               + f'\n\nExecuted by EAOS (move batch).\n\n{TRAILER}: moves', touched)
+               + f'\n\n{TRAILER}: moves', touched)
     say('gate')
     differences = _gate(batch, root, before)
     if differences: git(root, 'reset', '--hard', '--quiet', base)

@@ -66,8 +66,8 @@ def make(batch):
     if (stray := sorted(set(_changed(root)) - allowed)):
         git(root, 'reset', '--hard', '--quiet', base)
         return record_batch(batch, root, base, [], [f'the trim would write files that are not the context: {", ".join(stray[:5])}'])
-    commit_all(root, f"Trim the assistants' context: {done['archived']} done item(s) archived, {done['tokens_before'] - done['tokens_after']} "
-                     f"tokens fewer every session; the extension guide kept\n\nExecuted by EAOS (context batch).\n\n{TRAILER}: context")
+    commit_all(root, f"Trim the assistants' context and keep the extension guide\n\n{done['archived']} done item(s) archived, "
+                     f"{done['tokens_before'] - done['tokens_after']} tokens fewer every session.\n\n{TRAILER}: context")
     if (lost := _not_committed(root, written)):
         git(root, 'reset', '--hard', '--quiet', base)
         return record_batch(batch, root, base, [], [f'the commit does not hold what the trim checked: {", ".join(lost[:5])}'])

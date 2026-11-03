@@ -33,7 +33,7 @@ def open_step(wave):
 
 def repair_card(wave):
     number = len(wave.get('repairs') or []) + 1
-    return {'id': REPAIR, 'title': 'the batch\'s changes pass the project\'s checks together', 'key': f"repair-{wave['number']}-{number}"}
+    return {'id': REPAIR, 'title': "Make the batch's changes pass the project's checks together", 'key': f"repair-{wave['number']}-{number}"}
 
 
 def repaired(state, root, changed, diff):
