@@ -134,6 +134,7 @@ def _ask_inline(project, question, lang):
 def follow(project, run, lang):
     """A run, live: its events as they come; every half minute the time since it began, its stage, the time left and
     the cost so far; its questions. Back when it ends, or on Ctrl-C while it goes on."""
+    from .branches import ended         # (that module imports this one)
     actions, after, asked, shown, beat = govern.core(project), 0, None, None, 0.0
     try:
         while True:
@@ -142,7 +143,7 @@ def follow(project, run, lang):
                 asked = govern.SIGN_IN
                 say(f"🔑 {words('sign_in_waits', lang)}\n   eaos sign-in")
             after = _said_since(actions, run, after, lang)
-            if record.get('state') in TERMINAL: return _ended(record, lang, project)
+            if record.get('state') in TERMINAL: return ended(record, lang, project)
             asked = _asked_once(project, record, asked, lang)
             line = _status_line(actions, record, lang) if time.monotonic() - beat > 30 else None
             if line and line != shown: say(line); shown, beat = line, time.monotonic()
@@ -167,19 +168,6 @@ def _asked_once(project, record, asked, lang):
         _ask_inline(project, question, lang)
         return question['id']
     return asked
-
-
-def _ended(record, lang, project):
-    """The box that ends a run: a fix that handed a branch over names the diff to read, accept and undo."""
-    state = text_of(contract()['lifecycle']['states'][record['state']], lang)
-    ok = record['state'] == 'done'
-    wave = project_state.waiting_batch(project_state.load(project) or {}) if ok and record.get('verb') == 'fix' else None
-    after = ([f"git diff {wave.get('merge_into') or wave['base'][:12]}...{wave['branch']}", 'eaos accept', 'eaos undo'] if wave
-             else ['eaos problems', 'eaos waiting'] if ok else [f"eaos retry {record['id']}", 'eaos runs'])
-    counts = ((record.get('result') or {}).get('answer') or {}).get('counts') if isinstance((record.get('result') or {}).get('answer'), dict) else None
-    guided.box(lang, words('ended', lang, state=state), status='ok' if ok else 'warn', commands=after,
-               note=words('checked', lang, problems=counts.get('problems'), ready=counts.get('ready')) if counts else None)
-    return 0 if ok else 2
 
 
 @command

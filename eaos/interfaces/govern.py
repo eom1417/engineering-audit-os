@@ -193,10 +193,14 @@ def progress(actions, record):
     steps = [e for e in actions.store.events(record['id']) if e['kind'] == 'progress']
     last = steps[-1]['data'] if steps else {}
     done, total = last.get('done') or 0, last.get('total') or 0
-    first = next((e['at'] for e in steps if e['data'].get('stage') == last.get('stage') and (e['data'].get('done') or 0) >= 1), None)
     used = _used(actions, record) or {}
-    return {'stage': last.get('stage'), 'done': done, 'total': total, **_pace(record, first, done, total),
+    return {'stage': last.get('stage'), 'done': done, 'total': total, **_pace(record, _first_step(steps, last.get('stage')), done, total),
             'cost_usd': used.get('cost_usd'), 'tokens': sum(used.get(k) or 0 for k in ('input', 'cache_write', 'output', 'thinking'))}
+
+
+def _first_step(steps, stage):
+    """When the first step of `stage` was done, among the progress events `steps`; None before it."""
+    return next((e['at'] for e in steps if e['data'].get('stage') == stage and (e['data'].get('done') or 0) >= 1), None)
 
 
 def _pace(record, first, done, total):
@@ -204,10 +208,9 @@ def _pace(record, first, done, total):
     step (`first`, when it was done: a Fix's app setup before its first card is no card's time), said from the PACED-th."""
     now = datetime.now(timezone.utc)
     began = datetime.fromisoformat(record['started']) if record.get('started') else None
-    since = (now - datetime.fromisoformat(first)).total_seconds() if first else 0
     running = first and done >= PACED and total and record.get('state') == 'running'
     return {'seconds': round((now - began).total_seconds()) if began else None,
-            'minutes_left': round(since / (done - 1) * (total - done) / 60) if running else None}
+            'minutes_left': round((now - datetime.fromisoformat(first)).total_seconds() / (done - 1) * (total - done) / 60) if running else None}
 
 
 def _used(actions, record):

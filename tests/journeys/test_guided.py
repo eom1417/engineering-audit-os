@@ -97,7 +97,7 @@ class Journey(unittest.TestCase):
         guided.save(state)
         printed = io.StringIO()
         with redirect_stdout(printed):
-            terminal._ended({'state': 'done', 'verb': 'fix', 'id': 'r1'}, 'en', self.project)
+            terminal_branches.ended({'state': 'done', 'verb': 'fix', 'id': 'r1'}, 'en', self.project)
         for command in ('git diff main...eaos/main/wave-1', 'eaos accept', 'eaos undo'):
             self.assertIn(command, printed.getvalue())
 
