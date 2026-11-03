@@ -74,15 +74,29 @@ class CodemodTests(Workspace):
         self.assertEqual((argv[-1][1:3], argv[-1][-2:]), (['install', 'nanoid@3.3.18'], ['--prefix', 'server']))
         # The npm upgrade changes only the manifest and lock of the copy.
         if not which('npm'): self.skipTest('npm is not installed')
-        root = self.project({'package.json': json.dumps({'name': 'f', 'version': '1.0.0', 'dependencies': {'micromatch': '4.0.5'}})})
+        # A lock holding picomatch 2.3.1 (an override's, then the override gone); the card moves that copy to 2.3.2.
+        manifest = {'name': 'f', 'version': '1.0.0', 'dependencies': {'micromatch': '4.0.5'}}
+        root = self.project({'package.json': json.dumps({**manifest, 'overrides': {'picomatch': '2.3.1'}})})
         subprocess.run(['npm', 'install', '--package-lock-only', '--ignore-scripts', '--loglevel=error'], cwd=root, capture_output=True)
+        (root / 'package.json').write_text(json.dumps(manifest))
         before = state_digest(root)
-        # A fresh lock already resolves the newest picomatch; any other version shows the override reaching the lock.
-        result, command = dry_run({'kind': 'npm', 'package': 'picomatch', 'fixed': '2.3.1', 'direct': False}, root)
+        result, command = dry_run({'kind': 'npm', 'package': 'picomatch', 'version': '2.3.1', 'fixed': '2.3.2', 'direct': False}, root)
         if result['exit'] != 0: self.skipTest('the npm registry is unreachable')
         self.assertEqual(result['files_changed'], 2)
-        self.assertIn('overrides.picomatch=2.3.1', command)
+        self.assertIn('override picomatch@>=2.3.1 <=2.3.2 with 2.3.2 in package.json', command)
         self.assertEqual(state_digest(root), before)
+
+    def test_two_versions_of_one_package_are_overridden_each_at_its_own(self):
+        # Trial on real projects (2026-11-02): the 2.x upgrade of a package overwrote its 1.x override, so every copy was
+        # forced to 2.x, below what its consumers ask and undoing the 1.x fix
+        root = self.project({'package.json': '{\n  "name": "f",\n  "dependencies": {"minimatch": "3"}\n}\n', 'package-lock.json': '{}'})
+        for vulnerable, fixed in (('1.1.11', '1.1.21'), ('2.0.1', '2.1.7')):
+            card = {'kind': 'npm', 'package': 'brace-expansion', 'version': vulnerable, 'fixed': fixed, 'direct': False}
+            for step, _ in _commands(card, root):
+                if callable(step): step()
+        written = (root / 'package.json').read_text()
+        self.assertEqual(json.loads(written)['overrides'], {'brace-expansion@>=1.1.11 <=1.1.21': '1.1.21', 'brace-expansion@>=2.0.1 <=2.1.7': '2.1.7'})
+        self.assertTrue(written.startswith('{\n  "name"'), 'the file keeps its own indent')
 
     def test_every_card_starts_from_the_untouched_project_and_no_copy_outlives_the_run(self):
         # A large project dry-runs hundreds of cards: one copy, restored between cards, and gone afterwards.
