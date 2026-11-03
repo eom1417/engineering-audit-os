@@ -26,6 +26,14 @@ were bun's, uv's or Go's, which EAOS cannot rewrite), refused to run a Go app at
   `biome --write` always passed by fixing the files it checked. A check that changes the copy's committed files has
   them put back, its exit no longer counts, and the hand-over says "this check rewrites files instead of checking
   them" (`checks_rewriting`).
+- **A lock file card never puts back a version it removes:** when one vulnerable version's fix is another vulnerable
+  version of the same package (1.5.4 fixed in 1.6.8, itself fixed in 1.6.11), both go to the later fix, in npm's, bun's
+  and uv's locks alike; another line of the package keeps its own fix.
+- **A batch upgrades a package in a `uv.lock` itself:** one `uv lock --upgrade-package pkg==fixed` for the card's packages,
+  writing only the lock, with the uv EAOS's installer brought. Without uv, the card still says so.
+- **A batch upgrades a package in a `bun.lock` itself,** as in npm's lock: `bun add` at the fixed version, or an override
+  of the vulnerable version then `bun install`, writing only the lock and package.json, running no script. Without bun,
+  the card still says so and names the command.
 
 A tool MCP called read-only changed the project. Reading a file of a build turned a checked project into a build's, and made the
 folder and state of a project never started; an assistant told it only reads had no reason to be careful.

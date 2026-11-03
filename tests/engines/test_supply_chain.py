@@ -127,13 +127,26 @@ class ClaimTests(Workspace):
         # A bun project's 42 dependency cards were all planned fixable, and none could pass: no tool of EAOS rewrites bun.lock.
         from eaos.core.contracts.decisions import decide
         self.assertEqual(decide(self.claims()[0])['readiness'], 'ready')
-        for path, tool in (('web/bun.lock', 'bun update picomatch'), ('sbom.cdx.json', 'no lock file')):
+        for path, tool in (('web/pnpm-lock.yaml', 'pnpm update picomatch'), ('sbom.cdx.json', 'no lock file')):
             self.FACT = {**self.FACT, 'location': {**self.FACT['location'], 'path': path}}
             [claim] = self.claims()
             for triage in ({}, {'decision': 'confirm', 'resolution': 'fix'}):
                 decision = decide({**claim, 'triage': triage})
                 self.assertEqual(decision['readiness'], 'blocked')
                 self.assertTrue(any(tool in blocker for blocker in decision['blockers']), decision['blockers'])
+
+    def test_a_bun_or_uv_lock_is_ready_when_its_tool_is_here_and_names_the_tool_when_it_is_not(self):
+        # A first trial on real projects: every bun.lock and uv.lock card went to the person, though bun and uv rewrite a
+        # lock without installing anything.
+        from unittest import mock
+        from eaos.core.contracts.decisions import decide
+        for path, tool in (('web/bun.lock', 'bun'), ('uv.lock', 'uv')):
+            self.FACT = {**self.FACT, 'location': {**self.FACT['location'], 'path': path}}
+            with mock.patch('eaos.analysis.repair.codemods.binary', return_value=tool):
+                self.assertEqual(decide(self.claims()[0])['readiness'], 'ready')
+            with mock.patch('eaos.analysis.repair.codemods.binary', return_value=None):
+                blockers = decide(self.claims()[0])['blockers']
+            self.assertTrue(any(f'{tool} is not installed here' in blocker for blocker in blockers), blockers)
 
     def test_a_dependency_only_used_while_developing_is_said_so_with_its_severity_kept(self):
         # On a real project 25 of 39 vulnerable dependencies were development tools, each card saying it shipped to every user.

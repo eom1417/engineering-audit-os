@@ -7,7 +7,7 @@ import tempfile
 
 from shared_fixture import Workspace
 
-from eaos.analysis.repair.codemods import TRANSFORM, _commands, attach, card_for, dry_run, remove_python
+from eaos.analysis.repair.codemods import TRANSFORM, _commands, _run_steps, attach, binary, card_for, dry_run, remove_python
 from eaos.engines.process import state_digest, which
 
 
@@ -86,6 +86,41 @@ class CodemodTests(Workspace):
         self.assertIn('override picomatch@>=2.3.1 <=2.3.2 with 2.3.2 in package.json', command)
         self.assertEqual(state_digest(root), before)
 
+    def test_a_bun_lock_is_rewritten_by_bun_without_installing(self):
+        # A first trial on real projects: no card of a bun.lock had a codemod, so none could ever pass.
+        root = self.project({'package.json': '{"devDependencies": {"vitest": "4"}}', 'bun.lock': '{}'})
+        steps = _commands(card_for(*upgrade('bun.lock', 'npm:vitest@4.1.6', '4.1.11'), root), root)
+        self.assertEqual([step[1:] for step, _ in steps], [['add', 'vitest@4.1.11', '--lockfile-only', '--ignore-scripts']])
+        steps = _commands(card_for(*upgrade('bun.lock', 'npm:nanoid@3.3.12', '3.3.18'), root), root)
+        self.assertEqual([callable(step) or step[1:] for step, _ in steps], [True, ['install', '--lockfile-only', '--ignore-scripts']])
+        # The real bun, on a lock holding the vulnerable version: only the lock and its manifest change.
+        if not binary('bun'): self.skipTest('bun is not installed')
+        (root / 'bun.lock').unlink()
+        root = self.project({'package.json': json.dumps({'name': 'f', 'dependencies': {'micromatch': '4.0.5'}, 'overrides': {'picomatch': '2.3.1'}})})
+        if subprocess.run([binary('bun'), 'install', '--lockfile-only', '--ignore-scripts'], cwd=root, capture_output=True).returncode:
+            self.skipTest('the npm registry is unreachable')
+        (root / 'package.json').write_text(json.dumps({'name': 'f', 'dependencies': {'micromatch': '4.0.5'}}))
+        card = card_for(*upgrade('bun.lock', 'npm:picomatch@2.3.1', '2.3.2'), root)
+        self.assertEqual(_run_steps(_commands(card, root), root)[0], 0)
+        self.assertIn('"picomatch@2.3.2"', (root / 'bun.lock').read_text())
+        self.assertFalse((root / 'node_modules').exists())
+
+    def test_a_uv_lock_card_is_one_uv_lock_run_that_installs_nothing(self):
+        # A first trial on real projects: no card of a uv.lock had a codemod, so none could ever pass.
+        root = self.project({'uv.lock': ''})
+        members = [card_for(*upgrade('uv.lock', f'PyPI:{name}@1', fixed), root) for name, fixed in (('idna', '3.7'), ('dnspython', '2.9.0'))]
+        steps = _commands({'kind': 'uv', 'group': members}, root)
+        self.assertEqual([step[1:] for step, _ in steps], [['lock', '--upgrade-package', 'idna==3.7', '--upgrade-package', 'dnspython==2.9.0']])
+        if not binary('uv'): self.skipTest('uv is not installed')
+        (root / 'uv.lock').unlink()
+        root = self.project({'pyproject.toml': '[project]\nname = "f"\nversion = "0"\nrequires-python = ">=3.9"\ndependencies = ["requests==2.32.3"]\n'})
+        if subprocess.run([binary('uv'), 'lock', '--upgrade-package', 'idna==3.6'], cwd=root, capture_output=True).returncode:
+            self.skipTest('the Python package index is unreachable')
+        card = card_for(*upgrade('uv.lock', 'PyPI:idna@3.6', '3.7'), root)
+        self.assertEqual(_run_steps(_commands(card, root), root)[0], 0)
+        self.assertIn('name = "idna"\nversion = "3.7"', (root / 'uv.lock').read_text())
+        self.assertFalse((root / '.venv').exists())
+
     def test_two_versions_of_one_package_are_overridden_each_at_its_own(self):
         # Trial on real projects (2026-11-02): the 2.x upgrade of a package overwrote its 1.x override, so every copy was
         # forced to 2.x, below what its consumers ask and undoing the 1.x fix
@@ -97,6 +132,16 @@ class CodemodTests(Workspace):
         written = (root / 'package.json').read_text()
         self.assertEqual(json.loads(written)['overrides'], {'brace-expansion@>=1.1.11 <=1.1.21': '1.1.21', 'brace-expansion@>=2.0.1 <=2.1.7': '2.1.7'})
         self.assertTrue(written.startswith('{\n  "name"'), 'the file keeps its own indent')
+
+    def test_a_fixed_version_that_is_itself_vulnerable_is_passed_to_the_next_fix(self):
+        # A first trial on real projects: seroval 1.5.4 was fixed in 1.6.8, itself vulnerable and fixed in 1.6.11; the
+        # lock file card moved the 1.5.4 copy onto 1.6.8 and its check could never pass.
+        root = self.project({'package.json': '{"dependencies": {"vite": "8"}}', 'bun.lock': '{}', 'uv.lock': ''})
+        for lock, ecosystem in (('bun.lock', 'npm'), ('uv.lock', 'PyPI')):
+            facts = {f'F{n}': upgrade(lock, f'{ecosystem}:seroval@{version}', fixed)[1]['F']
+                     for n, (version, fixed) in enumerate((('1.5.4', '1.6.8'), ('1.6.8', '1.6.11')))}
+            card = card_for({'pattern': 'upgrade_dependency', 'evidence': {'fact_ids': list(facts)}}, facts, root)
+            self.assertEqual([member['fixed'] for member in card['group']], ['1.6.11', '1.6.11'])
 
     def test_every_card_starts_from_the_untouched_project_and_no_copy_outlives_the_run(self):
         # A large project dry-runs hundreds of cards: one copy, restored between cards, and gone afterwards.
