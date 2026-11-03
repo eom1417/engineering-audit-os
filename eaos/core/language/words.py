@@ -158,6 +158,12 @@ IMPACTS = {
         'large_module': 'ملف واحد يحمل أكثر من مسؤولية: تغيير إحداها يقرأ الباقي ويعرّضه للكسر.',
         'mutable_global': 'قد يرى مستدعيان قيمتين مختلفتين حسب الترتيب، وقد تنجح الاختبارات منفردة وتفشل مجتمعة.',
         'layer_finding': 'حد بين طبقات النظام مفتوح: سرّ أو بيانات أو قاعدة يصل إليها من لا يملكها، أو جزء ينقصه ما يسنده.',
+        'layer_finding_browser': 'كل من يفتح الموقع يقدر يشوف ما يصل إلى المتصفح: سرّ أو مفتاح أو كود خادم هناك يصير بيد أي أحد.',
+        'layer_finding_endpoints': 'أي أحد يقدر يرسل طلب إلى هذه النقطة: إذا ما تتحقق من هو ومن يملك البيانات، يقرأ أو يغيّر ما ليس له.',
+        'layer_finding_data': 'قاعدة البيانات نفسها ما تمنع أحد: من يوصل لها مباشرة يقرأ أو يغيّر صفوف ليست له.',
+        'layer_finding_rules': 'قاعدة العمل مطبّقة في الشاشة بس أو في غير مكانها: من يتجاوز الشاشة يتجاوز القاعدة، وتعديلها يحتاج أكثر من مكان.',
+        'layer_finding_layers': 'جزء يستخدم طبقة ما يحق له يستخدمها: تغيير وحدة منهم يكسر الثانية، وما تقدر تختبر كل وحدة لحالها.',
+        'layer_finding_operations': 'التشغيل ينقصه شي يسنده: لما يتعطل البرنامج أو تضيع بيانات، ما في طريقة تنتبه أو ترجع.',
         'logic_flaw': 'البرنامج يسمح بما لا تسمح به قواعد العمل: خطوة تُتجاوز أو تتكرر، أو قيمة أو تحقق في غير محله، فيصل شخص إلى ما ليس له.',
         'experience_difficulty': 'شخص يستخدم البرنامج لأول مرة لا يصل إلى ما جاء من أجله، أو يصل بصعوبة، فيترك البرنامج أو يطلب المساعدة؛ وقد واجهها مستخدم ثانٍ من جديد.',
         'external_write': 'الوحدة المالكة لا تستطيع ضمان ثابتها، لأن وحدة أخرى تكتب فيها مباشرة.',
@@ -190,6 +196,12 @@ IMPACTS = {
         'large_module': 'One file holds several responsibilities: changing one reads and risks the others.',
         'mutable_global': 'Two callers may see different values depending on order, and tests can pass alone and fail together.',
         'layer_finding': 'A boundary between the layers is open: a secret, data or a rule reachable by someone who does not own it, or a part missing what holds it up.',
+        'layer_finding_browser': 'Anyone who opens the site can read what reaches the browser: a secret, a key or server code there is in anyone\'s hands.',
+        'layer_finding_endpoints': 'Anyone can send a request to this endpoint: if it does not check who they are and whose data it is, they read or change what is not theirs.',
+        'layer_finding_data': 'The database itself stops no one: whoever reaches it directly reads or changes rows that are not theirs.',
+        'layer_finding_rules': 'The business rule is applied only in the screen, or in the wrong place: whoever skips the screen skips the rule, and changing it takes more than one place.',
+        'layer_finding_layers': 'A part uses a layer it may not use: changing one breaks the other, and neither can be tested on its own.',
+        'layer_finding_operations': 'Running it lacks something that holds it up: when the app breaks or data is lost, there is no way to notice or to recover.',
         'logic_flaw': 'The program allows what the business rules do not: a step skipped or repeated, a value or a check in the wrong place, so someone reaches what is not theirs.',
         'experience_difficulty': 'A person using the app for the first time does not reach what they came for, or reaches it with difficulty, and leaves or asks for help; a second simulated user met it again.',
         'external_write': 'The owning module cannot guarantee its own invariant, because another module writes into it directly.',
@@ -205,10 +217,17 @@ def _render_key(render):
     return 'duplicated_rule_differs' if key == 'duplicated_rule' and (render.get('params') or {}).get('differs') == 'yes' else key
 
 
+def _layer_impact(boundary, language):
+    """The why of a layer card by the boundary it breaks (an untested write: the untested one); else the general one."""
+    key = 'untested' if boundary == 'tests' else f'layer_finding_{boundary}'
+    return key if key in IMPACTS.get(language, {}) else 'layer_finding'
+
+
 def impact_of(claim, language):
     render = claim.get('render') or {}
     key = _render_key(render)
     params = render.get('params') or {}
+    if key == 'layer_finding': key = _layer_impact(params.get('boundary'), language)
     if key == 'engine_cluster' and params.get('impact_key') in IMPACTS.get(language, {}):
         try: return IMPACTS[language][params['impact_key']].format(**params)
         except (KeyError, IndexError, ValueError): pass

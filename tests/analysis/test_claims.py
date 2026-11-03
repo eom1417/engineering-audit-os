@@ -105,6 +105,14 @@ class EngineClusterImpactTests(unittest.TestCase):
         key, params = engine_measurement(kind, cluster(facts), sets)
         return IMPACTS['ar'][key].format(**params)
 
+    def test_a_layer_card_says_why_by_its_boundary(self):
+        # A FastAPI template's untested write read "a secret, data or a rule reachable by someone who does not own
+        # it": every layer card said the same why, whatever boundary it broke.
+        for language in ('ar', 'en'):
+            why = lambda boundary: impact_of({'render': {'key': 'layer_finding', 'params': {'boundary': boundary}}}, language)
+            self.assertEqual(why('tests'), IMPACTS[language]['untested'])
+            self.assertNotEqual(why('endpoints'), IMPACTS[language]['layer_finding'])
+
     def test_each_kind_cites_its_measurement(self):
         cases = [
             ('complexity', fact('complexity', {'measurements': [{'name': 'cyclomatic_complexity', 'value': 27,

@@ -43,6 +43,17 @@ class OsvTests(Workspace):
             self.assertEqual(numbers['advisories'], len(numbers['advisory_ids']))
             self.assertIn('fixed_in', numbers)
 
+    def test_a_go_module_in_go_mod_and_the_sbom_is_one_finding(self):
+        # A Go API's five vulnerable modules were each two cards: OSV reads go.mod as `5.2.1`, the SBOM as `v5.2.1`.
+        def row(version):
+            return {'package': {'ecosystem': 'Go', 'name': 'github.com/golang-jwt/jwt/v5', 'version': version},
+                    'vulnerabilities': [{'id': 'GO-1', 'affected': [{'package': {'name': 'github.com/golang-jwt/jwt/v5'}, 'ranges': [
+                        {'type': 'SEMVER', 'events': [{'introduced': '0'}, {'fixed': '5.2.2'}]}]}]}]}
+        payload = {'results': [{'source': {'path': '/project/go.mod'}, 'packages': [row('5.2.1')]},
+                               {'source': {'path': '/work/syft/sbom.cdx.json'}, 'packages': [row('v5.2.1')]}]}
+        findings = osv_scanner.normalise(payload, Path('/project'), '2.6.0')
+        self.assertEqual([[path for path, _ in f['sites']] for f in findings], [['go.mod']])
+
     def test_the_fix_is_the_lowest_fixed_version_above_the_installed_one_and_severity_is_scored(self):
         advisory = {'affected': [{'package': {'name': 'p'}, 'ranges': [{'type': 'SEMVER', 'events': [
             {'introduced': '0'}, {'fixed': '1.2.3'}, {'introduced': '2.0.0'}, {'fixed': '2.0.5'}]}]}]}

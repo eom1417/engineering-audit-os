@@ -53,6 +53,13 @@ class Readiness(Workspace):
         self.assertEqual([speed({'p95_ms': 1250.0, 'error_rate': 0}), speed({'p95_ms': 8.0, 'error_rate': 0.2}),
                           speed({'p95_ms': 8.0, 'error_rate': 0})], ['gap', 'gap', 'ok'])
 
+    def test_a_health_route_with_a_trailing_slash_is_found(self):
+        # A FastAPI template serves `/utils/health-check/`: its last segment was the empty one after the slash, and the
+        # readiness check said there was no health route.
+        from eaos.analysis.readiness.production import _health_row
+        _write(Path(self.tmp) / 'features.json', {'features': [{'name': 'utils', 'surfaces': ['/utils/health-check/']}]})
+        self.assertEqual(_health_row(self.tmp)['status'], 'ok')
+
     def test_the_facts_are_read_into_hotspots_and_clusters(self):
         from eaos.analysis.maps.code_map import digest
         out = Path(self.tmp)

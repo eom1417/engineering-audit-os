@@ -108,7 +108,7 @@ def _surfaces(report):
 
 
 def _health_row(report):
-    health = sorted({s for s in _surfaces(report) if isinstance(s, str) and any(w in s.lower().split('/')[-1] for w in HEALTH_WORDS)})
+    health = sorted({s for s in _surfaces(report) if isinstance(s, str) and any(w in s.lower().rstrip('/').split('/')[-1] for w in HEALTH_WORDS)})
     if health: return _row('observability', 'health', 'ok', f"A health route: {', '.join(health[:3])}", '', ['features.json'])
     return _row('observability', 'health', 'gap', 'No health route a load balancer or uptime check could call',
                 'A running release cannot be checked from outside without one.', ['features.json'])

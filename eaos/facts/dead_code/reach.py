@@ -8,6 +8,7 @@ from collections import defaultdict
 from pathlib import PurePosixPath
 
 from ..code import bundled
+from ..code.resolve import vendored_edges
 from ..source import classify
 
 ENTRY_FILES = ('__main__.py', 'manage.py', 'wsgi.py', 'asgi.py', 'main.py', 'app.py')
@@ -26,6 +27,9 @@ RELATIVE_LITERAL = re.compile(r'''['"`](\.{1,2}/[^'"`\s${}]+)['"`]''')
 PATH_LITERAL = re.compile(r'''['"`]([\w-][\w.-]*(?:/[\w.-]+)+\.\w+)['"`]''')
 # Folders a package ships as data, loaded by path at run time: templates and rules.
 DATA_FOLDERS = {'templates', 'rules'}
+# Tools a script runs that load every file of a folder by convention, so no import names those files: (the command, the
+# folder it loads, the option that names another one). The react-email CLI renders every file in emails/, or `--dir <x>`.
+CONVENTION_FOLDERS = ((re.compile(r'(?:^|[;&|]\s*)(?:npx\s+)?email\s+(?:build|export|dev)\b'), 'emails', '--dir'),)
 
 
 def _source_of(base, file, known):
@@ -103,7 +107,19 @@ def _manifest_seeds(path, text, known):
     for script in (manifest.get('scripts') or {}).values():
         seeds |= {_source_of(base, file, known) or str(base / file).lstrip('./')
                   for file in re.findall(r'[\w./-]+\.(?:[cm]?[jt]sx?|py)\b', str(script))}
+        seeds |= _convention_seeds(base, str(script), known)
     return seeds
+
+
+def _convention_seeds(base, script, known):
+    """The files of every folder a tool the script runs loads by convention (CONVENTION_FOLDERS)."""
+    out = set()
+    for command, folder, option in CONVENTION_FOLDERS:
+        if not command.search(script): continue
+        named = re.search(re.escape(option) + r'[= ]\s*([\w./-]+)', script)
+        root = _normalised(base, named.group(1) if named else folder)
+        out |= {path for path in known if root and path.startswith(root + '/')}
+    return out
 
 
 def _file_seeds(source, path, known):
@@ -118,7 +134,8 @@ def _edges(resolved):
     graph, test_importers = defaultdict(set), defaultdict(set)
     for fact in resolved:
         if fact.get('kind') != 'module_edge': continue
-        to_path = (fact.get('value') or {}).get('to_path')
+        value = fact.get('value') or {}
+        to_path = value.get('to_path') or (value.get('package_path') if value.get('target_kind') == 'excluded' else None)
         path = (fact.get('location') or {}).get('path')
         if not (path and to_path): continue
         (test_importers[to_path].add(path) if _is_test(path) else graph[path].add(to_path))
@@ -239,9 +256,12 @@ def _bundles(source, known):
             for found in bundled.entries(path, source.text(path) or '', known)}
 
 def _walk(source, known, texts, resolved, entry_points):
-    """(seeds, reached, whole, test_importers): what the product reaches from its roots, and the files read whole.
-    `texts`: the text of each code file."""
+    """(seeds, reached, whole, test_importers): what the product reaches from its roots (excluded files it walks
+    through included), and the files read whole. `texts`: the text of each code file."""
     graph, test_importers = _edges(resolved)
+    # An excluded (vendored) file the project imports is walked through: what it imports back from the project is used.
+    for path, imports in vendored_edges(source, {to for edges in graph.values() for to in edges} - known).items():
+        graph[path] |= imports
     seeds = _seeds(source, known, entry_points)
     reached = _reachable(_roots(source, known, seeds), graph, texts)
     # Package data and files loaded by a path literal are run or read whole by something else (a test runner, k6,

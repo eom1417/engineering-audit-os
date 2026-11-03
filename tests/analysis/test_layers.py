@@ -55,3 +55,20 @@ class LayersTests(TemporaryWorkspace):
         self.assertTrue(any('writes with no sign-in check' in said for said in broke), broke)
         self.assertFalse(any('no test reaches it' in said for said in broke))
         self.assertEqual(layers.introduced(self.app, self.app), [])
+
+    def test_fastapi_sign_in_dependencies_are_guards(self):
+        # A FastAPI template signs in with `Depends(get_current_active_superuser)` and `user: CurrentUser`; both were
+        # read as no sign-in, three writes were called unguarded. A current time is still no sign-in.
+        from eaos.analysis.layers import guards
+        signed_in = lambda text: guards.read(text)['authentication']
+        self.assertIsNotNone(signed_in('@router.patch(\n    "/{user_id}",\n    dependencies=[Depends(get_current_active_superuser)],\n)\n'
+                                       'def update_user(*, session: SessionDep, user_in: UserUpdate):\n    ...'))
+        self.assertIsNotNone(signed_in('def create_item(*, session: SessionDep, user: CurrentUser, item_in: ItemCreate):'))
+        self.assertIsNone(signed_in('def f():\n    now = get_current_time()\n'))
+
+    def test_a_route_after_an_interpolated_prefix_is_named_by_the_test(self):
+        # A FastAPI template's tests write `f"{settings.API_V1_STR}/items/{item.id}"`: ten tested writes were called
+        # untested, since the route was looked for only right after a quote.
+        from eaos.analysis.layers import operations
+        self.assertTrue(operations._named({'route': '/items/{id}', 'handler': 'delete_item'},
+                                          'client.delete(f"{settings.API_V1_STR}/items/{item.id}")'))

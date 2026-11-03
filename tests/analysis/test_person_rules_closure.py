@@ -92,6 +92,19 @@ class WhatACommitHolds(Closure):
         found = changed.check(self.project, rules, staged=True, gates=False)
         self.assertEqual((found['changed'], found['refused']), (['total.js'], True))
 
+    def test_a_commit_from_a_linked_worktree_keeps_what_it_staged_and_is_checked_on_it(self):
+        # EAOS's own hook, 2026-11-03: a commit from a linked worktree came out empty. Git hands the hook the worktree's
+        # GIT_DIR and index; the check's apart checkout wrote the base commit into that index, and then read no change.
+        rules = self.totals_rule()
+        tree = Path(self.tmp) / 'lane'
+        git(self.project, 'worktree', 'add', '-q', '-b', 'lane', str(tree))
+        (tree / 'total.js').write_text(BROKEN)
+        git(tree, 'add', 'total.js')
+        gitdir = git(tree, 'rev-parse', '--absolute-git-dir').stdout.strip()
+        with mock.patch.dict(os.environ, {'GIT_DIR': gitdir, 'GIT_INDEX_FILE': gitdir + '/index'}):
+            refused = changed.check(self.project, rules, staged=True, gates=False)['refused']
+        self.assertEqual((refused, git(tree, 'diff', '--cached', '--name-only').stdout), (True, 'total.js\n'))
+
 
 class AssistantsCommands(Closure):
     def test_a_test_command_an_assistant_proposes_never_runs_before_the_person_approves_it(self):

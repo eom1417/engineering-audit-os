@@ -14,12 +14,14 @@ Each is certain from the text: no heuristic score, no engine confidence.
 import ast
 import builtins
 import json
+import posixpath
 import fnmatch
 import re
 import symtable
 from pathlib import PurePosixPath
 
 from .. import make
+from ..dead_code.reach import BUILD_OUTPUT
 from ..source import classify, language_of
 
 NAME = 'broken'
@@ -28,7 +30,8 @@ LIMITATIONS = [
     'Undefined names are judged for Python only; a module with a star import is skipped, since any name may come from it.',
     'Names injected at runtime (exec, globals() writes, module __getattr__) are invisible and would be reported; none is assumed.',
     'Documented commands are checked against the CLI subcommands the code declares with argparse, the npm scripts in '
-    'package.json, and the files in the snapshot; a command another tool provides is not judged.',
+    'package.json, and the files in the snapshot (or, with a build script, in a build output folder nothing of which '
+    'is committed); a command another tool provides is not judged.',
 ]
 BUILTINS = set(dir(builtins)) | {'__file__', '__name__', '__doc__', '__spec__', '__package__', '__loader__', '__builtins__',
                                  '__path__', '__annotations__', '__dict__', '__module__', '__qualname__', '__class__'}
@@ -182,7 +185,15 @@ def _script_exists(command, all_scripts):
 def _file_exists(file, doc, scripts, everything):
     # A command documented at the root is often run from the app's own folder (the one with package.json).
     bases = [PurePosixPath(doc).parent] + [PurePosixPath(folder) for folder in scripts]
-    return '/' not in file or file in everything or any(str(base / file) in everything for base in bases)
+    return '/' not in file or file in everything or any(str(base / file) in everything for base in bases) or _built(file, scripts, everything)
+
+
+def _built(file, scripts, everything):
+    """Whether `file` is what the project's build makes: under a build output folder (dist/, build/) of which nothing is
+    committed, in a project with a `build` script (`node dist/api/main.js` runs what `nx build` writes)."""
+    top = file.split('/', 1)[0]
+    return (bool(BUILD_OUTPUT.match(top)) and any('build' in names for names in scripts.values())
+            and not any(path.startswith(top + '/') for path in everything))
 
 
 def _unknown_files(span, doc, scripts, everything):
@@ -218,6 +229,15 @@ def _python_facts(path, text, sha):
     return facts
 
 
+SUBMODULE = re.compile(r'^\s*path\s*=\s*(\S+)', re.M)
+
+
+def _absent_submodules(source, everything):
+    """The folders `.gitmodules` declares that hold no file of the snapshot: submodules not checked out."""
+    folders = (path.strip('/') + '/' for path in SUBMODULE.findall(source.text('.gitmodules') or ''))
+    return tuple(folder for folder in folders if not any(path.startswith(folder) for path in everything))
+
+
 def _missing_import_fact(fact, sha):
     value = fact.get('value') or {}
     if fact.get('kind') != 'module_edge' or fact.get('resolution') != 'UNRESOLVED': return None
@@ -230,9 +250,16 @@ def _missing_import_fact(fact, sha):
                  'the resolver found no file for a relative or aliased specifier', sha)
 
 
-def _missing_import_facts(resolved, sha):
-    """A fact per resolved import that names a module the snapshot does not have."""
-    return [found for found in (_missing_import_fact(fact, sha) for fact in resolved) if found]
+def _missing_import_facts(resolved, sha, absent):
+    """A fact per resolved import that names a module the snapshot does not have (`absent`: submodules not checked out)."""
+    return [found for found in (_missing_import_fact(fact, sha) for fact in resolved) if found and not _in_submodule(found['location'], absent)]
+
+
+def _in_submodule(location, absent):
+    """Whether a relative import points into a submodule not checked out: its file is there once
+    `git submodule update --init` checks it out, so it is not missing."""
+    module = location['symbol']
+    return module.startswith('.') and posixpath.normpath(posixpath.join(posixpath.dirname(location['path']), module)).startswith(absent)
 
 
 def run(target, source, resolved=None, **options):
@@ -242,7 +269,7 @@ def run(target, source, resolved=None, **options):
     facts = []
     for path in sorted(known):
         if language_of(path) == 'python': facts += _python_facts(path, source.text(path) or '', sha)
-    facts += _missing_import_facts(resolved or [], sha)
+    facts += _missing_import_facts(resolved or [], sha, _absent_submodules(source, everything))
     for doc, line, command in stale_instructions(source, known, everything):
         facts.append(_fact('stale-instruction', doc, line, command,
                            f'{doc} instructs `{command}`, a command the project does not have: it no longer exists, or does not exist yet', 'low',

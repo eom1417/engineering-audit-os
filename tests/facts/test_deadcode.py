@@ -166,3 +166,47 @@ class DeadCodeTests(unittest.TestCase):
                      'web/words.ts': 'export type BranchWord = string;\nexport function words() { return 1; }\n'})
         self.assertFalse([key for key in found if key[1] != 'BranchWord'], found)
         self.assertIn('unused type', found[('unused-symbol', 'BranchWord')])
+
+    def test_a_method_assigned_to_a_prototype_is_judged_by_its_own_name(self):
+        # A browser game's every `GameManager.prototype.x` method was called unused: the counter looked for the dotted
+        # name, which no token ever is.
+        found = run({'package.json': '{"name": "g", "main": "src/main.js"}',
+                     'src/main.js': 'const Grid = require("./grid.js");\nnew Grid().empty();\n',
+                     'src/grid.js': ('function Grid() {}\nGrid.prototype.empty = function () { return []; };\n'
+                                     'Grid.prototype.never = function () { return 0; };\nmodule.exports = Grid;\n')})
+        self.assertNotIn(('unused-symbol', 'Grid.prototype.empty'), found)
+        self.assertIn(('unused-symbol', 'Grid.prototype.never'), found)
+
+    def test_what_a_vendored_component_imports_from_the_project_is_used(self):
+        # A web app's copied-in ui kit (components/ui, out of the analysis) imported `@/hooks/useMobile`; the hook was
+        # called dead, since the walk stopped at the kit and its text was never read.
+        found = run({'package.json': '{"name": "web", "main": "src/main.tsx"}',
+                     'tsconfig.json': '{"compilerOptions": {"paths": {"@/*": ["./src/*"]}}}',
+                     'src/main.tsx': 'import { Sidebar } from "@/components/ui/sidebar"\nSidebar()\n',
+                     'src/components/ui/sidebar.tsx': ('import { useIsMobile } from "@/hooks/useMobile"\n'
+                                                       'export function Sidebar() { return useIsMobile() }\n'),
+                     'src/hooks/useMobile.ts': 'export function useIsMobile() { return false }\n',
+                     'src/hooks/orphan.ts': 'export function lonely() { return 1 }\n'})
+        self.assertFalse([key for key in found if 'useMobile' in key[1] or key[1] == 'useIsMobile'], found)
+        self.assertIn(('unreachable-module', 'src/hooks/orphan.ts'), found)
+
+    def test_a_tool_that_loads_a_folder_by_convention_reaches_it(self):
+        # A react-email package runs `email export`, which renders every file in its emails/ folder; no import names
+        # them, so each email and the ui parts they use were called unreachable.
+        found = run({'package.json': '{"name": "web", "main": "src/main.js"}', 'src/main.js': 'console.log(1)\n',
+                     'mail/package.json': '{"name": "emails", "scripts": {"export": "email export --outDir ../out"}}',
+                     'mail/emails/welcome.tsx': ('import { Button } from "../ui/Button"\n'
+                                                 'export default function Welcome() { return Button() }\nWelcome.PreviewProps = {}\n'),
+                     'mail/ui/Button.tsx': 'export function Button() { return 1 }\n',
+                     'mail/emails/test_email.tsx': ('import { Callout } from "../ui/Callout"\n'
+                                                    'export default function TestEmail() { return Callout() }\n'),
+                     'mail/ui/Callout.tsx': 'export function Callout() { return 2 }\n'})
+        self.assertFalse([key for key in found if key[1].startswith('mail/')], found)
+
+    def test_a_default_export_is_used_by_whoever_loads_its_module(self):
+        # An email the react-email CLI renders was called an unused function: a default export's name is written by
+        # no one who loads it.
+        found = run({'package.json': '{"name": "w", "main": "src/main.tsx"}',
+                     'src/main.tsx': 'export default function Home() { return 1 }\nexport function named() {}\n'})
+        self.assertNotIn(('unused-symbol', 'Home'), found)
+        self.assertIn(('unused-symbol', 'named'), found)

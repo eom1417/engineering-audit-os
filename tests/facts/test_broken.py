@@ -31,6 +31,25 @@ class BrokenProjectTests(unittest.TestCase):
             collect(repo, out, ['syntax', 'resolve', 'broken'])
             return {(f['value']['rule'], f['location']['symbol']) for f in json.loads((out / 'facts/broken.json').read_text())['facts']}
 
+    def test_an_import_into_a_submodule_not_checked_out_is_not_missing(self):
+        # An Angular app's playwright config imports from its `realworld` git submodule; the folder is empty until
+        # `git submodule update --init`, and the import was called missing, high.
+        found = self.run_on({'.gitmodules': '[submodule "realworld"]\n\tpath = realworld\n\turl = https://example.org/realworld.git\n',
+                             'playwright.config.ts': "import { baseConfig } from './realworld/specs/e2e/playwright.base';\n",
+                             'src/a.ts': 'import { x } from "./gone";\n'})
+        self.assertNotIn(('missing-import', './realworld/specs/e2e/playwright.base'), found)
+        self.assertIn(('missing-import', './gone'), found)
+
+    def test_a_command_that_runs_build_output_is_not_stale(self):
+        # An Nx API's README runs `node dist/api/main.js`, which its build makes: no dist/ is committed, and the command
+        # was called stale. Without a build script, the same command still is.
+        files = {'package.json': '{"scripts": {"build": "tsc"}}', 'src/main.ts': 'export const x = 1;\n',
+                 'README.md': '```\nnode dist/api/main.js\npython tools/gone.py\n```\n'}
+        found = self.run_on(files)
+        self.assertNotIn(('stale-instruction', 'node dist/api/main.js'), found)
+        self.assertIn(('stale-instruction', 'python tools/gone.py'), found)
+        self.assertIn(('stale-instruction', 'node dist/api/main.js'), self.run_on({**files, 'package.json': '{"scripts": {"start": "node x.js"}}'}))
+
     def test_a_missing_import_and_stale_commands_in_docs_are_reported(self):
         found = self.run_on({
             'pyproject.toml': '[project.scripts]\ntool = "tool.cli:main"\n',
