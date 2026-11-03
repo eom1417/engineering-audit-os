@@ -477,6 +477,18 @@ class PythonSuiteGateTests(unittest.TestCase):
                 {'argv': ['npm', 'test'], 'exit': 1, 'failing': []}]
         self.assertEqual(not_run(rows), ['bun run lint', 'bun run test'])
 
+    def test_the_files_a_card_changed_beyond_its_own_are_named(self):
+        # Trial on real projects (2026-11-02): a card about one dialog's complexity was kept with 13 files changed, the
+        # other 12 never named to the person
+        from eaos.journeys.fix.finish import beyond
+        own = 'frontend/src/components/Admin/AddUser.tsx'
+        others = [f'frontend/src/components/{name}.tsx' for name in (
+            'Admin/DeleteUser', 'Admin/EditUser', 'Admin/UserFormFields', 'Common/DeleteDialog', 'Common/FormDialog', 'Common/FormFields',
+            'Items/AddItem', 'Items/DeleteItem', 'Items/EditItem', 'Items/ItemActionsMenu', 'Items/ItemDialog')] + ['frontend/src/routes/_layout/items.tsx']
+        self.assertEqual(beyond({'paths': [own]}, [own, *others]), others)
+        self.assertEqual(beyond({'paths': ['frontend/src/components']}, [own, *others]), ['frontend/src/routes/_layout/items.tsx'])
+        self.assertEqual(beyond({'paths': ['*']}, [own, *others]), [])
+
 
 if __name__ == '__main__':
     unittest.main()
