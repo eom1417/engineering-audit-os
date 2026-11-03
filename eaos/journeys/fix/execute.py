@@ -190,9 +190,11 @@ def project_checks(target, runtime, stage, name, python=True):
     """[{argv, exit}] of the run profile's checks on target, installed in a sandbox copy (its install held to the lock,
     `npm ci`, a row too), and its Python tests (the profile's checks run in the app's folder; a Python suite beside it is
     the project's too; `python` false: the profile's alone); [] when there are none. Every command's output tail is kept
-    in runtime/checks-<name>-log.json."""
+    in runtime/checks-<name>-log.json. They see a copy of the run's database of their own: what setup wrote in it, never
+    what an earlier checks run wrote (a test writing a real row passed once, then failed on every later run)."""
     from ...live.app.run import LiveRun, _unfrozen
     live = LiveRun(target, runtime, stage)
+    live.throwaway = True
     from ...live.testing.verify import python_tests
     checks = [(argv, False) for argv in live.profile.get('checks') or []] + \
         [(argv, True) for argv in (python_tests(target, live.profile) if python else [])]

@@ -1,7 +1,7 @@
 """A PostgreSQL of the run's own, on 127.0.0.1, for a project that needs a database to start.
 
 The owner's database is never used: a run gets an empty one here, created for it, and the project's own
-migrations fill it. The binaries come from the `pgserver` package (Apache-2.0, installed with EAOS's `live`
+migrations fill it; the project's checks get a copy of it of their own (copy()), dropped when they end. The binaries come from the `pgserver` package (Apache-2.0, installed with EAOS's `live`
 extra), so nothing needs an administrator; a PostgreSQL already installed on the machine is the fallback.
 It answers 127.0.0.1 only, to a password of its own (scram-sha-256) kept in <runtime>/database/password, readable by
 the person only and carried in the address the run gets: another project's run on this computer cannot connect.
@@ -13,6 +13,7 @@ side, each on a database of its own (eaos/live/app/run.py), never stop one anoth
 sits in the temporary folder instead, with a note naming its runtime beside it: once that runtime is gone, the next
 start() removes the data (356 such databases had kept 16 GB after their projects were deleted).
 """
+import contextlib
 import fcntl
 import glob
 import hashlib
@@ -58,6 +59,7 @@ def free_port():
         return probe.getsockname()[1]
 
 
+COPY = '_checks_'     # in the name of a database copy(): one a killed run left is dropped when the server starts again
 SHARED = Path('/opt/eaos-pg')     # where the dedicated account runs pgserver's binaries from, under root
 
 
@@ -110,6 +112,7 @@ class LocalPostgres:
         self.sockets = _sockets(self.root.resolve())
         self.users = self.root / 'users.lock'
         self._held = None
+        self._copies = []
 
     def _run(self, bin_dir, name, *args, check=True):
         return subprocess.run([str(bin_dir / name), *args], capture_output=True, text=True, check=check, timeout=120,  # nosemgrep: python.lang.security.audit.dangerous-subprocess-use-audit -- PostgreSQL's own binaries at their pin, a list argv, no shell
@@ -169,6 +172,8 @@ class LocalPostgres:
                   f"-h 127.0.0.1 -p {port} -k {self.sockets}", 'start')
         state = {'port': port, 'bin': str(bin_dir)}
         self.state.write_text(json.dumps(state))
+        self._psql(state, "select format('drop database %I', datname) from pg_database where datname ~ (:'copy' || '[0-9a-f]{8}$') \\gexec",
+                   copy=COPY)
         return self.url(state)
 
     def _sweep(self, bin_dir):
@@ -184,27 +189,54 @@ class LocalPostgres:
     def url(self, state, database='postgres'):
         return f"postgresql://postgres:{self.password_file.read_text().strip()}@127.0.0.1:{state['port']}/{database}"
 
-    def create(self, name):
-        """The address of database `name`, created empty when it does not exist; the server is held until stop(). Runs
-        side by side start the server and create their databases one at a time."""
+    @contextlib.contextmanager
+    def _server(self):
+        """The running server's state, the server held until stop(). Runs side by side start the server and create their
+        databases one at a time."""
         self.root.mkdir(parents=True, exist_ok=True)
         if self._held is None:
             self._held = open(self.users, 'a')
             fcntl.flock(self._held, fcntl.LOCK_SH)       # held before the server is looked at: the last stop() waits
         with open(self.root / 'start.lock', 'a') as alone:
             fcntl.flock(alone, fcntl.LOCK_EX)
-            state = self.running() or (self.start() and self.running())
-            # the name is a psql variable, quoted by psql itself (:'name' a text, :"name" a name), never pasted into SQL
-            psql = [str(Path(state['bin']) / 'psql'), '-h', '127.0.0.1', '-p', str(state['port']), '-U', 'postgres', '-tA',
-                    '-v', 'ON_ERROR_STOP=1', '-v', f'name={name}']
-            env = {**os.environ, 'PGPASSWORD': self.password_file.read_text().strip()}
-            exists = subprocess.run(psql, input="select 1 from pg_database where datname = :'name'", capture_output=True, text=True, env=env)  # nosemgrep: python.lang.security.audit.dangerous-subprocess-use-audit -- psql at its pin, the name passed as a psql variable, never in the SQL text
-            if exists.stdout.strip() != '1':
-                subprocess.run(psql, input='create database :"name"', capture_output=True, text=True, check=True, env=env)  # nosemgrep: python.lang.security.audit.dangerous-subprocess-use-audit -- psql at its pin, the name passed as a psql variable, never in the SQL text
+            yield self.running() or (self.start() and self.running())
+
+    def _psql(self, state, sql, **names):
+        """psql on the server, `names` as psql variables quoted by psql itself (:'name' a text, :"name" a name), never
+        pasted into SQL."""
+        argv = [str(Path(state['bin']) / 'psql'), '-h', '127.0.0.1', '-p', str(state['port']), '-U', 'postgres', '-tA',
+                '-v', 'ON_ERROR_STOP=1', *[f'--set={key}={value}' for key, value in names.items()]]
+        return subprocess.run(argv, input=sql, capture_output=True, text=True,  # nosemgrep: python.lang.security.audit.dangerous-subprocess-use-audit -- psql at its pin, the names passed as psql variables, never in the SQL text
+                              env={**os.environ, 'PGPASSWORD': self.password_file.read_text().strip()})
+
+    def _ensure(self, state, name):
+        if self._psql(state, "select 1 from pg_database where datname = :'name'", name=name).stdout.strip() != '1':
+            self._psql(state, 'create database :"name"', name=name).check_returncode()
+
+    def create(self, name):
+        """The address of database `name`, created empty when it does not exist; the server is held until stop()."""
+        with self._server() as state: self._ensure(state, name)
+        return self.url(state, name)
+
+    def copy(self, base):
+        """The address of a database of this holder's alone, copied from `base` as it is now (created empty when missing):
+        what setup wrote in it is there, nothing an earlier holder wrote in its copy is, and `base` is never written.
+        Dropped at stop(). A base another run is connected to cannot be copied: the database is then made empty."""
+        name = f'{base[:40]}{COPY}{secrets.token_hex(4)}'
+        with self._server() as state:
+            self._ensure(state, base)
+            if self._psql(state, 'create database :"name" template :"base"', name=name, base=base).returncode:
+                self._psql(state, 'create database :"name"', name=name).check_returncode()
+        self._copies.append(name)
         return self.url(state, name)
 
     def stop(self):
         """Leave the server, and stop it when no other run holds it (its data stays)."""
+        state = self.running()
+        for name in self._copies if state else []:     # its connections end first: a check may leave one open
+            self._psql(state, "select pg_terminate_backend(pid) from pg_stat_activity where datname = :'name'", name=name)
+            self._psql(state, 'drop database if exists :"name"', name=name)
+        self._copies = []
         if self._held is not None:
             self._held.close()
             self._held = None

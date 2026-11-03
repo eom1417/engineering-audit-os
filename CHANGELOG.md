@@ -12,6 +12,10 @@ were bun's, uv's or Go's, which EAOS cannot rewrite), refused to run a Go app at
   never another toolchain downloaded (`GOTOOLCHAIN=local`), its module cache removable.
 - **A vulnerable package only development pulls in is said so,** its severity unchanged.
 - **One card per dependency the project names, one per lock file for the rest:** that card passes or fails whole.
+- **Each run of a project's checks gets a database of its own, a copy of the run's:** they shared the run's database and
+  never emptied it, so a test writing a real row passed once and failed on every later run, refusing a sound edit. The
+  copy holds what setup wrote, nothing an earlier checks run wrote, and is dropped when the checks end; the run's own
+  database is never written by them.
 
 A tool MCP called read-only changed the project. Reading a file of a build turned a checked project into a build's, and made the
 folder and state of a project never started; an assistant told it only reads had no reason to be careful.

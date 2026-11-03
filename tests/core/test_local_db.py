@@ -1,5 +1,6 @@
-"""The run's own PostgreSQL under root: pgserver's binaries in a virtualenv under /root still run."""
+"""The run's own PostgreSQL: pgserver's binaries in a virtualenv under /root still run under root; a checks run's copy."""
 import os
+import subprocess
 import tempfile
 import unittest
 from pathlib import Path
@@ -37,6 +38,35 @@ class ReachableBinaries(unittest.TestCase):
             (bin_dir / 'pg_ctl').write_text('#!/bin/sh\n')
             os.chmod(bin_dir / 'pg_ctl', 0o755)
             self.assertEqual(local_db._reachable(bin_dir, local_db._as_owner()), bin_dir)
+
+
+@unittest.skipIf(local_db.binaries() is None, 'no PostgreSQL binaries')
+class ChecksCopy(unittest.TestCase):
+    def sql(self, url, text):
+        return subprocess.run([str(local_db.binaries() / 'psql'), url, '-tAc', text], capture_output=True, text=True, check=True).stdout.split()
+
+    def test_each_checks_run_sees_what_setup_wrote_and_nothing_an_earlier_checks_run_wrote(self):
+        # Trial on real projects: a test whose mock was not applied wrote a real user into the checks' database; it passed
+        # on a fresh database and failed on every later run, so a sound edit was refused
+        with tempfile.TemporaryDirectory() as runtime:
+            run = local_db.LocalPostgres(runtime)
+            try:
+                base = run.create('app')
+                self.sql(base, "create table users (name text); insert into users values ('seeded')")
+                for _ in range(2):
+                    checks = local_db.LocalPostgres(runtime)
+                    copy = checks.copy('app')
+                    self.assertEqual(self.sql(copy, 'select name from users'), ['seeded'])
+                    self.sql(copy, "insert into users values ('written')")
+                    held = subprocess.Popen([str(local_db.binaries() / 'psql'), copy, '-c', 'select pg_sleep(60)'],
+                                            stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+                    checks.stop()
+                    held.wait(30)
+                self.assertEqual(self.sql(base, 'select name from users'), ['seeded'], 'the base is never written')
+                self.assertEqual(self.sql(base, "select datname from pg_database where datname like 'app%'"), ['app'], 'no copy is left')
+            finally:
+                run.stop()
+        run._sweep(local_db.binaries())                        # nothing of this test stays behind
 
 
 if __name__ == '__main__':

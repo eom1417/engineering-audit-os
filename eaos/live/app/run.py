@@ -74,6 +74,10 @@ def _unfrozen(argv):
 class LiveRun:
     """One authorised run: install, build, prepare and start the project in a sandbox copy, then stop it."""
 
+    # True for a run whose writes nobody after it may see (the project's checks): its database is a copy of the run's,
+    # made for it and dropped at stop()
+    throwaway = False
+
     # The keys a profile's `baseline` may override: the load baseline runs the build, not the dev server, and may run it
     # from another folder (`app`: a program whose server sits at the root, its pages in a folder it builds).
     BASELINE_KEYS = ('app', 'install', 'build', 'prepare', 'start', 'port', 'health', 'env', 'seed', 'start_timeout')
@@ -111,7 +115,8 @@ class LiveRun:
         if not hasattr(self, '_database'):
             from ...core.system.local_db import LocalPostgres
             self._database = LocalPostgres(self.runtime)
-            self._database_url = self._database.create('_'.join(filter(None, (database['name'], self.apart))))
+            name = '_'.join(filter(None, (database['name'], self.apart)))
+            self._database_url = self._database.copy(name) if self.throwaway else self._database.create(name)
         return self._database_url
 
     def run_env(self):
@@ -250,8 +255,8 @@ class LiveRun:
         return ran.server(argv, env, self.ran, self.sandbox.copy, python)
 
     def stop(self, out=None):
-        """Stop the project and remove its copy, leave the run's database (stopped once no other run is on it, its data
-        kept for the next step) and stop its Mailpit (its mail with it); the run's records stay in the runtime folder.
+        """Stop the project and remove its copy, leave the run's database (a throwaway one dropped; the server stopped
+        once no other run is on it, its data kept for the next step) and stop its Mailpit (its mail with it); the run's records stay in the runtime folder.
         `out`: a check's folder, where what the server ran is recorded when it ran measured (eaos/live/testing/ran.py)."""
         if self.ran and out:
             from ..testing.ran import server_record
