@@ -113,6 +113,16 @@ class ProposalTests(unittest.TestCase):
             self.assertTrue(any(words in reason for reason in refused), words)
         self.assertEqual(run_profile.safe({'install': [['corepack', 'pnpm', 'install']]}), [])
 
+    def test_a_go_app_runs_on_the_computers_go_and_its_module_cache_goes_with_the_run(self):
+        # A Go API's assistant proposed `go mod download` and `go run .`: both were refused, and the prompt never named go.
+        self.assertEqual(run_profile.safe({'install': [['go', 'mod', 'download']], 'start': ['go', 'run', '.']}), [])
+        from eaos.live.app.assist import ASSIST_SYSTEM
+        self.assertIn(run_profile.SAID, ASSIST_SYSTEM)
+        from types import SimpleNamespace
+        from eaos.live.isolation.sandbox import Sandbox
+        caches = Sandbox.caches(SimpleNamespace(tmp=Path('run')))
+        self.assertEqual((caches['GOFLAGS'], caches['GOTOOLCHAIN']), ('-modcacherw', 'local'))
+
     def test_a_proposal_replaces_the_environment_and_a_production_one_changes_the_baseline_only(self):
         runtime = Path(scratch())
         run_profile.write_profile(runtime, {'schema_version': 1, 'install': [['npm', 'ci']], 'start': ['npx', 'vite'], 'port': 1,

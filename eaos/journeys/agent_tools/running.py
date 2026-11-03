@@ -45,8 +45,7 @@ def run_try(proposal=None, mode='lock', project=None):
     refused = run_profile.safe(proposal or {})
     if refused:
         return {'status': 'refused', 'reasons': refused,
-                'rules': 'Every address is 127.0.0.1 or localhost; commands start with npm, npx, pnpm, yarn, bun, node, corepack, python, '
-                         'pip, uv, poetry, uvicorn or gunicorn; '
+                'rules': 'Every address is 127.0.0.1 or localhost; commands start with one of: ' + run_profile.SAID + '; '
                          'nothing deploys or reaches a hosted service; no real secret. Use {database_url} and {run_dir}.'}
     return _start('run_try', state, {'proposal': proposal, 'mode': mode})
 
