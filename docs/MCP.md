@@ -128,9 +128,9 @@ opened in). Long work returns a job, followed with `wait`. `status` always names
 | `project_map` | GitNexus's map of the project for its assistant, with the person's yes: the index outside the project, its area skills where git does not take them, its MCP registered |
 | `design` | What the project's screens are really made of: how many looks each part has, values per kind, near colours, formats, two libraries for one job |
 | `design_propose`, `design_make` | The look's raw values named as tokens on a branch of their own, no assistant asked, kept only when proved that nothing looks different but what the person agreed to merge |
-| `fix_start` | Open a batch in an isolated copy: the next cards EAOS can fix (or the ids passed), with their automatic fixes (codemods) applied and checked. Options set in the fix preview: `base`, `deliver_as`, `merge_into`, `base_commit`, `assistants` |
+| `fix_start` | Open a batch in an isolated copy: the next cards EAOS can fix (or the ids passed), with their automatic fixes (codemods) applied and checked. Options set in the fix preview: `base`, `deliver_as`, `merge_into`, `base_commit`, `assistants`. A repository-craft card (moves, the context, the guide) is refused: it goes in its own batch (`moves_propose`, `context_propose`) |
 | `fix_read` | Read a file (or list a folder) in the batch's copy, with line numbers |
-| `fix_edit` | Make one card's change, then check it at once: the problem is gone, no new broken code, no endpoint gone. A change that fails is taken back with the reason. Returns a job |
+| `fix_edit` | Make one card's change, then check it at once: the problem is gone, no new broken code, no endpoint gone. A change that fails is taken back with the reason. `summary` is the commit message: what changed, in the language of the project's own commits, then why when not obvious. Returns a job |
 | `fix_skip` | Leave a card out, with the reason |
 | `fix_finish` | Run the project's own checks and every recorded screen on all kept changes together, then hand over the branch `eaos/<branch>/wave-N`. Returns a job |
 | `fix_abandon` | Close a batch that cannot be checked, handing nothing over; its cards can be picked again |
