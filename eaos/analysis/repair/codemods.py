@@ -138,13 +138,14 @@ def _commands(card, copy):
     if kind == 'jscodeshift':
         found = binary('jscodeshift')
         return [([found, '-t', str(TRANSFORM), '--parser=tsx', f"--name={detail['symbol']}", detail['path']], None)] if found else None
-    if kind in (*LOCK_ONLY, 'uv'): return _upgrade_steps(detail, copy)
+    if kind in (*LOCK_ONLY, 'uv', 'go'): return _upgrade_steps(detail, copy)
     return None
 
 
 def _upgrade_steps(card, copy):
     """The steps of an upgrade card, one package's or a lock file card's, by its lock file's tool."""
     members, executable = card.get('group') or [card], binary(card['kind']) or card['kind']
+    if card['kind'] == 'go': return _go_steps(members, executable, copy)
     return _uv_steps(members, executable) if card['kind'] == 'uv' else _group_steps(members, executable, copy)
 
 
@@ -154,6 +155,22 @@ def _uv_steps(members, executable):
     folder = members[0]['folder']
     pins = [part for member in members for part in ('--upgrade-package', f"{member['package']}=={member['fixed']}")]
     return [([executable, 'lock', *pins, *(['--directory', folder] if folder != '.' else [])], None)]
+
+
+def _go_steps(members, executable, copy):
+    """One `go get` moving every module to its fixed version, then `go mod tidy`: go.mod and go.sum alone are written,
+    the modules fetched into a cache of its own, removed after; Go never downloads another toolchain."""
+    folder, wanted = Path(copy) / members[0]['folder'], [f"{m['package']}@v{str(m['fixed']).removeprefix('v')}" for m in members]
+    return [(lambda: _go(executable, folder, wanted), f"go get {' '.join(wanted)} && go mod tidy")]
+
+
+def _go(executable, folder, wanted):
+    import os
+    with tempfile.TemporaryDirectory(prefix='eaos-go-') as cache:
+        env = {**os.environ, 'GOMODCACHE': cache, 'GOFLAGS': '-modcacherw', 'GOTOOLCHAIN': 'local'}
+        for argv in ([executable, 'get', *wanted], [executable, 'mod', 'tidy']):
+            done = subprocess.run(argv, cwd=folder, capture_output=True, text=True, timeout=600, env=env)  # nosemgrep: python.lang.security.audit.dangerous-subprocess-use-audit -- go at its path, a list argv built here, in an isolated copy, no shell
+            if done.returncode: raise OSError(f"go {argv[1]} exited {done.returncode}: {(done.stderr or done.stdout).strip()[-240:]}")
 
 
 def _group_steps(members, executable, copy):
@@ -169,8 +186,8 @@ def _run_step(step, description, copy):
         try:
             step()
             return 0, description
-        except (OSError, SyntaxError, ValueError):
-            return 1, description
+        except (OSError, SyntaxError, ValueError) as problem:
+            return 1, f'{description}: {problem}'
     import os
     done = subprocess.run(step, cwd=copy, capture_output=True, text=True, timeout=600,  # nosemgrep: python.lang.security.audit.dangerous-subprocess-use-audit -- a codemod's argv built here (jscodeshift, npm --ignore-scripts), run in an isolated copy, no shell
                           env={**os.environ, 'BABEL_DISABLE_CACHE': '1'})
