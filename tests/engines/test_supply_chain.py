@@ -135,3 +135,24 @@ class ClaimTests(Workspace):
                 self.assertEqual(decision['readiness'], 'blocked')
                 self.assertTrue(any(tool in blocker for blocker in decision['blockers']), decision['blockers'])
 
+    def test_a_dependency_only_used_while_developing_is_said_so_with_its_severity_kept(self):
+        # On a real project 25 of 39 vulnerable dependencies were development tools, each card saying it shipped to every user.
+        from eaos.core.language.words import impact_of
+        findings = osv_scanner.normalise(sample('osv-scanner')['osv.json'], Path('/project'), '2.6.0')
+        groups = {f['subject']['key']: next((m['value'] for m in f['measurements'] if m['name'] == 'dependency_groups'), None)
+                  for f in findings}
+        self.assertEqual((groups['npm:@eslint/plugin-kit@0.2.3'], groups['npm:@babel/runtime@7.25.9']), (['dev'], []))
+        measurements = self.FACT['value']['measurements']
+        dev = {**self.FACT, 'value': {**self.FACT['value'], 'measurements': measurements + [{'name': 'dependency_groups', 'value': ['dev']}]}}
+        bun = {**self.FACT, 'location': {**self.FACT['location'], 'path': 'web/bun.lock'}}
+        (Path(self.tmp) / 'web').mkdir()
+        (Path(self.tmp) / 'web/package.json').write_text(json.dumps({'workspaces': ['ui'], 'dependencies': {'axios': '1'}}))
+        (Path(self.tmp) / 'web/ui').mkdir()
+        (Path(self.tmp) / 'web/ui/package.json').write_text(json.dumps({'devDependencies': {'picomatch': '2'}}))
+        for fact, words in ((self.FACT, 'locked in this project'), (dev, 'developing'), (bun, 'developing')):
+            self.FACT = fact
+            [claim] = self.claims()
+            self.assertIn(words, impact_of(claim, 'en'))
+            self.assertNotIn('لكل مستخدم', impact_of(claim, 'ar'))
+            self.assertEqual(claim['render']['params']['severity'], 'high')
+

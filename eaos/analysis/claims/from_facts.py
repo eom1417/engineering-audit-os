@@ -274,13 +274,25 @@ def _advisory(fact):
 def vulnerable_dependencies(fact_sets, add, target):
     # A locked version the advisory database lists as affected is a deterministic finding: one engine suffices.
     for fact in filter(_advisory, (fact_sets.get('external') or {}).get('facts', [])):
-        claim = _vulnerable(fact, add)
+        claim = _vulnerable(fact, add, _scope(fact, target))
         if target is not None:
             from ..assessments.dependencies import build_assessment as dependency_assessment
             _assess(claim, dependency_assessment(claim, fact_sets, target))
 
 
-def _vulnerable(fact, add):
+def _scope(fact, target):
+    """`dev` when only developing or building pulls the package in: its lock file says so (package-lock.json), or the
+    manifests beside it name it only as a development dependency (eaos/analysis/assessments/declared.py); else ''."""
+    groups = next((m['value'] for m in fact['value'].get('measurements') or [] if m['name'] == 'dependency_groups'), None)
+    if 'dev' in (groups or []): return 'dev'
+    if target is None: return ''
+    from ..assessments.declared import declared, normal
+    names = declared(target, fact['location'].get('path') or '')
+    package = normal(str(fact['location'].get('symbol')).partition(':')[2].rpartition('@')[0])
+    return 'dev' if package in names['dev'] - names['prod'] else ''
+
+
+def _vulnerable(fact, add, scope):
     value = fact.get('value') or {}
     numbers = {m['name']: m['value'] for m in value.get('measurements') or []}
     ecosystem, _, rest = str(fact['location'].get('symbol')).partition(':')
@@ -292,7 +304,7 @@ def _vulnerable(fact, add):
                render={'key': 'vulnerable_dependency',
                        'params': {'package': package, 'installed': installed, 'count': len(ids),
                                   'ids': ', '.join(ids[:3]) + (' …' if len(ids) > 3 else ''),
-                                  'severity': numbers.get('severity'), 'fixed': numbers.get('fixed_in') or '—'}},
+                                  'severity': numbers.get('severity'), 'fixed': numbers.get('fixed_in') or '—', 'scope': scope}},
                probe_spec=graph_query('vulnerable_dependency_present', package=fact['location'].get('symbol'), engines=[value['engine']],
                                        expected='The same package version is still reported vulnerable.'),
-               impact={'scenario': 'Every user runs a version with a published vulnerability; the fix is published too.'})
+               impact={'scenario': 'A version locked in this project has a published vulnerability; the fix is published too.'})
