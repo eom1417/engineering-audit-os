@@ -6,7 +6,8 @@ The mechanical families (eaos/rules/codemods.json) and their tools:
                                     or python-ast: the definition's lines, from the syntax tree (Python)
   leftover                          delete-file
   upgrade_dependency (npm)          a direct dependency: npm install pkg@fixed; a transitive one:
-                                    npm pkg set overrides.pkg=fixed, then npm install; both --package-lock-only
+                                    overrides["pkg@>=vulnerable <=fixed"] = fixed in package.json (that version's
+                                    copies only), then npm install; both --package-lock-only
                                     --ignore-scripts, so no project code runs
 Each card gets codemod {tool, command, dry_run {exit, files_changed}}. The dry run is the real command on a
 copy made by eaos.live.testing.verify.isolated_copy; files_changed counts files added, removed or modified there. A tool
@@ -14,6 +15,7 @@ that changes nothing did nothing, and says so with files_changed 0. The project 
 """
 import ast
 import json
+import re
 import shlex
 import shutil
 import subprocess
@@ -85,7 +87,7 @@ def _names_of(node):
 NPM_FLAGS = ['--package-lock-only', '--ignore-scripts', '--no-audit', '--no-fund', '--loglevel=error']
 
 
-def _npm_steps(detail, binary):
+def _npm_steps(detail, binary, copy):
     """In each folder: a direct dependency installed at its fixed version; a transitive one overridden, then installed."""
     steps = []
     for folder, direct in detail.get('folders') or [(detail.get('folder', '.'), detail['direct'])]:
@@ -93,9 +95,23 @@ def _npm_steps(detail, binary):
         if direct:
             steps.append(([binary, 'install', f"{detail['package']}@{detail['fixed']}", *NPM_FLAGS, *prefix], None))
         else:
-            steps += [([binary, 'pkg', 'set', f"overrides.{detail['package']}={detail['fixed']}", *prefix], None),
+            # Only the vulnerable version's copies, never every copy of the package: another major line keeps its own
+            # (npm keeps a key's range only when it holds the fixed version too; a key of one version moves one copy).
+            key = f"{detail['package']}@>={detail['version']} <={detail['fixed']}"
+            manifest = Path(copy) / folder / 'package.json'
+            steps += [(lambda manifest=manifest, key=key: _override(manifest, key, detail['fixed']),
+                       f"override {key} with {detail['fixed']} in {PurePosixPath(folder, 'package.json')}"),
                       ([binary, 'install', *NPM_FLAGS, *prefix], None)]
     return steps
+
+
+def _override(manifest, key, fixed):
+    """package.json's overrides[key] = fixed, the file otherwise as it was written (its indent, its characters)."""
+    text = manifest.read_text(encoding='utf-8')
+    data = json.loads(text)
+    data.setdefault('overrides', {})[key] = fixed
+    indent = re.search(r'\n([ \t]+)"', text)
+    manifest.write_text(json.dumps(data, indent=indent[1] if indent else 2, ensure_ascii=False) + '\n', encoding='utf-8')
 
 
 def _commands(card, copy):
@@ -110,7 +126,7 @@ def _commands(card, copy):
     if kind == 'jscodeshift':
         binary = which('jscodeshift')
         return [([binary, '-t', str(TRANSFORM), '--parser=tsx', f"--name={detail['symbol']}", detail['path']], None)] if binary else None
-    if kind == 'npm': return _npm_steps(detail, which('npm') or 'npm')
+    if kind == 'npm': return _npm_steps(detail, which('npm') or 'npm', copy)
     return None
 
 
@@ -197,13 +213,13 @@ def _direct_in(target, where, package):
 def _upgrade_card(fact, target):
     """An npm upgrade to the fixed version, in every folder whose lock file holds the vulnerable version."""
     ecosystem, _, rest = str(fact['location'].get('symbol')).partition(':')
-    package, _, _ = rest.rpartition('@')
+    package, _, version = rest.rpartition('@')
     fixed = next((m['value'] for m in fact['value'].get('measurements') or [] if m['name'] == 'fixed_in'), None)
     # The lock file the scanner read names the folder: an app in app/ has its manifest there, not at the root.
     folder = str(PurePosixPath(fact['location'].get('path') or 'package-lock.json').parent)
     if ecosystem != 'npm' or not fixed or not (Path(target) / folder / 'package-lock.json').is_file(): return None
-    folders = _upgrade_folders(target, folder, package, rest.rpartition('@')[2])
-    return {'kind': 'npm', 'package': package, 'fixed': fixed, 'direct': _direct_in(target, folder, package), 'folder': folder,
+    folders = _upgrade_folders(target, folder, package, version)
+    return {'kind': 'npm', 'package': package, 'version': version, 'fixed': fixed, 'direct': _direct_in(target, folder, package), 'folder': folder,
             'folders': [(where, _direct_in(target, where, package)) for where in folders]}
 
 

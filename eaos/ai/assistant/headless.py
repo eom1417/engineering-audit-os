@@ -118,8 +118,9 @@ class ClaudeCode(Adapter):
         server, env = eaos_server(run, self.name)
         config = folder / 'mcp.json'
         config.write_text(json.dumps({'mcpServers': {'eaos': {'command': server[0], 'args': server[1:], 'env': env}}}), encoding='utf-8')
+        # --tools: the only built-in tools it is given (a subagent, a shell monitor, a scheduler are never offered)
         argv = self.command + ['-p', prompt, '--output-format', 'stream-json', '--verbose', '--mcp-config', str(config), '--strict-mcp-config',
-                               '--allowedTools', *([f'mcp__eaos__{tool}' for tool in tools] if tools else ['mcp__eaos']), 'Read', 'Grep', 'Glob',
+                               '--tools', 'Read,Grep,Glob', '--allowedTools', *([f'mcp__eaos__{tool}' for tool in tools] if tools else ['mcp__eaos']), 'Read', 'Grep', 'Glob',
                                '--disallowedTools', 'Bash', 'Edit', 'Write', 'NotebookEdit', 'WebFetch', 'WebSearch',
                                *[f'mcp__eaos__{tool}' for tool in PERSON_ONLY]]
         return argv + (['--resume', session] if session else [])

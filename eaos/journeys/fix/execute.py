@@ -8,7 +8,8 @@ import json
 import os
 import re
 import subprocess
-from pathlib import Path
+import tempfile
+from pathlib import Path, PurePosixPath
 
 from ...core.contracts.artifact_rules import contracts, validate
 from ...core.system.clock import now
@@ -88,8 +89,12 @@ def run_codemod(card, root, report):
     steps = _commands(detail, Path(root)) if detail else None
     if not steps: raise RuntimeError(f"{card['id']}: its codemod cannot be rebuilt from the report's facts")
     for step, _ in steps:
-        if callable(step): step()
-        else: subprocess.run(step, cwd=root, capture_output=True, text=True, timeout=600, check=True)  # nosemgrep: python.lang.security.audit.dangerous-subprocess-use-audit -- a codemod's argv rebuilt from the report's facts, run in the candidate copy, no shell
+        if callable(step):
+            step()
+            continue
+        done = subprocess.run(step, cwd=root, capture_output=True, text=True, timeout=600)  # nosemgrep: python.lang.security.audit.dangerous-subprocess-use-audit -- a codemod's argv rebuilt from the report's facts, run in the candidate copy, no shell
+        # its own words (npm's ERESOLVE), never only its command line, which names this machine's paths
+        if done.returncode: raise RuntimeError(f"{' '.join([Path(step[0]).name, *map(str, step[1:2])])} exited {done.returncode}: {(done.stderr or done.stdout).strip()[-240:]}")
 
 
 def surfaces(facts):
@@ -116,7 +121,7 @@ def new_breakage(report, root, collected=None):
         if collected: out = str(collected)
         else: collect(root, out, ['syntax', 'resolve', 'graph', 'broken', 'domain', 'runtime', 'secrets', 'config']
                       + (['entrypoints'] if had is not None else []))
-        broke = words(structure(report, out, policy)) + _layers_broken(report, root, out)
+        broke = words(structure(report, out, policy)) + _layers_broken(report, root, out) + _dependencies_broken(root)
         has = surfaces(json.loads((Path(out) / 'facts/entrypoints.json').read_text(encoding='utf-8'))['facts']) if had is not None else set()
     if had is not None:
         broke += [f'the endpoint {method} {route} is gone' for method, route in sorted(had - has, key=str)]
@@ -128,6 +133,39 @@ def _layers_broken(report, root, out):
     from ...analysis import layers
     before = layers.read(Path(report) / layers.RECORD)
     return layers.introduced(before, layers.check(root, out)) if before else []
+
+
+NPM_FILES = ('package.json', 'package-lock.json')
+
+
+def _dependencies_broken(root):
+    """What the last commit broke in the dependency tree npm reads from a package.json and its lock (npm ls: no install,
+    no network, no script): a version out of the range its consumer asks, a lock behind its package.json. Trial on real
+    projects (2026-11-02): an upgrade that put a package out of a plugin's range was seen only once the install broke,
+    and the upgrades after it failed on it. npm only; a commit that changes neither file is not read."""
+    from ...engines.process import which
+    npm, changed = which('npm'), git(root, 'diff', '--name-only', 'HEAD~1', 'HEAD').stdout.split('\n')
+    folders = sorted({str(PurePosixPath(path).parent) for path in changed if PurePosixPath(path).name in NPM_FILES})
+    broke = []
+    for folder in folders if npm else []:
+        new = _npm_problems(npm, Path(root) / folder)
+        if not new: continue
+        with tempfile.TemporaryDirectory(prefix='eaos-dependencies-') as before:
+            for name in NPM_FILES:
+                shown = git(root, 'show', f'HEAD~1:{PurePosixPath(folder, name)}')
+                if shown.returncode == 0: (Path(before) / name).write_text(shown.stdout, encoding='utf-8')
+            new -= _npm_problems(npm, Path(before))
+        broke += [f'the dependency tree is no longer valid: {problem}' for problem in sorted(new)]
+    return broke
+
+
+def _npm_problems(npm, folder):
+    """The problems `npm ls` finds in a folder's package.json and lock, without the folder's path."""
+    if not (folder / 'package.json').is_file(): return set()
+    done = subprocess.run([npm, 'ls', '--all', '--package-lock-only', '--json'], cwd=folder, capture_output=True, text=True, timeout=120)  # nosemgrep: python.lang.security.audit.dangerous-subprocess-use-audit -- npm at its path, a fixed list argv, reading the lock only (no install, no script)
+    try: problems = json.loads(done.stdout).get('problems') or []
+    except ValueError: return set()
+    return {problem.replace(f'{folder.resolve()}/', '').replace(f'{folder}/', '') for problem in problems}
 
 
 # The engines that answer in seconds: they run on every change a batch makes (eaos/journeys/fix/waves edit_gates): the
@@ -149,10 +187,11 @@ def app_breakage(project, runtime, root, changed):
 
 
 def project_checks(target, runtime, stage, name, python=True):
-    """[{argv, exit}] of the run profile's checks on target, installed in a sandbox copy, and its Python tests (the
-    profile's checks run in the app's folder; a Python suite beside it is the project's too; `python` false: the
-    profile's alone); [] when there are none. Every command's output tail is kept in runtime/checks-<name>-log.json."""
-    from ...live.app.run import LiveRun
+    """[{argv, exit}] of the run profile's checks on target, installed in a sandbox copy (its install held to the lock,
+    `npm ci`, a row too), and its Python tests (the profile's checks run in the app's folder; a Python suite beside it is
+    the project's too; `python` false: the profile's alone); [] when there are none. Every command's output tail is kept
+    in runtime/checks-<name>-log.json."""
+    from ...live.app.run import LiveRun, _unfrozen
     live = LiveRun(target, runtime, stage)
     from ...live.testing.verify import python_tests
     checks = [(argv, False) for argv in live.profile.get('checks') or []] + \
@@ -160,7 +199,8 @@ def project_checks(target, runtime, stage, name, python=True):
     if not checks: return []
     try:
         live.setup()
-        rows = []
+        # the lock installing as it is, a check of its own: setup's fallback to an unfrozen install hides a broken lock
+        rows = [{'argv': r['argv'], 'exit': r['exit'], 'failing': []} for r in live.log if _unfrozen(r['argv'])]
         for argv, at_root in checks:
             code, out, err = live.run(argv, timeout=1800, at_root=at_root)
             rows.append({'argv': argv, 'exit': code, 'failing': failing(out + err)})
@@ -186,11 +226,19 @@ def original_checks(target, runtime):
 
 TAP_FAILURE = re.compile(r'^\s*not ok \d+ - (.+?)(?:\s+#.*)?$', re.M)
 PYTHON_FAILURE = re.compile(r'^(?:(?:FAIL|ERROR): (\S+ \([^)]*\))|FAILED (\S+))', re.M)   # unittest, pytest -q
+JEST_FAILURE = re.compile(r'^\s*(?:\u25cf|FAIL\s+\S+\s+>)\s+(?!Console$)(.+?)\s*$', re.M)   # jest: "● Suite › name"; vitest: "FAIL file > name"
 
 
 def failing(output):
-    """The names of the failing tests a TAP reporter (node --test, tap...), unittest or pytest printed: sorted, unique."""
-    return sorted(set(TAP_FAILURE.findall(output)) | {a or b for a, b in PYTHON_FAILURE.findall(output)})
+    """The names of the failing tests a TAP reporter (node --test, tap...), unittest, pytest, jest or vitest printed:
+    sorted, unique."""
+    return sorted(set(TAP_FAILURE.findall(output)) | set(JEST_FAILURE.findall(output)) | {a or b for a, b in PYTHON_FAILURE.findall(output)})
+
+
+def not_run(checks):
+    """The project's own checks that could not run here (exit 126 or 127: their program missing or not allowed): no gate
+    held a change to them, which the person is told, never silent."""
+    return [' '.join(map(str, check['argv'])) for check in checks if check['exit'] in (126, 127)]
 
 
 def regressions(before, after):

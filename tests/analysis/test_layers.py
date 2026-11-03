@@ -4,6 +4,7 @@ import shutil
 from pathlib import Path
 
 from eaos.analysis import layers
+from eaos.analysis.claims.recheck import recheck
 from eaos.facts.run import collect
 from shared_fixture import TemporaryWorkspace
 
@@ -25,7 +26,7 @@ class LayersTests(TemporaryWorkspace):
     @classmethod
     def setUpClass(cls):
         root = cls.workspace().name
-        cls.app, cls.clean = _read(root, 'app'), _read(root, 'clean')
+        cls.app, cls.clean, cls.app_root = _read(root, 'app'), _read(root, 'clean'), Path(root) / 'app'
 
     def test_every_planted_boundary_defect_is_found_and_none_on_the_clean_twin(self):
         found = {(f['rule'], f['path']) for f in self.app['findings']}
@@ -72,3 +73,11 @@ class LayersTests(TemporaryWorkspace):
         from eaos.analysis.layers import operations
         self.assertTrue(operations._named({'route': '/items/{id}', 'handler': 'delete_item'},
                                           'client.delete(f"{settings.API_V1_STR}/items/{item.id}")'))
+
+    def test_a_finding_the_code_alone_cannot_show_again_is_never_taken_for_gone(self):
+        # a layer card's recheck reads the code again: failing tests and live findings are never in it, so it cannot say "gone"
+        failing = {'rule': 'tests-failing', 'path': '*', 'params': {'failed': 3, 'total': 40, 'command': 'npm run test'}}
+        built = {'rule': 'key-in-built-output', 'path': 'web/payments.js', 'params': {}, 'live': True}
+        for specification in (failing, built):
+            spec = {'probe_type': 'graph_query', 'specification': {'query': 'boundary_finding_present', **specification}}
+            self.assertEqual(recheck(self.app_root, spec)[0], 'INCONCLUSIVE', specification['rule'])

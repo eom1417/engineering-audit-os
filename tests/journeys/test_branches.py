@@ -196,7 +196,7 @@ class Branches(unittest.TestCase):
         wave['kept'][card] = eaos_commit(root, cards[card], 'assistant')
         guided.save(state)
         with mock.patch('eaos.journeys.fix.waves.batch.gates', return_value=''), mock.patch('eaos.journeys.fix.waves.batch.original_checks', return_value={}), \
-                mock.patch('eaos.journeys.fix.waves.batch.batch_acceptance', side_effect=lambda report, chosen, root, collected=None: {c['id']: None for c in chosen}):
+                mock.patch('eaos.journeys.fix.waves.batch.batch_acceptance', side_effect=lambda report, chosen, root, **_: {c['id']: None for c in chosen}):
             return batch_finish.finish_job(str(self.project), {}, lambda *_: None)
 
     def work_branches(self):

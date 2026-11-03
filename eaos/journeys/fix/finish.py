@@ -7,9 +7,12 @@ them out, halving finds the cards responsible. A batch that passes becomes a bra
 on its base branch when the person chose so.
 """
 
+from pathlib import Path
+
 from .. import guided
 from ...core.project import state as project_state
 from ...core.system.clock import now
+from ...core.system.files import read_json
 
 REPAIR = 'REPAIR'        # the card of a repair on top of the batch
 REPAIRS = 3             # repairs tried before the cards responsible are left out
@@ -129,13 +132,37 @@ def _handed_over(project, wave, summary):
     files = guided._git(state['project'], 'diff', '--stat', f"{wave['base']}..{summary['branch']}").stdout.strip() if summary['kept'] else ''
     if wave.get('direct') and record['status'] == 'applied':
         return _land(state['project'], record, files)
+    said, words = _said_too(state, wave)
     return {'batch': wave['number'], 'branch': summary['branch'] if summary['kept'] else None, 'kept': summary['kept'],
-            'failed': summary['failed'], 'changes': summary['stat'], 'files': files[-4000:], **score,
+            'failed': summary['failed'], 'changes': summary['stat'], 'files': files[-4000:], **score, **said,
             **({'continued_on': wave['continues']} if wave.get('continues') else {}),
             'what_now': (f"Tell the person, in plain words, what was fixed and that it is on the branch {summary['branch']}; "
                          "their current branch is unchanged. Ask whether to take it in (accept) or throw it away (undo). "
                          "The report counts these fixes as done only once they are taken in."
-                         if summary['kept'] else 'No change passed every gate; nothing reached the project.')}
+                         if summary['kept'] else 'No change passed every gate; nothing reached the project.')
+                        + words}
+
+
+def _said_too(state, wave):
+    """What the person hears beside the fixes, ({answer keys}, the words for the assistant): the project's own checks
+    that could not run on the original (eaos/journeys/fix/execute.py not_run, from the run's record of them, never run
+    again), and the files a card changed beyond its own (beyond)."""
+    from .execute import not_run
+    unrun = not_run((read_json(Path(project_state.runtime_of(state)) / 'runtime/checks-original.json') or {}).get('checks') or [])
+    wider = wave.get('beyond') or {}
+    return {'checks_not_run': unrun, 'beyond_the_cards': wider}, (
+        (f" Tell them too that EAOS could not run these checks of theirs here, so no fix was held to them: {', '.join(unrun)} "
+         "(the program each needs is missing on this computer)." if unrun else '')
+        + (" Name to them each file a card changed beyond its own (beyond_the_cards) and why its fix needed it." if wider else ''))
+
+
+def beyond(card, changed):
+    """The files a card's change touched outside its own paths (each a file or a folder; '*', or none named: every file is
+    its own). Named at the hand-over, never refused: the one-source gate may rightly make a fix reach the copies of what
+    it changes (trial on real projects, 2026-11-02: a dialog's card changed 13 files, 12 never named)."""
+    paths = [path.rstrip('/') for path in card.get('paths') or []]
+    if not paths or '*' in paths: return []
+    return [path for path in changed if not any(path == own or path.startswith(own + '/') for own in paths)]
 
 
 def _record(state, wave, summary):

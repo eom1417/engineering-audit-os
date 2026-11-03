@@ -32,6 +32,18 @@ their task. Each was reproduced on the project it came from before its fix; none
 - **Each layer card says why by the boundary it breaks:** an untested write no longer reads as a leaked secret, in both languages and in the do-nothing verdict of its remedy.
 - **A claim that EAOS's own verdict is wrong corrects EAOS:** the model marks it `eaos_verdict`; it never joins the person's claims and is kept in `semantic.json` as `eaos_corrections`.
 
+A first trial on five real projects EAOS had never seen showed fixes kept that should not have been, and failures with no
+words. Layer cards could never be decided in a batch, and their recheck would have called a failing-tests or live finding
+gone; a jest suite's new failure, a lock npm ci refused and an upgrade that broke the install all passed the gates; two
+upgrades of one package undid each other; a codemod's failure kept only its command line; the fixing assistant launched a
+subagent; checks that could not run, and files changed beyond a card, were never told.
+
+- **A layer card is decided:** `eaos recheck` never calls "gone" a finding only a run shows (the failing tests, a live one): exit 2. In a batch a layer card's probe reads the layers made again on the copy, and a failing-tests card passes only when its command passes on the copy, run again as the gates run it.
+- **The gates see more:** the test gate reads jest's and vitest's failing tests; a lock that installs only unfrozen (`npm ci` refused, `npm install` fell back) fails the gate; a commit that changes a package.json or its lock is refused when `npm ls` on the lock finds a problem it did not have (a version out of its consumer's range, a lock behind its package.json), at that commit.
+- **A dependency override replaces only the vulnerable version:** keyed `"<pkg>@>=<vulnerable> <=<fixed>"`, so two major lines keep their own fixed versions.
+- **Said, never silent:** a codemod that fails keeps the end of what it printed; the hand-over names the project's checks that could not run here (exit 126/127) and each file a card changed beyond its own paths (`checks_not_run`, `beyond_the_cards`; fix_edit's `beyond_the_card`).
+- **The fixing assistant is given only Read, Grep and Glob** beside EAOS's own tools: no subagent, shell or scheduler.
+
 ## 0.0.90 (2026-10-31)
 
 M18, the design library and the extension guide. A real project's look had grown by hand: its buttons drawn many ways, its colours a shade apart, and nothing a

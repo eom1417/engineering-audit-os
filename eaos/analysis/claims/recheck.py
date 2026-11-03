@@ -18,7 +18,14 @@ def _load_model(root, out, specification):
     return {'load_model': project(compute(out))}
 
 
+# Read from the project's tests as a check ran them, never from the code (eaos/analysis/layers/operations.py _failing).
+RUN_ONLY = {'tests-failing'}
+
+
 def _boundaries(root, out, specification):
+    """The layers read again from the code alone. A finding only a run shows (a live one, the failing tests) cannot be
+    shown again here: no set, so the probe cannot decide, never "gone"."""
+    if specification.get('live') or specification.get('rule') in RUN_ONLY: return {}
     from ..layers import check, facts_of
     return {'boundaries': {'facts': facts_of(check(Path(root).resolve(), out))}}
 

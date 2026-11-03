@@ -97,6 +97,28 @@ class OrderTests(unittest.TestCase):
         self.assertEqual(collect.call_count, 1)
         self.assertEqual(exits, {'D': 0, 'G': 1, 'P': 0})
 
+    def test_a_layer_card_is_judged_by_the_layers_read_again_on_the_copy(self):
+        # Trial on real projects (2026-11-02): every layer card of a batch exited 2, "the boundaries facts are not present"
+        spec = {'probe_type': 'graph_query', 'specification': {'query': 'boundary_finding_present', 'rule': 'ui-database',
+                                                               'path': 'web/Orders.jsx', 'params': {}}}
+        card = {'id': 'L', 'verify_command': ['eaos', 'recheck', '--spec', json.dumps(spec), '.']}
+        shown = {'location': {'path': 'web/Orders.jsx'}, 'value': {'rule': 'ui-database', 'params': {}}}
+        for facts, exit in (([], 0), ([shown], 1)):
+            with mock.patch('eaos.facts.run.collect'), mock.patch('eaos.facts.run.read_available', return_value={}), \
+                    mock.patch('eaos.analysis.layers.check'), mock.patch('eaos.analysis.layers.facts_of', return_value=facts):
+                self.assertEqual(wave_batch.batch_acceptance(scratch(), [card], scratch()), {'L': exit})
+
+    def test_a_failing_tests_card_passes_only_when_its_command_passes_on_the_copy(self):
+        # Trial on real projects (2026-11-02): a failing-tests card's recheck read the code alone and would call it gone
+        spec = {'probe_type': 'graph_query', 'specification': {'query': 'boundary_finding_present', 'rule': 'tests-failing',
+                                                               'path': '*', 'params': {'failed': 3, 'total': 40, 'command': 'npm run test'}}}
+        card = {'id': 'T', 'verify_command': ['eaos', 'recheck', '--spec', json.dumps(spec), '.']}
+        for code, runtime, exit in ((0, 'runtime', 0), (1, 'runtime', 1), (127, 'runtime', 2), (0, None, 2)):
+            rows = [{'argv': ['npm', 'run', 'lint'], 'exit': 0, 'failing': []}, {'argv': ['npm', 'run', 'test'], 'exit': code, 'failing': []}]
+            with mock.patch('eaos.facts.run.collect'), mock.patch('eaos.facts.run.read_available', return_value={}), \
+                    mock.patch('eaos.journeys.fix.execute.project_checks', return_value=rows):
+                self.assertEqual(wave_batch.batch_acceptance(scratch(), [card], scratch(), runtime=runtime), {'T': exit}, (code, runtime))
+
 class RebuildTests(unittest.TestCase):
     def test_a_module_is_split_only_after_its_complex_functions_and_a_split_tried_too_early_comes_back(self):
         # EAOS, 2026-10-15: five module splits went into batches before their simplifications, failed, never came back
@@ -150,6 +172,51 @@ class RebuildTests(unittest.TestCase):
                          ({'T1': git(root, 'rev-parse', 'HEAD')}, {'T3': 'its change no longer applies once T2 was skipped'}))
 
 
+    def test_a_lock_that_installs_only_unfrozen_fails_the_gate(self):
+        # Trial on real projects (2026-11-02): a dependency card left a lock npm ci refused; the gate's npm install fallback
+        # passed, the checks ran green, and the broken lock went into the delivered branch
+        from eaos.journeys.fix.execute import project_checks, regressions
+
+        class Run:
+            def __init__(self, *_, **__): self.profile, self.log = {'checks': [['npm', 'test']]}, []
+            def setup(self):
+                self.log += [{'argv': ['npm', 'ci', '--no-audit', '--no-fund'], 'exit': 1}, {'argv': ['npm', 'install', '--no-audit', '--no-fund'], 'exit': 0}]
+            def run(self, argv, **_): return 0, '', ''
+            def stop(self): pass
+            def record(self, name): pass
+        with mock.patch('eaos.live.app.run.LiveRun', Run):
+            after = project_checks('copy', 'runtime', 'S09', 'edit', python=False)
+        before = [{'argv': ['npm', 'ci', '--no-audit', '--no-fund'], 'exit': 0, 'failing': []}, {'argv': ['npm', 'test'], 'exit': 0, 'failing': []}]
+        self.assertEqual(regressions(before, after), ['npm ci --no-audit --no-fund'])
+
+    def test_a_codemod_that_fails_says_why_in_its_own_words(self):
+        # Trial on real projects (2026-11-02): eight dependency upgrades failed, each recorded as its command line only
+        import sys
+        from eaos.journeys.fix.execute import run_codemod
+        step = [sys.executable, '-c', "import sys; sys.stderr.write('npm error ERESOLVE could not resolve'); sys.exit(1)"]
+        with mock.patch('eaos.analysis.repair.codemods.card_for', return_value={'kind': 'x'}), \
+                mock.patch('eaos.analysis.repair.codemods._commands', return_value=[(step, None)]), mock.patch('eaos.facts.store.by_id'):
+            with self.assertRaisesRegex(RuntimeError, 'exited 1: npm error ERESOLVE could not resolve'):
+                run_codemod({'id': 'T1'}, scratch(), scratch())
+
+    def test_a_dependency_change_that_breaks_a_consumers_range_is_refused_at_its_commit(self):
+        # Trial on real projects (2026-11-02): an upgrade put esbuild out of the range a build plugin asks; its own gate saw
+        # nothing, the install broke, and eight later upgrades failed on it
+        from eaos.engines.process import which
+        from eaos.journeys.fix.execute import _dependencies_broken
+        if not which('npm'): self.skipTest('npm is not installed')
+        lock = lambda b: json.dumps({'name': 'shop', 'version': '1.0.0', 'lockfileVersion': 3, 'requires': True, 'packages': {
+            '': {'name': 'shop', 'version': '1.0.0', 'dependencies': {'a': '1.0.0'}},
+            'node_modules/a': {'version': '1.0.0', 'dependencies': {'b': '^1.0.0'}}, 'node_modules/b': {'version': b}}})
+        root = repository()
+        commit_file(root, 'package.json', '{"name": "shop", "version": "1.0.0", "dependencies": {"a": "1.0.0"}}')
+        commit_file(root, 'package-lock.json', lock('1.0.0'))
+        self.assertEqual(_dependencies_broken(root), [])
+        commit_file(root, 'package-lock.json', lock('2.0.0'))
+        self.assertEqual(_dependencies_broken(root), ['the dependency tree is no longer valid: invalid: b@2.0.0 node_modules/b'])
+        commit_file(root, 'b.txt', 'b')
+        self.assertEqual(_dependencies_broken(root), [], 'a commit that changes no dependency is not read again')
+
 class HandOverTests(unittest.TestCase):
     def test_the_branch_arrives_without_touching_the_current_branch_or_unsaved_edits(self):
         project = repository()
@@ -200,7 +267,7 @@ class FinishTests(unittest.TestCase):
         base = git(root, 'rev-parse', 'HEAD')
         kept = {card['id']: commit_file(root, card['paths'][0], card['id']) for card in cards}
         broken = lambda batch, name: 'the project\'s own check failed: test' if (Path(batch['root']) / '2.txt').exists() else ''
-        with mock.patch.object(wave_batch, 'batch_acceptance', side_effect=lambda report, cards, root: {c['id']: 0 for c in cards}
+        with mock.patch.object(wave_batch, 'batch_acceptance', side_effect=lambda report, cards, root, **_: {c['id']: 0 for c in cards}
                                | {'T4': 1}), \
                 mock.patch.object(wave_batch, 'original_checks', return_value=['test']), mock.patch.object(wave_batch, 'gates', side_effect=broken), \
                 mock.patch.object(wave_batch, '_against_control', return_value=False):
@@ -231,7 +298,7 @@ class FinishTests(unittest.TestCase):
                                                 else "the project's own check failed: a cycle")
         finish = lambda repairs, bisect: waves.finish_batch(report, project, runtime, wave(root, base, kept),
                                                            lock=False, repairs=repairs, bisect=bisect)
-        with mock.patch.object(wave_batch, 'batch_acceptance', side_effect=lambda report, cards, root: {c['id']: 0 for c in cards}), \
+        with mock.patch.object(wave_batch, 'batch_acceptance', side_effect=lambda report, cards, root, **_: {c['id']: 0 for c in cards}), \
                 mock.patch.object(wave_batch, 'original_checks', return_value=['test']), mock.patch.object(wave_batch, 'gates', side_effect=together), \
                 mock.patch.object(wave_batch, '_against_control', return_value=False):
             with self.assertRaises(waves.GatesFailed) as asked:
@@ -254,7 +321,7 @@ class FinishTests(unittest.TestCase):
         base = git(root, 'rev-parse', 'HEAD')
         kept = {card['id']: commit_file(root, card['paths'][0], card['id']) for card in cards}
         live_page = lambda batch, name: '' if 'problems' in (batch.get('known') or ()) else 'the behaviour lock broke on 1 of 2 specs'
-        with mock.patch.object(wave_batch, 'batch_acceptance', side_effect=lambda report, cards, root: {c['id']: 0 for c in cards}), \
+        with mock.patch.object(wave_batch, 'batch_acceptance', side_effect=lambda report, cards, root, **_: {c['id']: 0 for c in cards}), \
                 mock.patch.object(wave_batch, 'original_checks', return_value=[]), mock.patch.object(wave_batch, 'gates', side_effect=live_page), \
                 mock.patch('eaos.live.behavior.lock.verify_lock') as control, \
                 mock.patch('eaos.live.behavior.lock.failing_tests', return_value={'problems'}):
@@ -388,6 +455,39 @@ class PythonSuiteGateTests(unittest.TestCase):
         before = [{'argv': argv, 'exit': 1, 'failing': failing('FAIL: test_old (tests.test_a.A.test_old)\n')}]
         after = [{'argv': argv, 'exit': 1, 'failing': failing('FAIL: test_old (tests.test_a.A.test_old)\nERROR: test_new (tests.test_a.A.test_new)\n')}]
         self.assertEqual(regressions(before, after), ['python -m unittest (1 new failing: test_new (tests.test_a.A.test_new))'])
+
+    def test_a_jest_suite_already_failing_counts_its_new_failures(self):
+        # Trial on real projects (2026-11-02): the delivered branch had one more failing jest test than the original; no
+        # gate saw it, the test gate read only TAP, unittest and pytest
+        from eaos.journeys.fix.execute import failing, regressions
+        old = ('FAIL api src/tests/services/auth.service.test.ts\n  \u25cf AuthService \u203a login \u203a should throw an error\n\n'
+               '    expect(received).rejects.toThrow()\n\n  \u25cf Console\n\n    console.log\nTests:       1 failed, 26 passed, 27 total\n')
+        new = old.replace('FAIL api src/tests/services/auth.service.test.ts\n',
+                          'FAIL api src/tests/services/auth.service.test.ts\n  \u25cf AuthService \u203a createUser \u203a should create new user \n')
+        argv = ['npm', 'run', 'test']
+        self.assertEqual(regressions([{'argv': argv, 'exit': 1, 'failing': failing(old)}], [{'argv': argv, 'exit': 1, 'failing': failing(new)}]),
+                         ['npm run test (1 new failing: AuthService \u203a createUser \u203a should create new user)'])
+        self.assertEqual(failing(' FAIL  src/a.test.ts > cart > adds one\n'), ['cart > adds one'], 'vitest says it on one line')
+
+    def test_a_check_that_cannot_run_here_is_named_never_silent(self):
+        # Trial on real projects (2026-11-02): both checks of a project exited 127 (their program not found) on the original
+        # and every gate; a check already failing with no names is no gate, so the lint gate was off and nobody was told
+        from eaos.journeys.fix.execute import not_run
+        rows = [{'argv': ['bun', 'run', 'lint'], 'exit': 127, 'failing': []}, {'argv': ['bun', 'run', 'test'], 'exit': 127, 'failing': []},
+                {'argv': ['npm', 'test'], 'exit': 1, 'failing': []}]
+        self.assertEqual(not_run(rows), ['bun run lint', 'bun run test'])
+
+    def test_the_files_a_card_changed_beyond_its_own_are_named(self):
+        # Trial on real projects (2026-11-02): a card about one dialog's complexity was kept with 13 files changed, the
+        # other 12 never named to the person
+        from eaos.journeys.fix.finish import beyond
+        own = 'frontend/src/components/Admin/AddUser.tsx'
+        others = [f'frontend/src/components/{name}.tsx' for name in (
+            'Admin/DeleteUser', 'Admin/EditUser', 'Admin/UserFormFields', 'Common/DeleteDialog', 'Common/FormDialog', 'Common/FormFields',
+            'Items/AddItem', 'Items/DeleteItem', 'Items/EditItem', 'Items/ItemActionsMenu', 'Items/ItemDialog')] + ['frontend/src/routes/_layout/items.tsx']
+        self.assertEqual(beyond({'paths': [own]}, [own, *others]), others)
+        self.assertEqual(beyond({'paths': ['frontend/src/components']}, [own, *others]), ['frontend/src/routes/_layout/items.tsx'])
+        self.assertEqual(beyond({'paths': ['*']}, [own, *others]), [])
 
 
 if __name__ == '__main__':

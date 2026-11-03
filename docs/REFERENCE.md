@@ -166,7 +166,7 @@ A card's acceptance check runs one of these on a changed copy of the project. Yo
 |---|---|---|
 | `eaos facts <target> --out OUT` | `--history` `--max-commits N` (default 2000) `--exclude GLOB` `--engines [ENGINE…]` | Deterministic facts only; no model is used. `--history`: read the git history too. `--engines`: also run the pinned external tools (a subset, or all when the flag is alone). |
 | `eaos policy {check,init} <target> --out OUT` | `--policy FILE` | Check the declared architecture policy (`eaos.policy.json`), or scaffold one. |
-| `eaos recheck [root] --spec JSON` | | Collect facts on a changed copy and let one claim's probe decide: `{"probe_type": …, "specification": {…}}`. Exit 0 when the problem is gone. |
+| `eaos recheck [root] --spec JSON` | | Collect facts on a changed copy and let one claim's probe decide: `{"probe_type": …, "specification": {…}}`. Exit 0 when the problem is gone, 1 when it is still there, 2 when the probe cannot decide here (a layer finding only a run shows, the failing tests or a live one, is never decided from the code). |
 | `eaos decided <report> <uid>` | | Exit 0 once an observation carries a recorded decision (the acceptance of an investigation card). |
 
 ## Check paths

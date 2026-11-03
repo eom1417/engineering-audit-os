@@ -304,12 +304,14 @@ def _fix_edit_job(project, arguments, progress):
         return {'card': card_id, 'kept': False, 'why': why, 'files': changed,
                 'what_now': 'The change was taken back. Fix the cause and send fix_edit again, or fix_skip with the reason.'}
     if repair: return batch_finish.repaired(project_state.load(project), root, changed, diff)
-    try: wave = _record_kept(project, root, card_id, arguments.get('summary') or '')
+    outside = batch_finish.beyond(card, changed)
+    try: wave = _record_kept(project, root, card_id, arguments.get('summary') or '', outside)
     except guided.StaleBatch as stale:
         drop_last(root)
         return {**stale.answer, 'card': card_id, 'kept': False}
     left = lanes.mine(wave, lanes.untried(wave, wave['cards']))
-    return {'card': card_id, 'kept': True, 'files': changed, 'diff': diff, 'left': left, 'what_now': lanes.next_step(wave, left)}
+    return {'card': card_id, 'kept': True, 'files': changed, 'beyond_the_card': outside, 'diff': diff, 'left': left,
+            'what_now': lanes.next_step(wave, left)}
 
 
 def _back_to_what_is_recorded(root, wave):
@@ -323,8 +325,9 @@ def _back_to_what_is_recorded(root, wave):
     guided._git(root, 'clean', '-fdq')
 
 
-def _record_kept(project, root, card_id, summary):
-    """The change recorded on the batch, unless the code moved on during its checks (one kept change would let the batch go on)."""
+def _record_kept(project, root, card_id, summary, outside):
+    """The change recorded on the batch, unless the code moved on during its checks (one kept change would let the batch go on);
+    `outside`: the files it changed beyond its card's own (eaos/journeys/fix/finish.py beyond), named at the hand-over."""
     with lanes.changing(project) as state:
         guided.refuse_if_stale(state)
         wave = state['open_wave']
@@ -332,6 +335,9 @@ def _record_kept(project, root, card_id, summary):
         wave['tools'][card_id] = 'assistant'
         wave['failed'].pop(card_id, None)
         wave.setdefault('summaries', {})[card_id] = summary
+        if outside:
+            held = wave.setdefault('beyond', {})
+            held[card_id] = sorted({*held.get(card_id, []), *outside})
     return wave
 
 
