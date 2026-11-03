@@ -16,6 +16,10 @@ were bun's, uv's or Go's, which EAOS cannot rewrite), refused to run a Go app at
   never emptied it, so a test writing a real row passed once and failed on every later run, refusing a sound edit. The
   copy holds what setup wrote, nothing an earlier checks run wrote, and is dropped when the checks end; the run's own
   database is never written by them.
+- **A project's check that rewrites its files is no gate, and is named at the hand-over:** a lint reaching
+  `biome --write` always passed by fixing the files it checked. A check that changes the copy's committed files has
+  them put back, its exit no longer counts, and the hand-over says "this check rewrites files instead of checking
+  them" (`checks_rewriting`).
 
 A tool MCP called read-only changed the project. Reading a file of a build turned a checked project into a build's, and made the
 folder and state of a project never started; an assistant told it only reads had no reason to be careful.

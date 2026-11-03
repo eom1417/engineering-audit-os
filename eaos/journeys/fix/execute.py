@@ -203,13 +203,38 @@ def project_checks(target, runtime, stage, name, python=True):
         live.setup()
         # the lock installing as it is, a check of its own: setup's fallback to an unfrozen install hides a broken lock
         rows = [{'argv': r['argv'], 'exit': r['exit'], 'failing': []} for r in live.log if _unfrozen(r['argv'])]
-        for argv, at_root in checks:
-            code, out, err = live.run(argv, timeout=1800, at_root=at_root)
-            rows.append({'argv': argv, 'exit': code, 'failing': failing(out + err)})
-        return rows
+        return rows + [_check(live, target, argv, at_root) for argv, at_root in checks]
     finally:
         live.stop()
         live.record(f'runtime/checks-{name}-log.json')
+
+
+def _check(live, target, argv, at_root):
+    """One check's row on the run's copy. A check that changed the copy's committed files (a lint reaching `--write`)
+    passes by fixing what it checks: the files are named in its row (`writes`) and put back for the next check, and its
+    exit is no gate (trial on real projects: a lint always passed so)."""
+    names = [name for name in git(target, 'ls-tree', '-r', '-z', '--name-only', live.commit).stdout.split('\0') if name]
+    before = _stamps(live.sandbox.copy, names)
+    code, out, err = live.run(argv, timeout=1800, at_root=at_root)
+    row = {'argv': argv, 'exit': code, 'failing': failing(out + err)}
+    after = _stamps(live.sandbox.copy, before)
+    written = [name for name, stamp in before.items() if after.get(name) != stamp]
+    if written:
+        files = subprocess.run(['git', '-C', str(target), 'archive', '--format=tar', live.commit, '--', *[f':(literal){name}' for name in written]],
+                               capture_output=True, check=True).stdout
+        subprocess.run(['tar', '-x', '-C', str(live.sandbox.copy)], input=files, check=True)
+        row['writes'] = written
+    return row
+
+
+def _stamps(copy, names):
+    """{name: (size, modified)} of the files `names` the folder `copy` holds."""
+    stamps = {}
+    for name in names:
+        try: found = (Path(copy) / name).lstat()
+        except OSError: continue
+        stamps[name] = (found.st_size, found.st_mtime_ns)
+    return stamps
 
 
 def original_checks(target, runtime):
@@ -243,6 +268,12 @@ def not_run(checks):
     return [' '.join(map(str, check['argv'])) for check in checks if check['exit'] in (126, 127)]
 
 
+def rewrites(checks):
+    """The project's own checks that rewrite the files instead of checking them (a row's `writes`): no gate, which the
+    person is told."""
+    return [' '.join(map(str, check['argv'])) for check in checks if check.get('writes')]
+
+
 def regressions(before, after):
     """What the change broke: a check that passed and now fails, or, for a test suite already failing on the
     original, a test that passed and now fails. A failure the original already had is not the change's."""
@@ -252,7 +283,7 @@ def regressions(before, after):
 
 def _regression(old, check):
     """What one check says the change broke (it passed and now fails, or it fails with new failing tests), or None."""
-    if old is None or check['exit'] == 0: return None
+    if old is None or check['exit'] == 0 or check.get('writes'): return None
     if old['exit'] == 0: return ' '.join(check['argv'])
     new = sorted(set(check.get('failing') or []) - set(old['failing'])) if old.get('failing') else []
     return f"{' '.join(check['argv'])} ({len(new)} new failing: {new[0]})" if new else None

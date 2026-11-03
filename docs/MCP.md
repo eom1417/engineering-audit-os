@@ -248,7 +248,8 @@ A fix reaches the person only as a branch, and only through its gates:
    (`eaos/analysis/repair/gates.py`); and no rule of the person's that holds for the card is broken by what the edit
    brought (`eaos/analysis/rules/held.py`). A failing edit is taken back with its reason, in the person's words for a rule.
 2. **At the batch** (`fix_finish`): every kept change together through the project's own checks (tests, typecheck,
-   lint), Semgrep once over the kept changes (Bandit and Gitleaks already read each edit), and the behaviour lock,
+   lint; a check that rewrites the project's files instead of checking them, a lint reaching `--write`, is no gate and
+   is named at the hand-over), Semgrep once over the kept changes (Bandit and Gitleaks already read each edit), and the behaviour lock,
    which compares every recorded screen, its picture and its words. A batch that fails
    asks for a repair on top, or `leave_out=true` finds the changes responsible and leaves them out.
 3. **At the hand-over**: a branch `eaos/<branch>/wave-N`; the person's checkout is untouched until they `accept`.
