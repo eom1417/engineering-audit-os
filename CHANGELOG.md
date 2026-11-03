@@ -6,6 +6,9 @@ A first trial on five real projects planned 69 dependency cards as fixable that 
 were bun's, uv's or Go's, which EAOS cannot rewrite), refused to run a Go app at all, called development tools
 "shipped to every user", and gave an Angular app 42 cards for five packages it names.
 
+- **A documented command's file is looked for from the folders the document names** (a `cd` target, a top-level
+  folder it mentions) before it is called broken: a full-stack template's docs run `bash scripts/prestart.sh` "from
+  the `backend` directory", and a second trial called three of its documents broken code.
 - **A page is recorded with its random numbers held still,** as its clock already was: a game drew its first tiles
   with `Math.random`, so two loads of its page had different words, the safety net held nothing and no batch could
   open (a first trial had passed by luck: two loads of six differ).

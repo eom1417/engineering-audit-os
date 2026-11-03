@@ -50,6 +50,15 @@ class BrokenProjectTests(unittest.TestCase):
         self.assertIn(('stale-instruction', 'python tools/gone.py'), found)
         self.assertIn(('stale-instruction', 'node dist/api/main.js'), self.run_on({**files, 'package.json': '{"scripts": {"start": "node x.js"}}'}))
 
+    def test_a_command_run_from_a_folder_the_document_names_is_not_stale(self):
+        # A full-stack template's docs say `bash scripts/prestart.sh` "from the `backend` directory" (or after a
+        # `cd backend`); the file is backend/scripts/prestart.sh, and the command was called broken.
+        files = {'backend/scripts/prestart.sh': 'alembic upgrade head\n', 'backend/app/main.py': 'x = 1\n',
+                 'development.md': 'From the `backend` directory:\n```bash\nuv run bash scripts/prestart.sh\n```\n',
+                 'frontend/README.md': '```\ncd ../backend\nbash scripts/prestart.sh\nbash scripts/gone.sh\n```\n'}
+        stale = {symbol for rule, symbol in self.run_on(files) if rule == 'stale-instruction'}
+        self.assertEqual(stale, {'bash scripts/gone.sh'})
+
     def test_a_missing_import_and_stale_commands_in_docs_are_reported(self):
         found = self.run_on({
             'pyproject.toml': '[project.scripts]\ntool = "tool.cli:main"\n',

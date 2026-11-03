@@ -7,7 +7,7 @@
   "limitations": [
     "Undefined names are judged for Python only; a module with a star import is skipped, since any name may come from it.",
     "Names injected at runtime (exec, globals() writes, module __getattr__) are invisible and would be reported; none is assumed.",
-    "Documented commands are checked against the CLI subcommands the code declares with argparse, the npm scripts in package.json, and the files in the snapshot (or, with a build script, in a build output folder nothing of which is committed); a command another tool provides is not judged."
+    "Documented commands are checked against the CLI subcommands the code declares with argparse, the npm scripts in package.json, and the files in the snapshot (or, with a build script, in a build output folder nothing of which is committed); a file is looked for from the document's folder, the app's folder, and the folders the document names (a `cd` target, a top-level folder it mentions); a command another tool provides is not judged."
   ],
   "summary": {
     "undefined-name": 0,
