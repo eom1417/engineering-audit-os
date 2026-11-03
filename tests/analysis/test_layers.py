@@ -65,3 +65,10 @@ class LayersTests(TemporaryWorkspace):
                                        'def update_user(*, session: SessionDep, user_in: UserUpdate):\n    ...'))
         self.assertIsNotNone(signed_in('def create_item(*, session: SessionDep, user: CurrentUser, item_in: ItemCreate):'))
         self.assertIsNone(signed_in('def f():\n    now = get_current_time()\n'))
+
+    def test_a_route_after_an_interpolated_prefix_is_named_by_the_test(self):
+        # A FastAPI template's tests write `f"{settings.API_V1_STR}/items/{item.id}"`: ten tested writes were called
+        # untested, since the route was looked for only right after a quote.
+        from eaos.analysis.layers import operations
+        self.assertTrue(operations._named({'route': '/items/{id}', 'handler': 'delete_item'},
+                                          'client.delete(f"{settings.API_V1_STR}/items/{item.id}")'))

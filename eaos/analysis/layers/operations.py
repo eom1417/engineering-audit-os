@@ -61,7 +61,8 @@ def _named(row, texts):
     if route.startswith('action:'): return bool(re.search(r'\b' + re.escape(route[7:]) + r'\b', texts))
     pieces = PARAM.split(route.rstrip('/') or '/')
     pattern = '[^/\'"`?]+'.join(re.escape(piece) for piece in pieces)
-    if re.search(r'[\'"`]' + pattern + r'(?:[/?\'"`])', texts): return True
+    # A closing brace ends an interpolated prefix: `f"{settings.API_V1_STR}/items/{id}"`, `${API}/items`.
+    if re.search(r'[\'"`}]' + pattern + r'(?:[/?\'"`])', texts): return True
     handler = row.get('handler') or ''
     return bool(handler) and len(handler) > 3 and bool(re.search(r'\b' + re.escape(handler) + r'\b', texts))
 
