@@ -96,7 +96,7 @@ read [MCP.md](MCP.md).
 | Command | Options | What it does |
 |---|---|---|
 | `eaos watch [run]` | `--project` `--lang` | Follow a run live: the time since it began, the stage, the time left, the cost so far, and its questions. |
-| `eaos runs` | `--all` `--project` `--lang` | The runs: running, queued and ended. `--all`: also those already read. |
+| `eaos runs` | `--all` `--project` `--lang` | The runs: running, queued and ended. `--all`: also those already read. A run still queued with nothing to start it is started. |
 | `eaos stop [run]` | `--project` `--lang` | Stop a run. |
 | `eaos pause [run]` | `--project` `--lang` | Pause a run. |
 | `eaos resume [run]` | `--project` `--lang` | Resume a paused run. |
