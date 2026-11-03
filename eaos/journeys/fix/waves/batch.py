@@ -9,7 +9,7 @@ from ....live.behavior.look_oracle import declared as declared_look, look_change
 from ....core.project.ledger import message
 from ..execute import git, original_checks, own_batch, project_checks, record, regressions, run_codemod
 from .acceptance import _still, batch_acceptance, engines_for
-from .cards import plan
+from .cards import kept_in_part, left_in_part, wave_cards
 from ....core.system.files import read_json
 from ....core.system.clock import now
 
@@ -181,7 +181,7 @@ def finish_batch(report, target, runtime, wave, **options):
     batch = {'report': Path(report), 'root': Path(wave['root']), 'runtime': Path(runtime), 'base': wave['base'],
              'name': f"wave-{wave['number']}", 'lock': options.get('lock', True), 'say': say,
              'bisect': options.get('bisect', True), 'regenerate': regenerate, 'before_writing': options.get('before_writing')}
-    cards = {card['id']: card for card in plan(batch['report'])['tasks'] if card['id'] in set(wave['cards'])}
+    cards = wave_cards(batch['report'], wave)
     kept, failed = dict(wave['kept']), dict(wave['failed'])
     say('acceptance')
     progress.begin('acceptance')
@@ -355,7 +355,7 @@ def _record_cards(batch, wave, kept, failed):
         ok = card_id in kept
         record(batch['runtime'], {'id': card_id, 'tool': wave['tools'].get(card_id, 'assistant'),
                                   'status': 'VERIFIED_IN_ISOLATED_COPY' if ok else 'FAILED', 'acceptance_exit': 0 if ok else -1,
-                                  'result': (f"wave {wave['number']}" if ok else failed.get(card_id, ''))[:400]})
+                                  'result': (f"wave {wave['number']}{left_in_part(wave, card_id)}" if ok else failed.get(card_id, ''))[:400]})
 
 
 def _write_wave(batch, wave, kept, failed):
@@ -366,7 +366,7 @@ def _write_wave(batch, wave, kept, failed):
     patches.mkdir(parents=True, exist_ok=True)
     if kept: git(root, 'format-patch', '--quiet', '-o', str(patches), f'{base}..HEAD')
     summary = {'wave': number, 'branch': branch or f'eaos/wave-{number}', 'root': str(root), 'base': base, 'kept': list(kept),
-               'failed': failed, 'at': now(),
+               'failed': failed, 'left_in_part': {c: left for c, left in kept_in_part(wave).items() if c in kept}, 'at': now(),
                'stat': git(root, 'diff', '--shortstat', f'{base}..HEAD').stdout.strip(), **({'security': batch['security']} if batch.get('security') else {}),
                **({'limitations': batch['limitations']} if batch.get('limitations') else {})}
     (patches / 'wave.json').write_text(json.dumps(summary, ensure_ascii=False, indent=1) + '\n', encoding='utf-8')

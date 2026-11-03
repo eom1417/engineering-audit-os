@@ -83,11 +83,21 @@ def record_batch(batch, root, base, kept, refused):
 
 def run_codemod(card, root, report):
     """The card's codemod on the candidate, rebuilt from the report's facts exactly as the plan's dry run built it."""
-    from ...analysis.repair.codemods import _commands, card_for
+    _run_codemod(card['id'], _codemod_of(card, root, report)[0], root)
+
+
+def _codemod_of(card, root, report):
+    """(what the card's codemod changes, {fact id: fact} of its evidence), as the plan's dry run built it."""
+    from ...analysis.repair.codemods import card_for
     from ...facts.store import by_id
-    detail = card_for(card, by_id(report, (card.get('evidence') or {}).get('fact_ids') or []), root)
+    facts = by_id(report, (card.get('evidence') or {}).get('fact_ids') or [])
+    return card_for(card, facts, root), facts
+
+
+def _run_codemod(name, detail, root):
+    from ...analysis.repair.codemods import _commands
     steps = _commands(detail, Path(root)) if detail else None
-    if not steps: raise RuntimeError(f"{card['id']}: its codemod cannot be rebuilt from the report's facts")
+    if not steps: raise RuntimeError(f"{name}: its codemod cannot be rebuilt from the report's facts")
     for step, _ in steps:
         if callable(step):
             step()
@@ -95,6 +105,35 @@ def run_codemod(card, root, report):
         done = subprocess.run(step, cwd=root, capture_output=True, text=True, timeout=600)  # nosemgrep: python.lang.security.audit.dangerous-subprocess-use-audit -- a codemod's argv rebuilt from the report's facts, run in the candidate copy, no shell
         # its own words (npm's ERESOLVE), never only its command line, which names this machine's paths
         if done.returncode: raise RuntimeError(f"{' '.join([Path(step[0]).name, *map(str, step[1:2])])} exited {done.returncode}: {(done.stderr or done.stdout).strip()[-240:]}")
+
+
+def codemod_by_member(card, root, report):
+    """A lock file card whose change failed whole, made again on the copy one package at a time: each package's upgrade
+    kept only when its steps pass and the dependency tree stays valid (_dependencies_broken). Second trial on real
+    projects: one package of 32 left the tree invalid, and the 31 sound upgrades were lost with it. (the facts of the
+    packages kept, {package@version: why it was left}); the kept changes are staged, for the card's one commit."""
+    detail, facts = _codemod_of(card, root, report)
+    start, kept, left = git(root, 'rev-parse', 'HEAD').stdout.strip(), set(), {}
+    for member in (detail or {}).get('group') or []:
+        name, why = f"{member['package']}@{member['version']}", _member_kept(card['id'], member, root)
+        if why: left[name] = why
+        else: kept.add(name)
+    git(root, 'reset', '--soft', '--quiet', start)
+    return [fact for fact in facts.values() if str(fact['location'].get('symbol')).partition(':')[2] in kept], left
+
+
+def _member_kept(name, member, root):
+    """'' when one package's upgrade ran and left the dependency tree valid, committed; else why not, the copy as before."""
+    try:
+        _run_codemod(name, member, root)
+        commit_all(root, f"{name}: {member['package']}")
+    except (ValueError, RuntimeError, OSError, subprocess.SubprocessError) as problem:
+        git(root, 'reset', '--hard', '--quiet', 'HEAD')
+        git(root, 'clean', '-fdq')
+        return str(problem)[:300]
+    broke = _dependencies_broken(root)
+    if broke: git(root, 'reset', '--hard', '--quiet', 'HEAD~1')
+    return broke[0] if broke else ''
 
 
 def surfaces(facts):

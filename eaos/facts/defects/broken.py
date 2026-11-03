@@ -31,7 +31,8 @@ LIMITATIONS = [
     'Names injected at runtime (exec, globals() writes, module __getattr__) are invisible and would be reported; none is assumed.',
     'Documented commands are checked against the CLI subcommands the code declares with argparse, the npm scripts in '
     'package.json, and the files in the snapshot (or, with a build script, in a build output folder nothing of which '
-    'is committed); a command another tool provides is not judged.',
+    'is committed); a file is looked for from the document\'s folder, the app\'s folder, and the folders the document '
+    'names (a `cd` target, a top-level folder it mentions); a command another tool provides is not judged.',
 ]
 BUILTINS = set(dir(builtins)) | {'__file__', '__name__', '__doc__', '__spec__', '__package__', '__loader__', '__builtins__',
                                  '__path__', '__annotations__', '__dict__', '__module__', '__qualname__', '__class__'}
@@ -42,6 +43,7 @@ NPM_RUN = re.compile(r'''\b(?:npm|pnpm|yarn|bun)\s+run\s+([\w:.*-]+(?:<[^<>\s`]*
 PLACEHOLDER = re.compile(r'''<[^<>]*>|\{[^{}]*\}|\[[^\[\]]*\]|\$\{?\w+\}?|…|\.\.\.''')
 RUN_FILE = re.compile(r'''\b(?:python3?|node|bash|sh|tsx|ts-node|deno\s+run)\s+((?:\./)?[\w./-]+\.(?:py|[cm]?[jt]s|sh))\b''')
 CODE_SPAN = re.compile(r'```[^\n]*\n(.*?)```|`([^`\n]+)`', re.S)
+CD = re.compile(r'''\bcd\s+([\w.-][\w./-]*)''')
 
 
 def _fact(rule, path, line, symbol, message, severity, evidence, sha):  # limits: parameters -- a record's constructor: one broken-code fact's fields
@@ -146,12 +148,14 @@ def stale_instructions(source, known, everything):
     scripts = _npm_scripts(source, known)
     commands = {'call': _subcommand_call(programs), 'subcommands': subcommands, 'scripts': scripts,
                 'all_scripts': set().union(*scripts.values()) if scripts else set(), 'everything': everything}
+    tops = {path.split('/', 1)[0] for path in everything if '/' in path}
     out = []
     for path, text in _documents(source, known):
+        bases = _bases(path, text, scripts, tops)
         for match in CODE_SPAN.finditer(text):
             span = match.group(1) or match.group(2) or ''     # an empty block (```\n```) has neither
             line = text.count('\n', 0, match.start()) + 1
-            out += [(path, line, command) for command in _stale_in_span(span, path, commands)]
+            out += [(path, line, command) for command in _stale_in_span(span, bases, commands)]
     return sorted(set(out))
 
 
@@ -182,9 +186,16 @@ def _script_exists(command, all_scripts):
     return any(fnmatch.fnmatchcase(name, pattern) for name in all_scripts)
 
 
-def _file_exists(file, doc, scripts, everything):
-    # A command documented at the root is often run from the app's own folder (the one with package.json).
-    bases = [PurePosixPath(doc).parent] + [PurePosixPath(folder) for folder in scripts]
+def _bases(doc, text, scripts, tops):
+    """The folders a document's commands may run from: its own, the app's (the one with package.json), each folder
+    it changes into (`cd backend`), and each top-level folder it names (`from the backend directory`)."""
+    here = PurePosixPath(doc).parent
+    entered = {posixpath.normpath(str(here / folder)) for folder in CD.findall(text)}
+    named = {top for top in tops if re.search(rf'(?<![\w.-]){re.escape(top)}(?![\w-])', text)}
+    return [here] + [PurePosixPath(folder) for folder in {*scripts, *entered, *named}]
+
+
+def _file_exists(file, bases, scripts, everything):
     return '/' not in file or file in everything or any(str(base / file) in everything for base in bases) or _built(file, scripts, everything)
 
 
@@ -196,15 +207,15 @@ def _built(file, scripts, everything):
             and not any(path.startswith(top + '/') for path in everything))
 
 
-def _unknown_files(span, doc, scripts, everything):
+def _unknown_files(span, bases, scripts, everything):
     out = []
     for found in RUN_FILE.finditer(span):
         if found.group(1).startswith('/'): continue   # an absolute path is outside the project
-        if not _file_exists(found.group(1).lstrip('./'), doc, scripts, everything): out.append(found.group(0))
+        if not _file_exists(found.group(1).lstrip('./'), bases, scripts, everything): out.append(found.group(0))
     return out
 
 
-def _stale_in_span(span, doc, commands):
+def _stale_in_span(span, bases, commands):
     """The commands one code span of a document instructs that the project does not have."""
     stale = []
     if commands['call'] and commands['subcommands']:
@@ -212,7 +223,7 @@ def _stale_in_span(span, doc, commands):
                   if found.group(2) not in commands['subcommands']]
     if commands['scripts']:
         stale += [found.group(0) for found in NPM_RUN.finditer(span) if not _script_exists(found.group(1), commands['all_scripts'])]
-    return stale + _unknown_files(span, doc, commands['scripts'], commands['everything'])
+    return stale + _unknown_files(span, bases, commands['scripts'], commands['everything'])
 
 
 def _python_facts(path, text, sha):

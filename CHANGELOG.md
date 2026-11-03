@@ -14,6 +14,14 @@ were bun's, uv's or Go's, which EAOS cannot rewrite), refused to run a Go app at
 - **A card the assistant closed as not proven is listed apart, with why:** `cards.json` `doubted` names each doubted
   card with its title, why and whether it was closed, and the Studio's decisions show each closed one as "closed by
   your assistant, not proven" beside the cards it rejected.
+- **A lock file card that fails whole is tried package by package:** each upgrade is kept only when it runs and npm
+  still finds the dependency tree valid; the card is kept for those, its acceptance holds it to them alone, and each
+  package left is named with why, in the commit, the batch's record and the answer (a second trial: one package of 32
+  left an API's tree invalid, and the 31 sound upgrades were lost with it). The packages left stay open: the next check
+  finds them again.
+- **A documented command's file is looked for from the folders the document names** (a `cd` target, a top-level
+  folder it mentions) before it is called broken: a full-stack template's docs run `bash scripts/prestart.sh` "from
+  the `backend` directory", and a second trial called three of its documents broken code.
 - **A page is recorded with its random numbers held still,** as its clock already was: a game drew its first tiles
   with `Math.random`, so two loads of its page had different words, the safety net held nothing and no batch could
   open (a first trial had passed by luck: two loads of six differ).
