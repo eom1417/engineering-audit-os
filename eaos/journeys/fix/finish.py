@@ -134,7 +134,7 @@ def _handed_over(project, wave, summary):
     files = guided._git(state['project'], 'diff', '--stat', f"{wave['base']}..{summary['branch']}").stdout.strip() if summary['kept'] else ''
     if wave.get('direct') and record['status'] == 'applied':
         return _land(state['project'], record, files)
-    said, words = _said_too(state, wave)
+    said, words = _said_too(state, wave, summary['branch'])    # a branch that kept nothing has no diff
     pieces, piece_words = split_said(record)
     return {'batch': wave['number'], 'branch': summary['branch'] if summary['kept'] else None, 'kept': summary['kept'],
             'failed': summary['failed'], 'changes': summary['stat'], 'files': files[-4000:], **score, **said, **pieces,
@@ -146,21 +146,24 @@ def _handed_over(project, wave, summary):
                         + piece_words + words}
 
 
-def _said_too(state, wave):
+def _said_too(state, wave, branch=None):
     """What the person hears beside the fixes, ({answer keys}, the words for the assistant): the project's own checks
     that could not run on the original or rewrite the files instead of checking them (eaos/journeys/fix/execute.py
-    not_run, rewrites, from the run's record of them, never run again), and the files a card changed beyond its own
-    (beyond)."""
+    not_run, rewrites, from the run's record of them, never run again), the files a card changed beyond its own
+    (beyond), and the newer Go a go.mod of the batch's `branch` now needs (go_raised)."""
     from .execute import not_run, rewrites
+    from ...core.project.ledger import go_raised
     checks = (read_json(Path(project_state.runtime_of(state)) / 'runtime/checks-original.json') or {}).get('checks') or []
     unrun, writing = not_run(checks), rewrites(checks)
     wider = wave.get('beyond') or {}
-    return {'checks_not_run': unrun, 'checks_rewriting': writing, 'beyond_the_cards': wider}, (
+    go = go_raised(state['project'], f"{wave['base']}..{branch}") if branch else []
+    return {'checks_not_run': unrun, 'checks_rewriting': writing, 'beyond_the_cards': wider, 'go_raised': go}, (
+        (f" Tell them too that {'; '.join(go)}: everyone who builds the project needs that Go or newer." if go else '') + (
         (f" Tell them too that EAOS could not run these checks of theirs here, so no fix was held to them: {', '.join(unrun)} "
          "(the program each needs is missing on this computer)." if unrun else '')
         + (f" Tell them these checks of theirs rewrite the files instead of checking them, so no fix was held to them: "
            f"{', '.join(writing)}." if writing else '')
-        + (" Name to them each file a card changed beyond its own (beyond_the_cards) and why its fix needed it." if wider else ''))
+        + (" Name to them each file a card changed beyond its own (beyond_the_cards) and why its fix needed it." if wider else '')))
 
 
 def beyond(card, changed):

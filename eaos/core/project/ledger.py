@@ -33,6 +33,7 @@ from ...core.system.clock import now
 TRAILER = 'EAOS-Card'
 SUBJECT, HISTORY = 72, 20      # a commit subject's length at most; the project's own recent commits its language is read from
 NUMBERS = re.compile(r'\d+')
+GO_LINE = re.compile(r'^([+-])(go|toolchain)\s+(\S+)\s*$')      # a go.mod's `go` or `toolchain` line in a diff
 CLOSED = ('done',)
 
 
@@ -63,14 +64,33 @@ def message(root, card, summary=''):
     """The message of the commit of `card` in the copy at `root`, as a maintainer reads it: a subject saying what changed
     (the first line of the assistant's `summary`, else the card's title), in the language of the project's own commits
     (English unless most of them are Arabic: the card's English kind then), never cut mid-word; then the why the summary
-    gives; the card's id and key last (only the key is read back, walk). Five real projects got subjects cut mid-word and
-    Arabic ones in English repositories."""
+    gives, and the Go it now needs when it raised a go.mod's (go_raised); the card's id and key last (only the key is read
+    back, walk). Five real projects got subjects cut mid-word and Arabic ones in English repositories."""
     first, _, why = (summary or '').strip().partition('\n')
     arabic = _commits_in_arabic(root)
     said = next((text for text in (first.strip(), card.get('title') or '') if text and (arabic or not ARABIC.search(text))),
                 None) or plain.problem(card.get('pattern'), 'en')[0]
-    body = [why.strip()] if why.strip() else []
+    body = list(filter(None, (why.strip(), '\n'.join(go_raised(root, '--cached')))))
     return '\n\n'.join([_cut(said), *body, f"EAOS-Task: {card['id']}\n{TRAILER}: {card.get('key') or key(card)}"])
+
+
+def go_raised(root, *span):
+    """What a change did to the Go each go.mod needs, one sentence per go.mod whose `go` line it raised or whose
+    `toolchain` it added or raised ("svc/go.mod now needs Go 1.26 (was 1.21)"); `span`: the git diff's revisions
+    (`--cached`: the change staged). Everyone who builds the project then needs that Go (a second trial on real
+    projects: a module upgrade raised it and nothing said so)."""
+    seen, name = {}, 'go.mod'
+    for line in _git(root, 'diff', '--no-color', *span, '--', 'go.mod', '*/go.mod').stdout.splitlines():
+        if line.startswith('+++ b/'): name = line[6:]
+        found = GO_LINE.match(line)
+        if found: seen.setdefault((name, found[2]), {})[found[1]] = found[3]
+    return [f"{name} now needs {'Go' if what == 'go' else 'the toolchain'} {row['+']}" + (f" (was {row['-']})" if row.get('-') else '')
+            for (name, what), row in seen.items() if '+' in row and _newer(row['+'], row.get('-'))]
+
+
+def _newer(version, before):
+    """Whether `version` is above `before` (none: added), number by number."""
+    return not before or [int(n) for n in NUMBERS.findall(version)] > [int(n) for n in NUMBERS.findall(before)]
 
 
 def _commits_in_arabic(root):

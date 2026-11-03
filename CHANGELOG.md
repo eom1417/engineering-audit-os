@@ -6,12 +6,23 @@ A first trial on five real projects planned 69 dependency cards as fixable that 
 were bun's, uv's or Go's, which EAOS cannot rewrite), refused to run a Go app at all, called development tools
 "shipped to every user", and gave an Angular app 42 cards for five packages it names.
 
+- **A security card the assistant doubts is shown to the person, never closed unseen:** a second trial closed a write
+  with no sign-in check and a template without autoescape (CWE-79) as "not proven". A doubted card whose area is
+  security (an access gap, an injection or other weakness, a secret, a vulnerable dependency) now stays in the plan for
+  the person's review, never fixed automatically and outside the owner's one-in-ten share; any other doubted card still
+  closes as not proven.
+- **A card the assistant closed as not proven is listed apart, with why:** `cards.json` `doubted` names each doubted
+  card with its title, why and whether it was closed, and the Studio's decisions show each closed one as "closed by
+  your assistant, not proven" beside the cards it rejected.
 - **A page is recorded with its random numbers held still,** as its clock already was: a game drew its first tiles
   with `Math.random`, so two loads of its page had different words, the safety net held nothing and no batch could
   open (a first trial had passed by luck: two loads of six differ).
 - **A batch upgrades a vulnerable Go module itself:** one `go get <module>@v<fixed>` for every module of the card, then
   `go mod tidy`, in a module cache of its own removed after, never another toolchain downloaded (a second trial: a Go
   app ran and its batch opened, but its module cards could never pass). A fix may raise the `go` line of go.mod.
+- **A fix that raises the Go a go.mod needs says so:** when a kept change raises a go.mod's `go` line, or adds or raises
+  its `toolchain`, the card's commit body and the hand-over (`fix_finish` `go_raised`) name it, "go.mod now needs Go
+  1.26 (was 1.21)": everyone who builds the project then needs that Go.
 - **A dependency card is ready only when EAOS can rewrite its lock file:** otherwise it says which tool and which command
   the person runs themselves.
 - **Go runs an app in the safe app run:** `go` joins the runners, said to the assistant from the one list; the system Go,

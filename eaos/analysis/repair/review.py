@@ -8,6 +8,7 @@ from ...core.language.words import falsifier_of
 from .remediation import pattern_for
 from ...core.contracts.decisions import ready
 from ...core.project.workspace import read, write
+from ...core.system.files import read_json
 
 # A design finding's share of the top code card's priority, by its severity, times the weight of an unconfirmed
 # claim (eaos/analysis/planning/ranking.py): on the code claims' scale, never above the most urgent of them.
@@ -187,7 +188,23 @@ def decided(out, tasks, triaged, reviewed):
     standing = [t for t in tasks if t['id'] not in rejected]
     review = _model_record(out, 'visual_reviewer', 'findings.json') if reviewed else {}
     design = design_cards(review.get('findings') or [], standing) if review else []
-    return verdicts, rejected, design, resolutions(standing, verdicts, design)
+    return verdicts, rejected, design, resolutions(standing, verdicts, design, _security(out, standing, verdicts))
+
+
+def _security(out, tasks, verdicts):
+    """The doubted cards that are security cards: their area, as every report shows it (eaos/analysis/presentation/model.py
+    classify, with the debt register's category: an access gap, an injection or other weakness, a secret, a vulnerable
+    dependency)."""
+    from ..presentation.model import classify
+    doubted = [t for t in tasks if (verdicts.get(t['id']) or {}).get('decision') == 'doubt']
+    category = _categories(out) if doubted else {}
+    return {t['id'] for t in doubted if classify(t, None, category.get(t.get('claim_id')))[0] == 'security'}
+
+
+def _categories(out):
+    """{claim id: its debt register category}."""
+    items = (read_json(Path(out) / 'debt-register.json', {}) or {}).get('items') or []
+    return {i.get('claim_id'): i.get('category') for i in items if isinstance(i, dict)}
 
 
 def apply_verdicts(out, tasks, verdicts, language='ar'):
@@ -232,25 +249,28 @@ def _design_resolution(card):
             'severity': card['design'].get('severity'), 'reach': pictures}
 
 
-def _triaged(verdict, reach):
-    """The resolution the triage gave a code card it confirmed or doubted; None otherwise."""
+def _triaged(verdict, reach, security=False):
+    """The resolution the triage gave a code card it confirmed or doubted; None otherwise. A doubted security card has
+    none: it stays for the person to review (eaos/core/contracts/decisions.py DOUBTED), never closed unseen nor fixed
+    automatically, and outside the owner's share (cap_owner), which only counts the questions the assistant asks."""
     if verdict.get('decision') == 'confirm' and verdict.get('resolution') in RESOLUTIONS:
         return {**{k: verdict.get(k) for k in RESOLUTION_FIELDS if verdict.get(k) is not None}, 'why': verdict.get('why'),
                 'severity': verdict.get('severity'), 'reach': reach}
-    if verdict.get('decision') == 'doubt':
+    if verdict.get('decision') == 'doubt' and not security:
         return {'resolution': 'keep', 'severity': verdict.get('severity'), 'reach': reach,
                 'why': f"Not proven by its evidence ({verdict.get('why') or 'no reason given'}); the next check judges it again."}
     return None
 
 
-def resolutions(tasks, verdicts, design):
+def resolutions(tasks, verdicts, design, security=()):
     """{card: resolution} the assistant gave: the triage's for the code cards it confirmed (nodes/card_triage), the
     screen reviewer's for the design cards (a design card is the change it named, unless its finding asked the
-    person or kept it). A card the triage doubted is kept as not proven, never fixed blind nor handed to the person:
-    the next check judges it again on its new evidence."""
+    person or kept it). A card the triage doubted is closed as not proven, never fixed blind: the next check judges it
+    again on its new evidence; one of the `security` cards stays for the person instead (a second trial on real
+    projects closed a write with no sign-in check and an XSS unseen)."""
     out = {}
     for task in tasks:
-        row = _triaged(verdicts.get(task['id']) or {}, (task.get('blast_radius') or {}).get('total') or 0)
+        row = _triaged(verdicts.get(task['id']) or {}, (task.get('blast_radius') or {}).get('total') or 0, task['id'] in security)
         if row: out[task['id']] = row
     for card in design: out[card['id']] = _design_resolution(card)
     return out
@@ -331,7 +351,7 @@ def cards_record(cards, verdicts, resolved, outcome):
             'design': [t['id'] for t in design if t['id'] not in closed],
             'set_aside': _set_aside(tasks, rejected, verdicts),
             'closed': _closed(tasks + design, closed, resolved),
-            'doubted': _doubted(verdicts, rejected),
+            'doubted': _doubted(tasks, verdicts, closed),
             'resolved': {'fix': _count(kept, 'fix'), 'keep': len(closed), 'owner': len(owner), 'turned_to_fix': len(turned)},
             'owner': [t['id'] for t in owner],
             'ready': sum(map(ready, kept)),
@@ -361,7 +381,9 @@ def _set_aside(tasks, rejected, verdicts):
             for t in tasks if t['id'] in rejected]
 
 
-def _doubted(verdicts, rejected):
-    """The cards the triage doubted, each with why."""
-    return [{'card': card, 'why': v.get('why')} for card, v in sorted(verdicts.items())
-            if v.get('decision') == 'doubt' and card not in rejected]
+def _doubted(tasks, verdicts, closed):
+    """The cards the triage doubted, each with why and whether the assistant closed it as not proven (`closed`: shown
+    to the person apart, eaos/ai/ideal/studio.py) or it waits for the person's review (a security card)."""
+    return [{'card': t['id'], 'claim_id': t.get('claim_id'), 'title': t.get('title'), 'why': verdicts[t['id']].get('why'),
+             'closed': t['id'] in closed} for t in sorted(tasks, key=lambda t: t['id'])
+            if (verdicts.get(t['id']) or {}).get('decision') == 'doubt']

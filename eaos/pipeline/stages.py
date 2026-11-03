@@ -192,8 +192,8 @@ _DECLARED = (
                       'each finding with its picture and the region of it', ai=True),
     Stage('cards', produces=('cards.json',), requires=('plan',), reads=('triage', 'visual'), amends=('plan.json', 'dossier.json'),
           description="The assistant's verdicts applied once, before anything ranks, plans or reports: a card the triage "
-                      "rejected leaves the plan and the gaps and its claim is refuted, a doubted one waits for a person's "
-                      "review and is never fixed automatically; without the triage every card stands as the rules wrote it"),
+                      "rejected leaves the plan and the gaps and its claim is refuted, a doubted security card waits for a "
+                      "person's review, any other doubted one closes as not proven, none fixed automatically; without the triage every card stands as the rules wrote it"),
     Stage('ideal', produces=('ideal/plan.json',), requires=('proposals',), reads=('triage', 'visual'), necessity=OPTIONAL,
           absent_when='no assistant was installed or allowed, or its plan could not be used',
           description="The assistant accepts, modifies or rejects each of the tools' proposals for the target, reading "

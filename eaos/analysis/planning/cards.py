@@ -287,10 +287,10 @@ def confirm(target, out, language='ar', triaged=False, reviewed=False):
     """The confirmed cards: when the triage ran in this check, its verdicts are applied once (apply_verdicts), a card
     it rejected leaves the plan (and with it the gaps) and stays only in cards.json `set_aside` with why, a
     prerequisite on it is dropped with why, and every other card carries its verdict and its claim's decision and
-    priority drawn again (a doubted card needs a person's review); when the visual reviewer ran, its findings join the
-    plan as design cards. The assistant's resolution of each card it confirmed (resolutions) then settles it: `fix`
-    makes it ready work, `keep` closes it with why (cards.json `closed`), `owner` asks the person, at most one card in
-    ten (cap_owner). The waves, milestones and cards are then drawn again. Without either every card stands as the
+    priority drawn again; when the visual reviewer ran, its findings join the plan as design cards. The assistant's
+    resolution of each card (resolutions) then settles it: `fix` makes it ready work, `keep` closes it with why
+    (cards.json `closed`; a doubted card too, as not proven), `owner` asks the person, at most one card in ten
+    (cap_owner). A doubted security card has no resolution: it stays for a person's review, never fixed automatically. The waves, milestones and cards are then drawn again. Without either every card stands as the
     rules wrote it. Writes cards.json, the record of who decided each card, and returns it."""
     target, out = Path(target).resolve(), Path(out).resolve()
     plan = read(out / 'plan.json')
