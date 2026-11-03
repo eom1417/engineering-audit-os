@@ -139,6 +139,21 @@ class CodemodTests(Workspace):
         self.assertIn('golang.org/x/text v0.22.0', (root / 'go.mod').read_text())
         self.assertTrue((root / 'go.sum').is_file())
 
+    def test_a_go_module_another_fix_already_moved_past_its_own_is_left_where_it_is(self):
+        # Second trial on real projects: one go get of a lock file card's modules asked x/sys at its fix while the fixed
+        # x/net needs a newer x/sys, so Go refused the whole card.
+        if not binary('go'): self.skipTest('go is not installed')
+        root = self.project({'go.mod': 'module m\n\ngo 1.23\n\nrequire (\n\tgolang.org/x/net v0.34.0\n\tgolang.org/x/sys v0.29.0\n)\n',
+                             'main.go': 'package main\n\nimport (\n\t_ "golang.org/x/net/html"\n\t_ "golang.org/x/sys/unix"\n)\n\nfunc main() {}\n'})
+        members = [card_for(*upgrade('go.mod', f'Go:golang.org/x/{name}@{version}', fixed), root)
+                   for name, version, fixed in (('sys', '0.29.0', '0.30.0'), ('net', '0.34.0', '0.38.0'))]
+        code, shown = _run_steps(_commands({'kind': 'go', 'group': members}, root), root)
+        if code and 'dial tcp' in ' '.join(shown): self.skipTest('the Go module proxy is unreachable')
+        self.assertEqual(code, 0, shown)
+        text = (root / 'go.mod').read_text()
+        self.assertIn('golang.org/x/net v0.38.0', text)
+        self.assertIn('golang.org/x/sys v0.31.0', text, 'past its own fix, never pulled back to it')
+
     def test_two_versions_of_one_package_are_overridden_each_at_its_own(self):
         # Trial on real projects (2026-11-02): the 2.x upgrade of a package overwrote its 1.x override, so every copy was
         # forced to 2.x, below what its consumers ask and undoing the 1.x fix
