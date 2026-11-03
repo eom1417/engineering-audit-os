@@ -39,7 +39,9 @@ def screens(context):
     """Each distinct page of the running app (one picture per template: /items/1 stands for /items/2) at phone and
     desktop width, in the app's own theme, with axe; Lighthouse on the entry, unless the crawl measured it already
     (eaos/live/screens/audit.py, eaos/live/screens/crawl.py distinct). Each kind of user of the code pictures its own pages, the
-    first one the shared pages too (eaos/live/access/roles.py share); the published address the person named, read only."""
+    first one the shared pages too (eaos/live/access/roles.py share); the published address the person named, read only.
+    An API has no page to picture: its GET routes are the behaviour lock's request tests."""
+    _no_api(context)
     if not _published(context): _live(context)
     from .live_app import sessions
     live, base, made = sessions(context, published=True)
@@ -56,6 +58,13 @@ def screens(context):
     return {'pages': len(groups), 'screens': len(rows), 'failing': sum(bool(r.get('failures')) for r in rows),
             'lighthouse': (speed.get('scores') or {}).get('performance'),
             'kinds': covered and sum(k['reached'] for k in covered['kinds']), 'unmeasured': _not_found(rows)}
+
+
+def _no_api(context):
+    """The screens stop on an API (eaos/live/behavior/specs.py api_only): it has no page to picture."""
+    from ...live.behavior.specs import api_only
+    if api_only(context.out):
+        raise SkipStage('an API has no page to picture: its GET routes are recorded by the behaviour lock', code='api_only')
 
 
 def _not_found(rows):

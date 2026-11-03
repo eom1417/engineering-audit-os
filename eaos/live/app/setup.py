@@ -53,8 +53,6 @@ def detect(project, report=None):
 PROBE = (Path(__file__).resolve().parents[2] / 'templates/setup/probe.cjs').read_text(encoding='utf-8')
 
 
-
-
 def routes(report, limit=4):
     """A few of the lock's screens and server pages (`GET /notes`) without parameters, to see that each one is a screen
     of its own and opens signed in; never one that signs out or changes (LEAVES), which would end the session the probe
@@ -147,9 +145,18 @@ def _out_of_reach(page):
 
 
 def _bad_answers(page):
-    """The first page and screens that did not answer: neither a page nor a sign-in asked."""
-    # a page asking for a sign-in or a token (401), or refusing this user (403), is the app answering
-    return [o for o in [page, *(page.get('others') or [])] if not 200 <= o.get('status', 0) < 400 and o.get('status') not in (401, 403)]
+    """The first page and screens that did not answer. The app runs when its first page answers, or when that is a 404
+    (an API has no home page: a Gin API's / said 404 while its routes answered) and a known route answers."""
+    others = page.get('others') or []
+    bad = [o for o in others if not _answered(o, known=True)]
+    return bad if _answered(page) or (len(bad) < len(others) and page.get('status') == 404) else [page, *bad]
+
+
+def _answered(page, known=False):
+    """A page, a sign-in asked (401) or a user refused (403); from a route the code declares (`known`), any refusal of
+    its own code (400, 405, 422) too. Never a 404: the address may be no route of the app."""
+    status = page.get('status', 0)
+    return 200 <= status < 400 or status in (401, 403) or (known and 400 <= status < 500 and status != 404)
 
 
 def verify(project, runtime, attempt, report=None, mode='lock'):

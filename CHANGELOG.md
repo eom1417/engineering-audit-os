@@ -22,6 +22,17 @@ were bun's, uv's or Go's, which EAOS cannot rewrite), refused to run a Go app at
 - **A documented command's file is looked for from the folders the document names** (a `cd` target, a top-level
   folder it mentions) before it is called broken: a full-stack template's docs run `bash scripts/prestart.sh` "from
   the `backend` directory", and a second trial called three of its documents broken code.
+- **An API has no screen pictured:** when the code declares http routes and no page, and the first page answers JSON
+  or 404, the screens stage stops (`api_only`) and its GET routes are what the behaviour lock records, by request
+  (a second trial: an Express API's JSON answers were pictured as pages, and their phone width and missing
+  `<title>` became a card no fix could pass).
+- **An app runs when one of its known routes answers,** not only its first page: an API has no home page, so a 404
+  at `/` is no failure while a route the code declares answers with a page (2xx, 3xx) or a refusal of its own
+  code (any 4xx but 404: a sign-in asked, input refused). A 404 is never an answer (a second trial: a Gin API ran
+  and made its test user, yet was recorded as not running).
+- **A Gin route carries its group's prefix:** `v1 := r.Group("/api")` in a file, and a sub-group handed to a
+  register function (`users.Register(v1.Group("/users"))`) in any file, are followed, a test's own router left out
+  (a second trial: a Gin API's routes were read as `/feed` and `/:username`, so the safety net recorded their 404s).
 - **A page is recorded with its random numbers held still,** as its clock already was: a game drew its first tiles
   with `Math.random`, so two loads of its page had different words, the safety net held nothing and no batch could
   open (a first trial had passed by luck: two loads of six differ).

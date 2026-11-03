@@ -90,6 +90,14 @@ def kind_of(surface, known):
     return (PAGE if surface.startswith('/') or surface == '*' else 'cli', 'GET', None)
 
 
+def api_only(out):
+    """Whether the app is an API: its code declares http routes and no page, and its first page as the setup opened it
+    (live/setup.json) is none either, a JSON answer or a 404 (an app drawing its pages on the server answers HTML)."""
+    kinds = {row[0] for row in surfaces(out).values()}
+    first = (read_json(Path(out) / 'live/setup.json') or {}).get('page') or {}
+    return HTTP in kinds and PAGE not in kinds and (first.get('status') == 404 or (first.get('text') or '').startswith(('{', '[')))
+
+
 def crawled_pages(out):
     """The distinct pages the crawl opened (live/crawl.json, the first address of each template), standing in for the
     app's pages only when its code names none: an SPA with no client router (one Workspace.tsx, what EAOS's own
