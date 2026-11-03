@@ -3,6 +3,7 @@ change brought (a match it added, a test it made fail), so a rule already broken
 change, and the card that names every place is what fixes the rest.
 """
 import contextlib
+import os
 import subprocess
 import tempfile
 from collections import Counter
@@ -44,7 +45,10 @@ def _tree(repo, where, commit, index=False):
     """`repo` at `commit` checked out at `where` (with what is staged applied on top when `index`), its installed
     dependency folders linked from the project, never installed again: a test guard runs there on the code a commit
     holds. Whether it was made."""
-    if _git(repo, 'worktree', 'add', '--detach', '--quiet', str(where), commit).returncode: return False
+    # A commit hook is handed the committing index (GIT_INDEX_FILE, absolute in a linked worktree): the checkout apart
+    # must write its own, else it overwrites what is being committed with `commit`.
+    apart = {key: value for key, value in os.environ.items() if key != 'GIT_INDEX_FILE'}
+    if _git(repo, 'worktree', 'add', '--detach', '--quiet', str(where), commit, env=apart).returncode: return False
     if index:
         staged = _git(repo, 'diff', '--cached', '--binary', '--no-renames').stdout
         if staged and _git(where, 'apply', '--whitespace=nowarn', input=staged).returncode: return False
