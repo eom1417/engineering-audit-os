@@ -6,7 +6,7 @@ The numbers of EAOS, measured at each milestone end, oldest first. `tools/metric
 assistant (`tools/*_proof.py`) measure the journeys. Numbers are compared with the section before; a worse number
 needs its reason here.
 
-Latest: **0.0.90**, M18 (below). M7 (0.0.79) has no section of its own: what it changed is proved by the
+Latest: **0.0.91**, the first trial on strangers' projects (below). M7 (0.0.79) has no section of its own: what it changed is proved by the
 fix proof in the golden trial, not by a number.
 
 ## Baseline: 0.0.71 (2026-10-23), EAOS's own check of `develop`
@@ -325,6 +325,37 @@ simulation found one real failure a person would meet. The replays cost nothing 
 | Add a feature: a link on the navigation every page shows | 120 s $0.43, through the behaviour lock (M9.7) |
 | Build from a PRD to the first milestone's proof gate | 338 s $0.91 |
 | Simulated users (flask-microblog, whole) | 6 of 10 goals reached (3 of 11 before), 3 tickets, 6 confirmed, 5 fix cards (0 before), 142 calls, $6.37; 2 of the 6 came from the route prefix fixed in this version |
+
+## After the first strangers' trial: 0.0.91 (2026-11-03)
+
+The check's own numbers (check time, output, runtime, cards, engine findings) are those of the last check of `develop`
+(2026-10-30); the code, tests, corpus and detection baseline are measured on 0.0.91. What this version is for is measured
+on five projects EAOS had never seen, checked and fixed twice:
+
+| Project | First trial: cards, fixed | Second trial: cards, fixed |
+|---|---|---|
+| A browser game | 4, 1 (3 false) | 2, 2 |
+| A Gin API | 11, 0 (Go could not run) | 3, 3 |
+| An Express API (Nx) | 43, 18 | 14, 5 |
+| An Angular app (bun) | 45, 1 | 7, 7 |
+| A FastAPI full-stack template | 62, 14 (13 false) | 10, 6 |
+
+| Measure | Value |
+|---|---|
+| Python lines (`eaos/`) | 82,815 in 577 files (2 flat at the package root) |
+| Studio UI (`console/src`) | 10,490 JS lines in 84 files (words 2,056) |
+| Tests | 30,500 lines in 190 files, 1397 test functions |
+| Check time | 4,535 s wall (ideal 856 · verify 791 · crawl 624 · triage 591) |
+| Stages / documents / engines | 42 / 8 `.md` / 37 tools |
+| Output | 267 MB, 1,424 files |
+| Runtime | 847 MB |
+| Cards on itself | 78 plan tasks (31 hotspot, 30 design_review, 13 extend_feature) from 208 claims |
+| The layers on itself | 690 of 690 files placed; 4 findings (operations 3, tests 1); 3 s |
+| Engine findings | 1,315 (`reforge` 1,121, `semgrep` 102) |
+| Compatibility corpus | 15 of 15 apps pass (15 pinned) |
+| Detection baseline | 35 of 35 planted problems found |
+| Layer findings judged on the corpus | 37 findings on 3 apps, 2 false (5%) |
+
 
 ## Findings of the M-1 measurement (the inputs of M1-M4, kept as where they started)
 
