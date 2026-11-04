@@ -28,12 +28,13 @@ def edit_gates(where, root, card, changed, repair):
     from ....facts.run import collect
     from ....analysis.repair.gates import debt, words
     from ....analysis.rules.held import gate as rules_gate
+    from ....analysis.repair.lock_hashes import wrong as hashes_gate
     report, project, runtime, *held = where
     with tempfile.TemporaryDirectory(prefix='eaos-edit-facts-') as out:
         collect(root.resolve(), out, engines=engines_for([card]))
         laws = debt(report, out, changed, had=_sizes_before(root, changed))
         broke = (new_breakage(report, root, collected=out) + words(laws) + app_breakage(project, runtime, root, changed)
-                 + (rules_gate(*held[0], root, changed, laws) if held and held[0][1] else []))
+                 + (rules_gate(*held[0], root, changed, laws) if held and held[0][1] else []) + hashes_gate(root, changed))
         exit_code = None if repair else batch_acceptance(report, [card], root, collected=out, runtime=runtime).get(card['id'])
         return broke, exit_code, _still(card, out, root) if exit_code not in (0, None) else ''
 
