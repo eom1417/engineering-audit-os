@@ -115,6 +115,8 @@ def install(app):
     steps = [pip + ['-r', 'requirements.txt']] if (app / 'requirements.txt').is_file() else []
     if (not steps or extra) and ((app / 'pyproject.toml').is_file() or (app / 'setup.py').is_file()):
         steps.append(pip + ['-e', f'.[{extra}]' if extra else '.'])      # the test extra beside the requirements too
+    group = [] if extra else test_group(app)
+    if group: steps.append(pip + group)
     return steps or [['true']]
 
 
@@ -125,6 +127,24 @@ def test_extra(app):
     except (tomllib.TOMLDecodeError, AttributeError): return None
     if not isinstance(extras, dict): return None
     return next((name for name, deps in extras.items() if any(re.match(r'pytest\b', str(d).strip().lower()) for d in deps)), None)
+
+
+def test_group(app):
+    """The requirements of the pyproject.toml dependency group that brings pytest (`[dependency-groups] tests =
+    ["pytest", ...]`, its included groups read in), or []: pip 24, the one a run's environment has, installs no group
+    by name (a stranger's library ran its tests without pytest, and no batch could open, 2026-11-04)."""
+    try: groups = tomllib.loads(_read(app / 'pyproject.toml')).get('dependency-groups') or {}
+    except (tomllib.TOMLDecodeError, AttributeError): return []
+    if not isinstance(groups, dict): return []
+
+    def read(name, seen):
+        rows = []
+        for row in groups.get(name) or []:
+            if isinstance(row, str): rows.append(row)
+            elif isinstance(row, dict) and row.get('include-group') not in seen: rows += read(row['include-group'], seen | {name})
+        return rows
+    found = (read(name, {name}) for name in groups)
+    return next((rows for rows in found if any(re.match(r'pytest\b', row.strip().lower()) for row in rows)), [])
 
 
 def prepare(kind, target, app, needs, modules):
@@ -168,7 +188,7 @@ def detect(project):
     env, unset = environment_values(names, port, None)
     profile = {'schema_version': 1, 'app': where, 'install': install(app), 'start': start(kind, target, port), 'port': port,
                'health': '/', 'start_timeout': 180, 'env': {'PYTHONUNBUFFERED': '1', **env},
-               'checks': [['python', '-m', 'pytest', '-q']] if re.search(r'^pytest\b', needs, re.M) or test_extra(app) else []}
+               'checks': [['python', '-m', 'pytest', '-q']] if re.search(r'^pytest\b', needs, re.M) or test_extra(app) or test_group(app) else []}
     commands = prepare(kind, target, app, needs, modules)
     if commands: profile['prepare'] = commands
     if kind == 'django':

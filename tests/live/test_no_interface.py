@@ -29,6 +29,16 @@ class NoInterfaceTests(unittest.TestCase):
             self.assertEqual(own_checks.unknown_app(tmp)['profile']['checks'], checks)
         self.assertEqual(profile.safe({'install': install, 'start': ['cargo', 'run']}), [])
 
+    def test_a_python_library_installs_its_test_group_and_runs_its_tests_in_the_runs_environment(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            (Path(tmp) / 'tests').mkdir(); (Path(tmp) / 'tests/test_a.py').write_text('', encoding='utf-8')
+            (Path(tmp) / 'pyproject.toml').write_text('[project]\nname = "x"\n[dependency-groups]\ndev = ["ruff"]\n'
+                                                     'tests = ["freezegun", {include-group = "pin"}]\npin = ["pytest>=8"]\n'
+                                                     '[tool.pytest.ini_options]\ntestpaths = ["tests"]\n', encoding='utf-8')
+            install, checks = own_checks.found(tmp)
+        self.assertEqual([step[6:] for step in install], [['-e', '.'], ['freezegun', 'pytest>=8']])
+        self.assertEqual(checks, [['python', '-m', 'pytest', '-q']])
+
     def test_passing_own_checks_open_a_batch_without_screens(self):
         state = {'setup': {'ok': False, 'no_interface': True, 'commit': 'c'},
                  'safety': {'commit': 'c', 'screens': 0, 'passed': 0, 'own_checks': 2}}

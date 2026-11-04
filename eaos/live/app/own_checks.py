@@ -1,7 +1,7 @@
 """The checks a project with no interface is kept safe by, from its own manifest: a Rust crate's tests (`cargo test`,
-its build with them), a Go module's (`go vet`, `go test`). A Python project's tests are found apart (eaos/live/testing/
-verify.py python_tests). Each fetches what it needs at install, with the network, and runs its checks from the lock
-alone (`--locked`, `--offline`): a stranger's Rust command-line tool could not be fixed at all (2026-11-04)."""
+its build with them), a Go module's (`go vet`, `go test`), a Python project's own tests in the run's environment. Each
+fetches what it needs at install, with the network; Rust and Go run their checks from the lock alone (`--locked`,
+`--offline`): a stranger's Rust command-line tool could not be fixed at all (2026-11-04)."""
 from pathlib import Path
 
 BY_MANIFEST = (
@@ -13,7 +13,16 @@ BY_MANIFEST = (
 def found(project):
     """(install commands, checks) of the first manifest at the project's root; ([['true']], []) without one."""
     root = Path(project)
-    return next(((install, checks) for name, install, checks in BY_MANIFEST if (root / name).is_file()), ([['true']], []))
+    return next(((install, checks) for name, install, checks in BY_MANIFEST if (root / name).is_file()), None) or _python(root)
+
+
+def _python(root):
+    """A Python project's install and its own tests, run by the run's own environment where that install put pytest
+    (EAOS's interpreter has neither the project's packages nor pytest)."""
+    from . import detect_python
+    from ..testing.python_suite import command
+    tests = command(root) if any((root / name).is_file() for name in detect_python.MARKERS) else None
+    return (detect_python.install(root), [['python', *tests[1:]]]) if tests else ([['true']], [])
 
 
 def unknown_app(project=None):
