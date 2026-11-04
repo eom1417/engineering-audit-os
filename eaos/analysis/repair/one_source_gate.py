@@ -84,14 +84,30 @@ def _found(found, paths):
 
 
 def _clones(record, paths):
-    """The lines copied word for word that EAOS's own metrics find without any tool: one row per copy in the changed
-    files, keyed by their digest and numbered, so a third copy is new and a copy moved between them is not."""
-    rows = {}
+    """The copies of lines written word for word that EAOS's own metrics find without any tool, counted over the changed
+    files and numbered: a row per copy there, held to the lines they cover (one copy per window of lines), so only more
+    copied code is new. Never keyed by a copy's digest: a split moved a file's existing copies into new files, their
+    six-line windows fell differently, every digest changed, and a sound split was refused twice (a stranger's Flutter
+    app, 2026-11-04)."""
+    copies, covered, window, last = 0, set(), 6, None
+    for fact, mine in _copies_in(record, paths):
+        copies, window, last = copies + len(mine), fact['value'].get('window_lines') or window, fact['value']['occurrences']
+        covered |= {(p['path'], line) for p in mine for line in _lines(p, window)}
+    return {('clone', n): _copied(last) for n in range(1, min(copies, -(-len(covered) // window)) + 1)}
+
+
+def _copies_in(record, paths):
+    """(clone cluster, its copies in `paths`) of every cluster of two copies or more with one there."""
     for fact in (record('metrics') or {}).get('facts') or []:
-        places = fact['value'].get('occurrences') or [] if fact['kind'] == 'clone_cluster' else []
-        mine = sum(p['path'] in paths for p in places)
-        if len(places) >= 2: rows.update({('clone', fact['input_sha'], n): _copied(places) for n in range(1, mine + 1)})
-    return rows
+        places = (fact['value'].get('occurrences') or []) if fact['kind'] == 'clone_cluster' else []
+        mine = [p for p in places if p['path'] in paths]
+        if len(places) >= 2 and mine: yield fact, mine
+
+
+def _lines(place, window):
+    """The lines a copy covers: from its start to its end, a window at least."""
+    start = place.get('start_line') or 1
+    return range(start, max(place.get('end_line') or 0, start + window - 1) + 1)
 
 
 def _copied(places):

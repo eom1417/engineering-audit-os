@@ -115,6 +115,16 @@ class Trust(unittest.TestCase):
             moved = check(clones=[clone('w1', 'src/lib/tax.js', 'src/lib/charge.js')])
             self.assertEqual(added(two, moved, {'src/lib/fee.js', 'src/lib/charge.js'}), [], 'a copy moved between the changed files')
 
+    def test_a_split_that_moves_existing_copies_is_not_refused(self):
+        # a Flutter app's split moved a file's own copies into new files: their windows fell differently, every digest
+        # changed, and the sound split was refused twice
+        at = lambda path, start, end: {'path': path, 'start_line': start, 'end_line': end}
+        before = check(clones=[{**clone('w1', 'a.dart', 'a.dart'), 'value': {'window_lines': 6, 'occurrences': [at('a.dart', 10, 21), at('a.dart', 50, 61)]}}])
+        after = check(clones=[{**clone('w2', 'a.dart', 'b.dart'), 'value': {'window_lines': 6, 'occurrences': [at('a.dart', 10, 15), at('b.dart', 5, 10)]}},
+                              {**clone('w3', 'a.dart', 'b.dart'), 'value': {'window_lines': 6, 'occurrences': [at('a.dart', 16, 21), at('b.dart', 11, 16)]}}])
+        with Verdicts():
+            self.assertEqual(added(before, after, {'a.dart', 'b.dart'}), [])
+
     def test_a_copy_kept_on_purpose_with_its_reason_is_no_clone(self):
         body = [f'    total_{i} = price * quantity + tax_{i}' for i in range(8)]
         kept = ['def one():', '    # jscpd:ignore-start -- each MCP tool is its own signature', *body, '    # jscpd:ignore-end']
