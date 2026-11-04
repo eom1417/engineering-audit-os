@@ -84,16 +84,15 @@ def _found(found, paths):
 
 
 def _clones(record, paths):
-    """The copies of lines written word for word that EAOS's own metrics find without any tool, counted over the changed
-    files and numbered: a row per copy there, held to the lines they cover (one copy per window of lines), so only more
-    copied code is new. Never keyed by a copy's digest: a split moved a file's existing copies into new files, their
-    six-line windows fell differently, every digest changed, and a sound split was refused twice (a stranger's Flutter
-    app, 2026-11-04)."""
-    copies, covered, window, last = 0, set(), 6, None
+    """The lines copied word for word that EAOS's own metrics find without any tool, counted over the changed files: a
+    row per window of copied lines there, numbered, so only more copied code is new. Never keyed by a copy's digest: a
+    split moved a file's existing copies into new files, their six-line windows fell differently, every digest changed,
+    and a sound split was refused twice (a stranger's Flutter app, 2026-11-04)."""
+    covered, window, last = set(), 6, None
     for fact, mine in _copies_in(record, paths):
-        copies, window, last = copies + len(mine), fact['value'].get('window_lines') or window, fact['value']['occurrences']
+        window, last = fact['value'].get('window_lines') or window, fact['value']['occurrences']
         covered |= {(p['path'], line) for p in mine for line in _lines(p, window)}
-    return {('clone', n): _copied(last) for n in range(1, min(copies, -(-len(covered) // window)) + 1)}
+    return {('clone', n): _copied(last) for n in range(1, -(-len(covered) // window) + 1)}
 
 
 def _copies_in(record, paths):
