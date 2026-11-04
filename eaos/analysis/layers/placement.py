@@ -16,6 +16,7 @@ from collections import deque
 from fnmatch import fnmatch
 
 from ..target_state import references as reference_types
+from .runtime_guards import browser_text
 from ...facts.frameworks.server_entries import directive
 
 HTTP = re.compile(r'^(express|fastify|koa|hono|@hono/[\w-]+|h3|restify|@nestjs/[\w-]+|next/server|flask|fastapi|starlette|'
@@ -67,7 +68,7 @@ def _written(path, text):
     """What a file's own text says: its directive, `server-only`, markup, the browser's globals."""
     said = directive(text)
     marks = {said} if said else set()
-    found = (('server', bool(SERVER_ONLY.search(text))), ('screen', _component(path, text)), ('node', bool(NODE_TEXT.search(text))),
+    found = (('server', bool(SERVER_ONLY.search(text))), ('screen', _component(path, text)), ('node', bool(NODE_TEXT.search(browser_text(text)))),
              ('browser', bool(BROWSER_GLOBALS.search(text))))
     return marks | {name for name, there in found if there}
 
