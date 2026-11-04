@@ -206,6 +206,7 @@ class Manager(Turns, Answers, Outcomes):
         """The run could not go on: why, and what the person can do; `resumable` (its assistant stopped): it goes on by
         itself instead while it may (eaos/interfaces/studio_actions/resume.py)."""
         if resumable and resume.after_failure(self, run, reason): return
+        if resumable: resume.release(self, run)
         self.store.append(run, 'error', {'en': f'It could not go on: {reason}', 'ar': f'ما قدر يكمل: {reason}'},
                           {'reason': reason, 'recoverable': True, 'what_now': what_now or {'en': 'Press Retry, or look at the detail.', 'ar': 'اضغط «أعد»، أو شوف التفاصيل.'}})
         if self._restore_question(run): return

@@ -42,7 +42,7 @@ QUESTION = 'Reply with the single word: ready'
 
 # What a failed call says, in the assistants' own words, and the problem it means (first match wins).
 PATTERNS = (
-    ('sign_in_expired', r'refresh token (?:was )?already (?:been )?used|refresh_token_reused|refresh token.{0,40}(?:expired|invalid)'),
+    ('sign_in_expired', r'refresh token (?:was )?already (?:been )?used|refresh_token_reused|refresh token.{0,40}(?:expired|invalid|revoked)'),
     ('not_signed_in', r'not logged in|please run /login|please log ?in|run `?codex login|invalid api key|authentication_error|unauthori[sz]ed|\b401\b'),
     ('limit', r'usage limit|rate limit|(?:session|weekly|daily|opus) limit|hit your (?:\w+ )?limit|limit reached|quota|'
               r'credit balance|too many requests|\b429\b'),
