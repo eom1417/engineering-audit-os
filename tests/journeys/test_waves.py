@@ -313,6 +313,13 @@ class RebuildTests(unittest.TestCase):
     def test_a_lock_file_card_that_fails_whole_keeps_the_packages_that_pass_one_by_one(self):
         # Second trial on real projects: a lock file card of 32 packages left the dependency tree invalid through one of
         # them, and the 31 sound upgrades were lost with it
+        self._lock_card_in_part({'files_changed': 1})
+
+    def test_a_lock_file_card_whose_dry_run_failed_whole_is_tried_one_by_one(self):
+        # A uv.lock card of ten packages failed its dry run whole (one needed a newer Python) and went to the assistant
+        self._lock_card_in_part({'exit': 1, 'files_changed': 0})
+
+    def _lock_card_in_part(self, dry_run):
         from eaos.engines.process import which
         from eaos.journeys.fix.automatic import automatic_fixes
         from eaos.journeys.fix.execute import _dependencies_broken
@@ -336,7 +343,7 @@ class RebuildTests(unittest.TestCase):
                                        'value': {'measurements': [{'name': 'advisory_ids', 'value': [f'GHSA-{m["package"]}']}]}}
                  for m in members}
         card = {'id': 'TASK-1', 'title': 'Upgrade the lock file', 'key': 'k1', 'evidence': {'fact_ids': list(facts)},
-                'codemod': {'command': 'npm install', 'dry_run': {'files_changed': 1}}}
+                'codemod': {'command': 'npm install', 'dry_run': dry_run}}
         wave = {'kept': {}, 'failed': {}, 'tools': {}}
         with mock.patch('eaos.analysis.repair.codemods.card_for', return_value={'kind': 'npm', 'group': members}), \
                 mock.patch('eaos.analysis.repair.codemods._commands', lambda detail, copy: [bump(m) for m in detail.get('group') or [detail]]), \
