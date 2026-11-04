@@ -30,13 +30,15 @@ RC = '.eaos-ran-coveragerc'
 
 
 def own(path, root):
-    """`path` relative to the project root when it is one of its own source files, else None."""
+    """`path` relative to the project root when it is one of its own source files, else None. A file the run made
+    and removed is not one (Vite bundles its config into a `vite.config.*.timestamp-*.mjs` beside it, runs it and
+    deletes it: a server's record named it as the project's)."""
     name = str(path)
     if name.startswith('file://'): name = name[len('file://'):]
     root = Path(root).resolve().as_posix().rstrip('/') + '/'
     if not name.startswith(root) or '/node_modules/' in name: return None
     relative = name[len(root):].split('?')[0]
-    return relative if classify(relative) == 'source' else None
+    return relative if classify(relative) == 'source' and Path(root, relative).is_file() else None
 
 
 def _functions(scripts, place):
