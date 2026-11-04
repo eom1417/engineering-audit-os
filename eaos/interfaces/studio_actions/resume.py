@@ -23,10 +23,10 @@ CONTINUE = ('This work was started by an assistant that stopped before the end (
             'says what was done; go on from there, without redoing what is kept.\n\n')
 
 
-def _answers(name):
+def _answers(adapter):
     """The assistant answers a one-word question now: its sign-in status alone said a revoked Codex was ready, and the
     work handed to it stopped at once (2026-11-04)."""
-    return readiness.check(name)['ready'] if name in readiness.NAMES else False
+    return readiness.check(adapter.id, command=adapter.command)['ready'] if adapter.id in readiness.NAMES else False
 
 
 def next_assistant(adapters, current, problem, ready=_answers):
@@ -34,7 +34,7 @@ def next_assistant(adapters, current, problem, ready=_answers):
     or lost its sign-in."""
     others = [name for name in adapters if name != current]
     order = others + [current] if problem in GONE else [current] + others
-    return next((name for name in order if name in adapters and ready(name)), None)
+    return next((name for name in order if name in adapters and ready(adapters[name])), None)
 
 
 def seconds_until(back, now=None):

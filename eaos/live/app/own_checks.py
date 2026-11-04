@@ -20,7 +20,7 @@ def unknown_app(project=None):
     """An app EAOS does not know how to start by itself (no JavaScript or Python web app, no static site): a draft starting nothing
     (no earlier app's profile kept) with its own manifest's checks (eaos/live/app/own_checks.py, its safety when it has no interface);
     the assistant works out how to start it from the project's own documentation (_attempts), safe() judging every command."""
-    from .detect import free_port
+    from ...core.system.local_db import free_port
     install, checks = found(project) if project else ([['true']], [])
     profile = {'schema_version': 1, 'app': '.', 'install': install, 'start': ['true'], 'port': free_port(), 'health': '/',
                'start_timeout': 180, 'env': {}, 'checks': checks}

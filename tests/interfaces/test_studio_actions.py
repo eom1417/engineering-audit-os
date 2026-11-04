@@ -1062,7 +1062,7 @@ class ReportDecisions(Base):
         self.assertEqual(self.app.wait(run, ['done'], 5)['state'], 'done')
         self.assertEqual(self.response()['option'], 'a')
         self.assertEqual(len(self.app.store.all()), 1)
-        argv = [json.loads(line) for line in (self.base / 'argv.jsonl').read_text().splitlines() if '-p' in json.loads(line)]
+        argv = [json.loads(line) for line in (self.base / 'argv.jsonl').read_text().splitlines() if '--allowedTools' in json.loads(line)]
         self.assertTrue(all('mcp__eaos__fix_edit' not in call[call.index('--allowedTools') + 1:call.index('--disallowedTools')] for call in argv))
 
 

@@ -105,7 +105,6 @@ def withhold(claims):
 def withheld_said(withheld, ar):
     """The withheld claims as the report says them: each detector under its bar, how many it found, and why; then the
     claims set aside by the ledger (eaos/analysis/claims/aside.py)."""
-    from .aside import rejected_said
     held = [row for row in withheld if not row['withheld'].get('rejected')]
     count = Counter(row['withheld']['detector'] for row in held)
     why = {row['withheld']['detector']: row['withheld']['why'] for row in held}
@@ -390,3 +389,10 @@ def renumber(claims):
         row.setdefault('uid', identity(row))
         result.append(row)
     return result
+
+
+def rejected_said(withheld, ar):
+    """The set-aside claims as the report says them, by detector."""
+    count = Counter(row['withheld']['detector'] for row in withheld if row['withheld'].get('rejected'))
+    return [(f'نتائج استُبعدت لأنها بلا دليل يثبتها: {name} ({n})' if ar else
+             f'results set aside, with no evidence behind them: {name} ({n})') for name, n in sorted(count.items())]

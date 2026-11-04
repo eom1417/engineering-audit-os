@@ -20,7 +20,7 @@ class ResumeLimitTests(unittest.TestCase):
         self.assertIsNone(resume.seconds_until('7am (Nowhere/City)', at))
 
     def test_work_goes_to_an_assistant_that_answers(self):
-        adapters = {'claude': object(), 'codex': object()}
+        adapters = {'claude': 'claude', 'codex': 'codex'}
         self.assertIsNone(resume.next_assistant(adapters, 'claude', 'limit', ready=lambda name: False))
         self.assertEqual(resume.next_assistant(adapters, 'claude', 'limit', ready=lambda name: name == 'claude'), 'claude')
         self.assertEqual(readiness.classify('Your refresh token was revoked. Please log out and sign in again.'), 'sign_in_expired')
