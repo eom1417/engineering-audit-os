@@ -55,7 +55,8 @@ def finish_job(project, arguments, progress):
     was = guided._git(wave['root'], 'rev-parse', 'HEAD').stdout.strip()
     repairs = wave.get('repairs') or []
     try:
-        summary = finish_batch(guided.report_of(state), guided.source(state), project_state.runtime_of(state), wave, lock=True,
+        summary = finish_batch(guided.report_of(state), guided.source(state), project_state.runtime_of(state), wave,
+                               lock=not (state.get('setup') or {}).get('no_interface'),   # no screen recorded: its own checks hold it
                                say=lambda kind, *_: _phase(project, kind, progress), repairs=repairs,
                                bisect=bool(arguments.get('leave_out')) or len(repairs) >= REPAIRS,
                                before_writing=lambda: guided.refuse_if_stale(project_state.load(project)),
