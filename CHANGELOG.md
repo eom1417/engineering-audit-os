@@ -17,6 +17,7 @@ a stopped audit with evidence missing, and a command-line project that could not
 - Preserve Arabic remediation text and distinguish existing copied line windows from duplication introduced by a split.
 - Include the pinned official PHP security rules. Recognise a generated binding's proven Node-only runtime branch
   without suppressing static Node imports or Node globals elsewhere.
+- A file a run makes and removes (Vite's bundled config) is no longer recorded as one of the project's own files.
 
 ## 0.0.91 (2026-11-03)
 
