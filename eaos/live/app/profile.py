@@ -1,7 +1,7 @@
 """A proposal to run the app (the assistant's, through run_try, or the setup's own): whether it is safe to run, and
 how it is merged into the run profile, run.json (eaos/live/app/run.py reads it). Every proposal passes safe() before it
 runs: no command that deploys or reaches a hosted environment, no program other than a package manager, node,
-python or go, no address other than this computer's.
+python, go or cargo, no address other than this computer's.
 """
 import json
 import re
@@ -16,8 +16,8 @@ DANGER = re.compile(r'\b(deploy\w*|railway|vercel|netlify|flyctl|heroku|firebase
 
 # What a proposal's commands may start with: a JavaScript or Python package manager, node, python, a Python web server
 # (a project's own virtual environment's, `.venv/bin/python`, counts by its name), or the computer's go (its
-# environment, eaos/live/isolation/sandbox.py caches, never downloads another toolchain). SAID is how the assistant is told.
-RUNNERS = ('npm', 'npx', 'pnpm', 'yarn', 'bun', 'node', 'corepack', 'go', 'true') + PYTHON
+# environment, eaos/live/isolation/sandbox.py caches, never downloads another toolchain), or its cargo. SAID is how the assistant is told.
+RUNNERS = ('npm', 'npx', 'pnpm', 'yarn', 'bun', 'node', 'corepack', 'go', 'cargo', 'true') + PYTHON
 SAID = ', '.join(name for name in RUNNERS if name != 'true')
 
 

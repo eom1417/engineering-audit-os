@@ -34,6 +34,7 @@ from ...core.system.files import read_json
 from ..behavior.specs import LEAVES
 from ...core.progress.flow import OPTIONAL, Stage
 from .profile import apply, safe, write_profile
+from .first_page import NoInterface, declined, empty_state, listing  # noqa: F401  (empty_state: read here by its tests)
 from . import detect as setup_detect, detect_python as setup_python
 from .detect import SECRETISH, _unknown_app, free_port, production_commands, script_is_safe  # noqa: F401  (detect's names others read here)
 
@@ -86,23 +87,6 @@ def signed_out(page):
     return bool(page.get('password')) or bool(SIGN_IN_PAGE.search(page.get('url') or ''))
 
 
-# The words of a page that shows nothing yet: no data, no report, an empty list.
-SHORT = 40                      # words: a longer first page is the app itself, never an empty state
-EMPTY = re.compile(r'\b(no (data|reports?|results?|items?|records?|content|entries)\b|nothing (here|to show|yet)|is empty\b|'
-                   r'(not|none) (found|available|loaded) yet)|لا (يوجد|توجد|شيء|بيانات)|فارغ', re.I)
-
-
-def empty_state(page, unset):
-    """Why the first page is no working app although it answered: it shows an empty, "no data" state while the run
-    has no value for a name the app reads, so every screen would be pictured empty. '' otherwise: a page of more than
-    SHORT words is the app, whatever "no ... yet" it shows (the full-stack app's command center, "No new cases", was refused)."""
-    text = ' '.join((page.get('text') or '').split())
-    if text.startswith(('{', '[')): return ''          # an API's answer (the corpus's task-api), not an empty screen
-    if not unset or len(text.split()) > SHORT or not (EMPTY.search(text) or len(text.split()) < 3): return ''
-    return ('the first page shows an empty, no-data state while the app runs without a value for: ' + ', '.join(unset[:12])
-            + '. Give it one (often a folder or address the app reads its data from); the page says: ' + (text[:400] or '(nothing)'))
-
-
 def probe(live, base, state, report, paths=None):
     """What the probe saw of the first page and a few screens, or `paths` (with the browser state `state` when it is a
     file)."""
@@ -130,6 +114,7 @@ def _failure(page, empty, out_of_reach=False):
     `session` signs in to it (eaos/live/access/test_users.py). When the app's database is one the run cannot give
     (`out_of_reach`: a cloud one, MySQL, MongoDB), pages failing with their own error (5xx) while another page answers
     are that database's absence, said in the run's limitations, and the app is working (the corpus's next-dashboard)."""
+    listing(page)
     bad = [] if out_of_reach and _out_of_reach(page) else _bad_answers(page)
     if stuck(page) and not signed_out(page):         # every screen sent to the sign-in is the app, signed out
         return ('every screen shows the same page, so something (a chooser, a gate) stands in front of the app: the seed '
@@ -183,6 +168,7 @@ def verify(project, runtime, attempt, report=None, mode='lock'):
         failure = _failure(page, empty, out_of_reach)
         record['ok'] = not failure
         if failure: record['failure'] = failure
+    except NoInterface: raise               # no app to start: asking again only makes one up
     except Exception as problem:            # a failed start is the evidence the assistant needs, not a crash
         record['ok'] = False
         record['failure'] = f'{type(problem).__name__}: {problem}'[-2500:]
@@ -302,7 +288,9 @@ def _setup(project, runtime, report, provider, say):
     limitations = list(detected['limitations'])
     progress.begin('attempt')
     run = SetupRun(project, runtime, report, provider, say, detected)
-    record, attempts, missing = _attempts(run, limitations)
+    try: record, attempts, missing = _attempts(run, limitations)
+    except NoInterface as none:
+        record, attempts, missing = {'ok': False, 'failure': f'no interface found: {none}', 'no_interface': True}, ATTEMPTS, []
     ok = bool(record['ok'])
     if ok: progress.end('attempt')
     else: progress.end('attempt', 'failed', (record.get('failure') or 'the app did not answer')[:300],
@@ -310,7 +298,7 @@ def _setup(project, runtime, report, provider, say):
     _baseline(run, ok, limitations)
     if not ok and record.get('failure') and not any(record['failure'] in text for text in limitations):
         limitations.append('the app could not be made to answer: ' + record['failure'][:300])
-    return _close(run, record, attempts, missing, limitations)
+    return {**_close(run, record, attempts, missing, limitations), 'no_interface': bool(record.get('no_interface'))}
 
 
 def kept(runtime, profile):
@@ -363,6 +351,7 @@ def _ask(run, failure, refusal, name, mode='lock'):
     needs = [] if mode == 'baseline' else fixtures_needed(run.report)
     answer, _ = run.provider.complete(assist_messages(run, failure, needs, mode=mode), stage='setup', reads=run.project)
     proposal = answer.get('result') or {}
+    if mode == 'lock': declined(proposal)
     refused = safe(proposal)
     (run.runtime / f'setup/{name}.json').write_text(json.dumps({'proposal': proposal, 'refused': refused}, ensure_ascii=False, indent=1) + '\n',
                                                encoding='utf-8')

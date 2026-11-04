@@ -148,9 +148,9 @@ def _setup_step(state, head):
     """The step before any fix: run the app, record its safety net, then open a batch."""
     setup, safety = state.get('setup') or {}, state.get('safety') or {}
     if not guided.set_up(state, head): return ('run_setup', "the app has not been run for this commit (ask the person's agreement first)")
-    if not setup.get('ok'): return ('run_try', 'the app does not run yet: read the last failure and propose a fix')
+    if not setup.get('ok') and not setup.get('no_interface'): return ('run_try', 'the app does not run yet: read the last failure and propose a fix')
     if not guided.safety_holds(state, head): return ('safety_net', 'record the screens before any fix')
-    if not safety.get('passed'): return ('none', 'the safety net recorded nothing: EAOS cannot protect this project yet, so no fix starts')
+    if not (safety.get('passed') or safety.get('own_checks')): return ('none', 'the safety net recorded nothing: EAOS cannot protect this project yet, so no fix starts')
     return ('fix_start', 'open the next batch of fixes')
 
 

@@ -158,7 +158,7 @@ def _no_safety_net(state):
     safety = state.get('safety') or {}
     if not guided.safety_holds(state, _head(state)):
         return {'status': 'no_safety_net', 'what_now': 'Call safety_net first: it records what the program does today.'}
-    if safety.get('passed'): return None
+    if safety.get('passed') or safety.get('own_checks'): return None
     why = '; '.join(f"{row.get('path') or 'the app'}: {row.get('reason') or row.get('status')}" for row in (safety.get('skipped') or [])[:3]) or 'the lock has no page: the code names none and the running app could not be crawled (did it start and answer?)'
     return {'status': 'no_safety_net', 'recorded': 0, 'specs': safety.get('screens', 0), 'why': why,
             'what_now': 'The safety net recorded nothing, so no fix could be checked: no batch was opened. Tell the person '

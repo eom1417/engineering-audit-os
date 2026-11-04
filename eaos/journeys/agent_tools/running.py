@@ -78,7 +78,8 @@ def _lock_run(project, runtime, report, record, profile):
     profile['limitations'] = _limitations(profile, record, runtime, missing)
     run_profile.write_profile(runtime, profile)
     state = project_state.load(project)
-    state['setup'] = {'commit': _head(state), 'ok': record['ok'], 'attempts': record['attempt'], 'limitations': profile['limitations']}
+    state['setup'] = {'commit': _head(state), 'ok': record['ok'], 'attempts': record['attempt'], 'limitations': profile['limitations'],
+                      **({'no_interface': True} if record.get('no_interface') else {})}
     state.pop('safety', None)
     guided.save(state)
     return missing
@@ -103,12 +104,18 @@ def _first_page(page):
             'errors': (page.get('errors') or [])[:5]}
 
 
+NO_INTERFACE = ('The project has no interface to open: do not start a stand-in server. Call safety_net: the project\'s own '
+                'tests and build, run on the original, are what keeps a change safe.')
+
+
 def _run_what_now(ok, mode):
     if ok and mode == 'lock': return 'The app runs: call safety_net.'
     if ok: return 'The production build runs.'
     return ('Read the failure and the code, then call run_try with a proposal: {"env": {...complete environment...}, '
             '"start": [...], "install": [[...]], "prepare": [[...]], "database": "postgres"|"none", '
-            '"seed_script": "<node script that signs in and saves storage state>", "fixtures": {...}}'
+            '"seed_script": "<node script that signs in and saves storage state>", "fixtures": {...}}; when nothing in the '
+            'project opens in a browser (a library, a command-line tool, a mobile app): {"no_interface": "<why>"}, never a '
+            'stand-in server'
             + (' (mode="baseline", with "build": [[...]] too)' if mode == 'baseline' else ''))
 
 
@@ -119,7 +126,7 @@ def _run_job(project, arguments, progress):
     attempt = len(list((runtime / 'setup').glob(f"{'baseline-' if mode == 'baseline' else ''}attempt-*.json"))) + 1
     progress(0, 1, 'installing and starting the app in the isolated copy')
     source = guided.source(state)
-    record = live_setup.verify(source, runtime, attempt, report if (report / 'plan.json').is_file() else None, mode=mode)
+    record = _verified(source, runtime, attempt, report, (mode, proposal))
     profile = _read(runtime / 'run.json')
     answer = {'mode': mode, 'attempt': attempt, 'runs': record['ok']}
     if mode == 'baseline':
@@ -132,6 +139,17 @@ def _run_job(project, arguments, progress):
     return _run_answer(answer, record, profile, source, mode)
 
 
+def _verified(source, runtime, attempt, report, way):
+    """The run's verify record (`way`: its mode and the proposal applied), or one saying the project has no interface:
+    its own tests and build keep a change safe then (eaos/journeys/guided/running.py _own_checks)."""
+    mode, proposal = way
+    try:
+        if proposal and mode == 'lock': live_setup.declined(proposal)
+        return live_setup.verify(source, runtime, attempt, report if (report / 'plan.json').is_file() else None, mode=mode)
+    except live_setup.NoInterface as none:
+        return {'ok': False, 'attempt': attempt, 'fixtures': {}, 'failure': f'no interface found: {none}', 'no_interface': True}
+
+
 def _run_answer(answer, record, profile, source, mode):
     """The rest of a run's answer: its first page, its failure with the code that raised it, the profile, what now."""
     answer['first_page'] = _first_page(record.get('page') or {})
@@ -141,7 +159,7 @@ def _run_answer(answer, record, profile, source, mode):
         answer['code_that_raised_it'] = live_assist.relevant_source(source, folder, record.get('failure') or '', limit=2, context=30)[:8000]
     if record.get('seed_output'): answer['seed_output'] = record['seed_output'][-1500:]
     answer['profile'] = {k: profile.get(k) for k in ('app', 'install', 'prepare', 'start', 'port', 'env', 'database', 'seed', 'checks', 'baseline', 'limitations')}
-    answer['what_now'] = _run_what_now(record['ok'], mode)
+    answer['what_now'] = (NO_INTERFACE if record.get('no_interface') else _run_what_now(record['ok'], mode))
     return answer
 
 

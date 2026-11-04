@@ -10,6 +10,7 @@ from pathlib import Path
 from .assist import ENV_EXAMPLES
 from ...core.system.files import read_json
 from .profile import DANGER
+from .own_checks import unknown_app as _unknown_app
 
 APP_FOLDERS = ('.', 'app', 'web', 'client', 'frontend', 'apps/web', 'apps/app', 'apps/frontend', 'packages/web')
 LOCKFILES = (('pnpm-lock.yaml', 'pnpm'), ('yarn.lock', 'yarn'), ('bun.lockb', 'bun'), ('bun.lock', 'bun'), ('package-lock.json', 'npm'))
@@ -299,7 +300,7 @@ def detect(project, report=None):
     project documents as a folder of a report points at `report` (report_values)."""
     project = Path(project)
     folder = app_folder(project)
-    if folder is None: return static_site(project, None, {}) or _unknown_app()     # a Python app: setup.py detect
+    if folder is None: return static_site(project, None, {}) or _unknown_app(project)     # a Python app: setup.py detect
     package = read_json(project / folder / 'package.json', {})
     return static_site(project, folder, package) or _javascript(project, folder, package, report)
 
@@ -386,14 +387,3 @@ def _only_pages(package):
     """Whether a package only builds pages and previews them with a static server: no framework, no server of its own."""
     deps = dependencies(package)
     return not framework(package) and not any(n in deps for n in SERVERS) and any(n in deps for n in STATIC_SERVERS)
-
-
-def _unknown_app():
-    """An app EAOS does not know how to start by itself (neither a JavaScript nor a Python web app, nor a static site): a draft that starts
-    nothing, so the run's records never keep an earlier app's profile, and the assistant works out how to start it from
-    the project's own documentation (_attempts), with safe() as the judge of every command it proposes."""
-    profile = {'schema_version': 1, 'app': '.', 'install': [['true']], 'start': ['true'], 'port': free_port(), 'health': '/',
-               'start_timeout': 180, 'env': {}, 'checks': []}
-    return {'profile': profile, 'facts': {'folder': '.', 'manager': None, 'framework': None, 'database': None, 'env_names': [],
-                                          'reason': 'no package.json with a dev or start script: the assistant works out how to start it'},
-            'limitations': []}
