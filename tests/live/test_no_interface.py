@@ -57,10 +57,12 @@ class NoInterfaceTests(unittest.TestCase):
             with mock.patch.object(running, 'runtime_of', return_value=Path(tmp)), mock.patch.object(running, 'report_of', return_value=Path(tmp)), \
                     mock.patch.object(running, 'source', return_value=Path(tmp)), mock.patch.object(running, 'save'), \
                     mock.patch('eaos.live.behavior.specs.build'), mock.patch('eaos.live.behavior.lock.run_lock', side_effect=AssertionError('started')), \
-                    mock.patch('eaos.journeys.fix.execute.original_checks', return_value=[{'argv': ['pytest'], 'exit': 0}]):
+                    mock.patch('eaos.journeys.fix.execute.original_checks', side_effect=[[{'argv': ['pytest'], 'exit': 0}], []]):
                 outcome = running._safety_run(state, lambda n: None)
-        self.assertEqual((outcome['screens'], outcome['own_checks'], state['safety']['own_checks']), (0, 1, 1))
-        self.assertIn('no interface', outcome['skipped'][0]['reason'])
+                self.assertEqual((outcome['screens'], outcome['own_checks'], state['safety']['own_checks']), (0, 1, 1))
+                running._safety_run(state, lambda n: None)      # a Flutter app: no tests EAOS runs, said so
+        self.assertEqual(state['safety']['own_checks'], 0)
+        self.assertIn('no tests EAOS can run', state['safety']['skipped'][0]['reason'])
 
     def test_a_batch_of_a_project_with_no_interface_is_held_by_its_checks_not_by_screens(self):
         from eaos.journeys.fix import finish

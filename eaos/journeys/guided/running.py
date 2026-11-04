@@ -127,7 +127,12 @@ def _own_checks(state, screens_passed):
     from ..fix.execute import original_checks
     if screens_passed or not state['setup'].get('no_interface'): return 0
     checks = original_checks(source(state), runtime_of(state))
-    return len(checks) if checks and all(row['exit'] == 0 for row in checks) else 0
+    if checks and all(row['exit'] == 0 for row in checks): return len(checks)
+    failed = [' '.join(map(str, row['argv'])) for row in checks if row['exit']]
+    state['safety']['skipped'] = [{'reason': f"the project has no interface and its own checks fail on the original: {', '.join(failed)}"[:400]
+                                   if failed else 'the project has no interface and no tests EAOS can run (it runs those of '
+                                                  'Rust, Go and Python projects)'}]
+    return 0
 
 
 def safety(state, args):
