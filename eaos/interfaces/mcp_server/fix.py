@@ -217,7 +217,8 @@ def _edit_tools(server, reading, working, _answer):
                  '[{"path", "content"}] for a whole or new file, [{"path", "delete": true}]. A change to files beyond the card\'s own '
                  'paths is kept only with beyond_why: why each other file must change (one sentence per file, or one for all, in '
                  'the language of summary); it is said at the hand-over and in the commit. A change '
-                 'that fails is taken back with the reason. card="REPAIR" when fix_finish asks for a repair on top of the batch. '
+                 'that fails is taken back with the reason. Never write a lock file\'s hashes by hand: each hash a change adds '
+                 'is checked against its registry and a wrong one is refused. card="REPAIR" when fix_finish asks for a repair on top of the batch. '
                  'summary: the commit message, in the language of the project\'s own commits (English unless they are not): one '
                  'line under 72 characters saying what changed; then, only for a change that is not obvious, a blank line and why. '
                  'Returns a job.')

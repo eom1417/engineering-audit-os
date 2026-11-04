@@ -103,12 +103,14 @@ def withhold(claims):
 
 
 def withheld_said(withheld, ar):
-    """The withheld claims as the report says them: each detector under its bar, how many it found, and why."""
-    count = Counter(row['withheld']['detector'] for row in withheld)
-    why = {row['withheld']['detector']: row['withheld']['why'] for row in withheld}
+    """The withheld claims as the report says them: each detector under its bar, how many it found, and why; then the
+    claims set aside by the ledger (eaos/analysis/claims/aside.py)."""
+    held = [row for row in withheld if not row['withheld'].get('rejected')]
+    count = Counter(row['withheld']['detector'] for row in held)
+    why = {row['withheld']['detector']: row['withheld']['why'] for row in held}
     return [(f'كاشف تجريبي محجوب حتى تثبت دقته: {name} ({n} نتيجة ما انعرضت، {why[name]})' if ar else
              f'an experimental detector kept aside until it is measured precise: {name} ({n} results not shown: {why[name]})')
-            for name, n in sorted(count.items())]
+            for name, n in sorted(count.items())] + rejected_said(withheld, ar)
 
 def make(index, statement, claim_type, confidence, method, evidence_ids, falsifier, **extra):  # limits: parameters -- a claim's required fields (the claim-ledger schema)
     # The schema caps a statement at STATEMENT_LIMIT. Each builder names a bounded list (naming());
@@ -387,3 +389,10 @@ def renumber(claims):
         row.setdefault('uid', identity(row))
         result.append(row)
     return result
+
+
+def rejected_said(withheld, ar):
+    """The set-aside claims as the report says them, by detector."""
+    count = Counter(row['withheld']['detector'] for row in withheld if row['withheld'].get('rejected'))
+    return [(f'نتائج استُبعدت لأنها بلا دليل يثبتها: {name} ({n})' if ar else
+             f'results set aside, with no evidence behind them: {name} ({n})') for name, n in sorted(count.items())]

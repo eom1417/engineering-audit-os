@@ -46,6 +46,25 @@ class LedgerTests(unittest.TestCase):
             claims.save(Path(tmp) / 'claims.json', [valid(falsifier='')])
         self.assertTrue(any('unenforced keywords' in p for p in schema_errors('x', {'type': 'string', 'multipleOf': 2})))
 
+    def test_a_claim_with_no_evidence_is_set_aside_not_stopping_the_ledger(self):
+        bare = valid(evidence_ids=[], render={'key': 'layer_finding', 'params': {'rule': 'server-module-in-browser'}})
+        from eaos.analysis.claims.aside import set_aside
+        kept, aside = set_aside([valid(), bare])
+        self.assertEqual(len(kept), 1)
+        self.assertIn('no evidence and no fact', aside[0]['withheld']['why'])
+        self.assertTrue(aside[0]['withheld']['rejected'])
+        said = claims.withheld_said(aside, ar=False)
+        self.assertEqual(len(said), 1)
+        self.assertIn('no evidence behind them', said[0])
+
+    def test_a_chain_only_dependency_cruiser_followed_names_its_fact(self):
+        from eaos.analysis.claims.from_layers import layer_findings, REACH
+        fact = {'id': 'FACT-chain', 'kind': 'engine_finding', 'location': {'path': 'web/App.tsx'},
+                'value': {'rule': REACH, 'message': 'web/App.tsx imports server/db.ts, the server'}}
+        rows = []
+        layer_findings({'external': {'facts': [fact]}}, lambda *a, **k: rows.append(k), None)
+        self.assertEqual(rows[0]['fact_ids'], ['FACT-chain'])
+
     def test_deterministic_facts_become_confirmed_claims_and_legacy_records_do_not(self):
         with tempfile.TemporaryDirectory() as tmp:
             repo = Path(tmp) / 'repo'; repo.mkdir()

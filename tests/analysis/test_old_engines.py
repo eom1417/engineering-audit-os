@@ -99,7 +99,9 @@ class WhatRan(unittest.TestCase):
         v8 = Path(scratch('eaos-v8-'))
         script = lambda url, name, count: {'url': url, 'functions': [{'functionName': name, 'ranges': [{'count': count}]}]}
         (v8 / 'cov.json').write_text(json.dumps({'result': [script(f'file://{root}/src/App.jsx', 'go', 1),
-                                                            script(f'file://{root}/node_modules/x/i.js', 'lib', 1)]}), encoding='utf-8')
+                                                            script(f'file://{root}/node_modules/x/i.js', 'lib', 1),
+                                                            script(f'file://{root}/vite.config.mts.timestamp-1-a.mjs', 'config', 1)]}),
+                                    encoding='utf-8')
         self.assertEqual(ran.merged(ran.v8(v8, root)), {'src/App.jsx': {'ran': ['go'], 'never': []}})
         page = ran.browser([script('http://127.0.0.1:5173/src/App.jsx?t=1', 'draw', 0), script('http://127.0.0.1:5173/assets/i.js', 'x', 1)], root)
         self.assertEqual(ran.merged(page), {'src/App.jsx': {'ran': [], 'never': ['draw']}})

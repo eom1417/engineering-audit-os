@@ -21,6 +21,7 @@ from .audit import _node, lighthouse, missing, toolchain
 
 MEASURED = 10                   # pages Lighthouse measures in one crawl
 PUBLISHED_ROUTES, PUBLISHED_MEASURED = 40, 3    # a published site is read gently: a few pages opened, fewer measured
+CRAWL_SECONDS, CRAWL_MARGIN = 1800, 300   # the crawl stops opening pages 5 minutes before its timeout, keeping what it found
 SIBLINGS = 5                    # this many sibling pages under one parent are one template (/blog/<slug>)
 DATA = re.compile(r'\d|%|[()~:@.,;=+]')   # a path segment that carries data: a number, an encoded or punctuated name
 
@@ -134,10 +135,10 @@ def discover(base, max_routes=200, storage_state=None, read_only=False, seeds=()
     absent = missing('playwright')
     if absent: return None, absent
     config = {'base': base, 'max_routes': max_routes, 'modules': {'playwright': str(toolchain.home() / 'node/node_modules')},
-              'read_only': read_only, 'seeds': list(seeds)}
+              'read_only': read_only, 'seeds': list(seeds), 'budget_ms': (CRAWL_SECONDS - CRAWL_MARGIN) * 1000}
     if storage_state: config.update(storage_state=str(storage_state), leaves=LEAVES)
     if coverage: config['coverage'] = str(coverage)
-    result, error = _node('crawl.mjs', config, 1800)
+    result, error = _node('crawl.mjs', config, CRAWL_SECONDS)
     return (result or {}).get('routes'), error
 
 

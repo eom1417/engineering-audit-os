@@ -11,11 +11,19 @@ from .waves import change, commit, drop_last
 def automatic_fixes(wave, cards, root, report, progress):
     """The cards with a codemod, fixed by it in the copy: each kept, or taken back when it fails or breaks something; a
     lock file card that fails whole is kept for the packages that pass one at a time (_in_part)."""
-    automatic = [c for c in cards if ((c.get('codemod') or {}).get('dry_run') or {}).get('files_changed', 0) > 0]
+    automatic = [c for c in cards if _dry(c).get('files_changed', 0) > 0]
     for index, card in enumerate(automatic, 1):
         progress(index, len(automatic) + 1, f"automatic fix of {card['id']}")
         why = _automatic_fix(wave, card, root, report)
         if why and not _in_part(wave, card, root, report): wave['failed'][card['id']] = why
+    # A lock card whose dry run failed whole is tried one package at a time too; when none passes it stays the
+    # assistant's (a uv.lock card of ten packages: one needed a newer Python than the project's, 2026-11-04).
+    for card in [c for c in cards if c not in automatic and _dry(c).get('exit') not in (0, None)]:
+        _in_part(wave, card, root, report)
+
+
+def _dry(card):
+    return (card.get('codemod') or {}).get('dry_run') or {}
 
 
 def _automatic_fix(wave, card, root, report):

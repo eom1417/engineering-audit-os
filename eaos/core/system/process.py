@@ -21,8 +21,9 @@ def communicate(process, timeout):
         remaining = deadline - time.monotonic()
         if remaining <= 0: raise subprocess.TimeoutExpired(process.args, timeout)  # nosemgrep: python.lang.security.audit.dangerous-subprocess-use-audit -- only the timeout of the run above, nothing is started here
         try: return process.communicate(timeout=min(0.25, remaining))
-        except subprocess.TimeoutExpired:
-            if time.monotonic() >= deadline: raise
+        except subprocess.TimeoutExpired as slice_ended:
+            # the whole timeout is said, not the last quarter second's (a 30-minute crawl read "0.13 seconds")
+            if time.monotonic() >= deadline: raise subprocess.TimeoutExpired(process.args, timeout) from slice_ended  # nosemgrep: python.lang.security.audit.dangerous-subprocess-use-audit -- rethrow the command timeout with its full budget; no process is started
 
 
 def run_command(argv, timeout, **options):

@@ -42,7 +42,7 @@ QUESTION = 'Reply with the single word: ready'
 
 # What a failed call says, in the assistants' own words, and the problem it means (first match wins).
 PATTERNS = (
-    ('sign_in_expired', r'refresh token (?:was )?already (?:been )?used|refresh_token_reused|refresh token.{0,40}(?:expired|invalid)'),
+    ('sign_in_expired', r'refresh token (?:was )?already (?:been )?used|refresh_token_reused|refresh token.{0,40}(?:expired|invalid|revoked)'),
     ('not_signed_in', r'not logged in|please run /login|please log ?in|run `?codex login|invalid api key|authentication_error|unauthori[sz]ed|\b401\b'),
     ('limit', r'usage limit|rate limit|(?:session|weekly|daily|opus) limit|hit your (?:\w+ )?limit|limit reached|quota|'
               r'credit balance|too many requests|\b429\b'),
@@ -103,14 +103,14 @@ def _run(argv, timeout, stdin=None, cwd=None):
 
 
 def _claude_status(path):
-    code, out, _ = _run([path, 'auth', 'status'], QUICK)
+    code, out, _ = _run([*path, 'auth', 'status'], QUICK)
     if code is None: return None
     try: return bool(json.loads(out).get('loggedIn'))
     except (ValueError, AttributeError): return None      # an older CLI without the command: the real call decides
 
 
 def _codex_status(path):
-    code, out, err = _run([path, 'login', 'status'], QUICK)
+    code, out, err = _run([*path, 'login', 'status'], QUICK)
     if code is None: return None
     if 'not logged in' in (out + err).lower(): return False
     return True if code == 0 else None
@@ -119,7 +119,7 @@ def _codex_status(path):
 def _claude_call(path, timeout):
     """(answered, problem, what it said): the check's way of asking (no tool, no MCP server, nothing kept), on one word."""
     with tempfile.TemporaryDirectory(prefix='eaos-probe-') as empty:
-        code, out, err = _run([path, '-p', '--tools', '', '--strict-mcp-config', '--no-session-persistence', '--output-format', 'json',
+        code, out, err = _run([*path, '-p', '--tools', '', '--strict-mcp-config', '--no-session-persistence', '--output-format', 'json',
                                '--system-prompt', 'Answer in one word.', QUESTION], timeout, cwd=empty)
     if code is None: return False, 'no_answer' if err == 'timeout' else 'failed', ''
     try: envelope = json.loads(out.strip().splitlines()[-1]) if out.strip() else {}
@@ -138,7 +138,7 @@ def _codex_call(path, timeout):
     """(answered, problem, what it said): `codex exec` as the check's adapter runs it (read-only, in an empty folder, nothing kept)."""
     with tempfile.TemporaryDirectory(prefix='eaos-probe-') as empty:
         answer = os.path.join(empty, 'answer.txt')
-        code, out, err = _run([path, 'exec', '--skip-git-repo-check', '--ephemeral', '--ignore-rules', '--ignore-user-config',
+        code, out, err = _run([*path, 'exec', '--skip-git-repo-check', '--ephemeral', '--ignore-rules', '--ignore-user-config',
                                '-s', 'read-only', '--color', 'never', '-C', empty, '-o', answer, '-'], timeout, stdin=QUESTION, cwd=empty)
         text = open(answer, encoding='utf-8').read() if os.path.exists(answer) else ''
     if code is None: return False, 'no_answer' if err == 'timeout' else 'failed', ''
@@ -149,7 +149,7 @@ def _codex_call(path, timeout):
 CHECKS = {'claude': (_claude_status, _claude_call), 'codex': (_codex_status, _codex_call)}
 
 
-def check(name, timeout=TIMEOUT):
+def check(name, timeout=TIMEOUT, command=None):
     """The probe itself, never cached: the readiness of assistant `name` (claude or codex) on this computer now."""
     began = time.monotonic()
     row = {'id': name, 'name': NAMES[name], 'installed': False, 'version': None, 'ready': False, 'code': None,
@@ -166,10 +166,10 @@ def check(name, timeout=TIMEOUT):
         row['seconds'] = round(time.monotonic() - began, 1)
         return row
 
-    path = shutil.which(name)
-    if not path: return done('not_installed')
+    path = list(command) if command else [shutil.which(name)]
+    if not path[0]: return done('not_installed')
     row['installed'] = True
-    code, out, err = _run([path, '--version'], QUICK)
+    code, out, err = _run([*path, '--version'], QUICK)
     if code != 0: return done('no_answer' if err == 'timeout' else 'not_working')
     row['version'] = (out.strip().splitlines() or [''])[0][:80] or None
     status, call = CHECKS[name]

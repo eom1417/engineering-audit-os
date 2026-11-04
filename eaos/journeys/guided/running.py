@@ -23,7 +23,8 @@ def ready(state, args):
     _, model = provider()
     result = live_setup.setup(source(state), runtime, report=report_of(state), provider=model,
                               say=lambda n: _setup_progress(lang, n, live_setup.ATTEMPTS))
-    state['setup'] = {'commit': commit, 'ok': result['ok'], 'attempts': result['attempts'], 'limitations': result['limitations']}
+    state['setup'] = {'commit': commit, 'ok': result['ok'], 'attempts': result['attempts'], 'limitations': result['limitations'],
+                      **({'no_interface': True} if result.get('no_interface') else {})}
     state.pop('safety', None)
     save(state)
     _setup_box(state, lang, result, runtime)
@@ -105,8 +106,18 @@ def _safety_run(state, step):
         progress.skip('speed', 'the production build of the app did not run during the setup' if baseline.get('build')
                       else 'the app has no production build', outcome['speed'])
     state['safety'] = {'commit': state['setup']['commit'], 'screens': len(results), 'passed': passed, 'p95_ms': outcome['p95_ms'], 'skipped': skipped[:5]}
+    outcome['own_checks'] = state['safety']['own_checks'] = _own_checks(state, passed)
     save(state)
     return outcome
+
+
+def _own_checks(state, screens_passed):
+    """The project's own checks that pass on the original, when it has no interface to record: they are its safety net
+    (a library's tests, a command-line tool's build and tests); 0 when there are none or one fails, said plainly."""
+    from ..fix.execute import original_checks
+    if screens_passed or not state['setup'].get('no_interface'): return 0
+    checks = original_checks(source(state), runtime_of(state))
+    return len(checks) if checks and all(row['exit'] == 0 for row in checks) else 0
 
 
 def safety(state, args):

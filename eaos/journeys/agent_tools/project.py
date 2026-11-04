@@ -96,8 +96,17 @@ def _current(state, head):
 def _report(state):
     report = guided.report_of(state)
     if not (report / 'plan.json').is_file():
-        raise LookupError('this project has not been checked yet: call `audit` first')
+        raise LookupError(_stopped(report) or 'this project has not been checked yet: call `audit` first')
     return report
+
+
+def _stopped(report):
+    """The step a check that ran stopped at and why, from its manifest; '' when no check ran here (excalidraw,
+    2026-11-04: the person was told 'not checked yet' after 52 minutes of a check)."""
+    path = report / 'run-manifest.json'
+    stages = (_read(path).get('stages') or {}) if path.is_file() else {}
+    name, row = next(((name, row) for name, row in stages.items() if row.get('status') == 'failed'), (None, None))
+    return f"the check stopped at its `{name}` step: {row.get('reason') or 'no reason recorded'}"[:600] if name else ''
 
 
 def _read(path):

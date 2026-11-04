@@ -87,7 +87,9 @@ try {
     const found = pathOf(seed);
     if (found && !seen.has(found) && !(leaves && leaves.test(found))) { seen.add(found); seeded.add(found); queue.push({ path: found, depth: 1 }); }
   }
-  while (queue.length && routes.length < config.max_routes) {
+  // stop before the caller's timeout, with the pages found so far (a large app's crawl lost all of them at 30 minutes)
+  const stopAt = Date.now() + (config.budget_ms || Infinity);
+  while (queue.length && routes.length < config.max_routes && Date.now() < stopAt) {
     const { path, depth } = queue.shift();
     const page = await context.newPage();
     if (config.coverage) await page.coverage.startJSCoverage({ resetOnNavigation: false }).catch(() => {});
