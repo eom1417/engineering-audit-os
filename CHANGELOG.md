@@ -18,7 +18,8 @@ a stopped audit with evidence missing, and a command-line project that could not
 - Include the pinned official PHP security rules. Recognise a generated binding's proven Node-only runtime branch
   without suppressing static Node imports or Node globals elsewhere.
 - A file a run makes and removes (Vite's bundled config) is no longer recorded as one of the project's own files.
-- A project with no interface starts nothing for its safety net and its batch: its own checks hold every change.
+- A project with no interface starts nothing for its safety net and its batch: its own checks hold every change. A Python
+  library's tests run in the run's own environment, its pyproject dependency group that brings pytest installed.
 
 ## 0.0.91 (2026-11-03)
 

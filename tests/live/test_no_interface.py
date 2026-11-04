@@ -29,6 +29,16 @@ class NoInterfaceTests(unittest.TestCase):
             self.assertEqual(own_checks.unknown_app(tmp)['profile']['checks'], checks)
         self.assertEqual(profile.safe({'install': install, 'start': ['cargo', 'run']}), [])
 
+    def test_a_python_library_installs_its_test_group_and_runs_its_tests_in_the_runs_environment(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            (Path(tmp) / 'tests').mkdir(); (Path(tmp) / 'tests/test_a.py').write_text('', encoding='utf-8')
+            (Path(tmp) / 'pyproject.toml').write_text('[project]\nname = "x"\n[dependency-groups]\ndev = ["ruff"]\n'
+                                                     'tests = ["freezegun", {include-group = "pin"}]\npin = ["pytest>=8"]\n'
+                                                     '[tool.pytest.ini_options]\ntestpaths = ["tests"]\n', encoding='utf-8')
+            install, checks = own_checks.found(tmp)
+        self.assertEqual([step[6:] for step in install], [['-e', '.'], ['freezegun', 'pytest>=8']])
+        self.assertEqual(checks, [['python', '-m', 'pytest', '-q']])
+
     def test_passing_own_checks_open_a_batch_without_screens(self):
         state = {'setup': {'ok': False, 'no_interface': True, 'commit': 'c'},
                  'safety': {'commit': 'c', 'screens': 0, 'passed': 0, 'own_checks': 2}}
@@ -47,10 +57,12 @@ class NoInterfaceTests(unittest.TestCase):
             with mock.patch.object(running, 'runtime_of', return_value=Path(tmp)), mock.patch.object(running, 'report_of', return_value=Path(tmp)), \
                     mock.patch.object(running, 'source', return_value=Path(tmp)), mock.patch.object(running, 'save'), \
                     mock.patch('eaos.live.behavior.specs.build'), mock.patch('eaos.live.behavior.lock.run_lock', side_effect=AssertionError('started')), \
-                    mock.patch('eaos.journeys.fix.execute.original_checks', return_value=[{'argv': ['pytest'], 'exit': 0}]):
+                    mock.patch('eaos.journeys.fix.execute.original_checks', side_effect=[[{'argv': ['pytest'], 'exit': 0}], []]):
                 outcome = running._safety_run(state, lambda n: None)
-        self.assertEqual((outcome['screens'], outcome['own_checks'], state['safety']['own_checks']), (0, 1, 1))
-        self.assertIn('no interface', outcome['skipped'][0]['reason'])
+                self.assertEqual((outcome['screens'], outcome['own_checks'], state['safety']['own_checks']), (0, 1, 1))
+                running._safety_run(state, lambda n: None)      # a Flutter app: no tests EAOS runs, said so
+        self.assertEqual(state['safety']['own_checks'], 0)
+        self.assertIn('no tests EAOS can run', state['safety']['skipped'][0]['reason'])
 
     def test_a_batch_of_a_project_with_no_interface_is_held_by_its_checks_not_by_screens(self):
         from eaos.journeys.fix import finish
