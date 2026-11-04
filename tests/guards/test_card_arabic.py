@@ -27,6 +27,13 @@ class CardArabicTests(unittest.TestCase):
         english = [c['id'] for c in claims if impact_of(c, 'ar') != '—' and not ARABIC.search(impact_of(c, 'ar'))]
         self.assertEqual(english, [])
 
+    def test_an_upgrade_with_no_fixed_version_asks_to_replace_the_package(self):
+        from eaos.core.language.words import statement_of
+        claim = {'render': {'key': 'vulnerable_dependency', 'params': {'package': 'bincode', 'installed': '1.3.3', 'count': 1,
+                                                                       'ids': 'RUSTSEC-2025-0141', 'severity': 'medium', 'fixed': '—'}}}
+        self.assertIn('replace it', statement_of(claim, 'en'))
+        self.assertIn('القرار لك', impact_of(claim, 'ar'))
+
 
 if __name__ == '__main__':
     unittest.main()

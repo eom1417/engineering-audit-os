@@ -96,6 +96,7 @@ TEMPLATES = {
         'broken_code': 'كود معطّل في {path}:{line}: `{subject}` ({reason_ar})',
         'vulnerable_dependency': 'الاعتمادية {package}@{installed} فيها {count} ثغرة معروفة ({ids})، أعلاها {severity}؛ الإصلاح في {fixed}',
         'vulnerable_lockfile': '{lockfile}: {count} حزم ما يذكرها المشروع بنفسه فيها ثغرات معروفة ({packages})، أعلاها {severity}',
+        'vulnerable_dependency_unfixed': 'الاعتمادية {package}@{installed} فيها {count} ثغرة معروفة ({ids})، أعلاها {severity}، وما لها إصدار مصلَّح: استبدلها',
         'duplicated_rule': '{name} معرّف في {count} مواضع ({places})' ,
         'duplicated_rule_differs': '{name} معرّف في {count} مواضع **بقيم مختلفة** ({places})',
         'trace_gap': 'تدفق {flow} ({surface} {route}) يتوقف عند {count} استدعاءات لا يمكن حلّها',
@@ -118,6 +119,7 @@ TEMPLATES = {
         'broken_code': 'Broken code at {path}:{line}: `{subject}` ({reason_en})',
         'vulnerable_dependency': 'Dependency {package}@{installed} has {count} known vulnerabilities ({ids}), highest {severity}; fixed in {fixed}',
         'vulnerable_lockfile': '{lockfile}: {count} packages the project does not name itself have known vulnerabilities ({packages}), highest {severity}',
+        'vulnerable_dependency_unfixed': 'Dependency {package}@{installed} has {count} known vulnerabilities ({ids}), highest {severity}, and no fixed version: replace it',
         'duplicated_rule': '{name} is defined in {count} places ({places})',
         'duplicated_rule_differs': '{name} is defined in {count} places **with different values** ({places})',
         'trace_gap': 'Flow {flow} ({surface} {route}) stops at {count} unresolvable calls',
@@ -155,6 +157,7 @@ IMPACTS = {
         'vulnerable_dependency': 'ثغرة منشورة بإصلاح منشور في إصدار مقفل في هذا المشروع؛ لم يُثبت بعد أن الكود المصاب يُستدعى منه.',
         'vulnerable_lockfile': 'ثغرات منشورة بإصلاحات منشورة في حزم تجيبها حزم ثانية ومقفلة في هذا المشروع؛ تُرقّى كلها مع بعض أو ما تُرقّى، ولم يُثبت بعد أن الكود المصاب يُستدعى منه.',
         'vulnerable_dependency_dev': 'ثغرة منشورة بإصلاح منشور في أداة تُستخدم وقت التطوير أو البناء؛ ما توصل للمستخدمين إلا إذا البناء شحنها معه.',
+        'vulnerable_dependency_unfixed': 'ما فيه إصدار يصلح الثغرة، فالمكتبة غالبًا متروكة: القرار لك، تستبدلها بمكتبة ثانية أو تقبل الخطر بسبب.',
         'duplicated_rule': 'تعديل القاعدة في موضع دون الآخر يجعل مسارين يختلفان.',
         'duplicated_rule_differs': 'تعديل القاعدة في موضع دون الآخر يجعل مسارين يختلفان — وهما مختلفان أصلًا.',
         'trace_gap': 'سلوك نقطة الدخول هذه غير مرئي بالكامل من المصدر وحده.',
@@ -195,6 +198,7 @@ IMPACTS = {
         'vulnerable_dependency': 'A published vulnerability with a published fix, in a version locked in this project; whether this project calls the affected code is not yet shown.',
         'vulnerable_lockfile': 'Published vulnerabilities with published fixes, in packages others pull in and locked in this project; they are upgraded together or not at all, and whether this project calls the affected code is not yet shown.',
         'vulnerable_dependency_dev': 'A published vulnerability with a published fix, in a tool used while developing or building; it reaches users only if the build ships it.',
+        'vulnerable_dependency_unfixed': 'No version fixes it, so the package is likely abandoned: the decision is yours, to replace it with another or accept the risk with a reason.',
         'duplicated_rule': 'Editing the rule in one place and not the other makes two paths disagree.',
         'duplicated_rule_differs': 'Editing the rule in one place and not the other makes two paths disagree, and they already differ.',
         'trace_gap': 'The behavior of this entry point is not fully visible from source alone.',
@@ -220,7 +224,9 @@ IMPACTS = {
 def _render_key(render):
     """The key of a claim's words; a duplicated rule whose copies differ has its own."""
     key = render.get('key')
-    return 'duplicated_rule_differs' if key == 'duplicated_rule' and (render.get('params') or {}).get('differs') == 'yes' else key
+    params = render.get('params') or {}
+    if key == 'vulnerable_dependency' and params.get('fixed') in (None, '', '—'): return 'vulnerable_dependency_unfixed'   # an upgrade to nowhere
+    return 'duplicated_rule_differs' if key == 'duplicated_rule' and params.get('differs') == 'yes' else key
 
 
 def _layer_impact(boundary, language):
