@@ -246,3 +246,10 @@ Which files to read and touch, in order, for each kind of addition: `docs/EXTEND
 - `technical/`: records later stages and the Studio read. Caches never live here (M1.2). A run removes the documents
   a check no longer writes (`eaos/pipeline/run.py` RETIRED).
 - `runtime/` in the project's folder of EAOS's home (`~/.eaos/projects/<project>-<id>/`): working copies, caches, batch copies, bounded by a retention rule (M1.1).
+
+### Evidence and runtime boundaries
+
+Unsupported claims are set aside with reasons rather than aborting the dossier. Import-chain claims retain the external
+fact that supports them. Layer placement reads generated multi-runtime bindings through `analysis/layers/runtime_guards.py`:
+only a parsed positive Node branch with all runtime flags validated is excluded from Node text evidence. Static imports
+and other Node text remain evidence. The fix handover reads large lock-version moves through `core/project/jumps.py`.

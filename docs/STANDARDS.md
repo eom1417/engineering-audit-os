@@ -133,3 +133,10 @@ After **every** finished change, in the same change:
 Nothing about the work is kept in an assistant's or account's own folders (its memory, its plan files): a plan made in
 any assistant's plan mode is written where the work's plan lives before the turn ends. Nothing private is published
 (`AGENTS.md`, "The published tree holds only the product").
+
+## Lock integrity and projects without screens
+
+A changed npm lock file is checked against registry integrity metadata for each added hash before its change is kept.
+An assistant never invents an integrity hash. A plain directory listing is not an application screen and cannot prove
+behaviour preserved. A project with no web interface uses its own runnable checks and build as its safety net; checks
+that could not run are named in the handover.

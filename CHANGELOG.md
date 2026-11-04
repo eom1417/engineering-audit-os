@@ -1,5 +1,23 @@
 # Changelog
 
+## Not yet versioned
+
+A second trial on unfamiliar projects exposed unsound lock hashes, directory listings recorded as application screens,
+a stopped audit with evidence missing, and a command-line project that could not pass a screen-only safety gate.
+
+- Verify new npm lock integrity hashes against the registry; reject a mismatch and forbid handwritten hashes.
+- Reject directory listings as application screens. Projects without a web interface use their own checks and build;
+  Rust cargo commands run in the isolated copy.
+- Link import-chain claims to their source facts; set unsupported claims aside with their reasons. Name a failed audit
+  stage, report the full timeout, and retain pages discovered before a crawl's deadline.
+- Wait until an account's stated reset time; probe a fallback assistant before handing it work. Release a stopped
+  empty batch's cards for retry.
+- Try uv upgrades individually when a whole lock upgrade fails. Upgrade vulnerable GitHub Actions in their workflows.
+  A dependency with no fixed version asks for a replacement decision. Say large npm major-version jumps at handover.
+- Preserve Arabic remediation text and distinguish existing copied line windows from duplication introduced by a split.
+- Include the pinned official PHP security rules. Recognise a generated binding's proven Node-only runtime branch
+  without suppressing static Node imports or Node globals elsewhere.
+
 ## 0.0.91 (2026-11-03)
 
 The first trial on projects EAOS had never seen (five, of five kinds, then the same five again). The first round
