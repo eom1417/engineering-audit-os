@@ -23,10 +23,12 @@ import shlex
 import shutil
 import subprocess
 import tempfile
+from functools import partial
 from pathlib import Path, PurePosixPath
 
 from ...core import progress
 from ...core.system.files import read_json
+from .actions_upgrade import action_card, bump
 
 RULES = Path(__file__).resolve().parents[2] / 'rules/codemods.json'
 TRANSFORM = Path(__file__).resolve().parents[2] / 'templates/codemods/remove-declaration.cjs'
@@ -138,7 +140,7 @@ def _commands(card, copy):
     if kind == 'jscodeshift':
         found = binary('jscodeshift')
         return [([found, '-t', str(TRANSFORM), '--parser=tsx', f"--name={detail['symbol']}", detail['path']], None)] if found else None
-    if kind in (*LOCK_ONLY, 'uv', 'go'): return _upgrade_steps(detail, copy)
+    if kind in (*LOCK_ONLY, 'uv', 'go', 'actions'): return _upgrade_steps(detail, copy)
     return None
 
 
@@ -146,6 +148,7 @@ def _upgrade_steps(card, copy):
     """The steps of an upgrade card, one package's or a lock file card's, by its lock file's tool."""
     members, executable = card.get('group') or [card], binary(card['kind']) or card['kind']
     if card['kind'] == 'go': return _go_steps(members, executable, copy)
+    if card['kind'] == 'actions': return [(partial(bump, copy, m['package'], m['fixed']), f"uses: {m['package']}@{m['fixed']}") for m in members]
     return _uv_steps(members, executable) if card['kind'] == 'uv' else _group_steps(members, executable, copy)
 
 
@@ -256,7 +259,7 @@ def card_for(task, facts_by_id, target):
 
 def _upgrades_card(facts, target):
     """A lock file card's packages each get their own change, and the card passes or fails whole; one package: its own."""
-    members = [_upgrade_card(fact, target) for fact in facts]
+    members = [action_card(fact) or _upgrade_card(fact, target) for fact in facts]
     if not members or None in members: return None
     return members[0] if len(members) == 1 else {'kind': members[0]['kind'], 'group': _past_vulnerable(members)}
 

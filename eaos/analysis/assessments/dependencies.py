@@ -43,7 +43,9 @@ UNABLE = {'lock': ('no lock file names it, only the inventory found it; upgrade 
 
 def _unable(fact, upgrades):
     """(blockers, the words added to the change) when a batch cannot upgrade this lock file itself, else ([], '')."""
-    manuals = [manual_upgrade(fact['location'].get('path') or '', name, fixed) for _, name, _, fixed, _ in upgrades]
+    # an Action is moved in the workflows that use it (eaos/analysis/repair/actions_upgrade.py), never through a lock file
+    manuals = [None if ecosystem == 'GitHub Actions' else manual_upgrade(fact['location'].get('path') or '', name, fixed)
+               for ecosystem, name, _, fixed, _ in upgrades]
     if manuals[0] is None: return [], ''
     manual = {**manuals[0], 'command': ' && '.join(m['command'] for m in manuals if m['command'])}
     en, ar = (text.format(**manual) for text in UNABLE[manual['why']])
