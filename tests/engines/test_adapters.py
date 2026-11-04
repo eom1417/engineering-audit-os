@@ -98,13 +98,14 @@ class SemgrepTests(Workspace):
     def test_the_silenced_official_rules_are_left_out_and_the_other_security_rules_kept(self):
         from eaos.engines.security import semgrep
         checkout = Path(self.tmp) / 'official'
-        for name in (*semgrep.SILENCED, 'javascript/browser/security/insecure-innerhtml.yaml', 'javascript/lang/style/x.yaml'):
+        for name in (*semgrep.SILENCED, 'javascript/browser/security/insecure-innerhtml.yaml', 'javascript/lang/style/x.yaml',
+                     'php/lang/security/injection.yaml', 'php/lang/style/x.yaml'):
             (checkout / name).parent.mkdir(parents=True, exist_ok=True)
             (checkout / name).write_text('rules: []\n')
         with mock.patch.object(semgrep, 'official_checkout', return_value=(checkout, 'c' * 40)):
             semgrep.assemble(Path(self.tmp))
         copied = {p.relative_to(Path(self.tmp) / 'rules/official').as_posix() for p in (Path(self.tmp) / 'rules/official').rglob('*.yaml')}
-        self.assertEqual(copied, {'javascript/browser/security/insecure-innerhtml.yaml'})
+        self.assertEqual(copied, {'javascript/browser/security/insecure-innerhtml.yaml', 'php/lang/security/injection.yaml'})
 
     def test_rule_ids_and_paths_do_not_depend_on_where_things_are_installed(self):
         from eaos.engines.security import semgrep

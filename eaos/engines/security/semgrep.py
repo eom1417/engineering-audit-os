@@ -27,7 +27,7 @@ from ..process import run, which
 NAME = BINARY = 'semgrep'
 PINNED = tool.pinned(NAME)
 OWN = Path(eaos.__path__[0]).resolve() / 'rules/semgrep'
-OFFICIAL = ('javascript', 'typescript', 'python', 'generic/secrets')
+OFFICIAL = ('javascript', 'typescript', 'python', 'php', 'generic/secrets')
 PREFIXES = ('rules.eaos.', 'rules.official.')
 # Official rules left out (M2.1, 2026-10-24). html-in-template-string flags every template literal that looks like HTML
 # and holds a value: 1,554 of semgrep's 1,673 findings on EAOS, none a weakness. Where such text becomes a page is what
