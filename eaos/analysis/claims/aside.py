@@ -20,4 +20,3 @@ def screen(rows, withheld, records, sets):
     rows, aside = set_aside(rows, evidence, {f['id'] for data in sets.values() for f in data['facts']})
     for number, row in enumerate(aside, start=len(withheld) + 1): row['id'] = 'WHD-%03d' % number
     return rows, withheld + aside
-

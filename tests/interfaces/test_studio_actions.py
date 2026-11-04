@@ -516,7 +516,7 @@ class Runs(Base):
             run = self.start('fix', cards=('TASK-001', 'TASK-002'))
             self.app.wait(run, ('done', 'failed'), 30)
         events = self.app.store.events(run)
-        launches = [line for line in Path(os.environ['FAKE_ARGV']).read_text().splitlines() if '"-p"' in line]
+        launches = [line for line in Path(os.environ['FAKE_ARGV']).read_text().splitlines() if '"--allowedTools"' in line]
         self.assertEqual(len(launches), 2, 'it went on by itself once its assistant crashed')
         self.assertIn('stopped before the end', json.loads(launches[1])[json.loads(launches[1]).index('-p') + 1][:300])
         self.assertEqual([e['data'].get('resume') for e in events if e['kind'] == 'step' and e['data'].get('resume')], [1])
@@ -645,7 +645,7 @@ class Runs(Base):
         run = self.start('explain', app=other)
         self.assertEqual(self.app.wait(run, ('waiting_for_person', 'failed'), 30)['state'], 'waiting_for_person')
         time.sleep(1)
-        launches = [line for line in Path(os.environ['FAKE_ARGV']).read_text().splitlines() if '"-p"' in line]
+        launches = [line for line in Path(os.environ['FAKE_ARGV']).read_text().splitlines() if '"--allowedTools"' in line]
         self.assertEqual(len(launches), 1)
         self.assertNotIn(run, other.manager.watched)
 
