@@ -79,14 +79,14 @@ def safety_run(state, step=lambda n: None):
 def _safety_run(state, step):
     from ...live.behavior import specs as lock_specs
     from ...core import progress
-    from ...live.behavior.lock import refused, run_lock
+    from ...live.behavior.lock import refused
     from ...live.trials.load_baseline import run_baseline
     runtime = runtime_of(state)
     step(1)
     # The specs written again by this EAOS, so a change in how they are written reaches the safety net with no new check.
     lock_specs.build(report_of(state), source(state))
-    results = (lock := run_lock(report_of(state), source(state), runtime))['results']
-    skipped = refused(lock)
+    lock = _screens(state, runtime)
+    results, skipped = lock['results'], refused(lock)
     outcome = {'screens': len(results), 'passed': (passed := sum(r['status'] == 'passed' for r in results)), 'p95_ms': None, 'speed_error': None, 'skipped': skipped}
     baseline = json.loads((runtime / 'run.json').read_text(encoding='utf-8')).get('baseline') or {}
     if baseline.get('build') and baseline.get('verified') and list((report_of(state) / 'nfr/k6').glob('*.js')):
@@ -109,6 +109,16 @@ def _safety_run(state, step):
     outcome['own_checks'] = state['safety']['own_checks'] = _own_checks(state, passed)
     save(state)
     return outcome
+
+
+def _screens(state, runtime):
+    """The run_lock answer of the original's screens. A project with no interface has no screen to record and nothing
+    to start: its own checks are its safety net (a stranger's library was started as `true` here, and no batch could
+    open, 2026-11-04)."""
+    from ...live.behavior.lock import run_lock
+    if (state.get('setup') or {}).get('no_interface'):
+        return {'results': [], 'limitations': ['the project has no interface: its own checks keep it safe']}
+    return run_lock(report_of(state), source(state), runtime)
 
 
 def _own_checks(state, screens_passed):

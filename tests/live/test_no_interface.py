@@ -39,6 +39,29 @@ class NoInterfaceTests(unittest.TestCase):
             state['safety']['own_checks'] = 0
             self.assertEqual(where._setup_step(state, 'c')[0], 'none')
 
+    def test_the_safety_net_of_a_project_with_no_interface_starts_nothing_and_runs_its_own_checks(self):
+        from eaos.journeys.guided import running
+        with tempfile.TemporaryDirectory() as tmp:
+            (Path(tmp) / 'run.json').write_text('{}', encoding='utf-8')
+            state = {'setup': {'ok': False, 'no_interface': True, 'commit': 'c'}}
+            with mock.patch.object(running, 'runtime_of', return_value=Path(tmp)), mock.patch.object(running, 'report_of', return_value=Path(tmp)), \
+                    mock.patch.object(running, 'source', return_value=Path(tmp)), mock.patch.object(running, 'save'), \
+                    mock.patch('eaos.live.behavior.specs.build'), mock.patch('eaos.live.behavior.lock.run_lock', side_effect=AssertionError('started')), \
+                    mock.patch('eaos.journeys.fix.execute.original_checks', return_value=[{'argv': ['pytest'], 'exit': 0}]):
+                outcome = running._safety_run(state, lambda n: None)
+        self.assertEqual((outcome['screens'], outcome['own_checks'], state['safety']['own_checks']), (0, 1, 1))
+        self.assertIn('no interface', outcome['skipped'][0]['reason'])
+
+    def test_a_batch_of_a_project_with_no_interface_is_held_by_its_checks_not_by_screens(self):
+        from eaos.journeys.fix import finish
+        state = {'setup': {'no_interface': True}, 'open_wave': {'root': '/x', 'base': 'b'}}
+        with mock.patch.object(finish.project_state, 'load', return_value=state), mock.patch.object(finish.project_state, 'runtime_of'), \
+                mock.patch.object(finish.guided, 'stale_refusal', return_value=None), mock.patch.object(finish.guided, '_git'), \
+                mock.patch.object(finish.guided, 'save'), mock.patch.object(finish.guided, 'report_of'), mock.patch.object(finish.guided, 'source'), \
+                mock.patch('eaos.journeys.fix.waves.finish_batch', side_effect=RuntimeError('stop')) as batch:
+            with self.assertRaises(RuntimeError): finish.finish_job('/p', {}, lambda *_: None)
+        self.assertIs(batch.call_args.kwargs['lock'], False)
+
 
 if __name__ == '__main__':
     unittest.main()
