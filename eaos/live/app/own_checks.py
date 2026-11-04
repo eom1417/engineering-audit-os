@@ -19,10 +19,10 @@ def found(project):
 def _python(root):
     """A Python project's install and its own tests, run by the run's own environment where that install put pytest
     (EAOS's interpreter has neither the project's packages nor pytest)."""
-    from . import detect_python
+    from .python_install import MANIFESTS, install
     from ..testing.python_suite import command
-    tests = command(root) if any((root / name).is_file() for name in detect_python.MARKERS) else None
-    return (detect_python.install(root), [['python', *tests[1:]]]) if tests else ([['true']], [])
+    tests = command(root) if any((root / name).is_file() for name in MANIFESTS) else None
+    return (install(root), [['python', *tests[1:]]]) if tests else ([['true']], [])
 
 
 def unknown_app(project=None):

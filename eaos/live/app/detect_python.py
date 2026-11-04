@@ -5,11 +5,11 @@ Python apps never started without one, M5.1)."""
 import re
 from pathlib import Path
 
-from ...core.system.files import tomllib
+from .python_install import MANIFESTS, _read, install, test_extra, test_group
 
 PY_ENV = re.compile(r'''os\.(?:environ\.get|getenv)\(\s*['"]([A-Z][A-Z0-9_]{2,})['"]|os\.environ\[\s*['"]([A-Z][A-Z0-9_]{2,})['"]\s*\]''')
 SKIP = {'.venv', 'venv', 'env', 'node_modules', '.git', 'tests', 'test', 'site-packages', '__pycache__', 'migrations'}
-MARKERS = ('manage.py', 'requirements.txt', 'pyproject.toml', 'setup.py')
+MARKERS = ('manage.py', *MANIFESTS)
 FIRST = ('streamlit_app.py', 'app.py', 'main.py', 'wsgi.py', 'run.py', 'server.py', 'Home.py')    # tried before the others
 # The run's test account in a Django app's own users (eaos/live/access/test_account.py signs in with it); an app whose user
 # model needs more is left to the sign-up page or the assistant, never a failed setup.
@@ -33,10 +33,6 @@ def folder(project):
     for path in sorted(project.glob('*/')):
         if path.name not in SKIP and any((path / name).is_file() for name in MARKERS): return path.name
     return None
-
-
-def _read(path):
-    return path.read_text(encoding='utf-8', errors='replace') if path.is_file() else ''
 
 
 def _requirements(app):
@@ -107,44 +103,6 @@ def served_pages(live):
     code, out, _ = live.run(['python', '-m', 'flask', '--app', start[4], 'routes'], timeout=300)
     rows = [re.split(r'\s{2,}', line.strip()) for line in out.splitlines()[2:]] if code == 0 else []
     return [row[2] for row in rows if len(row) == 3 and 'GET' in row[1] and '<' not in row[2]]
-
-
-def install(app):
-    pip = ['python', '-m', 'pip', 'install', '-q', '--disable-pip-version-check']
-    extra = test_extra(app)
-    steps = [pip + ['-r', 'requirements.txt']] if (app / 'requirements.txt').is_file() else []
-    if (not steps or extra) and ((app / 'pyproject.toml').is_file() or (app / 'setup.py').is_file()):
-        steps.append(pip + ['-e', f'.[{extra}]' if extra else '.'])      # the test extra beside the requirements too
-    group = [] if extra else test_group(app)
-    if group: steps.append(pip + group)
-    return steps or [['true']]
-
-
-def test_extra(app):
-    """The pyproject.toml extra that brings pytest (`[project.optional-dependencies] test = ["pytest"]`), or None: its
-    tests need it installed (flaskr of the corpus: every gate said its tests passed, and none had run, M9.3)."""
-    try: extras = tomllib.loads(_read(app / 'pyproject.toml')).get('project', {}).get('optional-dependencies') or {}
-    except (tomllib.TOMLDecodeError, AttributeError): return None
-    if not isinstance(extras, dict): return None
-    return next((name for name, deps in extras.items() if any(re.match(r'pytest\b', str(d).strip().lower()) for d in deps)), None)
-
-
-def test_group(app):
-    """The requirements of the pyproject.toml dependency group that brings pytest (`[dependency-groups] tests =
-    ["pytest", ...]`, its included groups read in), or []: pip 24, the one a run's environment has, installs no group
-    by name (a stranger's library ran its tests without pytest, and no batch could open, 2026-11-04)."""
-    try: groups = tomllib.loads(_read(app / 'pyproject.toml')).get('dependency-groups') or {}
-    except (tomllib.TOMLDecodeError, AttributeError): return []
-    if not isinstance(groups, dict): return []
-
-    def read(name, seen):
-        rows = []
-        for row in groups.get(name) or []:
-            if isinstance(row, str): rows.append(row)
-            elif isinstance(row, dict) and row.get('include-group') not in seen: rows += read(row['include-group'], seen | {name})
-        return rows
-    found = (read(name, {name}) for name in groups)
-    return next((rows for rows in found if any(re.match(r'pytest\b', row.strip().lower()) for row in rows)), [])
 
 
 def prepare(kind, target, app, needs, modules):
