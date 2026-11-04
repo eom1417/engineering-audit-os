@@ -243,7 +243,8 @@ def impact_of(claim, language):
         try: return IMPACTS[language][params['impact_key']].format(**params)
         except (KeyError, IndexError, ValueError): pass
     translated = IMPACTS.get(language, {}).get(key)
-    return translated or (claim.get('impact') or {}).get('scenario') or '—'
+    # a card that carries its fix in both languages says it in the reader's, never the English scenario under Arabic
+    return translated or params.get(f'fix_{language}') or (claim.get('impact') or {}).get('scenario') or '—'
 
 
 
