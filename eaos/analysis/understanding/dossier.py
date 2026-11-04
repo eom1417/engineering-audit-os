@@ -7,7 +7,7 @@ from collections import namedtuple
 from functools import partial
 from pathlib import Path
 from ... import __version__
-from ..claims import from_one_source, from_rules, from_runs, ledger
+from ..claims import aside, from_one_source, from_rules, from_runs, ledger
 from ..claims.gather import REGISTER, assess_mechanically, build_claims, fact_index_of, needs_a_disposition, origin_of, runtime_claims
 from ...core import progress
 from ...core.contracts.document import Document, say
@@ -266,8 +266,8 @@ def assemble(target, out, run=None, language='ar', version=None, exclude=(), eng
     request, inputs = _Request(target, out, run, language, version, exclude), _Inputs(map_result, sets, records, verification)
     rows, withheld = _claims(request, inputs)
     progress.count('claim steps', 3, CLAIM_STEPS)
-    problems = ledger.errors(rows, {e['id'] for e in records['evidence']} if records['evidence'] else (),
-                             {f['id'] for data in sets.values() for f in data['facts']})
+    rows, withheld = aside.screen(rows, withheld, records, sets)
+    problems = ledger.errors(rows, (), {f['id'] for data in sets.values() for f in data['facts']})
     if problems: raise ValueError('Claim ledger rejected: ' + '; '.join(problems[:5]))
     dossier = _dossier(request, inputs, rows, withheld)
     _decide(dossier)

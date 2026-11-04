@@ -16,8 +16,8 @@ REACH = 'eaos-browser-reaches-server'
 
 
 def _reached(fact_sets, known):
-    """Browser-to-server chains only dependency-cruiser followed: (from, to, message)."""
-    return [(f['location']['path'], f['value'].get('message', ''))
+    """Browser-to-server chains only dependency-cruiser followed: (file, message, the engine fact that says it)."""
+    return [(f['location']['path'], f['value'].get('message', ''), f['id'])
             for f in (fact_sets.get('external') or {}).get('facts', [])
             if f.get('kind') == 'engine_finding' and f['value'].get('rule') == REACH and f['location']['path'] not in known]
 
@@ -45,10 +45,10 @@ def layer_findings(fact_sets, add, target):
              and f['value']['rule'] not in PLANNED_ELSEWHERE]
     for fact in facts: _claim(fact, add)
     known = {f['location']['path'] for f in facts if f['value']['rule'] == 'server-module-in-browser'}
-    for path, message in _reached(fact_sets, known):
+    for path, message, fact_id in _reached(fact_sets, known):
         params = {'path': path, 'target': message.rsplit(' imports ', 1)[-1].split(',')[0] or 'server code'}
         add(sentence('server-module-in-browser', params), 'risk', 'LIKELY', ['external_engine'],
-            'A resolved import chain from this browser file to server code no longer existing.',
+            'A resolved import chain from this browser file to server code no longer existing.', fact_ids=[fact_id],
             render={'key': 'layer_finding', 'params': {'rule': 'server-module-in-browser', 'boundary': 'browser', 'severity': 'high',
                                                        'en': sentence('server-module-in-browser', params),
                                                        'ar': sentence('server-module-in-browser', params, 'ar'),
