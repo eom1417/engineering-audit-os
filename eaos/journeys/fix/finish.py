@@ -150,20 +150,30 @@ def _said_too(state, wave, branch=None):
     """What the person hears beside the fixes, ({answer keys}, the words for the assistant): the project's own checks
     that could not run on the original or rewrite the files instead of checking them (eaos/journeys/fix/execute.py
     not_run, rewrites, from the run's record of them, never run again), the files a card changed beyond its own
-    (beyond), and the newer Go a go.mod of the batch's `branch` now needs (go_raised)."""
+    (beyond), the newer Go a go.mod of the batch's `branch` now needs (go_raised), and the packages it moved
+    several major versions (big_jumps)."""
     from .execute import not_run, rewrites
     from ...core.project.ledger import go_raised
+    from ...core.project.jumps import big_jumps
     checks = (read_json(Path(project_state.runtime_of(state)) / 'runtime/checks-original.json') or {}).get('checks') or []
     unrun, writing = not_run(checks), rewrites(checks)
     wider = wave.get('beyond') or {}
     go = go_raised(state['project'], f"{wave['base']}..{branch}") if branch else []
-    return {'checks_not_run': unrun, 'checks_rewriting': writing, 'beyond_the_cards': wider, 'go_raised': go}, (
-        (f" Tell them too that {'; '.join(go)}: everyone who builds the project needs that Go or newer." if go else '') + (
+    jumps = big_jumps(state['project'], wave['base'], branch) if branch else []
+    return {'checks_not_run': unrun, 'checks_rewriting': writing, 'beyond_the_cards': wider, 'go_raised': go, 'big_jumps': jumps}, (
+        _moved_words(go, jumps) + (
         (f" Tell them too that EAOS could not run these checks of theirs here, so no fix was held to them: {', '.join(unrun)} "
          "(the program each needs is missing on this computer)." if unrun else '')
         + (f" Tell them these checks of theirs rewrite the files instead of checking them, so no fix was held to them: "
            f"{', '.join(writing)}." if writing else '')
         + (" Name to them each file a card changed beyond its own (beyond_the_cards) and why its fix needed it." if wider else '')))
+
+
+def _moved_words(go, jumps):
+    """What the assistant tells of the Go a go.mod now needs and of the packages moved several major versions."""
+    return ((f" Tell them too that {'; '.join(go)}: everyone who builds the project needs that Go or newer." if go else '')
+            + (f" Tell them these packages moved several major versions to reach their fix, so what uses them is worth trying: "
+               f"{'; '.join(jumps)}." if jumps else ''))
 
 
 def beyond(card, changed):
