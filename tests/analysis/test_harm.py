@@ -51,7 +51,7 @@ class SizeNeedsHarm(unittest.TestCase):
         self.assertEqual(self.kinds([claim('large_module', path='lib/model/message_list.dart')], facts), ['retain'])
 
     def test_an_engine_complexity_at_a_file_follows_its_deepest_function(self):
-        flat, deep = sets([metric('lib/favicons.php', 'a', 3)]), sets([metric('lib/favicons.php', 'a', 6)])
+        flat, deep = sets([metric('lib/favicons.php', 'a', 3)]), sets([metric('lib/favicons.php', 'a', 7)])
         row = lambda: claim('engine_cluster', place='lib/favicons.php', kind='complexity')
         self.assertEqual(self.kinds([row()], flat), ['retain'])
         self.assertNotEqual(self.kinds([row()], deep), ['retain'])
@@ -61,6 +61,16 @@ class SizeNeedsHarm(unittest.TestCase):
         mark([row], sets([]))
         self.assertEqual(row['disposition']['kind'], 'investigate')
 
+
+
+class NestingTests(unittest.TestCase):
+    def test_only_a_block_is_a_level_an_object_or_a_jsx_value_is_not(self):
+        # excalidraw, 2026-11-05: every brace counted, 71 of its 90 complex functions read five deep.
+        from eaos.facts.code.metrics import nesting_depth
+        script = ['function f(a) {', '  const o = { x: { y: 1 } };', '  if (a) {', '    for (const b of a) {',
+                  '      call({ k: () => { return 1; } });', '    }', '  } else {', '    return <div>{a}</div>;', '  }', '}']
+        self.assertEqual(nesting_depth(script, 'typescript'), 4)          # f, if, for, the arrow's body
+        self.assertEqual(nesting_depth(['    def f(self):', '        if a:', '            return 1'], 'python'), 2)
 
 if __name__ == '__main__':
     unittest.main()

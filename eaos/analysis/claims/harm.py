@@ -7,7 +7,7 @@ eight deep. So a function past the limit is a card when it nests deep or its fil
 line limit when its file keeps being fixed. Otherwise the claim is retained, with the measure and the reason, never a
 card a batch spends a fix on.
 """
-DEEP = 5            # blocks open at the deepest line, the body counted: four levels inside a function
+DEEP = 6            # blocks open at the deepest line, the body counted: five inside, past ESLint's max-depth of four
 FIXED_OFTEN = 3     # commits named as fixes that changed the file
 HISTORY_ENOUGH = 10  # commits read before a file's fixes say anything (eaos/analysis/claims/from_facts.py cochanges)
 OWNER = 'eaos'
