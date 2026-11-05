@@ -4,7 +4,7 @@ Where EAOS is going: from today's EAOS to the tool of `docs/NORTH-STAR.md`, a co
 command. The milestones run in this order; each ends with one version (`CHANGELOG.md` says what it changed and why)
 and its numbers in `docs/METRICS.md`. This page is updated at each milestone's end.
 
-## Done (version 0.0.91)
+## Done (version 0.0.92)
 
 | Milestone | What it delivered | Version |
 |---|---|---|
@@ -30,6 +30,7 @@ and its numbers in `docs/METRICS.md`. This page is updated at each milestone's e
 | M16 The person's own rules | a requirement said once is kept in the person's words for its work, pinned only on request, guarded by a machine (a pattern proved on its examples, a test, EAOS's detectors, or said unguarded); one card with every place; a change that breaks it refused at the fix's gate and the commit; what a change touches checked in seconds | 0.0.89 |
 | M18 The design library and the guide | one tool per job; a guide for EAOS and every project; the look read from the running page; raw values named as tokens, kept only when proved nothing looks different; what the person agrees to merge |
 | M17, first round | five projects never seen, checked and fixed twice: their false cards, unsafe fixes, unmergeable branches and unfixable languages (Go, bun, uv) fixed between the rounds | 0.0.91 |
+| M17, second round | five more of other kinds (a Python library, a Rust tool, a Flutter app, a PHP app, a large TypeScript monorepo): unsound lock hashes, file listings taken for screens, projects with no interface held by their own tests, suites that never ended | 0.0.92 |
 
 ## Next
 
@@ -38,4 +39,4 @@ and the model only for doubt; adding each tool is measured, so EAOS proves it gr
 
 | Milestone | What it adds |
 |---|---|
-| M17 Strangers' projects | the second round of five, then the held-out projects, judged from outside EAOS; a fair comparison with the plain assistant; real people of three kinds |
+| M17 Strangers' projects | the held-out projects, judged from outside EAOS; a fair comparison with the plain assistant; real people of three kinds |

@@ -1,6 +1,14 @@
 # Changelog
 
-## Not yet versioned
+## 0.0.92 (2026-11-05)
+
+The second round of strangers' projects: five more of kinds the first had none of (a Python library, a Rust tool, a
+Flutter app, a PHP app, a large TypeScript monorepo). It found lock hashes an assistant made up, file listings taken
+for screens, a check that stopped on one claim, and projects with no interface that could not be fixed at all. Every
+one was fixed, and the rerun on the same commits fixed what it found in turn (a library's tests run by the wrong
+Python, a suite that never ended, a loop that was there before). Then: the library 4 of 5 cards fixed, held by its own
+tests (2 of 8 before, held by a file listing); the Rust tool 3 of 5 (no batch before); the monorepo checked and 36 fixed
+(its check had stopped); the Flutter and PHP apps are told plainly that EAOS cannot protect them yet.
 
 A second trial on unfamiliar projects exposed unsound lock hashes, directory listings recorded as application screens,
 a stopped audit with evidence missing, and a command-line project that could not pass a screen-only safety gate.
