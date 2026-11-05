@@ -227,7 +227,7 @@ def _edit_tools(server, reading, working, _answer):
         return tools.fix_edit(card, edits, summary, project, beyond_why)
 
     @server.tool(annotations=working, description='Leave a card of the open batch out, with the reason (for example: it needs a product '
-                 'decision).')
+                 'decision), written in the person\'s language: they read it.')
     @_answer
     def fix_skip(card: str, reason: str, project: str | None = None) -> str:
         return tools.fix_skip(card, reason, project)

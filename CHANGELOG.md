@@ -7,6 +7,8 @@ After the second round's rerun (owner, 2026-11-05).
 - A Cargo.lock card moves its crates with `cargo update -p <name>@<version> --precise <fixed>`, the lock alone written.
 - A PHP app runs: its folder served by PHP's own server, its Composer packages installed, its PHPUnit suite its check
   (a PHP library's too); `php` and `composer` run in the isolated copy.
+- The cards a batch leaves out are counted at the hand-over and told grouped by why; every reason or summary the
+  assistant gives EAOS's tools is written in the person's language.
 
 ## 0.0.92 (2026-11-05)
 
