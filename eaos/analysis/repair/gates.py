@@ -35,9 +35,19 @@ def found(before, after, paths, policy=None, dead=True):
 
 
 def structure(before, after, policy=None):
+    """What a change adds against the structure. A loop whose files were all in one loop before is not the change's:
+    removing one import of a large loop shows a smaller loop it held, and a sound fix was refused for it (a stranger's
+    monorepo, 2026-11-05)."""
     rows = lambda folder: {**(_layers(policy, folder) if policy else {}), **(_vendors(policy, folder) if policy else {}),
                            **_cycles(folder), **_broken(folder)}
-    return _added(rows, before, after)
+    had = rows(before) if before else {}
+    loops = [set(key[1:]) for key in had if key[0] == 'cycle']
+    return [problem for key, problem in rows(after).items() if key not in had and not _held(key, loops)]
+
+
+def _held(key, loops):
+    """Whether the problem `key` is a loop whose files were all in one of the `loops` before."""
+    return key[0] == 'cycle' and any(set(key[1:]) <= loop for loop in loops)
 
 
 def debt(before, after, paths, dead=True, had=None):

@@ -23,6 +23,8 @@ a stopped audit with evidence missing, and a command-line project that could not
   profile an older EAOS drafted takes its manifest's checks, and the original's checks run again when they changed.
 - A project's own checks run as on a CI machine, once (vitest watched and every card waited out 30 minutes). A stopped
   service's log keeps its last 256 KB (a load test made one 258 MB).
+- A loop of imports whose files were all in a loop before is not a change's: removing one import of a large loop
+  shows a smaller loop it held.
 
 ## 0.0.91 (2026-11-03)
 
