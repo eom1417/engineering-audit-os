@@ -8,7 +8,7 @@ from .. import digest, make
 from ..source import language_of
 
 NAME = 'metrics'
-VERSION = '3'
+VERSION = '4'
 LIMITATIONS = [
     'Branch counting is a lexical approximation, not a compiler-accurate cyclomatic complexity.',
     "A function's complexity is the code laws' count (eaos/core/contracts/code_laws.py) in Python; elsewhere 1 + its lexical "
@@ -20,23 +20,32 @@ LIMITATIONS = [
 BRANCH = re.compile(r'\b(if|elif|else if|for|while|case|catch|except|&&|\|\||\?\?)\b|\?[^:]+:')
 COMMENT = re.compile(r'^\s*(#|//|/\*|\*|--)')
 WINDOW = 6
+BRACE = re.compile(r'[{}]')
+BLOCK = re.compile(r'(\)|\belse|\btry|\bfinally|\bdo|=>|^\s*)\s*$')
 KEPT = re.compile(r'jscpd:ignore-(start|end)')     # a copy kept on purpose, its reason beside it: never a clone
 MIN_LINE_LENGTH = 12
 
 
 def nesting_depth(lines, language):
-    depth = maximum = 0
+    maximum = 0
     if language == 'python':
+        # Counted from the first line's indent (a method's `def` sits inside its class), as braces count from the body.
+        base = None
         for line in lines:
-            stripped = line.strip()
-            if not stripped or COMMENT.match(line): continue
+            if not line.strip() or COMMENT.match(line): continue
             indent = (len(line) - len(line.lstrip(' '))) // 4
-            maximum = max(maximum, indent)
+            base = indent if base is None else base
+            maximum = max(maximum, indent - base)
         return maximum
+    # Only a brace that opens a block counts (after `)`, `else`, `try`, `=>`...): an object literal or a JSX expression
+    # is no level a reader must hold (excalidraw, 2026-11-05: 71 of its 90 complex functions read five deep by every brace).
+    opened = []
     for line in lines:
-        depth += line.count('{') - line.count('}')
-        maximum = max(maximum, depth)
-    return max(maximum, 0)
+        for match in BRACE.finditer(line):
+            if match.group() == '{': opened.append(bool(BLOCK.search(line[:match.start()])))
+            elif opened: opened.pop()
+            maximum = max(maximum, sum(opened))
+    return maximum
 
 
 def normalise(line): return re.sub(r'\s+', ' ', line.strip())

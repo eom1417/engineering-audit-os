@@ -65,17 +65,23 @@ def collect_external(target, out, source, only=None, keep=False):
     facts, _dropped = _filter_dead_code_references(result['facts'], source)
     # One verdict per dead-code candidate, whichever engine raised it: EAOS's own detector and the same
     # textual reference test decide what the report asserts (see facts/deadcode.adjudicate).
-    from .store import read_set
-    try: own = read_set(out, 'deadcode').get('facts') or []
-    except (OSError, ValueError): own = []
-    facts = deadcode.adjudicate(facts, source, own)
+    facts = deadcode.adjudicate(facts, source, _own(out, 'deadcode'))
+    from .misread import set_aside
+    facts, misread = set_aside(facts, _own(out, 'metrics'))
     referenced = sum(1 for f in facts
                      if (f.get('value') or {}).get('referenced_by_registry'))
-    if referenced:
-        result['summary'] = dict(result.get('summary') or {})
-        result['summary']['registry_referenced_dead_code_marked'] = referenced
+    counted = {'registry_referenced_dead_code_marked': referenced, 'measures_longer_than_their_function': misread}
+    if any(counted.values()):
+        result['summary'] = {**(result.get('summary') or {}), **{name: n for name, n in counted.items() if n}}
     external_entry = write_set(out, 'external', external.NAME, external.VERSION, external.LIMITATIONS, {**result, 'facts': facts})
     return [external_entry]
+
+
+def _own(out, name):
+    """The facts of one of EAOS's own sets already written, [] when it is not there."""
+    from .store import read_set
+    try: return read_set(out, name).get('facts') or []
+    except (OSError, ValueError): return []
 
 
 def add_to_index(out, target, entry):
