@@ -40,6 +40,13 @@ class NoInterfaceTests(unittest.TestCase):
         self.assertEqual([step[6:] for step in install], [['-e', '.'], ['freezegun', 'pytest>=8']])
         self.assertEqual(checks, [['python', '-m', 'pytest', '-q']])
 
+    def test_a_php_library_is_kept_safe_by_its_phpunit_suite(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            (Path(tmp) / 'composer.json').write_text('{"require-dev": {"phpunit/phpunit": "^11"}}', encoding='utf-8')
+            self.assertEqual(own_checks.found(tmp), ([['true']], []), 'no configured suite, no check')
+            (Path(tmp) / 'phpunit.xml.dist').write_text('<phpunit/>', encoding='utf-8')
+            self.assertEqual(own_checks.found(tmp), ([['composer', 'install', '--no-interaction', '--no-progress']], [['php', 'vendor/bin/phpunit']]))
+
     def test_a_profile_an_older_eaos_drafted_takes_its_manifests_checks(self):
         with tempfile.TemporaryDirectory() as project, tempfile.TemporaryDirectory() as runtime:
             (Path(project) / 'tests').mkdir(); (Path(project) / 'tests/test_a.py').write_text('', encoding='utf-8')

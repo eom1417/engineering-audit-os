@@ -35,17 +35,18 @@ from ..behavior.specs import LEAVES
 from ...core.progress.flow import OPTIONAL, Stage
 from .profile import apply, safe, write_profile
 from .first_page import NoInterface, declined, empty_state, listing  # noqa: F401  (empty_state: read here by its tests)
-from . import detect as setup_detect, detect_python as setup_python
+from . import detect as setup_detect, detect_php as setup_php, detect_python as setup_python
 from .detect import SECRETISH, _unknown_app, free_port, production_commands, script_is_safe  # noqa: F401  (detect's names others read here)
 
 ATTEMPTS = 5
 
 
 def detect(project, report=None):
-    """The draft run from the files alone: a JavaScript app or a static site (setup_detect.detect), and a Python web app
-    (setup_python.detect) when the project has no JavaScript app; each module stays on its own."""
+    """The draft run from the files alone: a PHP app first (setup_php.detect: its JavaScript is only its pages' tooling),
+    then a JavaScript app or a static site (setup_detect.detect), and a Python web app (setup_python.detect) when the
+    project has no JavaScript app; each module stays on its own."""
     python = setup_python.detect(project) if setup_detect.app_folder(project) is None else None
-    return python or setup_detect.detect(project, report)
+    return setup_php.detect(project) or python or setup_detect.detect(project, report)
 
 
 # ---------------------------------------------------------------- 2. verify

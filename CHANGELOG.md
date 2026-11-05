@@ -5,6 +5,8 @@
 After the second round's rerun (owner, 2026-11-05).
 
 - A Cargo.lock card moves its crates with `cargo update -p <name>@<version> --precise <fixed>`, the lock alone written.
+- A PHP app runs: its folder served by PHP's own server, its Composer packages installed, its PHPUnit suite its check
+  (a PHP library's too); `php` and `composer` run in the isolated copy.
 
 ## 0.0.92 (2026-11-05)
 
