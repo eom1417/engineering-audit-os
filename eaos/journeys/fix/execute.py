@@ -254,7 +254,8 @@ def _check(live, target, argv, at_root):
     exit is no gate (trial on real projects: a lint always passed so)."""
     names = [name for name in git(target, 'ls-tree', '-r', '-z', '--name-only', live.commit).stdout.split('\0') if name]
     before = _stamps(live.sandbox.copy, names)
-    code, out, err = live.run(argv, timeout=1800, at_root=at_root)
+    from ...live.app.run import CHECKS_ENV
+    code, out, err = live.run(argv, timeout=1800, env=CHECKS_ENV, at_root=at_root)
     row = {'argv': argv, 'exit': code, 'failing': failing(out + err)}
     after = _stamps(live.sandbox.copy, before)
     written = [name for name, stamp in before.items() if after.get(name) != stamp]

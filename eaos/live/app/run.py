@@ -33,6 +33,11 @@ from pathlib import Path
 from ..isolation.sandbox import AuthorizationError, Sandbox, head
 
 
+# A project's own checks run as on a CI machine: once, never watching for changes (vitest watches unless CI is set: a
+# stranger's suite never ended, and every check of its batch waited out its 30 minutes, 2026-11-05). Its install,
+# build and start keep their environment (a build may treat warnings as errors under CI).
+CHECKS_ENV = {'CI': 'true'}
+
 
 def load_profile(runtime):
     """The run profile, keeping its contract, or an error naming what is wrong."""

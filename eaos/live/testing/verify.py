@@ -315,13 +315,14 @@ def _run_tests(live, suite, app, v8, timeout):
     """Run each test command of `suite` ((commands, run from the root), _suites) in the sandbox, Python ones under
     coverage when the project has it, each with its runner's per-test report and Node's V8 coverage on. (The Python
     that ran coverage or None, a row per run.)"""
+    from ..app.run import CHECKS_ENV
     (commands, at_root), python, attempts = suite, None, []
     for argv in commands:
         started = time.monotonic()
         run_argv = argv
         if Path(str(argv[0])).name in INTERPRETER_NAMES | {Path(INTERPRETER).name} and live.run([argv[0], '-c', 'import coverage'], timeout=60, at_root=at_root)[0] == 0:
             run_argv, python = [argv[0], '-m', 'coverage', 'run', '--rcfile=.eaos-coveragerc', *argv[1:]], argv[0]
-        code, stdout, stderr = live.run(with_timing(run_argv, app), timeout=timeout, env={'NODE_V8_COVERAGE': str(v8)}, at_root=at_root)
+        code, stdout, stderr = live.run(with_timing(run_argv, app), timeout=timeout, env={**CHECKS_ENV, 'NODE_V8_COVERAGE': str(v8)}, at_root=at_root)
         attempts.append({'argv': [str(a) for a in argv], 'exit_code': code, 'timed_out': f'stopped after {timeout}s' in stderr,
                          'duration_seconds': round(time.monotonic() - started, 2), 'output_tail': (stdout + stderr)[-2000:]})
     return python, attempts

@@ -156,6 +156,19 @@ class SandboxTests(Workspace):
         with self.assertRaisesRegex(RuntimeError, 'no 200'):
             self.box().start([sys.executable, '-c', serve, str(port), '503'], f'http://127.0.0.1:{port}/', timeout=3)
 
+    def test_a_stopped_services_log_keeps_its_end_only(self):
+        # Second strangers' round: a load test's request lines grew a service's log to 258 MB, kept beside the run
+        from eaos.live.app.detect import free_port
+        from eaos.live.isolation import service_log
+        port = free_port()
+        serve = ('import http.server, sys\nsys.stdout.write("x" * 400000 + "LAST\\n"); sys.stdout.flush()\n'
+                 f'http.server.HTTPServer(("127.0.0.1", {port}), http.server.SimpleHTTPRequestHandler).serve_forever()')
+        box = self.box()
+        box.start([sys.executable, '-c', serve], f'http://127.0.0.1:{port}/', timeout=10)
+        log = box.workdir / 'service-0.log'
+        box.stop()
+        self.assertEqual((log.stat().st_size <= service_log.LOG_KEPT, 'LAST' in service_log.tail(log)), (True, True))
+
     def test_a_port_another_program_holds_is_given_up_and_only_the_runs_own_service_counts_as_answering(self):
         import http.server
         import threading

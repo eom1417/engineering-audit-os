@@ -37,6 +37,7 @@ from pathlib import Path
 from ...core.system.web import opened
 from .disk import _launcher, _own, _view_refusal, _within, hidden, mounts, named
 from ...core.system.files import read_json
+from . import service_log
 
 PYTHON = ('python', 'python3', 'pip', 'pip3', 'uv', 'poetry', 'uvicorn', 'gunicorn')     # also what a run profile may start with
 
@@ -131,12 +132,6 @@ def _holds(folder, sha):
 def unfilled(target, commit):
     """The submodules `commit` pins that its copy cannot hold (eaos never fetches one): [{path, commit, url}]."""
     return [{key: row[key] for key in ('path', 'commit', 'url')} for row in submodules(target, commit) if not row['here']]
-
-
-def _tail(path, size=2000):
-    """The end of a service's log: what it said before it stopped, which is what anyone fixing it needs."""
-    try: return Path(path).read_text(encoding='utf-8', errors='replace')[-size:].strip()
-    except OSError: return ''
 
 
 def _network_isolation():
@@ -310,12 +305,12 @@ class Sandbox:
             if process.poll() is not None:
                 self.stop()
                 raise RuntimeError(f'{argv[0]} exited with {process.returncode} before answering; see {log.name}; '
-                                   f'it said: {_tail(log.name)}')
+                                   f'it said: {service_log.tail(log.name)}')
             if _answers(health, process.pid): return
             time.sleep(0.3)
         self.stop()
         raise RuntimeError(f'no 200 from {health} within {timeout}s; see {log.name}; '
-                           f'it said: {_tail(log.name)}')
+                           f'it said: {service_log.tail(log.name)}')
 
     @staticmethod
     def _kill(process):
@@ -338,6 +333,7 @@ class Sandbox:
         for process, argv, started, log in self.started:
             self._kill(process)
             log.close()
+            service_log.bounded(log.name)
             self.commands.append({'argv': argv, 'exit': process.returncode if process.returncode is not None else -1,
                                   'seconds': round(time.monotonic() - started, 2)})
         self.started = []
