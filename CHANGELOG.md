@@ -9,6 +9,8 @@ After the second round's rerun (owner, 2026-11-05).
   (a PHP library's too), by four workers at once; `php` and `composer` run in the isolated copy.
 - The cards a batch leaves out are counted at the hand-over and told grouped by why; every reason or summary the
   assistant gives EAOS's tools is written in the person's language.
+- An open batch keeps the fix step open: a hand-over a stopped session cut left it open with no card ready, and
+  `eaos status` said every step was done; now it and `eaos next` say to continue the batch.
 
 ## 0.0.92 (2026-11-05)
 
