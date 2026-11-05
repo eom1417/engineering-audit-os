@@ -1,6 +1,7 @@
 """A project with no interface (a library, a command-line tool, a mobile app) is never pictured through a stand-in page:
 its own tests and build keep a change safe (a Python library and a Flutter app were judged by a file listing, and a Rust
 tool could not be fixed at all, 2026-11-04)."""
+import json
 import tempfile
 import unittest
 from pathlib import Path
@@ -38,6 +39,28 @@ class NoInterfaceTests(unittest.TestCase):
             install, checks = own_checks.found(tmp)
         self.assertEqual([step[6:] for step in install], [['-e', '.'], ['freezegun', 'pytest>=8']])
         self.assertEqual(checks, [['python', '-m', 'pytest', '-q']])
+
+    def test_a_profile_an_older_eaos_drafted_takes_its_manifests_checks(self):
+        with tempfile.TemporaryDirectory() as project, tempfile.TemporaryDirectory() as runtime:
+            (Path(project) / 'tests').mkdir(); (Path(project) / 'tests/test_a.py').write_text('', encoding='utf-8')
+            (Path(project) / 'pyproject.toml').write_text('[dependency-groups]\ntests = ["pytest"]\n', encoding='utf-8')
+            (Path(runtime) / 'run.json').write_text(json.dumps({'install': [['true']], 'start': ['true'], 'checks': []}), encoding='utf-8')
+            self.assertTrue(own_checks.refreshed(runtime, project))
+            kept = json.loads((Path(runtime) / 'run.json').read_text(encoding='utf-8'))
+            self.assertEqual((kept['install'][-1][-1], kept['checks']), ('pytest', [['python', '-m', 'unittest', 'discover', '-s', 'tests']]))
+            self.assertFalse(own_checks.refreshed(runtime, project))
+
+    def test_the_originals_checks_are_run_again_when_the_profile_changed_them(self):
+        from eaos.journeys.fix import execute
+        with tempfile.TemporaryDirectory() as runtime:
+            (Path(runtime) / 'run.json').write_text(json.dumps({'install': [['true']], 'start': ['true'], 'checks': [['python', '-m', 'pytest']]}), encoding='utf-8')
+            (Path(runtime) / 'runtime').mkdir()
+            (Path(runtime) / 'runtime/checks-original.json').write_text(json.dumps({'commit': 'c', 'checks': [{'argv': ['x'], 'exit': 1}]}), encoding='utf-8')
+            with mock.patch('eaos.live.isolation.sandbox.head', return_value='c'), mock.patch('eaos.live.app.run.load_profile', side_effect=lambda r: json.loads((Path(r) / 'run.json').read_text())), \
+                    mock.patch.object(execute, 'project_checks', return_value=[{'argv': ['python', '-m', 'pytest'], 'exit': 0}]) as ran:
+                self.assertEqual(execute.original_checks('/p', runtime)[0]['exit'], 0)
+                self.assertEqual(execute.original_checks('/p', runtime)[0]['exit'], 0)
+        self.assertEqual(ran.call_count, 1, 'run again once for the new checks, then read while they stay the same')
 
     def test_passing_own_checks_open_a_batch_without_screens(self):
         state = {'setup': {'ok': False, 'no_interface': True, 'commit': 'c'},
