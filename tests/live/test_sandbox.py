@@ -193,6 +193,7 @@ class SandboxTests(Workspace):
             with urllib.request.urlopen(base + '/', timeout=10) as page: said = page.read().decode()
         finally: live.stop()
         self.assertEqual(said, 'hello from cli-server')
+        self.assertEqual(draft['env'], {'PHP_CLI_SERVER_WORKERS': detect_php.WORKERS}, 'more than one request at a time')
         self.assertIsNone(detect_php.detect(Path(self.tmp) / 'nowhere'))
 
     def test_a_port_another_program_holds_is_given_up_and_only_the_runs_own_service_counts_as_answering(self):
