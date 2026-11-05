@@ -141,6 +141,9 @@ def build_claims(sets, records, load_record=None, target=None):
     rows = ledger.renumber(rows)
     for number, row in enumerate(withheld, start=1): row['id'] = 'WHD-%03d' % number
     for row in rows: _settle_claim(row, fact_index)
+    # A size or complexity measure is work only with a sign of harm (eaos/analysis/claims/harm.py).
+    from .harm import mark
+    mark(rows, sets)
     # After numbering and origin are settled: a confirmed product observation whose evidence is mechanical
     # carries a ready repair under its family's engagement rule (eaos/analysis/assessments/mechanical.py).
     if target is not None: assess_mechanically(rows, sets, target)

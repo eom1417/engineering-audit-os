@@ -7,6 +7,7 @@ from pathlib import PurePosixPath
 import re
 from .. import digest, make
 from ..source import language_of
+from .resolve_dart import candidates as dart_candidates
 
 NAME = 'resolve'
 VERSION = '1'
@@ -232,6 +233,7 @@ def _candidates(language, importer, module, level, context):
     if language in JS_LANGUAGES: return js_candidates(importer, module, context['aliases'])
     if language == 'go': return go_candidates(module, context['go_module'])
     if language in JVM_LANGUAGES: return jvm_candidates(module)
+    if language == 'dart': return dart_candidates(importer, module, context)
     if language in {'c', 'cpp'}: return js_candidates(importer, './' + module) if not module.startswith('<') else []
     return js_candidates(importer, module) if module.startswith('.') else []
 

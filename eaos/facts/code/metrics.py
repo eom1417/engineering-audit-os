@@ -8,7 +8,7 @@ from .. import digest, make
 from ..source import language_of
 
 NAME = 'metrics'
-VERSION = '3'
+VERSION = '4'
 LIMITATIONS = [
     'Branch counting is a lexical approximation, not a compiler-accurate cyclomatic complexity.',
     "A function's complexity is the code laws' count (eaos/core/contracts/code_laws.py) in Python; elsewhere 1 + its lexical "
@@ -27,11 +27,13 @@ MIN_LINE_LENGTH = 12
 def nesting_depth(lines, language):
     depth = maximum = 0
     if language == 'python':
+        # Counted from the first line's indent (a method's `def` sits inside its class), as braces count from the body.
+        base = None
         for line in lines:
-            stripped = line.strip()
-            if not stripped or COMMENT.match(line): continue
+            if not line.strip() or COMMENT.match(line): continue
             indent = (len(line) - len(line.lstrip(' '))) // 4
-            maximum = max(maximum, indent)
+            base = indent if base is None else base
+            maximum = max(maximum, indent - base)
         return maximum
     for line in lines:
         depth += line.count('{') - line.count('}')

@@ -94,6 +94,23 @@ class GoResolutionTests(unittest.TestCase):
         self.assertEqual(edge('only')['resolution'], 'RESOLVED')
         self.assertTrue(edge('only')['value']['to_path'].endswith('_test.go'))
 
+    def test_dart_package_and_bare_relative_imports_resolve(self):
+        # zulip-flutter, M17.3 (2026-11-05): only a URI starting with a dot was read, so a file ten files import was
+        # "imported by 0 modules" on its split card.
+        data, found = resolve_files({
+            'app/pubspec.yaml': 'name: zulip\nversion: 1.0.0\n',
+            'app/lib/widgets/sheet.dart': ("import 'dart:async';\nimport 'package:flutter/material.dart';\n"
+                                           "import 'package:zulip/model/store.dart';\nimport '../api/core.dart';\n"
+                                           "import 'theme.dart';\nclass Sheet {}\n"),
+            'app/lib/model/store.dart': 'class Store {}\n', 'app/lib/api/core.dart': 'class Core {}\n',
+            'app/lib/widgets/theme.dart': 'class Theme {}\n'})
+        edge = lambda module: found[('app/lib/widgets/sheet.dart', module)]
+        self.assertEqual(edge('package:zulip/model/store.dart')['value']['to_path'], 'app/lib/model/store.dart')
+        self.assertEqual(edge('../api/core.dart')['value']['to_path'], 'app/lib/api/core.dart')
+        self.assertEqual(edge('theme.dart')['value']['to_path'], 'app/lib/widgets/theme.dart')
+        for module in ('dart:async', 'package:flutter/material.dart'): self.assertEqual(edge(module)['resolution'], 'EXTERNAL')
+        self.assertEqual(data['summary']['by_resolution']['UNRESOLVED'], 0)
+
     def test_real_ambiguity_across_folders_stays_ambiguous(self):
         from eaos.facts.code import resolve as resolve_mod
         from eaos.facts.source import Source

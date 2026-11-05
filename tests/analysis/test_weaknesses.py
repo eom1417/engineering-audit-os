@@ -39,6 +39,21 @@ class WeaknessTests(unittest.TestCase):
             ('HYPOTHESIS', ['G'], 'tests/test_keys.py'),       # a key leaks from a test file too; F does not ship
         ]))
 
+    def test_a_weak_hash_in_a_file_using_hmac_is_a_question_not_an_agreed_weakness(self):
+        # itsdangerous, M17.3 (2026-11-05): Semgrep and Bandit agreed on SHA-1, the default digest of its HMAC signer.
+        found = sets(fact('A', 'semgrep', 'src/signer.py', 45, 'insecure-hash-algorithm-sha1', ['CWE-327']),
+                     fact('B', 'bandit', 'src/signer.py', 45, 'B324', ['CWE-327']))
+        with tempfile.TemporaryDirectory() as tmp:
+            (Path(tmp) / 'src').mkdir()
+            source = Path(tmp, 'src/signer.py')
+            for text, expected in (('import hashlib\nh = hashlib.sha1(data)\n', 'LIKELY'),
+                                   ('import hashlib, hmac\nhmac.new(key, digestmod=hashlib.sha1)\n', 'HYPOTHESIS')):
+                source.write_text(text)
+                made = []
+                weaknesses.claims(found, lambda *args, **extra: made.append((args[2], args[4])), tmp)
+                self.assertEqual([confidence for confidence, _ in made], [expected])
+            self.assertIn('HMAC', made[0][1])
+
     def test_a_card_is_never_passed_by_an_engine_that_did_not_run(self):
         spec = {'query': 'weakness_present', 'labels': ['CWE-89'], 'paths': ['app/db.py'], 'engines': ['semgrep', 'bandit']}
         self.assertEqual(run_graph_query(spec, sets(observed=('bandit',)))[0], 'INCONCLUSIVE')

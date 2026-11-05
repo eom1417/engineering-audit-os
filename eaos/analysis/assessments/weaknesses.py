@@ -13,6 +13,8 @@ A weakness in test code is not a card: tests do not ship, so nothing reaches it 
 is written: a real key in a test file leaks like any other. A vulnerable dependency is not here: it has its own card
 (eaos/analysis/claims/from_facts.py), and its engines answer per package.
 """
+from pathlib import Path
+
 from ...core.contracts.vocabulary import classify
 SECURITY = ('secret', 'vulnerability')
 LINE_WINDOW = 5      # one statement: Bandit names its first line, CodeQL the expression inside it
@@ -128,16 +130,35 @@ def new(before, after, paths):
     return sorted(found(after) - found(before))
 
 
+# A weak hash as HMAC's digest is not weak: HMAC-SHA1 and HMAC-MD5 are not broken by their hashes' collisions. Two engines
+# agreed on itsdangerous's SHA-1, the default digest of its HMAC signer, and both judges of M17.3 (2026-11-05) called it
+# false. The engines cannot see the HMAC around it, so where the file uses HMAC the card is a question for the triage.
+WEAK_HASH = {'CWE-327', 'CWE-328'}
+KEYED = 'This file uses HMAC: a weak hash used only as its digest is not a weakness. '
+
+
+def _keyed_hash(group, target):
+    """Whether a weak-hash group's every file uses HMAC (`hmac` in Python, `createHmac`, `HmacSHA1`, `hash_hmac`)."""
+    if target is None or not set(group['labels']) <= WEAK_HASH: return False
+    def keyed(path):
+        try: text = (Path(target) / path).read_text(encoding='utf-8', errors='replace').lower()
+        except OSError: return False
+        return 'hmac' in text
+    return bool(group['paths']) and all(keyed(path) for path in group['paths'])
+
+
 def claims(fact_sets, add, target):
     """One claim per group (eaos/analysis/claims/ledger.py BUILDERS): LIKELY when engines agree, else a HYPOTHESIS the triage decides.
     Its probe asking the engines again never raises it: one engine repeating itself is not corroboration."""
     for group in groups(fact_sets):
-        confidence = 'LIKELY' if group['agreed'] else 'HYPOTHESIS'
+        keyed = _keyed_hash(group, target)
+        confidence = 'LIKELY' if group['agreed'] and not keyed else 'HYPOTHESIS'
         files = group['place'] if group['place'] != PROJECT else f"{len(group['paths'])} files"
         said = (f"{len(group['engines'])} engines ({', '.join(group['engines'])}) agree on" if group['agreed']
                 else f"{group['engines'][0]} alone reports")
         add(f"{said} {group['kind']} {', '.join(group['labels'])} in {files}; {group['severity']} severity", 'risk', confidence,
             ['external_engine'],
+            (KEYED if keyed else '') +
             'Show from the code at each finding that no untrusted input reaches it, or that the secret is not a real '
             'credential (a test value, a documented example).',
             fact_ids=group['fact_ids'], confidence_ceiling=confidence,
