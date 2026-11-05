@@ -173,8 +173,10 @@ def _waves(state):
 
 
 def fix_done(state):
-    """A wave of this commit is in the person's project as a branch, or no ready card is left to try."""
+    """A wave of this commit is in the person's project as a branch, or no ready card is left to try; never while a batch is
+    open, as its changes are not handed over yet (a hand-over a stopped session cut stays open: no card is ready then)."""
     from ..fix.waves import next_batch
+    if state.get('open_wave'): return False
     if any(w.get('status') == 'applied' for w in _waves(state)): return True
     return not next_batch(report_of(state), state)
 
@@ -184,10 +186,22 @@ def fix(state, args):
     from the assistant or the Studio; this command never calls a model itself. It says where to go."""
     from ..fix.waves import next_batch
     lang = state['lang']
+    if wave := state.get('open_wave'): return _open_batch(lang, wave)
     batch = next_batch(report_of(state), state)
     box(lang, (f'{len(batch)} إصلاحات جاهزة. يصلحها مساعدك الذكي: افتح Claude Code أو Codex في هذا المجلد واكتب /eaos ثم '
                '"أصلح"، أو اضغط "أصلح" في الاستوديو' if lang == 'ar' else
                f'{len(batch)} fixes are ready. Your AI assistant makes them: open Claude Code or Codex in this folder and type '
                '/eaos then "fix", or press "Fix" in the Studio'),
         commands=['eaos studio'], note=None)
+    return 0
+
+
+def _open_batch(lang, wave):
+    """An open batch is not handed over: its assistant continues it (fix_finish once every card is kept or left out)."""
+    kept = len(wave.get('kept') or {})
+    box(lang, (f"الدفعة {wave['number']} مفتوحة ولم تُسلَّم بعد ({kept} تعديلًا مقبولًا). ليكملها مساعدك الذكي: افتح Claude Code "
+               'أو Codex في هذا المجلد واكتب /eaos ثم "كمّل"، أو افتح الاستوديو' if lang == 'ar' else
+               f"Batch {wave['number']} is open and not handed over yet ({kept} changes kept). Your AI assistant continues it: "
+               'open Claude Code or Codex in this folder and type /eaos then "continue", or open the Studio'),
+        commands=['eaos studio'], status='warn')
     return 0
