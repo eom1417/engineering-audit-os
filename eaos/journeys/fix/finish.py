@@ -151,8 +151,8 @@ def _said_too(state, wave, branch=None):
     """What the person hears beside the fixes, ({answer keys}, the words for the assistant): the project's own checks
     that could not run on the original or rewrite the files instead of checking them (eaos/journeys/fix/execute.py
     not_run, rewrites, from the run's record of them, never run again), the files a card changed beyond its own
-    (beyond), the newer Go a go.mod of the batch's `branch` now needs (go_raised), and the packages it moved
-    several major versions (big_jumps)."""
+    (beyond), the newer Go a go.mod of the batch's `branch` now needs (go_raised), the packages it moved
+    several major versions (big_jumps), and how many cards were left out (put_off)."""
     from .execute import not_run, rewrites
     from ...core.project.ledger import go_raised
     from ...core.project.jumps import big_jumps
@@ -161,13 +161,26 @@ def _said_too(state, wave, branch=None):
     wider = wave.get('beyond') or {}
     go = go_raised(state['project'], f"{wave['base']}..{branch}") if branch else []
     jumps = big_jumps(state['project'], wave['base'], branch) if branch else []
-    return {'checks_not_run': unrun, 'checks_rewriting': writing, 'beyond_the_cards': wider, 'go_raised': go, 'big_jumps': jumps}, (
-        _moved_words(go, jumps) + (
-        (f" Tell them too that EAOS could not run these checks of theirs here, so no fix was held to them: {', '.join(unrun)} "
-         "(the program each needs is missing on this computer)." if unrun else '')
-        + (f" Tell them these checks of theirs rewrite the files instead of checking them, so no fix was held to them: "
-           f"{', '.join(writing)}." if writing else '')
-        + (" Name to them each file a card changed beyond its own (beyond_the_cards) and why its fix needed it." if wider else '')))
+    put_off = sum(str(why).startswith('skipped:') for why in (wave.get('failed') or {}).values())
+    return {'checks_not_run': unrun, 'checks_rewriting': writing, 'beyond_the_cards': wider, 'go_raised': go, 'big_jumps': jumps,
+            'put_off': put_off}, (
+        _moved_words(go, jumps) + _put_off_words(put_off) + _checks_words(unrun, writing, wider))
+
+
+def _checks_words(unrun, writing, wider):
+    """What the assistant tells of the checks that held no fix and of the files changed beyond the cards."""
+    return ((f" Tell them too that EAOS could not run these checks of theirs here, so no fix was held to them: {', '.join(unrun)} "
+             "(the program each needs is missing on this computer)." if unrun else '')
+            + (f" Tell them these checks of theirs rewrite the files instead of checking them, so no fix was held to them: "
+               f"{', '.join(writing)}." if writing else '')
+            + (" Name to them each file a card changed beyond its own (beyond_the_cards) and why its fix needed it." if wider else ''))
+
+
+def _put_off_words(count):
+    """What the assistant tells of the cards it left out: how many and why, grouped, in the person's language (a stranger's
+    batch put off 219 of 263, its reasons in English for an Arabic reader, 2026-11-05)."""
+    return (f" Tell them plainly that {count} cards were left out, grouped by why, in their language, and that they can be "
+            "picked again in another batch." if count else '')
 
 
 def _moved_words(go, jumps):

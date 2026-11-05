@@ -1,6 +1,6 @@
 """The checks a project with no interface is kept safe by, from its own manifest: a Rust crate's tests (`cargo test`,
-its build with them), a Go module's (`go vet`, `go test`), a Python project's own tests in the run's environment. Each
-fetches what it needs at install, with the network; Rust and Go run their checks from the lock alone (`--locked`,
+its build with them), a Go module's (`go vet`, `go test`), a PHP library's PHPUnit, a Python project's own tests in
+the run's environment. Each fetches what it needs at install, with the network; Rust and Go run their checks from the lock alone (`--locked`,
 `--offline`): a stranger's Rust command-line tool could not be fixed at all (2026-11-04)."""
 import json
 from pathlib import Path
@@ -14,7 +14,14 @@ BY_MANIFEST = (
 def found(project):
     """(install commands, checks) of the first manifest at the project's root; ([['true']], []) without one."""
     root = Path(project)
-    return next(((install, checks) for name, install, checks in BY_MANIFEST if (root / name).is_file()), None) or _python(root)
+    return next(((install, checks) for name, install, checks in BY_MANIFEST if (root / name).is_file()), None) or _php(root) or _python(root)
+
+
+def _php(root):
+    """A PHP library's Composer install and its PHPUnit suite; None without one."""
+    from . import detect_php
+    checks = detect_php.checks(root)
+    return (detect_php.install(root), checks) if checks else None
 
 
 def _python(root):

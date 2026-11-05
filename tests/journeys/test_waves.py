@@ -279,6 +279,17 @@ class RebuildTests(unittest.TestCase):
         self.assertEqual(keys['checks_rewriting'], ['npm run lint'])
         self.assertIn('rewrite the files instead of checking them, so no fix was held to them: npm run lint.', words)
 
+    def test_the_cards_put_off_are_counted_at_the_hand_over_and_said_in_the_persons_language(self):
+        # Second strangers' round: a batch put off 219 of 263 cards, its reasons in English for an Arabic reader
+        from eaos.ai.assistant import prompts
+        from eaos.journeys.fix import finish
+        wave = {'failed': {'T1': 'skipped: a large split', 'T2': 'skipped: an import loop', 'T3': 'it broke something'}}
+        with mock.patch.object(finish.project_state, 'runtime_of', return_value=Path(scratch())):
+            keys, words = finish._said_too({}, wave)
+        self.assertEqual(keys['put_off'], 2)
+        self.assertIn('2 cards were left out, grouped by why, in their language', words)
+        self.assertIn("fix_skip's reason", prompts._written_in('ar'))
+
     def test_a_fix_that_raises_the_go_line_of_go_mod_says_so_in_its_commit_and_at_the_hand_over(self):
         # Second trial on real projects: a Go module upgrade raised go.mod's `go` line, so everyone building the
         # project needs a newer Go, and neither the commit nor the hand-over said it.

@@ -97,7 +97,8 @@ def build(verb, cards, project, lang='ar', action=None, inputs=None, labels=None
 
 def _written_in(lang):
     """The language every message of a session is written in, said when it starts and again when it resumes."""
-    return f"Write every message in {NAMES.get(lang, NAMES['en'])}, the short notes between tools too"
+    return (f"Write every message in {NAMES.get(lang, NAMES['en'])}, the short notes between tools too, and every reason or "
+            "summary you give EAOS's tools (fix_skip's reason, fix_edit's summary): the person reads them")
 
 
 def _over_cards(verb, cards, where, lane):

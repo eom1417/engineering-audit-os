@@ -7,6 +7,7 @@ import subprocess
 import sys
 import tempfile
 import time
+import urllib.request
 from datetime import date, timedelta
 from pathlib import Path
 from unittest import mock
@@ -168,6 +169,31 @@ class SandboxTests(Workspace):
         log = box.workdir / 'service-0.log'
         box.stop()
         self.assertEqual((log.stat().st_size <= service_log.LOG_KEPT, 'LAST' in service_log.tail(log)), (True, True))
+
+    def test_a_php_app_is_served_by_phps_own_server_from_its_public_folder(self):
+        # Second strangers' round: a PHP app was served as a listing of its files, then could not run at all
+        from eaos.live.app import detect_php, profile, setup
+        from eaos.live.app.run import LiveRun
+        (self.project / 'public').mkdir()
+        (self.project / 'public/index.php').write_text('<?php echo "hello from " . PHP_SAPI;\n')
+        (self.project / 'package.json').write_text('{"devDependencies": {"eslint": "9"}}\n')     # its pages' tooling only
+        (self.project / 'composer.json').write_text('{"require-dev": {"phpunit/phpunit": "^11"}}\n')
+        (self.project / 'phpunit.xml').write_text('<phpunit/>\n')
+        git(self.project, 'add', '.')
+        self.commit('a php app')
+        self.write_grant()
+        draft = setup.detect(self.project)['profile']
+        self.assertEqual((draft['start'][:2], draft['start'][-1], draft['checks']), (['php', '-S'], 'public', [['php', 'vendor/bin/phpunit']]))
+        self.assertEqual(profile.safe(draft), [])
+        if not shutil.which('php'): self.skipTest('php is not installed')
+        (Path(self.tmp) / 'run.json').write_text(json.dumps({**draft, 'install': [['true']]}))
+        live = LiveRun(self.project, self.tmp, 'S05')
+        try:
+            base = live.start()
+            with urllib.request.urlopen(base + '/', timeout=10) as page: said = page.read().decode()
+        finally: live.stop()
+        self.assertEqual(said, 'hello from cli-server')
+        self.assertIsNone(detect_php.detect(Path(self.tmp) / 'nowhere'))
 
     def test_a_port_another_program_holds_is_given_up_and_only_the_runs_own_service_counts_as_answering(self):
         import http.server
