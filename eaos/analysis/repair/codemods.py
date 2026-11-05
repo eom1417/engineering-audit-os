@@ -11,7 +11,7 @@ The mechanical families (eaos/rules/codemods.json) and their tools:
                                     bun's --lockfile-only, both --ignore-scripts, so nothing is installed and no
                                     project code runs. A lock file card's packages: every override, then each
                                     install once. uv: one `uv lock --upgrade-package pkg==fixed` per lock file,
-                                    every package of the card in it
+                                    every package of the card in it; go and cargo: eaos/analysis/repair/lock_tools.py
 Each card gets codemod {tool, command, dry_run {exit, files_changed}}. The dry run is the real command on a
 copy made by eaos.live.testing.verify.isolated_copy; files_changed counts files added, removed or modified there. A tool
 that changes nothing did nothing, and says so with files_changed 0. The project is never written.
@@ -29,6 +29,7 @@ from pathlib import Path, PurePosixPath
 from ...core import progress
 from ...core.system.files import read_json
 from .actions_upgrade import action_card, bump
+from .lock_tools import LOCK_TOOLS
 
 RULES = Path(__file__).resolve().parents[2] / 'rules/codemods.json'
 TRANSFORM = Path(__file__).resolve().parents[2] / 'templates/codemods/remove-declaration.cjs'
@@ -140,14 +141,14 @@ def _commands(card, copy):
     if kind == 'jscodeshift':
         found = binary('jscodeshift')
         return [([found, '-t', str(TRANSFORM), '--parser=tsx', f"--name={detail['symbol']}", detail['path']], None)] if found else None
-    if kind in (*LOCK_ONLY, 'uv', 'go', 'actions'): return _upgrade_steps(detail, copy)
+    if kind in (*LOCK_ONLY, *LOCK_TOOLS, 'uv', 'actions'): return _upgrade_steps(detail, copy)
     return None
 
 
 def _upgrade_steps(card, copy):
     """The steps of an upgrade card, one package's or a lock file card's, by its lock file's tool."""
     members, executable = card.get('group') or [card], binary(card['kind']) or card['kind']
-    if card['kind'] == 'go': return _go_steps(members, executable, copy)
+    if card['kind'] in LOCK_TOOLS: return LOCK_TOOLS[card['kind']](members, executable, copy)
     if card['kind'] == 'actions': return [(partial(bump, copy, m['package'], m['fixed']), f"uses: {m['package']}@{m['fixed']}") for m in members]
     return _uv_steps(members, executable) if card['kind'] == 'uv' else _group_steps(members, executable, copy)
 
@@ -158,36 +159,6 @@ def _uv_steps(members, executable):
     folder = members[0]['folder']
     pins = [part for member in members for part in ('--upgrade-package', f"{member['package']}=={member['fixed']}")]
     return [([executable, 'lock', *pins, *(['--directory', folder] if folder != '.' else [])], None)]
-
-
-def _go_steps(members, executable, copy):
-    """Each module moved to its fixed version by its own `go get`, unless an earlier one already moved it past (a fixed
-    x/net needs a newer x/sys: asking x/sys at its own fix in the same go get is refused), then `go mod tidy`: go.mod and
-    go.sum alone are written, the modules fetched into a cache of its own, removed after; Go never downloads another toolchain."""
-    folder, wanted = Path(copy) / members[0]['folder'], [(m['package'], 'v' + str(m['fixed']).removeprefix('v')) for m in members]
-    return [(lambda: _go(executable, folder, wanted), f"go get {' '.join(f'{p}@{v}' for p, v in wanted)} && go mod tidy")]
-
-
-def _go(executable, folder, wanted):
-    import os
-    with tempfile.TemporaryDirectory(prefix='eaos-go-') as cache:
-        env = {**os.environ, 'GOMODCACHE': cache, 'GOFLAGS': '-modcacherw', 'GOTOOLCHAIN': 'local'}
-        run = lambda *argv: _go_run([executable, *argv], folder, env)
-        for module, fixed in wanted:
-            if _semver(run('list', '-m', '-f', '{{.Version}}', module).strip()) < _semver(fixed): run('get', f'{module}@{fixed}')
-        run('mod', 'tidy')
-
-
-def _go_run(argv, folder, env):
-    done = subprocess.run(argv, cwd=folder, capture_output=True, text=True, timeout=600, env=env)  # nosemgrep: python.lang.security.audit.dangerous-subprocess-use-audit -- go at its path, a list argv built here, in an isolated copy, no shell
-    if done.returncode: raise OSError(f"go {argv[1]} exited {done.returncode}: {(done.stderr or done.stdout).strip()[-240:]}")
-    return done.stdout
-
-
-def _semver(version):
-    """A Go module version, comparable: v1.2.3 above its pre-releases and pseudo-versions (v1.2.4-0.2026... is below v1.2.4)."""
-    base, _, pre = version.removeprefix('v').partition('-')
-    return (*(int(part) if part.isdigit() else 0 for part in (base.split('.') + ['0', '0'])[:3]), not pre)
 
 
 def _group_steps(members, executable, copy):

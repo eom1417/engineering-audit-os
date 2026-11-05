@@ -139,6 +139,23 @@ class CodemodTests(Workspace):
         self.assertIn('golang.org/x/text v0.22.0', (root / 'go.mod').read_text())
         self.assertTrue((root / 'go.sum').is_file())
 
+    def test_a_cargo_lock_card_moves_its_crate_with_cargo_alone(self):
+        # Second strangers' round: a Rust tool's crate card was refused before its batch, no tool rewrote Cargo.lock,
+        # though EAOS told the person the very command
+        root = self.project({'Cargo.toml': '[package]\nname = "m"\nversion = "0.1.0"\nedition = "2021"\n\n[dependencies]\nitoa = "=1.0.10"\n',
+                             'src/main.rs': 'fn main() {}\n', 'Cargo.lock': ''})
+        card = card_for(*upgrade('Cargo.lock', 'crates.io:itoa@1.0.10', '1.0.11'), root)
+        self.assertEqual(_commands(card, root)[0][1], 'cargo update -p itoa@1.0.10 --precise 1.0.11')
+        if not binary('cargo'): self.skipTest('cargo is not installed')
+        (root / 'Cargo.toml').write_text((root / 'Cargo.toml').read_text().replace('=1.0.10', '1'))
+        (root / 'Cargo.lock').unlink()
+        if subprocess.run([binary('cargo'), 'update', '-p', 'itoa', '--precise', '1.0.10'], cwd=root, capture_output=True).returncode:
+            self.skipTest('the crates registry is unreachable')
+        code, shown = _run_steps(_commands(card, root), root)
+        self.assertEqual(code, 0, shown)
+        self.assertIn('name = "itoa"\nversion = "1.0.11"', (root / 'Cargo.lock').read_text())
+        self.assertFalse((root / 'target').exists(), 'nothing built')
+
     def test_a_go_module_another_fix_already_moved_past_its_own_is_left_where_it_is(self):
         # Second trial on real projects: one go get of a lock file card's modules asked x/sys at its fix while the fixed
         # x/net needs a newer x/sys, so Go refused the whole card.

@@ -1,5 +1,11 @@
 # Changelog
 
+## Not yet versioned
+
+After the second round's rerun (owner, 2026-11-05).
+
+- A Cargo.lock card moves its crates with `cargo update -p <name>@<version> --precise <fixed>`, the lock alone written.
+
 ## 0.0.92 (2026-11-05)
 
 The second round of strangers' projects: five more of kinds the first had none of (a Python library, a Rust tool, a
