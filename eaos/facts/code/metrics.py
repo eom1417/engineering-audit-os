@@ -27,7 +27,7 @@ MIN_LINE_LENGTH = 12
 
 
 def nesting_depth(lines, language):
-    depth = maximum = 0
+    maximum = 0
     if language == 'python':
         # Counted from the first line's indent (a method's `def` sits inside its class), as braces count from the body.
         base = None
