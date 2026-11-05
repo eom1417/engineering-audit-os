@@ -29,7 +29,7 @@ def _python(root):
 def refreshed(runtime, project):
     """True when the run profile of a project with no interface had no checks and now has those of its manifest (and
     their installs): a profile an older EAOS drafted keeps the checks it knew, and a library updated EAOS on was still
-    found unprotected (2026-11-05). The original's checks are then run again, not read from before."""
+    found unprotected (2026-11-05)."""
     path = Path(runtime) / 'run.json'
     profile = json.loads(path.read_text(encoding='utf-8'))
     install, checks = found(project)
@@ -37,7 +37,6 @@ def refreshed(runtime, project):
     kept = [step for step in profile.get('install') or [] if step != ['true']]
     profile.update(install=kept + [step for step in install if step not in kept], checks=checks)
     path.write_text(json.dumps(profile, ensure_ascii=False, indent=1) + '\n', encoding='utf-8')
-    (Path(runtime) / 'runtime/checks-original.json').unlink(missing_ok=True)
     return True
 
 

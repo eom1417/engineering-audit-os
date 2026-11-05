@@ -277,16 +277,20 @@ def _stamps(copy, names):
 
 
 def original_checks(target, runtime):
-    """The checks on the authorised commit, run once and kept beside the run (runtime/checks-original.json)."""
+    """The checks on the authorised commit, run once and kept beside the run (runtime/checks-original.json): read again
+    while the commit and the profile's install and checks are the same (a library's profile gained its tests, and the
+    failing result of before still said it had none, 2026-11-05)."""
+    from ...live.app.run import load_profile
     from ...live.isolation.sandbox import head
     path = Path(runtime) / 'runtime/checks-original.json'
-    commit = head(target)
+    profile = load_profile(runtime)
+    key = {'commit': head(target), 'commands': [profile.get('install') or [], profile.get('checks') or []]}
     if path.is_file():
         kept = json.loads(path.read_text(encoding='utf-8'))
-        if kept.get('commit') == commit: return kept['checks']
+        if {name: kept.get(name) for name in key} == key: return kept['checks']
     checks = project_checks(target, runtime, 'S08', 'original')
     path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(json.dumps({'commit': commit, 'checks': checks}, indent=1) + '\n', encoding='utf-8')
+    path.write_text(json.dumps({**key, 'checks': checks}, indent=1) + '\n', encoding='utf-8')
     return checks
 
 
