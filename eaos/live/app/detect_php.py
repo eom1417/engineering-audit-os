@@ -6,6 +6,9 @@ from pathlib import Path
 
 # The folders a PHP app serves from, the commonest first (Laravel and Symfony's public/, web/, FreshRSS's p/).
 SERVED = ('public', 'web', 'p', 'htdocs', '.')
+# PHP's own server answers one request at a time unless told to fork workers: a stranger's PHP app was crawled one page
+# at a time, its check's crawl the longest stage (2026-11-05).
+WORKERS = '4'
 
 
 def served(project):
@@ -34,7 +37,7 @@ def detect(project):
     if folder is None or not (Path(project) / 'composer.json').is_file() and folder == '.': return None
     port = free_port()
     profile = {'schema_version': 1, 'app': '.', 'install': install(project), 'start': ['php', '-S', f'127.0.0.1:{port}', '-t', folder],
-               'port': port, 'health': '/', 'start_timeout': 180, 'env': {}, 'checks': checks(project)}
+               'port': port, 'health': '/', 'start_timeout': 180, 'env': {'PHP_CLI_SERVER_WORKERS': WORKERS}, 'checks': checks(project)}
     return {'profile': profile, 'facts': {'folder': '.', 'manager': 'composer', 'framework': 'php', 'database': None, 'env_names': [],
                                           'reason': f'a PHP app: {folder}/index.php served by PHP\'s own server'},
             'limitations': []}
