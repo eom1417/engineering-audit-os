@@ -227,6 +227,24 @@ class RebuildTests(unittest.TestCase):
         before = [{'argv': ['npm', 'ci', '--no-audit', '--no-fund'], 'exit': 0, 'failing': []}, {'argv': ['npm', 'test'], 'exit': 0, 'failing': []}]
         self.assertEqual(regressions(before, after), ['npm ci --no-audit --no-fund'])
 
+    def test_a_check_runs_once_as_on_ci_not_watching(self):
+        # Second strangers' round (2026-11-05): `vitest` watches unless CI is set; the suite never ended, and each card's
+        # check waited out its 30 minutes
+        from eaos.journeys.fix.execute import project_checks
+        root = repository()
+
+        class Run:
+            def __init__(self, *_, **__):
+                self.profile, self.log, self.commit = {'checks': [['yarn', 'test']]}, [], git(root, 'rev-parse', 'HEAD')
+                self.sandbox = mock.Mock(copy=Path(scratch()))
+            def setup(self): pass
+            def run(self, argv, env=None, **_):
+                return (0, '', '') if (env or {}).get('CI') else (1, '', 'stopped after 1800s')
+            def stop(self): pass
+            def record(self, name): pass
+        with mock.patch('eaos.live.app.run.LiveRun', Run):
+            self.assertEqual([row['exit'] for row in project_checks(root, 'runtime', 'S09', 'edit', python=False)], [0])
+
     def test_a_check_that_rewrites_the_files_is_named_and_is_no_gate(self):
         # Trial on real projects: a project's lint reached `biome --write` and always passed by fixing the files it checked
         from eaos.journeys.fix.execute import project_checks, regressions, rewrites

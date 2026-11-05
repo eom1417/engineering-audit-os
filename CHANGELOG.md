@@ -21,6 +21,8 @@ a stopped audit with evidence missing, and a command-line project that could not
 - A project with no interface starts nothing for its safety net and its batch: its own checks hold every change. A Python
   library's tests run in the run's own environment, its pyproject dependency group that brings pytest installed. A
   profile an older EAOS drafted takes its manifest's checks, and the original's checks run again when they changed.
+- A project's own checks run as on a CI machine, once (vitest watched and every card waited out 30 minutes). A stopped
+  service's log keeps its last 256 KB (a load test made one 258 MB).
 
 ## 0.0.91 (2026-11-03)
 
