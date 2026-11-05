@@ -2,6 +2,7 @@
 its build with them), a Go module's (`go vet`, `go test`), a Python project's own tests in the run's environment. Each
 fetches what it needs at install, with the network; Rust and Go run their checks from the lock alone (`--locked`,
 `--offline`): a stranger's Rust command-line tool could not be fixed at all (2026-11-04)."""
+import json
 from pathlib import Path
 
 BY_MANIFEST = (
@@ -23,6 +24,21 @@ def _python(root):
     from ..testing.python_suite import command
     tests = command(root) if any((root / name).is_file() for name in MANIFESTS) else None
     return (install(root), [['python', *tests[1:]]]) if tests else ([['true']], [])
+
+
+def refreshed(runtime, project):
+    """True when the run profile of a project with no interface had no checks and now has those of its manifest (and
+    their installs): a profile an older EAOS drafted keeps the checks it knew, and a library updated EAOS on was still
+    found unprotected (2026-11-05). The original's checks are then run again, not read from before."""
+    path = Path(runtime) / 'run.json'
+    profile = json.loads(path.read_text(encoding='utf-8'))
+    install, checks = found(project)
+    if profile.get('checks') or not checks: return False
+    kept = [step for step in profile.get('install') or [] if step != ['true']]
+    profile.update(install=kept + [step for step in install if step not in kept], checks=checks)
+    path.write_text(json.dumps(profile, ensure_ascii=False, indent=1) + '\n', encoding='utf-8')
+    (Path(runtime) / 'runtime/checks-original.json').unlink(missing_ok=True)
+    return True
 
 
 def unknown_app(project=None):

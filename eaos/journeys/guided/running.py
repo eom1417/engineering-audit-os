@@ -125,7 +125,9 @@ def _own_checks(state, screens_passed):
     """The project's own checks that pass on the original, when it has no interface to record: they are its safety net
     (a library's tests, a command-line tool's build and tests); 0 when there are none or one fails, said plainly."""
     from ..fix.execute import original_checks
+    from ...live.app.own_checks import refreshed
     if screens_passed or not state['setup'].get('no_interface'): return 0
+    refreshed(runtime_of(state), source(state))
     checks = original_checks(source(state), runtime_of(state))
     if checks and all(row['exit'] == 0 for row in checks): return len(checks)
     failed = [' '.join(map(str, row['argv'])) for row in checks if row['exit']]

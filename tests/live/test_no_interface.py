@@ -1,6 +1,7 @@
 """A project with no interface (a library, a command-line tool, a mobile app) is never pictured through a stand-in page:
 its own tests and build keep a change safe (a Python library and a Flutter app were judged by a file listing, and a Rust
 tool could not be fixed at all, 2026-11-04)."""
+import json
 import tempfile
 import unittest
 from pathlib import Path
@@ -38,6 +39,18 @@ class NoInterfaceTests(unittest.TestCase):
             install, checks = own_checks.found(tmp)
         self.assertEqual([step[6:] for step in install], [['-e', '.'], ['freezegun', 'pytest>=8']])
         self.assertEqual(checks, [['python', '-m', 'pytest', '-q']])
+
+    def test_a_profile_an_older_eaos_drafted_takes_its_manifests_checks_and_runs_them_again(self):
+        with tempfile.TemporaryDirectory() as project, tempfile.TemporaryDirectory() as runtime:
+            (Path(project) / 'tests').mkdir(); (Path(project) / 'tests/test_a.py').write_text('', encoding='utf-8')
+            (Path(project) / 'pyproject.toml').write_text('[dependency-groups]\ntests = ["pytest"]\n', encoding='utf-8')
+            (Path(runtime) / 'run.json').write_text(json.dumps({'install': [['true']], 'start': ['true'], 'checks': []}), encoding='utf-8')
+            (Path(runtime) / 'runtime').mkdir(); (Path(runtime) / 'runtime/checks-original.json').write_text('{}', encoding='utf-8')
+            self.assertTrue(own_checks.refreshed(runtime, project))
+            kept = json.loads((Path(runtime) / 'run.json').read_text(encoding='utf-8'))
+            self.assertEqual((kept['install'][-1][-1], kept['checks']), ('pytest', [['python', '-m', 'unittest', 'discover', '-s', 'tests']]))
+            self.assertFalse((Path(runtime) / 'runtime/checks-original.json').exists(), 'the old failing result is not read again')
+            self.assertFalse(own_checks.refreshed(runtime, project))
 
     def test_passing_own_checks_open_a_batch_without_screens(self):
         state = {'setup': {'ok': False, 'no_interface': True, 'commit': 'c'},
