@@ -12,6 +12,19 @@ After the second round's rerun (owner, 2026-11-05).
 - An open batch keeps the fix step open: a hand-over a stopped session cut left it open with no card ready, and
   `eaos status` said every step was done; now it and `eaos next` say to continue the batch.
 
+After two judges of another model read 40 of the second round's cards blind (M17.3, 2026-11-05): 82-92% right, 5-7%
+worth fixing, most of them true sizes and branch counts that named no harm.
+
+- A size or complexity measure is a card only with a sign of harm: a function five blocks deep inside its body, or a
+  file fixed three times in a history long enough to say so; otherwise it is kept as a measure, never a fix.
+- Nesting counts blocks only, not an object literal or a JSX value, and a Python method from its own `def`.
+- Dart imports resolve (`package:` under the named package's `lib/`, other URIs from the importing file): a file ten
+  files imported was "imported by 0 modules".
+- A weak hash in a file that uses HMAC is a question for the triage, not an agreed weakness: SHA-1 as HMAC's digest
+  is not weak.
+- An engine's measure of a function longer than the function itself is set aside and counted (lizard read 729 lines
+  in a function of 263).
+
 ## 0.0.92 (2026-11-05)
 
 The second round of strangers' projects: five more of kinds the first had none of (a Python library, a Rust tool, a
