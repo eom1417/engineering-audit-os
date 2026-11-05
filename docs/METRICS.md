@@ -6,7 +6,7 @@ The numbers of EAOS, measured at each milestone end, oldest first. `tools/metric
 assistant (`tools/*_proof.py`) measure the journeys. Numbers are compared with the section before; a worse number
 needs its reason here.
 
-Latest: **0.0.91**, the first trial on strangers' projects (below). M7 (0.0.79) has no section of its own: what it changed is proved by the
+Latest: **0.0.92**, the second round of strangers' projects (below). M7 (0.0.79) has no section of its own: what it changed is proved by the
 fix proof in the golden trial, not by a number.
 
 ## Baseline: 0.0.71 (2026-10-23), EAOS's own check of `develop`
@@ -345,6 +345,36 @@ on five projects EAOS had never seen, checked and fixed twice:
 | Python lines (`eaos/`) | 82,815 in 577 files (2 flat at the package root) |
 | Studio UI (`console/src`) | 10,490 JS lines in 84 files (words 2,056) |
 | Tests | 30,500 lines in 190 files, 1397 test functions |
+| Check time | 4,535 s wall (ideal 856 · verify 791 · crawl 624 · triage 591) |
+| Stages / documents / engines | 42 / 8 `.md` / 37 tools |
+| Output | 267 MB, 1,424 files |
+| Runtime | 847 MB |
+| Cards on itself | 78 plan tasks (31 hotspot, 30 design_review, 13 extend_feature) from 208 claims |
+| The layers on itself | 690 of 690 files placed; 4 findings (operations 3, tests 1); 3 s |
+| Engine findings | 1,315 (`reforge` 1,121, `semgrep` 102) |
+| Compatibility corpus | 15 of 15 apps pass (15 pinned) |
+| Detection baseline | 35 of 35 planted problems found |
+| Layer findings judged on the corpus | 37 findings on 3 apps, 2 false (5%) |
+
+## After the second strangers' round: 0.0.92 (2026-11-05)
+
+The check's own numbers are those of the last check of `develop` (2026-10-30); the code, tests, corpus and detection
+baseline are measured on 0.0.92. What this version is for is measured on five more projects EAOS had never seen, of
+kinds the first round had none of, each checked and fixed from its same commit twice:
+
+| Project | First run: cards, fixed | Second run: cards, fixed |
+|---|---|---|
+| A Python library | 8, 2 (held by a file listing taken for screens) | 5, 4 (held by its own 297 tests) |
+| A Rust command-line tool | 5, 0 (no batch: no screens, `cargo` refused) | 5, 3 (held by `cargo test`) |
+| A Flutter mobile app | 9, 4 (held by a file listing) | 18, 0: no Flutter check EAOS runs, said so |
+| A PHP web app | 60, 0 (stopped on the account limit; held by a file listing) | 76, 0: PHP does not run here, said so |
+| A TypeScript monorepo | the check stopped in `claims` | 289, 36 (held by its 75 s suite and every screen; 219 refactors put off by the assistant) |
+
+| Measure | Value |
+|---|---|
+| Python lines (`eaos/`) | 83,434 in 586 files (2 flat at the package root) |
+| Studio UI (`console/src`) | 10,490 JS lines in 84 files (words 2,056) |
+| Tests | 30,958 lines in 200 files, 1427 test functions |
 | Check time | 4,535 s wall (ideal 856 · verify 791 · crawl 624 · triage 591) |
 | Stages / documents / engines | 42 / 8 `.md` / 37 tools |
 | Output | 267 MB, 1,424 files |
