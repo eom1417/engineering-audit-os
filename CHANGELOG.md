@@ -3,7 +3,7 @@
 ## Not yet versioned
 
 The frozen code removed from the package (P0, decision D2; kept whole in the tag `archive/before-p0`). The public
-contract lock accepted 54 breaks (`tests/fixtures/contract/accepted-breaks.json`), all of them removals:
+contract lock accepted 54 breaks (`tests/fixtures/contract/accepted-breaks.json`), all of them removals, recorded as: owner decision D2 2026-11-10, frozen code removed: the Studio, build from a plan, extend, design, experience, logic flaws, the ideal planner and the Studio-only MCP tools; check/start --path lose layers and experience.
 
 - CLI commands removed: `design`, `experience`, `logic-flaws`, `projects`, `studio`; `check --path` and `start --path`
   accept fewer choices.

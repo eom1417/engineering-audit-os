@@ -116,10 +116,9 @@ class InstalledPackageTests(unittest.TestCase):
             done = subprocess.run([sys.executable, '-m', 'pip', '--python', str(venv / 'bin/python'), 'install', '--quiet',
                                    '--no-deps', str(ROOT)], capture_output=True, text=True)
             if done.returncode: self.skipTest('pip could not build the package here: ' + done.stderr[-200:])
-            probe = ('import json, eaos.core.toolchain.pins as t, eaos.analysis.readiness.load_model as l, eaos.journeys.guided as g, eaos.core.contracts.artifact_rules as a;'
+            probe = ('import json, eaos.core.toolchain.pins as t, eaos.journeys.guided as g, eaos.core.contracts.artifact_rules as a;'
                      'assert "site-packages" in str(t.REGISTRY), t.REGISTRY; print(len(t.registry()["tools"]));'
                      'from pathlib import Path; import eaos;'
-                     'assert (Path(eaos.__file__).parent / "data/schemas/load-model.schema.json").is_file();'
                      'g.catalog(); a.contracts()')
             ran = subprocess.run([str(venv / 'bin/python'), '-c', probe], capture_output=True, text=True, cwd=tmp)
             self.assertEqual(ran.returncode, 0, ran.stderr[-600:])

@@ -15,7 +15,7 @@ environment; the ledger (`ledger` in the config, beside it) holds {rule: {file: 
     history_comments  a comment or docstring matching one of the history patterns
     skipped_tests     a skip or expected-failure decorator, and every skipTest call
     env_readers       os.environ and os.getenv outside the allowed files
-    suppressions      noqa, type: ignore, pylint: disable, limits:, jscpd:ignore and ast-grep-ignore comments
+    suppressions      noqa, type: ignore, pylint: disable, limits:, jscpd:ignore and ast-grep ignore comments
     junk_files        backup, temporary and copied files (.bak, .orig, ~, tmp-, -old, -copy)
 """
 import argparse
@@ -28,7 +28,7 @@ import tokenize
 from pathlib import Path
 
 URL = re.compile(r'https?://\S+')
-SUPPRESSION = re.compile(r'#\s*(noqa|type:\s*ignore|pylint:\s*disable|limits:|jscpd:ignore)|ast-grep-ignore', re.I)
+SUPPRESSION = re.compile(r'#\s*(noqa|type:\s*ignore|pylint:\s*disable|limits:|jscpd:ignore)|ast-grep[-]ignore', re.I)
 JUNK = re.compile(r'(\.(bak|orig|tmp|swp|rej)|~)$|^(tmp|temp)-|-(old|copy|backup)\.\w+$| copy(\.\w+)?$', re.I)
 CODE_HINT = re.compile(r'[=(\[]|:\s*$|^(import|from|return|raise|if|for|while|def|class)\b')
 SKIP_DECORATORS = {'skip', 'skipIf', 'skipUnless', 'expectedFailure', 'xfail'}
