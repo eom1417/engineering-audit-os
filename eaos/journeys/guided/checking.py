@@ -5,7 +5,8 @@ eaos/journeys/check.py runs it.
 from ...core.project.state import runtime_of, waiting_batch
 from .. import check_choices
 from ...report.documents.start_here import summary_counts
-from .person import AI_QUESTION, Declined, WITHOUT_AI_QUESTION, WITHOUT_QUESTION, answered, ask, box, progress_printer, say
+from .person import (AI_QUESTION, Declined, WITHOUT_AI_QUESTION, WITHOUT_QUESTION, answered, ask, box,
+                     progress_printer, say)
 from .project import chosen_assistant, report_of, save, source
 from ...core.system.clock import now
 
@@ -31,12 +32,14 @@ def check_provider(state):
     from ...ai.assistant import readiness
     # The assistant is on by default: only the person's explicit no turns it off.
     said = answered(state, 'use_assistant')
-    if said is False: return readiness.NoAssistant('ai_declined', 'the person chose to check without AI, so the rules stand alone')
+    if said is False:
+        return readiness.NoAssistant('ai_declined', 'the person chose to check without AI, so the rules stand alone')
     if said is None and not chosen_assistant(state): return None
     name = chosen_assistant(state) or state.get('assistant') or 'claude'
     found = readiness.probe(name)
     if not found['ready']:
-        return readiness.NoAssistant(found['code'], f"{found['name']} was not ready ({found['code']}), so the rules stand alone")
+        return readiness.NoAssistant(found['code'],
+                                     f"{found['name']} was not ready ({found['code']}), so the rules stand alone")
     return provider(name=name)[1]
 
 
@@ -69,7 +72,8 @@ def _start_without_ai(state, found, lang, yes):
     state['questions'] = [q for q in state.get('questions') or [] if q['id'] != 'start_without_ai']
     try: return ask(state, 'start_without_ai', WITHOUT_AI_QUESTION[lang].format(name=found['name']), yes)
     except Declined:
-        box(lang, f"لم يبدأ الفحص: {found['name']} غير جاهز" if lang == 'ar' else f"The check did not start: {found['name']} is not ready",
+        box(lang, f"لم يبدأ الفحص: {found['name']} غير جاهز" if lang == 'ar'
+            else f"The check did not start: {found['name']} is not ready",
             commands=['eaos start .'], status='fail',
             note=('أصلحه كما في السطر أعلاه ثم أعد الأمر، أو أعده واختر البدء بدون ذكاء' if lang == 'ar'
                   else 'Fix it as the line above says and run the command again, or run it again and start without AI'))
@@ -89,7 +93,8 @@ def start_without(state, failed, yes):
     names = ', '.join(sorted(failed))
     for name, reason in sorted(failed.items()): say(f"❌ {name}: {reason}")
     state['questions'] = [q for q in state.get('questions') or [] if q['id'] != 'start_without_tools']
-    try: return ask(state, 'start_without_tools', WITHOUT_QUESTION['ar' if state['lang'] == 'ar' else 'en'].format(names=names), yes)
+    try: return ask(state, 'start_without_tools',
+                    WITHOUT_QUESTION['ar' if state['lang'] == 'ar' else 'en'].format(names=names), yes)
     except Declined: return False
 
 
@@ -97,7 +102,8 @@ def check_tools(state, args):
     """{name: reason} of the tools that failed and the check starts without (the person said so), or None when the
     check does not start."""
     lang = state['lang']
-    failed = tools_for_check(state, lambda done, total: say(f"   {'أدوات الفحص الجاهزة' if lang == 'ar' else 'Checking tools ready'}: {done}/{total}"))
+    failed = tools_for_check(state, lambda done, total: say(
+        f"   {'أدوات الفحص الجاهزة' if lang == 'ar' else 'Checking tools ready'}: {done}/{total}"))
     if not failed or start_without(state, failed, args.yes): return failed
     box(lang, 'لم يبدأ الفحص: تنقصه أدوات' if lang == 'ar' else 'The check did not start: tools are missing',
         commands=['eaos tools install', 'eaos start .'], status='fail')
@@ -116,11 +122,14 @@ def scan(state, args):
          'Checking your project now. This usually takes 5 to 30 minutes depending on its size; nothing in it changes.'))
     check_choices.keep(state, getattr(args, 'mode', None))
     save(state)                                                 # the check reads the state as it stands
-    manifest, state, page = run(state, check_choices.options(state, progress_printer(lang), failed, check_provider(state),
-                                                             check_runtime(state), getattr(args, 'path', None)))
+    manifest, state, page = run(state, check_choices.options(state, progress_printer(lang), failed,
+                                                             check_provider(state), check_runtime(state),
+                                                             getattr(args, 'path', None)))
     counts = summary_counts(report_of(state))
-    happened = (f"فحصت مشروعك: {counts['problems']} مشكلة، منها {counts['ready']} يمكن إصلاحها آليًا" if lang == 'ar' else
-                f"Checked your project: {counts['problems']} problems, {counts['ready']} of them can be fixed automatically")
+    happened = (f"فحصت مشروعك: {counts['problems']} مشكلة، منها {counts['ready']} يمكن إصلاحها آليًا"
+                if lang == 'ar' else
+                f"Checked your project: {counts['problems']} problems, {counts['ready']} of them can be fixed "
+                "automatically")
     note = None
     if manifest.get('status') != 'COMPLETE':
         note = ('بعض أجزاء الفحص لم تكتمل، ومذكورة في أسفل الصفحة' if lang == 'ar'
@@ -137,7 +146,9 @@ def later_steps(state, args):
                    else f"Batch {waiting['number']} is waiting for you on the branch {waiting['branch']}"),
             commands=['eaos accept', 'eaos undo'])
     else:
-        box(lang, ('لا توجد إصلاحات آلية أخرى لهذا المشروع الآن؛ ما تبقى يحتاج قرارك، وهو في صفحة «ابدأ هنا»' if lang == 'ar'
-                   else 'No more automatic fixes for this project now; what is left needs your decision, and it is on the "Start here" page'),
+        box(lang, ('لا توجد إصلاحات آلية أخرى لهذا المشروع الآن؛ ما تبقى يحتاج قرارك، وهو في صفحة «ابدأ هنا»'
+                   if lang == 'ar' else
+                   'No more automatic fixes for this project now; what is left needs your decision, and it is on '
+                   'the "Start here" page'),
             where=report_of(state) / 'START-HERE.md', commands=['eaos status'])
     return 0

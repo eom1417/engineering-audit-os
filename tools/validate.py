@@ -5,7 +5,8 @@ import json
 R=Path(__file__).resolve().parents[1]
 
 # Files whose only home is the package itself: there is no canonical copy elsewhere to go stale against.
-PACKAGED_OWN=['errors.json','words.json','intents.json','toolchain.json','detector-verdicts.json','studio-actions.json','design.json','journeys.json','translation-memory.json']
+PACKAGED_OWN=['errors.json','words.json','intents.json','toolchain.json','detector-verdicts.json',
+              'studio-actions.json','design.json','journeys.json','translation-memory.json']
 PACKAGED_ROOTS=['schemas','schemas/artifacts']
 # Packaged copies of files kept elsewhere in the repository: (packaged name, source).
 PACKAGED_COPIES=[('studio-actions.json','docs/studio-actions.json')]
@@ -41,12 +42,14 @@ def packaged_errors(root,data=None):
 
 def _stale_copies(root,data):
     return ['Stale packaged copy '+name+' of '+source for name,source in PACKAGED_COPIES
-            if (root/source).is_file() and (data/name).is_file() and (root/source).read_bytes()!=(data/name).read_bytes()]
+            if (root/source).is_file() and (data/name).is_file()
+            and (root/source).read_bytes()!=(data/name).read_bytes()]
 
 
 def _unpackaged(expected,patterns):
     return ['Packaging pattern does not include '+rel for rel in sorted(expected)
-            if not any(fnmatch(rel,pattern.split('data/',1)[-1] if pattern.startswith('data/') else pattern) for pattern in patterns)]
+            if not any(fnmatch(rel,pattern.split('data/',1)[-1] if pattern.startswith('data/') else pattern)
+                       for pattern in patterns)]
 
 
 def main():

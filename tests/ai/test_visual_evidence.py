@@ -16,14 +16,18 @@ class Crawl(unittest.TestCase):
         measured = []
         def lighthouse(url, out=None, storage_state=None):
             measured.append(url)
-            return {'status': 'observed', 'scores': {'performance': 90}, 'lcp_ms': 900, 'cls': 0, 'report': str(Path(out) / 'lighthouse.json')}
+            return {'status': 'observed', 'scores': {'performance': 90}, 'lcp_ms': 900, 'cls': 0,
+                    'report': str(Path(out) / 'lighthouse.json')}
         with tempfile.TemporaryDirectory() as folder, mock.patch.object(crawl, 'discover', return_value=(found, '')), \
                 mock.patch.object(crawl, 'lighthouse', side_effect=lighthouse):
             result = crawl.crawl('http://127.0.0.1:9', folder)
-        self.assertEqual((result['status'], len(result['routes']), result['templates'], result['measured']), ('observed', 21, 14, 10))
-        self.assertEqual(measured[:3], ['http://127.0.0.1:9/', 'http://127.0.0.1:9/#/tasks/TASK-001', 'http://127.0.0.1:9/#/pagea'])
+        self.assertEqual((result['status'], len(result['routes']), result['templates'], result['measured']),
+                         ('observed', 21, 14, 10))
+        self.assertEqual(measured[:3], ['http://127.0.0.1:9/', 'http://127.0.0.1:9/#/tasks/TASK-001',
+                                        'http://127.0.0.1:9/#/pagea'])
         task = next(r for r in result['routes'] if r['path'] == '/#/tasks/TASK-001')
-        self.assertEqual((task['template'], task['measured'], task['report']), ('/#/tasks/:id', True, 'lighthouse/01/lighthouse.json'))
+        self.assertEqual((task['template'], task['measured'], task['report']), ('/#/tasks/:id', True,
+            'lighthouse/01/lighthouse.json'))
         with mock.patch.object(crawl, 'discover', return_value=(None, 'not installed: playwright')):
             self.assertEqual(crawl.crawl('http://127.0.0.1:9', '/nonexistent')['status'], 'unavailable')
 

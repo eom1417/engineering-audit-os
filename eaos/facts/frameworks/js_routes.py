@@ -16,7 +16,8 @@ import re
 
 LANGUAGES = ('javascript', 'typescript', 'tsx')
 REACT_ROUTER = re.compile(r'''from\s+['"]react-router(?:-dom)?['"]''')
-JSX_ROUTE = re.compile(r'''<Route\b(?P<attributes>[^>]*?\bpath\s*=\s*(?:\{\s*)?(?P<quote>['"`])(?P<route>[^'"`]*)(?P=quote)[^>]*)>''', re.S)
+JSX_ROUTE = re.compile(r'''<Route\b(?P<attributes>[^>]*?\bpath\s*=\s*(?:\{\s*)?'''
+                       r'''(?P<quote>['"`])(?P<route>[^'"`]*)(?P=quote)[^>]*)>''', re.S)
 # A quote opens a string only after what can precede an expression; in JSX text ("Can't") it is a letter.
 STRING_BEFORE = re.compile(r'(?:^|[=(\[{,:?+!&|]|\breturn)\s*\Z')
 ROUTE_TAG = re.compile(r'<Route\b')
@@ -25,14 +26,16 @@ JSX_PATH = re.compile(r'''[^>]*?\bpath\s*=\s*(?:\{\s*)?(?P<quote>['"`])(?P<route
 ELEMENT = re.compile(r'''\b(?:element\s*=\s*\{\s*<|Component\s*=\s*\{\s*)(?P<name>[A-Z]\w*)''')
 OBJECT_ROUTE = re.compile(r'''\{\s*path\s*:\s*(?P<quote>['"`])(?P<route>[^'"`]*)(?P=quote)(?P<rest>[^{}]*)''', re.S)
 OBJECT_ELEMENT = re.compile(r'''\b(?:element\s*:\s*<|Component\s*:\s*)(?P<name>[A-Z]\w*)''')
-TANSTACK = re.compile(r'''\bcreate(?:File|Root|Server|API)Route(?:WithContext)?\s*(?:<[^>]*>)?\s*\(\s*(?:(?P<quote>['"`])(?P<route>[^'"`]*)(?P=quote))?''')
+TANSTACK = re.compile(r'''\bcreate(?:File|Root|Server|API)Route(?:WithContext)?\s*(?:<[^>]*>)?\s*'''
+                      r'''\(\s*(?:(?P<quote>['"`])(?P<route>[^'"`]*)(?P=quote))?''')
 CODE_ROUTE = re.compile(r'''(?:\b(?:const|let|var)\s+(?P<var>\w+)\s*=\s*)?\bcreateRoute\s*\(\s*\{''')
 OBJECT_PATH = re.compile(r'''\bpath\s*:\s*(?P<quote>['"`])(?P<route>[^'"`]*)(?P=quote)''')
 OBJECT_PARENT = re.compile(r'''\bgetParentRoute\s*:\s*\(\)\s*=>\s*(?P<parent>\w+)''')
 TANSTACK_COMPONENT = re.compile(r'''\bcomponent\s*:\s*(?P<name>[A-Z]\w*)''')
 SERVER_METHOD = re.compile(r'''\b(?P<method>GET|POST|PUT|PATCH|DELETE)\s*:''')
 FUNCTION = re.compile(r'''\bfunction\s+(?P<name>[A-Z]\w*)\s*\(''')
-NEXT_PAGE = re.compile(r'''(^|/)(?:src/)?(?:app/(?P<app>(?:.*/)?)page|pages/(?P<pages>(?!api/)(?!_)[^.]+))\.(?:t|j)sx?$''')
+NEXT_PAGE = re.compile(r'''(^|/)(?:src/)?(?:app/(?P<app>(?:.*/)?)page|'''
+                       r'''pages/(?P<pages>(?!api/)(?!_)[^.]+))\.(?:t|j)sx?$''')
 # A Vite or CRA app also keeps screens under src/pages/; only Next.js gives that folder routing meaning.
 NEXT_MARK = re.compile(r'''from\s+['"]next/|\bget(?:ServerSide|Static)Props\b''')
 
@@ -124,13 +127,15 @@ def _react_router(context):
     for match in JSX_ROUTE.finditer(context.text):
         element = ELEMENT.search(match.group('attributes'))
         declared = match.group('route')
-        page = _page(context, match.start(), full.get(match.start(), declared), element and element.group('name'), 'react_router')
+        page = _page(context, match.start(), full.get(match.start(), declared), element and element.group('name'),
+                     'react_router')
         if page['route'] != declared: page['declared'] = declared
         found.append(page)
     if re.search(r'\b(createBrowserRouter|createHashRouter|createMemoryRouter|useRoutes)\b', context.text):
         for match in OBJECT_ROUTE.finditer(context.text):
             element = OBJECT_ELEMENT.search(match.group('rest'))
-            found.append(_page(context, match.start(), match.group('route'), element and element.group('name'), 'react_router'))
+            found.append(_page(context, match.start(), match.group('route'), element and element.group('name'),
+                               'react_router'))
     return found
 
 
@@ -139,7 +144,8 @@ def _tanstack(context):
     route = TANSTACK.search(context.text)
     if not (route and '@tanstack/' in context.text): return []
     path = route.group('route') if route.group('route') is not None else '__root__'
-    methods = sorted({m.group('method') for m in SERVER_METHOD.finditer(context.text)}) if 'handlers' in context.text else []
+    methods = (sorted({m.group('method') for m in SERVER_METHOD.finditer(context.text)})
+               if 'handlers' in context.text else [])
     line = context.line_of(route.start())
     if methods:
         return [{'surface': 'http', 'route': path, 'http_method': method, 'handler': method,

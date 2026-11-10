@@ -54,8 +54,10 @@ def spell(importer, target_parts, prefix, roots=()):
             raise Unmovable(f'{importer} would import {".".join(target_parts) or "the root"} from outside its package')
         return '.' * (len(package) - common + 1) + '.'.join(target_parts[common:])
     root = tuple(PurePosixPath(prefix).parts)
-    if target_parts[:len(root)] != root or not (prefix in roots or PurePosixPath(importer).as_posix().startswith(prefix)):
-        raise Unmovable(f'{importer} finds {".".join(target_parts)} through the folder {prefix or "."}, which the move leaves')
+    if target_parts[:len(root)] != root or not (prefix in roots
+                                                or PurePosixPath(importer).as_posix().startswith(prefix)):
+        raise Unmovable(f'{importer} finds {".".join(target_parts)} through the folder {prefix or "."}, '
+                        'which the move leaves')
     return '.'.join(target_parts[len(root):])
 
 
@@ -124,7 +126,8 @@ def _from_import(path, node, text, offsets, moves):
     base = resolve(path, module, level, moves.known, moves.roots)
     groups, changed = {}, False
     for alias in node.names:
-        child = resolve(path, f'{module}.{alias.name}' if module else alias.name, level, moves.known, moves.roots) if alias.name != '*' else None
+        child = (resolve(path, f'{module}.{alias.name}' if module else alias.name, level, moves.known, moves.roots)
+                 if alias.name != '*' else None)
         written, name, did = _submodule(path, alias, child, moves) or _attribute(path, node, alias, base, moves)
         changed = changed or did
         groups.setdefault(written, []).append(name)
@@ -145,7 +148,8 @@ def _submodule(path, alias, child, moves):
     if not (child and moves.moved(path, child[0])): return None
     parts = dotted(moves.new(child[0]))
     local = alias.asname or alias.name
-    return spell(moves.new(path), parts[:-1], child[1], moves.roots), parts[-1] + (f' as {local}' if parts[-1] != local else ''), True
+    return (spell(moves.new(path), parts[:-1], child[1], moves.roots),
+            parts[-1] + (f' as {local}' if parts[-1] != local else ''), True)
 
 
 def _attribute(path, node, alias, base, moves):
@@ -166,7 +170,8 @@ def _import(path, node, tree, offsets, moves):
         if not hit or not moves.moved(path, hit[0]): continue
         new = spell(moves.new(path), dotted(moves.new(hit[0])), hit[1], moves.roots)
         if new == alias.name: continue
-        if len(node.names) > 1: raise Unmovable(f'{path}:{node.lineno} imports several modules on one line, one of them moved')
+        if len(node.names) > 1:
+            raise Unmovable(f'{path}:{node.lineno} imports several modules on one line, one of them moved')
         start, end = _span(node, offsets)
         out.append((start, end, f'import {new}' + (f' as {alias.asname}' if alias.asname else '')))
         if not alias.asname: out += _uses(tree, offsets, alias.name, new)
@@ -197,7 +202,8 @@ def _dotted_strings(tree, text, offsets, moves, taken):
         new = _renamed(node.value, names)
         start, end = _span(node, offsets)
         plain = len(text[start:end]) == len(node.value) + 2               # no escape, not an f-string's part
-        if new is not None and plain and not any(start < b and a < end for a, b, _ in taken): out.append((start + 1, end - 1, new))
+        if new is not None and plain and not any(start < b and a < end for a, b, _ in taken):
+            out.append((start + 1, end - 1, new))
     return out
 
 

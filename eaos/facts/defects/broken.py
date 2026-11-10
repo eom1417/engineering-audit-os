@@ -28,26 +28,32 @@ from ...core.system.errors import noted
 NAME = 'broken'
 VERSION = '1'
 LIMITATIONS = [
-    'Undefined names are judged for Python only; a module with a star import is skipped, since any name may come from it.',
-    'Names injected at runtime (exec, globals() writes, module __getattr__) are invisible and would be reported; none is assumed.',
+    'Undefined names are judged for Python only; a module with a star import is skipped, since any name may come from '
+    'it.',
+    'Names injected at runtime (exec, globals() writes, module __getattr__) are invisible and would be reported; none '
+    'is assumed.',
     'Documented commands are checked against the CLI subcommands the code declares with argparse, the npm scripts in '
     'package.json, and the files in the snapshot (or, with a build script, in a build output folder nothing of which '
     'is committed); a file is looked for from the document\'s folder, the app\'s folder, and the folders the document '
     'names (a `cd` target, a top-level folder it mentions); a command another tool provides is not judged.',
 ]
-BUILTINS = set(dir(builtins)) | {'__file__', '__name__', '__doc__', '__spec__', '__package__', '__loader__', '__builtins__',
+BUILTINS = set(dir(builtins)) | {'__file__', '__name__', '__doc__', '__spec__', '__package__', '__loader__',
+                                 '__builtins__',
                                  '__path__', '__annotations__', '__dict__', '__module__', '__qualname__', '__class__'}
 SUBPARSER = re.compile(r'''add_parser\(\s*['"]([a-z][\w-]*)['"]''')
-NPM_RUN = re.compile(r'''\b(?:npm|pnpm|yarn|bun)\s+run\s+([\w:.*-]+(?:<[^<>\s`]*>|\{[^{}\s`]*\}|\[[^\[\]\s`]*\]|\$\{?\w+\}?|…)*)''')
+NPM_RUN = re.compile(r'''\b(?:npm|pnpm|yarn|bun)\s+run\s+'''
+                     r'''([\w:.*-]+(?:<[^<>\s`]*>|\{[^{}\s`]*\}|\[[^\[\]\s`]*\]|\$\{?\w+\}?|…)*)''')
 # A placeholder written after a script name (`deploy:<target>`, `deploy:{env}`, `deploy:$ENV`, `deploy:…`) stands
 # for any text: the command names a family of scripts, and is matched as a pattern, not as the literal prefix.
 PLACEHOLDER = re.compile(r'''<[^<>]*>|\{[^{}]*\}|\[[^\[\]]*\]|\$\{?\w+\}?|…|\.\.\.''')
-RUN_FILE = re.compile(r'''\b(?:python3?|node|bash|sh|tsx|ts-node|deno\s+run)\s+((?:\./)?[\w./-]+\.(?:py|[cm]?[jt]s|sh))\b''')
+RUN_FILE = re.compile(r'''\b(?:python3?|node|bash|sh|tsx|ts-node|deno\s+run)\s+'''
+                      r'''((?:\./)?[\w./-]+\.(?:py|[cm]?[jt]s|sh))\b''')
 CODE_SPAN = re.compile(r'```[^\n]*\n(.*?)```|`([^`\n]+)`', re.S)
 CD = re.compile(r'''\bcd\s+([\w.-][\w./-]*)''')
 
 
-def _fact(rule, path, line, symbol, message, severity, evidence, sha):  # limits: parameters -- a record's constructor: one broken-code fact's fields
+def _fact(  # limits: parameters -- a record's constructor: one broken-code fact's fields
+          rule, path, line, symbol, message, severity, evidence, sha):
     return make('broken_code', NAME, VERSION, sha, {'path': path, 'start_line': line, 'symbol': symbol},
                 {'rule': rule, 'message': message, 'severity': severity, 'evidence': evidence}, limitations=LIMITATIONS)
 
@@ -69,7 +75,8 @@ def undefined_names(text, path):
     missing = _missing(top, _module_names(top))
     # Report the read inside the scope that lacks the name, not the first mention anywhere in the file:
     # `values` is defined in one function and read by mistake in another.
-    scopes = {node.lineno: node for node in ast.walk(tree) if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef, ast.Lambda))}
+    scopes = {node.lineno: node for node in ast.walk(tree) if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef,
+                                                                                ast.ClassDef, ast.Lambda))}
     found = []
     for name, owners in missing.items():
         lines = [line for owner in owners for line in _reads(scopes.get(owner, tree) if owner else tree, name)]
@@ -83,7 +90,8 @@ def _module_names(top):
 
 
 def _has_star_import(tree):
-    return any(isinstance(node, ast.ImportFrom) and any(alias.name == '*' for alias in node.names) for node in ast.walk(tree))
+    return any(isinstance(node,
+                          ast.ImportFrom) and any(alias.name == '*' for alias in node.names) for node in ast.walk(tree))
 
 
 def _unresolved(symbol, scope, top, module):
@@ -165,14 +173,16 @@ def _npm_scripts(source, known):
     scripts = {}
     for path in known:
         if PurePosixPath(path).name != 'package.json': continue
-        try: scripts[str(PurePosixPath(path).parent)] = set((json.loads(source.text(path) or '{}').get('scripts') or {}))
+        try:
+            scripts[str(PurePosixPath(path).parent)] = set((json.loads(source.text(path) or '{}').get('scripts') or {}))
         except ValueError as error: noted('a package.json that is not JSON lists no scripts', error)
     return scripts
 
 
 def _subcommand_call(programs):
     if not programs: return None
-    return re.compile(r'(?:^|[\s(`$])(' + '|'.join(re.escape(p) for p in sorted(programs, key=len, reverse=True)) + r')\s+([a-z][\w-]*)')
+    return re.compile(r'(?:^|[\s(`$])(' + '|'.join(re.escape(p) for p in sorted(programs, key=len,
+                                                                                reverse=True)) + r')\s+([a-z][\w-]*)')
 
 
 def _documents(source, known):
@@ -197,7 +207,8 @@ def _bases(doc, text, scripts, tops):
 
 
 def _file_exists(file, bases, scripts, everything):
-    return '/' not in file or file in everything or any(str(base / file) in everything for base in bases) or _built(file, scripts, everything)
+    return ('/' not in file or file in everything or any(str(base / file) in everything for base in bases)
+            or _built(file, scripts, everything))
 
 
 def _built(file, scripts, everything):
@@ -223,7 +234,8 @@ def _stale_in_span(span, bases, commands):
         stale += [f'{found.group(1)} {found.group(2)}' for found in commands['call'].finditer(span)
                   if found.group(2) not in commands['subcommands']]
     if commands['scripts']:
-        stale += [found.group(0) for found in NPM_RUN.finditer(span) if not _script_exists(found.group(1), commands['all_scripts'])]
+        stale += [found.group(0) for found in NPM_RUN.finditer(span) if not _script_exists(found.group(1),
+                                                                                           commands['all_scripts'])]
     return stale + _unknown_files(span, bases, commands['scripts'], commands['everything'])
 
 
@@ -265,14 +277,16 @@ def _missing_import_fact(fact, sha):
 def _missing_import_facts(resolved, sha, absent):
     """A fact per resolved import that names a module the snapshot does not have (`absent`: submodules not checked
     out)."""
-    return [found for found in (_missing_import_fact(fact, sha) for fact in resolved) if found and not _in_submodule(found['location'], absent)]
+    return [found for found in (_missing_import_fact(fact, sha) for fact in resolved)
+            if found and not _in_submodule(found['location'], absent)]
 
 
 def _in_submodule(location, absent):
     """Whether a relative import points into a submodule not checked out: its file is there once
     `git submodule update --init` checks it out, so it is not missing."""
     module = location['symbol']
-    return module.startswith('.') and posixpath.normpath(posixpath.join(posixpath.dirname(location['path']), module)).startswith(absent)
+    return module.startswith('.') and posixpath.normpath(posixpath.join(posixpath.dirname(location['path']),
+                                                                        module)).startswith(absent)
 
 
 def run(target, source, resolved=None, **options):
@@ -285,7 +299,8 @@ def run(target, source, resolved=None, **options):
     facts += _missing_import_facts(resolved or [], sha, _absent_submodules(source, everything))
     for doc, line, command in stale_instructions(source, known, everything):
         facts.append(_fact('stale-instruction', doc, line, command,
-                           f'{doc} instructs `{command}`, a command the project does not have: it no longer exists, or does not exist yet', 'low',
+                           f'{doc} instructs `{command}`, a command the project does not have: '
+                           'it no longer exists, or does not exist yet', 'low',
                            'not among the CLI subcommands, npm scripts or files the snapshot declares', sha))
     summary = {rule: sum(f['value']['rule'] == rule for f in facts)
                for rule in ('undefined-name', 'duplicate-key', 'missing-import', 'stale-instruction')}

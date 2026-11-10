@@ -1,9 +1,8 @@
 """One thin wrapper per stage. No analysis lives here; every runner calls the module that owns it.
 
-A runner may raise SkipStage when the stage does not apply to this project — no policy declared,
-no provider configured, no engine installed. That is a recorded absence, not a failure. The runners of the stages an
-assistant does are pipeline/runners/by_assistant.py's; RUNNERS, here, names every stage's.
-"""
+A runner may raise SkipStage when the stage does not apply to this project — no policy declared, no provider configured,
+no engine installed. That is a recorded absence, not a failure. The runners of the stages an assistant does are
+pipeline/runners/by_assistant.py's; RUNNERS, here, names every stage's. """
 from pathlib import Path
 
 from ...core.system.errors import noted
@@ -33,17 +32,22 @@ def facts(context):
     context['exclude'] = sorted({*context.exclude, *declared_exclusions(context.target)})
     context['source'] = Source(context.target, exclude=context['exclude'],
                                max_files=context.max_files, max_bytes=context.max_bytes)
-    context['collected'] = collect(context.target, context.out, None, source=context['source'], exclude=context['exclude'],
-                                   cache=Path(context.runtime) / 'syntax-cache.json' if context.get('runtime') else None)
+    context['collected'] = collect(context.target, context.out, None, source=context['source'],
+                                   exclude=context['exclude'],
+                                   cache=Path(context.runtime) / 'syntax-cache.json' if context.get('runtime')
+                                   else None)
     # A tree with no source file to read is not an audited project, whatever its history says:
     # an empty checkout must not be reported COMPLETE: its claims would come from git history alone.
     # A site of pages alone (its script inside its .html) is a project too: it was refused, its app never run.
     from ...core.contracts.vocabulary import classify
     unread = [row['path'] for row in context['collected']['unread_names']]
-    if not any(classify(item['path']) == 'source' or item['path'].endswith(('.html', '.htm')) for item in context['source'].readable()):
+    if not any(classify(item['path']) == 'source' or item['path'].endswith(('.html', '.htm'))
+               for item in context['source'].readable()):
         if unread: raise SkipStage(', '.join(_unread_said(unread)), code='no_source_unread')
-        raise SkipStage('the target holds no source file this tool reads, so no project was audited', code='no_source_files')
-    return {'facts': context['collected']['facts'], 'sets': len(context['collected']['sets']), 'exclude': context['exclude'],
+        raise SkipStage('the target holds no source file this tool reads, so no project was audited',
+                        code='no_source_files')
+    return {'facts': context['collected']['facts'], 'sets': len(context['collected']['sets']),
+            'exclude': context['exclude'],
             **({'unread_names': _unread_said(unread)} if unread else {})}
 
 
@@ -53,7 +57,8 @@ def engines(context):
     from ...facts.run import add_to_index, collect_external
     if 'source' not in context:
         from ...facts.source import Source
-        context['source'] = Source(context.target, exclude=context.exclude, max_files=context.max_files, max_bytes=context.max_bytes)
+        context['source'] = Source(context.target, exclude=context.exclude, max_files=context.max_files,
+                                   max_bytes=context.max_bytes)
     # Run again within the same check (eaos/pipeline/run.py again), the engines named join the others' results.
     from ...analysis.layers import depcruise_rules
     depcruise_rules(context.target, context.out)          # the layer map's rules, for dependency-cruiser
@@ -89,16 +94,18 @@ def setup(context):
         raise SkipStage(NO_RUN, code='no_run_consent')
     from ...live.app.setup import authorize, owner, setup as start
     authorize(context.target, context.runtime, owner(context.target))
-    result = start(context.target, Path(context.runtime), report=context.out, provider=context.provider or None, say=lambda n: None)
+    result = start(context.target, Path(context.runtime), report=context.out, provider=context.provider or None,
+                   say=lambda n: None)
     _keep(context, 'setup.json', result)
     if not result['ok']:
-        raise SkipStage('the app did not start in the isolated copy: ' + '; '.join(result['limitations'])[:250], code='app_not_running')
+        raise SkipStage('the app did not start in the isolated copy: ' + '; '.join(result['limitations'])[:250],
+                        code='app_not_running')
     return {'attempts': result['attempts'], 'limitations': len(result['limitations'])}
 
 
 def verify(context):
-    """The project's own tests from its run profile in the isolated copy, with coverage (eaos/live/testing/verify.py run_profile),
-    once the person agreed to run the app; else which test imports which file, and why nothing ran."""
+    """The project's own tests from its run profile in the isolated copy, with coverage (eaos/live/testing/verify.py
+    run_profile), once the person agreed to run the app; else which test imports which file, and why nothing ran."""
     from ...live.testing.verify import declared, run_profile
     if not context.get('runtime'):
         declared(context.target, context.out, NO_RUN, context.get('source'))
@@ -116,18 +123,21 @@ def verify(context):
         reason = f'the tests could not run in the isolated copy: {type(problem).__name__}: {problem}'[:300]
         declared(context.target, context.out, reason, context.get('source'))
         raise SkipStage(reason, code='tests_not_run') from None
-    return {'commands': len(result['attempts']), 'passed': result['passed'], 'overall_percent': result.get('overall_percent'),
+    return {'commands': len(result['attempts']), 'passed': result['passed'],
+            'overall_percent': result.get('overall_percent'),
             'covered_files': len(result.get('coverage') or {})}
 
 
 def record(context):
-    """The lock run twice on today's code (eaos/live/behavior/lock.py run_lock): the screens and interfaces it recorded."""
+    """The lock run twice on today's code (eaos/live/behavior/lock.py run_lock): the screens and interfaces it
+    recorded."""
     runtime = _live(context)
     if not (context.out / 'behavior-lock/plan.json').is_file():
         raise SkipStage('the program has no feature to lock', code='no_features')
     from ...live.behavior.lock import run_lock
     from .live_app import shared_app
-    result = run_lock(context.out, context.target, runtime, app=shared_app(context))     # on the app the person signed in to
+    result = run_lock(context.out, context.target, runtime,
+                      app=shared_app(context))     # on the app the person signed in to
     passed = sum(r['status'] == 'passed' for r in result['results'])
     _keep(context, 'lock.json', {**result, 'specs': len(result['results']), 'passed': passed})
     return {'specs': len(result['results']), 'passed': passed}
@@ -213,17 +223,16 @@ def measure(context):
 def intake(context):
     from ...analysis.understanding.intake import write
     record = write(context.target, context.out, context.get('intake'))
-    return {'answered': sum(q['status'] == 'answered' for q in record['questions']), 'scenarios': len(record['scenarios'])}
+    return {'answered': sum(q['status'] == 'answered' for q in record['questions']),
+            'scenarios': len(record['scenarios'])}
 
 
 def features(context):
     """Group user-facing surfaces into the program's features and bind them to data.
 
-    The ``facts`` stage records a count, not the flat list, in ``context['collected']``;
-    the list is read back from the persisted fact sets the facts stage has just written
-    to disk. Doing it this way keeps the in-memory payload of the Context small while
-    the disk keeps the source of truth.
-    """
+    The ``facts`` stage records a count, not the flat list, in ``context['collected']``; the list is read back from the
+    persisted fact sets the facts stage has just written to disk. Doing it this way keeps the in-memory payload of the
+    Context small while the disk keeps the source of truth. """
     from ...analysis.understanding.features import build
     from ...core.project.workspace import write
     from ...facts.store import read_set
@@ -267,7 +276,8 @@ RUNNERS.update(cards=cards, steps=steps, triage=triage, order=order)
 
 
 def session(context):
-    """Whether the pages need a sign-in, and the one session every page stage opens them with (eaos/pipeline/runners/sign_in.py)."""
+    """Whether the pages need a sign-in, and the one session every page stage opens them with
+    (eaos/pipeline/runners/sign_in.py)."""
     from .sign_in import session as signed
     return signed(context)
 

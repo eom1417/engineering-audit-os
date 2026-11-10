@@ -12,7 +12,8 @@ class PagesOnly(RuntimeError):
 
 
 def _answer(url):
-    """The body a GET answers; NOT_FOUND when the route is not served; None when it answers otherwise (a sign-in asked)."""
+    """The body a GET answers; NOT_FOUND when the route is not served; None when it answers otherwise
+    (a sign-in asked)."""
     try:
         with opened(url, timeout=10) as response: return response.read()
     except urllib.error.HTTPError as answer: return NOT_FOUND if answer.code == 404 else None
@@ -33,7 +34,8 @@ def _loadable(surface, known, kind_of, path_of, param):
     kind, method, _ = kind_of(surface, known)
     path = path_of(surface) if surface != '*' else None
     # A hash route (/#/x) is drawn by the browser: a request only ever reaches the page that serves it.
-    return path if kind in ('page', 'http') and method == 'GET' and path and '#' not in path and not param.search(path) else None
+    return (path if kind in ('page', 'http') and method == 'GET' and path and '#' not in path
+            and not param.search(path) else None)
 
 
 def refuse_a_page_server(report, base):
@@ -43,7 +45,8 @@ def refuse_a_page_server(report, base):
     if not report: return
     routes, page = [r for r in server_routes(report) if r != '/'], _answer(f'{base}/')
     if page is not None and sum(_answer(f'{base}{route}') in (page, NOT_FOUND) for route in routes) * 2 > len(routes):
-        raise PagesOnly(f'the started app serves only its pages: its {len(routes)} server routes ({", ".join(routes[:3])}...) '
-                           'answer with the page itself, so a load on it would not measure the program. Propose a baseline '
-                           'whose start runs the real server, serving the built pages and these routes (run_try with mode="baseline", '
-                           'its "app" the folder that server starts in, and "headers" the token its routes need).')
+        raise PagesOnly(f'the started app serves only its pages: its {len(routes)} server routes '
+                        f'({", ".join(routes[:3])}...) answer with the page itself, so a load on it would not '
+                        'measure the program. Propose a baseline whose start runs the real server, serving the built '
+                        'pages and these routes (run_try with mode="baseline", its "app" the folder that server starts '
+                        'in, and "headers" the token its routes need).')

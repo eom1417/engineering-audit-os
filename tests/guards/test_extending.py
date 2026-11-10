@@ -18,7 +18,9 @@ class Extending(unittest.TestCase):
         self.assertGreater(len(full), 40, 'the guide names its files by path')
         self.assertEqual(sorted(path for path in full if not (ROOT / path).exists()), [], 'a path that is gone')
         # a name repeated alone (`loops.py`) must have been named in full before
-        self.assertEqual(sorted(name for name in named - full if not any(path.rstrip('/').endswith('/' + name.rstrip('/')) for path in full)), [])
+        self.assertEqual(sorted(name for name in named - full
+                                if not any(path.rstrip('/').endswith('/' + name.rstrip('/'))
+                                           for path in full)), [])
 
     def test_every_engine_has_what_its_recipe_asks_for(self):
         from eaos.engines import ADAPTERS
@@ -26,8 +28,10 @@ class Extending(unittest.TestCase):
         notices = (ROOT / 'THIRD_PARTY_NOTICES.md').read_text(encoding='utf-8')
         for name, adapter in ADAPTERS.items():
             with self.subTest(engine=name):
-                self.assertTrue(Path(adapter.__file__).is_relative_to(ROOT / 'eaos' / 'engines'), 'an adapter in eaos/engines/')
-                self.assertTrue(name in UNSAMPLED or (ROOT / 'tests' / 'contracts' / f'{name}.json').is_file(), 'a pinned sample')
+                self.assertTrue(Path(adapter.__file__).is_relative_to(ROOT / 'eaos' / 'engines'),
+                                'an adapter in eaos/engines/')
+                self.assertTrue(name in UNSAMPLED or (ROOT / 'tests' / 'contracts' / f'{name}.json').is_file(),
+                                'a pinned sample')
                 self.assertIn(f'| `{name}`', notices, 'a row in THIRD_PARTY_NOTICES.md')
 
     def test_every_licence_kept_names_a_pinned_tool_or_a_noticed_work(self):

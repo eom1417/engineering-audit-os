@@ -42,9 +42,9 @@ ATTEMPTS = 5
 
 
 def detect(project, report=None):
-    """The draft run from the files alone: a PHP app first (setup_php.detect: its JavaScript is only its pages' tooling),
-    then a JavaScript app or a static site (setup_detect.detect), and a Python web app (setup_python.detect) when the
-    project has no JavaScript app; each module stays on its own."""
+    """The draft run from the files alone: a PHP app first (setup_php.detect: its JavaScript is only its pages'
+    tooling), then a JavaScript app or a static site (setup_detect.detect), and a Python web app (setup_python.detect)
+    when the project has no JavaScript app; each module stays on its own."""
     python = setup_python.detect(project) if setup_detect.app_folder(project) is None else None
     return setup_php.detect(project) or python or setup_detect.detect(project, report)
 
@@ -56,9 +56,10 @@ PROBE = (Path(__file__).resolve().parents[2] / 'templates/setup/probe.cjs').read
 
 
 def routes(report, limit=4):
-    """A few of the lock's screens and server pages (`GET /notes`) without parameters, to see that each one is a screen
-    of its own and opens signed in; never one that signs out or changes (LEAVES), which would end the session the probe
-    checks. A server app's pages left out, the probe saw only its public first page and took an empty session for one."""
+    """A few of the lock's screens and server pages (`GET /notes`) without parameters, to see that each one is a
+    screen of its own and opens signed in; never one that signs out or changes (LEAVES), which would end the
+    session the probe checks. A server app's pages left out, the probe saw only its public first page and took an
+    empty session for one."""
     plan = read_json(Path(report) / 'behavior-lock/plan.json', {}) if report else {}
     surfaces = [s.split(' (')[0] for spec in plan.get('specs') or [] for s in spec.get('surfaces') or []]
     # The screens first: a plan opening with its API (`GET /api/me` ...) filled the few paths, and the baseline's
@@ -68,7 +69,8 @@ def routes(report, limit=4):
 
 
 def _openable(path):
-    """Whether the probe may open a lock surface: a path of its own without parameters, that neither signs out nor in."""
+    """Whether the probe may open a lock surface: a path of its own without parameters, that neither signs out
+    nor in."""
     return (path.startswith('/') and path != '/' and not re.search(r'[:*$\[{]', path)
             and not re.search(LEAVES, path, re.I) and not re.search(SIGN_IN_PAGE, path))
 
@@ -100,13 +102,14 @@ def probe(live, base, state, report, paths=None):
 
 
 def _probed(live, base, state, report, unreached):
-    """probe()'s page; when it failed with its own error, no other screen was opened and the app's database is out of the
-    run's reach (`unreached`: the project, else None), the pages its files make are opened too (the sign-in page among
-    them), to see whether the app answers."""
+    """probe()'s page; when it failed with its own error, no other screen was opened and the app's database is
+    out of the run's reach (`unreached`: the project, else None), the pages its files make are opened too (the
+    sign-in page among them), to see whether the app answers."""
     page = probe(live, base, state, report)
     if unreached and page.get('status', 0) >= 500 and not page.get('others'):
         from ..screens.file_routes import file_routes
-        page['others'] = probe(live, base, state, None, [path for path in file_routes(unreached) if path != '/'][:4]).get('others') or []
+        page['others'] = probe(live, base, state, None,
+                               [path for path in file_routes(unreached) if path != '/'][:4]).get('others') or []
     return page
 
 
@@ -118,9 +121,11 @@ def _failure(page, empty, out_of_reach=False):
     listing(page)
     bad = [] if out_of_reach and _out_of_reach(page) else _bad_answers(page)
     if stuck(page) and not signed_out(page):         # every screen sent to the sign-in is the app, signed out
-        return ('every screen shows the same page, so something (a chooser, a gate) stands in front of the app: the seed '
-                'picks one and saves the browser state to EAOS_STORAGE_STATE. The page says:\n' + '\n'.join(l for l in (page.get('text') or '').splitlines() if l.strip())[:600])
-    if bad: return f"{bad[0].get('path', '/')} answered {bad[0].get('status')}: {'; '.join(page.get('errors') or [])[:600]}"
+        return ('every screen shows the same page, so something (a chooser, a gate) stands in front of the app: '
+                'the seed picks one and saves the browser state to EAOS_STORAGE_STATE. The page says:\n'
+                + '\n'.join(l for l in (page.get('text') or '').splitlines() if l.strip())[:600])
+    if bad:
+        return f"{bad[0].get('path', '/')} answered {bad[0].get('status')}: {'; '.join(page.get('errors') or [])[:600]}"
     return empty
 
 
@@ -192,7 +197,8 @@ def _with_seed(record):
         record['failure'] += '\nThe seed script said:\n' + record['seed_output'][-1500:]
 
 
-# ---------------------------------------------------------------- 3. assist (what the assistant is told: eaos/live/app/assist.py)
+# ---------------------------------------------------------------- 3. assist
+# (what the assistant is told: eaos/live/app/assist.py)
 
 def fixtures_needed(report):
     """The E2E_* names the lock's specs skip without."""
@@ -205,7 +211,8 @@ def fixtures_needed(report):
 # ---------------------------------------------------------------- consent, and the whole setup
 
 FLOW = (
-    Stage('detect', description='Find, from the files alone, how the app installs, starts and builds, the environment '
+    Stage('detect', description='Find, from the files alone, how the app installs, starts and builds, '
+                                'the environment '
                                 'names it reads and the database it needs'),
     Stage('attempt', requires=('detect',),
           description=f'Start the app in the separate copy and open its first screens; when it does not answer, ask '
@@ -354,8 +361,9 @@ def _ask(run, failure, refusal, name, mode='lock'):
     proposal = answer.get('result') or {}
     if mode == 'lock': declined(proposal)
     refused = safe(proposal)
-    (run.runtime / f'setup/{name}.json').write_text(json.dumps({'proposal': proposal, 'refused': refused}, ensure_ascii=False, indent=1) + '\n',
-                                               encoding='utf-8')
+    (run.runtime / f'setup/{name}.json').write_text(
+        json.dumps({'proposal': proposal, 'refused': refused}, ensure_ascii=False, indent=1) + '\n',
+        encoding='utf-8')
     if not refused: apply(run.runtime, proposal, mode=mode)
     return refused
 
@@ -377,7 +385,8 @@ def _baseline(run, ok, limitations):
 
 
 def _close(run, record, attempts, missing, limitations):
-    """Write the run's final limitations into run.json, and the setup's answer (its last `record`, the `attempts` made)."""
+    """Write the run's final limitations into run.json, and the setup's answer (its last `record`, the `attempts`
+    made)."""
     runtime, ok = run.runtime, bool(record['ok'])
     profile = json.loads((runtime / 'run.json').read_text(encoding='utf-8'))
     # Names the first draft left without a value may have one now.

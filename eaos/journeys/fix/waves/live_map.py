@@ -39,7 +39,8 @@ def saved(state, runtime, before):
         if closed.get('via') == 'build': continue
         _bisection_logs_removed(runtime, closed['number'])
     if closing:
-        for number in set(older(state)) - set(older(before)): shutil.rmtree(Path(runtime) / 'waves' / f'wave-{number}', ignore_errors=True)
+        for number in set(older(state)) - set(older(before)):
+            shutil.rmtree(Path(runtime) / 'waves' / f'wave-{number}', ignore_errors=True)
 
 
 def _bisection_logs_removed(runtime, number):

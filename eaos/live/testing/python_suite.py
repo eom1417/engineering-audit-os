@@ -27,7 +27,8 @@ def _in_tests(root):
     for found in tests.rglob('test_*.py'):
         between = found.relative_to(tests).parts[:-1]
         if NOT_THE_PROJECTS & set(between) or any(part.startswith('.') for part in between): continue
-        if all((tests.joinpath(*between[:depth]) / '__init__.py').is_file() for depth in range(1, len(between) + 1)): return True
+        if all((tests.joinpath(*between[:depth]) / '__init__.py').is_file()
+               for depth in range(1, len(between) + 1)): return True
     return False
 
 

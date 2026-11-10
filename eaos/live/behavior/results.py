@@ -23,7 +23,8 @@ def failing_tests(runtime, name):
     in its passes as each kind of user (playwright-<name>@<kind>.json)."""
     found = set()
     for path in sorted((Path(runtime) / 'behavior-lock').glob(f'playwright-{name}*.json')):
-        if path.stem == f'playwright-{name}' or path.stem.startswith(f'playwright-{name}@'): found |= _failed_titles(path)
+        if path.stem == f'playwright-{name}' or path.stem.startswith(f'playwright-{name}@'):
+            found |= _failed_titles(path)
     return found
 
 
@@ -34,7 +35,8 @@ def _failed_titles(path):
 
     def walk(suite):
         for spec in suite.get('specs') or []:
-            if any(status in ('failed', 'timedOut') for status, _ in _outcomes(spec, ((), None, ''))): found.add(spec.get('title'))
+            if any(status in ('failed', 'timedOut') for status, _ in _outcomes(spec, ((), None, ''))):
+                found.add(spec.get('title'))
         for child in suite.get('suites') or []: walk(child)
     for suite in report.get('suites') or []: walk(suite)
     return found
@@ -75,13 +77,15 @@ def _outcomes(spec, declared, known=False):
     tests = spec.get('tests') or []
     ran = _ran(tests)
     screens, intended, file = declared
-    return ([('passed' if known else _declared(status, message, screens, (intended, file)), message) for status, message in ran] or
+    return ([('passed' if known else _declared(status, message, screens, (intended, file)), message)
+             for status, message in ran] or
             [('skipped', (test.get('annotations') or [{}])[0].get('description', '')) for test in tests])
 
 
 def _ran(tests):
     """[(status, message)] of every result of the tests that ran."""
-    return [(result.get('status'), ANSI.sub('', (result.get('error') or {}).get('message', ''))) for test in tests for result in test.get('results') or []]
+    return [(result.get('status'), ANSI.sub('', (result.get('error') or {}).get('message', '')))
+            for test in tests for result in test.get('results') or []]
 
 
 def _verdicts(found):
@@ -124,7 +128,8 @@ class Screens:
     kept (`snapshots`), the same file run_lock copies there after the pass. Never raises; a no-op outside a flow."""
 
     def __init__(self, stream, shots, snapshots, keep=False, every=0.5):
-        self.stream, self.shots, self.snapshots, self.keep, self.every = Path(stream), Path(shots), Path(snapshots), keep, every
+        self.stream, self.shots, self.snapshots, self.keep, self.every = (
+            Path(stream), Path(shots), Path(snapshots), keep, every)
         self.offset, self.buffer = 0, b''
         self.planned, self.outcomes, self.seconds, self.finished = {}, {}, {}, []
         self.halt = threading.Event()

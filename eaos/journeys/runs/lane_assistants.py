@@ -1,4 +1,5 @@
-"""The assistants a Fix run starts beside its own in speed mode, one run each for a lane of its batch (eaos/journeys/fix/lanes.py).
+"""The assistants a Fix run starts beside its own in speed mode, one run each for a lane of its batch
+(eaos/journeys/fix/lanes.py).
 
 When the run's assistant opens its batch for several assistants, fix_start answers the lanes it leaves to others
 (`helpers`), and the run manager (runs.py) starts a Fix run for each at once, beside the first one: the same assistant,
@@ -20,21 +21,24 @@ from ...core.system.clock import now
 
 
 def speed(project, cards):
-    """A Fix preview's speed mode: {on: kept for this project, as the check's; assistants: as many as this computer holds
-    now; lanes: how many the selected cards split into, the cards that share a file together}."""
+    """A Fix preview's speed mode: {on: kept for this project, as the check's; assistants: as many as this computer
+    holds now; lanes: how many the selected cards split into, the cards that share a file together}."""
     state = project_state.load(project) or {}
     most = assistants('speed').count
     try: tasks = {task['id']: task for task in plan(guided.report_of(state))['tasks']}
     except (KeyError, OSError, ValueError): tasks = {}
     chosen = [tasks[card['id']] for card in cards if card['id'] in tasks]
-    return {'on': check_choices.kept(state)['mode'] == 'speed', 'assistants': most, 'lanes': len(lanes.deal(chosen, most)) if chosen else 1}
+    return {'on': check_choices.kept(state)['mode'] == 'speed', 'assistants': most,
+            'lanes': len(lanes.deal(chosen, most)) if chosen else 1}
 
 
 def speed_of(project, body):
     """{assistants} a new Fix run fixes its batch with, in speed mode as its preview set it (`body` inputs.speed), as
-    many as this computer holds now; {} for one. The person's choice is kept for the project, as the check's speed mode."""
+    many as this computer holds now; {} for one. The person's choice is kept for the project, as the check's speed
+    mode."""
     chosen, state = (body.get('inputs') or {}).get('speed'), project_state.load(project)
-    if isinstance(chosen, bool) and state and check_choices.keep(state, mode='speed' if chosen else 'normal'): guided.save(state)
+    if isinstance(chosen, bool) and state and check_choices.keep(state, mode='speed' if chosen else 'normal'):
+        guided.save(state)
     most = assistants('speed').count if chosen else 1
     return {'assistants': most} if most > 1 else {}
 
@@ -53,27 +57,35 @@ def after(manager, run, state):
     details = {card['id']: card for card in record.get('cards_detail') or []}
     for child, lane in made.items():
         cards = asked[lane - 1]
-        label = {'en': f"{record['label']['en']}: assistant {lane + 1}", 'ar': f"{record['label']['ar']}: المساعد {lane + 1}"}
-        manager.store.save({**{key: record.get(key) for key in ('action', 'verb', 'assistant', 'owner_answers', 'context')},
-                            'id': child, 'label': label, 'cards': cards, 'cards_detail': [details.get(card, {'id': card}) for card in cards],
-                            'mode': 'assistant', 'lane': lane, 'parent': run, 'state': 'running', 'attempt': 1, 'created': now('milliseconds'),
+        label = {'en': f"{record['label']['en']}: assistant {lane + 1}",
+                 'ar': f"{record['label']['ar']}: المساعد {lane + 1}"}
+        manager.store.save({**{key: record.get(key) for key in ('action', 'verb', 'assistant', 'owner_answers',
+                                                                 'context')},
+                            'id': child, 'label': label, 'cards': cards,
+                            'cards_detail': [details.get(card, {'id': card}) for card in cards],
+                            'mode': 'assistant', 'lane': lane, 'parent': run, 'state': 'running', 'attempt': 1,
+                            'created': now('milliseconds'),
                             'queued_at': now('milliseconds'), 'started': now('milliseconds'), 'read': False}, new=True)
-        manager.store.append(child, 'action', label, {'action': 'fix', 'by': 'person', 'arguments': {'cards': cards, 'lane': lane}})
+        manager.store.append(child, 'action', label,
+                             {'action': 'fix', 'by': 'person', 'arguments': {'cards': cards, 'lane': lane}})
         threading.Thread(target=manager._start, args=(child,), daemon=True).start()
-    manager.store.append(run, 'step', {'en': f'{len(made)} more assistants fix the other cards at the same time, each its own files',
-                                       'ar': f'{len(made)} مساعدين ثانيين يصلحون باقي البطاقات بنفس الوقت، كل واحد ملفاته'},
+    manager.store.append(run, 'step',
+                         {'en': f'{len(made)} more assistants fix the other cards at the same time, '
+                                'each its own files',
+                          'ar': f'{len(made)} مساعدين ثانيين يصلحون ' f'باقي البطاقات بنفس الوقت، كل واحد ملفاته'},
                          {'tool': None, 'helpers': sorted(made)})
 
 
 def _lanes_answer(state):
     """The first answer not looked at before that names lanes for helpers; None. Each answer is looked at once."""
     seen, state['looked'] = state.get('looked', 0), len(state['eaos_results'])
-    return next((payload for _, payload in state['eaos_results'][seen:] if isinstance(payload, dict) and payload.get('helpers')), None)
+    return next((payload for _, payload in state['eaos_results'][seen:]
+                 if isinstance(payload, dict) and payload.get('helpers')), None)
 
 
 def ended(manager, record):
-    """A run ended: a helper's lane is released (what it did not try goes to the first assistant), and a first run ending
-    stops the helpers still at work."""
+    """A run ended: a helper's lane is released (what it did not try goes to the first assistant), and a first run
+    ending stops the helpers still at work."""
     if record.get('lane'):
         with lanes.changing(manager.project) as project:
             wave = project.get('open_wave') or {}

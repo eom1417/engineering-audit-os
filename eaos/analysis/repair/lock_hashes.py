@@ -60,7 +60,8 @@ def _checked(added, npm):
         record, what = records[key], pair[0] if npm else pair[2]
         if record is None: said.append(f'the hash of {what} could not be checked against its registry')
         elif (_npm_hash(record) != pair[1]) if npm else (_pypi_sha(record, pair[2]) != pair[3]):
-            said.append(f'the hash of {what} is not the one its registry publishes: a lock file is written by its own tool, never by hand')
+            said.append(f'the hash of {what} is not the one its registry publishes: '
+                        'a lock file is written by its own tool, never by hand')
     return said
 
 

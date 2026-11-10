@@ -47,7 +47,8 @@ def long_lines(source, tree, config):
     strings = [(t.start, t.end) for t in _tokens(source) if t.type == tokenize.STRING]
 
     def in_string(row):
-        return any(start[0] <= row <= end[0] and (start[0] < row or start[1] < limit) and (end[0] > row or end[1] > limit)
+        return any(start[0] <= row <= end[0] and (start[0] < row or start[1] < limit)
+                   and (end[0] > row or end[1] > limit)
                    for start, end in strings)
     count = 0
     for row, line in enumerate(source.splitlines(), start=1):

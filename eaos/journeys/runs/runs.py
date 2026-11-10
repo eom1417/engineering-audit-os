@@ -5,10 +5,10 @@ started headless by its adapter, its output read into events), or `handoff` (no 
 the next `status` call). One run per project holds the slot (running, paused, or a handoff) at a time, so two runs never
 work on the project and its branches at once; the rest wait in the queue in the person's order. A run waiting for the
 person's answer has nothing working and releases the slot; its answer, given while another run holds it, is kept and
-the run goes on as soon as the slot is free, before the queue. Only the server that holds the project's `dispatch.lock` starts runs, so two Studio
-servers never start the same one. Everything a run is lives on disk (eaos/core/project/runs.py): a restarted server
-goes on reading an assistant that is still alive, follows a job that is still running, and says plainly which run
-stopped with the server.
+the run goes on as soon as the slot is free, before the queue. Only the server that holds the project's `dispatch.lock`
+starts runs, so two Studio servers never start the same one. Everything a run is lives on disk
+(eaos/core/project/runs.py): a restarted server goes on reading an assistant that is still alive, follows a job that is
+still running, and says plainly which run stopped with the server.
 """
 import fcntl
 import json
@@ -36,8 +36,6 @@ STUDIO = 'EAOS Studio'                      # eaos/interfaces/mcp_server/server.
 STOP_GRACE = 5
 
 
-
-
 def _signal(pid, number):
     try: os.killpg(os.getpgid(int(pid)), number)
     except (ProcessLookupError, PermissionError, OSError):
@@ -48,7 +46,8 @@ def _signal(pid, number):
 def _end(pid, paused=False):
     """Stop process `pid` (woken first when paused): asked, then made to after STOP_GRACE seconds."""
     for number in (signal.SIGCONT, signal.SIGTERM) if paused else (signal.SIGTERM,): _signal(pid, number)
-    threading.Thread(target=lambda: (time.sleep(STOP_GRACE), alive(pid) and _signal(pid, signal.SIGKILL)), daemon=True).start()
+    threading.Thread(target=lambda: (time.sleep(STOP_GRACE), alive(pid) and _signal(pid, signal.SIGKILL)),
+                     daemon=True).start()
 
 
 class Manager(Turns, Answers, Outcomes):
@@ -84,9 +83,10 @@ class Manager(Turns, Answers, Outcomes):
             # the event first: a stream that ends when it sees a final state has then already read its last event
             if before != to:
                 said = contract()['lifecycle']['states'][to]
-                why_ar = prompts.WHY_AR.get(why, '') if why else ''   # an English reason is never glued to an Arabic sentence
-                self.store.append(run, 'state', {'en': said['en'] + (f': {why}' if why else ''), 'ar': said['ar'] + (f': {why_ar}' if why_ar else '')},
-                                  {'from': before, 'to': to, 'why': why})
+                # an English reason is never glued to an Arabic sentence
+                why_ar = prompts.WHY_AR.get(why, '') if why else ''
+                self.store.append(run, 'state', {'en': said['en'] + (f': {why}' if why else ''),
+                                  'ar': said['ar'] + (f': {why_ar}' if why_ar else '')}, {'from': before, 'to': to, 'why': why})
             self.store.save(record)
             if to in TERMINAL and before != to: helpers.ended(self, record)
         return record
@@ -102,7 +102,8 @@ class Manager(Turns, Answers, Outcomes):
     def _hold(self):
         if self._lockfile: return True
         try:
-            handle = open(self.store.folder / 'dispatch.lock', 'r+')     # made by the Store; a deleted folder stays deleted
+            # made by the Store; a deleted folder stays deleted
+            handle = open(self.store.folder / 'dispatch.lock', 'r+')
             fcntl.flock(handle, fcntl.LOCK_EX | fcntl.LOCK_NB)
         except OSError:
             try: handle.close()
@@ -138,15 +139,18 @@ class Manager(Turns, Answers, Outcomes):
         if not queue: return None
         holding = [row for row in self.store.all() if holds_slot(row)]
         if not holding: return queue[0]
-        # a handoff waiting for the person's assistant does not block a direct step (closing a stuck batch, accept, undo)
+        # a handoff waiting for the person's assistant does not block a direct step (closing a stuck batch, accept,
+        # undo)
         if any(row.get('state') != 'waiting_for_person' for row in holding): return None
         return next((r for r in queue if self.store.load(r).get('mode') == 'direct'), None)
 
     def recover(self):
-        """At the start of the dispatcher: runs this server cannot follow any more are said to have stopped, the rest followed."""
+        """At the start of the dispatcher: runs this server cannot follow any more are said to have stopped, the rest
+        followed."""
         for record in self.store.all():
             if record.get('state') in ('running', 'paused') and record['id'] not in self.watched: self._recover(record)
-        for record in (r for r in self.store.all() if r.get('state') == 'waiting_for_person' and r.get('mode') == 'handoff' and r['id'] not in self.watched):
+        for record in (r for r in self.store.all() if r.get('state') == 'waiting_for_person'
+                       and r.get('mode') == 'handoff' and r['id'] not in self.watched):
             threading.Thread(target=self._watch_handoff, args=(record['id'],), daemon=True).start()
 
     def _recover(self, record):
@@ -364,7 +368,8 @@ class Manager(Turns, Answers, Outcomes):
         return self.set_state(run, 'running', 'resumed', paused_pid=None, paused_at=None, paused=(record.get('paused') or []) + [[record.get('paused_at') or now('milliseconds'), now('milliseconds')]])
 
     def _job_pid(self, record):
-        """The pid of a run's job; a direct run stopped before its job was known: the project's running one (one at a time)."""
+        """The pid of a run's job; a direct run stopped before its job was known: the project's running one (one at a
+        time)."""
         try: return (jobs.read(record['job'], self.project) if record.get('job') else jobs.running(self.project) if record.get('mode') == 'direct' else {}).get('pid')
         except Exception: return None
 

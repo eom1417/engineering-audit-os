@@ -12,14 +12,16 @@ def detect(rel, text):
 class ReactRouterTests(unittest.TestCase):
     def test_jsx_and_object_routes_are_pages_only_under_react_router(self):
         text = ('import { Routes, Route } from "react-router-dom";\n'
-                '<Routes>\n  <Route path="/" element={<Home />} />\n  <Route path="/vehicles/:id" element={<Vehicle />} />\n'
+                '<Routes>\n  <Route path="/" element={<Home />} />\n  <Route path="/vehicles/:id" element={<Vehicle '
+                    '/>} />\n'
                 '  <Route index element={<Index />} />\n</Routes>\n')
         self.assertEqual([(r['surface'], r['route'], r['handler']) for r in detect('src/App.tsx', text)],
                          [('page', '/', 'Home'), ('page', '/vehicles/:id', 'Vehicle')])
         router = ('import { createBrowserRouter } from "react-router-dom";\n'
                   'const router = createBrowserRouter([{ path: "/drivers", element: <Drivers /> }]);\n')
         self.assertEqual([r['route'] for r in detect('src/router.tsx', router)], ['/drivers'])
-        self.assertEqual(detect('src/App.tsx', '<Route path="/x" element={<X />} />'), [], 'no route without react-router')
+        self.assertEqual(detect('src/App.tsx', '<Route path="/x" element={<X />} />'), [], 'no route without '
+                         'react-router')
 
     def test_nested_routes_are_joined_to_their_parent_path(self):
         # Screens under <Route path="/app/*"> are reported under /app/, not at /drivers or /service.
@@ -43,14 +45,17 @@ class ReactRouterTests(unittest.TestCase):
                '</Routes>\n')
         rows = detect('src/App.tsx', app)
         self.assertEqual([(r['route'], r['handler']) for r in rows],
-                         [('/login', 'Login'), ('/app/*', 'Layout'), ('/app', 'Dashboard'), ('/app/drivers/:id', 'Driver'),
+                         [('/login', 'Login'), ('/app/*', 'Layout'), ('/app', 'Dashboard'), ('/app/drivers/:id',
+                             'Driver'),
                           ('/app/settings', 'Settings'), ('/app/settings/account', 'Account'), ('/app/*', 'NotFound'),
                           ('*', 'NotFound')])
         by_handler = {r['handler']: r for r in rows}
-        self.assertEqual((by_handler['Account'].get('declared'), by_handler['Login'].get('declared')), ('account', None))
+        self.assertEqual((by_handler['Account'].get('declared'), by_handler['Login'].get('declared')), ('account',
+            None))
         # An absolute child already under its parent is not joined twice.
         text = ('import { Routes, Route } from "react-router-dom";\n'
-                '<Route path="/admin" element={<Admin />}>\n  <Route path="/admin/users" element={<Users />} />\n</Route>\n')
+                '<Route path="/admin" element={<Admin />}>\n  <Route path="/admin/users" element={<Users />} '
+                    '/>\n</Route>\n')
         self.assertEqual([r['route'] for r in detect('src/App.tsx', text)], ['/admin', '/admin/users'])
 
 
@@ -67,10 +72,12 @@ class OtherRouterTests(unittest.TestCase):
 
     def test_tanstack_routes_built_in_code_are_pages_at_their_full_path_and_hash_history_serves_them_under_hash(self):
         # Pages created with createRoute are read as pages, not as one root layout, so their UI is audited.
-        text = ("import { createRootRoute, createRoute, createRouter, createHashHistory } from '@tanstack/react-router'\n"
+        text = ("import { createRootRoute, createRoute, createRouter, createHashHistory } from "
+                "'@tanstack/react-router'\n"
                 "const root = createRootRoute({ component: Shell })\n"
                 "const plans = createRoute({ getParentRoute: () => root, path: '/plans', component: PlansPage })\n"
-                "const tree = root.addChildren([plans, createRoute({ getParentRoute: () => plans, path: '$planId', component: PlanPage })])\n"
+                "const tree = root.addChildren([plans, createRoute({ getParentRoute: () => plans, path: '$planId', "
+                    "component: PlanPage })])\n"
                 "export const router = createRouter({ routeTree: tree, history: createHashHistory() })\n")
         self.assertEqual([(r['route'], r['handler']) for r in detect('src/router.tsx', text)],
                          [('__root__', 'Shell'), ('/#/plans', 'PlansPage'), ('/#/plans/$planId', 'PlanPage')])

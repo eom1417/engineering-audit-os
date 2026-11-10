@@ -48,7 +48,8 @@ def key(card, ordinal=0):
     if uid: text = '|'.join([uid] + ([str(ordinal)] if ordinal else []))
     else:
         words = NUMBERS.sub('#', ' '.join((card.get('title') or '').split()).lower())
-        text = '|'.join([card.get('pattern') or 'generic', *sorted(card.get('paths') or []), words] + ([str(ordinal)] if ordinal else []))
+        text = '|'.join([card.get('pattern') or 'generic', *sorted(card.get('paths') or []), words]
+                        + ([str(ordinal)] if ordinal else []))
     return hashlib.sha256(text.encode('utf-8')).hexdigest()[:12]
 
 
@@ -70,7 +71,8 @@ def message(root, card, summary=''):
     the key is read back, walk)."""
     first, _, why = (summary or '').strip().partition('\n')
     arabic = _commits_in_arabic(root)
-    said = next((text for text in (first.strip(), card.get('title') or '') if text and (arabic or not ARABIC.search(text))),
+    said = next((text for text in (first.strip(), card.get('title') or '')
+                 if text and (arabic or not ARABIC.search(text))),
                 None) or plain.problem(card.get('pattern'), 'en')[0]
     body = list(filter(None, (why.strip(), '\n'.join(go_raised(root, '--cached')))))
     return '\n\n'.join([_cut(said), *body, f"EAOS-Task: {card['id']}\n{TRAILER}: {card.get('key') or key(card)}"])
@@ -85,7 +87,8 @@ def go_raised(root, *span):
         if line.startswith('+++ b/'): name = line[6:]
         found = GO_LINE.match(line)
         if found: seen.setdefault((name, found[2]), {})[found[1]] = found[3]
-    return [f"{name} now needs {'Go' if what == 'go' else 'the toolchain'} {row['+']}" + (f" (was {row['-']})" if row.get('-') else '')
+    return [f"{name} now needs {'Go' if what == 'go' else 'the toolchain'} {row['+']}"
+            + (f" (was {row['-']})" if row.get('-') else '')
             for (name, what), row in seen.items() if '+' in row and _newer(row['+'], row.get('-'))]
 
 
@@ -255,7 +258,8 @@ def _apply_wave(wave, cards, known):
 def _reopen_skipped(wave, cards):
     """The cards a batch closed unused had skipped before _apply_wave's rule are open again."""
     for card in cards.values():
-        if card['state'] == 'skipped' and card.get('batch') == wave.get('number'): card.update(state='open', batch=None, why='')
+        if card['state'] == 'skipped' and card.get('batch') == wave.get('number'):
+            card.update(state='open', batch=None, why='')
 
 
 CLOSED_UNUSED = ('abandoned', 'superseded')
@@ -280,14 +284,16 @@ def _reopen_waited(by_id, tasks):
 
 def _done_after(needs, card):
     """Whether every card waited for is done, and in a later batch than the one that set `card` aside."""
-    return all(need and need['state'] == 'done' and (need.get('batch') or float('inf')) > (card.get('batch') or 0) for need in needs)
+    return all(need and need['state'] == 'done' and (need.get('batch') or float('inf')) > (card.get('batch') or 0)
+               for need in needs)
 
 
 def _apply_open_batch(cards, by_id, open_wave):
     in_batch = open_wave.get('cards') or []
     for card_id in in_batch:
         card = by_id.get(card_id)
-        if card and card['state'] in ('open', 'skipped'): card.update(state='in_batch', batch=open_wave.get('number'), why='')
+        if card and card['state'] in ('open', 'skipped'):
+            card.update(state='in_batch', batch=open_wave.get('number'), why='')
     for card in cards.values():                                              # a batch that closed without it
         if card['state'] == 'in_batch' and card['id'] not in in_batch: card['state'] = 'open'
 
@@ -307,7 +313,8 @@ def _record_history(ledger, first, event, project, state):
 
 def count(ledger):
     cards = list(ledger['cards'].values())
-    tally = {s: sum(c['state'] == s for c in cards) for s in ('done', 'resolved', 'on_branch', 'in_batch', 'open', 'skipped')}
+    tally = {s: sum(c['state'] == s for c in cards)
+             for s in ('done', 'resolved', 'on_branch', 'in_batch', 'open', 'skipped')}
     total = len(cards)
     closed = tally['done']
     return {'total': total, 'closed': closed, **tally, 'new': sum(c['new'] for c in cards),

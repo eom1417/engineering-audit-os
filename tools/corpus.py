@@ -73,9 +73,11 @@ def layered(technical):
     by hand."""
     record = _read(technical / 'layers.json')
     if not record: return None
-    return {'files': len(record['map']), 'placed': len(record['map']) - len(record['gaps']), 'endpoints': len(record['endpoints']),
+    return {'files': len(record['map']), 'placed': len(record['map']) - len(record['gaps']),
+            'endpoints': len(record['endpoints']),
             'tables': len(record['tables']), 'questions': len(record['questions']),
-            'findings': [{'rule': f['rule'], 'path': f.get('path'), 'line': f.get('line'), 'said': f['en']} for f in record['findings'][:60]]}
+            'findings': [{'rule': f['rule'], 'path': f.get('path'), 'line': f.get('line'),
+                          'said': f['en']} for f in record['findings'][:60]]}
 
 
 def _said(why, layers):
@@ -90,7 +92,8 @@ def result(output, expected, seconds, error=''):
     technical = next(output.rglob('run-manifest.json'), output / 'none').parent
     setup = _read(technical / 'live' / 'setup.json')
     rows = _read(technical / 'live' / 'screens.json').get('rows') or []
-    pictured = sorted({screen(row.get('landed') or row['url']) for row in rows})   # where it landed: a redirect is not the page
+    # where it landed: a redirect is not the page
+    pictured = sorted({screen(row.get('landed') or row['url']) for row in rows})
     missing = [route for route in expected if (route.rstrip('/') or '/') not in pictured]
     ran = bool(setup.get('ok'))
     said = _said(error or _why(technical, setup, ran, missing), layered(technical))
@@ -105,7 +108,8 @@ def check(app):
         environment = {**os.environ, 'EAOS_HOME': str(folder / 'home'), 'EAOS_OUTPUT': str(folder / 'output')}
         try:
             fetch(app, folder)
-            subprocess.run([str(EAOS), 'check', '--path', 'look', '--run-app', '--assistant', 'none', '--lang', 'en', '--watch'],
+            subprocess.run([str(EAOS), 'check', '--path', 'look', '--run-app', '--assistant', 'none',
+                            '--lang', 'en', '--watch'],
                            cwd=folder / 'app', env=environment, capture_output=True, timeout=LIMIT)
         except (subprocess.SubprocessError, OSError) as failed:
             error = f'{type(failed).__name__}: {str(failed)[-300:]}'
@@ -114,7 +118,8 @@ def check(app):
 
 def _line(app, now):
     shown = f"pictured {len(app['screens']) - len(now['missing'])}/{len(app['screens'])}"
-    return f"{app['name']:24} ran={now['ran']!s:5} {shown} {'PASS' if now['passed'] else 'FAIL ' + now.get('why', '')[:150]}"
+    return (f"{app['name']:24} ran={now['ran']!s:5} {shown} "
+            f"{'PASS' if now['passed'] else 'FAIL ' + now.get('why', '')[:150]}")
 
 
 def _recheck(catalog, names, record):

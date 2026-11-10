@@ -11,13 +11,17 @@ from eaos.analysis.repair import one_source_gate as gate
 from eaos.facts.code import metrics
 from shared_fixture import scratch
 
-M15 = ('one_source:near_copy', 'one_source:idiom:request_state', 'one_source:idiom:json_read', 'one_source:ui_pattern', 'one_source:look')
+M15 = ('one_source:near_copy', 'one_source:idiom:request_state', 'one_source:idiom:json_read', 'one_source:ui_pattern',
+       'one_source:look')
 
 
 def near(first, second, digest, kind='similar', lines=12):
-    return {'id': f'N-{first}-{second}-{digest}', 'kind': 'symbol_metric_external', 'location': {'path': first[0], 'line': first[1]},
-            'value': {'record': 'near_copy', 'kind': kind, 'similarity': 0.9, 'lines': lines, 'end_line': first[1] + lines - 1,
-                      'digest': digest, 'other': {'path': second[0], 'line': second[1], 'end_line': second[1] + lines - 1}}}
+    return {'id': f'N-{first}-{second}-{digest}', 'kind': 'symbol_metric_external', 'location': {'path': first[0],
+        'line': first[1]},
+            'value': {'record': 'near_copy', 'kind': kind, 'similarity': 0.9, 'lines': lines, 'end_line': first[1]
+                      + lines - 1,
+                      'digest': digest, 'other': {'path': second[0], 'line': second[1], 'end_line': second[1]
+                                                  + lines - 1}}}
 
 
 def idiom(path, line, form='request_state'):
@@ -27,12 +31,14 @@ def idiom(path, line, form='request_state'):
 
 def look(value, *places):
     return {'id': f'L-{value}', 'kind': 'look_value', 'location': {'path': places[0]},
-            'value': {'kind': 'color', 'value': value, 'count': len(places), 'places': [{'path': p, 'line': 3} for p in places]}}
+            'value': {'kind': 'color', 'value': value, 'count': len(places), 'places': [{'path': p, 'line': 3}
+                for p in places]}}
 
 
 def screen(*places):
     members = [{'path': p, 'line': 5, 'end_line': 20, 'tag': 'div', 'elements': 9} for p in places]
-    return {'id': 'U-1', 'kind': 'ui_pattern', 'location': {'path': places[0]}, 'value': {'members': members, 'similarity': 0.9}}
+    return {'id': 'U-1', 'kind': 'ui_pattern', 'location': {'path': places[0]}, 'value': {'members': members,
+        'similarity': 0.9}}
 
 
 def clone(digest, *places):
@@ -70,9 +76,11 @@ class Verdicts:
 
 
 # The change of each case: before it two places of each pattern, after it a third in src/pages/C.jsx.
-BEFORE = check([near(('src/pages/A.jsx', 30), ('src/pages/B.jsx', 30), 'd1'), idiom('src/pages/A.jsx', 5), idiom('src/pages/B.jsx', 5)],
+BEFORE = check([near(('src/pages/A.jsx', 30), ('src/pages/B.jsx', 30), 'd1'), idiom('src/pages/A.jsx', 5),
+                idiom('src/pages/B.jsx', 5)],
                [look('#123456', 'src/pages/A.jsx', 'src/pages/B.jsx'), screen('src/pages/A.jsx', 'src/pages/B.jsx')])
-AFTER = check([near(('src/pages/A.jsx', 30), ('src/pages/B.jsx', 30), 'd1'), near(('src/pages/A.jsx', 30), ('src/pages/C.jsx', 30), 'd1'),
+AFTER = check([near(('src/pages/A.jsx', 30), ('src/pages/B.jsx', 30), 'd1'), near(('src/pages/A.jsx', 30),
+    ('src/pages/C.jsx', 30), 'd1'),
                idiom('src/pages/A.jsx', 5), idiom('src/pages/B.jsx', 5), idiom('src/pages/C.jsx', 5)],
               [look('#123456', 'src/pages/A.jsx', 'src/pages/B.jsx', 'src/pages/C.jsx'),
                screen('src/pages/A.jsx', 'src/pages/B.jsx', 'src/pages/C.jsx')])
@@ -97,7 +105,8 @@ class Trust(unittest.TestCase):
     def test_two_responsibilities_alike_in_one_folder_are_never_refused_on_likeness(self):
         # case A: a tax and a fee worked out alike, added beside each other: a likeness, not a breach
         with Verdicts():
-            self.assertEqual(added(check(), check([near(('src/lib/tax.js', 1), ('src/lib/fee.js', 1), 'd9')]), {'src/lib/fee.js'}), [])
+            self.assertEqual(added(check(), check([near(('src/lib/tax.js', 1), ('src/lib/fee.js', 1), 'd9')]),
+                                   {'src/lib/fee.js'}), [])
 
     def test_code_copied_word_for_word_is_refused_whatever_the_verdicts(self):
         # case B: the same six lines written again by the change
@@ -109,25 +118,31 @@ class Trust(unittest.TestCase):
     def test_a_third_word_for_word_copy_in_a_file_that_had_one_is_refused_and_a_move_is_not(self):
         two = check(clones=[clone('w1', 'src/lib/tax.js', 'src/lib/fee.js')])
         three = check(clones=[{**clone('w1', 'src/lib/tax.js', 'src/lib/fee.js'), 'value': {'occurrences': [
-            {'path': 'src/lib/tax.js', 'start_line': 1}, {'path': 'src/lib/fee.js', 'start_line': 1}, {'path': 'src/lib/fee.js', 'start_line': 40}]}}])
+            {'path': 'src/lib/tax.js', 'start_line': 1}, {'path': 'src/lib/fee.js', 'start_line': 1},
+                {'path': 'src/lib/fee.js', 'start_line': 40}]}}])
         with Verdicts():
             self.assertEqual(len(added(two, three, {'src/lib/fee.js'})), 1, 'one more copy of the same lines')
             moved = check(clones=[clone('w1', 'src/lib/tax.js', 'src/lib/charge.js')])
-            self.assertEqual(added(two, moved, {'src/lib/fee.js', 'src/lib/charge.js'}), [], 'a copy moved between the changed files')
+            self.assertEqual(added(two, moved, {'src/lib/fee.js', 'src/lib/charge.js'}), [],
+                             'a copy moved between the changed files')
 
     def test_a_split_that_moves_existing_copies_is_not_refused(self):
         # a Flutter app's split moves a file's own copies into new files: their windows fall differently and every
         # digest changes, yet the sound split must not be refused
         at = lambda path, start, end: {'path': path, 'start_line': start, 'end_line': end}
-        before = check(clones=[{**clone('w1', 'a.dart', 'a.dart'), 'value': {'window_lines': 6, 'occurrences': [at('a.dart', 10, 21), at('a.dart', 50, 61)]}}])
-        after = check(clones=[{**clone('w2', 'a.dart', 'b.dart'), 'value': {'window_lines': 6, 'occurrences': [at('a.dart', 10, 15), at('b.dart', 5, 10)]}},
-                              {**clone('w3', 'a.dart', 'b.dart'), 'value': {'window_lines': 6, 'occurrences': [at('a.dart', 16, 21), at('b.dart', 11, 16)]}}])
+        before = check(clones=[{**clone('w1', 'a.dart', 'a.dart'), 'value': {'window_lines': 6,
+            'occurrences': [at('a.dart', 10, 21), at('a.dart', 50, 61)]}}])
+        after = check(clones=[{**clone('w2', 'a.dart', 'b.dart'), 'value': {'window_lines': 6,
+            'occurrences': [at('a.dart', 10, 15), at('b.dart', 5, 10)]}},
+                              {**clone('w3', 'a.dart', 'b.dart'), 'value': {'window_lines': 6,
+                                  'occurrences': [at('a.dart', 16, 21), at('b.dart', 11, 16)]}}])
         with Verdicts():
             self.assertEqual(added(before, after, {'a.dart', 'b.dart'}), [])
 
     def test_a_copy_kept_on_purpose_with_its_reason_is_no_clone(self):
         body = [f'    total_{i} = price * quantity + tax_{i}' for i in range(8)]
-        kept = ['def one():', '    # jscpd:ignore-start -- each MCP tool is its own signature', *body, '    # jscpd:ignore-end']
+        kept = ['def one():', '    # jscpd:ignore-start -- each MCP tool is its own signature', *body,
+                '    # jscpd:ignore-end']
         self.assertEqual(metrics.windows_of('a.py', kept), [])
         self.assertEqual(len(metrics.windows_of('a.py', ['def one():', *body])), len(body) - metrics.WINDOW + 1)
 
@@ -161,13 +176,16 @@ class BeforeAfter(unittest.TestCase):
         self.assertEqual(len(added(check([near(('src/a.js', 1), ('src/b.js', 1), 'd1')]),
                                    check([near(('src/a.js', 60), ('src/c.js', 1), 'd2')]), paths)), 1)
         three = [idiom('src/x.js', 1), idiom('src/y.js', 1)]
-        self.assertEqual(len(added(check([*three, idiom('src/b.js', 1), idiom('src/q.js', 1, 'json_read'), idiom('src/r.js', 1, 'json_read')]),
+        self.assertEqual(len(added(check([*three, idiom('src/b.js', 1), idiom('src/q.js', 1, 'json_read'),
+                                          idiom('src/r.js', 1, 'json_read')]),
                                    check([*three, idiom('src/q.js', 1, 'json_read'), idiom('src/r.js', 1, 'json_read'),
-                                          idiom('src/c.js', 1, 'json_read')]), paths)), 1, 'one request state left, a JSON read came')
+                                          idiom('src/c.js', 1, 'json_read')]), paths)), 1,
+                         'one request state left, a JSON read came')
 
     def test_what_the_check_before_did_not_measure_holds_nothing_against_the_change(self):
         older = check([near(('src/x.js', 1), ('src/y.js', 1), None)])       # near copies without their digest
-        for before, kind in ((check(ran=()), 'near_copy'), (older, 'near_copy'), (check(ran=()), 'idiom'), (check(), 'look')):
+        for before, kind in ((check(ran=()), 'near_copy'), (older, 'near_copy'), (check(ran=()), 'idiom'), (check(),
+            'look')):
             self.assertNotIn(kind, gate.measured(before))
         self.assertEqual(added(check(ran=(), read_patterns=False), AFTER, CHANGED), [])
         self.assertEqual(gate.measured(check(ran=(), read_patterns=False)), {'clone'}, 'EAOS\'s own metrics always run')

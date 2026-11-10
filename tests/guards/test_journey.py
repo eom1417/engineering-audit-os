@@ -39,7 +39,8 @@ def git(project, *argv):
 
 def project_checks(batch, name):
     """The project's own checks: one of them still needs app/old_report.py, so the batch that deletes it fails them."""
-    return '' if (Path(batch['root']) / 'app/old_report.py').is_file() else "the project's own check failed: test_monthly_report"
+    return ('' if (Path(batch['root']) / 'app/old_report.py').is_file()
+            else "the project's own check failed: test_monthly_report")
 
 
 def no_engines(context):
@@ -50,7 +51,8 @@ class Journey(unittest.TestCase):
     def setUp(self):
         self.tmp = tempfile.TemporaryDirectory()
         self.addCleanup(self.tmp.cleanup)
-        for patch in (mock.patch.dict(os.environ, {'EAOS_HOME': str(Path(self.tmp.name) / 'home'), 'EAOS_ASSISTANT': 'none'}),
+        for patch in (mock.patch.dict(os.environ,
+                                      {'EAOS_HOME': str(Path(self.tmp.name) / 'home'), 'EAOS_ASSISTANT': 'none'}),
                       mock.patch.dict(runners.RUNNERS, engines=no_engines, architecture=no_engines),
                       mock.patch.object(guided, 'tools_for_check', return_value={}),
                       mock.patch('eaos.journeys.fix.waves.batch.original_checks', return_value={}),
@@ -115,11 +117,13 @@ class Journey(unittest.TestCase):
         self.assertIn('test_monthly_report', asked['why'])
         self.assertEqual(agent_tools.status(self.where)['next']['tool'], 'fix_edit card="REPAIR", then fix_finish')
         finished = batch_finish.finish_job(self.where, {'leave_out': True}, lambda *_: None)
-        self.assertEqual(sorted(finished['kept']), sorted([cards['app/old_export.py'], cards['app/old_invoice.py']]), finished)
+        self.assertEqual(sorted(finished['kept']), sorted([cards['app/old_export.py'], cards['app/old_invoice.py']]),
+                         finished)
         self.assertIn('test_monthly_report', finished['failed'][cards['app/old_report.py']])
         self.assertEqual(finished['branch'], 'eaos/main/wave-1', 'named after the branch: unique across branches')
         self.assertTrue((self.project / 'app/old_export.py').is_file(), "the person's branch is untouched until accept")
-        self.assertEqual(sorted(project_state.load(self.project)['tried']), sorted(c['key'] for c in self.ready_cards() if c['id'] in batch),
+        self.assertEqual(sorted(project_state.load(self.project)['tried']),
+                         sorted(c['key'] for c in self.ready_cards() if c['id'] in batch),
                          'tried holds keys: a new check numbers the cards again')
 
         # Accept: the branch is merged and deleted, the two files are gone, and the progress counts the two fixes.

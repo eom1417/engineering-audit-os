@@ -39,7 +39,8 @@ def binaries():
         noted('pgserver is not installed: the initdb on the path is used', error)
     found = shutil.which('initdb')
     if found: return Path(found).parent
-    candidates = sorted(glob.glob('/usr/lib/postgresql/*/bin/initdb') + glob.glob('/opt/homebrew/opt/postgresql*/bin/initdb')
+    candidates = sorted(glob.glob('/usr/lib/postgresql/*/bin/initdb')
+                        + glob.glob('/opt/homebrew/opt/postgresql*/bin/initdb')
                         + glob.glob('/usr/local/opt/postgresql*/bin/initdb'))
     return Path(candidates[-1]).parent if candidates else None
 
@@ -78,7 +79,8 @@ def _reachable(bin_dir, owner):
         _open_to(copy.parent, owner)
         with tempfile.TemporaryDirectory(prefix='.partial-', dir=copy.parent) as partial:
             made = Path(partial) / 'pgserver-copy'
-            shutil.copytree(install, made / 'pgserver' / 'pginstall', symlinks=True, ignore=shutil.ignore_patterns('include'))
+            shutil.copytree(install, made / 'pgserver' / 'pginstall', symlinks=True,
+                            ignore=shutil.ignore_patterns('include'))
             if (install.parent.parent / 'pgserver.libs').is_dir():
                 shutil.copytree(install.parent.parent / 'pgserver.libs', made / 'pgserver.libs', symlinks=True)
             for folder, _, _ in os.walk(made): _open_to(folder, owner)
@@ -97,7 +99,8 @@ def _as_owner():
     if os.name == 'nt' or os.geteuid() != 0: return None
     import pwd
     try: pwd.getpwnam('eaos-pg')
-    except KeyError: subprocess.run(['useradd', '--system', '--no-create-home', '-s', '/usr/sbin/nologin', 'eaos-pg'], check=True)
+    except KeyError:
+        subprocess.run(['useradd', '--system', '--no-create-home', '-s', '/usr/sbin/nologin', 'eaos-pg'], check=True)
     return 'eaos-pg'
 
 
@@ -106,7 +109,8 @@ class LocalPostgres:
         self.root = Path(runtime) / 'database'
         self.owner = _as_owner()
         # Under root the data must be where the dedicated account can reach it: /root is not.
-        self.data = (Path(tempfile.gettempdir()) / 'eaos-pg' / self.root.resolve().as_posix().strip('/').replace('/', '_')
+        self.data = (Path(tempfile.gettempdir()) / 'eaos-pg'
+                     / self.root.resolve().as_posix().strip('/').replace('/', '_')
                      if self.owner else self.root / 'data')
         self.state, self.password_file = self.root / 'server.json', self.root / 'password'
         # A Unix socket's path may not pass about 104 characters (macOS) or 107 (Linux), and the data folder under
@@ -164,7 +168,8 @@ class LocalPostgres:
             given = self.data.with_name(self.data.name + '.pw')         # where initdb's account reads it, then gone
             _private(given, password)
             if self.owner: shutil.chown(given, self.owner)
-            try: self._run(bin_dir, 'initdb', '-D', str(self.data), '-U', 'postgres', '--auth=scram-sha-256', f'--pwfile={given}',
+            try: self._run(bin_dir, 'initdb', '-D', str(self.data), '-U', 'postgres',
+                           '--auth=scram-sha-256', f'--pwfile={given}',
                            '-E', 'UTF8', '--no-instructions')
             finally: given.unlink(missing_ok=True)
         port = free_port()
@@ -175,7 +180,8 @@ class LocalPostgres:
                   f"-h 127.0.0.1 -p {port} -k {self.sockets}", 'start')
         state = {'port': port, 'bin': str(bin_dir)}
         self.state.write_text(json.dumps(state))
-        self._psql(state, "select format('drop database %I with (force)', datname) from pg_database where datname ~ (:'copy' || '[0-9a-f]{8}$') \\gexec",
+        self._psql(state, "select format('drop database %I with (force)', datname) from pg_database "
+                   "where datname ~ (:'copy' || '[0-9a-f]{8}$') \\gexec",
                    copy=COPY)
         return self.url(state)
 

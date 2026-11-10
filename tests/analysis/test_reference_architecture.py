@@ -11,7 +11,8 @@ class ReferenceTests(Workspace):
     def project(self, packages=None, pyproject=None, files=()):
         root = Path(self.tmp) / f'p{len(list(Path(self.tmp).iterdir()))}'
         root.mkdir()
-        if packages is not None: (root / 'package.json').write_text(json.dumps({'dependencies': {p: '1' for p in packages}}))
+        if packages is not None: (root / 'package.json').write_text(json.dumps({'dependencies': {p: '1'
+            for p in packages}}))
         if pyproject: (root / 'pyproject.toml').write_text(pyproject)
         for name in files: (root / name).write_text('x = 1\n')
         return root
@@ -20,7 +21,8 @@ class ReferenceTests(Workspace):
         for kind in catalogue()['types']:
             names = {layer['name'] for layer in kind['layers']}
             for layer in kind['layers']:
-                self.assertLessEqual(set(layer['allowed_dependencies']), names - {layer['name']}, (kind['id'], layer['name']))
+                self.assertLessEqual(set(layer['allowed_dependencies']), names - {layer['name']}, (kind['id'],
+                    layer['name']))
                 self.assertTrue(layer['paths'], (kind['id'], layer['name']))
         reference = by_id('react-tanstack-start-supabase')
         cases = {'src/components/ui/button.tsx': 'ui', 'src/components/accounts/Card.tsx': 'features',

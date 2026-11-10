@@ -17,8 +17,8 @@ from .endpoints import PARAM
 from ..target_state import projection as target_projection
 from ...core.system.files import read_json
 
-RUNNERS = (('vitest', 'Vitest'), ('jest', 'Jest'), ('mocha', 'Mocha'), ('@playwright/test', 'Playwright'), ('cypress', 'Cypress'),
-           ('ava', 'AVA'), ('node --test', "Node's test runner"))
+RUNNERS = (('vitest', 'Vitest'), ('jest', 'Jest'), ('mocha', 'Mocha'), ('@playwright/test', 'Playwright'),
+           ('cypress', 'Cypress'), ('ava', 'AVA'), ('node --test', "Node's test runner"))
 PYTHON_TESTS = ('pytest.ini', 'conftest.py', 'tox.ini')
 
 
@@ -30,13 +30,15 @@ def infrastructure(project, layer_map):
     files = sorted(f['location']['path'] for f in facts['graph_node'])
     rows = target_projection.infrastructure(reference, facts, project.root, files, reference.get('root', ''))
     items = {item['area']: item for item in target_projection.baseline_items(reference)}
-    return [{'area': row['area'], 'item': items[row['area']]['item'], 'present': row['present'], 'evidence': row['evidence'],
+    return [{'area': row['area'], 'item': items[row['area']]['item'], 'present': row['present'],
+             'evidence': row['evidence'],
              'success': items[row['area']]['success_measure'], 'tool': row['tool']} for row in rows]
 
 
 def operations_findings(rows):
     return [{'rule': 'operations-missing', 'path': '*', 'line': None, 'evidence': row['evidence'],
-             'params': {'area': row['area'], 'item': row['item'], 'evidence': row['evidence'], 'success': row['success']}}
+             'params': {'area': row['area'], 'item': row['item'], 'evidence': row['evidence'],
+                        'success': row['success']}}
             for row in rows if not row['present']]
 
 
@@ -50,8 +52,10 @@ def _node_runners(manifest):
 
 def runners(project):
     """The test runners the project declares."""
-    found = [label for manifest in [project.root / 'package.json', *project.root.glob('*/package.json')] for label in _node_runners(manifest)]
-    python = any((project.root / name).is_file() for name in PYTHON_TESTS) or any(p.endswith('.py') for p in project.tests)
+    found = [label for manifest in [project.root / 'package.json', *project.root.glob('*/package.json')]
+             for label in _node_runners(manifest)]
+    python = (any((project.root / name).is_file() for name in PYTHON_TESTS)
+              or any(p.endswith('.py') for p in project.tests))
     go = any(p.endswith('_test.go') for p in project.tests)
     return sorted(set(found + (['pytest'] if python else []) + (['go test'] if go else [])))
 
@@ -86,9 +90,12 @@ def tests(project, layer_map, endpoints, verification=None):
     texts = '\n'.join(project.text(path) for path in project.tests)
     untested = [row for row in endpoints if row['writes'] and not row['empty'] and not _named(row, texts)]
     run = _run(verification)
-    findings = [{'rule': 'untested-write', 'path': row['path'], 'line': row['line'], 'evidence': f"{row['method']} {row['route']}",
-                 'params': {'method': row['method'], 'route': row['route'], 'path': row['path']}} for row in untested] + _failing(run)
-    return {'runners': runners(project), 'files': len(project.tests), 'run': run, 'layers_untested': _untested_layers(project, layer_map),
+    findings = [{'rule': 'untested-write', 'path': row['path'], 'line': row['line'],
+                 'evidence': f"{row['method']} {row['route']}",
+                 'params': {'method': row['method'], 'route': row['route'], 'path': row['path']}}
+                for row in untested] + _failing(run)
+    return {'runners': runners(project), 'files': len(project.tests), 'run': run,
+            'layers_untested': _untested_layers(project, layer_map),
             'endpoints_untested': [f"{row['method']} {row['route']}" for row in untested], 'findings': findings}
 
 

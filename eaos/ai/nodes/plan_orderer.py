@@ -16,7 +16,8 @@ from . import evidence
 VERSION = '1'
 LIMIT = {'tasks': 300}
 _STEP = {'type': 'object', 'additionalProperties': False, 'required': ['id', 'title', 'tasks', 'why'],
-         'properties': {'id': {'type': 'string'}, 'title': {'type': 'string'}, 'tasks': {'type': 'array', 'items': {'type': 'string'}},
+         'properties': {'id': {'type': 'string'}, 'title': {'type': 'string'},
+                        'tasks': {'type': 'array', 'items': {'type': 'string'}},
                         'why': {'type': 'string'}}}
 DETAIL = {'type': 'object', 'additionalProperties': False, 'required': ['steps'],
           'properties': {'steps': {'type': 'array', 'items': _STEP}}}
@@ -52,22 +53,27 @@ def _triage(report):
 def _open_tasks(report, plan):
     """The plan's tasks not done yet, up to the limit."""
     done = {c['id'] for c in evidence.cards(report) if c.get('state') in ('done', 'resolved')}
-    return [t for t in plan.get('tasks') or [] if isinstance(t, dict) and t.get('id') and t['id'] not in done][:LIMIT['tasks']]
+    return [t for t in plan.get('tasks') or []
+            if isinstance(t, dict) and t.get('id') and t['id'] not in done][:LIMIT['tasks']]
 
 
 def _task_rows(plan, tasks, triage):
     """Each task as the node reads it: what it is, what it waits for, where the rules placed it, the triage's
     verdict."""
     wave, milestone = _places(plan)
-    return [{'id': t['id'], 'title': core.short(t.get('title'), 160), 'kind': t.get('kind'), 'paths': (t.get('paths') or [])[:2],
-             'prerequisites': [p for p in t.get('prerequisites') or [] if isinstance(p, str)], 'milestone': milestone.get(t['id']),
+    return [{'id': t['id'], 'title': core.short(t.get('title'), 160), 'kind': t.get('kind'),
+             'paths': (t.get('paths') or [])[:2],
+             'prerequisites': [p for p in t.get('prerequisites') or [] if isinstance(p, str)],
+             'milestone': milestone.get(t['id']),
              'wave': wave.get(t['id']), 'triage': triage.get(t['id'])} for t in tasks]
 
 
 def _places(plan):
     """({task: wave}, {task: milestone}): where the rules placed each task."""
-    wave = {task: i + 1 for i, row in enumerate(plan.get('waves') or []) for task in (row if isinstance(row, list) else [])}
-    milestone = {task: m.get('id') for m in plan.get('milestones') or [] if isinstance(m, dict) for task in m.get('tasks') or []}
+    wave = {task: i + 1 for i,
+            row in enumerate(plan.get('waves') or []) for task in (row if isinstance(row, list) else [])}
+    milestone = {task: m.get('id') for m in plan.get('milestones') or []
+                 if isinstance(m, dict) for task in m.get('tasks') or []}
     return wave, milestone
 
 
@@ -97,14 +103,18 @@ def rules_steps(data):
     for task in sorted(data['tasks'], key=lambda t: (order.get(t['milestone'], 99), t['wave'] or 99, t['id'])):
         if task['triage'] == 'reject': continue
         key = (task['milestone'], task['wave'])
-        steps.setdefault(key, {'id': f"{task['milestone'] or 'M?'}-W{task['wave'] or '?'}", 'title': f"{task['milestone'] or 'M?'}, wave {task['wave'] or '?'}",
-                               'tasks': [], 'why': "The rules' order: the milestone, then the wave."})['tasks'].append(task['id'])
+        steps.setdefault(key,
+                         {'id': f"{task['milestone'] or 'M?'}-W{task['wave'] or '?'}",
+                          'title': f"{task['milestone'] or 'M?'}, wave {task['wave'] or '?'}",
+                               'tasks': [], 'why': "The rules' order: the milestone, then the "
+                                                   "wave."})['tasks'].append(task['id'])
     return list(steps.values())
 
 
 def rules(data):
     ids = [t['id'] for t in data['tasks']][:20]
-    return {'plan': (ids + ['RULE-plan-order'], "The rules' order: milestones, prerequisites and the files each card touches.", 0.6,
+    return {'plan': (ids + ['RULE-plan-order'],
+                     "The rules' order: milestones, prerequisites and the files each card touches.", 0.6,
                      {'steps': rules_steps(data)})}
 
 
@@ -159,6 +169,8 @@ def finish(report, record, data):
     folder = core.folder_of(report, record['node'])
     folder.mkdir(parents=True, exist_ok=True)
     (folder / 'order.json').write_text(json.dumps({'schema_version': 1, 'at': record['at'], 'method': record['method'],
-                                                   'decision': decision['decision'], 'source': decision['source'], 'steps': steps,
-                                                   'set_aside': rejected, 'why': decision['why']}, ensure_ascii=False, indent=1) + '\n',
+                                                   'decision': decision['decision'], 'source': decision['source'],
+                                                   'steps': steps,
+                                                   'set_aside': rejected, 'why': decision['why']}, ensure_ascii=False,
+                                                  indent=1) + '\n',
                                        encoding='utf-8')

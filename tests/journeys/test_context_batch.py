@@ -25,7 +25,8 @@ class ContextBatchTests(unittest.TestCase):
         self.tmp = tempfile.TemporaryDirectory()
         self.addCleanup(self.tmp.cleanup)
         for patch in (mock.patch.dict(os.environ, {'EAOS_HOME': str(Path(self.tmp.name) / 'home')}),
-                      mock.patch('eaos.live.isolation.sandbox.refusal', return_value=''), mock.patch.object(guided, 'publish')):
+                      mock.patch('eaos.live.isolation.sandbox.refusal', return_value=''),
+                      mock.patch.object(guided, 'publish')):
             patch.start()
             self.addCleanup(patch.stop)
         self.project = p = Path(self.tmp.name) / 'shop'
@@ -46,7 +47,8 @@ class ContextBatchTests(unittest.TestCase):
         self.assertLess(drawn['tokens_after'], drawn['tokens_before'])
         answer = tidying._context_job(str(self.project), {'private_to': 'DEVELOPING.md'}, lambda *_: None)
         self.assertEqual(answer['branch'], 'eaos/main/context-1')
-        self.assertIn('- [x] Build the login page', (self.project / 'AGENTS.md').read_text(), 'nothing changed before the decision')
+        self.assertIn('- [x] Build the login page', (self.project / 'AGENTS.md').read_text(),
+                      'nothing changed before the decision')
         self.assertIn('DEVELOPING.md', git(self.project, 'show', '--name-only', '--format=', answer['branch']).split())
         self.assertEqual(agent_tools.accept(str(self.project), person_agreed=True)['status'], 'accepted')
         self.assertNotIn('- [x]', (self.project / 'AGENTS.md').read_text())
@@ -55,21 +57,25 @@ class ContextBatchTests(unittest.TestCase):
     def test_with_a_check_read_the_batch_writes_the_guide_and_one_pointer_and_a_person_with_no_trim_left_gets_it_too(self):
         report = Path(self.tmp.name) / 'report'
         report.mkdir()
-        (report / 'layers.json').write_text(json.dumps({'map': [{'path': 'src/app.py', 'layer': 'core', 'side': 'server'}], 'layers': []}))
+        (report / 'layers.json').write_text(json.dumps({'map': [{'path': 'src/app.py', 'layer': 'core',
+                                                                 'side': 'server'}], 'layers': []}))
         runtime = project_state.runtime_of(project_state.load(self.project))
         (runtime / 'authorization.json').write_text(json.dumps({'commit': git(self.project, 'rev-parse', 'HEAD')}))
         self.assertEqual(context_batch.proposal(self.project, report=report)['guide']['path'], 'docs/EXTENDING.md')
-        summary = context_batch.make({'target': self.project, 'runtime': runtime, 'number': 1, 'report': report, 'project': str(self.project), 'deliver_as': 'eaos/main/context-1'})
+        summary = context_batch.make({'target': self.project, 'runtime': runtime, 'number': 1, 'report': report,
+                                      'project': str(self.project), 'deliver_as': 'eaos/main/context-1'})
         self.assertIn('docs/EXTENDING.md', summary['kept'])
         root = Path(summary['root'])
         self.assertEqual(git(root, 'show', 'HEAD:AGENTS.md').count('docs/EXTENDING.md'), 1)
 
     def test_a_private_place_outside_the_repository_or_in_an_assistants_folder_is_refused(self):
         for place in ('../notes.md', '/root/notes.md', '.claude/notes.md'):
-            summary = context_batch.make({'target': self.project, 'runtime': project_state.runtime_of(project_state.load(self.project)),
+            summary = context_batch.make({'target': self.project,
+                                          'runtime': project_state.runtime_of(project_state.load(self.project)),
                                           'number': 1, 'private_to': place})
             self.assertEqual(summary['kept'], [])
-            self.assertTrue(summary['refused'][0].endswith(('outside the repository', "an assistant's own folder")), summary['refused'])
+            self.assertTrue(summary['refused'][0].endswith(('outside the repository', "an assistant's own folder")),
+                            summary['refused'])
 
     def test_a_trim_whose_archive_git_ignores_is_refused_and_what_is_committed_is_what_was_checked(self):
         # An archive that git ignores must not be written and checked in memory only: the done items would be lost from

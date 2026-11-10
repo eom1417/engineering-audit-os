@@ -40,7 +40,8 @@ class Provider:
         if not _int_in(self.limit,1024,8_000_000):raise ValueError('Invalid provider response limit')
         if self.kind!='command':raise ValueError('Unknown provider kind')
         argv=config.get('argv')
-        if not isinstance(argv,list) or not argv or any(not isinstance(x,str) or not x for x in argv):raise ValueError('Provider argv must be a nonempty string array; shell is never used')
+        if not isinstance(argv, list) or not argv or any(not isinstance(x, str) or not x for x in argv):
+            raise ValueError('Provider argv must be a nonempty string array; shell is never used')
 
     def identity(self):
         # Cache identity omits secret values; changing model/endpoint/adapter changes jobs.
@@ -53,10 +54,14 @@ class Provider:
         # A user-selected adapter receives JSON on stdin and emits JSON on stdout; it may work as long as it needs
         # while it writes anything (its progress on stderr counts): only silence for STUCK seconds ends it.
         # CWD is empty so repository code cannot be imported accidentally by the adapter.
-        with tempfile.TemporaryDirectory(prefix='eaos-adapter-') as cwd, tempfile.TemporaryFile() as out, tempfile.TemporaryFile() as err:
+        with tempfile.TemporaryDirectory(prefix='eaos-adapter-') as cwd, \
+                tempfile.TemporaryFile() as out, tempfile.TemporaryFile() as err:
             try:
-                counted={'EAOS_MODEL_USAGE':str(self.config['usage']),'EAOS_MODEL_STAGE':stage or 'other'} if self.config.get('usage') else {}
-                p=subprocess.Popen(self.config['argv'],stdin=subprocess.PIPE,stdout=out,stderr=err,cwd=cwd,shell=False,start_new_session=(os.name=='posix'),  # nosemgrep: python.lang.security.audit.dangerous-subprocess-use-audit -- the assistant command the person configured, a list argv, shell=False
+                counted={'EAOS_MODEL_USAGE':str(self.config['usage']),
+                         'EAOS_MODEL_STAGE':stage or 'other'} if self.config.get('usage') else {}
+                # nosemgrep: python.lang.security.audit.dangerous-subprocess-use-audit -- the assistant command the person configured, a list argv, shell=False
+                p=subprocess.Popen(self.config['argv'],stdin=subprocess.PIPE,stdout=out,stderr=err,cwd=cwd,shell=False,
+                                   start_new_session=(os.name=='posix'),
                                  env={**os.environ,**counted})
                 try:
                     with p.stdin:p.stdin.write(_request(messages,small,reads,deep))

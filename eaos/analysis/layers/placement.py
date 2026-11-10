@@ -19,11 +19,15 @@ from ..target_state import references as reference_types
 from .runtime_guards import browser_text
 from ...facts.frameworks.server_entries import directive
 
-HTTP = re.compile(r'^(express|fastify|koa|hono|@hono/[\w-]+|h3|restify|@nestjs/[\w-]+|next/server|flask|fastapi|starlette|'
-                  r'django(\.\w+)*|aiohttp|tornado|net/http|github\.com/(gin-gonic/gin|labstack/echo|gofiber/fiber|go-chi/chi)\S*)$')
-DATABASE = re.compile(r'^(pg|postgres|mysql2?|better-sqlite3|sqlite3|@prisma/client|drizzle-orm(/[\w-]+)*|knex|mongoose|mongodb|'
+HTTP = re.compile(r'^(express|fastify|koa|hono|@hono/[\w-]+|h3|restify|@nestjs/[\w-]+|next/server|flask|fastapi|'
+                  r'starlette|'
+                  r'django(\.\w+)*|aiohttp|tornado|net/http|'
+                  r'github\.com/(gin-gonic/gin|labstack/echo|gofiber/fiber|go-chi/chi)\S*)$')
+DATABASE = re.compile(r'^(pg|postgres|mysql2?|better-sqlite3|sqlite3|@prisma/client|drizzle-orm(/[\w-]+)*|knex|'
+                      r'mongoose|mongodb|'
                       r'typeorm|sequelize|@neondatabase/serverless|@vercel/postgres|@planetscale/database|kysely|'
-                      r'sqlalchemy(\.\w+)*|psycopg2?|psycopg|asyncpg|pymongo|django\.db(\.\w+)*|peewee|database/sql|gorm\.io/\S+|'
+                      r'sqlalchemy(\.\w+)*|psycopg2?|psycopg|asyncpg|pymongo|django\.db(\.\w+)*|peewee|'
+                      r'database/sql|gorm\.io/\S+|'
                       r'github\.com/jackc/pgx\S*)$')
 NODE = re.compile(r'^(node:(?!test$)[\w/]+|fs|fs/promises|child_process|net|tls|dgram|cluster|worker_threads)$')
 SCREEN = re.compile(r'^(react|react-dom(/[\w-]+)?|preact|solid-js|vue|svelte|react-native)$')
@@ -32,8 +36,10 @@ JSX = re.compile(r'<[A-Z][\w.]*[\s/>]|</\w+>|return\s*\(\s*<')
 SERVER_ONLY = re.compile(r'''import\s+['"]server-only['"]''')
 BROWSER_GLOBALS = re.compile(r'\b(document|window|localStorage|sessionStorage)\.|\bimport\.meta\.env\b')
 NODE_TEXT = re.compile(r'\b(?:__dirname|__filename|process\.argv|require\.main)\b')
-SERVER_PATHS = ('*.cjs', '**/*.cjs', 'supabase/functions/**', '**/*.server.ts', '**/*.server.js', '**/*.server.tsx', 'pages/api/**',
-                'src/pages/api/**', '**/route.ts', '**/route.js', 'server/**', 'api/**', 'backend/**', 'netlify/functions/**')
+SERVER_PATHS = ('*.cjs', '**/*.cjs', 'supabase/functions/**', '**/*.server.ts', '**/*.server.js',
+                '**/*.server.tsx', 'pages/api/**',
+                'src/pages/api/**', '**/route.ts', '**/route.js', 'server/**', 'api/**', 'backend/**',
+                'netlify/functions/**')
 CONFIG = re.compile(r'(^|/)[\w.-]+\.config\.(js|cjs|mjs|ts|mts)$')
 BUILT = ('dist/', 'build/', 'out/', '.next/', '.output/', '.svelte-kit/', 'public/build/', 'storybook-static/')
 SERVER_LANGUAGES = {'python', 'go', 'java', 'ruby', 'php', 'csharp', 'kotlin', 'rust', 'elixir', 'scala'}
@@ -68,7 +74,8 @@ def _written(path, text):
     """What a file's own text says: its directive, `server-only`, markup, the browser's globals."""
     said = directive(text)
     marks = {said} if said else set()
-    found = (('server', bool(SERVER_ONLY.search(text))), ('screen', _component(path, text)), ('node', bool(NODE_TEXT.search(browser_text(text)))),
+    found = (('server', bool(SERVER_ONLY.search(text))), ('screen', _component(path, text)),
+             ('node', bool(NODE_TEXT.search(browser_text(text)))),
              ('browser', bool(BROWSER_GLOBALS.search(text))))
     return marks | {name for name, there in found if there}
 
@@ -81,7 +88,8 @@ def _marks(project, path):
 
 
 def _server_path(path):
-    return any(fnmatch(path, pattern) or pattern.endswith('/**') and path.startswith(pattern[:-3] + '/') for pattern in SERVER_PATHS)
+    return any(fnmatch(path, pattern) or pattern.endswith('/**') and path.startswith(pattern[:-3] + '/')
+               for pattern in SERVER_PATHS)
 
 
 def _own_side(project, path, marks, next_app):
@@ -119,7 +127,8 @@ def sides(project, marks, next_app):
 
 def _generic(pattern):
     """A pattern that places a whole tree or every file of a kind: its placement is a medium guess."""
-    return pattern.startswith('**') or pattern.count('/') == 1 and pattern.endswith('/**') and pattern.split('/')[0] in ('apps', 'src', 'packages')
+    return pattern.startswith('**') or pattern.count('/') == 1 and pattern.endswith('/**') \
+        and pattern.split('/')[0] in ('apps', 'src', 'packages')
 
 
 def _candidates(reference, marks):
@@ -132,8 +141,10 @@ def _candidates(reference, marks):
 
 def _breaks(project, path, layer, placed, may):
     """How many of the file's own imports, and of the imports of it, the file would break in `layer`."""
-    out = sum(1 for target in project.edges.get(path, ()) if target in placed and placed[target]['layer'] not in may[layer])
-    into = sum(1 for source in project.importers.get(path, ()) if source in placed and layer not in may[placed[source]['layer']])
+    out = sum(1 for target in project.edges.get(path, ())
+              if target in placed and placed[target]['layer'] not in may[layer])
+    into = sum(1 for source in project.importers.get(path, ())
+               if source in placed and layer not in may[placed[source]['layer']])
     return out + into
 
 
@@ -160,7 +171,8 @@ def place(path, reference, policy_layers, marks):
     """(layer, confidence, reason) of one file; (None, None, why) for a gap."""
     if policy_layers:
         for name, patterns in sorted(policy_layers.items()):
-            if any(fnmatch(path, pattern) for pattern in patterns): return name, HIGH, "the project's own eaos.policy.json"
+            if any(fnmatch(path, pattern) for pattern in patterns):
+                return name, HIGH, "the project's own eaos.policy.json"
     if reference:
         layer, pattern = reference_types.layer_of(path, reference)
         if layer:
@@ -179,7 +191,8 @@ def _place_the_rest(project, rows, reference):
 
 def _row(path, placed, side, marks):
     layer, confidence, reason = placed
-    return {'path': path, 'layer': layer, 'side': side, 'confidence': confidence, 'reason': reason, 'marks': sorted(marks)}
+    return {'path': path, 'layer': layer, 'side': side, 'confidence': confidence, 'reason': reason,
+            'marks': sorted(marks)}
 
 
 def layer_map(project, policy_layers=None):
@@ -188,17 +201,21 @@ def layer_map(project, policy_layers=None):
     marks = {path: _marks(project, path) for path in project.code}
     next_app = 'next' in project.packages
     side_of = sides(project, marks, next_app)
-    rows = [_row(path, place(path, reference, policy_layers, marks[path]), side_of[path], marks[path]) for path in project.code]
+    rows = [_row(path, place(path, reference, policy_layers, marks[path]), side_of[path], marks[path])
+            for path in project.code]
     if reference: _place_the_rest(project, rows, reference)
-    rows += [{'path': path, 'layer': 'database', 'side': 'database', 'confidence': HIGH, 'reason': 'a migration or a schema',
+    rows += [{'path': path, 'layer': 'database', 'side': 'database', 'confidence': HIGH,
+              'reason': 'a migration or a schema',
               'marks': []} for path in project.schemas]
-    return {'type': type_id, 'reference': reference, 'rows': rows, 'gaps': [row['path'] for row in rows if not row['layer']],
+    return {'type': type_id, 'reference': reference, 'rows': rows,
+            'gaps': [row['path'] for row in rows if not row['layer']],
             'tests': len(project.tests), 'built': project.built}
 
 
 def allowed(reference):
     """{layer: set of the layers it may use} of a reference type (a layer may always use itself)."""
-    return {layer['name']: set(layer.get('allowed_dependencies') or ()) | {layer['name']} for layer in reference['layers']}
+    return {layer['name']: set(layer.get('allowed_dependencies') or ()) | {layer['name']}
+            for layer in reference['layers']}
 
 
 def by_path(rows):

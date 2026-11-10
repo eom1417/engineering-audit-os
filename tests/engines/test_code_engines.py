@@ -70,7 +70,8 @@ class OfflineAdapterTests(Workspace):
         self.assertEqual(components, {('src/main.tsx', 'App'), ('src/components/VehicleCard.tsx', 'VehicleCard'),
                                       ('src/components/Orphan.tsx', 'Orphan')})
         effect = next(m for m in metrics if m['measurements']['record'] == 'react_effect_derived_state')
-        self.assertEqual((effect['path'], effect['line'], effect['symbol']), ('src/components/VehicleCard.tsx', 8, 'setLabel'))
+        self.assertEqual((effect['path'], effect['line'], effect['symbol']), ('src/components/VehicleCard.tsx', 8,
+                                                                              'setLabel'))
         self.assertEqual(sum(by_rule.values()), len(rows))
         # A rule naming a shared kind becomes a finding.
         metrics, findings, _ = ast_grep.normalise([dict(rows[0], metadata={'kind': 'dead_code'})], ast_grep.PINNED)
@@ -82,9 +83,11 @@ class OfflineAdapterTests(Workspace):
         parsed, skipped = lizard.rows(sample('lizard')['lizard.csv'] + 'a,short,row\n')
         self.assertEqual(skipped, 1)
         metrics, findings = lizard.normalise(parsed, lizard.PINNED)
-        self.assertTrue({('billing.py', 'unused_helper'), ('src/lib/format.ts', 'plate')} <= {(m['path'], m['symbol']) for m in metrics})
+        self.assertTrue({('billing.py', 'unused_helper'), ('src/lib/format.ts', 'plate')} <= {(m['path'],
+            m['symbol']) for m in metrics})
         self.assertEqual(rules_of(type('R', (), {'findings': findings})), {('ccn', 'billing.py', 'billing.py::tariff')})
-        self.assertEqual(findings[0]['measurements'][0], {'name': 'cyclomatic_complexity', 'value': 22, 'threshold': 15, 'unit': None})
+        self.assertEqual(findings[0]['measurements'][0], {'name': 'cyclomatic_complexity', 'value': 22, 'threshold': 15,
+                                                          'unit': None})
         with mock.patch.object(lizard.tool, 'started', return_value=(None, lizard.PINNED)), \
                 mock.patch.object(lizard, 'which', return_value='lizard'), \
                 mock.patch.object(lizard, 'run', return_value=(0, sample('lizard')['lizard.csv'], '', 0.1)):
@@ -96,7 +99,8 @@ class OfflineAdapterTests(Workspace):
         findings, counted = knip.normalise(sample('knip')['knip.json'], knip.PINNED)
         self.assertEqual(rules_of(type('R', (), {'findings': findings})), KNIP_EXPECTED)
         self.assertEqual(({f['kind'] for f in findings}, counted), ({'dead_code', 'unused_dependency'}, {}))
-        report = {'issues': [{'file': 'package.json', 'devDependencies': [{'name': 'vitest'}], 'unlisted': [{'name': 'x'}]}]}
+        report = {'issues': [{'file': 'package.json', 'devDependencies': [{'name': 'vitest'}],
+                              'unlisted': [{'name': 'x'}]}]}
         self.assertEqual(knip.normalise(report, knip.PINNED), ([], {'devDependencies': 1, 'unlisted': 1}),
                          'dev dependencies are counted, not reported')
         # Every plugin is switched off so no project configuration runs; without its plugin list it refuses to run.
@@ -104,7 +108,8 @@ class OfflineAdapterTests(Workspace):
         self.assertEqual((config['vite'], config['eslint']), (False, False))
         self.assertIn('**/legacy/**', config['ignore'])
         with mock.patch.object(knip.tool, 'started', return_value=(None, knip.PINNED)), \
-                mock.patch.object(knip, 'which', return_value='/nowhere/bin/knip'), mock.patch.object(knip, 'run') as ran:
+                mock.patch.object(knip, 'which', return_value='/nowhere/bin/knip'), mock.patch.object(knip,
+                    'run') as ran:
             self.assertEqual(knip.analyze(self.tmp, Path(self.tmp) / 'work').status, 'error')
         ran.assert_not_called()
 
@@ -126,10 +131,12 @@ class LiveRunTests(Workspace):
             self.assertEqual(code, 0, out + error)
             report = ast_grep.analyze(FIXTURE / 'web', work('ast'))
             self.assertEqual(report.status, OBSERVED, report.reason)
-            self.assertEqual(report.metrics, ast_grep.normalise(sample('ast-grep')['ast-grep.jsonl'], ast_grep.PINNED)[0])
+            self.assertEqual(report.metrics, ast_grep.normalise(sample('ast-grep')['ast-grep.jsonl'],
+                                                                ast_grep.PINNED)[0])
         with self.subTest(engine='lizard'):
             need(self, '' if installed(lizard) else 'lizard is not installed at its pin')
-            self.assertEqual(rules_of(lizard.analyze(FIXTURE / 'py', work('lizard'))), {('ccn', 'billing.py', 'billing.py::tariff')})
+            self.assertEqual(rules_of(lizard.analyze(FIXTURE / 'py', work('lizard'))), {('ccn', 'billing.py',
+                'billing.py::tariff')})
         with self.subTest(engine='knip'):
             need(self, '' if installed(knip) else 'knip is not installed at its pin')
             # VehicleCard is imported only as `@/components/VehicleCard`: unless the alias is resolved it looks unused.

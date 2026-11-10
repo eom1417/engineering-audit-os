@@ -35,8 +35,10 @@ NO_COMMIT_YET = 'does not have any commits yet'
 def git(target, args, timeout=120):
     env = {k: v for k, v in os.environ.items() if k in {'PATH', 'HOME', 'LANG', 'SystemRoot', 'WINDIR'}}
     env.update(GIT_OPTIONAL_LOCKS='0', LC_ALL='C')     # C: NO_COMMIT_YET is read in git's own words
-    return subprocess.run(['git', '-C', str(target), '--no-pager', '-c', 'core.quotepath=false', '-c', 'gc.auto=0', *args],
-                          capture_output=True, text=True, errors='backslashreplace', env=env, timeout=timeout, check=False)
+    return subprocess.run(['git', '-C', str(target), '--no-pager', '-c', 'core.quotepath=false', '-c', 'gc.auto=0',
+                           *args],
+                          capture_output=True, text=True, errors='backslashreplace', env=env, timeout=timeout,
+                          check=False)
 
 
 def available(target):
@@ -102,7 +104,8 @@ def extract(target, raw, input_sha, settings=Settings(), prefix=''):
     # Reference point is the newest commit in the window, never wall-clock time, so reruns are identical.
     reference = max((c['date'] for c in commits), default=None)
     present = _working_tree(target)
-    facts = [fact for path in sorted(per_file) for fact in _file_facts(path, per_file[path], reference, present, input_sha)]
+    facts = [fact for path in sorted(per_file) for fact in _file_facts(path, per_file[path], reference, present,
+                                                                       input_sha)]
     facts += _cochange_facts(pairs, per_file, settings.min_support, input_sha)
     return facts, _summary(commits, per_file, reference, settings)
 
@@ -111,12 +114,14 @@ def _under(commits, prefix):
     """The commits' files under the app root `prefix`, relative to it; commits left with none dropped."""
     if not prefix: return commits
     for commit in commits:
-        commit['files'] = [(added, deleted, path[len(prefix):]) for added, deleted, path in commit['files'] if path.startswith(prefix)]
+        commit['files'] = [(added, deleted, path[len(prefix):]) for added, deleted,
+                           path in commit['files'] if path.startswith(prefix)]
     return [commit for commit in commits if commit['files']]
 
 
 def _new_file_row():
-    return {'commits': 0, 'fix_commits': 0, 'added': 0, 'deleted': 0, 'authors': defaultdict(int), 'first': None, 'last': None}
+    return {'commits': 0, 'fix_commits': 0, 'added': 0, 'deleted': 0, 'authors': defaultdict(int), 'first': None,
+            'last': None}
 
 
 def _count_change(row, commit, added, deleted):
@@ -141,10 +146,12 @@ def _tally(commits, bulk_limit):
 
 
 def _working_tree(target):
-    return {p.relative_to(target).as_posix() for p in Path(target).rglob('*') if p.is_file() and '.git/' not in p.relative_to(target).as_posix()}
+    return {p.relative_to(target).as_posix() for p in Path(target).rglob('*')
+            if p.is_file() and '.git/' not in p.relative_to(target).as_posix()}
 
 
-def _fact(input_sha, kind, location, value): return make(kind, NAME, VERSION, input_sha, location, value, limitations=LIMITATIONS)
+def _fact(input_sha, kind, location, value): return make(kind, NAME, VERSION, input_sha, location, value,
+                                                         limitations=LIMITATIONS)
 
 
 def _file_facts(path, row, reference, present, input_sha):
@@ -156,7 +163,8 @@ def _file_facts(path, row, reference, present, input_sha):
                 'days_since_last_change': days_between(row['last'], reference) if reference else None,
                 'exists_in_working_tree': path in present}),
             _fact(input_sha, 'history_ownership', {'path': path}, {
-                'authors': len(authors), 'top_author': authors[0][0], 'top_author_share': round(authors[0][1] / total, 3),
+                'authors': len(authors), 'top_author': authors[0][0], 'top_author_share': round(authors[0][1] / total,
+                                                                                                3),
                 'single_author': len(authors) == 1, 'commits': row['commits']})]
 
 
@@ -175,11 +183,14 @@ def _summary(commits, per_file, reference, settings):
     churn = sorted(per_file.items(), key=lambda kv: (-kv[1]['commits'], kv[0]))
     return {
         'commits_analysed': len(commits), 'files_touched': len(per_file), 'window_max_commits': settings.max_commits,
-        'reference_commit_date': reference, 'min_support': settings.min_support, 'bulk_commit_limit': settings.bulk_limit,
+        'reference_commit_date': reference, 'min_support': settings.min_support,
+        'bulk_commit_limit': settings.bulk_limit,
         'hotspots': [{'path': p, 'commits': r['commits'], 'fix_commits': r['fix_commits'],
-                      'lines_changed': r['added'] + r['deleted'], 'authors': len(r['authors'])} for p, r in churn[:settings.top]],
+                      'lines_changed': r['added'] + r['deleted'], 'authors': len(r['authors'])} for p,
+                      r in churn[:settings.top]],
         'single_author_files': sorted(p for p, r in per_file.items() if len(r['authors']) == 1 and r['commits'] > 1),
-        'interpretation': 'Attention signals only. High churn or single ownership is not a defect; it marks where a change scenario deserves review.',
+        'interpretation': 'Attention signals only. High churn or single ownership is not a defect; it marks where a '
+                          'change scenario deserves review.',
     }
 
 
@@ -205,12 +216,14 @@ def _changes(chunk, prefix):
 
 
 def _no_history(reason):
-    return {'facts': [], 'summary': {'commits_analysed': 0}, 'available': False, 'input_sha': digest(b''), 'reason': reason}
+    return {'facts': [], 'summary': {'commits_analysed': 0}, 'available': False, 'input_sha': digest(b''),
+            'reason': reason}
 
 
 def run(target, source=None, max_commits=2000, **options):
     target = Path(target)
-    if not available(target): return _no_history('No git work tree at the target; history facts are unavailable for this snapshot.')
+    if not available(target):
+        return _no_history('No git work tree at the target; history facts are unavailable for this snapshot.')
     if NO_COMMIT_YET in git(target, ['log', '-1']).stderr:
         return _no_history('The repository has no commit yet; history facts are unavailable for this snapshot.')
     raw = read_log(target, max_commits)

@@ -82,7 +82,8 @@ def _question_row(question):
 
 def _entry_row(fact):
     value = fact['value']
-    return {'kind': 'entry point', 'id': fact['id'][:12], 'detail': f"{value['surface']} {value['http_method'] or ''}".strip(),
+    return {'kind': 'entry point', 'id': fact['id'][:12],
+            'detail': f"{value['surface']} {value['http_method'] or ''}".strip(),
             'text': f"{value['route']} → {value['handler']} [{value['framework']}]",
             'route': str(value['route'] or ''),
             'citation': f"{fact['location']['path']}:{fact['location'].get('start_line') or 1}"}
@@ -91,7 +92,8 @@ def _entry_row(fact):
 def _flow_row(fact):
     value = fact['value']
     return {'kind': 'flow', 'id': value['flow_id'],
-            'text': f"{value['entry']['surface']} {value['entry']['route']} touches " + ', '.join(value['touched_files']),
+            'text': f"{value['entry']['surface']} {value['entry']['route']} touches "
+                    + ', '.join(value['touched_files']),
             'detail': f"{len(value['steps'])} steps", 'route': str(value['entry']['route'] or ''),
             'citation': f"{value['entry']['path']}:{value['entry']['line']}"}
 
@@ -101,13 +103,15 @@ def _domain_row(fact):
     value = fact['value']
     if fact['kind'] == 'domain_constant':
         return {'kind': 'rule constant', 'id': value['name'],
-                'text': f"{value['name']} defined in " + ', '.join(f"{d['path']}:{d['line']}" for d in value['definitions']),
+                'text': f"{value['name']} defined in "
+                        + ', '.join(f"{d['path']}:{d['line']}" for d in value['definitions']),
                 'detail': 'duplicated' if value['duplicated'] else 'single definition',
                 'citation': f"{fact['location']['path']}:{fact['location']['start_line']}"}
     # Domain facts are not all named the same way: a cross-module write has a module and an attribute.
     name = value.get('name') or f"{value.get('module', '')}.{value.get('attribute', '')}".strip('.')
     if not name: return None
-    return {'kind': fact['kind'], 'id': name, 'text': name, 'detail': str(value.get('kind') or value.get('shape') or ''),
+    return {'kind': fact['kind'], 'id': name, 'text': name,
+            'detail': str(value.get('kind') or value.get('shape') or ''),
             'citation': f"{fact['location']['path']}:{fact['location'].get('start_line') or 1}"}
 
 
@@ -179,6 +183,6 @@ def answer(out, question, limit=8):
             'status': 'ANSWERED' if answers else 'NOT_IN_RECORDS',
             'note': ('Answers come only from recorded facts and claims; each carries its own location.'
                      if answers else
-                     'No record answers this question. Records are written in the code\'s own language; try the identifier or path you are after, '
-                     'or check again before concluding anything.'),
+                     'No record answers this question. Records are written in the code\'s own language; try the '
+                     'identifier or path you are after, or check again before concluding anything.'),
             'unexamined': dossier.get('coverage', {}).get('not_examined', [])}

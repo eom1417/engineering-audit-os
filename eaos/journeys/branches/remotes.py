@@ -15,12 +15,16 @@ class Remotes:
         if remote not in self.remotes(): raise ValueError('no such remote')
         handle = self._locked()
         try:
-            run = self._start('branch_fetch', {'en': f'Refresh the branches of {remote}', 'ar': f'حدّث فروع {remote}'}, [], {'remote': remote})
+            run = self._start('branch_fetch', {'en': f'Refresh the branches of {remote}', 'ar': f'حدّث فروع {remote}'},
+                              [], {'remote': remote})
             done = git(self.project, 'fetch', '--prune', '--no-tags', remote, timeout=180)
             ok = done.returncode == 0
-            return {'run': self._finish(run, ok, {'en': f'{remote} refreshed.' if ok else f'Could not reach {remote}; the last known branches stay shown.',
-                                                  'ar': f'تحدّث {remote}.' if ok else f'ما قدرت أوصل {remote}؛ تبقى آخر فروع معروفة ظاهرة.'},
-                                        {'remote': remote, 'reason': None if ok else done.stderr.strip()[-300:], 'branches': []})}
+            return {'run': self._finish(run, ok, {'en': f'{remote} refreshed.' if ok
+                                                  else f'Could not reach {remote}; the last known branches stay shown.',
+                                                  'ar': f'تحدّث {remote}.' if ok
+                                                  else f'ما قدرت أوصل {remote}؛ تبقى آخر فروع معروفة ظاهرة.'},
+                                        {'remote': remote, 'reason': None if ok else done.stderr.strip()[-300:],
+                                         'branches': []})}
         finally:
             handle.close()
 
@@ -40,9 +44,11 @@ class Remotes:
         handle = self._locked()
         try:
             self._save_protection(name, bound['protected'])
-            run = self._start('branch_protect', {'en': f"{'Protect' if bound['protected'] else 'Unprotect'} {name}", 'ar': f"{'احمِ' if bound['protected'] else 'ارفع الحماية عن'} {name}"},
+            run = self._start('branch_protect', {'en': f"{'Protect' if bound['protected'] else 'Unprotect'} {name}",
+                                                 'ar': f"{'احمِ' if bound['protected'] else 'ارفع الحماية عن'} {name}"},
                               [name], bound)
-            return {'run': self._finish(run, True, {'en': 'Policy saved.', 'ar': 'حُفظت السياسة.'}, {**bound, 'branches': [name]}), 'protected': self.policy()['protected']}
+            return {'run': self._finish(run, True, {'en': 'Policy saved.', 'ar': 'حُفظت السياسة.'}, {**bound,
+                'branches': [name]}), 'protected': self.policy()['protected']}
         finally:
             handle.close()
 
@@ -53,7 +59,8 @@ class Remotes:
         protected, unprotected = set(saved.get('protected') or []), set(saved.get('unprotected') or [])
         (protected.add if protect else protected.discard)(name)
         (unprotected.discard if protect else unprotected.add)(name)
-        _write_json(path, {'protected': sorted(protected), 'unprotected': sorted(unprotected), 'at': now('milliseconds')})
+        _write_json(path, {'protected': sorted(protected), 'unprotected': sorted(unprotected),
+                           'at': now('milliseconds')})
 
     # ------------------------------------------------------------------ freshness
     def freshness(self):
@@ -61,14 +68,17 @@ class Remotes:
         freshness)."""
         from ...core.system.version_info import digest
         state = self.state()
-        if not state: return {'state': 'unknown', 'reason': 'not_scanned', 'checked_at': now('milliseconds'), 'eaos_updated': False}
+        if not state: return {'state': 'unknown', 'reason': 'not_scanned', 'checked_at': now('milliseconds'),
+                              'eaos_updated': False}
         found = reading.freshness(state)
         if found['reason'] == 'not_scanned':
             # the analysis branch has no scan of its own yet, but the report on screen is another branch's: say so
             shown = self.context(state)['report']
             if shown['commit'] and shown['branch'] != found['branch']:
-                found = {**found, 'state': 'other_branch', 'reason': 'analysis_branch_not_scanned', 'scanned_commit': shown['commit'],
-                         'scanned_branch': shown['branch'], 'scanned_detached': shown['detached'], 'scanned_at': shown['at'], 'recorded': shown['recorded']}
+                found = {**found, 'state': 'other_branch', 'reason': 'analysis_branch_not_scanned',
+                         'scanned_commit': shown['commit'],
+                         'scanned_branch': shown['branch'], 'scanned_detached': shown['detached'],
+                         'scanned_at': shown['at'], 'recorded': shown['recorded']}
         stamp = {}
         try:
             from ...journeys import guided
@@ -76,4 +86,5 @@ class Remotes:
         except Exception as error:
             noted('the report stamp is extra: without it the report is shown as not built', error)
         return {**found, 'eaos_updated': bool(state.get('scanned_with')) and state.get('scanned_with') != digest(),
-                'report_built': stamp.get('built'), 'checked_at': now('milliseconds'), 'project': self.project.name, 'project_path': str(self.project)}
+                'report_built': stamp.get('built'), 'checked_at': now('milliseconds'), 'project': self.project.name,
+                'project_path': str(self.project)}

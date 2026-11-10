@@ -18,7 +18,8 @@ EXAMPLES = {'eaos/x.py'}          # a made-up file a docstring shows a rule with
 
 class NamedPaths(unittest.TestCase):
     def test_every_path_eaos_names_exists(self):
-        listed = subprocess.run(['git', 'ls-files'], cwd=ROOT, capture_output=True, text=True, check=True).stdout.split()
+        listed = subprocess.run(['git', 'ls-files'], cwd=ROOT, capture_output=True, text=True,
+                                check=True).stdout.split()
         missing = []
         for name in listed:
             if not name.endswith(READ) or name.startswith(HISTORY) or not (ROOT / name).is_file():

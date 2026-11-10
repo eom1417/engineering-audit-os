@@ -37,7 +37,8 @@ def say(text, stream=None):
     print(text, file=stream or sys.stdout, flush=True)
 
 
-def box(lang, happened, where=None, commands=(), status='ok', note=None, stream=None, log=None):  # limits: parameters -- the printed box's optional parts, each passed by keyword
+def box(lang, happened, where=None, commands=(), status='ok', note=None, stream=None,
+        log=None):  # limits: parameters -- the printed box's optional parts, each passed by keyword
     """The fixed ending of every user command: what happened, where, and what to copy next."""
     icon = {'ok': '✅', 'warn': '⚠️', 'fail': '❌', 'ask': '❓'}[status]
     words = BOX_WORDS['ar' if lang == 'ar' else 'en']
@@ -52,26 +53,29 @@ def box(lang, happened, where=None, commands=(), status='ok', note=None, stream=
     say('\n'.join(lines), stream)
 
 
-BOX_WORDS = {'ar': {'happened': 'ما حدث', 'where': 'النتائج', 'log': 'السجل التقني', 'next': 'الخطوة التالية، انسخ والصق'},
-             'en': {'happened': 'What happened', 'where': 'Results', 'log': 'Technical log', 'next': 'Next step, copy and paste'}}
+BOX_WORDS = {'ar': {'happened': 'ما حدث', 'where': 'النتائج', 'log': 'السجل التقني',
+                    'next': 'الخطوة التالية، انسخ والصق'},
+             'en': {'happened': 'What happened', 'where': 'Results', 'log': 'Technical log',
+                    'next': 'Next step, copy and paste'}}
 
 
 # Whether the check may use the person's assistant (docs/AI-IN-THE-PIPELINE.md), asked once.
-AI_QUESTION = {'ar': 'أبغى أستعين بمساعدك الذكي ({name}) في الفحص: يقرأ الحقائق ويفسّرها، ويخطّط الصورة المثالية لمشروعك. '
-                     'كل ما يقوله يبقى فرضية مربوطة بدليلها، وبدونه يكمل الفحص بالقواعد. أوافق؟',
-               'en': 'May I use your AI assistant ({name}) in the check: it reads the facts and interprets them, and plans '
-                     'the ideal of your project. Everything it says stays a hypothesis tied to its evidence, and without it '
-                     'the check goes on with the rules. OK?'}
+AI_QUESTION = {'ar': 'أبغى أستعين بمساعدك الذكي ({name}) في الفحص: يقرأ الحقائق ويفسّرها، ويخطّط الصورة المثالية '
+                     'لمشروعك. كل ما يقوله يبقى فرضية مربوطة بدليلها، وبدونه يكمل الفحص بالقواعد. أوافق؟',
+               'en': 'May I use your AI assistant ({name}) in the check: it reads the facts and interprets them, '
+                     'and plans the ideal of your project. Everything it says stays a hypothesis tied to its '
+                     'evidence, and without it the check goes on with the rules. OK?'}
 
 
-WITHOUT_AI_QUESTION = {'ar': '{name} غير جاهز الآن. أبدأ هذا الفحص بدون ذكاء؟ التقرير يذكر السبب، وتقدر تفحص مرة ثانية بعد ما تصلحه.',
-                       'en': '{name} is not ready now. Start this check without AI? The report records why, and you can check again '
-                             'once it is fixed.'}
+WITHOUT_AI_QUESTION = {'ar': '{name} غير جاهز الآن. أبدأ هذا الفحص بدون ذكاء؟ التقرير يذكر السبب، '
+                             'وتقدر تفحص مرة ثانية بعد ما تصلحه.',
+                       'en': '{name} is not ready now. Start this check without AI? The report records why, and you '
+                             'can check again once it is fixed.'}
 
 
 WITHOUT_QUESTION = {'ar': 'ما قدرت أثبّت أدوات يحتاجها الفحص: {names}. أبدأ الفحص بدونها؟ التقرير يذكر أنه فحص بدونها.',
-                    'en': 'Some tools the check needs could not be installed: {names}. Start the check without them? The '
-                          'report records that it ran without them.'}
+                    'en': 'Some tools the check needs could not be installed: {names}. Start the check without them? '
+                          'The report records that it ran without them.'}
 
 
 def progress_printer(lang):
@@ -82,7 +86,8 @@ def progress_printer(lang):
 
 def answered(state, qid):
     """The answer kept for question `qid` (None: not answered yet)."""
-    return next((q['answer'] for q in state.get('questions') or [] if q['id'] == qid and q.get('answer') is not None), None)
+    return next((q['answer'] for q in state.get('questions') or []
+                 if q['id'] == qid and q.get('answer') is not None), None)
 
 
 def ask(state, qid, text, yes=False, kind='yes_no'):

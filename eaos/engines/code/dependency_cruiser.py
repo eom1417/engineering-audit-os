@@ -28,7 +28,8 @@ LAYERS = 'layers-depcruise.json'
 
 def capabilities():
     from ..contract import Capability
-    return [Capability('cycle', 'no-circular', granularity=FILE), Capability('boundary', 'policy.deny', granularity=FILE)]
+    return [Capability('cycle', 'no-circular', granularity=FILE),
+            Capability('boundary', 'policy.deny', granularity=FILE)]
 
 
 def glob_regex(pattern):
@@ -38,7 +39,8 @@ def glob_regex(pattern):
         if pattern.startswith('**', index): out, index = out + '.*', index + 2
         elif pattern[index] == '*': out, index = out + '[^/]*', index + 1
         elif pattern[index] == '?': out, index = out + '[^/]', index + 1
-        else: out, index = out + ('\\' + pattern[index] if pattern[index] in '.+()[]{}^$|\\' else pattern[index]), index + 1
+        else: out, index = (out + ('\\' + pattern[index] if pattern[index] in '.+()[]{}^$|\\' else pattern[index]),
+                            index + 1)
     return '^' + out + ('$' if not pattern.endswith('**') else '')
 
 
@@ -123,7 +125,8 @@ def _violation(found, violation):
                             sites=[{'path': member, 'line': None} for member in key])
     return (rule, violation['from'], violation['to']), finding(
         NAME, found, rule, 'boundary', subject('module', violation['from'], violation['from']),
-        f"{violation['from']} imports {violation['to']}, which {rule} forbids", raw_ref=f'{NAME}/depcruise-runtime.json',
+        f"{violation['from']} imports {violation['to']}, which {rule} forbids",
+        raw_ref=f'{NAME}/depcruise-runtime.json',
         sites=[{'path': violation['from'], 'line': None}, {'path': violation['to'], 'line': None}])
 
 

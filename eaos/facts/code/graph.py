@@ -15,7 +15,8 @@ LIMITATIONS = [
     'A cycle is a signal to investigate, not a defect by itself.',
     'Attention weights are a declared convention, not a measured predictor of risk.',
     'Files unreachable from a detected entry point may still be reached through paths no detector covers.',
-    'Edges from external engines carry the engine name and resolution RESOLVED_BY_ENGINE; they are not the same evidence as edges resolved by our own resolver.',
+    'Edges from external engines carry the engine name and resolution RESOLVED_BY_ENGINE; they are not the same '
+    'evidence as edges resolved by our own resolver.',
 ]
 
 
@@ -56,7 +57,8 @@ def _edge_endpoints(edge):
 def _computed_inputs(target, source):
     from . import entrypoints as entry_module, history as history_module, metrics as metrics_module, resolve, syntax
     produced = syntax.run(target, source)['facts']
-    edges = [f for f in resolve.run(target, source, imports=[f for f in produced if f['kind'] == 'import_edge'])['facts']]
+    edges = [f for f in resolve.run(target, source,
+                                    imports=[f for f in produced if f['kind'] == 'import_edge'])['facts']]
     entry_points = entry_module.run(target, source, symbols=[f for f in produced if f['kind'] == 'symbol'])['facts']
     metrics = metrics_module.run(target, source, symbols=[f for f in produced if f['kind'] == 'symbol'])['facts']
     history = history_module.run(target, source)['facts']
@@ -151,7 +153,8 @@ def _cycle_fact(index, group):
 
 def _attention_order(ranking, scored, factors):
     """The files to look at first, each with its score and the factors that make it."""
-    return [{'path': path, 'score': scored[path], 'factors': {n: round(factors[n][path], 3) for n in WEIGHTS}} for path in ranking]
+    return [{'path': path, 'score': scored[path], 'factors': {n: round(factors[n][path], 3) for n in WEIGHTS}}
+            for path in ranking]
 
 
 def _summary(nodes, graph, groups, entry_files, ranking):
@@ -168,9 +171,12 @@ def _summary(nodes, graph, groups, entry_files, ranking):
             'unreachable_from_entry': len(nodes) - len(reachable),
             'weights': WEIGHTS,
             'attention_order': _attention_order(ranking[:30], graph['scored'], graph['factors']),
-            'most_depended_on': [{'path': path, 'fan_in': fan_in[path]} for path in sorted(nodes, key=lambda p: (-fan_in[p], p))[:15]],
+            'most_depended_on': [{'path': path, 'fan_in': fan_in[path]}
+                                 for path in sorted(nodes, key=lambda p: (-fan_in[p], p))[:15]],
             'isolated_files': orphans[:50],
-            'interpretation': 'Structure and attention order only. Nothing here judges design quality; a cycle or a high rank is an invitation to look, not a verdict. Engine-resolved edges are listed separately so they cannot be mistaken for edges we resolved ourselves.'}
+            'interpretation': 'Structure and attention order only. Nothing here judges design quality; a cycle or a '
+                              'high rank is an invitation to look, not a verdict. Engine-resolved edges are listed '
+                              'separately so they cannot be mistaken for edges we resolved ourselves.'}
 
 
 def _entry_files(entry_points):
@@ -180,7 +186,8 @@ def _entry_files(entry_points):
 
 def _rank(nodes, graph):
     """Each file's attention score (its weighted factors) and place in the order; returns the order."""
-    graph['scored'] = {path: round(sum(WEIGHTS[name] * graph['factors'][name][path] for name in WEIGHTS), 4) for path in nodes}
+    graph['scored'] = {path: round(sum(WEIGHTS[name] * graph['factors'][name][path] for name in WEIGHTS), 4)
+                       for path in nodes}
     ranking = sorted(nodes, key=lambda path: (-graph['scored'][path], path))
     graph['position'] = {path: index + 1 for index, path in enumerate(ranking)}
     return ranking

@@ -14,8 +14,8 @@ def _slug(text):
 
 
 def cards(report):
-    """The report's cards, each with its id, title, kind, severity, paths, state and the fact ids it cites: studio/cards.json
-    when a report has it, else the tasks of plan.json in that shape."""
+    """The report's cards, each with its id, title, kind, severity, paths, state and the fact ids it cites:
+    studio/cards.json when a report has it, else the tasks of plan.json in that shape."""
     shown = (read_json(Path(report) / 'studio/cards.json', {}) or {}).get('cards')
     if isinstance(shown, list): return _with_id(shown)
     return [_card(task) for task in _with_id((read_json(Path(report) / 'plan.json', {}) or {}).get('tasks') or [])]
@@ -29,8 +29,10 @@ def _with_id(rows):
 def _card(task):
     """A plan task in the shape of a card: its kind its pattern, its severity by its kind, its evidence the fact ids."""
     from ...core.contracts.card_areas import classify
-    cited = (task.get('evidence') or {}).get('fact_ids') if isinstance(task.get('evidence'), dict) else task.get('evidence')
-    return {**task, 'kind': task.get('pattern') or task.get('kind'), 'severity': task.get('severity') or classify(task)[1],
+    cited = (task.get('evidence') or {}).get('fact_ids') if isinstance(task.get('evidence'),
+                                                                       dict) else task.get('evidence')
+    return {**task, 'kind': task.get('pattern') or task.get('kind'),
+            'severity': task.get('severity') or classify(task)[1],
             'state': task.get('state') or 'open', 'evidence': [f for f in cited or [] if isinstance(f, str)]}
 
 
@@ -46,15 +48,17 @@ def rules(report):
     plan's ordering rule, as the baseline applied them to this report."""
     target = _proposal(report)
     return {**_disposition_rules(), **_layer_rules(target), **_infra_rules(target),
-            'RULE-plan-order': ('The fix plan runs in milestones; a task waits for the tasks it names as prerequisites and '
-                                'for the last earlier task touching the same file (eaos/analysis/planning/cards.py waves).')}
+            'RULE-plan-order': ('The fix plan runs in milestones; a task waits for the tasks it names as prerequisites '
+                                'and for the last earlier task touching the same file (eaos/analysis/planning/cards.py '
+                                'waves).')}
 
 
 def _disposition_rules():
     """The disposition rules (eaos/analysis/target_state/projection.py RULES), in their order."""
     from ...analysis.target_state.projection import RULES as DISPOSITION
     disposition = read_json(DISPOSITION, {}) or {}
-    return {f'RULE-disposition-{name}': _short((disposition.get(name) or {}).get('why'), 300) for name in disposition.get('order') or []}
+    return {f'RULE-disposition-{name}': _short((disposition.get(name) or {}).get('why'),
+                                               300) for name in disposition.get('order') or []}
 
 
 def _layer_rules(target):
@@ -64,8 +68,9 @@ def _layer_rules(target):
         reference = by_id(target.get('reference')) if target.get('reference') else None
     except Exception:
         reference = None
-    return {f"RULE-layer-{_slug(layer['name'])}": _short(f"{layer.get('responsibility', '')}; may depend on: "
-                                                         f"{', '.join(layer.get('allowed_dependencies') or []) or 'nothing'}", 300)
+    return {f"RULE-layer-{_slug(layer['name'])}": _short(
+                f"{layer.get('responsibility', '')}; may depend on: "
+                f"{', '.join(layer.get('allowed_dependencies') or []) or 'nothing'}", 300)
             for layer in (reference or {}).get('layers') or []}
 
 
@@ -80,7 +85,8 @@ def known_ids(report):
     the baseline applied (RULE-)."""
     report = Path(report)
     known = set(rules(report)) | _fact_ids(report)
-    known.update(c['id'] for c in (read_json(report / 'dossier.json', {}) or {}).get('claims') or [] if isinstance(c, dict) and c.get('id'))
+    known.update(c['id'] for c in (read_json(report / 'dossier.json', {}) or {}).get('claims') or [] if isinstance(c,
+        dict) and c.get('id'))
     known.update(c['id'] for c in cards(report))
     return {i for i in known if EVIDENCE.match(i)}
 

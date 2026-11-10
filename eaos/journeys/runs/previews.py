@@ -16,8 +16,8 @@ def _where_of(where):
     """The part of a Fix preview's place that is confirmed and handed to fix_start: {base, base_commit, deliver_as,
     merge_into}; None without one."""
     if not where or not where.get('base'): return None
-    return {'base': where['base']['branch'], 'base_commit': where['base']['commit'], 'deliver_as': where.get('deliver_as'),
-            'merge_into': where.get('merge_into')}
+    return {'base': where['base']['branch'], 'base_commit': where['base']['commit'],
+            'deliver_as': where.get('deliver_as'), 'merge_into': where.get('merge_into')}
 
 
 def _group_name(selection):
@@ -40,8 +40,10 @@ def _bound(selection, where, auto):
 
 def _rough(action, inputs):
     """An action's time by a rough rule for its step, in minutes."""
-    low, high = (5, 30) if action == 'audit' else (10, 40) if action in ('run_setup', 'run_try', 'safety_net', 'fix_finish') else (0, 1)
-    return {'minutes_low': low, 'minutes_high': high, 'basis': {'en': 'a rough rule for this step', 'ar': 'تقدير تقريبي لهذه الخطوة'}}
+    low, high = (5, 30) if action == 'audit' else (10, 40) if action in ('run_setup', 'run_try', 'safety_net',
+        'fix_finish') else (0, 1)
+    return {'minutes_low': low, 'minutes_high': high,
+            'basis': {'en': 'a rough rule for this step', 'ar': 'تقدير تقريبي لهذه الخطوة'}}
 
 
 class Previews:
@@ -78,13 +80,16 @@ class Previews:
     def _needs_confirm(self, verb, action, inputs):
         if verb: return self.verbs[verb]['changes_code']
         spec = self.actions[action]
-        return spec['irreversible'] or spec['changes_code'] or (spec['needs_consent'] and bool(inputs.get('person_agreed')))
+        return spec['irreversible'] or spec['changes_code'] or (
+            spec['needs_consent'] and bool(inputs.get('person_agreed')))
 
     def _past(self, verb):
         rows = []
         for row in self.store.all():
-            if row.get('verb') == verb and row.get('state') == 'done' and row.get('started') and row.get('ended') and row.get('cards'):
-                minutes = (datetime.fromisoformat(row['ended']) - datetime.fromisoformat(row['started'])).total_seconds() / 60
+            if (row.get('verb') == verb and row.get('state') == 'done' and row.get('started')
+                    and row.get('ended') and row.get('cards')):
+                minutes = (datetime.fromisoformat(row['ended'])
+                           - datetime.fromisoformat(row['started'])).total_seconds() / 60
                 rows.append((minutes, len(row['cards'])))
         return rows
 
@@ -113,21 +118,25 @@ class Previews:
         out['auto_accept'] = _auto_accept(verb, inputs)
         bound = _bound(out['selection'], _where_of(where), out['auto_accept'])
         out['confirm'] = (self.locks.confirm(action, bound, self.project)
-                          if self._needs_confirm(verb, action, inputs) and not (where and where.get('problem')) else None)
+                          if self._needs_confirm(verb, action, inputs)
+                          and not (where and where.get('problem')) else None)
 
     def _verb_preview(self, out, verb, body):
         """The cards a verb would take and leave out, and where a Fix would build."""
         cards, left = selecting.resolve(body.get('selection'), self._studio(), verb)
         out.update(selecting.preview_of(verb, cards, left, self._past(verb)))
-        if verb == 'fix' and self._has_commits(): out.update(where=self.branches.fix_where(body.get('where'), _group_name(body.get('selection'))), speed=helpers.speed(self.project, cards))
+        if verb == 'fix' and self._has_commits():
+            out.update(where=self.branches.fix_where(body.get('where'), _group_name(body.get('selection'))),
+                       speed=helpers.speed(self.project, cards))
 
     def _action_preview(self, out, action, inputs):
-        """An action's time (a check's from this project's last one, eaos/journeys/check_choices.py), risk and what happens when it
-        fails; where Accept would merge."""
+        """An action's time (a check's from this project's last one, eaos/journeys/check_choices.py), risk and what
+        happens when it fails; where Accept would merge."""
         spec = self.actions[action]
         measured = self._measured(action, inputs)
         if action == 'audit':
-            out['check'] = check_choices.offered(project_state.load(str(self.project)), self._studio() and self._studio().parent)
+            out['check'] = check_choices.offered(project_state.load(str(self.project)),
+                                                 self._studio() and self._studio().parent)
         out.update(estimate=measured or _rough(action, inputs),
                    risk={'level': 'high' if spec['irreversible'] else 'medium' if spec['changes_code'] else 'low',
                          'why': spec['description'] if spec['description']['en'] else spec['label']},
@@ -135,19 +144,24 @@ class Previews:
         self._shown(out, action, inputs)
 
     def _shown(self, out, action, inputs):
-        """What the person sees of the change itself before their press: where Accept would merge, a rule and its guard."""
+        """What the person sees of the change itself before their press: where Accept would merge,
+        a rule and its guard."""
         if action == 'accept' and self._has_commits(): out['merge'] = self.branches.accept_where()
         if action == 'rule' and inputs.get('id'): out['shows'] = _rule_shown(self, inputs)
 
     def _measured(self, action, inputs):
-        """A check's time as this project's last check measured it (eaos/journeys/check_choices.py); falsy for any other."""
-        return action == 'audit' and self._studio() and check_choices.estimate(self._studio().parent, inputs.get('paths'), inputs.get('mode'), inputs.get('again_from'))
+        """A check's time as this project's last check measured it (eaos/journeys/check_choices.py); falsy for
+        any other."""
+        return action == 'audit' and self._studio() and check_choices.estimate(
+            self._studio().parent, inputs.get('paths'), inputs.get('mode'), inputs.get('again_from'))
 
     def _handoff(self, out, kind, inputs):
         """The request a chat assistant could take over; `kind`: (verb, action, needs an assistant)."""
         verb, action, needed = kind
-        prompt = prompts.build(verb, out['cards'], self.project, self.lang, action=action, inputs={} if verb else inputs,
-                               labels={k: v['label'] for k, v in self.actions.items()}, where=_where_of(out.get('where')))
+        prompt = prompts.build(verb, out['cards'], self.project, self.lang, action=action,
+                               inputs={} if verb else inputs,
+                               labels={k: v['label'] for k, v in self.actions.items()},
+                               where=_where_of(out.get('where')))
         handed = bool(needed)
         out['handoff'] = {'available': handed, 'request': handoff.request_text(prompt, '<run>') if handed else None}
 

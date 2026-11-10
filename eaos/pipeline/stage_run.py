@@ -35,9 +35,12 @@ def _settled(stage, run):
     if stage.name in run['completed']: return run['completed'][stage.name], True
     if stage.name not in run['requested']: return _unrequested(stage, run['head']['paths']), False
     unmet = [name for name in stage.requires if not _satisfied(name, run['results'], run['out'])]
-    if unmet: run['blocked'].setdefault(stage.name, ('Prerequisites not completed: ' + ', '.join(unmet), 'prerequisites_missing', None))
+    if unmet: run['blocked'].setdefault(stage.name, ('Prerequisites not '
+                                                     'completed: ' + ', '.join(unmet), 'prerequisites_missing', None))
     if run.get('stopped_by'):          # a loop that stops the check did not reach its exit (eaos/pipeline/loops.py)
-        run['blocked'].setdefault(stage.name, (f"the check stopped: its {run['stopped_by']} loop did not reach its exit", 'loop_stopped', None))
+        run['blocked'].setdefault(stage.name,
+                                  (f"the check stopped: its {run['stopped_by']} loop did not reach its exit",
+                                   'loop_stopped', None))
     if stage.name not in run['blocked']: return None
     reason, code, _ = run['blocked'][stage.name]
     return _row(stage, NOT_REACHED, reason, code=code), False
@@ -46,7 +49,8 @@ def _settled(stage, run):
 def _unrequested(stage, paths):
     """The row of a stage this run was not asked for: in an optional loop not switched on, outside the check's paths,
     or left out."""
-    if stage.name in switched_off(paths): return _row(stage, SKIPPED, 'its optional loop was not switched on for this check', code='loop_off')
+    if stage.name in switched_off(paths): return _row(stage, SKIPPED, 'its optional loop was not switched on for '
+                                                                      'this check', code='loop_off')
     if 'complete' not in paths: return _row(stage, SKIPPED, "outside this check's paths", code='outside_paths')
     return _row(stage, SKIPPED, 'not requested in this run', code='not_requested')
 
@@ -108,7 +112,8 @@ def _absent(name, results):
     """An optional stage that did not apply here (no assistant, no engine) and said why: the stages after it run without
     its output. Only a failure of it, or a stage it could not reach, holds them back."""
     stage = BY_NAME.get(name)
-    return bool(stage) and stage.necessity == 'optional' and results.get(name, {}).get('status') in (UNAVAILABLE, SKIPPED)
+    return bool(stage) and stage.necessity == 'optional' and results.get(name, {}).get('status') in (UNAVAILABLE,
+        SKIPPED)
 
 
 def _satisfied(name, results, out):
@@ -145,9 +150,11 @@ def _one(stage, context, runners, results):
         # an assistant lost midway leaves the stage absent like any optional one (the stages after it still run), but
         # says so: the check is then PARTIAL, never COMPLETE, and the Studio offers to run the lost stages again
         lost = {'assistant_lost': reason.lost} if reason.lost else None
-        return _row(stage, UNAVAILABLE, str(reason), time.monotonic() - began, detail=lost, code=reason.code or 'not_applicable')
+        return _row(stage, UNAVAILABLE, str(reason), time.monotonic() - began, detail=lost, code=reason.code
+                    or 'not_applicable')
     except Exception as problem:                       # one stage must not decide the fate of the rest
-        return _row(stage, FAILED, f'{type(problem).__name__}: {problem}'[:300], time.monotonic() - began, code='stage_error')
+        return _row(stage, FAILED, f'{type(problem).__name__}: {problem}'[:300], time.monotonic() - began,
+                    code='stage_error')
     return _ended(stage, context, outcome, time.monotonic() - began)
 
 
@@ -160,11 +167,14 @@ def _ended(stage, context, outcome, seconds):
         return _row(stage, FAILED, 'declared artifacts were not written: ' + ', '.join(missing),
                     seconds, present, outcome, code='artifacts_missing')
     failed = outcome.get('tools_failed')
-    if failed: return _row(stage, OK, 'these tools failed: ' + ', '.join(sorted(failed)), seconds, present, outcome, code='tools_failed')
+    if failed: return _row(stage, OK, 'these tools failed: ' + ', '.join(sorted(failed)), seconds, present,
+                           outcome, code='tools_failed')
     if outcome.get('assistant_lost'):   # its assistant answered part of it (ai_runners._partly): the check is PARTIAL
         return _row(stage, OK, outcome['assistant_lost']['why'], seconds, present, outcome, code='ai_partial')
-    if outcome.get('unread_names'):     # it read all but these: the check is PARTIAL, their names in red (core/progress/flow.py partial)
+    if outcome.get('unread_names'):     # it read all but these: the check is PARTIAL, their names in red
+                                        # (core/progress/flow.py partial)
         return _row(stage, OK, ', '.join(outcome['unread_names']), seconds, present, outcome, code='unread_names')
     if outcome.get('unmeasured'):       # it ran, and says what it could not read: never taken for clean
-        return _row(stage, OK, 'not measured: ' + '; '.join(outcome['unmeasured']), seconds, present, outcome, code='unmeasured')
+        return _row(stage, OK, 'not measured: ' + '; '.join(outcome['unmeasured']), seconds, present, outcome,
+                    code='unmeasured')
     return _row(stage, OK, '', seconds, present, outcome)

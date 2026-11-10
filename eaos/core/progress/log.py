@@ -222,7 +222,8 @@ class ProgressLog:
                 self.stop.set()
             return row
 
-    def started(self, stages, requested, previous, steps=None, process=True, at=None, mode=None, assistants=None):  # limits: parameters -- the fields of the run.started line
+    def started(self, stages, requested, previous, steps=None, process=True, at=None, mode=None,
+                assistants=None):  # limits: parameters -- the fields of the run.started line
         """`run.started` with the declared stages as data; the step seconds of the last run come from the file this
         run replaces unless `steps` gives them. Starts the background thread. `process` false: no process holds the run
         (one drawn from a state, eaos/journeys/catalog.py), so none is named and a reader never judges it gone; `at`:
@@ -235,7 +236,8 @@ class ProgressLog:
             try: steps = previous_steps(self.path)
             except Exception: steps = {}
         row = self.emit('run.started', flow=self.flow, schema=SCHEMA, stages=rows, requested=list(requested),
-                        previous=previous or {}, previous_steps=steps, **({'alive_every': self.alive_every} if self.alive_every else {}),
+                        previous=previous or {}, previous_steps=steps,
+                        **({'alive_every': self.alive_every} if self.alive_every else {}),
                         pid=os.getpid() if process else None, host=socket.gethostname() if process else None, **_at(at),
                         **({'mode': mode} if mode else {}), **({'assistants': assistants} if assistants else {}))
         self._start_beat()
@@ -253,7 +255,8 @@ class ProgressLog:
     def stepper(self, stage):
         """`step(name, done, total, status='running', seconds=None, reason='', reason_code='', kind='', artifact='')`
         for one stage: where a long stage is inside. `done` is held between 0 and `total`."""
-        def step(name, done, total, status=RUNNING, seconds=None, reason='', reason_code='', kind='', artifact=''):  # limits: parameters -- the fields of one stage.step line
+        def step(name, done, total, status=RUNNING, seconds=None, reason='', reason_code='', kind='',
+                 artifact=''):  # limits: parameters -- the fields of one stage.step line
             done, total = bounded(done, total)
             fields = {'stage': stage, 'step': str(name), 'done': done, 'total': total, 'status': str(status)}
             if kind: fields['kind'] = str(kind)
@@ -310,7 +313,8 @@ class ProgressLog:
             self.programs.pop(name, None)
             if self.current == name: self.current = next(reversed(self.running), None)
             fields = {'stage': name, 'status': row['status'], 'reason': row['reason'], 'seconds': row['seconds'],
-                      'necessity': row['necessity'], 'artifacts': list(row['artifacts']), 'detail': _small(row.get('detail'))}
+                      'necessity': row['necessity'],
+                      'artifacts': list(row['artifacts']), 'detail': _small(row.get('detail'))}
             if row.get('reason_code'): fields['reason_code'] = row['reason_code']
             return self.emit('stage.ended', **fields, **extra)
 
@@ -333,11 +337,13 @@ class ProgressLog:
         for name, necessity in self.declared.items():
             if name in self.ended_stages: continue
             if name in self.running:
-                self.ended({'stage': name, 'status': 'failed', 'reason': f'the run ended ({status}) while this stage ran: {why}',
+                self.ended({'stage': name, 'status': 'failed',
+                            'reason': f'the run ended ({status}) while this stage ran: {why}',
                             'reason_code': 'run_ended', 'seconds': round(self.clock() - self.running[name], 2),
                             'necessity': necessity, 'artifacts': []})
             else:
-                self.ended({'stage': name, 'status': 'not_reached', 'reason': f'the run ended ({status}) before this stage: {why}',
+                self.ended({'stage': name, 'status': 'not_reached',
+                            'reason': f'the run ended ({status}) before this stage: {why}',
                             'reason_code': 'run_ended', 'seconds': 0.0, 'necessity': necessity, 'artifacts': []})
 
     def close(self):
@@ -353,7 +359,8 @@ class ProgressLog:
             if self.finished or self.broken: return False
             self._flush()
             stage = self.current
-            due = bool(stage and self.sampler and not self.sampler_said and self.clock() - self.sampled_at >= SAMPLE_EVERY)
+            due = bool(stage and self.sampler and not self.sampler_said
+                       and self.clock() - self.sampled_at >= SAMPLE_EVERY)
         if due: self._look(stage)
         with self.lock:
             if self.finished or self.broken: return False
@@ -372,7 +379,8 @@ class ProgressLog:
                 self.emit('stage.activity', stage=stage, programs=[], reason=self.sampler.reason)
                 return
             for name, programs in self._by_stage(found, stage).items():
-                if [(p['pid'], p['name']) for p in programs] != [(p['pid'], p['name']) for p in self.programs.get(name, [])]:
+                if [(p['pid'], p['name']) for p in programs] != [(p['pid'], p['name'])
+                    for p in self.programs.get(name, [])]:
                     self.programs[name] = programs
                     self.emit('stage.activity', stage=name, programs=programs)
 

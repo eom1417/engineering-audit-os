@@ -27,7 +27,8 @@ PROVING_METHODS = {'runtime_probe', 'test_evidence', 'static_fact', 'history_fac
 BUILDERS = (cycles, cochanges, duplicated_rules, hotspots, large_modules, mutable_globals, external_writes,
             redundant_work, policy_violations, trace_gaps, dead_code, broken_code,
             vulnerable_dependencies, weaknesses, layer_findings, repository_findings, real_data)
-TYPES = ['structure', 'responsibility', 'contract', 'business_rule', 'flow_step', 'risk', 'cause', 'capability_gap', 'cost']
+TYPES = ['structure', 'responsibility', 'contract', 'business_rule', 'flow_step', 'risk', 'cause',
+         'capability_gap', 'cost']
 
 
 def schema(): return read(DATA / 'schemas/claim.schema.json')
@@ -106,7 +107,8 @@ def withheld_said(withheld, ar):
     count = Counter(row['withheld']['detector'] for row in held)
     why = {row['withheld']['detector']: row['withheld']['why'] for row in held}
     return [(f'كاشف تجريبي محجوب حتى تثبت دقته: {name} ({n} نتيجة ما انعرضت، {why[name]})' if ar else
-             f'an experimental detector kept aside until it is measured precise: {name} ({n} results not shown: {why[name]})')
+             f'an experimental detector kept aside until it is measured precise: {name} '
+             f'({n} results not shown: {why[name]})')
             for name, n in sorted(count.items())] + rejected_said(withheld, ar)
 
 def make(index, statement, claim_type, confidence, method, evidence_ids, falsifier, **extra):  # limits: parameters -- a claim's required fields (the claim-ledger schema)
@@ -149,7 +151,8 @@ def _unknown_kind(claim):
     """A card kind nobody registered: refused when built, since it would be shown generic, its detector and own fix
     lost."""
     key = (claim.get('render') or {}).get('key')
-    return [f'unknown card kind {key!r}: register it in eaos/core/contracts/card_kinds.py'] if key and key not in KINDS else []
+    return ([f'unknown card kind {key!r}: register it in eaos/core/contracts/card_kinds.py']
+            if key and key not in KINDS else [])
 
 
 def _claim_errors(claim, known):
@@ -227,7 +230,8 @@ def _named(kind, detail):
 def _corroborated(kind, detail, cluster, fact_sets):
     engines, word = _named(kind, detail)
     impact_key, measured = engine_measurement(kind, cluster, fact_sets)
-    return {'statement': f"{len(detail['asserted_by'])} independent engines ({engines}) report {word} in {cluster['place']}",
+    return {'statement': f"{len(detail['asserted_by'])} independent engines ({engines}) report {word} "
+                         f"in {cluster['place']}",
             'confidence': 'LIKELY',
             'falsifier': ('Show the measurement each engine reports is below the threshold it declares, '
                           'or that the engines share one implementation and are therefore one witness.'),

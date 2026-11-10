@@ -34,13 +34,15 @@ def waiting_on(state, name):
     """The batch waiting for the person's decision on the EAOS work branch `name` (applied, its branch still there and
     not merged): a new batch may continue on it. None otherwise."""
     if not name or not guided._branch_exists(state, name): return None
-    return next((w for w in reversed(state.get('waves') or []) if w.get('status') == 'applied' and w.get('branch') == name), None)
+    return next((w for w in reversed(state.get('waves') or []) if w.get('status') == 'applied'
+                 and w.get('branch') == name), None)
 
 
 def work_branches(state):
     """The EAOS work branches of the branch EAOS works on that wait for the person's decision: a new batch may continue
     on any of them (the fix preview offers them)."""
-    names = dict.fromkeys(w.get('branch') for w in state.get('waves') or [] if w.get('status') == 'applied' and w.get('branch'))
+    names = dict.fromkeys(w.get('branch') for w in state.get('waves') or [] if w.get('status') == 'applied'
+                          and w.get('branch'))
     return [name for name in names if waiting_on(state, name)]
 
 
@@ -55,15 +57,19 @@ def delivery(state, deliver_as=None, merge_into=None):
     project = state['project']
     working = state.get('branch') or branches.checked_out(project) or 'HEAD'
     name = (deliver_as or '').strip() or f"eaos/{branches.slug(working)}/wave-{len(state.get('waves') or []) + 1}"
-    if guided._git(project, 'check-ref-format', '--branch', name).returncode: raise ValueError(f'{name} is not a valid branch name')
+    if guided._git(project, 'check-ref-format', '--branch',
+                   name).returncode: raise ValueError(f'{name} is not a valid branch name')
     if name == working: return direct_target(project, name)
     continued = waiting_on(state, name)
     if guided._branch_exists(state, name) and not continued:
-        raise ValueError(f'a branch named {name} already exists and is not an EAOS work branch waiting for a decision: choose another name')
+        raise ValueError(f'a branch named {name} already exists and is not an EAOS work branch waiting for a decision: '
+                         f'choose another name')
     return name, merge_target(state, merge_into, continued)
 
 
-def fix_start(project=None, cards=None, size=10, base=None, deliver_as=None, merge_into=None, base_commit=None, assistants=1):  # limits: parameters -- the fix_start tool's arguments, one for one (MCP server and CLI)
+def fix_start(  # limits: parameters -- the fix_start tool's arguments, one for one (MCP server and CLI)
+              project=None, cards=None, size=10, base=None, deliver_as=None, merge_into=None, base_commit=None,
+              assistants=1):
     """Open the next batch. As the fix preview set it: `base`, the branch to build on (by default the branch EAOS
     works on; another one becomes the branch EAOS works on, as choose_branch does); `deliver_as`, the new branch the
     fixes arrive on (default `eaos/<branch>/wave-N`), or an EAOS work branch waiting for a decision (the batch
@@ -81,7 +87,8 @@ def fix_start(project=None, cards=None, size=10, base=None, deliver_as=None, mer
     stop = _not_ready(state, deliver_as)
     if stop: return stop
     stop, chosen = _chosen(state, cards, size)
-    return stop or _start('fix_start', state, {'cards': chosen, 'deliver_as': deliver_as, 'merge_into': merge_into, 'assistants': assistants, 'scanned': state.get('scanned')})
+    return stop or _start('fix_start', state, {'cards': chosen, 'deliver_as': deliver_as, 'merge_into': merge_into,
+                                               'assistants': assistants, 'scanned': state.get('scanned')})
 
 
 def _still_open(wave):
@@ -107,22 +114,27 @@ def _base_problem(base, base_commit, now):
     if base and not now: return {'status': 'error', 'error': f'no branch named {base} in this project'}
     if base_commit and not (now or '').startswith(str(base_commit).strip()):
         return {'status': 'base_moved', 'branch': base, 'expected': base_commit, 'now': now,
-                'what_now': f'The branch {base} moved since the preview (it was at {str(base_commit)[:12]}, it is at {(now or "")[:12]} '
-                            'now): nothing was opened. Show the preview again, so the person confirms the batch on the code as it is.'}
+                'what_now': f'The branch {base} moved since the preview (it was at {str(base_commit)[:12]}, it is at '
+                            f'{(now or "")[:12]} '
+                            'now): nothing was opened. Show the preview again, so the person confirms the batch on the '
+                            'code as it is.'}
     return None
 
 
 def _not_ready(state, deliver_as):
     """Why no batch may open yet: no agreement, no run, no safety net, or fixes waiting for a decision elsewhere."""
     if not _consented(state): return {'status': 'needs_agreement', 'ask_the_person': CONSENT,
-                                      'what_now': 'Ask the person; if they agree, call run_setup with person_agreed=true.'}
+                                      'what_now': 'Ask the person; if they agree, call run_setup with '
+                                                  'person_agreed=true.'}
     if not guided.set_up(state, _head(state)): return {'status': 'not_set_up', 'what_now': 'Call run_setup first.'}
     if unsafe := _no_safety_net(state): return unsafe
     waiting = waiting_batch(state)
     if waiting and waiting['branch'] != deliver_as:
         return {'status': 'waiting_decision', 'branch': waiting['branch'],
-                'what_now': f"The fixes on {waiting['branch']} wait for the person's decision: ask them, then accept or undo; "
-                            f"or, if they want this batch on the same branch, call fix_start again with deliver_as={waiting['branch']}."}
+                'what_now': f"The fixes on {waiting['branch']} wait for the person's decision: ask them, then accept "
+                            f"or undo; "
+                            f"or, if they want this batch on the same branch, call fix_start again with "
+                            f"deliver_as={waiting['branch']}."}
     return None
 
 
@@ -131,7 +143,8 @@ def _chosen(state, cards, size):
     from ..fix.waves import next_batch, plan as read_plan, with_prerequisites
     report = _report(state)
     known = {t['id']: t for t in read_plan(report)['tasks']}
-    chosen = with_prerequisites(report, state, list(dict.fromkeys(cards))) if cards else next_batch(report, state, size=min(max(int(size), 1), 25))
+    chosen = with_prerequisites(report, state, list(dict.fromkeys(cards))) if cards else next_batch(report, state,
+        size=min(max(int(size), 1), 25))
     unknown = [c for c in chosen if c not in known]
     if unknown: raise ValueError(f'not cards of this plan: {", ".join(unknown[:5])}')
     return _not_opening(state, chosen, known), chosen
@@ -141,7 +154,8 @@ def _not_opening(state, chosen, known):
     """Why a batch of `chosen` does not open: none, some need a decision, are repository craft or wait for others;
     else None."""
     from ..fix.waves import kept_apart, too_early
-    if not chosen: return {'status': 'nothing_to_fix', 'what_now': 'No fixable card is left; the rest need the person\'s decision (see plan).'}
+    if not chosen: return {'status': 'nothing_to_fix',
+                           'what_now': 'No fixable card is left; the rest need the person\'s decision (see plan).'}
     taken = [known[c] for c in chosen]
     return _undecided(chosen, known) or kept_apart(taken) or too_early(state, taken)
 
@@ -150,7 +164,8 @@ def _undecided(chosen, known):
     """Why the batch does not open when some of its cards need the person's decision first; else None."""
     undecided = [c for c in chosen if not _ready(known[c])]
     if not undecided: return None
-    return {'error': f'{", ".join(undecided[:5])} need(s) a decision by the person before any fix (not ready): no batch '
+    return {'error': f'{", ".join(undecided[:5])} need(s) a decision by the person before any fix (not ready): no '
+                     f'batch '
                      'was opened', 'needs_decision': undecided,
             'what_now': 'Explain the decision each card needs (see `finding`), plainly, and leave it out of the batch; '
                         'call fix_start again with ready cards only, or with no cards for the next ready batch.'}
@@ -165,7 +180,8 @@ def _no_safety_net(state):
     if safety.get('passed') or safety.get('own_checks'): return None
     why = '; '.join(f"{row.get('path') or 'the app'}: {row.get('reason') or row.get('status')}" for row in (safety.get('skipped') or [])[:3]) or 'the lock has no page: the code names none and the running app could not be crawled (did it start and answer?)'
     return {'status': 'no_safety_net', 'recorded': 0, 'specs': safety.get('screens', 0), 'why': why,
-            'what_now': 'The safety net recorded nothing, so no fix could be checked: no batch was opened. Tell the person '
+            'what_now': 'The safety net recorded nothing, so no fix could be checked: no batch was opened. Tell the '
+                        'person '
                         'plainly that EAOS cannot protect this project yet and why (why); do not retry the fixes.'}
 
 
@@ -180,7 +196,8 @@ def _fix_start_job(project, arguments, progress):
     progress(0, 1, 'copying the project into the isolated copy')
     root, base = open_batch(source, runtime, number)
     cards = {t['id']: t for t in read_plan(report)['tasks'] if t['id'] in set(arguments['cards'])}
-    wave = {'number': number, 'root': str(root), 'base': base, 'cards': arguments['cards'], 'kept': {}, 'failed': {}, 'tools': {},
+    wave = {'number': number, 'root': str(root), 'base': base, 'cards': arguments['cards'], 'kept': {}, 'failed': {},
+            'tools': {},
             'opened': now(), 'keys': {c: cards[c]['key'] for c in arguments['cards']},
             'base_branch': state.get('branch') or branches.checked_out(state['project']),
             'deliver_as': arguments.get('deliver_as'), 'merge_into': arguments.get('merge_into')}
@@ -194,9 +211,12 @@ def _fix_start_job(project, arguments, progress):
     guided.publish(state)
     return {'batch': number, 'copy': str(root), 'fixed_automatically': list(wave['kept']), 'failed': wave['failed'],
             'kept_in_part': kept_in_part(wave),
-            'to_do': [_brief(cards[c], brief(state['project'], state, c, number)) for c in lanes.mine(wave, lanes.untried(wave, arguments['cards']))],
-            'what_now': 'For each card in to_do: read it with `finding`, read the code with fix_read, then send the change with '
-                        'fix_edit. Keep every feature, route and behaviour, and every rule of the person\'s a card lists in your_rules (a '
+            'to_do': [_brief(cards[c], brief(state['project'], state, c, number)) for c in lanes.mine(wave,
+                lanes.untried(wave, arguments['cards']))],
+            'what_now': 'For each card in to_do: read it with `finding`, read the code with fix_read, then send the '
+                        'change with '
+                        'fix_edit. Keep every feature, route and behaviour, and every rule of the person\'s a card '
+                        'lists in your_rules (a '
                         'change that breaks one is refused). When every card is kept or skipped, call fix_finish.',
             **lanes.told(helpers)}
 
@@ -206,7 +226,8 @@ def _no_longer_so(state, arguments):
     agreement now missing, or a new check that may have numbered the cards again."""
     if state.get('open_wave'): return _still_open(state['open_wave'])
     if state.get('scanned') != arguments.get('scanned', state.get('scanned')):
-        return {'status': 'plan_changed', 'what_now': 'A new check came since this batch was asked for: call fix_start again.'}
+        return {'status': 'plan_changed',
+                'what_now': 'A new check came since this batch was asked for: call fix_start again.'}
     return _not_ready(state, arguments.get('deliver_as'))
 
 
@@ -226,12 +247,14 @@ def _settle_delivery(state, wave, root):
     if wave['deliver_as'] == wave['base_branch']:
         # direct: the batch is still built and checked here, handed over on a branch of its own and merged into the base
         # branch at once by fix_finish, which deletes that branch
-        wave.update(direct=True, merge_into=wave['base_branch'], deliver_as=delivery(state, None, wave['base_branch'])[0])
+        wave.update(direct=True, merge_into=wave['base_branch'], deliver_as=delivery(state, None,
+            wave['base_branch'])[0])
     elif waiting_on(state, wave['deliver_as']):
         # continue on an EAOS work branch waiting for a decision: the copy starts from its tip, the kept commits go on
         # top
         tip = commit_of(state['project'], wave['deliver_as'])
-        fetched = guided._git(root, 'fetch', '--quiet', str(state['project']), f"+refs/heads/{wave['deliver_as']}:refs/eaos/continued")
+        fetched = guided._git(root, 'fetch', '--quiet',
+                              str(state['project']), f"+refs/heads/{wave['deliver_as']}:refs/eaos/continued")
         if fetched.returncode or guided._git(root, 'reset', '--hard', '--quiet', tip).returncode:
             raise RuntimeError(f"could not start from {wave['deliver_as']}: {fetched.stderr[-300:]}")
         wave.update(base=tip, source_commit=wave['base'], continues=wave['deliver_as'])
@@ -255,11 +278,14 @@ def fix_edit(card, edits, summary='', project=None, beyond_why=''):
     state = state_of(project)
     wave = _open(state)
     if stop := guided.stale_refusal(state): return stop
-    if card == batch_finish.REPAIR and not wave.get('gates_failed'): raise ValueError('no repair is asked: fix_finish asks for one when needed')
-    if card != batch_finish.REPAIR and card not in wave['cards']: raise ValueError(f"{card} is not in batch {wave['number']}: {', '.join(wave['cards'])}")
+    if card == batch_finish.REPAIR and not wave.get('gates_failed'): raise ValueError('no repair is asked: fix_finish '
+        'asks for one when needed')
+    if card != batch_finish.REPAIR and card not in wave['cards']: raise ValueError(f"{card} is not in batch "
+        f"{wave['number']}: {', '.join(wave['cards'])}")
     if card in wave['kept']: return {'status': 'already_kept', 'what_now': 'This card is already fixed in the batch.'}
     if not edits: raise ValueError('no edit was sent')
-    return lanes.take(state['project'], card, edits) or _start('fix_edit', state, {'card': card, 'edits': edits, 'summary': summary, 'beyond_why': beyond_why})
+    return lanes.take(state['project'], card, edits) or _start('fix_edit', state, {'card': card, 'edits': edits,
+        'summary': summary, 'beyond_why': beyond_why})
 
 
 def _planned(report, card_id):
@@ -279,16 +305,20 @@ def _fix_edit_job(project, arguments, progress):
     (changed, outside), stop = _committed(root, card, arguments, repair)
     if stop: return {'card': card_id, 'kept': False, **stop}
     progress(0, 1, 'checking the change: the problem is gone, nothing broke, no endpoint disappeared')
-    holding = (state['project'], rule_registry.holding(state['project'], state, None if repair else card_id, wave['number']))
-    broke, exit_code, still = edit_gates((report, guided.source(state), project_state.runtime_of(state), holding), root, card, changed, repair)
+    holding = (state['project'], rule_registry.holding(state['project'], state, None if repair else card_id,
+                                                       wave['number']))
+    broke, exit_code, still = edit_gates((report, guided.source(state), project_state.runtime_of(state), holding), root,
+                                         card, changed, repair)
     diff = guided._git(root, 'show', '--stat', '--format=', 'HEAD').stdout.strip()
     if broke or exit_code not in (0, None):
         drop_last(root)
         why = _refused(project, card_id, _not_kept(broke, exit_code, still))
         return {'card': card_id, 'kept': False, 'why': why, 'files': changed,
-                'what_now': 'The change was taken back. Fix the cause and send fix_edit again, or fix_skip with the reason.'}
+                'what_now': 'The change was taken back. Fix the cause and send fix_edit again, or fix_skip with the '
+                            'reason.'}
     if repair: return batch_finish.repaired(project_state.load(project), root, changed, diff)
-    try: wave = _record_kept(project, root, card_id, arguments.get('summary') or '', {'files': outside, 'why': arguments.get('beyond_why', '').strip()})
+    try: wave = _record_kept(project, root, card_id, arguments.get('summary') or '', {'files': outside,
+        'why': arguments.get('beyond_why', '').strip()})
     except guided.StaleBatch as stale:
         drop_last(root)
         return {**stale.answer, 'card': card_id, 'kept': False}
@@ -305,7 +335,8 @@ def _back_to_what_is_recorded(root, wave):
     recorded = {*wave['kept'].values(), *(wave.get('repairs') or [])}
     made = guided._git(root, 'rev-list', f"{wave['base']}..HEAD").stdout.split()
     if not recorded <= set(made): return
-    guided._git(root, 'reset', '--hard', '--quiet', next((commit for commit in made if commit in recorded), wave['base']))
+    guided._git(root, 'reset', '--hard', '--quiet', next((commit for commit in made if commit in recorded),
+                                                         wave['base']))
     guided._git(root, 'clean', '-fdq')
 
 
@@ -333,7 +364,8 @@ def _refused(project, card_id, why):
 def _not_kept(broke, exit_code, still):
     """Why an edit's change was taken back: it broke something, or the card's own check still finds the problem."""
     if broke: return f'it broke something or broke the code laws: {"; ".join(broke[:3])}'
-    return "the problem is still there: the card's own check still finds it" + (f': {still}' if still else f' (exit {exit_code})')
+    return "the problem is still there: the card's own check still finds it" + (f': {still}' if still
+        else f' (exit {exit_code})')
 
 
 def fix_skip(card, reason, project=None):
@@ -363,5 +395,6 @@ def fix_finish(project=None, leave_out=False):
     if stop := lanes.not_yours(state) or guided.stale_refusal(state) or lanes.finish_wait(state['project']): return stop
     wave = _open(state_of(project))
     left = [c for c in wave['cards'] if c not in wave['kept'] and c not in wave['failed']]
-    if left: return {'status': 'cards_left', 'left': left, 'what_now': 'Fix them with fix_edit or skip them with fix_skip first.'}
+    if left: return {'status': 'cards_left', 'left': left,
+                     'what_now': 'Fix them with fix_edit or skip them with fix_skip first.'}
     return _start('fix_finish', state, {'leave_out': bool(leave_out)})

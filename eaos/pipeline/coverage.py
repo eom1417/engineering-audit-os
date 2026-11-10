@@ -18,7 +18,8 @@ CHOSEN = ('outside_paths', 'loop_off', 'not_requested', 'no_run_consent', 'engin
 def ledger(rows, settled=None):
     """[{loop, name: {ar, en}, state, rounds, covered, missed: [{stage, status, reason_code, reason}], behind, big}] for
     every loop with a stage in `rows`; a loop whose stages have not all ended is 'running' (the checkpoint's view)."""
-    return [_entry(loop, rows, (settled or {}).get(loop.name) or {}) for loop in LOOPS if any(name in rows for name in loop.stages)]
+    return [_entry(loop, rows, (settled or {}).get(loop.name) or {}) for loop in LOOPS
+            if any(name in rows for name in loop.stages)]
 
 
 def _entry(loop, rows, settled):
@@ -45,7 +46,8 @@ def _unmeasured(loop, rows):
 def _missed(loop, rows):
     """The stages of `loop` that ended but not ok, or ok with ground they could not measure, with why."""
     return [{'stage': name, **{key: rows[name].get(key) for key in ('status', 'reason_code', 'reason')}}
-            for name in loop.stages if name in rows and (rows[name].get('status') != 'ok' or name in _unmeasured(loop, rows))]
+            for name in loop.stages if name in rows
+            and (rows[name].get('status') != 'ok' or name in _unmeasured(loop, rows))]
 
 
 def _name(loop):

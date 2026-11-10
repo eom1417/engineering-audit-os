@@ -40,7 +40,8 @@ class Stages(unittest.TestCase):
             env.pop('EAOS_CLAUDE_MODEL', None)
             claude = adapters.ClaudeCode(command=['claude'])
             self.assertEqual(claude.ask_argv({}, Path('.'), (), 'light')[-4:-2], ['--model', 'haiku'])
-            self.assertNotIn('--model', claude.ask_argv({}, Path('.'), (), 'deep'), "the deep tier is the person's own model")
+            self.assertNotIn('--model', claude.ask_argv({}, Path('.'), (), 'deep'),
+                             "the deep tier is the person's own model")
             with mock.patch.dict(os.environ, {'EAOS_CLAUDE_MODEL_STANDARD': 'opus'}):
                 self.assertIn('opus', claude.ask_argv({}, Path('.'), (), 'standard'))
         with tempfile.TemporaryDirectory() as folder:
@@ -60,7 +61,8 @@ class Escalation(unittest.TestCase):
     def test_a_card_the_light_tier_would_set_aside_is_judged_again_on_the_deep_tier(self):
         def make(tier):
             if tier == 'light': return {'summary': '', 'decisions': [decision('TASK-001', 'reject', ['TASK-001'])]}
-            return {'summary': '', 'decisions': [decision('TASK-001', 'confirm', ['TASK-001'], detail={'harmed': 'the app users'})]}
+            return {'summary': '',
+                    'decisions': [decision('TASK-001', 'confirm', ['TASK-001'], detail={'harmed': 'the app users'})]}
         launcher = Tiered(make)
         record = self.triage(launcher)
         self.assertEqual(launcher.tiers[0], 'light')
@@ -79,7 +81,8 @@ class Escalation(unittest.TestCase):
                 return super().__call__(name, prompt, schema)
 
         def make(tier):
-            if tier == 'light': return {'summary': '', 'decisions': [decision('TASK-001', 'reject', ['TASK-001']), confirm('TASK-002'), confirm('TASK-003')]}
+            if tier == 'light': return {'summary': '', 'decisions': [decision('TASK-001', 'reject', ['TASK-001']),
+                                                                     confirm('TASK-002'), confirm('TASK-003')]}
             return {'summary': '', 'decisions': [confirm('TASK-001')]}
         record = self.triage(Recording(make))
         self.assertEqual(asked[-1], ('deep', ['TASK-001']))
@@ -89,9 +92,11 @@ class Escalation(unittest.TestCase):
     def test_a_tier_that_fails_is_asked_again_one_tier_up_before_the_rules_decide(self):
         def make(tier):
             if tier == 'light': raise ValueError('not the asked JSON')
-            return {'summary': '', 'decisions': [decision('TASK-001', 'confirm', ['TASK-001'], detail={'harmed': 'the app users'})]}
+            return {'summary': '',
+                    'decisions': [decision('TASK-001', 'confirm', ['TASK-001'], detail={'harmed': 'the app users'})]}
         record = self.triage(Tiered(make))
-        self.assertEqual((record['method'], record['tier'], record['escalated']['from']), ('model', 'standard', 'light'))
+        self.assertEqual((record['method'], record['tier'], record['escalated']['from']),
+                         ('model', 'standard', 'light'))
 
     def test_a_tier_reached_after_a_failure_still_never_closes_alone(self):
         # A reject from a cheaper tier does not stand without the deep tier: light failed, standard answered "reject",
@@ -99,7 +104,8 @@ class Escalation(unittest.TestCase):
         def make(tier):
             if tier == 'light': raise ValueError('not the asked JSON')
             choice = 'confirm' if tier == 'deep' else 'reject'
-            return {'summary': '', 'decisions': [decision('TASK-001', choice, ['TASK-001'], detail={'harmed': 'the app users'})]}
+            return {'summary': '',
+                    'decisions': [decision('TASK-001', choice, ['TASK-001'], detail={'harmed': 'the app users'})]}
         launcher = Tiered(make)
         record = self.triage(launcher)
         self.assertEqual((launcher.tiers[:3], record['tier']), (['light', 'standard', 'deep'], 'deep'))

@@ -36,7 +36,8 @@ def new_token():
 
 def same(a, b):
     """Constant-time comparison of two tokens; a missing one never matches."""
-    return isinstance(a, str) and isinstance(b, str) and bool(a) and hmac.compare_digest(a.encode('utf-8'), b.encode('utf-8'))
+    return (isinstance(a, str) and isinstance(b, str) and bool(a)
+            and hmac.compare_digest(a.encode('utf-8'), b.encode('utf-8')))
 
 
 def header(headers, name):
@@ -48,7 +49,8 @@ def header(headers, name):
 
 
 def _token_of(method, path, headers, query):
-    """The launch token a call carries: its header, or with `query` for a GET (an EventSource cannot set headers) `token=`."""
+    """The launch token a call carries: its header, or with `query` for a GET (an EventSource cannot set
+    headers) `token=`."""
     token = header(headers, TOKEN_HEADER)
     if token is None and query and method == 'GET':
         token = (parse_qs(urlsplit(path).query).get('token') or [None])[0]
@@ -56,17 +58,20 @@ def _token_of(method, path, headers, query):
 
 
 def origins(keys, port):
-    return {f'http://{host}:{port}' for host in HOSTS} | ({keys.remote_origin} if getattr(keys, 'remote_origin', None) else set())
+    return {f'http://{host}:{port}' for host in HOSTS} | (
+        {keys.remote_origin} if getattr(keys, 'remote_origin', None) else set())
 
 
 def hosts(keys, port):
     """The Host values the server answers: this computer on its port, and the Remote address it was given."""
-    return {f'{name}:{port}' for name in HOSTS} | ({urlsplit(keys.remote_origin).netloc} if getattr(keys, 'remote_origin', None) else set())
+    return {f'{name}:{port}' for name in HOSTS} | (
+        {urlsplit(keys.remote_origin).netloc} if getattr(keys, 'remote_origin', None) else set())
 
 
 def refusal(keys, method, path, headers, port=None):
-    """None when the call may go on, else (status, reason, what to do). `keys` holds the token, the CSRF token, the port
-    and the Remote origin (a Locks, or the server's Keys); `port` the one the server listens on when the keys name none."""
+    """None when the call may go on, else (status, reason, what to do). `keys` holds the token, the CSRF token, the
+    port and the Remote origin (a Locks, or the server's Keys); `port` the one the server listens on when the keys
+    name none."""
     port = getattr(keys, 'port', 0) or port
     if (header(headers, 'Host') or '').strip().lower() not in hosts(keys, port):
         return 421, 'host', 'this server answers only to 127.0.0.1 and localhost'
@@ -99,7 +104,8 @@ class Locks:
         self.port = int(port)
         self.remote_origin = remote_origin
         # One exact HTTPS address of the shape <project>--<port>.<the server's domain>: no wildcard, no other scheme.
-        if remote_origin and not re.fullmatch(r'https://[a-z0-9]+(?:-[a-z0-9]+)*--[1-9][0-9]{0,4}(?:\.[a-z0-9]+(?:-[a-z0-9]+)*){2,}', remote_origin):
+        if remote_origin and not re.fullmatch(r'https://[a-z0-9]+(?:-[a-z0-9]+)*--[1-9][0-9]{0,4}'
+                                              r'(?:\.[a-z0-9]+(?:-[a-z0-9]+)*){2,}', remote_origin):
             raise ValueError('remote_origin must be one exact Remote HTTPS project hostname')
         if remote_origin and int(urlsplit(remote_origin).hostname.split('--')[-1].split('.')[0]) != self.port:
             raise ValueError('Remote hostname port must match the listening port')
@@ -120,14 +126,16 @@ class Locks:
     def confirm(self, action, selection, project):
         expires = int(time.time()) + CONFIRM_SECONDS
         nonce = secrets.token_urlsafe(12)
-        mac = hmac.new(self._key, f'{nonce}.{expires}.{self._bound(action, selection, project)}'.encode('utf-8'), 'sha256').hexdigest()
+        mac = hmac.new(self._key, f'{nonce}.{expires}.{self._bound(action, selection, project)}'.encode('utf-8'),
+                       'sha256').hexdigest()
         return {'token': f'{nonce}.{expires}.{mac}', 'expires': expires}
 
     def spend(self, token, action, selection, project):
         """True once for a valid, unexpired confirm token of this action, selection and project."""
         try: nonce, expires, mac = str(token).split('.')
         except ValueError: return False
-        expected = hmac.new(self._key, f'{nonce}.{expires}.{self._bound(action, selection, project)}'.encode('utf-8'), 'sha256').hexdigest()
+        expected = hmac.new(self._key, f'{nonce}.{expires}.{self._bound(action, selection, project)}'.encode('utf-8'),
+                            'sha256').hexdigest()
         if not same(mac, expected) or not expires.isdigit() or int(expires) < time.time(): return False
         with self._lock:
             if nonce in self._spent: return False

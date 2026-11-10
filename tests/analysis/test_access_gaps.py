@@ -33,9 +33,12 @@ class AccessGapTests(TemporaryWorkspace):
                     and c['render']['params']['rule'] in ('table-without-rls', 'open-write-policy')]
 
     def test_the_table_without_rls_and_the_open_write_policy_are_confirmed_cards_with_their_fix(self):
-        self.assertEqual(sorted(c['render']['params']['rule'] for c in self.gaps), ['open-write-policy', 'table-without-rls'])
-        self.assertIn('public.notes', next(c['statement'] for c in self.gaps if c['render']['params']['rule'] == 'table-without-rls'))
-        self.assertIn('public.posts', next(c['statement'] for c in self.gaps if c['render']['params']['rule'] == 'open-write-policy'))
+        self.assertEqual(sorted(c['render']['params']['rule'] for c in self.gaps), ['open-write-policy',
+            'table-without-rls'])
+        self.assertIn('public.notes', next(c['statement'] for c in self.gaps
+                                           if c['render']['params']['rule'] == 'table-without-rls'))
+        self.assertIn('public.posts', next(c['statement'] for c in self.gaps
+                                           if c['render']['params']['rule'] == 'open-write-policy'))
         self.assertTrue(all(c['confidence'] == 'CONFIRMED' for c in self.gaps), [c['confidence'] for c in self.gaps])
         probes = json.loads((self.out / 'probes.json').read_text())
         rows = [p for p in probes if p['specification'].get('query') == 'boundary_finding_present']
@@ -45,4 +48,5 @@ class AccessGapTests(TemporaryWorkspace):
         mine = [t for t in tasks if t.get('claim_id') in ids]
         self.assertEqual({t.get('pattern') for t in mine}, {'layer_boundary'})
         # the card names the boundary it breaks and the reference's fix, for the person and for the judge
-        self.assertTrue(all(t['render']['params']['boundary'] == 'data' and 'owner' in t['render']['params']['fix_en'] for t in mine))
+        self.assertTrue(all(t['render']['params']['boundary'] == 'data' and 'owner' in t['render']['params']['fix_en']
+                            for t in mine))

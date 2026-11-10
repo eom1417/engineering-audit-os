@@ -17,7 +17,8 @@ def served(project):
 
 def install(project):
     """Composer's install of the locked packages, or nothing without a composer.json."""
-    return [['composer', 'install', '--no-interaction', '--no-progress']] if (Path(project) / 'composer.json').is_file() else [['true']]
+    return [['composer', 'install', '--no-interaction', '--no-progress']] \
+        if (Path(project) / 'composer.json').is_file() else [['true']]
 
 
 def checks(project):
@@ -35,8 +36,11 @@ def detect(project):
     folder = served(project)
     if folder is None or not (Path(project) / 'composer.json').is_file() and folder == '.': return None
     port = free_port()
-    profile = {'schema_version': 1, 'app': '.', 'install': install(project), 'start': ['php', '-S', f'127.0.0.1:{port}', '-t', folder],
-               'port': port, 'health': '/', 'start_timeout': 180, 'env': {'PHP_CLI_SERVER_WORKERS': WORKERS}, 'checks': checks(project)}
-    return {'profile': profile, 'facts': {'folder': '.', 'manager': 'composer', 'framework': 'php', 'database': None, 'env_names': [],
-                                          'reason': f'a PHP app: {folder}/index.php served by PHP\'s own server'},
+    profile = {'schema_version': 1, 'app': '.', 'install': install(project),
+               'start': ['php', '-S', f'127.0.0.1:{port}', '-t', folder],
+               'port': port, 'health': '/', 'start_timeout': 180, 'env': {'PHP_CLI_SERVER_WORKERS': WORKERS},
+               'checks': checks(project)}
+    return {'profile': profile,
+            'facts': {'folder': '.', 'manager': 'composer', 'framework': 'php', 'database': None, 'env_names': [],
+                      'reason': f'a PHP app: {folder}/index.php served by PHP\'s own server'},
             'limitations': []}

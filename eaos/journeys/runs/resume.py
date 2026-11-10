@@ -19,8 +19,8 @@ RESUMES = 3                  # times a run goes on by itself
 WAITS = (20, 120, 600)       # seconds before each time: a sign-in refreshes in seconds, a limit lifts in minutes
 GONE = ('limit', 'sign_in_expired', 'not_signed_in')    # the assistant itself cannot go on: another one first
 LONGEST = 8 * 3600           # seconds a run waits at most for a spent limit to come back, as its assistant said when
-CONTINUE = ('This work was started by an assistant that stopped before the end ({why}). Call `status` first: its handover '
-            'says what was done; go on from there, without redoing what is kept.\n\n')
+CONTINUE = ('This work was started by an assistant that stopped before the end ({why}). '
+            'Call `status` first: its handover says what was done; go on from there, without redoing what is kept.\n\n')
 
 
 def _answers(adapter):
@@ -38,8 +38,8 @@ def next_assistant(adapters, current, problem, ready=_answers):
 
 
 def seconds_until(back, now=None):
-    """Seconds until a spent limit comes back, from the assistant's words ("7:40am (UTC)", "5 PM", "in 2 hours"), a minute
-    more; None when they say no time EAOS can read, or one further than LONGEST."""
+    """Seconds until a spent limit comes back, from the assistant's words ("7:40am (UTC)", "5 PM", "in 2 hours"), a
+    minute more; None when they say no time EAOS can read, or one further than LONGEST."""
     now, text = now or datetime.now(timezone.utc), str(back or '')
     seconds = _span(text.lower()) if re.match(r'\d+\s*(hour|minute)', text.lower()) else _clock(text, now)
     return seconds + 60 if seconds is not None and seconds <= LONGEST else None
@@ -80,8 +80,10 @@ def after_failure(manager, run, reason):
     if record.get('mode') != 'assistant' or done >= RESUMES or record.get('pending_question'): return False
     wait = WAITS[done]
     manager.store.update(run, resumes=done + 1, pid=None)
-    manager.store.append(run, 'step', {'en': f'The assistant stopped ({reason[:200]}): the work goes on by itself in {wait} seconds, from where it stopped',
-                                       'ar': f'المساعد وقف ({reason[:200]}): الشغل يكمل لحاله بعد {wait} ثانية، من محل ما وقف'},
+    manager.store.append(run, 'step',
+                         {'en': f'The assistant stopped ({reason[:200]}): '
+                                f'the work goes on by itself in {wait} seconds, from where it stopped',
+                          'ar': f'المساعد وقف ({reason[:200]}): ' f'الشغل يكمل لحاله بعد {wait} ثانية، من محل ما وقف'},
                          {'tool': None, 'resume': done + 1, 'of': RESUMES})
     threading.Thread(target=_go_on, args=(manager, run, reason, wait), daemon=True).start()
     return True
@@ -97,21 +99,30 @@ def _go_on(manager, run, reason, wait):
         name = next_assistant(manager.adapters, record.get('assistant'), readiness.classify(reason))
     if name is None:
         return manager._fail(run, f'no assistant answers to go on ({reason[:200]})',
-                             {'en': 'Sign in to Claude Code or Codex (or wait for its limit to lift), then press Retry: it goes on from where it stopped.',
-                              'ar': 'سجّل الدخول في Claude Code أو Codex (أو انتظر لين يرجع حدّه)، ثم اضغط «أعد»: يكمل من محل ما وقف.'})
+                             {'en': 'Sign in to Claude Code or Codex (or wait for its limit to lift), '
+                                    'then press Retry: it goes on from where it stopped.',
+                              'ar': 'سجّل الدخول في Claude Code أو Codex (أو انتظر لين يرجع حدّه)، '
+                                    'ثم اضغط «أعد»: يكمل من محل ما وقف.'})
     if name != record.get('assistant'):
-        manager.store.append(run, 'step', {'en': f'Going on with {manager.adapters[name].name}', 'ar': f'نكمل مع {manager.adapters[name].name}'},
+        manager.store.append(run, 'step',
+                             {'en': f'Going on with {manager.adapters[name].name}',
+                              'ar': f'نكمل مع {manager.adapters[name].name}'},
                              {'tool': None, 'assistant': name})
     manager.store.update(run, assistant=name)
     manager._launch(run, manager.adapters[name], CONTINUE.format(why=reason[:200]) + manager.prompt_of(record))
 
 
 def _until_back(manager, run, reason):
-    """Seconds to wait for the limit the assistant hit to come back, when it said when, said in the run; None otherwise."""
+    """Seconds to wait for the limit the assistant hit to come back, when it said when, said in the run; None
+    otherwise."""
     wait = seconds_until(readiness.resets_at(reason)) if readiness.classify(reason) == 'limit' else None
-    if wait: manager.store.append(run, 'step', {'en': f'No assistant answers now: waiting until its limit comes back ({readiness.resets_at(reason)}), then going on',
-                                                'ar': f'ما فيه مساعد يرد الحين: أنتظر لين يرجع حدّه ({readiness.resets_at(reason)})، ثم أكمل'},
-                                  {'tool': None, 'waits': round(wait)})
+    if wait:
+        manager.store.append(run, 'step',
+                             {'en': 'No assistant answers now: waiting until its limit comes back '
+                                    f'({readiness.resets_at(reason)}), then going on',
+                              'ar': f'ما فيه مساعد يرد الحين: '
+                                    f'أنتظر لين يرجع حدّه ({readiness.resets_at(reason)})، ثم أكمل'},
+                             {'tool': None, 'waits': round(wait)})
     return wait
 
 
@@ -125,6 +136,9 @@ def release(manager, run):
     if not wave or wave.get('kept'): return
     closed = agent_tools.fix_abandon(str(manager.project))
     if closed.get('status') == 'abandoned':
-        manager.store.append(run, 'step', {'en': f"Batch {closed['batch']} kept no change: closed, its {len(closed['cards'])} cards are open again",
-                                           'ar': f"الدفعة {closed['batch']} ما احتفظت بأي تغيير: انقفلت، وبطاقاتها الـ{len(closed['cards'])} رجعت مفتوحة"},
+        manager.store.append(run, 'step',
+                             {'en': f"Batch {closed['batch']} kept no change: closed, "
+                                    f"its {len(closed['cards'])} cards are open again",
+                              'ar': f"الدفعة {closed['batch']} ما احتفظت بأي تغيير: انقفلت، "
+                                    f"وبطاقاتها الـ{len(closed['cards'])} رجعت مفتوحة"},
                              {'tool': None, 'batch': closed['batch']})

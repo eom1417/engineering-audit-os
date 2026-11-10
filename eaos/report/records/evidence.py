@@ -32,7 +32,8 @@ def code_excerpt(source, path, line, kind, secrets=frozenset()):
     start = max(1, line - CODE_CONTEXT)
     shown = range(start, min(len(rows), line + CODE_CONTEXT) + 1)
     hidden = [n for n in shown if (path, n) in secrets]
-    return {'start': start, 'line': line, 'lines': ['' if n in hidden else rows[n - 1][:CODE_WIDTH] for n in shown], 'hidden': hidden}
+    return {'start': start, 'line': line, 'lines': ['' if n in hidden else rows[n - 1][:CODE_WIDTH] for n in shown],
+            'hidden': hidden}
 
 
 def _may_show(path, line, kind):
@@ -73,7 +74,8 @@ def summary(value, kind):
     """What a fact says: its message, its measurements, and how its engine knows it."""
     numbers = ', '.join(f'{k} {v}' for k, v in value.items() if isinstance(v, (int, float)) and not isinstance(v, bool))
     how = value.get('evidence') if isinstance(value.get('evidence'), str) else ''
-    return '; '.join(part for part in (str(value.get('message') or value.get('rule') or kind or ''), numbers, how) if part)[:400]
+    return '; '.join(part for part in (str(value.get('message') or value.get('rule') or kind or ''), numbers, how)
+                     if part)[:400]
 
 
 def evidence(report, cited, source=None):

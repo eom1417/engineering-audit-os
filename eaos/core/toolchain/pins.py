@@ -13,7 +13,8 @@ def registry():
     """The pinned tools, and those the person added (eaos/core/toolchain/catalog.py: <home>/toolchain-added.json)."""
     base = json.loads(REGISTRY.read_text(encoding='utf-8'))
     added = Path(os.environ.get(base['home']['env']) or base['home']['default']).expanduser() / 'toolchain-added.json'
-    return {**base, 'tools': base['tools'] + json.loads(added.read_text(encoding='utf-8'))['tools']} if added.is_file() else base
+    return ({**base, 'tools': base['tools'] + json.loads(added.read_text(encoding='utf-8'))['tools']}
+            if added.is_file() else base)
 
 
 SKIP = {'.git', 'node_modules', '.venv', 'venv', '__pycache__', 'dist', 'build', '.next', 'vendor'}
@@ -35,7 +36,8 @@ RULES = {
     'node_package': lambda files: 'package.json' in files,
     'python': lambda files: any(f.endswith('.py') for f in files),
     'sql': lambda files: any(f.endswith('.sql') for f in files),
-    'ci_or_iac': lambda files: any(f.startswith('.github/workflows/') or f.endswith(('Dockerfile', '.tf')) for f in files),
+    'ci_or_iac': lambda files: any(f.startswith('.github/workflows/') or f.endswith(('Dockerfile', '.tf'))
+                                   for f in files),
     'openapi': lambda files: any(f.split('/')[-1].startswith(('openapi.', 'swagger.')) for f in files),
 }
 

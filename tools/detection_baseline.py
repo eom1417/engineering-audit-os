@@ -13,7 +13,8 @@ from pathlib import Path
 from urllib.parse import urlsplit
 
 PROBLEMS = Path(__file__).resolve().parents[1] / 'tests' / 'fixtures' / 'baseline-problems.json'
-LEVELS = ('missed', 'finding', 'card')    # a finding is recorded (an engine, a screen, a claim kept aside); a card is shown to the person
+# a finding is recorded (an engine, a screen, a claim kept aside); a card is shown to the person
+LEVELS = ('missed', 'finding', 'card')
 NEAR = 3                                  # lines between a finding and the planted line that still name it
 
 
@@ -31,7 +32,8 @@ def evidence(technical):
     """(level, text, place, line) for everything the check recorded: its cards, engine findings, screen errors and
     whether the pages need a sign-in (place '*': the app as a whole)."""
     rows = _cards(technical) + _withheld(technical) + _engine_findings(technical) + _screen_errors(technical)
-    return rows + ([('finding', 'sign_in', '*', None)] if _read(technical / 'live' / 'sign-in.json').get('needed') else [])
+    return rows + ([('finding', 'sign_in', '*', None)]
+                   if _read(technical / 'live' / 'sign-in.json').get('needed') else [])
 
 
 def _cards(technical):
@@ -65,7 +67,8 @@ def level(problem, rows):
     """How far the rows reach the problem: the best level of a row at its place (and near its line) naming its kind."""
     place, line = problem.get('path') or problem.get('route'), problem.get('line')
     reached = [LEVELS.index(row_level) for row_level, text, where, at in rows if where in (place, '*')
-               and not (at and line and abs(at - line) > NEAR) and any(kind.lower() in text for kind in problem['kinds'])]
+               and not (at and line and abs(at - line) > NEAR)
+               and any(kind.lower() in text for kind in problem['kinds'])]
     return LEVELS[max(reached, default=0)]
 
 

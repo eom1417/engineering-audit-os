@@ -1,7 +1,8 @@
-"""The journeys of one engine, declared as data (eaos/data/journeys.json): check and fix, build from a plan, extend the
-project. Each is the same machinery in another order. This module picks the person's journey from their state, judges
-each of its steps (done, and the state of the flow that draws it on the live map, eaos/core/progress), and draws a build's
-own flow from the state, so the journey strip, the live map and the stage panel show a build as they show a check.
+"""The journeys of one engine, declared as data (eaos/data/journeys.json): check and fix, build from a plan,
+extend the project. Each is the same machinery in another order. This module picks the person's journey from
+their state, judges each of its steps (done, and the state of the flow that draws it on the live map,
+eaos/core/progress), and draws a build's own flow from the state, so the journey strip, the live map and the
+stage panel show a build as they show a check.
 """
 import json
 import time
@@ -45,25 +46,26 @@ def folder(state, flow):
 
 
 def journey(state, now=None):
-    """The journey's steps for the live map: [{id, title, later, flow, page, essential, journey, done, state}], `state` being
-    the judged state of the step's flow (none, running, stalled, interrupted, done; eaos/core/progress/liveness.py). A step
-    is done by its own check, and only once every earlier essential step is done and not running again; a step whose
-    check cannot be read is not done."""
+    """The journey's steps for the live map: [{id, title, later, flow, page, essential, journey, done, state}],
+    `state` being the judged state of the step's flow (none, running, stalled, interrupted, done;
+    eaos/core/progress/liveness.py). A step is done by its own check, and only once every earlier essential
+    step is done and not running again; a step whose check cannot be read is not done."""
     name, rows, clear = which(state), [], True
     for step in steps(name):
         judged = _judged(state, step['flow'], now) if step['flow'] else 'none'
         try: finished = clear and bool(DONE[name][step['id']](state))
         except Exception: finished = False
         if step['essential']: clear = finished and judged not in ('running', 'stalled')
-        rows.append({**step, 'journey': {'id': name, 'title': declared()[name]['title']}, 'done': finished, 'state': judged})
+        rows.append({**step, 'journey': {'id': name, 'title': declared()[name]['title']}, 'done': finished,
+                     'state': judged})
     return rows
 
 
 def _judged(state, flow, now):
     where = folder(state, flow)
     folded = progress.fold(progress.read(where, flow))
-    return progress.judge(folded, progress.heard_at(progress.path_for(where, flow)), time.time() if now is None else now,
-                          progress.alive(folded))
+    return progress.judge(folded, progress.heard_at(progress.path_for(where, flow)),
+                          time.time() if now is None else now, progress.alive(folded))
 
 
 # ---------------------------------------------------------------- whether each step is done
@@ -97,7 +99,8 @@ def _rechecked(state):
     from . import guided
     cards = _extension(state)
     if not cards or not all(cards.values()): return False
-    landed = max(int(guided._git(state['project'], 'show', '-s', '--format=%ct', sha).stdout.strip() or 0) for sha in cards.values())
+    landed = max(int(guided._git(state['project'], 'show', '-s', '--format=%ct', sha).stdout.strip() or 0)
+                 for sha in cards.values())
     began = (read_json(guided.report_of(state) / 'run-manifest.json') or {}).get('started_at')
     return bool(began) and datetime.fromisoformat(began).timestamp() >= landed
 
@@ -125,7 +128,8 @@ def draw_build(state):
     plan = read_json(_blueprint(state) / 'plan.json')
     if not plan: return None
     runtime = project_state.runtime_of(state)
-    progress.path_for(runtime, BUILD).unlink(missing_ok=True)     # a drawing, not a run: none of them goes to the history
+    # a drawing, not a run: none of them goes to the history
+    progress.path_for(runtime, BUILD).unlink(missing_ok=True)
     log = progress.ProgressLog(runtime, BUILD, pulse=False, sampler=None, alive_every=None)
     stages = _stages(plan)
     records = _records(state)
@@ -159,6 +163,7 @@ def _draw_milestone(log, milestone, record):
         if card in record['kept']: step(card, done, len(cards), 'ok', seconds=0)
         elif card in record['skipped']: step(card, done, len(cards), 'skipped', reason=record['skipped'][card])
     if record.get('branch'):
-        log.ended({'stage': milestone['id'], 'status': 'ok', 'reason': f"delivered as {record['branch']}", 'seconds': None,
-                   'necessity': 'required', 'artifacts': [record['branch']]}, **({'at': record['ended']} if record.get('ended') else {}))
+        log.ended({'stage': milestone['id'], 'status': 'ok', 'reason': f"delivered as {record['branch']}",
+                   'seconds': None, 'necessity': 'required', 'artifacts': [record['branch']]},
+                  **({'at': record['ended']} if record.get('ended') else {}))
 

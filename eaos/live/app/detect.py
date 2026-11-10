@@ -374,7 +374,8 @@ def static_site(project, folder, package):
     if served is None: return None
     port = free_port()
     profile = {'schema_version': 1, 'app': folder or '.', 'install': [install_argv(*manager)] if folder else [['true']],
-               'start': ['python3', '-m', 'http.server', str(port), '--bind', '127.0.0.1', '--directory', served], 'port': port,
+               'start': ['python3', '-m', 'http.server', str(port), '--bind', '127.0.0.1', '--directory', served],
+               'port': port,
                'health': '/', 'start_timeout': 180, 'env': {}, 'checks': [], **({'build': build} if build else {})}
     return {'profile': profile, 'facts': {'folder': folder or '.', 'manager': manager[0], 'framework': 'static', 'database': None,
                                           'env_names': []}, 'limitations': []}

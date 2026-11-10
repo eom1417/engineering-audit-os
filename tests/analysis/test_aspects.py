@@ -23,8 +23,10 @@ class Evidence(Workspace):
         out = Path(self.tmp)
         metric = lambda path, branches, lines: {'kind': 'metric', 'location': {'path': path},
                                                 'value': {'scope': 'file', 'branches': branches, 'code_lines': lines}}
-        node = lambda path, fan_in, uses: {'kind': 'graph_node', 'location': {'path': path}, 'value': {'fan_in': fan_in, 'depends_on': uses}}
-        churn = lambda path, commits: {'kind': 'history_churn', 'location': {'path': path}, 'value': {'commits': commits}}
+        node = lambda path, fan_in, uses: {'kind': 'graph_node', 'location': {'path': path}, 'value': {'fan_in': fan_in,
+            'depends_on': uses}}
+        churn = lambda path, commits: {'kind': 'history_churn', 'location': {'path': path},
+                                       'value': {'commits': commits}}
         _write(out / 'facts/metrics.json', {'facts': [metric('app/main.py', 1, 10), metric('app/prices.py', 8, 40),
                                                      metric('tests/test_prices.py', 30, 90)]})
         _write(out / 'facts/history.json', {'facts': [churn('app/main.py', 1), churn('app/prices.py', 7)]})
@@ -32,12 +34,14 @@ class Evidence(Workspace):
         shop, mail = ['shop/a.py', 'shop/b.py', 'shop/c.py'], ['mail/a.py', 'mail/b.py', 'mail/c.py']
         uses = {path: [other for other in group if other != path] for group in (shop, mail) for path in group}
         uses['shop/a.py'].append('mail/a.py')
-        _write(out / 'facts/graph.json', {'facts': [node(path, 3 if path == 'shop/a.py' else 1, used) for path, used in uses.items()]
+        _write(out / 'facts/graph.json', {'facts': [node(path, 3 if path == 'shop/a.py' else 1, used) for path,
+                                                    used in uses.items()]
                                           + [node('tests/test_shop.py', 0, ['shop/a.py'])]})
         found = digest(out)
         self.assertEqual([h['path'] for h in found['hotspots']], ['app/prices.py', 'app/main.py'])
         self.assertEqual(found['hotspots'][0]['score'], 9 * 7)
-        self.assertEqual([(c['files'], c['most_depended_on']) for c in found['clusters']], [(3, 'mail/a.py'), (3, 'shop/a.py')])
+        self.assertEqual([(c['files'], c['most_depended_on']) for c in found['clusters']], [(3, 'mail/a.py'), (3,
+            'shop/a.py')])
         self.assertEqual(sorted(sorted(c['members']) for c in found['clusters']), [sorted(mail), sorted(shop)])
         self.assertGreater(found['modularity'], 0.3)
         # the stage writes it into a report with no architecture folder yet
@@ -79,7 +83,8 @@ class SuiteHealth(unittest.TestCase):
                 '    def test_small_again(self):\n        self.assertEqual(price(2), 2)\n\n'
                 '    def test_large(self):\n        self.assertEqual(price(11), 22)\n')
             (app / '.eaos-coveragerc').write_text(COVERAGERC)
-            run = lambda *argv: subprocess.run([sys.executable, '-m', 'coverage', *argv], cwd=app, capture_output=True, check=True)
+            run = lambda *argv: subprocess.run([sys.executable, '-m', 'coverage', *argv], cwd=app, capture_output=True,
+                                               check=True)
             run('run', '--rcfile=.eaos-coveragerc', '-m', 'unittest', 'test_price')
             run('json', '--rcfile=.eaos-coveragerc', '--show-contexts', '-o', 'c.json')
             contexts = {}
@@ -87,8 +92,10 @@ class SuiteHealth(unittest.TestCase):
                 for line, tests in (entry.get('contexts') or {}).items():
                     for test in tests:
                         if test and name == 'price.py': contexts.setdefault(test, set()).add((name, line))
-            (app / '.eaos-junit.xml').write_text('<testsuite><testcase classname="test_price.T" name="test_large" time="7.5"/>'
-                                                 '<testcase classname="test_price.T" name="test_small" time="0.01"/></testsuite>')
+            (app / '.eaos-junit.xml').write_text('<testsuite><testcase classname="test_price.T" name="test_large" '
+                                                 'time="7.5"/>'
+                                                 '<testcase classname="test_price.T" name="test_small" '
+                                                 'time="0.01"/></testsuite>')
             health = suite_health(app, contexts)
         self.assertEqual([t.split('.')[-1] for t in health['redundant']], ['test_small', 'test_small_again'])
         self.assertEqual((health['slowest'][0]['test'], health['seconds']), ('test_price.T::test_large', 7.5))

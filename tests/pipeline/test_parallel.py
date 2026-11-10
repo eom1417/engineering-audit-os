@@ -58,7 +58,8 @@ def _checked(directory, mode, opens=None):
     project = Path(directory) / 'project'
     if not project.exists():
         shutil.copytree(FIXTURE, project)
-        subprocess.run('git init -q && git add -A && git -c user.email=t@t -c user.name=t commit -qm fixture', shell=True,
+        subprocess.run('git init -q && git add -A && '
+                       'git -c user.email=t@t -c user.name=t commit -qm fixture', shell=True,
                        cwd=project, check=True)
     out = Path(directory) / mode
     if opens: opens.out = out.resolve()
@@ -78,7 +79,8 @@ def _contents(out):
     where left out."""
     found = {}
     for path in sorted(Path(out).rglob('*')):
-        if path.is_file() and path.suffix in ('.json', '.md') and not path.name.startswith(('run-', 'RUN.', 'report-result')):
+        if (path.is_file() and path.suffix in ('.json', '.md')
+                and not path.name.startswith(('run-', 'RUN.', 'report-result'))):
             text = path.read_text(encoding='utf-8').replace(str(Path(out).resolve()), '<out>')
             kept = [line for line in text.splitlines() if not any(s in line for s in STAMPS)]
             found[path.relative_to(out).as_posix()] = hashlib.sha256('\n'.join(kept).encode()).hexdigest()
@@ -108,10 +110,13 @@ class ParallelCheckTests(unittest.TestCase):
         maker, under = {artifact: stage.name for stage in STAGES for artifact in stage.produces}, _under()
         # a stage may read what a later stage made in the last check (it runs after it either way), never what a stage
         # beside it is making
-        undeclared = sorted(f'{stage} reads {path} of {maker[path]}' for stage, paths in self.opens.read.items() for path in paths
-                            if maker.get(path, stage) != stage and maker[path] not in under[stage] and stage not in under[maker[path]])
+        undeclared = sorted(f'{stage} reads {path} of {maker[path]}'
+                            for stage, paths in self.opens.read.items() for path in paths
+                            if maker.get(path, stage) != stage and maker[path] not in under[stage]
+                            and stage not in under[maker[path]])
         self.assertEqual(undeclared, [], 'declare each in the reading stage (requires, reads or gathers)')
-        rewrites = sorted(f'{stage} rewrites {path} of {maker[path]}' for stage, paths in self.opens.wrote.items() for path in paths
+        rewrites = sorted(f'{stage} rewrites {path} of {maker[path]}'
+                          for stage, paths in self.opens.wrote.items() for path in paths
                           if maker.get(path, stage) != stage and path not in BY_NAME[stage].amends)
         self.assertEqual(rewrites, [], "declare each in the rewriting stage's amends")
 
@@ -126,7 +131,8 @@ class ParallelCheckTests(unittest.TestCase):
                 path = out / name
                 text = path.read_text().replace(str(out.resolve()), '<out>') if path.exists() else '<missing>'
                 return [line for line in text.splitlines() if not any(s in line for s in STAMPS)]
-            detail.extend(difflib.unified_diff(lines(self.one_out), lines(self.parallel_out), fromfile='one/' + name, tofile='normal/' + name))
+            detail.extend(difflib.unified_diff(lines(self.one_out), lines(self.parallel_out),
+                                               fromfile='one/' + name, tofile='normal/' + name))
         self.assertEqual(different, [], '\n'.join(detail[:120]))
         self.assertEqual(self.parallel['mode'], 'normal')
 
@@ -155,9 +161,12 @@ class ProgressTests(unittest.TestCase):
         from eaos.pipeline import stage_run
         said, log, folder = [], mock.Mock(enabled=False), tempfile.TemporaryDirectory()
         self.addCleanup(folder.cleanup)
-        run = {'context': {}, 'log': log, 'results': {}, 'progress': lambda *step: said.append(step), 'todo': ['session', 'measure'],
-               'runners': {}, 'out': Path(folder.name), 'head': {}, 'blocked': {}, 'lock': threading.RLock(), 'running': ['session']}
-        with mock.patch.object(stage_run, '_one', return_value={'status': 'ok'}), mock.patch.object(stage_run, 'ledger', return_value={}):
+        run = {'context': {}, 'log': log, 'results': {}, 'progress': lambda *step: said.append(step),
+               'todo': ['session', 'measure'],
+               'runners': {}, 'out': Path(folder.name), 'head': {}, 'blocked': {},
+               'lock': threading.RLock(), 'running': ['session']}
+        with mock.patch.object(stage_run, '_one', return_value={'status': 'ok'}), \
+                mock.patch.object(stage_run, 'ledger', return_value={}):
             stage_run._run_stage(BY_NAME['measure'], run)
         self.assertEqual(said, [(0, 2, 'measure'), (1, 2, 'session')])
 
@@ -174,7 +183,8 @@ class ReadyStagesTests(unittest.TestCase):
         from eaos.core.system.resources import capacity
         gb = 2 ** 30
         files = {'/sys/fs/cgroup/cpu.max': '200000 100000', '/sys/fs/cgroup/memory.max': str(4 * gb),
-                 '/sys/fs/cgroup/memory.current': str(gb), '/sys/fs/cgroup/memory.stat': 'inactive_file 0\nslab_reclaimable 0',
+                 '/sys/fs/cgroup/memory.current': str(gb),
+                 '/sys/fs/cgroup/memory.stat': 'inactive_file 0\nslab_reclaimable 0',
                  '/proc/meminfo': f'MemAvailable: {64 * gb // 1024} kB'}
         with mock.patch('pathlib.Path.read_text', autospec=True, side_effect=lambda path, **kw: files[str(path)]), \
                 mock.patch('os.sysconf', side_effect=lambda name: 4096 if name == 'SC_PAGE_SIZE' else 64 * gb // 4096):

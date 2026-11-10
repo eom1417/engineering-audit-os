@@ -21,5 +21,6 @@ eaos/core/progress/log.py), its download as a counted step: the Studio's "Prepar
 # here.
 from .pins import (Unavailable, applies, browsers, checkout, home, needed, node_modules, npm_prefix,  # noqa: F401
                    ordered, project_files, registry, release_spec, rule_applies, tool_env)
-from .runs import FLOW, install, installing, machine_lock, main, prepare, readiness, ready, stages, stale, wait_for_check  # noqa: F401
+from .runs import (FLOW, install, installing, machine_lock, main, prepare, readiness, ready, stages,  # noqa: F401
+                   stale, wait_for_check)
 from .versions import browser_missing, doctor, found_version, package_version, pip_version  # noqa: F401

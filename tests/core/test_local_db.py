@@ -44,7 +44,8 @@ class ReachableBinaries(unittest.TestCase):
 @needs('no PostgreSQL binaries' if local_db.binaries() is None else '')
 class ChecksCopy(unittest.TestCase):
     def sql(self, url, text):
-        return subprocess.run([str(local_db.binaries() / 'psql'), url, '-tAc', text], capture_output=True, text=True, check=True).stdout.split()
+        return subprocess.run([str(local_db.binaries() / 'psql'), url, '-tAc', text], capture_output=True, text=True,
+                              check=True).stdout.split()
 
     def test_each_checks_run_sees_what_setup_wrote_and_nothing_an_earlier_checks_run_wrote(self):
         # A test whose mock was not applied must not write a real user into the checks' database: that would pass on a
@@ -64,7 +65,8 @@ class ChecksCopy(unittest.TestCase):
                     checks.stop()
                     held.wait(30)
                 self.assertEqual(self.sql(base, 'select name from users'), ['seeded'], 'the base is never written')
-                self.assertEqual(self.sql(base, "select datname from pg_database where datname like 'app%'"), ['app'], 'no copy is left')
+                self.assertEqual(self.sql(base, "select datname from pg_database where datname like 'app%'"), ['app'],
+                                 'no copy is left')
             finally:
                 run.stop()
         run._sweep(local_db.binaries())                        # nothing of this test stays behind

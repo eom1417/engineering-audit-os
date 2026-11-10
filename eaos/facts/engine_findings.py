@@ -119,7 +119,8 @@ def run(target, source, out=None, only=None, keep=False):
     if workdir is None:
         return {'facts': [], 'input_sha': digest(b'external:no-workdir'), 'summary': {}, 'available': False,
                 'reason': 'external engines need a report directory to write their raw artifacts into'}
-    manifest = analyze(target, workdir + '/engines', exclude=source.exclude, only=only, formats=source_formats(), keep=keep)
+    manifest = analyze(target, workdir + '/engines', exclude=source.exclude, only=only, formats=source_formats(),
+                       keep=keep)
     _copy_artifacts(manifest, out)
     versions = ''.join(f"{name}={detail.get('version')};" for name, detail in sorted(manifest['coverage'].items()))
     input_sha = digest((source.content_fingerprint + '|' + versions).encode('utf-8'))

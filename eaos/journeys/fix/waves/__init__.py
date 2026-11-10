@@ -20,7 +20,8 @@ A wave is the flow `fix` of the live map (FLOW), drawn from the state at each sa
 <runtime>/progress/fix.jsonl: each card a step of `change`, then the end checks as they are reached, then the handover
 (waves/live_map.py). The cards a batch takes: waves/cards.py; the batch itself, its gates and its branch:
 waves/batch.py. """
-from .batch import (BATCH_ENGINES, GatesFailed, apply, change, commit, culprits, declared_screens, drop_last,  # noqa: F401
-                    edit_gates, failing_output, finish_batch, gates, merged, open_batch, rebuild, undo, without)
+from .batch import (BATCH_ENGINES, GatesFailed, apply, change, commit, culprits, declared_screens,  # noqa: F401
+                    drop_last, edit_gates, failing_output, finish_batch, gates, merged, open_batch, rebuild, undo,
+                    without)
 from .cards import SIZE, kept_apart, next_batch, plan, ready_cards, too_early, with_prerequisites  # noqa: F401
 from .live_map import FLOW, draw, publish, saved  # noqa: F401

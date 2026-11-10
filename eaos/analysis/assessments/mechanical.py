@@ -19,21 +19,25 @@ from ..repair.remediation import cited
 # render key (or probe query) -> (engagement rule, invariant, what "after" looks like)
 FAMILIES = {
     'one_source': ('consolidate_duplicates', 'One pattern has one source that every place uses.',
-                   'the pattern lives once in its home and every former place calls it; its detector finds it no more.'),
+                   'the pattern lives once in its home and every former place calls it; its detector finds it no '
+                   'more.'),
     'duplicated_rule': ('consolidate_duplicates', 'A rule value is defined once and imported where it is used.',
                         'one module defines the value and every other place imports it.'),
     'hotspot': ('reduce_hotspots', 'No function carries more branches than its declared threshold.',
                 'the function is split so that no part exceeds the threshold; its behaviour lock still passes.'),
     'large_module': ('reduce_hotspots', 'No module is past the line limit of one responsibility.',
-                     'the module is split along its responsibilities, each within the limit; its behaviour lock still passes.'),
+                     'the module is split along its responsibilities, each within the limit; its behaviour lock still '
+                     'passes.'),
     'load_blocker': ('bound_load_paths', 'Every user-facing entry point bounds its cost under load.',
-                     'the entry point bounds the read, protects the call or caches it; the load model no longer flags it.'),
+                     'the entry point bounds the read, protects the call or caches it; the load model no longer flags '
+                     'it.'),
     'redundant_work': ('bound_load_paths', 'A flow does not repeat work its result does not need.',
                        'the repeated or loop-invariant call runs once; the audit finds no redundancy there.'),
     'broken_code': ('fix_broken_code', 'Every reference in the product resolves.',
                     'the reference resolves, or the dead code that held it is gone.'),
     'mutable_global': ('untangle_dependencies', 'Module-level state is not changed at runtime.',
-                       'the state lives behind an owner that is passed in; no module-level value is reassigned at runtime.'),
+                       'the state lives behind an owner that is passed in; no module-level value is reassigned at '
+                       'runtime.'),
     'person_rule': ('keep_person_rules', 'Every rule the person stated holds, in every place.',
                     'the rule is kept in every place, from its cause; its guard finds it broken nowhere.'),
     'cycle': ('untangle_dependencies', 'The resolved import graph has no cycle.',
@@ -48,7 +52,8 @@ def family(claim):
     return 'cycle' if query == 'cycle_present' else None
 
 
-FAMILY_OF = {'.py': 'python', '.ts': 'js', '.tsx': 'js', '.js': 'js', '.jsx': 'js', '.mjs': 'js', '.go': 'go', '.java': 'java'}
+FAMILY_OF = {'.py': 'python', '.ts': 'js', '.tsx': 'js', '.js': 'js', '.jsx': 'js', '.mjs': 'js', '.go': 'go',
+             '.java': 'java'}
 
 
 def same_value(claim, fact_sets):
@@ -58,7 +63,8 @@ def same_value(claim, fact_sets):
     facts = cited(claim, fact_sets, 'domain')
     languages = {FAMILY_OF.get(Path(d.get('path', '')).suffix, Path(d.get('path', '')).suffix)
                  for f in facts for d in (f.get('value') or {}).get('definitions') or []}
-    return bool(facts) and len(languages) == 1 and all((f.get('value') or {}).get('distinct_values') == 1 for f in facts)
+    return bool(facts) and len(languages) == 1 and all(
+        (f.get('value') or {}).get('distinct_values') == 1 for f in facts)
 
 
 def spec_for(claim, fact_sets):
@@ -66,7 +72,8 @@ def spec_for(claim, fact_sets):
     spec = json.loads(json.dumps(claim['probe_spec']))
     specification = spec['specification']
     if specification.get('query') == 'load_blocker_present':
-        entry = next((f for f in (fact_sets.get('entrypoints') or {}).get('facts', []) if f.get('id') == specification.get('entry_point')), None)
+        entry = next((f for f in (fact_sets.get('entrypoints') or {}).get('facts', [])
+                      if f.get('id') == specification.get('entry_point')), None)
         if entry is None: return None
         specification['entry_path'] = entry['location'].get('path')
         specification['entry_route'] = (entry.get('value') or {}).get('route')
@@ -82,7 +89,8 @@ def _assessable(claim, name, fact_sets):
     if name == 'duplicated_rule': return same_value(claim, fact_sets)
     # An import of a file that is not there has two fixes: restore the file, or remove what uses it. Only a person
     # knows which: removing the importer can delete working routes just to make the code compile.
-    return not (name == 'broken_code' and (claim['probe_spec'].get('specification') or {}).get('rule') == 'missing-import')
+    return not (name == 'broken_code'
+                and (claim['probe_spec'].get('specification') or {}).get('rule') == 'missing-import')
 
 
 def build_assessment(claim, fact_sets, target):

@@ -100,7 +100,8 @@ def _area_measured(area, statuses):
 
 
 def _area_score(area, rows, size):
-    points = sum(SEVERITY_WEIGHT[r['severity']] * CONFIDENCE_WEIGHT.get(r['confidence'], 1.0) for r in rows if r['area'] == area)
+    points = sum(SEVERITY_WEIGHT[r['severity']] * CONFIDENCE_WEIGHT.get(r['confidence'], 1.0) for r in rows
+                 if r['area'] == area)
     return round(100 * HALF_POINT / (HALF_POINT + points / size))
 
 
@@ -162,7 +163,8 @@ def _card_state(r, c, ledger, kept, failed):
 
 def _task_card(r, c, stones, ledger, waves):
     kept, failed = waves
-    return {'id': r['id'], 'key': c.get('key') or r['id'], 'title': r['title'], 'pattern': r['pattern'], 'severity': r['severity'],
+    return {'id': r['id'], 'key': c.get('key') or r['id'], 'title': r['title'], 'pattern': r['pattern'],
+            'severity': r['severity'],
             'milestone': c.get('milestone') or stones.get(r['id']), 'paths': r['paths'],
             'state': _card_state(r, c, ledger, kept, failed)}
 

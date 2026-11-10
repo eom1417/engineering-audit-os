@@ -8,10 +8,13 @@ def repository_findings(fact_sets, add, target):
     for fact in (fact_sets.get('repository') or {}).get('facts', []):
         value = fact['value']
         add(value['en'], 'structure', 'CONFIRMED', ['static_fact'],
-            'The files no longer showing it when the repository is read again.', fact_ids=[fact['id']], confidence_ceiling='CONFIRMED',
-            render={'key': 'repository_finding', 'params': {k: value[k] for k in ('rule', 'severity', 'en', 'ar', 'fix_en', 'fix_ar', 'path')}},
+            'The files no longer showing it when the repository is read again.',
+            fact_ids=[fact['id']], confidence_ceiling='CONFIRMED',
+            render={'key': 'repository_finding',
+                    'params': {k: value[k] for k in ('rule', 'severity', 'en', 'ar', 'fix_en', 'fix_ar', 'path')}},
             probe_spec={'probe_type': 'graph_query',
-                        'specification': {'query': 'repository_finding_present', 'rule': value['rule'], 'path': value['path'],
+                        'specification': {'query': 'repository_finding_present', 'rule': value['rule'],
+                                          'path': value['path'],
                                           'expected': 'The repository still shows this finding.'}},
             impact={'scenario': value['fix_en']})
 

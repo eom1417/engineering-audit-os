@@ -33,18 +33,21 @@ def resolve(paths):
     if unknown: raise ValueError(f"unknown check path: {', '.join(unknown)} (one of {', '.join(PATHS)})")
     # beside `complete`, a path that switches an optional loop on (eaos/pipeline/loops.py) is an option of the full
     # check
-    if COMPLETE in paths: return {'paths': [COMPLETE, *_switching(paths)], 'stages': None, 'engines': None, 'patterns': None}
+    if COMPLETE in paths: return {'paths': [COMPLETE, *_switching(paths)], 'stages': None,
+                                  'engines': None, 'patterns': None}
     chosen = [PATHS[p] for p in paths]
     joined = lambda key: sorted({value for path in [*chosen, HELD] for value in path.get(key, ())})
     spine = [stage.name for stage in STAGES if stage.necessity == REQUIRED] + list(SPINE)
-    return {'paths': paths, 'stages': _closed(spine + joined('stages')), 'engines': _engines(joined('kinds'), joined('engines')),
+    return {'paths': paths, 'stages': _closed(spine + joined('stages')),
+            'engines': _engines(joined('kinds'), joined('engines')),
             'patterns': joined('patterns')}
 
 
 def _engines(kinds, named):
     """The engines that find any of `kinds`, and those `named`."""
     from ..engines import ADAPTERS
-    return sorted({name for name, adapter in ADAPTERS.items() if set(kinds) & {c.kind for c in adapter.capabilities()}} | set(named))
+    return sorted({name for name, adapter in ADAPTERS.items()
+                   if set(kinds) & {c.kind for c in adapter.capabilities()}} | set(named))
 
 
 def _switching(paths):

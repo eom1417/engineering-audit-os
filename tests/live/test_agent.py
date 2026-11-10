@@ -14,7 +14,8 @@ from eaos.live.screens.audit import missing
 PAGE = """<html><body><nav><button onclick="location.hash='#/reports'">Reports</button>
 <button onclick="document.body.dataset.gone='yes'">Delete everything</button></nav>
 <main id="m"></main><script>
-const draw = () => { document.getElementById('m').innerText = location.hash === '#/reports' ? 'Monthly reports' : 'Home'; };
+const draw = () => { document.getElementById('m').innerText = \
+location.hash === '#/reports' ? 'Monthly reports' : 'Home'; };
 addEventListener('hashchange', draw); draw();</script></body></html>"""
 # A server-rendered form (Django, WTForms): each field named by its <label>, its `name` attribute the code's own.
 FORM = """<html><body><form><label for="id_first_name">First name:</label><input id="id_first_name" name="first_name">
@@ -38,7 +39,8 @@ class Scripted:
 
     def complete(self, messages, **options):
         self.seen.append(messages[-1]['content'])
-        return (self.steps.pop(0) if self.steps else {'action': 'done'}), {}     # as Claude's adapter answers: the object itself
+        # as Claude's adapter answers: the object itself
+        return (self.steps.pop(0) if self.steps else {'action': 'done'}), {}
 
 
 @needs(missing('playwright') and 'EAOS Playwright is not installed')
@@ -49,32 +51,38 @@ class AgentTests(unittest.TestCase):
         base = f'http://127.0.0.1:{server.server_port}'
         try:
             with tempfile.TemporaryDirectory() as tmp:
-                assistant = Scripted({'action': 'click', 'target': {'role': 'button', 'name': 'Delete everything', 'nth': 0}},
-                                     {'action': 'click', 'target': {'role': 'button', 'name': 'Reports', 'nth': 0}, 'why': 'a tab'})
+                assistant = Scripted(
+                    {'action': 'click', 'target': {'role': 'button', 'name': 'Delete everything', 'nth': 0}},
+                    {'action': 'click', 'target': {'role': 'button', 'name': 'Reports', 'nth': 0}, 'why': 'a tab'})
                 with agent.Browser(base, Path(tmp) / 'explore') as browser:
                     record = agent.explore(browser, agent.SCREENS, assistant)
                 self.assertEqual(record['screens'], ['/', '/#/reports'])
                 self.assertIn('refused', record['steps'][0]['error'], 'a step that deletes is never pressed')
                 self.assertIn('"Reports"', assistant.seen[0], 'the assistant is shown the controls it may use')
-                self.assertTrue((Path(tmp) / 'explore' / record['steps'][1]['picture']).is_file(), 'each step keeps its picture')
+                self.assertTrue((Path(tmp) / 'explore' / record['steps'][1]['picture']).is_file(),
+                                'each step keeps its picture')
                 with agent.Browser(base, Path(tmp) / 'replay') as browser:
                     self.assertEqual(agent.replay(browser, record), {'screens': ['/', '/#/reports']})
-                    gone = {**record, 'steps': [{'action': 'click', 'target': {'role': 'tab', 'name': 'Gone', 'nth': 0}}]}
+                    gone = {**record, 'steps': [{'action': 'click',
+                                                 'target': {'role': 'tab', 'name': 'Gone', 'nth': 0}}]}
                     self.assertEqual(agent.replay(browser, gone)['broken_at'], 1)
         finally:
             server.shutdown()
 
     def test_a_labelled_field_is_listed_by_its_label_and_filled_by_what_was_listed(self):
-        # each field is shown by its label, not by its `name` attribute (such as "first_name" or "post"), which no fill
-        # can find; otherwise every form goal gets stuck
+        # each field is shown by its label, not by its `name` attribute (such as "first_name" or "post"),
+        # which no fill can find; otherwise every form goal gets stuck
         server = ThreadingHTTPServer(('127.0.0.1', 0), App)
         threading.Thread(target=server.serve_forever, daemon=True).start()
         try:
-            with tempfile.TemporaryDirectory() as tmp, agent.Browser(f'http://127.0.0.1:{server.server_port}', Path(tmp)) as browser:
+            with tempfile.TemporaryDirectory() as tmp, \
+                    agent.Browser(f'http://127.0.0.1:{server.server_port}', Path(tmp)) as browser:
                 page = browser.do({'op': 'open', 'path': '/form'})
-                self.assertEqual([c['name'] for c in page['controls'] if c['role'] == 'textbox'], ['First name:', 'post'])
+                self.assertEqual([c['name'] for c in page['controls'] if c['role'] == 'textbox'],
+                                 ['First name:', 'post'])
                 for name in ('First name:', 'post'):
-                    done = browser.do({'op': 'fill', 'target': {'role': 'textbox', 'name': name, 'nth': 0}, 'value': 'Ingrid'})
+                    done = browser.do({'op': 'fill', 'target': {'role': 'textbox', 'name': name, 'nth': 0},
+                                       'value': 'Ingrid'})
                     self.assertTrue(done['ok'], done.get('error'))
         finally:
             server.shutdown()

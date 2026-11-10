@@ -61,7 +61,8 @@ def flows_through(sets, paths):
         value = fact['value']
         if set(value['touched_files']) & set(paths):
             rows.append({'flow_id': value['flow_id'], 'surface': value['entry']['surface'],
-                         'route': value['entry']['route'], 'entry': f"{value['entry']['path']}:{value['entry']['line']}"})
+                         'route': value['entry']['route'],
+                         'entry': f"{value['entry']['path']}:{value['entry']['line']}"})
     return rows
 
 
@@ -105,7 +106,8 @@ def symbols_in(sets, paths, symbol=None):
         name = fact['location'].get('symbol') or fact['value']['name']
         if symbol and symbol not in {name, fact['value']['name']}: continue
         rows.append({'symbol': name, 'kind': fact['value']['kind'],
-                     'location': f"{fact['location']['path']}:{fact['location']['start_line']}-{fact['location']['end_line']}"})
+                     'location': f"{fact['location']['path']}:{fact['location']['start_line']}"
+                                 f"-{fact['location']['end_line']}"})
     return rows
 
 
@@ -155,5 +157,6 @@ def assess(out, target, depth=DEFAULT_DEPTH, sets=None):
         'attention': {path: nodes[path]['attention_rank'] for path in paths if path in nodes},
         'blast_radius': len(distance),
         'limits': LIMITS,
-        'interpretation': 'Potential reach of a change, computed from resolved facts. A dependent may still be unaffected.',
+        'interpretation': 'Potential reach of a change, computed from resolved facts. '
+                          'A dependent may still be unaffected.',
     }

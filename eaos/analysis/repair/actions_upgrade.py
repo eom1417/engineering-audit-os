@@ -13,7 +13,8 @@ USES = r'(uses:\s*["\']?{action}@)([0-9A-Za-z._/-]+)(["\']?)([ \t]*#[ \t]*v?[0-9
 def action_card(fact):
     """The codemod of a vulnerable Action with a fix, {kind, package, version, fixed}; None for anything else."""
     symbol = str(fact['location'].get('symbol'))
-    fixed = next((m['value'] for m in (fact.get('value') or {}).get('measurements') or [] if m['name'] == 'fixed_in'), None)
+    fixed = next((m['value'] for m in (fact.get('value') or {}).get('measurements') or []
+                  if m['name'] == 'fixed_in'), None)
     if not symbol.startswith(ACTIONS) or not fixed: return None
     package, _, version = symbol.removeprefix(ACTIONS).rpartition('@')
     return {'kind': 'actions', 'package': package, 'version': version, 'fixed': fixed}
@@ -22,7 +23,8 @@ def action_card(fact):
 def workflows(root):
     """The workflow and composite Action files of the project."""
     folder = Path(root) / '.github'
-    return sorted(path for path in folder.rglob('*') if path.suffix in ('.yml', '.yaml') and path.is_file()) if folder.is_dir() else []
+    return sorted(path for path in folder.rglob('*')
+                  if path.suffix in ('.yml', '.yaml') and path.is_file()) if folder.is_dir() else []
 
 
 def bump(root, action, fixed):
@@ -65,5 +67,6 @@ def _commit_of(action, fixed):
     shown = run_command(['git', 'ls-remote', '--tags', f'https://github.com/{repository}', *names], timeout=60)
     rows = dict(reversed(line.split('\t')) for line in shown.stdout.splitlines() if '\t' in line)
     commit = next((rows[f'refs/tags/{name}'] for name in names if f'refs/tags/{name}' in rows), None)
-    if shown.returncode or not commit: raise RuntimeError(f'the tag {fixed} of {repository} could not be read from GitHub')
+    if shown.returncode or not commit:
+        raise RuntimeError(f'the tag {fixed} of {repository} could not be read from GitHub')
     return commit

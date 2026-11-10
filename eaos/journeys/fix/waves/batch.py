@@ -18,11 +18,11 @@ from ....core.system.clock import now
 
 def edit_gates(where, root, card, changed, repair):
     """(what one change of a batch broke or added against the code laws, the card's own check's exit (None for a
-    repair), what that check still finds when it fails, so the assistant fixes what is left), from one collection of facts
-    on the copy `root`; `where`: (report, project, runtime). A change to the app's
-    files also runs the app's own checks (app_breakage): an unused import in a Studio file broke its type check, then
-    its build, and was found only when the 51 changes of a batch met (EAOS, 2026-10-14). `where` may name, fourth, the
-    person's rules that hold for this work and the project they are kept for (M16.4): a change that breaks one is refused
+    repair), what that check still finds when it fails, so the assistant fixes what is left), from one collection
+    of facts on the copy `root`; `where`: (report, project, runtime). A change to the app's files also runs the
+    app's own checks (app_breakage): an unused import in a Studio file broke its type check, then its build, and
+    was found only when the 51 changes of a batch met (EAOS, 2026-10-14). `where` may name, fourth, the person's
+    rules that hold for this work and the project they are kept for (M16.4): a change that breaks one is refused
     with their words."""
     from ..execute import app_breakage, new_breakage
     from ....facts.run import collect
@@ -138,10 +138,10 @@ def _rebuilt(batch, commits):
 
 def declared_screens(cards):
     """The screens a batch may change the look of: every one ('*') when it holds a design card, else none. A design card
-    changes a shared part (a font, a card, a strip) that shows on pages its finding never named: by those pages, each run
-    found one more screen and 33 sound design cards were left out (EAOS, 2026-10-15). Their pictures are the next check's
-    to review; a page's errors and its server's answers stay locked. A design card that declares the screens it changes
-    (`changes_screens`) is judged by its declaration instead (intended_screens)."""
+    changes a shared part (a font, a card, a strip) that shows on pages its finding never named: by those pages, each
+    run found one more screen and 33 sound design cards were left out (EAOS, 2026-10-15). Their pictures are the next
+    check's to review; a page's errors and its server's answers stay locked. A design card that declares the screens
+    it changes (`changes_screens`) is judged by its declaration instead (intended_screens)."""
     return {'*'} if any((card.get('design') or {}).get('findings') and not card.get('changes_screens') for card in cards) else set()
 
 
@@ -378,8 +378,8 @@ def _write_wave(batch, wave, kept, failed):
 
 def apply(project, summary):
     """The wave's branch in the person's project, fetched from the candidate: their current branch, their
-    working folder and their unsaved edits are not touched. The candidate's checkout (its kept commits) arrives under the
-    wave's name, whatever the candidate's own branch is called."""
+    working folder and their unsaved edits are not touched. The candidate's checkout (its kept commits) arrives
+    under the wave's name, whatever the candidate's own branch is called."""
     if not summary['kept']: raise ValueError('this wave kept no fix, so there is nothing to hand over')
     branch = summary['branch']
     done = git(project, 'fetch', '--quiet', summary['root'], f'+HEAD:refs/heads/{branch}')

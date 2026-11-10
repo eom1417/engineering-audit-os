@@ -48,7 +48,8 @@ def verify_command_for(claim, target, out):
 def what_to_do(claim, pattern, unproven):
     """(change, options, rollback): proving or refuting an unproven claim first, else its pattern's change."""
     if not unproven:
-        return (claim.get('assessment') or {}).get('proposed_change', pattern['change']), pattern['options'], pattern['rollback']
+        return ((claim.get('assessment') or {}).get('proposed_change', pattern['change']), pattern['options'],
+                pattern['rollback'])
     return (('أثبت هذا الادعاء أو انقضه قبل أي تغيير: ' + falsifier_of(claim, 'ar')),
             [{'option': 'تشغيل مجسّ يحسم الادعاء', 'cost': 'منخفضة', 'verdict': 'مختار: لا تغيير قبل الحسم'},
              {'option': 'قبول الادعاء بلا إثبات', 'cost': 'صفر الآن', 'verdict': 'مرفوض: يخالف قاعدة الإسناد'},
@@ -95,7 +96,8 @@ def design_cards(findings, tasks):
     kept = {}
     for finding in sorted(findings, key=lambda f: SEVERITY_ORDER.index(f['severity']) if f.get('severity') in SEVERITY_ORDER else 3):
         kept.setdefault(_design_key(finding), []).append(finding)
-    return [_group_card(number, group, (top, CONFIDENCE_WEIGHT['HYPOTHESIS'])) for number, group in enumerate(kept.values(), 1)]
+    return [_group_card(number, group, (top, CONFIDENCE_WEIGHT['HYPOTHESIS']))
+            for number, group in enumerate(kept.values(), 1)]
 
 
 def _design_key(finding):
@@ -139,7 +141,8 @@ def _group_card(number, group, scale):
                                   for f in group]
     _also_shown(card, group, finding)
     if finding.get('resolution') in RESOLUTIONS:
-        card['design']['resolution'] = {k: finding.get(k) for k in ('resolution', 'question', 'options', 'recommendation')}
+        card['design']['resolution'] = {k: finding.get(k)
+                                        for k in ('resolution', 'question', 'options', 'recommendation')}
     return card
 
 
@@ -256,11 +259,13 @@ def _triaged(verdict, reach, security=False):
     automatically, and outside the share of questions the assistant asks (cap_owner in
     eaos/core/contracts/owner_share.py)."""
     if verdict.get('decision') == 'confirm' and verdict.get('resolution') in RESOLUTIONS:
-        return {**{k: verdict.get(k) for k in RESOLUTION_FIELDS if verdict.get(k) is not None}, 'why': verdict.get('why'),
+        return {**{k: verdict.get(k) for k in RESOLUTION_FIELDS if verdict.get(k) is not None},
+                'why': verdict.get('why'),
                 'severity': verdict.get('severity'), 'reach': reach}
     if verdict.get('decision') == 'doubt' and not security:
         return {'resolution': 'keep', 'severity': verdict.get('severity'), 'reach': reach,
-                'why': f"Not proven by its evidence ({verdict.get('why') or 'no reason given'}); the next check judges it again."}
+                'why': f"Not proven by its evidence ({verdict.get('why') or 'no reason given'}); "
+                       "the next check judges it again."}
     return None
 
 
@@ -284,11 +289,13 @@ def fix_check(card, change, revision, spec=None):
     it is gone."""
     if spec:
         import json, sys
-        return {'id': 'TRIAGE-' + card, 'kind': 'command', 'invariant': 'The problem this card names is gone and nothing else changed.',
+        return {'id': 'TRIAGE-' + card, 'kind': 'command',
+                'invariant': 'The problem this card names is gone and nothing else changed.',
                 'expected': "the card's own probe refutes it on the changed copy", 'expected_exit': 0, 'cwd': '.',
                 'argv': [sys.executable, '-m', 'eaos', 'recheck', '--spec', json.dumps(spec, ensure_ascii=False), '.'],
                 'source_revision': revision}
-    return {'id': 'TRIAGE-' + card, 'kind': 'human', 'invariant': 'The problem this card names is gone and nothing else changed.',
+    return {'id': 'TRIAGE-' + card, 'kind': 'human',
+            'invariant': 'The problem this card names is gone and nothing else changed.',
             'expected': change, 'cwd': '.', 'source_revision': revision,
             'rubric': "The change your assistant decided is made, the project's own checks pass, and the next check no longer finds it."}
 
@@ -324,7 +331,8 @@ def resolve(task, resolution, claim, where):
     target, out, revision = where
     from ...core.contracts.decisions import decide
     words = 'decided by your assistant: ' + (resolution.get('note') or resolution.get('why') or '')
-    task['resolution'] = {**{k: v for k, v in resolution.items() if k not in ('checks', 'severity', 'reach')}, 'by': 'assistant', 'words': words}
+    task['resolution'] = {**{k: v for k, v in resolution.items() if k not in ('checks', 'severity', 'reach')},
+                          'by': 'assistant', 'words': words}
     if claim is not None:
         task['decision'] = decide(claim)
         task['acceptance'], task['verify_command'] = acceptance_for(claim, target, out), verify_command_for(claim, target, out)

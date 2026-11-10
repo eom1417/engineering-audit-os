@@ -14,7 +14,8 @@ SAVED = Path(__file__).resolve().parents[1] / 'fixtures/saved-project/0.0.90/out
 
 class CardArabicTests(unittest.TestCase):
     def test_a_card_with_an_arabic_fix_says_it_in_arabic(self):
-        claim = {'render': {'key': 'repository_finding', 'params': {'fix_en': 'Split it by job.', 'fix_ar': 'قسّمه حسب الوظيفة.'}},
+        claim = {'render': {'key': 'repository_finding',
+                            'params': {'fix_en': 'Split it by job.', 'fix_ar': 'قسّمه حسب الوظيفة.'}},
                  'impact': {'scenario': 'Split it by job.'}}
         self.assertEqual(impact_of(claim, 'ar'), 'قسّمه حسب الوظيفة.')
 
@@ -29,8 +30,10 @@ class CardArabicTests(unittest.TestCase):
 
     def test_an_upgrade_with_no_fixed_version_asks_to_replace_the_package(self):
         from eaos.core.language.words import statement_of
-        claim = {'render': {'key': 'vulnerable_dependency', 'params': {'package': 'bincode', 'installed': '1.3.3', 'count': 1,
-                                                                       'ids': 'RUSTSEC-2025-0141', 'severity': 'medium', 'fixed': '—'}}}
+        claim = {'render': {'key': 'vulnerable_dependency',
+                            'params': {'package': 'bincode', 'installed': '1.3.3', 'count': 1,
+                                                                       'ids': 'RUSTSEC-2025-0141', 'severity': 'medium',
+                                       'fixed': '—'}}}
         self.assertIn('replace it', statement_of(claim, 'en'))
         self.assertIn('القرار لك', impact_of(claim, 'ar'))
 

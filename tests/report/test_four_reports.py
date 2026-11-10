@@ -10,13 +10,17 @@ from eaos.report.documents.four_reports import NAMES, clip, write
 class FourReportsTests(Workspace):
     def report(self, language='en'):
         out = Path(self.tmp)
-        (out / 'dossier.json').write_text(json.dumps({'coverage': {'files_parsed': 9, 'source_files': 10, 'not_examined': ['x']}}))
-        (out / 'features.json').write_text(json.dumps({'features': [{'name': 'contas', 'critical': True, 'target_component': 'feature:contas'}]}))
+        (out / 'dossier.json').write_text(json.dumps(
+            {'coverage': {'files_parsed': 9, 'source_files': 10, 'not_examined': ['x']}}))
+        (out / 'features.json').write_text(json.dumps(
+            {'features': [{'name': 'contas', 'critical': True, 'target_component': 'feature:contas'}]}))
         (out / 'debt-register.json').write_text(json.dumps({'items': [
             {'id': 'DEBT-001', 'severity': 'high', 'category': 'security', 'title': 'a key ' * 40}]}))
-        (out / 'plan.json').write_text(json.dumps({'tasks': [{'id': 'T1', 'title': 't', 'effort': 'S', 'section': 'frontend',
-                                                              'kind': 'remediate', 'decision': {'readiness': 'ready'}}],
-            'milestones': [{'id': 'M01', 'name': 'stabilize', 'goal': 'g', 'exit': 'e', 'goal_ar': 'ج', 'exit_ar': 'خ', 'tasks': ['T1']}],
+        (out / 'plan.json').write_text(json.dumps({'tasks': [{'id': 'T1', 'title': 't', 'effort': 'S',
+                                                              'section': 'frontend', 'kind': 'remediate',
+                                                              'decision': {'readiness': 'ready'}}],
+            'milestones': [{'id': 'M01', 'name': 'stabilize', 'goal': 'g', 'exit': 'e', 'goal_ar': 'ج',
+                            'exit_ar': 'خ', 'tasks': ['T1']}],
             'sections': [{'section': 'frontend', 'tasks': ['T1'], 'depends_on': []}]}))
         write(out, language)
         return out
@@ -25,7 +29,8 @@ class FourReportsTests(Workspace):
         out = self.report()
         for name in NAMES:
             text = (out / name).read_text()
-            for heading in ('## Summary', '### The numbers that matter', '### The largest risks', '## Not examined', '## Appendices'):
+            for heading in ('## Summary', '### The numbers that matter', '### The largest risks',
+                            '## Not examined', '## Appendices'):
                 self.assertIn(heading, text, name)
         # A cut text shows it was cut, and lines fit.
         self.assertTrue(clip('word ' * 40, 20).endswith('…'))

@@ -21,11 +21,16 @@ DEAD_REASONS = {'unreachable-module': ('لا تصله أي نقطة دخول إ�
                 'unused-symbol': ('لا يُذكر اسمه خارج تعريفه', 'its name appears nowhere outside its definition'),
                 'unread-constant': ('لا يقرؤه شيء', 'nothing reads it')}
 DEAD_VERDICT_REASONS = {'test_only': ('تذكره الاختبارات وحدها', 'only tests name it'),
-                        'review': ('برنامج لا يشغّله شيء مسجّل، وقد يشغّله أحد بيده', 'a program nothing on record runs; someone may run it by hand')}
-BROKEN_REASONS = {'undefined-name': ('اسم غير معرّف يرفع NameError عند تشغيل السطر', 'an undefined name that raises NameError when the line runs'),
-                  'duplicate-key': ('مفتاح مكرر في قاموس واحد تضيع قيمته الأولى بصمت', 'a key written twice in one dictionary; the first value is silently lost'),
-                  'missing-import': ('استيراد ملف غير موجود فتفشل الوحدة عند تحميلها', 'an import of a file that does not exist; the module fails to load'),
-                  'stale-instruction': ('وثيقة تأمر بأمر لم يعد موجودًا', 'a document instructing a command that no longer exists')}
+                        'review': ('برنامج لا يشغّله شيء مسجّل، وقد يشغّله أحد '
+                                   'بيده', 'a program nothing on record runs; someone may run it by hand')}
+BROKEN_REASONS = {'undefined-name': ('اسم غير معرّف يرفع NameError عند تشغيل السطر',
+                                     'an undefined name that raises NameError when the line runs'),
+                  'duplicate-key': ('مفتاح مكرر في قاموس واحد تضيع قيمته الأولى '
+                                    'بصمت', 'a key written twice in one dictionary; the first value is silently lost'),
+                  'missing-import': ('استيراد ملف غير موجود فتفشل الوحدة عند '
+                                     'تحميلها', 'an import of a file that does not exist; the module fails to load'),
+                  'stale-instruction': ('وثيقة تأمر بأمر لم يعد '
+                                        'موجودًا', 'a document instructing a command that no longer exists')}
 
 
 def naming(members, limit=NAMED_IN_A_STATEMENT):
@@ -52,7 +57,8 @@ def cycles(fact_sets, add, target):
             fact_ids=[fact['id']],
             probe_spec=graph_query('cycle_present', members=fact['value']['members'],
                                     expected='The same files still form a cycle in the resolved import graph.'),
-            impact={'scenario': 'Changing any member can require changing the others together; the group cannot be tested or replaced independently.'})
+            impact={'scenario': 'Changing any member can require changing the others together; the group cannot be '
+                                'tested or replaced independently.'})
 
 
 def _hidden_pair(fact, linked, language_of):
@@ -68,19 +74,22 @@ def cochanges(fact_sets, add, target):
     from ...facts.source import language_of
     history = fact_sets.get('history', {})
     if (history.get('summary', {}).get('commits_analysed') or 0) < 10: return
-    linked = {fact['location']['path']: set(fact['value']['depends_on']) for fact in facts_of(fact_sets, 'graph', 'graph_node')}
+    linked = {fact['location']['path']: set(fact['value']['depends_on']) for fact in facts_of(fact_sets, 'graph',
+        'graph_node')}
     pairs = sorted([f for f in history.get('facts', []) if f['kind'] == 'history_cochange'],
                    key=lambda f: (-f['value']['support'] * f['value']['confidence'], f['location']['path']))
     for fact in (f for f in pairs[:15] if _hidden_pair(f, linked, language_of)):
         left, right = fact['location']['path'], fact['location']['paired_path']
         add(f'{left} and {right} change together in {fact["value"]["support"]} commits with no visible code dependency',
             'structure', 'CONFIRMED', ['history_fact'],
-            'A longer history window, or a rename, showing the pairing is coincidental rather than a shared reason to change.',
+            'A longer history window, or a rename, showing the pairing is coincidental rather than a shared reason to '
+            'change.',
             fact_ids=[fact['id']],
             render={'key': 'cochange', 'params': {'left': left, 'right': right, 'support': fact['value']['support']}},
             probe_spec=graph_query('no_code_dependency', left=left, right=right,
                                     expected='Neither file imports the other in the resolved graph.'),
-            impact={'scenario': 'A change to one is likely to need a matching change to the other, with nothing in the code to signal it.'})
+            impact={'scenario': 'A change to one is likely to need a matching change to the other, with nothing in the '
+                                'code to signal it.'})
 
 
 def hotspots(fact_sets, add, target):
@@ -130,11 +139,12 @@ def large_modules(fact_sets, add, target):
         value, path = fact['value'], fact['location']['path']
         if value.get('scope') != 'file' or (value.get('lines') or 0) <= MAX_LINES or is_test(path): continue
         params = _module_params(path, value, nodes.get(path) or {}, MAX_LINES)
-        add(f"{path} has {params['lines']} lines and {params['symbols']} definitions, past the limit of {MAX_LINES} lines "
+        add(f"{path} has {params['lines']} lines and {params['symbols']} definitions, "
+            f"past the limit of {MAX_LINES} lines "
             f"for one module; {params['fan_in']} modules import it and it imports {params['fan_out']}",
             'structure', 'CONFIRMED', ['static_fact'],
-            'A measurement showing the module is within the line limit, or that its definitions serve one responsibility '
-            'no split would make clearer.',
+            'A measurement showing the module is within the line limit, or that its definitions serve one '
+            'responsibility no split would make clearer.',
             fact_ids=[fact['id']], render={'key': 'large_module', 'params': params},
             probe_spec=graph_query('module_size', path=path, max_lines=MAX_LINES,
                                     expected='The module is still past the line limit.'),
@@ -149,7 +159,8 @@ def _module_params(path, value, node, limit):
 
 
 def mutable_globals(fact_sets, add, target):
-    for fact in [f for f in facts_of(fact_sets, 'domain', 'mutable_global') if f['value'].get('mutation_scope') == 'function']:
+    for fact in [f for f in facts_of(fact_sets, 'domain',
+                                     'mutable_global') if f['value'].get('mutation_scope') == 'function']:
         # State private to its module has an owner: its own functions. Whether it may stay per-process (a
         # shutdown flag) or must move out (an in-memory rate limit behind two instances) is a decision, not a
         # mechanical repair; exposed state other modules change directly is the defect.
@@ -199,7 +210,8 @@ def policy_violations(fact_sets, add, target):
         claim = add(f"{fact['location']['path']} imports {fact['value']['to_path']}, which the declared "
                     f"policy forbids ({fact['value']['from_layer']} → {fact['value']['to_layer']})",
                     'structure', 'CONFIRMED', ['static_fact'],
-                    'The edge disappearing from the resolved graph, or the policy being changed deliberately with a reason.',
+                    'The edge disappearing from the resolved graph, or the policy being changed deliberately with a '
+                    'reason.',
                     fact_ids=[fact['id']],
                     render={'key': 'policy', 'params': {'path': fact['location']['path'],
                                                         'to': fact['value']['to_path'],
@@ -242,13 +254,18 @@ def _dead(fact, verdict, add, context):
     ar, en = DEAD_VERDICT_REASONS.get(verdict, reason)
     subject = value['message'].split('`')[1]
     claim = add(value['message'], 'structure', 'LIKELY' if test_only else 'CONFIRMED', ['static_fact'],
-                ('A test that pins it as a contract the product relies on, or a production path the text search missed.' if test_only else
-                 'A production path that reaches it: an import, a call, or a registry entry naming it that the text search missed.'),
+                ('A test that pins it as a contract the product relies on, or a production path the text search '
+                 'missed.' if test_only else
+                 'A production path that reaches it: an import, a call, or a registry entry naming it that the text '
+                 'search missed.'),
                 fact_ids=[fact['id']],
                 render={'key': 'dead_code', 'params': {'subject': subject, 'reason_ar': ar, 'reason_en': en}},
-                probe_spec=graph_query('dead_code_present', path=location['path'], symbol=location.get('symbol'), rule=value['rule'],
-                                        expected='The candidate is still unreached and unreferenced in the current snapshot.'),
-                impact={'scenario': 'Code nobody runs is still read, maintained and reviewed, and can be switched back on without anyone noticing.'})
+                probe_spec=graph_query('dead_code_present', path=location['path'], symbol=location.get('symbol'),
+                                       rule=value['rule'],
+                                        expected='The candidate is still unreached and unreferenced in the current '
+                                                 'snapshot.'),
+                impact={'scenario': 'Code nobody runs is still read, maintained and reviewed, and can be switched back '
+                                    'on without anyone noticing.'})
     fact_sets, target = context
     if test_only: claim['render']['key'] = 'dead_code_review'
     elif target is not None:
@@ -261,11 +278,14 @@ def broken_code(fact_sets, add, target):
         value, location = fact['value'], fact['location']
         ar, en = BROKEN_REASONS[value['rule']]
         add(value['message'], 'risk' if value['severity'] == 'high' else 'structure', 'CONFIRMED', ['static_fact'],
-            'The name, key, file or command existing after all: a definition, a file or a subcommand the text reading missed.',
+            'The name, key, file or command existing after all: a definition, a file or a subcommand the text reading '
+            'missed.',
             fact_ids=[fact['id']],
             render={'key': 'broken_code', 'params': {'path': location['path'], 'line': location.get('start_line'),
-                                                     'subject': str(location.get('symbol')), 'reason_ar': ar, 'reason_en': en}},
-            probe_spec=graph_query('broken_code_present', path=location['path'], symbol=location.get('symbol'), rule=value['rule'],
+                                                     'subject': str(location.get('symbol')), 'reason_ar': ar,
+                                                     'reason_en': en}},
+            probe_spec=graph_query('broken_code_present', path=location['path'], symbol=location.get('symbol'),
+                                   rule=value['rule'],
                                     expected='The same broken reference is still in the current snapshot.'),
             impact={'scenario': en[0].upper() + en[1:] + '.'})
 
@@ -273,7 +293,8 @@ def broken_code(fact_sets, add, target):
 def _advisory(fact):
     """An osv-scanner finding of a vulnerable locked version."""
     value = fact.get('value') or {}
-    return fact.get('kind') == 'engine_finding' and value.get('kind') == 'vulnerability' and value.get('engine') == 'osv-scanner'
+    return (fact.get('kind') == 'engine_finding' and value.get('kind') == 'vulnerability'
+            and value.get('engine') == 'osv-scanner')
 
 
 def vulnerable_dependencies(fact_sets, add, target):
@@ -323,11 +344,12 @@ def _lockfile(lock, members, add):
                render={'key': 'vulnerable_lockfile', 'params': {
                    'lockfile': lock, 'count': len(facts), 'packages': shown, 'severity': worst,
                    'scope': 'dev' if all(scope == 'dev' for _, scope in members) else ''}},
-               probe_spec=graph_query('vulnerable_dependency_present', lockfile=lock, scope='transitive', engines=['osv-scanner'],
+               probe_spec=graph_query('vulnerable_dependency_present', lockfile=lock, scope='transitive',
+                                      engines=['osv-scanner'],
                                       targets=sorted(fact['location'].get('symbol') for fact in facts),
                                       expected='One of these package versions is still reported vulnerable.'),
-               impact={'scenario': 'Packages this project does not name itself, locked in it, have published vulnerabilities; '
-                                   'their fixes are published too.'})
+               impact={'scenario': 'Packages this project does not name itself, locked in it, have published '
+                                   'vulnerabilities; their fixes are published too.'})
 
 
 def _vulnerable(fact, add, scope):
@@ -342,7 +364,10 @@ def _vulnerable(fact, add, scope):
                render={'key': 'vulnerable_dependency',
                        'params': {'package': package, 'installed': installed, 'count': len(ids),
                                   'ids': ', '.join(ids[:3]) + (' …' if len(ids) > 3 else ''),
-                                  'severity': numbers.get('severity'), 'fixed': numbers.get('fixed_in') or '—', 'scope': scope}},
-               probe_spec=graph_query('vulnerable_dependency_present', package=fact['location'].get('symbol'), engines=[value['engine']],
+                                  'severity': numbers.get('severity'), 'fixed': numbers.get('fixed_in') or '—',
+                                  'scope': scope}},
+               probe_spec=graph_query('vulnerable_dependency_present', package=fact['location'].get('symbol'),
+                                      engines=[value['engine']],
                                        expected='The same package version is still reported vulnerable.'),
-               impact={'scenario': 'A version locked in this project has a published vulnerability; the fix is published too.'})
+               impact={'scenario': 'A version locked in this project has a published vulnerability; the fix is '
+                                   'published too.'})

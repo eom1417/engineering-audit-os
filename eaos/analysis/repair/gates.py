@@ -1,7 +1,7 @@
-"""The gates every change passes, whichever journey made it (eaos/journeys/catalog.py): a fix, a card of a build, a card of a
-feature added to a project. One collection of facts on the changed copy (`after`) is held against the project as it
-was (`before`: its check's report, whose facts it keeps; None for a project built from its plan, where nothing was
-there, so everything found is the change's). A gate counts only what the change added.
+"""The gates every change passes, whichever journey made it (eaos/journeys/catalog.py): a fix, a card of a build,
+a card of a feature added to a project. One collection of facts on the changed copy (`after`) is held against the
+project as it was (`before`: its check's report, whose facts it keeps; None for a project built from its plan, where
+nothing was there, so everything found is the change's). A gate counts only what the change added.
 
   structure (the whole copy):
     layers     an import a rule of the policy forbids (the project's eaos.policy.json, or the blueprint's)
@@ -38,7 +38,8 @@ def structure(before, after, policy=None):
     """What a change adds against the structure. A loop whose files were all in one loop before is not the change's:
     removing one import of a large loop shows a smaller loop it held, and a sound fix was refused for it (a stranger's
     monorepo, 2026-11-05)."""
-    rows = lambda folder: {**(_layers(policy, folder) if policy else {}), **(_vendors(policy, folder) if policy else {}),
+    rows = lambda folder: {**(_layers(policy, folder) if policy else {}),
+                           **(_vendors(policy, folder) if policy else {}),
                            **_cycles(folder), **_broken(folder)}
     had = rows(before) if before else {}
     loops = [set(key[1:]) for key in had if key[0] == 'cycle']
@@ -59,13 +60,17 @@ def debt(before, after, paths, dead=True, had=None):
     was, now = (_excess(folder, paths) if folder else 0 for folder in (before, after))
     if now > was:
         problems.append({'gate': 'complex', 'where': ', '.join(sorted(paths))[:200],
-                         'what': f'more complex: {now - was} decisions more past the limit of {MAX_COMPLEXITY} per function'})
+                         'what': f'more complex: {now - was} decisions more past the limit of {MAX_COMPLEXITY} '
+                 'per function'})
     had = had if had is not None else _sizes(before, paths) if before else {}
-    problems += [{'gate': 'size', 'where': path, 'what': f'{path} grew to {lines} lines, past the limit of {MAX_LINES}: split it'}
-                 for path, lines in sorted(_sizes(after, paths).items()) if lines > MAX_LINES and lines > had.get(path, 0)]
+    problems += [{'gate': 'size', 'where': path,
+                  'what': f'{path} grew to {lines} lines, past the limit of {MAX_LINES}: split it'}
+                 for path, lines in sorted(_sizes(after, paths).items())
+                 if lines > MAX_LINES and lines > had.get(path, 0)]
     problems += tidy(before, after, paths)
     from ..assessments.weaknesses import new
-    return problems + [{'gate': 'security', 'where': path, 'what': f'a security finding: {rule} ({engine}) in {path}: never bring a weakness in'}
+    return problems + [{'gate': 'security', 'where': path,
+                        'what': f'a security finding: {rule} ({engine}) in {path}: never bring a weakness in'}
                        for engine, rule, path in new(before, after, paths)]
 
 
@@ -74,7 +79,7 @@ def tidy(before, after, paths):
     `before` did not have: a crowded folder the change filled, a test it put where the code's layout is not, a context
     file it made heavier. A `before` check that did not read the repository (older than M7.8) holds nothing against it:
     every finding would look new."""
-    if before and not (Path(before) / 'facts/repository.json').is_file(): return []     # a check older than M7.8 read none
+    if before and not (Path(before) / 'facts/repository.json').is_file(): return []  # a check older than M7.8 read none
     paths = set(paths)
     rows = lambda folder: {(f['value']['rule'], f['value']['path']): {
         'gate': 'tidy', 'where': f['value']['path'], 'what': f"{f['value']['en']}: {f['value']['fix_en']}"}
@@ -114,9 +119,12 @@ def _layers(policy, folder):
     broken, outside = violations(policy, sets)
     rows = {('layers', r['from_path'], r['to_path'], r['reason']):
             {'gate': 'layers', 'where': f"{r['from_path']}:{r['line'] or 1}",
-             'what': f"{r['from_path']}: {r['from_layer']} may not use {r['to_layer']} ({r['to_path']}): {r['reason']}"} for r in broken}
-    return {**rows, **{('structure', path): {'gate': 'structure', 'where': path, 'what': f'{path} is in no layer of the policy '
-                                             '(eaos.policy.json): put it where the plan says, or add it to one'} for path in outside}}
+             'what': f"{r['from_path']}: {r['from_layer']} may not use {r['to_layer']} ({r['to_path']}): "
+                     f"{r['reason']}"} for r in broken}
+    return {**rows, **{('structure', path): {'gate': 'structure', 'where': path,
+                                             'what': f'{path} is in no layer of the policy '
+                                                     '(eaos.policy.json): put it where the plan says, or add it to one'}
+                       for path in outside}}
 
 
 def _misplaced(module, source, packages, homes):
@@ -135,14 +143,16 @@ def _vendors(policy, folder):
             if _misplaced(module, source, vendor['packages'], homes):
                 rows[('vendor', source, module)] = {
                     'gate': 'vendor', 'where': f"{source}:{edge['location'].get('start_line') or 1}",
-                    'what': f"{module} is used in {source}, outside {' and '.join(homes)}: only the {concern} adapter may use it, "
+                    'what': f"{module} is used in {source}, outside {' and '.join(homes)}: "
+                            f"only the {concern} adapter may use it, "
                             'so it can be changed in one place'}
     return rows
 
 
 def _cycles(folder):
     return {('cycle', *sorted(f['value']['members'])): {'gate': 'cycle', 'where': f['value']['members'][0],
-                                                        'what': 'these files import each other in a loop: ' + ', '.join(f['value']['members'][:6])}
+                                                        'what': 'these files import each other in a loop: '
+                                                                + ', '.join(f['value']['members'][:6])}
             for f in _facts(folder, 'graph') if f['kind'] == 'graph_cycle'}
 
 
@@ -159,7 +169,8 @@ def _copies(folder, paths, before=None):
     may refuse a change (eaos/analysis/repair/one_source_gate.py), as far as the check `before` measured it."""
     from .one_source_gate import measured, rows
     record = lambda where: (lambda name: read_json(Path(where) / 'facts' / f'{name}.json'))
-    return rows(record(folder), {path for path in paths if not ASIDE.search(path)}, measured(record(before)) if before else None)
+    return rows(record(folder), {path for path in paths if not ASIDE.search(path)},
+                measured(record(before)) if before else None)
 
 
 def _dead(folder, paths):
@@ -178,4 +189,5 @@ def _excess(folder, paths):
     """The decisions past the complexity limit of the functions and methods in `paths`, summed over all of them: code
     moved between the files keeps its sum, and a class (the sum of its methods) is not one more function."""
     return sum(max(0, f['value']['branches'] - MAX_COMPLEXITY) for f in _facts(folder, 'metrics')
-               if f['kind'] == 'metric' and f['value']['scope'] in ('function', 'method') and f['location']['path'] in paths)
+               if f['kind'] == 'metric' and f['value']['scope'] in ('function', 'method')
+               and f['location']['path'] in paths)

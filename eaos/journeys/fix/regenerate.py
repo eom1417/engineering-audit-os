@@ -23,7 +23,8 @@ def regenerate(root, runtime, base, number):
     try:
         profile = load_profile(runtime)
         build = (profile.get('baseline') or {}).get('build') or profile.get('build')
-        if not build or not git(root, 'diff', '--name-only', f'{base}..HEAD', '--', profile.get('app') or '.').stdout.strip(): return None
+        if not build or not git(root, 'diff', '--name-only', f'{base}..HEAD', '--',
+                                profile.get('app') or '.').stdout.strip(): return None
         live = LiveRun(root, runtime, 'S09', mode='baseline')
     except AuthorizationError: return None                  # the app may not run here: nothing to build it with
     try:
@@ -50,7 +51,8 @@ def keep_guide(root, report, project, number, base):
     if not path or not _moved_named(root, base, path): return None
     drawn = project_guide.drawn_from_report(root, report, project)
     if not drawn or not project_guide.refresh(root, path, drawn, Path(project).name): return None
-    try: return commit(root, {'id': 'EXTENDING', 'title': 'Update the extension guide for the moved files', 'key': f'extending-{number}'})
+    try: return commit(root, {'id': 'EXTENDING', 'title': 'Update the extension guide for the moved files',
+                              'key': f'extending-{number}'})
     except RuntimeError: return None
 
 
@@ -70,7 +72,8 @@ def _bring_back(root, copy):
     made = _files(copy)
     ignored = set(subprocess.run(['git', '-C', str(root), 'check-ignore', '--stdin'], input='\n'.join(made),
                                  capture_output=True, text=True).stdout.splitlines())
-    changed = [rel for rel in made if rel not in ignored and (rel not in tracked or (root / rel).read_bytes() != (copy / rel).read_bytes())]
+    changed = [rel for rel in made if rel not in ignored
+               and (rel not in tracked or (root / rel).read_bytes() != (copy / rel).read_bytes())]
     for rel in changed:
         (root / rel).parent.mkdir(parents=True, exist_ok=True)
         (root / rel).write_bytes((copy / rel).read_bytes())
@@ -81,4 +84,5 @@ def _bring_back(root, copy):
 
 def _files(copy):
     """Every file of `copy`, relative to it, outside node_modules and .git."""
-    return [str(p.relative_to(copy)) for p in copy.rglob('*') if p.is_file() and not {'node_modules', '.git'} & set(p.relative_to(copy).parts)]
+    return [str(p.relative_to(copy)) for p in copy.rglob('*')
+            if p.is_file() and not {'node_modules', '.git'} & set(p.relative_to(copy).parts)]

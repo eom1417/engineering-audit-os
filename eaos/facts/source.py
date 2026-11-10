@@ -36,7 +36,8 @@ class Source:
 
     def _split(self):
         """The files the extractors read (in scope and not generated), and the paths of those left out."""
-        files = [item for item in self.inventory['files'] if not self.excluded(item['path']) and not self.generated(item)]
+        files = [item for item in self.inventory['files']
+                 if not self.excluded(item['path']) and not self.generated(item)]
         kept = {item['path'] for item in files}
         return files, [item['path'] for item in self.inventory['files'] if item['path'] not in kept]
 

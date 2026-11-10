@@ -17,8 +17,10 @@ CHOSEN_OUT = 'the person chose no sign-in: the pages behind it were seen signed 
 NOBODY = ('nobody signed in within {minutes} minutes: the pages behind the sign-in were seen signed out, as a visitor '
           'sees them; sign in when the next check asks (or choose a test user)')
 SAID_OUT = 'the person chose to go on without signing in: the pages behind the sign-in were seen signed out'
-PUBLISHED = ('the crawl and the screens read {address} signed in, read only (GET, its own links, never a link that signs '
-             'out, deletes or changes); Lighthouse, which cannot be held to reading, measures it signed out as any visitor; '
+PUBLISHED = ('the crawl and the screens read {address} signed in, read only (GET, its own links, never a link that '
+             'signs '
+             'out, deletes or changes); Lighthouse, which cannot be held to reading, measures it signed out as any '
+             'visitor; '
              'the lock, the journeys and the load test never run against it, only on the isolated copy')
 
 
@@ -29,11 +31,14 @@ def session(context):
     if chosen.get('how') == 'none': raise SkipStage(CHOSEN_OUT, code='sign_in_declined')
     evidence = sign_in.from_code(context.out) + sign_in.from_pages(_setup_page(context))
     if not evidence: return _record(context, _views_alone(context))
-    live, base, state = shared_app(context)              # seeded, or the person's session checked; kept for the page stages
+    live, base, state = shared_app(context)              # seeded, or the person's session checked; kept for the page
+                                                         # stages
     lacking = '' if sign_in.by_hand(state) or chosen.get('how') == 'hand' else _test_users(context, live, base, state)
     if not sign_in.works(live, base, state, context.out): _ask(context, chosen, live, base, state)
-    if sign_in.by_hand(state): lacking = _test_users(context, live, base, state, hand=True)     # its switches into each view
-    return _record(context, {'needed': True, 'evidence': evidence, 'how': 'hand' if sign_in.by_hand(state) else 'test_user',
+    if sign_in.by_hand(state): lacking = _test_users(context, live, base, state, hand=True)     # its switches into each
+                                                                                                # view
+    return _record(context,
+                   {'needed': True, 'evidence': evidence, 'how': 'hand' if sign_in.by_hand(state) else 'test_user',
                              **({'test_users': lacking[:300]} if lacking else {})})
 
 
@@ -43,7 +48,8 @@ def _by_rules(context, live, base, state):
     if sign_in.works(live, base, state, context.out): return
     from ...live.access.test_account import by_rules
     try: context['sign_in']['tried'] = by_rules(live, base, state, sign_in.page_of(_setup_page(context), base))
-    except Exception: context['sign_in']['tried'] = [{'did': 'no_form'}]      # rules never decide the check: the person is asked
+    except Exception: context['sign_in']['tried'] = [{'did': 'no_form'}]      # rules never decide the check: the person
+                                                                              # is asked
 
 
 def _views_alone(context):
@@ -79,14 +85,17 @@ def _ask(context, chosen, live, base, state):
     outcome, why = 'timeout', 'needed'
     while not chosen.get('gave_up'):
         folder = chosen.get('folder') or live.runtime.parent
-        sign_in.ask(folder, sign_in.page_of(_setup_page(context), base), state, why, log=sign_in.service_log(live), mail=live.mail())
-        sign_in.tell(folder, tried=chosen.get('tried') or [])     # what EAOS did before asking: the person sees why it asks
+        sign_in.ask(folder, sign_in.page_of(_setup_page(context), base), state, why, log=sign_in.service_log(live),
+                    mail=live.mail())
+        sign_in.tell(folder, tried=chosen.get('tried')
+                     or [])     # what EAOS did before asking: the person sees why it asks
         outcome = sign_in.wait(folder)
         if outcome != sign_in.SIGNED_IN: break
         if sign_in.works(live, base, state, context.out): return
         why = 'not_signed_in'
     chosen['gave_up'] = True
-    raise SkipStage(SAID_OUT if outcome == sign_in.SIGNED_OUT else NOBODY.format(minutes=sign_in.WAIT // 60), code='signed_out')
+    raise SkipStage(SAID_OUT if outcome == sign_in.SIGNED_OUT else NOBODY.format(minutes=sign_in.WAIT // 60),
+                    code='signed_out')
 
 
 def _setup_page(context):
@@ -101,7 +110,8 @@ def _published(context, chosen):
     sign_in.ask(chosen['folder'], chosen['published'], state, 'published', published=True)
     if sign_in.wait(chosen['folder']) != sign_in.SIGNED_IN:
         address, chosen['published'] = chosen['published'], None     # never opened without the person's session
-        raise SkipStage(f'nobody signed in to {address}, so it was not read: ' + NOBODY.format(minutes=sign_in.WAIT // 60), code='signed_out')
+        raise SkipStage(f'nobody signed in to {address}, so it was not read: '
+                        + NOBODY.format(minutes=sign_in.WAIT // 60), code='signed_out')
     return _record(context, {'needed': True, 'how': 'hand', 'published': chosen['published'],
                              'note': PUBLISHED.format(address=chosen['published'])})
 

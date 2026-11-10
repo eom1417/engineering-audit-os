@@ -4,9 +4,9 @@ assistant (the MCP audit tool) and the interface.
     keep(state, mode=None, sign_in=None)   the mode (normal or speed) and the way to sign in, kept for the next checks;
                                            True when they changed, and the caller saves the state
     options(state, progress, failed, provider, runtime, paths=None, engines=None, published=None)
-                                           pipeline.check's options: the language, the engines, the assistant's provider,
-                                           the isolated copy, the tools started without, the paths, the kept mode and
-                                           how the page stages sign in
+                                           pipeline.check's options: the language, the engines, the assistant's
+                                           provider, the isolated copy, the tools started without, the paths, the
+                                           kept mode and how the page stages sign in
     estimate(report, paths=None, mode=None) the minutes such a check takes here, from the last check's seconds
     offered(state, report)                 what the start of a check offers: the paths, the kept mode and sign-in, and
                                            the sign-in the code shows
@@ -35,8 +35,9 @@ def kept(state):
 
 
 def agreed_to_run(state):
-    """Whether the person agreed to run their app in an isolated copy: asked by `eaos next` (question `run_app`), or given
-    to the assistant, the interface or the check's window (consent `run_and_fix`, agree_to_run)."""
+    """Whether the person agreed to run their app in an isolated copy: asked by `eaos next` (question
+    `run_app`), or given to the assistant, the interface or the check's window (consent `run_and_fix`,
+    agree_to_run)."""
     return any(q['id'] == 'run_app' and q.get('answer') for q in state.get('questions') or []) or \
         bool((state.get('consent') or {}).get('run_and_fix'))
 
@@ -54,7 +55,8 @@ def keep(state, mode=None, sign_in=None, run_app=False):
     """Keep the person's mode, way to sign in and yes to running their app for this project's checks in `state`; True
     when they changed."""
     if mode is not None and mode not in MODES[:2]: raise ValueError(f'mode is one of normal, speed, not {mode!r}')
-    if sign_in is not None and sign_in not in SIGN_IN: raise ValueError(f"sign_in is one of {', '.join(SIGN_IN)}, not {sign_in!r}")
+    if sign_in is not None and sign_in not in SIGN_IN: raise ValueError(
+        f"sign_in is one of {', '.join(SIGN_IN)}, not {sign_in!r}")
     if run_app: agree_to_run(state, 'check')
     chosen = {k: v for k, v in (('mode', mode), ('sign_in', sign_in)) if v is not None}
     if not chosen or {**kept(state), **chosen} == kept(state): return bool(run_app)
@@ -62,12 +64,15 @@ def keep(state, mode=None, sign_in=None, run_app=False):
     return True
 
 
-def options(state, progress, failed, provider, runtime, paths=None, engines=None, published=None):  # limits: parameters -- builds pipeline.check's options, one parameter per source of them
-    """The options of pipeline.check for this project now (`failed`: the tools started without; `provider`, `runtime`: the
-    assistant's and the isolated copy's, eaos/journeys/guided/ check_provider and check_runtime; `engines`: those to run again
-    with again_from; `published`: the published address the person named for this check, read signed in, read only)."""
+def options(state, progress, failed, provider, runtime, paths=None, engines=None,
+            published=None):  # limits: parameters -- builds pipeline.check's options, one parameter per source of them
+    """The options of pipeline.check for this project now (`failed`: the tools started without; `provider`,
+    `runtime`: the assistant's and the isolated copy's, eaos/journeys/guided/ check_provider and check_runtime;
+    `engines`: those to run again with again_from; `published`: the published address the person named for
+    this check, read signed in, read only)."""
     resolve(paths)                                  # an unknown path stops the check before anything runs
-    return dict(language=state.get('lang') or 'en', engines=engines or [], progress=progress, provider=provider, runtime=runtime,
+    return dict(language=state.get('lang') or 'en', engines=engines or [], progress=progress,
+                provider=provider, runtime=runtime,
                 without_tools=sorted(failed), paths=paths, mode=kept(state)['mode'],
                 sign_in={'how': kept(state)['sign_in'], 'published': published, 'folder': state['workspace']})
 
@@ -101,12 +106,13 @@ def without_ai_kept(report, without_ai, again_from, chosen):
 
 
 def offered(state, report=None):
-    """What the start of a check offers the person (the preview the interface shows): each path with what it looks at,
-    in both
-    languages, the mode and the way to sign in kept for this project, the sign-in its code shows (`report`: the last
-    check's, eaos/live/access/sign_in.py from_code), when the ways to sign in are offered, and whether the person already agreed
-    to run their app (`run_app`): without it the pages, sign-in and speed are not checked, so the start asks it."""
-    paths = [{'id': key, 'name': dict(zip(('en', 'ar'), path['names'])), 'looks_at': dict(zip(('en', 'ar'), path['looks_at']))}
+    """What the start of a check offers the person (the preview the interface shows): each path with what it
+    looks at, in both languages, the mode and the way to sign in kept for this project, the sign-in its code
+    shows (`report`: the last check's, eaos/live/access/sign_in.py from_code), when the ways to sign in are
+    offered, and whether the person already agreed to run their app (`run_app`): without it the pages,
+    sign-in and speed are not checked, so the start asks it."""
+    paths = [{'id': key, 'name': dict(zip(('en', 'ar'), path['names'])),
+              'looks_at': dict(zip(('en', 'ar'), path['looks_at']))}
              for key, path in PATHS.items()]
     return {'paths': paths, **kept(state), 'sign_in_seen': sign_in.from_code(report) if report else [],
             'run_app': agreed_to_run(state)}

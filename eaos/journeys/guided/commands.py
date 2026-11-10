@@ -26,7 +26,8 @@ def show(args):
     lang = language(args.lang, state)
     page = report_of(state) / 'START-HERE.md'
     if not page.is_file():
-        box(lang, 'لم أفحص المشروع بعد' if lang == 'ar' else 'I have not checked the project yet', commands=['eaos next'], status='warn')
+        box(lang, 'لم أفحص المشروع بعد' if lang == 'ar' else 'I have not checked the project yet',
+            commands=['eaos next'], status='warn')
         return 0
     say(page.read_text(encoding='utf-8'))
     box(lang, 'هذه نتيجة الفحص' if lang == 'ar' else 'This is what the check found', where=page, commands=['eaos next'])
@@ -40,15 +41,18 @@ def do(args):
     request = ' '.join(args.request or [])
     intent, _ = understand(request)
     if intent is None:
-        box(lang, ('لم أفهم الطلب. جرّب مثلًا: «افحص مشروعي»، «كمّل»، «وش المشاكل»، «وين وصلنا»' if lang == 'ar'
-                   else 'I did not understand. Try, for example: "check my project", "continue", "what is wrong", "where are we"'),
+        box(lang, ('لم أفهم الطلب. جرّب مثلًا: «افحص مشروعي»، «كمّل»، «وش المشاكل»، «وين وصلنا»'
+                   if lang == 'ar' else
+                   'I did not understand. Try, for example: "check my project", "continue", "what is wrong", '
+                   '"where are we"'),
             commands=['eaos do "افحص مشروعي"' if lang == 'ar' else 'eaos do "check my project"'], status='warn')
         return 0
     command = intent['command'][0]
     say(('سأنفّذ: ' if lang == 'ar' else 'Doing: ') + 'eaos ' + ' '.join(intent['command']))
     from argparse import Namespace
     target = intent['command'][1] if len(intent['command']) > 1 else args.project
-    inner = Namespace(command=command, project=target if command != 'doctor' else None, lang=args.lang, yes=args.yes, fix=False)
+    inner = Namespace(command=command, project=target if command != 'doctor' else None, lang=args.lang,
+                      yes=args.yes, fix=False)
     return COMMANDS[command](inner)
 
 
@@ -58,20 +62,23 @@ def assistant(args):
     lang = language(args.lang)
     done = install()
     if not done:
-        box(lang, ('لم أجد Claude Code ولا Codex على جهازك' if lang == 'ar' else 'I found neither Claude Code nor Codex on this computer'),
+        box(lang, ('لم أجد Claude Code ولا Codex على جهازك' if lang == 'ar'
+                   else 'I found neither Claude Code nor Codex on this computer'),
             commands=['eaos start .'], status='warn',
             note=('ثبّت أحدهما لتكلّمه بكلامك، أو استخدم أوامر eaos مباشرة' if lang == 'ar'
                   else 'Install one to talk to it in your own words, or use the eaos commands directly'))
         return 0
     box(lang, ('صار مساعدك يعرف EAOS: ' if lang == 'ar' else 'Your assistant now knows EAOS: ') + ', '.join(done),
         commands=['«افحص مشروعي»' if lang == 'ar' else '"check my project"'],
-        note=('افتح مساعدك في مجلد مشروعك واكتب له بكلامك' if lang == 'ar' else 'Open your assistant in your project folder and ask in your own words'))
+        note=('افتح مساعدك في مجلد مشروعك واكتب له بكلامك' if lang == 'ar'
+              else 'Open your assistant in your project folder and ask in your own words'))
     return 0
 
 
 # (id, Arabic title, English title, done(state), run(state, args)): check and fix, its words in eaos/data/journeys.json
 STEPS = [(step['id'], step['title']['ar'], step['title']['en'], done, run) for step, (done, run) in zip(
-    json.loads((Path(__file__).resolve().parents[2] / 'data/journeys.json').read_text(encoding='utf-8'))['journeys']['check']['steps'],
+    json.loads((Path(__file__).resolve().parents[2] / 'data/journeys.json').read_text(
+        encoding='utf-8'))['journeys']['check']['steps'],
     ((scan_done, scan), (ready_done, ready), (safety_done, safety), (fix_done, fix)))]
 
 
@@ -92,8 +99,10 @@ def start(args):
     save(state)
     _keep_assistant(state, getattr(args, 'assistant', None))
     lang = state['lang']
-    say((f"مرحبًا. سأفحص مشروع «{project.name}» وأكتب لك تقريرًا بكلام بسيط. لن أغيّر شيئًا في مشروعك." if lang == 'ar' else
-         f"Hello. I will check «{project.name}» and write you a report in plain words. I will not change anything in your project."))
+    say((f"مرحبًا. سأفحص مشروع «{project.name}» وأكتب لك تقريرًا بكلام بسيط. لن أغيّر شيئًا في مشروعك."
+         if lang == 'ar' else
+         f"Hello. I will check «{project.name}» and write you a report in plain words. "
+         "I will not change anything in your project."))
     if _missing_first(project, lang): return 1
     watch(state, args)
     if not (getattr(args, 'path', None) or getattr(args, 'mode', None)): return advance(state, args)
@@ -175,16 +184,23 @@ def _sessions_forgotten():
     """The sessions of the apps removed: a check asks to sign in again. A project with work going on, or that cannot
     be told, keeps its own: what stayed."""
     from ...live.access.sign_in import forget
-    return [(folder, 'held') for folder in (home() / 'projects').glob('*') if not copies.when_idle(folder, lambda place=folder: forget(place))]
+    return [(folder, 'held') for folder in (home() / 'projects').glob('*')
+            if not copies.when_idle(folder, lambda place=folder: forget(place))]
 
 
 def _say_cleaned(lang, pictures, freed, kept):
     ar = lang == 'ar'
-    done = (f"حذفت النسخ المؤقتة{' وصور الشاشات القديمة' if pictures else ''} ووفّرت {freed / 2 ** 30:.1f} GB. التقارير باقية" if ar
-            else f"Removed the temporary copies{' and the old screen pictures' if pictures else ''} and freed {freed / 2 ** 30:.1f} GB. Reports are kept")
-    if kept: done = (f"حذفت ما ثبت أنه لا يحمل عملًا ووفّرت {freed / 2 ** 30:.1f} GB. بقي {len(kept)} مما لم يثبت" if ar
-                     else f"Removed what is proved to hold nothing and freed {freed / 2 ** 30:.1f} GB. {len(kept)} stay, not proved")
-    box(lang, done, status='warn' if kept else 'ok', note=[f"{str(copy).encode('utf-8', 'replace').decode()}: {copies.WHY[why][0 if ar else 1]}" for copy, why in kept],
+    done = (f"حذفت النسخ المؤقتة{' وصور الشاشات القديمة' if pictures else ''} ووفّرت {freed / 2 ** 30:.1f} GB. "
+            "التقارير باقية" if ar
+            else f"Removed the temporary copies{' and the old screen pictures' if pictures else ''} and freed "
+                 f"{freed / 2 ** 30:.1f} GB. Reports are kept")
+    if kept: done = (f"حذفت ما ثبت أنه لا يحمل عملًا ووفّرت {freed / 2 ** 30:.1f} GB. بقي {len(kept)} مما لم يثبت"
+                     if ar else
+                     f"Removed what is proved to hold nothing and freed {freed / 2 ** 30:.1f} GB. "
+                     f"{len(kept)} stay, not proved")
+    box(lang, done, status='warn' if kept else 'ok',
+        note=[f"{str(copy).encode('utf-8', 'replace').decode()}: {copies.WHY[why][0 if ar else 1]}"
+              for copy, why in kept],
         where=home(), commands=['eaos next'])
 
 
@@ -195,7 +211,8 @@ def _pictures_cleared():
     freed, kept = [], []
     for report in (*outputs_root().glob('*/technical'), *outputs_root().glob('*/branches/*/technical')):
         folder = _project_of(report)
-        if not (folder and copies.when_idle(folder, lambda place=report: freed.append(clear(place, PICTURES)))): kept.append((report, 'held'))
+        if not (folder and copies.when_idle(folder, lambda place=report: freed.append(clear(place, PICTURES)))):
+            kept.append((report, 'held'))
     return sum(freed), kept
 
 
@@ -208,7 +225,8 @@ def _project_of(report):
         state = load(project) if project else None
     except (OSError, ValueError):
         return None
-    if not isinstance(state, dict) or state.get('project') != project or Path(state.get('outputs') or '/').resolve() != outputs.resolve(): return None
+    if (not isinstance(state, dict) or state.get('project') != project
+            or Path(state.get('outputs') or '/').resolve() != outputs.resolve()): return None
     return workspace(project)
 
 
@@ -219,14 +237,18 @@ def resume(args):
     lang = language(args.lang, state)
     found = RESUME[0](state['project'], lang) if RESUME else None
     if not found or not found['rows']:
-        box(lang, 'لم يبدأ عمل EAOS في هذا المشروع بعد' if lang == 'ar' else 'No EAOS work has started in this project yet',
+        box(lang, 'لم يبدأ عمل EAOS في هذا المشروع بعد' if lang == 'ar'
+            else 'No EAOS work has started in this project yet',
             commands=['eaos start .'], status='warn')
         return 0
     for label, value in found['rows']: say(f'   {label}: {value}')
     ar = lang == 'ar'
-    box(lang, ('هذا ما وصل إليه العمل. افتح أي مساعد (Claude Code أو Codex) في مجلد مشروعك واكتب له الجملة أدناه' if ar else
-               'This is where the work is. Open any assistant (Claude Code or Codex) in your project folder and write it the line below'),
-        where=found['handover'], commands=[found['say']], note=(None if found['open'] else ('لا يوجد عمل مفتوح الآن' if ar else 'Nothing is open now')))
+    box(lang, ('هذا ما وصل إليه العمل. افتح أي مساعد (Claude Code أو Codex) في مجلد مشروعك واكتب له الجملة أدناه'
+               if ar else
+               'This is where the work is. Open any assistant (Claude Code or Codex) in your project folder and '
+               'write it the line below'),
+        where=found['handover'], commands=[found['say']],
+        note=(None if found['open'] else ('لا يوجد عمل مفتوح الآن' if ar else 'Nothing is open now')))
     return 0
 
 
@@ -268,7 +290,8 @@ def _ask_to_agree(lang, question, args):
     box(lang, question['text'], status='ask',
         note=('للموافقة اكتب الأمر أدناه، ولن يحدث شيء حتى توافق' if lang == 'ar'
               else 'To agree, type the command below; nothing happens until you do'),
-        commands=[f"eaos {args.command} --yes" + (f" {args.project}" if args.command == 'start' and args.project not in (None, '.') else '')])
+        commands=[f"eaos {args.command} --yes"
+                  + (f" {args.project}" if args.command == 'start' and args.project not in (None, '.') else '')])
 
 
 def _failed(lang, problem, state):

@@ -28,7 +28,8 @@ def test_extra(app):
     try: extras = tomllib.loads(_read(app / 'pyproject.toml')).get('project', {}).get('optional-dependencies') or {}
     except (tomllib.TOMLDecodeError, AttributeError): return None
     if not isinstance(extras, dict): return None
-    return next((name for name, deps in extras.items() if any(re.match(r'pytest\b', str(d).strip().lower()) for d in deps)), None)
+    return next((name for name, deps in extras.items()
+                 if any(re.match(r'pytest\b', str(d).strip().lower()) for d in deps)), None)
 
 
 def test_group(app):
@@ -43,7 +44,8 @@ def test_group(app):
         rows = []
         for row in groups.get(name) or []:
             if isinstance(row, str): rows.append(row)
-            elif isinstance(row, dict) and row.get('include-group') not in seen: rows += read(row['include-group'], seen | {name})
+            elif isinstance(row, dict) and row.get('include-group') not in seen:
+                rows += read(row['include-group'], seen | {name})
         return rows
     found = (read(name, {name}) for name in groups)
     return next((rows for rows in found if any(re.match(r'pytest\b', row.strip().lower()) for row in rows)), [])

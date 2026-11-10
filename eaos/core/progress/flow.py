@@ -51,7 +51,8 @@ def errors(stages):
     for stage in stages:
         if stage.name in seen: found.append(f'{stage.name}: declared twice')
         seen.add(stage.name)
-        found += [f'{stage.name}: requires {need}, which no earlier stage provides' for need in stage.requires if need not in seen]
+        found += [f'{stage.name}: requires {need}, which no earlier stage provides'
+                  for need in stage.requires if need not in seen]
         if stage.necessity == OPTIONAL and not stage.absent_when.strip():
             found.append(f'{stage.name}: optional without saying when it may be absent')
         if not stage.description.strip(): found.append(f'{stage.name}: says nothing about what it does')
@@ -83,7 +84,8 @@ def partial(row):
     """Whether a stage's row makes its run PARTIAL: required and skipped, the assistant lost midway, or files it
     could not read for their names."""
     detail = row.get('detail') or {}
-    return (row['necessity'] == REQUIRED and row['status'] == SKIPPED) or detail.get('assistant_lost') or detail.get('unread_names')
+    return ((row['necessity'] == REQUIRED and row['status'] == SKIPPED) or detail.get('assistant_lost')
+            or detail.get('unread_names'))
 
 
 class Flow:
@@ -131,7 +133,8 @@ class Flow:
 
     def _counts(self, missing):
         """{state: how many stages ended in it}, the `missing` ones counted not reached."""
-        return {state: sum(1 for row in self.results.values() if row['status'] == state) + (len(missing) if state == NOT_REACHED else 0)
+        return {state: sum(1 for row in self.results.values() if row['status'] == state)
+                + (len(missing) if state == NOT_REACHED else 0)
                 for state in (OK, SKIPPED, 'unavailable', FAILED, NOT_REACHED)}
 
     # the stages
@@ -145,7 +148,8 @@ class Flow:
         self.began[name], self.current = self.clock(), name
         self._step_token = context._current.set(self.log.stepper(name) if self.log.enabled else None)
 
-    def end(self, name=None, status=OK, reason='', code='', artifacts=(), detail=None):  # limits: parameters -- the fields of a stage's result row
+    def end(self, name=None, status=OK, reason='', code='', artifacts=(),
+            detail=None):  # limits: parameters -- the fields of a stage's result row
         """`name` (default: the running stage) ends with `status`; its seconds are measured from its begin."""
         name = name or self.current
         if name is None or name not in self.declared or name in self.results: return
@@ -179,7 +183,8 @@ def begin(name):
     if flow is not None: _safely(flow.begin, name)
 
 
-def end(name=None, status=OK, reason='', code='', artifacts=(), detail=None):  # limits: parameters -- Flow.end's fields, for the running flow
+def end(name=None, status=OK, reason='', code='', artifacts=(),
+        detail=None):  # limits: parameters -- Flow.end's fields, for the running flow
     flow = _flow.get()
     if flow is not None: _safely(flow.end, name, status, reason, code, artifacts, detail)
 

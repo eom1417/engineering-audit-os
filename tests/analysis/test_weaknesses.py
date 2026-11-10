@@ -29,7 +29,8 @@ class WeaknessTests(unittest.TestCase):
                      fact('F', 'bandit', 'tests/test_db.py', 3, 'B608', ['CWE-89']),
                      fact('G', 'gitleaks', 'tests/test_keys.py', 3, 'aws-key', kind='secret'))
         made = []
-        weaknesses.claims(found, lambda *args, **extra: made.append((args[2], extra['fact_ids'], extra['render']['params']['place'])), None)
+        weaknesses.claims(found, lambda *args, **extra: made.append((args[2], extra['fact_ids'],
+                                                                     extra['render']['params']['place'])), None)
         self.assertEqual(sorted(made), sorted([
             ('LIKELY', ['A', 'B'], 'app/db.py'),               # agreed: same file, a line apart
             ('HYPOTHESIS', ['C'], 'app/run.py'),               # alone: the triage reads the code
@@ -53,7 +54,8 @@ class WeaknessTests(unittest.TestCase):
             self.assertIn('HMAC', made[0][1])
 
     def test_a_card_is_never_passed_by_an_engine_that_did_not_run(self):
-        spec = {'query': 'weakness_present', 'labels': ['CWE-89'], 'paths': ['app/db.py'], 'engines': ['semgrep', 'bandit']}
+        spec = {'query': 'weakness_present', 'labels': ['CWE-89'], 'paths': ['app/db.py'], 'engines': ['semgrep',
+            'bandit']}
         self.assertEqual(run_graph_query(spec, sets(observed=('bandit',)))[0], 'INCONCLUSIVE')
         self.assertEqual(run_graph_query(spec, sets())[0], 'REFUTED')
         with tempfile.TemporaryDirectory() as tmp:
@@ -70,7 +72,8 @@ class WeaknessTests(unittest.TestCase):
         justified = {**fact('J', 'semgrep', 'app/db.py', 11, 'sql', ['CWE-89']), 'kind': 'engine_finding_justified'}
         with tempfile.TemporaryDirectory() as tmp:
             had, before, after = Path(tmp, 'had'), Path(tmp, 'before'), Path(tmp, 'after')
-            for folder, rows in ((had, [fact('A', 'semgrep', 'app/db.py', 10, 'sql')]), (before, []), (after, [justified])):
+            for folder, rows in ((had, [fact('A', 'semgrep', 'app/db.py', 10, 'sql')]), (before, []), (after,
+                [justified])):
                 (folder / 'facts').mkdir(parents=True)
                 (folder / 'facts/external.json').write_text(json.dumps(sets(*rows)['external']))
             self.assertEqual(weaknesses.new(before, after, {'app/db.py'}), [('semgrep', 'sql', 'app/db.py')])

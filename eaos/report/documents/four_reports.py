@@ -37,7 +37,8 @@ def _risks(register, n=3):
 
 
 VERDICT_WORDS = {'keep': ('keep: already right, nothing changes', 'يبقى: صحيح كما هو، لا تغيير'),
-                 'improve': ('improve', 'يتحسّن'), 'unmeasured': ('not measured in this check', 'لم يُقَس في هذا الفحص')}
+                 'improve': ('improve', 'يتحسّن'),
+                 'unmeasured': ('not measured in this check', 'لم يُقَس في هذا الفحص')}
 
 
 def aspect_section(page, out, ar):
@@ -52,17 +53,20 @@ def aspect_section(page, out, ar):
 
 def _aspect_line(row, ar):
     """An aspect, its verdict and why, its plan and cards when it is to improve, and who decided."""
-    label = row['label'][1 if ar else 0] if isinstance(row.get('label'), (list, tuple)) else row.get('label') or row['aspect']
+    label = row['label'][1 if ar else 0] if isinstance(row.get('label'),
+                                                       (list, tuple)) else row.get('label') or row['aspect']
     words = VERDICT_WORDS.get(row['verdict'], (row['verdict'], row['verdict']))[1 if ar else 0]
     line = f"{label}: {words}. {clip(row.get('why'), 220)}"
-    if row['verdict'] == 'improve' and row.get('plan'): line += (' الخطة: ' if ar else ' Plan: ') + clip(row['plan'], 220)
+    if row['verdict'] == 'improve' and row.get('plan'):
+        line += (' الخطة: ' if ar else ' Plan: ') + clip(row['plan'], 220)
     if row.get('cards'): line += ' (' + ', '.join(row['cards'][:4]) + ')'
     return line + f" ({_who(row, ar)})"
 
 
 def _who(row, ar):
     """Who judged an aspect: the person's assistant, or the rules."""
-    return ('مساعدك' if ar else 'your assistant') if row.get('decided_by') == 'assistant' else ('القواعد' if ar else 'the rules')
+    return ('مساعدك' if ar else 'your assistant') if row.get('decided_by') == 'assistant' else ('القواعد' if ar
+        else 'the rules')
 
 
 def _diagram(page, out, which, ar):
@@ -89,30 +93,98 @@ def _baseline_decision(severe, ar):
         return (f"قبول هذا الوصف أساسًا للتحول، ومعالجة البنود العالية الخطورة ({len(severe)}) أولًا." if ar else
                 f"accept this description as the baseline, and treat the {len(severe)} high or critical items first.")
     return ('قبول هذا الوصف أساسًا للتحول؛ لا بند عالي الخطورة بشاهد كافٍ، فالبداية بمعلم التثبيت.' if ar else
-            'accept this description as the baseline; no high item has enough witnesses, so start with the stabilize milestone.')
+            'accept this description as the baseline; no high item has enough witnesses, so start with the '
+            'stabilize milestone.')
 
 
 def _feature_items(features, ar):
     return ([clip(f"{f['name']}: {f.get('description', '')}", 160) for f in features[:12]]
-            + ([f"… {len(features) - 12} " + ('أخرى في features.json' if ar else 'more in features.json')] if len(features) > 12 else []))
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+            + ([f"… {len(features) - 12} " + ('أخرى في features.json' if ar else 'more in features.json')]
+               if len(features) > 12 else []))
 
 
 def _unexamined(page, out, coverage, external, ar):
     alike = [row['ar' if ar else 'en'] for row in _read(out, 'dossier.json', 'likenesses', [])[:10]]   # said, no card
     if alike:
-        page.para('متشابهات في الشكل بس، ما صارت بطاقات (ما استوفت الشروط الثلاثة):' if ar else 'Alike in shape only, not cards (they miss one of the three conditions):')
+        page.para('متشابهات في الشكل بس، ما صارت بطاقات (ما استوفت الشروط الثلاثة):' if ar
+                  else 'Alike in shape only, not cards (they miss one of the three conditions):')
         page.items(alike)
     page.heading(_labels(ar)['unexamined'])
-    page.items(list(coverage.get('not_examined') or [])[:8] + withheld_said(_read(out, 'dossier.json', 'withheld_claims', []), ar)
-               + [('محرك غير مثبت: ' if ar else 'engine not installed: ') + name for name in external.get('engines_unavailable') or []])
+    page.items(list(coverage.get('not_examined') or [])[:8]
+               + withheld_said(_read(out, 'dossier.json', 'withheld_claims', []), ar)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+               + [('محرك غير مثبت: ' if ar else 'engine not installed: ') + name
+               for name in external.get('engines_unavailable') or []])
 
 
 def _current_number_items(numbers, ar):
     """The summary's three numbers, each with the record it comes from."""
-    return [f"{numbers['files_parsed'][0]} " + ('ملفًا محللًا' if ar else 'files analysed') + f" ({numbers['files_parsed'][1]})",
-            f"{numbers['features'][0]} " + ('وظيفة، منها' if ar else 'features, of which') + f" {numbers['critical_features'][0]} "
+    return [f"{numbers['files_parsed'][0]} " + ('ملفًا محللًا' if ar else 'files analysed')
+            + f" ({numbers['files_parsed'][1]})",
+            f"{numbers['features'][0]} " + ('وظيفة، منها' if ar else 'features, of which')
+            + f" {numbers['critical_features'][0]} "
             + ('حرجة' if ar else 'critical') + f" ({numbers['features'][1]})",
-            f"{numbers['debt_items'][0]} " + ('بند دَين، منها' if ar else 'debt items, of which') + f" {numbers['high_or_critical'][0]} "
+            f"{numbers['debt_items'][0]} " + ('بند دَين، منها' if ar else 'debt items, of which')
+            + f" {numbers['high_or_critical'][0]} "
             + ('عالية أو حرجة' if ar else 'high or critical') + f" ({numbers['debt_items'][1]})"]
 
 
@@ -127,8 +199,10 @@ def _current_evidence(page, features, items, measured, ar):
               + ', '.join(f'{k} {v}' for k, v in sorted(by_category.items(), key=lambda kv: -kv[1])))
     hottest = sorted(measured, key=lambda r: (-(r.get('complexity_max') or 0), -(r.get('churn') or 0)))[:5]
     if hottest:
-        page.para(('أعقد الملفات وأكثرها تغيّرًا (measurements.json):' if ar else 'The most complex, most changed files (measurements.json):'))
-        page.items([f"{r['path']}: complexity {r.get('complexity_max')}, commits {r.get('churn')}, fan-in {r.get('fan_in')}" for r in hottest])
+        page.para(('أعقد الملفات وأكثرها تغيّرًا (measurements.json):' if ar
+                   else 'The most complex, most changed files (measurements.json):'))
+        page.items([f"{r['path']}: complexity {r.get('complexity_max')}, "
+                    f"commits {r.get('churn')}, fan-in {r.get('fan_in')}" for r in hottest])
 
 
 def current_state(out, ar):
@@ -151,13 +225,17 @@ def current_state(out, ar):
     _diagram(page, out, 'current', ar)
     aspect_section(page, out, ar)
     page.heading(L['impact'])
-    page.para(('كل بند عالي الخطورة في السجل له شاهد حتمي أو أداتان؛ تركه يعني أن الخطر المعروف يبقى في كل إصدار.' if ar else
-               'Every high item in the register has a deterministic witness or two tools; leaving one means a known risk ships in every release.'))
+    page.para(('كل بند عالي الخطورة في السجل له شاهد حتمي أو أداتان؛ تركه يعني أن الخطر المعروف يبقى في كل إصدار.' if ar
+               else
+               'Every high item in the register has a deterministic witness or two tools; leaving one means a known '
+               'risk ships in every release.'))
     page.heading(L['recommendation'])
-    page.para(('ابدأ بمعلم التثبيت في EXECUTION-PLAN.md.' if ar else 'Start with the stabilize milestone in EXECUTION-PLAN.md.'))
+    page.para(('ابدأ بمعلم التثبيت في EXECUTION-PLAN.md.' if ar
+               else 'Start with the stabilize milestone in EXECUTION-PLAN.md.'))
     _unexamined(page, out, coverage, external, ar)
     page.heading(L['appendices'])
-    page.items(['`features.json`', '`measurements.json`', '`debt-register.json`', '`load-model.json`', '`facts/external.json`'])
+    page.items(['`features.json`', '`measurements.json`', '`debt-register.json`', '`load-model.json`',
+                '`facts/external.json`'])
     return page.text()
 
 
@@ -168,8 +246,9 @@ def execution_plan(out, ar):
     numbers = _plan_numbers(plan, tasks, read_json(Path(out) / 'cards.json', {}) or {})
     page = Page('خطة التنفيذ' if ar else 'Execution plan')
     page.heading(L['summary'])
-    page.para(f"{L['decision']}: " + (f"تخصيص فريق للمعلم الأول ({(plan.get('milestones') or [{}])[0].get('name', '—')})." if ar else
-                                       f"staff the first milestone ({(plan.get('milestones') or [{}])[0].get('name', '—')})."))
+    page.para(f"{L['decision']}: "
+              + (f"تخصيص فريق للمعلم الأول ({(plan.get('milestones') or [{}])[0].get('name', '—')})." if ar else
+                 f"staff the first milestone ({(plan.get('milestones') or [{}])[0].get('name', '—')})."))
     _numbers_section(page, L, tasks, numbers, ar)
     _plan_sections(page, L, plan, tasks, ar)
     return page.text()
@@ -180,10 +259,14 @@ def _numbers_section(page, L, tasks, numbers, ar):
     ready, sizes = numbers['ready'][0], numbers['sizes'][0]
     page.heading(L['numbers'], 3)
     page.items([f"{len(tasks)} " + ('بطاقة' if ar else 'cards') + f" ({numbers['cards'][1]})",
-                f"{ready} " + ('جاهزة بأمر قبول يقرر' if ar else 'ready, with an acceptance command that decides') + f" ({numbers['ready'][1]})",
-                ', '.join(f'{k} {v}' for k, v in sorted((k or '?', v) for k, v in sizes.items())) + f" ({numbers['sizes'][1]})",
-                (f"{numbers['set_aside'][0]} بطاقة رفضها مساعدك فخرجت من الخطة، و{numbers['design'][0]} بطاقة تصميم من صور الشاشات" if ar else
-                 f"{numbers['set_aside'][0]} cards your assistant rejected left the plan; {numbers['design'][0]} design cards came from the screens")
+                f"{ready} " + ('جاهزة بأمر قبول يقرر' if ar else 'ready, with an acceptance command that decides')
+                + f" ({numbers['ready'][1]})",
+                ', '.join(f'{k} {v}' for k, v in sorted((k or '?', v) for k, v in sizes.items()))
+                + f" ({numbers['sizes'][1]})",
+                (f"{numbers['set_aside'][0]} بطاقة رفضها مساعدك فخرجت من الخطة، و{numbers['design'][0]} بطاقة تصميم "
+                 f"من صور الشاشات" if ar else
+                 f"{numbers['set_aside'][0]} cards your assistant rejected left the plan; "
+                 f"{numbers['design'][0]} design cards came from the screens")
                 + f" ({numbers['set_aside'][1]}, {numbers['design'][1]})",
                 _order_line(numbers['order'][0] == 'assistant', ar) + f" ({numbers['order'][1]}, PLAN/STEPS.md)"])
 
@@ -198,8 +281,10 @@ def _plan_sections(page, L, plan, tasks, ar):
     page.heading(('الأقسام' if ar else 'Sections'))
     page.items([_section_line(s, ar) for s in plan.get('sections') or []])
     page.heading(L['recommendation'])
-    page.para(('نفّذ كل بطاقة في نسخة معزولة، وشغّل أمر قبولها، ثم أعد التدقيق؛ التراجع لكل بطاقة مكتوب فيها.' if ar else
-               'Run each card in an isolated copy, run its acceptance command, then audit again; each card states its rollback.'))
+    page.para(('نفّذ كل بطاقة في نسخة معزولة، وشغّل أمر قبولها، ثم أعد التدقيق؛ التراجع لكل بطاقة مكتوب فيها.' if ar
+               else
+               'Run each card in an isolated copy, run its acceptance command, then audit again; each card states '
+               'its rollback.'))
     page.heading(L['unexamined'])
     page.items([('لم تُشغَّل أي بطاقة على كود المشروع بعد؛ التنفيذ يحتاج تفويض المالك (authorization.json).' if ar else
                  'No card has run against the project yet; execution needs the owner\'s authorization.json.')])
@@ -228,7 +313,8 @@ def _plan_numbers(plan, tasks, cards):
         'set_aside': (len(cards.get('set_aside') or []), 'cards.json → set_aside'),
         'design': (len(cards.get('design') or []), 'cards.json → design'),
         'order': ((plan.get('order') or {}).get('source') or 'rules', 'plan.json → order.source'),
-        'ready': (sum(1 for t in tasks if (t.get('decision') or {}).get('readiness') == 'ready'), 'plan.json → tasks[].decision.readiness'),
+        'ready': (sum(1 for t in tasks if (t.get('decision') or {}).get('readiness') == 'ready'),
+                  'plan.json → tasks[].decision.readiness'),
         'sizes': (sizes, 'plan.json → tasks[].effort'),
     }
 

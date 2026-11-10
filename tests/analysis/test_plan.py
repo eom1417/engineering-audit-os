@@ -40,7 +40,8 @@ class TaskCardTests(TemporaryWorkspace):
                 self.assertEqual(set(task['effort_basis']), {'files', 'dependents'})
                 self.assertTrue(task['effort_confidence'])
         text = (self.out / 'PLAN/TASK-001.md').read_text()
-        for heading in ['المشكلة', 'الدليل', 'نطاق الأثر', 'الخيارات', 'التغيير المقترح', 'معيار القبول', 'التراجع', 'التقدير']:
+        for heading in ['المشكلة', 'الدليل', 'نطاق الأثر', 'الخيارات', 'التغيير المقترح', 'معيار القبول', 'التراجع',
+                        'التقدير']:
             self.assertIn(heading, text)
         cards = ' '.join(path.read_text() for path in (self.out / 'PLAN').glob('TASK-*.md'))
         self.assertIn('مسارين يختلفان', cards)
@@ -60,29 +61,38 @@ class TaskCardTests(TemporaryWorkspace):
         from eaos.core.language import plain
         from eaos.core.contracts.card_areas import classify
         def finding(page, severity, image):
-            return {'title': 'Crowded header', 'kind': 'crowding', 'severity': severity, 'page': page, 'viewport': 'phone',
+            return {'title': 'Crowded header', 'kind': 'crowding', 'severity': severity, 'page': page,
+                    'viewport': 'phone',
                     'theme': 'light', 'image': image, 'file': f'live/{image}.png', 'why': 'Four buttons on one line',
                     'region': {'x': 0, 'y': 0, 'width': 1, 'height': 0.2}}
-        cards = card_review.design_cards([finding('http://127.0.0.1:9/', 'medium', 'IMG-001'), finding('http://127.0.0.1:9/#/', 'high', 'IMG-002'),
-                                          finding('http://127.0.0.1:9/#/branches', 'low', 'IMG-003')], [{'priority': 0.366}, {'priority': 0.1}])
+        cards = card_review.design_cards([finding('http://127.0.0.1:9/', 'medium', 'IMG-001'),
+                                          finding('http://127.0.0.1:9/#/', 'high', 'IMG-002'),
+                                          finding('http://127.0.0.1:9/#/branches', 'low', 'IMG-003')],
+                                         [{'priority': 0.366}, {'priority': 0.1}])
         self.assertEqual([(c['id'], c['design']['page'], c['design']['severity']) for c in cards],
                          [('TASK-V001', '/', 'high'), ('TASK-V002', '/branches', 'low')])
         self.assertTrue(all(0 < c['priority'] < 0.366 for c in cards), [c['priority'] for c in cards])
         self.assertEqual(classify(cards[0]), ('ux', 'high'))
         generic = plain.problem('generic', 'en')
         self.assertTrue(all(plain.problem(kind, 'en') != generic for kind in ('design_review', 'investigation')))
-        mutable = lambda private: {'pattern': 'mutable_state', 'render': {'key': 'mutable_global', 'params': {'encapsulated': private}}}
-        self.assertEqual((plain.kind(mutable(False)), plain.kind(mutable(True))), ('mutable_state', 'mutable_state_private'))
+        mutable = lambda private: {'pattern': 'mutable_state', 'render': {'key': 'mutable_global',
+            'params': {'encapsulated': private}}}
+        self.assertEqual((plain.kind(mutable(False)), plain.kind(mutable(True))), ('mutable_state',
+            'mutable_state_private'))
         self.assertNotIn('several parts', plain.problem('mutable_state_private', 'en')[1])
         # Four dead symbols of one file are one card for one change, not four cards.
         def task(claim, pattern, path):
-            return {'id': 'TASK-X', 'claim_id': claim, 'title': claim, 'pattern': pattern, 'kind': 'remediate', 'origin': 'source',
-                    'paths': [path], 'finding_ids': [claim], 'acceptance': [{'command': f'check {claim}', 'expect': ''}],
+            return {'id': 'TASK-X', 'claim_id': claim, 'title': claim, 'pattern': pattern, 'kind': 'remediate',
+                    'origin': 'source',
+                    'paths': [path], 'finding_ids': [claim], 'acceptance': [{'command': f'check {claim}',
+                        'expect': ''}],
                     'evidence': {'fact_ids': [f'FACT-{claim}'], 'evidence_ids': [], 'probe_ids': []}}
         cards = plan_module.grouped([task('CLM-1', 'remove_dead', 'a.py'), task('CLM-2', 'broken_code', 'a.py'),
                                      task('CLM-3', 'remove_dead', 'a.py'), task('CLM-4', 'remove_dead', 'b.py')])
-        self.assertEqual([(c['id'], c['claim_ids']) for c in cards], [('TASK-001', ['CLM-1', 'CLM-3']), ('TASK-002', ['CLM-2']), ('TASK-003', ['CLM-4'])])
-        self.assertEqual((cards[0]['evidence']['fact_ids'], len(cards[0]['acceptance'])), (['FACT-CLM-1', 'FACT-CLM-3'], 2))
+        self.assertEqual([(c['id'], c['claim_ids']) for c in cards], [('TASK-001', ['CLM-1', 'CLM-3']), ('TASK-002',
+            ['CLM-2']), ('TASK-003', ['CLM-4'])])
+        self.assertEqual((cards[0]['evidence']['fact_ids'], len(cards[0]['acceptance'])), (['FACT-CLM-1', 'FACT-CLM-3'],
+            2))
 
     def test_blast_radius_comes_from_facts_not_prose(self):
         task = next(task for task in self.plan['tasks'] if 'core/pricing.py' in task['paths'])
@@ -101,7 +111,8 @@ class AddedClaimTests(unittest.TestCase):
             assemble(FIXTURE, out)
             dossier = json.loads((out / 'dossier.json').read_text())
             guess = ledger.make(901, 'The pricing module probably owns the tax rule as well', 'responsibility',
-                                'HYPOTHESIS', ['model_inference'], [], 'A second module applying tax without importing it',
+                                'HYPOTHESIS', ['model_inference'], [],
+                                'A second module applying tax without importing it',
                                 fact_ids=dossier['claims'][0]['fact_ids'], origin='source')
             wide = ledger.make(902, 'Two products share one command line and the docs cover only one',
                                'structure', 'HYPOTHESIS', ['model_inference'], ['SRC-1'],
@@ -197,18 +208,24 @@ class ResolutionTests(unittest.TestCase):
         # open for the person, not closed unseen as not proven.
         with tempfile.TemporaryDirectory() as tmp:
             out = Path(tmp)
-            claims = [{'id': 'CLM-003', 'render': {'key': 'layer_finding', 'params': {'rule': 'unguarded-write', 'boundary': 'endpoints'}}},
+            claims = [{'id': 'CLM-003', 'render': {'key': 'layer_finding', 'params': {'rule': 'unguarded-write',
+                'boundary': 'endpoints'}}},
                       {'id': 'CLM-019', 'render': {'key': 'security_weakness', 'params': {'labels': 'CWE-79'}}},
-                      {'id': 'CLM-002', 'render': {'key': 'layer_finding', 'params': {'rule': 'untested-write', 'boundary': 'tests'}}}]
+                      {'id': 'CLM-002', 'render': {'key': 'layer_finding', 'params': {'rule': 'untested-write',
+                          'boundary': 'tests'}}}]
             (out / 'dossier.json').write_text(json.dumps({'claims': claims}))
             items = [{'claim_id': 'CLM-003', 'category': 'security', 'severity': 'medium'},
                      {'claim_id': 'CLM-019', 'category': 'security', 'severity': 'medium'},
                      {'claim_id': 'CLM-002', 'category': 'reliability', 'severity': 'medium'}]
             (out / 'debt-register.json').write_text(json.dumps({'items': items}))
-            tasks = [{'id': 'TASK-010', 'claim_id': 'CLM-003', 'pattern': 'layer_boundary', 'title': 'POST /private/users/ writes with no sign-in check'},
-                     {'id': 'TASK-016', 'claim_id': 'CLM-019', 'pattern': 'security_weakness', 'title': 'semgrep reports CWE-79 in backend/app/utils.py'},
-                     {'id': 'TASK-004', 'claim_id': 'CLM-002', 'pattern': 'layer_boundary', 'title': 'POST /password-recovery writes and no test reaches it'}]
-            verdicts = [{'card': t['id'], 'decision': 'doubt', 'why': f"{t['id']}: who reaches it is not shown", 'source': 'model'} for t in tasks]
+            tasks = [{'id': 'TASK-010', 'claim_id': 'CLM-003', 'pattern': 'layer_boundary',
+                      'title': 'POST /private/users/ writes with no sign-in check'},
+                     {'id': 'TASK-016', 'claim_id': 'CLM-019', 'pattern': 'security_weakness',
+                      'title': 'semgrep reports CWE-79 in backend/app/utils.py'},
+                     {'id': 'TASK-004', 'claim_id': 'CLM-002', 'pattern': 'layer_boundary',
+                      'title': 'POST /password-recovery writes and no test reaches it'}]
+            verdicts = [{'card': t['id'], 'decision': 'doubt', 'why': f"{t['id']}: who reaches it is not shown",
+                         'source': 'model'} for t in tasks]
             (out / 'nodes/card_triage').mkdir(parents=True)
             (out / 'nodes/card_triage/verdicts.json').write_text(json.dumps({'method': 'model', 'verdicts': verdicts}))
             verdicts, rejected, design, resolved = card_review.decided(out, tasks, True, False)
@@ -238,7 +255,8 @@ class PatternTests(unittest.TestCase):
             'complexity': 'hotspot', 'coupling': 'hidden_coupling', 'literal_duplication': 'canonicalize',
             'dead_code': 'dead_code'}.items()]
         cases += [({'probe_spec': {'probe_type': 'absence_search', 'specification': {}}}, 'duplicated_rule'),
-                  ({'claim_type': 'risk', 'statement': '3 files were never executed by the test command'}, 'untested_path')]
+                  ({'claim_type': 'risk', 'statement': '3 files were never executed by the test command'},
+                   'untested_path')]
         for claim, expected in cases:
             with self.subTest(expected=expected):
                 self.assertEqual(classify(claim), expected)

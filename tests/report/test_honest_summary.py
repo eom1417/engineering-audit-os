@@ -23,7 +23,8 @@ class HonestSummary(unittest.TestCase):
     def test_a_card_from_a_detector_not_measured_is_said_as_such(self):
         from eaos.report.documents import start_here
         with tempfile.TemporaryDirectory() as folder:
-            (Path(folder) / 'dossier.json').write_text(json.dumps({'claims': [{'id': 'C1', 'render': {'key': 'hotspot'}}, {'id': 'C2', 'render': {'key': 'never_judged'}}]}))
+            (Path(folder) / 'dossier.json').write_text(json.dumps({'claims': [
+                {'id': 'C1', 'render': {'key': 'hotspot'}}, {'id': 'C2', 'render': {'key': 'never_judged'}}]}))
             with mock.patch.object(start_here, 'measured_detectors', return_value={'hotspot'}):
                 self.assertEqual(start_here._unmeasured(folder, [{'claim_id': 'C1'}, {'claim_id': 'C2'}]), 1)
 

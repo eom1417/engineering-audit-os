@@ -26,7 +26,8 @@ KINDS = ('pattern', 'test', 'detector', 'none')
 GATES = ('copy', 'complex', 'size', 'security', 'dead', 'tidy', 'layers', 'structure', 'vendor', 'cycle', 'broken')
 EXTENSIONS = {'python': '.py', 'javascript': '.js', 'typescript': '.ts', 'tsx': '.tsx', 'jsx': '.jsx', 'html': '.html',
               'css': '.css', 'go': '.go', 'rust': '.rs', 'java': '.java', 'kotlin': '.kt', 'ruby': '.rb', 'php': '.php',
-              'c': '.c', 'cpp': '.cpp', 'csharp': '.cs', 'swift': '.swift', 'bash': '.sh', 'json': '.json', 'yaml': '.yml'}
+              'c': '.c', 'cpp': '.cpp', 'csharp': '.cs', 'swift': '.swift', 'bash': '.sh', 'json': '.json',
+              'yaml': '.yml'}
 TEST_SECONDS = 600
 PLACE = re.compile(r'([\w./-]+\.\w+):(\d+|:\w+)')       # path:line, or path::function as a code law names one
 
@@ -42,8 +43,10 @@ def _none(guard, files):
 
 def _test(guard, files):
     command = guard.get('command')
-    _need(isinstance(command, list) and command and all(isinstance(p, str) for p in command), 'a test guard is its command as a list of words')
-    return {'kind': 'test', 'command': command, 'env': {str(k): str(v) for k, v in (guard.get('env') or {}).items()}, 'files': files,
+    _need(isinstance(command, list) and command and all(isinstance(p, str) for p in command),
+          'a test guard is its command as a list of words')
+    return {'kind': 'test', 'command': command,
+            'env': {str(k): str(v) for k, v in (guard.get('env') or {}).items()}, 'files': files,
             'tests': [str(t) for t in guard.get('tests') or []]}
 
 
@@ -63,11 +66,13 @@ def checked(guard):
 def _pattern(guard, files):
     language = str(guard.get('language') or '').lower()
     _need(language in EXTENSIONS, f'the language of a pattern is one of {", ".join(EXTENSIONS)}')
-    _need(isinstance(guard.get('rule'), dict) and guard['rule'], "a pattern guard's rule is an ast-grep rule object ({'pattern': ...})")
+    _need(isinstance(guard.get('rule'), dict) and guard['rule'],
+          "a pattern guard's rule is an ast-grep rule object ({'pattern': ...})")
     examples = guard.get('examples') or {}
     broken, kept = list(examples.get('broken') or []), list(examples.get('kept') or [])
     _need(broken, 'a pattern guard needs at least one example of the code that breaks the rule')
-    written = {'kind': 'pattern', 'language': language, 'rule': guard['rule'], 'message': str(guard.get('message') or '')[:300],
+    written = {'kind': 'pattern', 'language': language, 'rule': guard['rule'],
+               'message': str(guard.get('message') or '')[:300],
                'files': files, 'examples': {'broken': broken, 'kept': kept}}
     proved(written)
     return written
@@ -111,7 +116,8 @@ def _matches(guard, root, files=None):
 
 
 def _match(row):
-    return {'path': row['file'], 'line': row['range']['start']['line'] + 1, 'code': str(row.get('lines') or row.get('text') or '')[:200]}
+    return {'path': row['file'], 'line': row['range']['start']['line'] + 1,
+            'code': str(row.get('lines') or row.get('text') or '')[:200]}
 
 
 def _within(path, globs):
@@ -130,7 +136,8 @@ def run(guard, root, paths=None, found=None):
     detectors' findings [{detector, places}] of the check or the gate, for a detector guard."""
     started = time.monotonic()
     if not guard or guard['kind'] == 'none':
-        return {'status': 'unguarded', 'places': [], 'said': (guard or {}).get('why') or 'no guard written yet', 'seconds': 0}
+        return {'status': 'unguarded', 'places': [], 'said': (guard or {}).get('why') or 'no guard written yet',
+                'seconds': 0}
     if not applies(guard, paths):
         return {'status': 'not_run', 'places': [], 'said': 'the change reaches none of its files', 'seconds': 0}
     if guard['kind'] == 'pattern': status, places, said = _run_pattern(guard, root, paths)
@@ -161,7 +168,8 @@ def _run_test(guard, root):
         return 'not_run', [], f'{type(problem).__name__}: {problem}'[:300]
     if done.returncode == 0: return 'held', [], 'its test passed'
     output = (done.stdout or '') + (done.stderr or '')
-    places = sorted({f'{_inside(root, p)}:{n.lstrip(":")}' for p, n in PLACE.findall(output) if (Path(root) / p).is_file()})
+    places = sorted({f'{_inside(root, p)}:{n.lstrip(":")}' for p, n in PLACE.findall(output)
+                     if (Path(root) / p).is_file()})
     return 'broken', places or [' '.join(guard['command'])], output.strip()[-600:]
 
 
@@ -192,7 +200,8 @@ def _named(detector, name):
 def said(guard):
     """What the guard is, in a line both the person's assistant and a person read."""
     if not guard: return 'no guard yet'
-    if guard['kind'] == 'pattern': return f"the code pattern {json.dumps(guard['rule'], ensure_ascii=False)[:160]} ({guard['language']})"
+    if guard['kind'] == 'pattern':
+        return f"the code pattern {json.dumps(guard['rule'], ensure_ascii=False)[:160]} ({guard['language']})"
     if guard['kind'] == 'test': return 'the test ' + ' '.join(guard['command'])[:160]
     if guard['kind'] == 'detector': return "EAOS's detectors " + ', '.join(guard['detectors'])
     return 'not guarded: ' + guard['why']

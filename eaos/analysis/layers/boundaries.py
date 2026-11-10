@@ -41,8 +41,10 @@ def _question(source, target, one, other):
 
 def _breach(project, layer_map, one, other):
     source, target = one['path'], other['path']
-    return {'rule': 'layer-breach', 'path': source, 'line': _import_line(project, source, target), 'evidence': f'{source} → {target}',
-            'params': {'path': source, 'to': target, 'from_layer': one['layer'], 'to_layer': other['layer'], 'type': layer_map['type']}}
+    return {'rule': 'layer-breach', 'path': source, 'line': _import_line(project, source, target),
+            'evidence': f'{source} → {target}',
+            'params': {'path': source, 'to': target, 'from_layer': one['layer'], 'to_layer': other['layer'],
+                       'type': layer_map['type']}}
 
 
 def _crossings(project, may, placed):
@@ -60,7 +62,8 @@ def check(project, layer_map):
     if checked is None: return [], []
     findings, questions = [], []
     for one, other in _crossings(project, *checked):
-        if LOW in (one['confidence'], other['confidence']): questions.append(_question(one['path'], other['path'], one, other))
+        if LOW in (one['confidence'], other['confidence']):
+            questions.append(_question(one['path'], other['path'], one, other))
         else: findings.append(_breach(project, layer_map, one, other))
     return findings, questions
 
@@ -89,15 +92,18 @@ def rules(layer_map):
     for layer, paths in sorted(files.items()):
         barred = sorted({path for other, others in files.items() if other not in may[layer] for path in others})
         if barred:
-            found.append({'name': f'eaos-layer-{layer}', 'severity': 'error', 'comment': f'{layer} may use only {", ".join(sorted(may[layer]))}',
-                          'from': {'path': _regex(paths)}, 'to': {'path': _regex(barred), 'dependencyTypesNot': ['type-only']}})
+            found.append({'name': f'eaos-layer-{layer}', 'severity': 'error',
+                          'comment': f'{layer} may use only {", ".join(sorted(may[layer]))}',
+                          'from': {'path': _regex(paths)},
+                          'to': {'path': _regex(barred), 'dependencyTypesNot': ['type-only']}})
     return found + _browser_reach(layer_map['rows'])
 
 
 def _server_own(row):
     """A file whose own code is the server's (a 'use server' file excepted: the browser calls a server action by
     design)."""
-    return row['side'] == 'server' and bool({'endpoint', 'data', 'node'} & set(row['marks'])) and 'server' not in row['marks']
+    return (row['side'] == 'server' and bool({'endpoint', 'data', 'node'} & set(row['marks']))
+            and 'server' not in row['marks'])
 
 
 def _browser_reach(rows):

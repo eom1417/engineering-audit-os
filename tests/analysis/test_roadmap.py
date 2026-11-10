@@ -11,7 +11,8 @@ def task(tid, pattern, paths=('src/a.ts',), priority=1.0, **extra):
 class RoadmapTests(unittest.TestCase):
     def test_cards_are_sized_and_placed_in_the_first_section_that_holds(self):
         self.assertEqual(effort(['a', 'b'], 5), ('S', {'files': 2, 'dependents': 5}))
-        # Size needs both measures small: one file with 129 dependents (the self-audit's core/project/workspace.py) is large.
+        # Size needs both measures small: one file with 129 dependents (the self-audit's core/project/workspace.py)
+        # is large.
         self.assertEqual(effort(['a', 'b', 'c'], 20)[0], 'M')
         self.assertEqual(effort(['eaos/core/project/workspace.py'], 129)[0], 'L')
         self.assertEqual(effort([str(i) for i in range(9)], 21)[0], 'L')
@@ -21,14 +22,16 @@ class RoadmapTests(unittest.TestCase):
                  (task('4', 'generic', ['src/server/x.ts']), 'backend'),
                  (task('5', 'trace_gap'), 'quality'), (task('6', 'hotspot'), 'frontend'),
                  # No default section: a Python module is back end, a card with no file is general.
-                 (task('7', 'hotspot', ['eaos/facts/defects/secrets.py']), 'backend'), (task('8', 'generic', []), 'general'),
+                 (task('7', 'hotspot', ['eaos/facts/defects/secrets.py']), 'backend'), (task('8', 'generic', []),
+                     'general'),
                  (task('9', 'hotspot', ['studio/src/App.tsx']), 'frontend')]
         for card, expected in cases:
             with self.subTest(expected):
                 self.assertEqual(section(card), expected)
         rows = {row['section']: row for row in sections([
             dict(task('T1', 'generic'), section='data'),
-            dict(task('T2', 'generic', prerequisites=[{'task_id': 'T1', 'reason': 'schema first'}]), section='frontend')])}
+            dict(task('T2', 'generic', prerequisites=[{'task_id': 'T1', 'reason': 'schema first'}]),
+                 section='frontend')])}
         self.assertEqual(rows['frontend']['depends_on'], ['data'])
 
     def test_milestones_keep_the_blueprint_order_and_each_card_is_in_exactly_one(self):

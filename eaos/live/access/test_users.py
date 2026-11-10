@@ -49,8 +49,9 @@ user, a page left from a removed feature), "unreachable": [{"page", "why", "evid
 end with one JSON line of the fixture values it created ({"E2E_PROFILEID": "..."}). Every address is http://127.0.0.1
 or localhost; nothing deploys or reaches a hosted service."""
 # When the person signed in themselves: their session is theirs alone, the script only switches it into each view.
-BY_HAND = ('The person signed in themselves: EAOS_STORAGE_STATE holds a copy of their session. Never sign in, sign up or '
-           'make a user: open that state, switch it into each view listed, and save each to EAOS_SESSIONS_DIR/<id>.json.')
+BY_HAND = ('The person signed in themselves: EAOS_STORAGE_STATE holds a copy of their session. Never sign in, sign up '
+           'or make a user: open that state, switch it into each view listed, and save each '
+           'to EAOS_SESSIONS_DIR/<id>.json.')
 
 
 def views(report, hand):
@@ -64,14 +65,15 @@ def lacking(live, base, state, report, hand=False):
     from .sign_in import works
     if not works(live, base, state, report):
         return 'the browser state saved to EAOS_STORAGE_STATE does not open the app: its pages are sent to the sign-in'
-    missing = [view for view in views(report, hand) if not _opens(live, base, kinds_folder(state) / f"{view['id']}.json", view['pages'])]
+    missing = [view for view in views(report, hand)
+               if not _opens(live, base, kinds_folder(state) / f"{view['id']}.json", view['pages'])]
     if missing:
-        return ('these views have no session that opens their own pages (a page showing what the app shows for an address '
-                'it does not have is not opened: the session is not in that view): ' + json.dumps(missing))
+        return ('these views have no session that opens their own pages (a page showing what the app shows for an '
+                'address it does not have is not opened: the session is not in that view): ' + json.dumps(missing))
     alone = unreached(live, base, state, report)
-    return ('these pages of the code open with no session (each shows the app\'s "not found", a refusal or the sign-in): '
-            'grant the run\'s own user what they need (every role and seat) and add the view that is missing, or answer '
-            'each "unreachable" with the line that proves it. Their files:\n'
+    return ('these pages of the code open with no session (each shows the app\'s "not found", a refusal or the '
+            'sign-in): grant the run\'s own user what they need (every role and seat) and add the view that is '
+            'missing, or answer each "unreachable" with the line that proves it. Their files:\n'
             + _sources(live.sandbox.copy, alone)) if alone else ''
 
 
@@ -93,7 +95,8 @@ def unreached(live, base, state, report):
 def _reached_with(live, base, session, pages, state):
     """The pages of `pages` a session reaches (_reached), probed with NOWHERE last; none without pages or a session."""
     from ..app.setup import probe
-    page = probe(live, base, session, None, pages + [NOWHERE]) if pages and (session.is_file() or session == state) else {}
+    page = (probe(live, base, session, None, pages + [NOWHERE])
+            if pages and (session.is_file() or session == state) else {})
     nowhere = nowhere_of(page)
     return {row.get('path') for row in (page.get('others') or [])[:-1] if _reached(row, nowhere)}
 
@@ -103,7 +106,8 @@ def _tried(report):
     sign-in, a page that signs out or deletes, or one proved unreachable; PAGES at most."""
     from ..app.setup import LEAVES, SIGN_IN_PAGE
     owned, gone = [page for view in read(report) for page in view['pages']], proven(report)
-    return [page for page in dict.fromkeys(owned + pages_of(report)) if not page.startswith('/api/') and page not in gone
+    return [page for page in dict.fromkeys(owned + pages_of(report))
+            if not page.startswith('/api/') and page not in gone
             and not re.search(LEAVES, page, re.I) and not SIGN_IN_PAGE.search(page)][:PAGES]
 
 
@@ -115,8 +119,8 @@ def _reached(row, nowhere):
     from ..app.setup import SIGN_IN_PAGE
     path, landed = row.get('path') or '/', urlsplit(row.get('url') or '').path.rstrip('/') or '/'
     if opened(row, nowhere): return True
-    return 200 <= (row.get('status') or 0) < 400 and landed.startswith(path.rstrip('/') + '/') and not row.get('password') \
-        and not SIGN_IN_PAGE.search(landed) \
+    return 200 <= (row.get('status') or 0) < 400 and landed.startswith(path.rstrip('/') + '/') \
+        and not row.get('password') and not SIGN_IN_PAGE.search(landed) \
         and opened({**row, 'password': 0}, nowhere, landed)
 
 
@@ -180,9 +184,11 @@ def _round(project, trial, provider, wrong):
         messages.append({'role': 'user', 'content': 'What is still lacking: ' + wrong})
         answer, _ = provider.complete(messages, stage='session', reads=live.sandbox.copy, deep=True)
         answer = answer.get('result') or answer
-        refused = add(report, project, answer.get('views') or []) + prove(report, project, answer.get('unreachable') or [])
+        refused = (add(report, project, answer.get('views') or [])
+                   + prove(report, project, answer.get('unreachable') or []))
         script = answer.get('seed_script') or _today(live)        # a verdict alone keeps the script
-        messages.append({'role': 'assistant', 'content': json.dumps({k: answer.get(k) for k in ('seed_script', 'views', 'unreachable')})})
+        messages.append({'role': 'assistant',
+                         'content': json.dumps({k: answer.get(k) for k in ('seed_script', 'views', 'unreachable')})})
         wrong = ('these were not kept: ' + '; '.join(refused) + '. ' if refused else '') + _try(trial, script)
     return wrong
 

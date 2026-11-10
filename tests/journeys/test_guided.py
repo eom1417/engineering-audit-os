@@ -28,13 +28,16 @@ def _project(root):
     (project / 'src/a.ts').write_text('export const a = 1;\n')
     subprocess.run(['git', 'init', '-q'], cwd=project, check=True)
     subprocess.run(['git', 'add', '-A'], cwd=project, check=True)
-    subprocess.run(['git', '-c', 'user.name=t', '-c', 'user.email=t@t', 'commit', '-qm', 'init'], cwd=project, check=True)
+    subprocess.run(['git', '-c', 'user.name=t', '-c', 'user.email=t@t', 'commit', '-qm', 'init'],
+                   cwd=project, check=True)
     return project
 
 
 PLAN = {'tasks': [
-    {'id': 'TASK-1', 'pattern': 'broken_code', 'kind': 'remediate', 'decision': {'readiness': 'ready'}, 'paths': ['src/a.ts']},
-    {'id': 'TASK-2', 'pattern': 'hotspot', 'kind': 'investigate', 'decision': {'readiness': 'blocked'}, 'paths': ['src/b.ts']}]}
+    {'id': 'TASK-1', 'pattern': 'broken_code', 'kind': 'remediate', 'decision': {'readiness': 'ready'},
+     'paths': ['src/a.ts']},
+    {'id': 'TASK-2', 'pattern': 'hotspot', 'kind': 'investigate', 'decision': {'readiness': 'blocked'},
+     'paths': ['src/b.ts']}]}
 
 
 NO_ASSISTANT = [{'id': name, 'name': name, 'ready': False, 'installed': False, 'code': f'{name}_not_installed',
@@ -61,8 +64,10 @@ def run(command, project=None, **options):
     steps = [(i, ar, en, done, _fake_scan if i == 'scan' else step) for i, ar, en, done, step in guided.STEPS]
     # Never the person's real assistants (`eaos assistant install` writes into ~/.claude and ~/.codex), and no version
     # check of every installed tool: the doctor's rows are tested on their own.
-    with redirect_stdout(printed), mock.patch.object(guided.commands, 'STEPS', steps), mock.patch.object(guided.commands, 'watch'), \
-            mock.patch.dict(guided.TERMINAL, check=lambda args: _fake_scan(project_state.current(args.project), args)), \
+    with redirect_stdout(printed), mock.patch.object(guided.commands, 'STEPS', steps), \
+            mock.patch.object(guided.commands, 'watch'), \
+            mock.patch.dict(guided.TERMINAL,
+                            check=lambda args: _fake_scan(project_state.current(args.project), args)), \
             mock.patch.object(sys.stdin, 'isatty', return_value=False), \
             mock.patch('eaos.core.toolchain.doctor', return_value={'tools': []}), \
             mock.patch('eaos.ai.assistant.readiness.probe_all', return_value=NO_ASSISTANT), \
@@ -94,7 +99,8 @@ class Journey(unittest.TestCase):
 
     def test_the_end_of_a_fix_names_the_diff_to_read_and_how_to_take_it_or_throw_it(self):
         state = self.saved()
-        state['waves'] = [{'number': 1, 'status': 'applied', 'branch': 'eaos/main/wave-1', 'base': 'abc', 'merge_into': 'main'}]
+        state['waves'] = [{'number': 1, 'status': 'applied', 'branch': 'eaos/main/wave-1', 'base': 'abc',
+                           'merge_into': 'main'}]
         guided.save(state)
         printed = io.StringIO()
         with redirect_stdout(printed):
@@ -103,14 +109,17 @@ class Journey(unittest.TestCase):
             self.assertIn(command, printed.getvalue())
 
     def test_start_scans_next_knows_where_the_person_is_and_the_project_folder_is_never_written(self):
-        before = subprocess.run(['git', 'status', '--porcelain', '--ignored'], cwd=self.project, capture_output=True, text=True).stdout
+        before = subprocess.run(['git', 'status', '--porcelain', '--ignored'], cwd=self.project,
+                                capture_output=True, text=True).stdout
         code, printed = run('start', self.project)
         self.assertEqual(code, 0)
         self.assertIn('START-HERE.md', printed)
         run('next', self.project)
         self.assertIn('✅', run('status', self.project)[1])
-        self.assertIn('scanned', run('start', self.project, path=['security'])[1], 'a path asked for is a check now, not the next step')
-        after = subprocess.run(['git', 'status', '--porcelain', '--ignored'], cwd=self.project, capture_output=True, text=True).stdout
+        self.assertIn('scanned', run('start', self.project, path=['security'])[1],
+                      'a path asked for is a check now, not the next step')
+        after = subprocess.run(['git', 'status', '--porcelain', '--ignored'], cwd=self.project,
+                               capture_output=True, text=True).stdout
         self.assertEqual(before, after)
         self.assertNotIn(str(self.project), str(guided.workspace(self.project).parent))
         state = project_state.load(self.project)
@@ -150,8 +159,8 @@ class Journey(unittest.TestCase):
         self.assertEqual([(q['id'], q['kind'], q['answer']) for q in kept], [('install_tools', 'yes_no', True)])
         def asks(state, args): guided.ask(state, 'run_app', 'May I run your app?', args.yes); return 0
         printed = io.StringIO()
-        with mock.patch.object(guided.commands, 'STEPS', [('x', 'x', 'x', lambda s: False, asks)]), redirect_stdout(printed), \
-                mock.patch.object(sys.stdin, 'isatty', return_value=False):
+        with mock.patch.object(guided.commands, 'STEPS', [('x', 'x', 'x', lambda s: False, asks)]), \
+                redirect_stdout(printed), mock.patch.object(sys.stdin, 'isatty', return_value=False):
             code = guided.main(Namespace(command='next', project=str(self.project), lang='en', yes=False))
         self.assertEqual(code, 4)
         self.assertIn('eaos next --yes', printed.getvalue())
@@ -160,7 +169,8 @@ class Journey(unittest.TestCase):
         def breaks(state, args): raise OSError(98, 'Address already in use')
         self.saved()
         printed = io.StringIO()
-        with mock.patch.object(guided.commands, 'STEPS', [('x', 'x', 'x', lambda s: False, breaks)]), redirect_stdout(printed):
+        with mock.patch.object(guided.commands, 'STEPS', [('x', 'x', 'x', lambda s: False, breaks)]), \
+                redirect_stdout(printed):
             code = guided.main(Namespace(command='next', project=str(self.project), lang='en', yes=False))
         self.assertEqual(code, 1)
         self.assertIn('port it needs is used by another program', printed.getvalue())
@@ -179,7 +189,8 @@ class Journey(unittest.TestCase):
         guided.report_of(state).mkdir(parents=True, exist_ok=True)
         (guided.report_of(state) / 'plan.json').write_text(json.dumps(PLAN))
         printed = io.StringIO()
-        with redirect_stdout(printed), mock.patch('eaos.journeys.fix.waves.open_batch') as opened, mock.patch('eaos.journeys.fix.waves.finish_batch') as finished:
+        with redirect_stdout(printed), mock.patch('eaos.journeys.fix.waves.open_batch') as opened, \
+                mock.patch('eaos.journeys.fix.waves.finish_batch') as finished:
             self.assertEqual(guided.fix(state, Namespace(yes=True)), 0)
         opened.assert_not_called()
         finished.assert_not_called()
@@ -193,11 +204,14 @@ class Bulk(unittest.TestCase):
     def test_a_new_check_replaces_the_previous_checks_bulky_data_and_clean_deletes_old_pictures_on_request(self):
         # a new check does not keep the pictures and the assistant's raw runs of the previous one
         from eaos.pipeline import run as pipeline
-        with tempfile.TemporaryDirectory() as folder, mock.patch.dict(os.environ, {'EAOS_HOME': str(Path(folder) / 'home')}):
+        with tempfile.TemporaryDirectory() as folder, \
+                mock.patch.dict(os.environ, {'EAOS_HOME': str(Path(folder) / 'home')}):
             report = guided.outputs_root() / 'shop/technical'
             bulky = ['live/screens/screenshots/00-index-dark-phone.png', 'live/screens.json', 'live/crawl/x/thumb.jpg',
-                     'nodes/visual_reviewer/runs/r1/prompt.txt', 'nodes/card_triage/cache/k.json', 'engines/gitnexus/copy/a.ts']
-            kept = ['dossier.json', 'studio/screens.json', 'nodes/visual_reviewer/findings.json', 'live/setup.json', 'engines/engines.json']
+                     'nodes/visual_reviewer/runs/r1/prompt.txt', 'nodes/card_triage/cache/k.json',
+                     'engines/gitnexus/copy/a.ts']
+            kept = ['dossier.json', 'studio/screens.json', 'nodes/visual_reviewer/findings.json',
+                    'live/setup.json', 'engines/engines.json']
             for name in bulky + kept:
                 (report / name).parent.mkdir(parents=True, exist_ok=True)
                 (report / name).write_text('x')
@@ -206,19 +220,22 @@ class Bulk(unittest.TestCase):
                 self.assertTrue(all((report / name).exists() for name in bulky), 'a run of some stages keeps them')
                 pipeline.check(_project(Path(folder) / 'b'), report, language='en')
             self.assertEqual([name for name in bulky + kept if (report / name).exists()], kept)
-            for name in ('live/screens/screenshots/00-index-default-phone.png', 'nodes/visual_reviewer/runs/r2/prompt.txt',
+            for name in ('live/screens/screenshots/00-index-default-phone.png',
+                         'nodes/visual_reviewer/runs/r2/prompt.txt',
                          'branches/fix/technical/live/crawl/lighthouse/00/lighthouse.json'):
                 path = report / name if not name.startswith('branches') else report.parent / name
                 path.parent.mkdir(parents=True, exist_ok=True)
                 path.write_text('x')
             project = _project(Path(folder) / 'c')
             (report.parent / '.eaos-project').write_text(str(project) + '\n')
-            project_state.write({'project': str(project), 'workspace': str(project_state.workspace(project)), 'outputs': str(report.parent)})
+            project_state.write({'project': str(project), 'workspace': str(project_state.workspace(project)),
+                                 'outputs': str(report.parent)})
             with redirect_stdout(io.StringIO()):
                 guided.clean(Namespace(lang='en', pictures=False, project='.'))
                 self.assertTrue((report / 'live/screens').exists(), 'pictures go only when asked')
                 guided.clean(Namespace(lang='en', pictures=True, project='.'))
-            self.assertEqual([p for p in ('technical/live/screens', 'technical/nodes/visual_reviewer/runs', 'branches/fix/technical/live/crawl')
+            self.assertEqual([p for p in ('technical/live/screens', 'technical/nodes/visual_reviewer/runs',
+                                          'branches/fix/technical/live/crawl')
                               if (report.parent / p).exists()], [])
             self.assertTrue((report / 'nodes/visual_reviewer/findings.json').is_file())
 
@@ -227,16 +244,19 @@ class Pages(unittest.TestCase):
     def test_the_first_page_counts_from_the_plan_in_the_persons_language_and_the_run_says_which_stage_it_is_on(self):
         with tempfile.TemporaryDirectory() as tmp:
             (Path(tmp) / 'plan.json').write_text(json.dumps({'tasks': [
-                *[{'pattern': 'remove_dead', 'kind': 'remediate', 'decision': {'readiness': 'ready'}, 'paths': ['a.ts']}] * 5,
+                *[{'pattern': 'remove_dead', 'kind': 'remediate', 'decision': {'readiness': 'ready'},
+                   'paths': ['a.ts']}] * 5,
                 {'pattern': 'broken_code', 'kind': 'remediate', 'decision': {'readiness': 'ready'}, 'paths': ['b.ts']},
-                {'pattern': 'hotspot', 'kind': 'investigate', 'decision': {'readiness': 'blocked'}, 'paths': ['c.ts']}]}))
+                {'pattern': 'hotspot', 'kind': 'investigate', 'decision': {'readiness': 'blocked'},
+                 'paths': ['c.ts']}]}))
             text = start_here(tmp, 'en', 'shop').read_text()
             self.assertIn('I found **7** problems', text)
             self.assertIn('**6** of them EAOS can fix automatically', text)
             self.assertLess(text.index('Broken code'), text.index('Dead code'))
             self.assertIn('eaos next', text)
             (Path(tmp) / 'plan.json').write_text(json.dumps({'tasks': [
-                {'pattern': 'canonicalize', 'kind': 'remediate', 'decision': {'readiness': 'ready'}, 'paths': ['a.ts']}]}))
+                {'pattern': 'canonicalize', 'kind': 'remediate', 'decision': {'readiness': 'ready'},
+                 'paths': ['a.ts']}]}))
             text = start_here(tmp, 'ar', 'shop').read_text()
         self.assertIn('كود منسوخ', text)
         self.assertNotIn('Copied code', text)
@@ -244,7 +264,8 @@ class Pages(unittest.TestCase):
         seen = []
         with tempfile.TemporaryDirectory() as tmp:
             project = Path(tmp) / 'p'; project.mkdir(); (project / 'a.py').write_text('x = 1\n')
-            execute(project, Path(tmp) / 'out', only=('facts',), progress=lambda done, total, stage: seen.append((done, total, stage)))
+            execute(project, Path(tmp) / 'out', only=('facts',),
+                    progress=lambda done, total, stage: seen.append((done, total, stage)))
         self.assertEqual(seen, [(0, 1, 'facts')])
 
 if __name__ == '__main__':

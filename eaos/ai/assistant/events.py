@@ -6,7 +6,8 @@ import re
 
 from ...core.language.plain import known_beginning
 
-READS = {'finding': 'id', 'fix_read': 'path', 'build_read': 'path', 'report_file': 'name', 'Read': 'file_path', 'Grep': 'pattern', 'Glob': 'pattern'}
+READS = {'finding': 'id', 'fix_read': 'path', 'build_read': 'path', 'report_file': 'name', 'Read': 'file_path',
+         'Grep': 'pattern', 'Glob': 'pattern'}
 EDITS = ('fix_edit', 'build_edit')
 
 
@@ -17,7 +18,8 @@ def _diff(edit):
         lines = str(edit['content']).splitlines(keepends=True)
         return ''.join(difflib.unified_diff([], lines, 'a/' + path, 'b/' + path))
     return ''.join(difflib.unified_diff(str(edit.get('find') or '').splitlines(keepends=True),
-                                        str(edit.get('replace') or '').splitlines(keepends=True), 'a/' + path, 'b/' + path))
+                                        str(edit.get('replace') or '').splitlines(keepends=True), 'a/' + path,
+                                        'b/' + path))
 
 
 def tool_events(tool, arguments, labels):
@@ -27,7 +29,8 @@ def tool_events(tool, arguments, labels):
     label = labels.get(tool) or {'en': tool, 'ar': tool}
     if tool in READS:
         what = str(arguments.get(READS[tool]) or '')
-        return [('read', {'en': f"{label['en']}: {what}", 'ar': f"{label['ar']}: {what}"}, {'path': what, 'tool': tool}, None)]
+        return [('read', {'en': f"{label['en']}: {what}", 'ar': f"{label['ar']}: {what}"}, {'path': what, 'tool': tool},
+                 None)]
     return [_step_event(tool, arguments, label)]
 
 
@@ -36,15 +39,21 @@ def _edit_event(arguments):
     edits = [e for e in arguments.get('edits') or [] if isinstance(e, dict)]
     paths = sorted({str(e.get('path')) for e in edits if e.get('path')})
     card = arguments.get('card')
-    return ('edit', {'en': f"Changing {', '.join(paths) or 'files'} for {card}", 'ar': f"يعدّل {', '.join(paths) or 'ملفات'} للبطاقة {card}"},
-            {'card': card, 'paths': paths, 'diff': ''.join(_diff(e) for e in edits), 'kept': None, 'summary': arguments.get('summary')}, None)
+    return ('edit',
+            {'en': f"Changing {', '.join(paths) or 'files'} for {card}",
+             'ar': f"يعدّل {', '.join(paths) or 'ملفات'} للبطاقة {card}"},
+            {'card': card, 'paths': paths, 'diff': ''.join(_diff(e) for e in edits), 'kept': None,
+             'summary': arguments.get('summary')}, None)
 
 
 def _step_event(tool, arguments, label):
     """The event of any other tool call: its label and card, its short arguments as the detail."""
     card = arguments.get('card') or arguments.get('id')
-    shown = {k: v for k, v in arguments.items() if k not in ('project', 'edits', 'spec', 'proposal', 'text') and v not in (None, '', [], {})}
-    return ('step', {'en': label['en'] + (f': {card}' if card else ''), 'ar': label['ar'] + (f': {card}' if card else '')},
+    shown = {k: v for k,
+             v in arguments.items() if k not in ('project', 'edits', 'spec', 'proposal', 'text') and v not in (None, '',
+                 [], {})}
+    return ('step',
+            {'en': label['en'] + (f': {card}' if card else ''), 'ar': label['ar'] + (f': {card}' if card else '')},
             {'tool': tool, 'card': card}, json.dumps(shown, ensure_ascii=False)[:2000] if shown else None)
 
 
@@ -75,7 +84,8 @@ def _progress_events(tool, payload):
     if not (isinstance(progress, dict) and progress.get('total') and payload.get('job')): return []
     return [('progress', {'en': f"{progress.get('stage') or tool}: {progress.get('done')} of {progress.get('total')}",
                           'ar': f"{progress.get('stage') or tool}: {progress.get('done')} من {progress.get('total')}"},
-             {'batch': payload.get('batch'), 'done': progress.get('done'), 'total': progress.get('total'), 'stage': progress.get('stage')}, None)]
+             {'batch': payload.get('batch'), 'done': progress.get('done'), 'total': progress.get('total'),
+              'stage': progress.get('stage')}, None)]
 
 
 # Why a change was taken back (eaos/journeys/agent_tools/fixing.py), in Arabic: the beginning of each; the rest, the
@@ -91,22 +101,31 @@ def _kept_events(result, arguments):
     card = result.get('card') or (arguments or {}).get('card')
     why = str(result.get('why') or '')[:400]
     known = known_beginning(why, EDIT_WHY)
-    return [('check', {'en': f"{card}: {'the change passed its checks' if result['kept'] else 'the change was taken back: ' + why}",
-                       'ar': f"{card}: {'التغيير نجح في الفحص' if result['kept'] else 'التغيير أُرجع: ' + (known[0] if known else why)}"},
-             {'name': 'card gates', 'card': card, 'passed': result['kept'], 'summary': why}, None if result['kept'] else why)]
+    return [('check',
+             {'en': f"{card}: {'the change passed its '
+                               'checks' if result['kept'] else 'the change was taken back: ' + why}",
+                       'ar': f"{card}: {'التغيير نجح في '
+                                        'الفحص' if result['kept'] else 'التغيير '
+                                                                       'أُرجع: ' + (known[0] if known else why)}"},
+             {'name': 'card gates', 'card': card, 'passed': result['kept'], 'summary': why},
+             None if result['kept'] else why)]
 
 
 def _handed_events(tool, result):
     """The batch's hand-over, when a finishing (or waited) tool answers its branch."""
     if not (result.get('branch') and tool in ('fix_finish', 'build_finish', 'wait')): return []
-    return [('check', {'en': f"Handed over on the branch {result['branch']}", 'ar': f"سُلّم على الفرع {result['branch']}"},
-             {'name': 'batch gates', 'passed': True, 'summary': f"branch {result['branch']}", 'branch': result['branch']}, None)]
+    return [('check',
+             {'en': f"Handed over on the branch {result['branch']}", 'ar': f"سُلّم على الفرع {result['branch']}"},
+             {'name': 'batch gates', 'passed': True, 'summary': f"branch {result['branch']}",
+              'branch': result['branch']}, None)]
 
 
 def said(text):
     """The assistant's words as a `say` event, without the question block (the question has its own event)."""
     from .prompts import QUESTION
-    words = re.sub(r'<notification_summary>.*?</notification_summary>', '', QUESTION.sub('', str(text or '')), flags=re.S).strip()   # a host's own tag
+    # a host's own tag
+    words = re.sub(r'<notification_summary>.*?</notification_summary>', '', QUESTION.sub('', str(text or '')),
+                   flags=re.S).strip()
     return [('say', {'en': words, 'ar': words}, {'words': words}, None)] if words else []
 
 

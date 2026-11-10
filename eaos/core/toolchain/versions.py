@@ -4,7 +4,8 @@ import os
 import re
 import subprocess
 
-from .pins import Unavailable, binary_path, browsers, checkout, home, npm_prefix, release_spec, selected, tool_env, venv_of
+from .pins import (Unavailable, binary_path, browsers, checkout, home, npm_prefix, release_spec, selected, tool_env,
+                   venv_of)
 from ...core.system.files import read_json
 
 VERSION = re.compile(r'(\d+\.\d+\.\d+)')
@@ -21,7 +22,8 @@ def _library_version(tool):
     # A library EAOS's own helper scripts import (axe and the CSS analyzer in Node, Presidio in Python): it has no
     # executable, and its version is the one its package records in the tool's own prefix or environment.
     package = tool['install']['package']
-    found = pip_version(package, venv_of(tool)) if tool['install']['method'] == 'pip' else package_version(tool, package)
+    found = (pip_version(package, venv_of(tool)) if tool['install']['method'] == 'pip'
+             else package_version(tool, package))
     if not found: return None, 'not installed'
     missing = _companions_missing(tool)
     return (None, missing) if missing else (found, '')
@@ -32,7 +34,8 @@ def _version_output(tool, path):
     try:
         # A tool that runs on another (a script on its interpreter) finds it in the pinned bin first.
         done = subprocess.run([path, *tool.get('version_args', ['--version'])], capture_output=True, text=True, timeout=120,  # nosemgrep: python.lang.security.audit.dangerous-subprocess-use-audit -- a list argv of a tool EAOS installs at its pin, no shell
-                              env={**tool_env(), 'NO_COLOR': '1', 'PATH': str(home() / 'bin') + os.pathsep + os.environ.get('PATH', '')})
+                              env={**tool_env(), 'NO_COLOR': '1',
+                                   'PATH': str(home() / 'bin') + os.pathsep + os.environ.get('PATH', '')})
     except (OSError, subprocess.TimeoutExpired) as problem:
         return None, f'{path} --version failed: {problem}'
     return done.stdout + done.stderr, None
@@ -105,7 +108,8 @@ def _companions_missing(tool):
 
 def pip_version(name, venv=None):
     """The version of the Python package `name` installed in the tools' virtualenv (or `venv`), or None."""
-    for record in ((venv or home() / 'venv') / 'lib').glob(f"python*/site-packages/{name.replace('-', '_')}-*.dist-info"):
+    for record in ((venv or home() / 'venv') / 'lib').glob(
+            f"python*/site-packages/{name.replace('-', '_')}-*.dist-info"):
         return record.name[len(name) + 1:-len('.dist-info')]
     return None
 
@@ -117,7 +121,8 @@ def browser_missing():
     if not browsers_of: return 'Playwright is not installed'
     wanted = {b['name']: b['revision'] for b in browsers_of}
     for name, folder in (('chromium', 'chromium'), ('chromium-headless-shell', 'chromium_headless_shell')):
-        if name in wanted and not (browsers() / f'{folder}-{wanted[name]}').is_dir(): return f'{name} {wanted[name]} is not installed'
+        if name in wanted and not (browsers() / f'{folder}-{wanted[name]}').is_dir():
+            return f'{name} {wanted[name]} is not installed'
     return ''
 
 
@@ -139,7 +144,8 @@ def _doctor_row(tool):
     ok = found == tool['version']
     if found and not ok: reason = f'found {found}, pinned {tool["version"]}'
     ok, reason = _with_browsers(tool, ok, reason)
-    reason, unavailable = _release_unavailable(tool, reason) if not ok and tool['install']['method'] == 'release' else (reason, False)
+    reason, unavailable = (_release_unavailable(tool, reason)
+                           if not ok and tool['install']['method'] == 'release' else (reason, False))
     row = {'name': tool['name'], 'role': tool['role'], 'stages': tool['stages'], 'pinned': tool['version'],
            'found': found, 'ok': ok, 'reason': reason, 'unavailable': unavailable}
     if tool.get('license_note'): row['license_note'] = tool['license_note']

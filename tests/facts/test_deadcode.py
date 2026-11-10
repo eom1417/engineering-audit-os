@@ -45,12 +45,15 @@ class DeadCodeTests(unittest.TestCase):
         from eaos.facts.dead_code.detect import _candidate_name, _verdict
         named = lambda path, symbol, message='': _candidate_name({'message': message}, {'path': path, 'symbol': symbol})
         # As vulture, knip and enola write them (a vulture finding is read as `py:act`).
-        self.assertEqual(named('eaos/interfaces/terminal/commands.py', 'eaos/interfaces/terminal/commands.py:act'), 'act')
+        self.assertEqual(named('eaos/interfaces/terminal/commands.py', 'eaos/interfaces/terminal/commands.py:act'),
+                         'act')
         self.assertEqual(named('src/routes.js', 'src/routes.js:routes'), 'routes')
         self.assertEqual(named('src/app/[slug]/page.tsx', 'src/app/[slug].generateMetadata'), 'generateMetadata')
-        self.assertEqual(named('src/hero-post.tsx', 'src/hero-post.tsx', 'unused file `src/hero-post.tsx`'), 'src/hero-post.tsx')
+        self.assertEqual(named('src/hero-post.tsx', 'src/hero-post.tsx', 'unused file `src/hero-post.tsx`'),
+                         'src/hero-post.tsx')
         module = lambda ours: _verdict({}, {'path': 'src/hero-post.tsx'}, 'src/hero-post.tsx', ours, None)['verdict']
-        self.assertEqual((module({('src/hero-post.tsx', 'src/hero-post.tsx')}), module(set())), ('confirmed', 'unconfirmed'))
+        self.assertEqual((module({('src/hero-post.tsx', 'src/hero-post.tsx')}), module(set())), ('confirmed',
+            'unconfirmed'))
 
     def test_what_only_tests_or_itself_use_is_dead_and_what_text_names_is_reached(self):
         data = dead_facts(APP)
@@ -65,7 +68,8 @@ class DeadCodeTests(unittest.TestCase):
         self.assertNotIn(('unused-symbol', 'used'), found)
         self.assertIn('never read', found[('unread-constant', 'UNUSED_LIMIT')])
         self.assertNotIn(('unread-constant', 'LIMIT'), found)
-        self.assertFalse([key for key in found if 'shown' in key or 'examples/demo.py' in key], 'examples are never candidates')
+        self.assertFalse([key for key in found if 'shown' in key or 'examples/demo.py' in key], 'examples are never '
+                         'candidates')
         # A name only tests read is a review candidate, not an asserted defect.
         self.assertEqual((verdicts['only_tested'], verdicts['_loop'], verdicts['pkg/orphan.py']),
                          ('test_only', 'confirmed', 'test_only'))
@@ -79,7 +83,8 @@ class DeadCodeTests(unittest.TestCase):
                                'export function forgotten() { return 1; }\n'},
             'a function under a quoted key': {
                 'package.json': '{"name": "web", "main": "src/main.js"}',
-                'src/main.js': ('const SAY = {\n  \'past-empty\': (m) => `${m} passed`,\n  empty: (m) => `${m} empty`,\n};\n'
+                'src/main.js': ('const SAY = {\n  \'past-empty\': (m) => `${m} passed`,\n  empty: (m) => `${m} '
+                                'empty`,\n};\n'
                                 'export const say = (state, m) => SAY[state](m);\n')},
             'a module behind a barrel file': {
                 'index.html': '<script type="module" src="/src/main.tsx"></script>',
@@ -92,44 +97,59 @@ class DeadCodeTests(unittest.TestCase):
             with self.subTest(case=case):
                 found = run(files)
                 self.assertFalse([key for key in found if key[0] == 'unreachable-module'], found)
-                self.assertFalse([key for key in found if key[1] and (key[1].startswith('window.') or key[1] == "'past-empty'")], found)
+                self.assertFalse([key for key in found if key[1] and (key[1].startswith('window.')
+                                                                      or key[1] == "'past-empty'")], found)
 
     def test_built_start_scripts_dynamic_imports_and_tool_configs_reach_their_modules(self):
         found = run({'app/package.json': '{"type": "module", "scripts": {"start": "node dist-server/main.mjs"}}',
                      'app/server/main.mjs': 'import { handle } from "./index.mjs";\nhandle();\n',
                      'app/server/index.mjs': ('import { claimAttempt } from "./security/rate-limit.ts";\n'
-                                              'const ROUTES = [\n  ["/api/health", () => import("./routes/health.ts")],\n'
-                                              '  { path: "/api/up", load: async () => await import(`./routes/up.ts`) },\n];\n'
+                                              'const ROUTES = [\n  ["/api/health", () => '
+                                                  'import("./routes/health.ts")],\n'
+                                              '  { path: "/api/up", load: async () => await import(`./routes/up.ts`) '
+                                                  '},\n];\n'
                                               'export function handle() { return claimAttempt(ROUTES); }\n'),
                      'app/server/security/rate-limit.ts': 'export function claimAttempt(r) { return r; }\n',
                      'app/server/routes/health.ts': 'export function GET() { return 1; }\n',
                      'app/server/routes/up.ts': 'export function GET() { return 1; }\n',
                      'app/server/routes/gone.ts': 'export function GET() { return 1; }\n',
                      'app/tests/rate.test.mjs': 'import { claimAttempt } from "../server/security/rate-limit.ts";\n'})
-        self.assertEqual({key for key in found if key[0] == 'unreachable-module'}, {('unreachable-module', 'app/server/routes/gone.ts')})
+        self.assertEqual({key for key in found if key[0] == 'unreachable-module'}, {('unreachable-module',
+            'app/server/routes/gone.ts')})
         # A module a tool config loads by a path relative to itself is reached.
         found = run({'app/package.json': '{"scripts": {"dev": "vite"}}',
                      'app/index.html': '<script type="module" src="/src/main.ts"></script>',
                      'app/src/main.ts': 'document.title = "x";\n',
                      'app/vite.config.ts': ('const entry = new URL("./server/index.mjs", import.meta.url).href;\n'
-                                            'export default { plugins: [{ configureServer: async () => (await import(entry)).handle }] };\n'),
-                     'app/server/index.mjs': 'import { guard } from "./guard.ts";\nexport function handle() { return guard(); }\n',
+                                            'export default { plugins: [{ configureServer: async () => (await '
+                                                'import(entry)).handle }] };\n'),
+                     'app/server/index.mjs': 'import { guard } from "./guard.ts";\nexport function handle() { return '
+                         'guard(); }\n',
                      'app/server/guard.ts': 'export function guard() { return 1; }\n'})
         self.assertFalse([key for key in found if key[0] == 'unreachable-module'], found)
 
     def test_what_a_build_script_hands_its_bundler_or_loads_is_reached(self):
         # A Studio's esbuild entry points and the words the build imports are computed paths, so its modules are not all
         # dead.
-        build = ("import path from 'node:path';\nimport { fileURLToPath, pathToFileURL } from 'node:url';\nimport * as esbuild from 'esbuild';\n"
-                 "const HERE = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');\nconst SRC = path.join(HERE, 'src');\n"
-                 "await esbuild.build({ entryPoints: [path.join(SRC, 'core/main.js')], outfile: path.join(HERE, 'out/main.js') });\n"
-                 "for (const place of ['a']) await esbuild.build({ entryPoints: [path.join(SRC, 'places', place, 'index.js')] });\n"
+        build = ("import path from 'node:path';\nimport { fileURLToPath, pathToFileURL } from 'node:url';\nimport * as "
+                 "esbuild from 'esbuild';\n"
+                 "const HERE = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');\nconst SRC = "
+                     "path.join(HERE, 'src');\n"
+                 "await esbuild.build({ entryPoints: [path.join(SRC, 'core/main.js')], outfile: path.join(HERE, "
+                     "'out/main.js') });\n"
+                 "for (const place of ['a']) await esbuild.build({ entryPoints: [path.join(SRC, 'places', place, "
+                     "'index.js')] });\n"
                  "for (const file of ['ar.js']) await import(pathToFileURL(path.join(SRC, 'words', file)).href);\n")
-        found = run({'pkg/__main__.py': 'print(1)\n', 'console/package.json': '{"scripts": {"build": "node scripts/build.mjs"}}',
-                     'console/scripts/build.mjs': build, 'console/src/core/main.js': 'import { go } from "./go.js";\ngo();\n',
-                     'console/src/core/go.js': 'export function go() {}\n', 'console/src/places/a/index.js': 'document.title = "a";\n',
-                     'console/src/words/ar.js': 'export default {};\n', 'console/src/places/a/deep/gone.js': 'export const x = 1;\n'})
-        self.assertEqual({key[1] for key in found if key[0] == 'unreachable-module'}, {'console/src/places/a/deep/gone.js'})
+        found = run({'pkg/__main__.py': 'print(1)\n', 'console/package.json': '{"scripts": {"build": "node '
+                     'scripts/build.mjs"}}',
+                     'console/scripts/build.mjs': build, 'console/src/core/main.js': 'import { go } from '
+                         '"./go.js";\ngo();\n',
+                     'console/src/core/go.js': 'export function go() {}\n',
+                         'console/src/places/a/index.js': 'document.title = "a";\n',
+                     'console/src/words/ar.js': 'export default {};\n', 'console/src/places/a/deep/gone.js': 'export '
+                         'const x = 1;\n'})
+        self.assertEqual({key[1] for key in found if key[0] == 'unreachable-module'},
+                         {'console/src/places/a/deep/gone.js'})
 
     def test_without_an_entry_point_only_private_names_are_judged(self):
         found = run({'lib/api.py': 'def public():\n    return 1\n\ndef _private():\n    return 2\n'})
@@ -142,10 +162,13 @@ class DeadCodeTests(unittest.TestCase):
                            'scripts/in-ci.mjs': 'console.log(3);\n', 'scripts/documented.mjs': 'console.log(4);\n',
                            '.github/workflows/ci.yml': 'jobs:\n  a:\n    steps:\n      - run: node scripts/in-ci.mjs\n',
                            'README.md': 'Run `node --import tsx scripts/documented.mjs --write` after a change.\n'})
-        verdicts = {f['location']['symbol']: f['value']['adjudication']['verdict'] for f in data['facts'] if f['value']['rule'] == 'unreachable-module'}
+        verdicts = {f['location']['symbol']: f['value']['adjudication']['verdict']
+                    for f in data['facts'] if f['value']['rule'] == 'unreachable-module'}
         self.assertEqual(verdicts, {'src/lost.js': 'confirmed', 'scripts/by-hand.mjs': 'review'})
         from eaos.analysis.claims import ledger as claims
-        rendered = {row['render']['params']['subject']: (row['render']['key'], row['confidence']) for row in claims.from_facts({'deadcode': data})}
+        rendered = {row['render']['params']['subject']: (row['render']['key'],
+                                                         row['confidence'])
+                    for row in claims.from_facts({'deadcode': data})}
         self.assertEqual(rendered['scripts/by-hand.mjs'], ('dead_code_review', 'LIKELY'))
         self.assertEqual(rendered['src/lost.js'], ('dead_code', 'CONFIRMED'))
 
@@ -196,7 +219,8 @@ class DeadCodeTests(unittest.TestCase):
         found = run({'package.json': '{"name": "web", "main": "src/main.js"}', 'src/main.js': 'console.log(1)\n',
                      'mail/package.json': '{"name": "emails", "scripts": {"export": "email export --outDir ../out"}}',
                      'mail/emails/welcome.tsx': ('import { Button } from "../ui/Button"\n'
-                                                 'export default function Welcome() { return Button() }\nWelcome.PreviewProps = {}\n'),
+                                                 'export default function Welcome() { return Button() '
+                                                     '}\nWelcome.PreviewProps = {}\n'),
                      'mail/ui/Button.tsx': 'export function Button() { return 1 }\n',
                      'mail/emails/test_email.tsx': ('import { Callout } from "../ui/Callout"\n'
                                                     'export default function TestEmail() { return Callout() }\n'),

@@ -14,13 +14,15 @@ from ..repair.remediation import PATTERNS, cited
 def _check_argv(path, symbol, rule):
     """Re-collect facts into a private directory; exit 0 only when the candidate is no longer reported."""
     return recheck('eaos-deadcode-', "facts = json.load(open(tmp + '/facts/deadcode.json'))['facts']\n"
-                   f"left = [f for f in facts if (f['location']['path'], f['location']['symbol'], f['value']['rule']) == ({path!r}, {symbol!r}, {rule!r})]\n"
+                   f"left = [f for f in facts if (f['location']['path'], f['location']['symbol'], "
+                   f"f['value']['rule']) == ({path!r}, {symbol!r}, {rule!r})]\n"
                    "sys.exit(1 if left else 0)\n")
 
 
 def build_assessment(claim, fact_sets, target):
     """{'assessment': ..., 'checks': [...]} for a confirmed dead-code claim under the removal rule, else None."""
-    if target is None or (claim.get('render') or {}).get('key') != 'dead_code' or claim.get('confidence') != 'CONFIRMED':
+    if (target is None or (claim.get('render') or {}).get('key') != 'dead_code'
+            or claim.get('confidence') != 'CONFIRMED'):
         return None
     rules, source = rules_for(target)
     rule = rules['remove_dead_code']

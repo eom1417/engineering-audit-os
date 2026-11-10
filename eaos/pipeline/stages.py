@@ -1,9 +1,7 @@
 """The pipeline, declared as data.
 
-The order is declared here as data, so anything can ask
-what the pipeline does, skip a step, resume one, or report what never ran. Here each stage names
-what it needs, what it produces, and whether the run may continue without it.
-"""
+The order is declared here as data, so anything can ask what the pipeline does, skip a step, resume one, or report what
+never ran. Here each stage names what it needs, what it produces, and whether the run may continue without it. """
 from dataclasses import dataclass
 
 from .loops import LOOPS, errors as loop_errors
@@ -25,7 +23,8 @@ class SkipStage(Exception):
     def __init__(self, reason='', code='', lost=None):
         super().__init__(reason)
         self.code = code
-        self.lost = lost      # {'resets': …} when the assistant the check was given stopped midway: the check is partial
+        self.lost = lost      # {'resets': …} when the assistant the check was given stopped midway: the check is
+                              # partial
 
 
 
@@ -44,7 +43,8 @@ class Stage:
     gathers: bool = False
     # What it holds while it runs, which no other stage holds at the same time (RESOURCES).
     uses: tuple = ()
-    # It runs the app in a copy and a database of its own (eaos/live/app/run.py `apart`): it holds no resource, and takes
+    # It runs the app in a copy and a database of its own (eaos/live/app/run.py `apart`): it holds no resource, and
+    # takes
     # an app's memory.
     apart: bool = False
     necessity: str = REQUIRED
@@ -52,7 +52,8 @@ class Stage:
     # stage somebody did not want to pay for.
     absent_when: str = ''
     description: str = ''
-    # Done by the person's assistant (docs/AI-IN-THE-PIPELINE.md): the live map marks it, and without one the rules stand.
+    # Done by the person's assistant (docs/AI-IN-THE-PIPELINE.md): the live map marks it, and without one the rules
+    # stand.
     ai: bool = False
 
 
@@ -74,58 +75,79 @@ _DECLARED = (
           absent_when='the person did not agree to run the app in an isolated copy, or it could not be started there',
           description='Install and start the app in an isolated copy, with a temporary database and none of the '
                       "person's secrets; the assistant helps when the files alone do not say how"),
-    Stage('verify', produces=('verification.json',), requires=('facts',), reads=('setup',), necessity=OPTIONAL, apart=True,
+    Stage('verify', produces=('verification.json',), requires=('facts',), reads=('setup',), necessity=OPTIONAL,
+          apart=True,
           absent_when='the person did not agree to run the app in an isolated copy, or its run profile names no test '
                       'command; which test imports which file is still written',
-          description="The project's own tests, from its run profile, run in the isolated copy with coverage: what they "
+          description="The project's own tests, from its run profile, run in the isolated copy with coverage: what "
+                      "they "
                       'reach, what they miss, and whether they pass on the code as it is'),
-    Stage('session', produces=('live/sign-in.json',), requires=('setup',), reads=('roles',), necessity=OPTIONAL, uses=('app',),
+    Stage('session', produces=('live/sign-in.json',), requires=('setup',), reads=('roles',), necessity=OPTIONAL,
+          uses=('app',),
           absent_when='the app is not running in an isolated copy, the person chose no sign-in, or nobody signed in '
                       'within the wait: the pages behind the sign-in are then seen signed out, and the report says so',
           description="Whether the app's pages need a sign-in (its code, and the pages the setup opened), and the "
-                      "sessions every page stage opens them with: the assistant's test users on the running app, one of "
+                      "sessions every page stage opens them with: the assistant's test users on the running app, "
+                      "one of "
                       'each kind of user, within five minutes, else the person signing in by hand on the sign-in page '
                       'while the stages that open no page go on', ai=True),
-    Stage('crawl', produces=('live/crawl.json',), requires=('setup',), reads=('session',), necessity=OPTIONAL, uses=('app',),
+    Stage('crawl', produces=('live/crawl.json',), requires=('setup',), reads=('session',), necessity=OPTIONAL,
+          uses=('app',),
           absent_when='the app is not running in an isolated copy, or it serves no page',
-          description="Every page of the app found by following its links, the pages its code and files name, and those "
+          description="Every page of the app found by following its links, the pages its code and files name, and "
+                      "those "
                       'behind its buttons (the browser agent: saved steps replayed, or explored with the assistant); '
                       'Lighthouse on the entry and the first page of each distinct template, ten at most'),
     Stage('lock', produces=('behavior-lock/plan.json',), requires=('features',), reads=('crawl',), necessity=OPTIONAL,
-          absent_when='the program has no feature to lock: neither its code nor the crawl of its running copy names a page, '
+          absent_when='the program has no feature to lock: neither its code nor the crawl of its running copy names '
+                      'a page, '
                       'http route or command',
           description='A spec per feature, in its own tool, describing what the system does today; the pages the crawl '
                       'found stand in when the code names none'),
-    Stage('record', produces=('live/lock.json',), requires=('lock', 'setup'), reads=('session',), necessity=OPTIONAL, uses=('app',),
+    Stage('record', produces=('live/lock.json',), requires=('lock', 'setup'), reads=('session',), necessity=OPTIONAL,
+          uses=('app',),
           absent_when='the app is not running in an isolated copy, or the program has no feature to lock',
           description="Every spec of the lock run twice on today's code: its screens and interfaces recorded, the "
                       'safety net every fix is judged by'),
-    Stage('journeys', produces=('live/journeys.json',), requires=('record',), reads=('session',), necessity=OPTIONAL, uses=('app',),
-          absent_when='the app is not running in an isolated copy, the lock has no page to walk through, or rrweb is not '
+    Stage('journeys', produces=('live/journeys.json',), requires=('record',), reads=('session',), necessity=OPTIONAL,
+          uses=('app',),
+          absent_when='the app is not running in an isolated copy, the lock has no page to walk through, or rrweb '
+                      'is not '
                       'installed',
-          description="Each feature's pages walked once more, rrweb recording them and Playwright keeping the trace of a "
+          description="Each feature's pages walked once more, rrweb recording them and Playwright keeping the trace "
+                      "of a "
                       'failure, both capped in size: which pages a user walks and where a journey fails'),
-    Stage('screens', produces=('live/screens.json',), requires=('setup',), reads=('session', 'crawl'), necessity=OPTIONAL, uses=('app',),
+    Stage('screens', produces=('live/screens.json',), requires=('setup',), reads=('session', 'crawl'),
+          necessity=OPTIONAL, uses=('app',),
           absent_when='the app is not running in an isolated copy, or it has no page to open',
-          description='Each distinct page, from the code and from the crawl (one per template), in the app\'s own theme at '
-                      'phone and desktop width: its picture and its accessibility (axe); the first page also by Lighthouse'),
+          description='Each distinct page, from the code and from the crawl (one per template), in the app\'s own '
+                      'theme at '
+                      'phone and desktop width: its picture and its accessibility (axe); the first page also by '
+                      'Lighthouse'),
     Stage('layers', produces=('layers.json', 'facts/boundaries.json'), requires=('facts',), reads=('engines', 'verify'),
-          description="The system as layers: every file in a layer of its reference type, the boundaries between them, what "
-                      'ships to the browser, every endpoint and its guard, the data rules read from the migrations, where the '
-                      "business rules live, operations and tests; each broken boundary a finding, each doubt a question"),
+          description="The system as layers: every file in a layer of its reference type, the boundaries between "
+                      "them, what "
+                      'ships to the browser, every endpoint and its guard, the data rules read from the migrations, '
+                      'where the '
+                      "business rules live, operations and tests; each broken boundary a finding, each doubt a "
+                      "question"),
     Stage('measure', produces=('measurements.json',), requires=('facts',), reads=('engines', 'verify'),
-          description='One row per analysed file: size, complexity, duplication, change and dependency, each with its source'),
+          description='One row per analysed file: size, complexity, duplication, change and dependency, each with '
+                      'its source'),
     Stage('architecture', produces=('architecture/map.json',), requires=('measure',), necessity=OPTIONAL,
           absent_when='no production file was measured or imports another',
-          description="The architecture map from EAOS's own facts: the hotspots (complexity times changes per file) and the "
+          description="The architecture map from EAOS's own facts: the hotspots (complexity times changes per file) "
+                      "and the "
                       'import clusters with their modularity, which the assistant reads'),
     Stage('policy', produces=('facts/policy.json',), requires=('facts',), necessity=OPTIONAL,
           absent_when='the project declares no eaos.policy.json',
           description='Enforce the declared architecture policy'),
     Stage('rules', produces=('rules.json',), requires=('facts',), necessity=OPTIONAL,
           absent_when='the person stated no rule that holds for this project now',
-          description="The person's own rules, each by its machine guard: held, broken and where, or not guarded and why (M16)"),
-    Stage('claims', produces=('dossier.json', 'README.md'), requires=('facts', 'features', 'measure'), reads=('layers', 'policy', 'screens', 'record', 'rules'),
+          description="The person's own rules, each by its machine guard: held, broken and where, or not guarded "
+                      "and why (M16)"),
+    Stage('claims', produces=('dossier.json', 'README.md'), requires=('facts', 'features', 'measure'),
+          reads=('layers', 'policy', 'screens', 'record', 'rules'),
           description='Facts interpreted into a ledger of falsifiable claims'),
     Stage('probe', produces=('probes.json',), requires=('claims',), amends=('dossier.json',),
           description='Settle every claim whose truth can be decided mechanically'),
@@ -133,28 +155,38 @@ _DECLARED = (
           description="The candidate cards: every actionable claim becomes a task card; the triage decides which stay"),
     Stage('triage', produces=('nodes/card_triage/verdicts.json',), requires=('plan',), gathers=True, necessity=OPTIONAL,
           absent_when='no assistant was installed or allowed, or its verdicts could not be used',
-          description='The assistant confirms, doubts or rejects every candidate card on its own evidence, those carrying '
+          description='The assistant confirms, doubts or rejects every candidate card on its own evidence, those '
+                      'carrying '
                       'the measurement first, and judges each doubted card again on all its facts; it says why',
           ai=True),
-    Stage('cards', produces=('cards.json',), requires=('plan',), reads=('triage',), amends=('plan.json', 'dossier.json'),
-          description="The assistant's verdicts applied once, before anything ranks, plans or reports: a card the triage "
-                      "rejected leaves the plan and the gaps and its claim is refuted, a doubted security card waits for a "
-                      "person's review, any other doubted one closes as not proven, none fixed automatically; without the triage every card stands as the rules wrote it"),
+    Stage('cards', produces=('cards.json',), requires=('plan',), reads=('triage',),
+          amends=('plan.json', 'dossier.json'),
+          description="The assistant's verdicts applied once, before anything ranks, plans or reports: a card the "
+                      "triage "
+                      "rejected leaves the plan and the gaps and its claim is refuted, a doubted security card "
+                      "waits for a "
+                      "person's review, any other doubted one closes as not proven, none fixed automatically; "
+                      "without the triage every card stands as the rules wrote it"),
     Stage('order', produces=('nodes/plan_orderer/order.json',), requires=('cards',), necessity=OPTIONAL,
           absent_when='no assistant was installed or allowed, or its order could not be used',
-          description="The assistant orders and groups the confirmed cards into steps, reading the triage, the ideal and "
+          description="The assistant orders and groups the confirmed cards into steps, reading the triage, the "
+                      "ideal and "
                       'the pipeline steps, then reviews the order; every prerequisite is kept', ai=True),
     Stage('steps', produces=('PLAN/STEPS.md',), requires=('cards',), reads=('order',), amends=('plan.json',),
-          description="The plan's order: the assistant's steps when they keep every prerequisite, else the rules' waves"),
+          description="The plan's order: the assistant's steps when they keep every prerequisite, else the rules' "
+                      "waves"),
     Stage('reports', produces=('CURRENT-STATE.md', 'EXECUTION-PLAN.md', 'START-HERE.md'),
           requires=('steps',),
           description='The reports a client reads first, written from the records and the plan; every other '
                       'document is an appendix to them'),
-    Stage('translate', produces=('i18n/ar/START-HERE.md', 'i18n/en/START-HERE.md'), requires=('reports',), necessity=OPTIONAL,
+    Stage('translate', produces=('i18n/ar/START-HERE.md', 'i18n/en/START-HERE.md'), requires=('reports',),
+          necessity=OPTIONAL,
           absent_when='no assistant was installed or allowed: each document stays as it was written',
-          description="Every document whole in Arabic and in English (eaos/core/language/bilingual.py): only the pieces in the other "
+          description="Every document whole in Arabic and in English (eaos/core/language/bilingual.py): only the "
+                      "pieces in the other "
                       'language, as templates without their numbers and paths, by the smallest model without thinking, '
-                      'once: EAOS ships its own sentences translated, and the rest is kept for the next check', ai=True),
+                      'once: EAOS ships its own sentences translated, and the rest is kept for the next check',
+          ai=True),
 )
 # The declared order is the loops' (eaos/pipeline/loops.py): reordering the check is a change of that table.
 _POSITION = {name: index for index, name in enumerate(name for loop in LOOPS for name in loop.stages)}
@@ -184,9 +216,12 @@ def errors():
     for stage in STAGES:
         if stage.name in seen: found.append(f'{stage.name}: declared twice')
         seen.add(stage.name)
-        found += [f'{stage.name}: requires {need}, which no earlier stage provides' for need in stage.requires + stage.reads if need not in seen]
-        found += [f'{stage.name}: {artifact} is already produced by {produced[artifact]}' for artifact in stage.produces if artifact in produced]
-        found += [f'{stage.name}: amends {artifact}, which no earlier stage produces' for artifact in stage.amends if artifact not in produced]
+        found += [f'{stage.name}: requires {need}, which no earlier stage provides' for need in stage.requires
+                  + stage.reads if need not in seen]
+        found += [f'{stage.name}: {artifact} is already produced by {produced[artifact]}' for artifact in stage.produces
+                  if artifact in produced]
+        found += [f'{stage.name}: amends {artifact}, which no earlier stage produces' for artifact in stage.amends
+                  if artifact not in produced]
         produced.update(dict.fromkeys(stage.produces, stage.name))
         found += _stage_errors(stage)
     return sorted(found + loop_errors(seen))
@@ -201,7 +236,8 @@ def _stage_errors(stage):
         found.append(f'{stage.name}: unknown necessity {stage.necessity!r}')
     if not stage.produces:
         found.append(f'{stage.name}: produces nothing, so nothing can depend on it')
-    return found + [f'{stage.name}: uses {held}, which is not one of {RESOURCES}' for held in stage.uses if held not in RESOURCES]
+    return found + [f'{stage.name}: uses {held}, which is not one of {RESOURCES}' for held in stage.uses
+                    if held not in RESOURCES]
 
 
 def _built_on():
@@ -215,11 +251,11 @@ def _built_on():
 def _waits():
     """{stage: the stages it waits for}: what it requires and reads, every earlier stage when it gathers, the stage
     before it holding a resource held in order (IN_ORDER), and for an amended artifact the declared order between the
-    stage that amends it and every stage built on its maker. Each edge
-    points to an earlier stage, so one stage at a time in the declared order meets them all, and the graph has no
-    cycle."""
+    stage that amends it and every stage built on its maker. Each edge points to an earlier stage, so one stage at a
+    time in the declared order meets them all, and the graph has no cycle."""
     under, maker = _built_on(), {artifact: stage.name for stage in STAGES for artifact in stage.produces}
-    waits = {stage.name: set(stage.requires + stage.reads) | (set(ORDER[:ORDER.index(stage.name)]) if stage.gathers else set())
+    waits = {stage.name: set(stage.requires + stage.reads) | (set(ORDER[:ORDER.index(stage.name)]) if stage.gathers
+                                                              else set())
              for stage in STAGES}
     _hold_in_order(waits)
     for stage in STAGES:
@@ -244,7 +280,8 @@ def _keep_order(waits, amending, maker, under):
 
 
 def dependents(name, reading=False):
-    """Every stage that cannot run once this one has failed; `reading`: also those that wait for what it makes (WAITS)."""
+    """Every stage that cannot run once this one has failed; `reading`: also those that wait for what it makes
+    (WAITS)."""
     blocked, frontier = set(), {name}
     while frontier:
         current = frontier.pop()

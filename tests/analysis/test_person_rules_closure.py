@@ -37,7 +37,8 @@ class Closure(Workspace):
 
     def totals_rule(self):
         registry.add(self.project, 'Totals keep two decimals', 'terminal', scope={'kind': 'pinned'})
-        registry.guard(self.project, 'R1', guards.checked({'kind': 'test', 'command': ['node', 'check.js']}), 'person', 'terminal')
+        registry.guard(self.project, 'R1', guards.checked({'kind': 'test', 'command': ['node', 'check.js']}), 'person',
+                       'terminal')
         return registry.holding(self.project, {})
 
 
@@ -45,10 +46,12 @@ class Contradictions(Closure):
     def test_a_rule_and_its_contradiction_stay_two_rules_and_a_plain_repeat_is_one(self):
         apart = [('البيانات تحفظ في قاعدة البيانات فقط', 'البيانات لا تحفظ في قاعدة البيانات فقط'),
                  ('Data is saved in the database only', 'Data is never saved in the database only'),
-                 ('Prices come from the prices table on the admin pages', 'Prices come from the prices table on the public pages'),
+                 ('Prices come from the prices table on the admin pages',
+                  'Prices come from the prices table on the public pages'),
                  ('A page shows at most 20 rows', 'A page shows at most 50 rows')]
         for first, second in apart: self.assertFalse(registry.alike(first, second), (first, second))
-        same = [('البيانات تعيش في قاعدة البيانات بس، لا تكتب سجلات', 'البيانات تعيش في قاعدة البيانات بس! لا تكتب سجلات'),
+        same = [('البيانات تعيش في قاعدة البيانات بس، لا تكتب سجلات',
+                 'البيانات تعيش في قاعدة البيانات بس! لا تكتب سجلات'),
                 ('Never send the whole state on every save', 'never send the whole state on every save, please.')]
         for first, second in same: self.assertTrue(registry.alike(first, second), (first, second))
         registry.add(self.project, apart[0][0], 'chat')
@@ -64,7 +67,8 @@ class NewWords(Closure):
         registry.change(self.project, 'R1', words='Totals keep three decimals')
         rule = registry.find(registry.load(self.project), 'R1')
         self.assertEqual((rule['pending'], registry.in_force(rule)['kind']), ('words', 'none'))
-        self.assertEqual(rule['history'][-1]['was']['guard']['command'], ['node', 'check.js'], 'the earlier guard kept in its history')
+        self.assertEqual(rule['history'][-1]['was']['guard']['command'], ['node', 'check.js'],
+                         'the earlier guard kept in its history')
         (self.project / 'total.js').write_text(BROKEN)
         result = held.in_check(registry.holding(self.project, {}), self.project)[0]
         self.assertEqual((result['status'], result['waiting']), ('unguarded', 'words'), 'not run, never called held')
@@ -80,7 +84,8 @@ class WhatACommitHolds(Closure):
         git(self.project, 'add', 'total.js')
         (self.project / 'total.js').write_text(SOUND + '// fixed, not staged\n')
         self.assertTrue(changed.check(self.project, rules, staged=True, gates=False)['refused'])
-        self.assertEqual((self.project / 'total.js').read_text(), SOUND + '// fixed, not staged\n', 'the working tree untouched')
+        self.assertEqual((self.project / 'total.js').read_text(), SOUND + '// fixed, not staged\n',
+                         'the working tree untouched')
         (self.project / 'total.js').write_text(SOUND + '// tidy\n')
         git(self.project, 'add', 'total.js')
         (self.project / 'total.js').write_text(BROKEN)

@@ -29,14 +29,17 @@ class SampleTests(unittest.TestCase):
         from eaos.engines import ADAPTERS, tool
         for name, adapter in ADAPTERS.items():
             with self.subTest(engine=name):
-                self.assertEqual((adapter.__name__.rsplit('.', 1)[-1], importlib.import_module(adapter.__name__)), (name.replace('-', '_'), adapter))
+                self.assertEqual((adapter.__name__.rsplit('.', 1)[-1], importlib.import_module(adapter.__name__)),
+                                 (name.replace('-', '_'), adapter))
                 for method in ('analyze', 'capabilities'):
                     self.assertTrue(callable(getattr(adapter, method, None)), f'{name} has no {method}')
                 # its version is read from its binary (tool.version_of), or by its own reader
-                self.assertTrue(callable(getattr(adapter, 'version', None)) or getattr(adapter, 'BINARY', None), f'{name} has no version reader')
+                self.assertTrue(callable(getattr(adapter, 'version', None)) or getattr(adapter, 'BINARY', None),
+                                f'{name} has no version reader')
                 self.assertEqual(adapter.PINNED, tool.pinned(name), 'the adapter and the registry pin one version')
                 if name not in UNSAMPLED:
-                    self.assertEqual(sample(name)['pinned_version'], adapter.PINNED, f'{name}: captured from another version')
+                    self.assertEqual(sample(name)['pinned_version'], adapter.PINNED,
+                                     f'{name}: captured from another version')
                 for capability in adapter.capabilities(): self.assertIn(capability.kind, KINDS)
 
 

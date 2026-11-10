@@ -15,7 +15,8 @@ VERSION = '1'
 LIMITATIONS = [
     'Filename patterns cannot catch every intent; a "scratch.tsx" with no pattern match stays in the tree.',
     'A leftover is reported only after the import graph is available; the resolver must have run first.',
-    'A leftover .env may be the only source of environment configuration for the project; the tool records it, the operator decides.',
+    'A leftover .env may be the only source of environment configuration for the project; the tool records it, the '
+    'operator decides.',
     'Binary artifacts committed by mistake are listed by path only; their contents are not opened.',
 ]
 
@@ -37,7 +38,8 @@ ENV_NAME = re.compile(r'(^|[\\/])\.env(?:\.[\w.-]+)?$', re.I)
 ENV_SAFE_NAMES = {'.env.example', '.env.sample', '.env.template', '.env.test'}
 # Source code by its extension: such a file named or placed as a build output is still source when it sits beside
 # source the project imports, or under a source folder (a Java or Rust package named `target` inside src/).
-SOURCE_EXT = {'.py', '.js', '.jsx', '.mjs', '.cjs', '.ts', '.tsx', '.java', '.kt', '.scala', '.rs', '.go', '.cs', '.rb', '.php',
+SOURCE_EXT = {'.py', '.js', '.jsx', '.mjs', '.cjs', '.ts', '.tsx', '.java', '.kt', '.scala', '.rs', '.go', '.cs', '.rb',
+              '.php',
               '.swift', '.vue', '.svelte'}
 
 
@@ -123,7 +125,8 @@ def collect(source, resolve_facts):
         rel = item['path']
         reason = classify(rel)
         if not reason: continue
-        if _is_reachable(rel, _language(rel), imported) or (reason == 'build_output' and _source_after_all(rel, imported)): continue
+        if (_is_reachable(rel, _language(rel), imported)
+                or (reason == 'build_output' and _source_after_all(rel, imported))): continue
         facts_list.append({'path': rel, 'reason': reason, 'sha256': item.get('sha256')})
     return facts_list
 
@@ -147,6 +150,7 @@ def run(target, source, resolve_facts=None, **options):
         by_reason[record['reason']] = by_reason.get(record['reason'], 0) + 1
     summary = {'candidates': len(facts_list),
                'by_reason': by_reason,
-               'interpretation': 'A leftover is reported only after it has been verified as unreachable from any import edge.'}
+               'interpretation': 'A leftover is reported only after it has been verified as unreachable from any '
+                                 'import edge.'}
     return {'facts': facts_list, 'summary': summary, 'available': True,
             'input_sha': digest(''.join(sorted(fingerprints)).encode('utf-8')), 'reason': None}

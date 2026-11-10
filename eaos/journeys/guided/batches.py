@@ -4,7 +4,8 @@ branch chosen.
 
 from ...core.project import branches, jobs
 from ...core.project.state import waiting_batch
-from .project import PUBLISHERS, _branch_exists, _git, fresh, publish, report_of, save_after_report, same_code, save, tip
+from .project import (PUBLISHERS, _branch_exists, _git, fresh, publish, report_of, save_after_report, same_code,
+                      save, tip)
 from ...core.system.clock import now
 
 
@@ -15,8 +16,9 @@ def close_batch(state, status, why='', via='assistant'):
         wave = state.get('open_wave')
         if not wave: return None
         record = {'number': wave['number'], 'base': wave.get('base'), 'cards': wave['cards'], 'kept': {},
-                  'failed': wave.get('failed') or {} if status == 'abandoned' else {}, 'branch': None, 'status': status, 'via': via,
-                  'keys': wave.get('keys') or {}, **{k: wave[k] for k in ('deliver_as', 'merge_into', 'base_branch') if k in wave}}
+                  'failed': wave.get('failed') or {} if status == 'abandoned' else {}, 'branch': None,
+                  'status': status, 'via': via, 'keys': wave.get('keys') or {},
+                  **{k: wave[k] for k in ('deliver_as', 'merge_into', 'base_branch') if k in wave}}
         if why: record['why'] = why
         state.setdefault('waves', []).append(record)
         state.pop('open_wave', None)
@@ -49,7 +51,8 @@ def _no_longer_fits(state, wave):
     # a batch continued on a work branch: its branch's commit
     built_on = wave.get('source_commit') or wave.get('base')
     if now and not same_code(state, built_on, now) and not wave.get('kept'):    # kept changes go on: their merge says
-        return f"the code moved on since the batch opened (it was built on {str(built_on)[:12]}, the branch is at {now[:12]})"
+        return (f"the code moved on since the batch opened (it was built on {str(built_on)[:12]}, "
+                f"the branch is at {now[:12]})")
     return _renumbered(state, wave)
 
 
@@ -59,9 +62,10 @@ def stale_refusal(state):
     wave = state.get('open_wave')
     if not (wave and (why := _no_longer_fits(state, wave))): return None
     return {'status': 'stale_batch', 'batch': wave['number'], 'why': why,
-            'what_now': 'The batch is as it was: it no longer fits, so it takes no change. fix_start closes it and opens the next '
-                        'one; fix_abandon only closes it; its cards can be picked again. A helper of this batch closes nothing: '
-                        'it says so and ends its turn. A job still running ends first: fix_start closes nothing under it.'}
+            'what_now': 'The batch is as it was: it no longer fits, so it takes no change. fix_start closes it and '
+                        'opens the next one; fix_abandon only closes it; its cards can be picked again. A helper of '
+                        'this batch closes nothing: it says so and ends its turn. A job still running ends first: '
+                        'fix_start closes nothing under it.'}
 
 
 def refuse_if_stale(state):
@@ -165,7 +169,8 @@ def merge(state, wave, into=None, delete_after=True):
 
 def _merge_choices(state, wave, into, delete_after):
     """Where the batch goes and whether its branch stays, set on it and on every batch continued on its branch."""
-    for each in [w for w in state.get('waves') or [] if w.get('status') == 'applied' and w.get('branch') == wave['branch']] + [wave]:
+    for each in [w for w in state.get('waves') or []
+                 if w.get('status') == 'applied' and w.get('branch') == wave['branch']] + [wave]:
         # batches continued on one branch go in together
         if into or wave.get('merge_into'): each['merge_into'] = into or wave['merge_into']
         if not delete_after: each['keep_branch'] = True
@@ -182,11 +187,13 @@ def _merge_elsewhere(state, wave, into):
     else:
         tree = _git(project, 'merge-tree', '--write-tree', before, wave_tip)
         if tree.returncode: return 'conflict'
-        made = _git(project, '-c', 'user.name=EAOS', '-c', 'user.email=eaos@localhost', 'commit-tree', tree.stdout.split()[0],
+        made = _git(project, '-c', 'user.name=EAOS', '-c', 'user.email=eaos@localhost', 'commit-tree',
+                    tree.stdout.split()[0],
                     '-p', before, '-p', wave_tip, '-m', f"Merge {wave['branch']}: EAOS batch {wave.get('number')}")
         if made.returncode: return 'conflict'
         after = made.stdout.strip()
-    if _git(project, 'update-ref', '-m', f"EAOS: merge {wave['branch']}", ref, after, before).returncode: return 'conflict'
+    if _git(project, 'update-ref', '-m', f"EAOS: merge {wave['branch']}", ref, after,
+            before).returncode: return 'conflict'
     save(state)         # the choices made for this merge: reconcile goes on from what is on disk
     reconcile(state)
     return 'merged'
@@ -215,8 +222,8 @@ def choose(state, name, said=None, via=None):
 
 def _keep_answer(state, name, said, via):
     """The person's answer to the branch question, kept with the state's questions."""
-    state.setdefault('questions', []).append({'id': 'branch', 'kind': 'choice', 'answer': name, 'said': str(said or '')[:300] or None,
-                                              'via': via})
+    state.setdefault('questions', []).append({'id': 'branch', 'kind': 'choice', 'answer': name,
+                                              'said': str(said or '')[:300] or None, 'via': via})
 
 
 def _finished(state, project, name):

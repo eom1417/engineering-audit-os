@@ -39,13 +39,20 @@ class StyleOracle(unittest.TestCase):
         cls.tmp = tempfile.TemporaryDirectory()
         cls.addClassCleanup(cls.tmp.cleanup)
         package = toolchain.home() / 'node' / 'node_modules' / 'playwright'
-        if not package.is_dir() or not shutil.which('node'): raise unittest.SkipTest('the pinned Playwright is not installed')
-        pages = {'plain': PLAIN, 'token': {**PLAIN, 'tokens': ':root{--card:#f5f5f5}', 'card': 'var(--card)'}, 'colour': {**PLAIN, 'card': '#f5f5f6'},
+        if not package.is_dir() or not shutil.which('node'):
+            raise unittest.SkipTest('the pinned Playwright is not installed')
+        pages = {'plain': PLAIN,
+                 'token': {**PLAIN, 'tokens': ':root{--card:#f5f5f5}', 'card': 'var(--card)'},
+                 'colour': {**PLAIN, 'card': '#f5f5f6'},
                  'border': {**PLAIN, 'border': '2px'}, 'hover': {**PLAIN, 'hover': '#1558b1'}}
         script = Path(cls.tmp.name) / 'driver.cjs'
-        script.write_text(DRIVER.format(playwright=json.dumps(str(package)), look=json.dumps(str(LOOK))), encoding='utf-8')
-        done = subprocess.run(['node', str(script), json.dumps({name: PAGE.format(**page) for name, page in pages.items()}), cls.tmp.name],
-                              capture_output=True, text=True, timeout=120, env={'PATH': shutil.os.environ['PATH'], 'PLAYWRIGHT_BROWSERS_PATH': str(toolchain.browsers())})
+        script.write_text(DRIVER.format(playwright=json.dumps(str(package)), look=json.dumps(str(LOOK))),
+                          encoding='utf-8')
+        done = subprocess.run(['node', str(script),
+                               json.dumps({name: PAGE.format(**page) for name, page in pages.items()}), cls.tmp.name],
+                              capture_output=True, text=True, timeout=120,
+                              env={'PATH': shutil.os.environ['PATH'],
+                                   'PLAYWRIGHT_BROWSERS_PATH': str(toolchain.browsers())})
         if done.returncode: raise unittest.SkipTest(done.stderr[-300:])
 
     def saved(self, name):
@@ -58,13 +65,15 @@ class StyleOracle(unittest.TestCase):
         self.assertEqual(self.changes('token'), [])
 
     def test_one_colour_off_by_one_is_found(self):
-        self.assertTrue(any(row['property'] == 'background-color' and row['to'] == 'rgb(245, 245, 246)' for row in self.changes('colour')))
+        self.assertTrue(any(row['property'] == 'background-color' and row['to'] == 'rgb(245, 245, 246)'
+                            for row in self.changes('colour')))
 
     def test_a_1px_border_is_found(self):
         self.assertTrue(any(row['property'] == 'border-top-width' for row in self.changes('border')))
 
     def test_a_hover_colour_under_a_transition_is_found(self):
-        self.assertEqual({(row['state'], row['property']) for row in self.changes('hover')}, {('hover', 'background-color')})
+        self.assertEqual({(row['state'], row['property']) for row in self.changes('hover')},
+                         {('hover', 'background-color')})
 
     def test_a_declared_change_passes_and_only_it(self):
         allowed = [{'property': None, 'from': 'rgb(245, 245, 245)', 'to': 'rgb(245, 245, 246)'}]
@@ -83,7 +92,8 @@ class StyleOracle(unittest.TestCase):
             (now / 'page.json').unlink()
             self.assertIn('not read again', judged(original, now))
             (control / 'page.json').unlink()
-            self.assertEqual(judged(original, now, None, control), '', 'a page that fails with no change at all is not the batch')
+            self.assertEqual(judged(original, now, None, control), '',
+                             'a page that fails with no change at all is not the batch')
 
     def test_a_page_with_no_second_reading_or_no_recording_proves_nothing(self):
         empty = Path(self.tmp.name) / 'empty'

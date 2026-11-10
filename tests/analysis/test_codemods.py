@@ -8,12 +8,14 @@ import tempfile
 from shared_fixture import Workspace
 
 from needs import need
-from eaos.analysis.repair.codemods import TRANSFORM, _commands, _run_steps, attach, binary, card_for, dry_run, remove_python
+from eaos.analysis.repair.codemods import (
+    TRANSFORM, _commands, _run_steps, attach, binary, card_for, dry_run, remove_python)
 from eaos.engines.process import state_digest, which
 
 
 def upgrade(path, symbol, fixed):
-    fact = {'id': 'F', 'location': {'path': path, 'symbol': symbol}, 'value': {'measurements': [{'name': 'fixed_in', 'value': fixed}]}}
+    fact = {'id': 'F', 'location': {'path': path, 'symbol': symbol}, 'value': {'measurements': [{'name': 'fixed_in',
+        'value': fixed}]}}
     return {'pattern': 'upgrade_dependency', 'evidence': {'fact_ids': ['F']}}, {'F': fact}
 
 
@@ -29,7 +31,8 @@ class CodemodTests(Workspace):
         return set(glob.glob(str(Path(tempfile.gettempdir()) / 'eaos-codemod-*')))
 
     def test_python_removes_exactly_the_named_definition_with_its_decorators(self):
-        root = self.project({'m.py': 'import x\n\n@cache\ndef gone(a):\n    return a\n\n\ndef kept():\n    return 1\n\nRATE = 2\n'})
+        root = self.project({'m.py': 'import x\n\n@cache\ndef gone(a):\n    return a\n\n\ndef kept():\n    return '
+                                     '1\n\nRATE = 2\n'})
         self.assertTrue(remove_python(root / 'm.py', 'gone'))
         self.assertTrue(remove_python(root / 'm.py', 'RATE'))
         self.assertEqual((root / 'm.py').read_text(), 'import x\n\n\n\ndef kept():\n    return 1\n\n')
@@ -37,16 +40,19 @@ class CodemodTests(Workspace):
 
     def test_a_dead_typescript_symbol_is_removed_by_jscodeshift_on_a_copy(self):
         need(self, '' if which('jscodeshift') else 'jscodeshift is not installed')
-        root = self.project({'src/a.ts': 'export function keep() { return 1; }\nexport function unused() { return 2; }\n',
+        root = self.project({'src/a.ts': 'export function keep() { return 1; }\nexport function unused() { return 2; '
+                                         '}\n',
                              'src/b.tsx': "import 'side-effect'\nimport { createContext, useContext } from 'react'\n"
                                           "import { already } from 'x'\n"
-                                          "export const Ctx = createContext(1)\nexport const useCtx = () => useContext(Ctx)\n"})
+                                          "export const Ctx = createContext(1)\nexport const useCtx = () => "
+                                          "useContext(Ctx)\n"})
         before = state_digest(root)
         result, command = dry_run({'kind': 'jscodeshift', 'path': 'src/a.ts', 'symbol': 'unused'}, root)
         self.assertEqual(result, {'exit': 0, 'files_changed': 1})
         self.assertIn('--name=unused', command)
         self.assertEqual(state_digest(root), before)
-        self.assertEqual(dry_run({'kind': 'jscodeshift', 'path': 'src/a.ts', 'symbol': 'absent'}, root)[0]['files_changed'], 0)
+        self.assertEqual(dry_run({'kind': 'jscodeshift', 'path': 'src/a.ts', 'symbol': 'absent'},
+                                 root)[0]['files_changed'], 0)
         # An import only the removed code used goes with it; the rest stay.
         subprocess.run([which('jscodeshift'), '-t', str(TRANSFORM), '--parser=tsx', '--name=useCtx', 'src/b.tsx'],
                        cwd=root, capture_output=True, check=True)
@@ -57,8 +63,10 @@ class CodemodTests(Workspace):
         self.assertIn("import { already } from 'x'", text)
 
     def test_an_upgrade_targets_every_vulnerable_lock_file_and_changes_only_the_copy(self):
-        root = self.project({'package.json': json.dumps({'dependencies': {'axios': '1.0.0'}}), 'package-lock.json': '{}',
-                             'app/package.json': '{"dependencies": {"sharp": "^0.35.3"}}', 'app/package-lock.json': '{}'})
+        root = self.project({'package.json': json.dumps({'dependencies': {'axios': '1.0.0'}}),
+                             'package-lock.json': '{}',
+                             'app/package.json': '{"dependencies": {"sharp": "^0.35.3"}}',
+                             'app/package-lock.json': '{}'})
         self.assertTrue(card_for(*upgrade('package-lock.json', 'npm:axios@1.0.0', '1.2.0'), root)['direct'])
         self.assertFalse(card_for(*upgrade('package-lock.json', 'npm:picomatch@1.0.0', '1.2.0'), root)['direct'])
         card = card_for(*upgrade('app/package-lock.json', 'npm:sharp@0.35.3', '0.35.4'), root)
@@ -67,7 +75,8 @@ class CodemodTests(Workspace):
         self.assertEqual((argv[1:3], argv[-2:]), (['install', 'sharp@0.35.4'], ['--prefix', 'app']))
         lock = lambda version: json.dumps({'packages': {'node_modules/nanoid': {'version': version}}})
         root = self.project({'package.json': '{"dependencies": {"vite": "5"}}', 'package-lock.json': lock('3.3.15'),
-                             'server/package.json': '{"dependencies": {"nanoid": "^3"}}', 'server/package-lock.json': lock('3.3.15'),
+                             'server/package.json': '{"dependencies": {"nanoid": "^3"}}',
+                             'server/package-lock.json': lock('3.3.15'),
                              'docs/package.json': '{}', 'docs/package-lock.json': lock('3.3.18')})
         card = card_for(*upgrade('package-lock.json', 'npm:nanoid@3.3.15', '3.3.18'), root)
         self.assertEqual(card['folders'], [('.', False), ('server', True)], 'a lock file already fixed is left alone')
@@ -78,10 +87,12 @@ class CodemodTests(Workspace):
         # A lock holding picomatch 2.3.1 (an override's, then the override gone); the card moves that copy to 2.3.2.
         manifest = {'name': 'f', 'version': '1.0.0', 'dependencies': {'micromatch': '4.0.5'}}
         root = self.project({'package.json': json.dumps({**manifest, 'overrides': {'picomatch': '2.3.1'}})})
-        subprocess.run(['npm', 'install', '--package-lock-only', '--ignore-scripts', '--loglevel=error'], cwd=root, capture_output=True)
+        subprocess.run(['npm', 'install', '--package-lock-only', '--ignore-scripts', '--loglevel=error'], cwd=root,
+                       capture_output=True)
         (root / 'package.json').write_text(json.dumps(manifest))
         before = state_digest(root)
-        result, command = dry_run({'kind': 'npm', 'package': 'picomatch', 'version': '2.3.1', 'fixed': '2.3.2', 'direct': False}, root)
+        result, command = dry_run({'kind': 'npm', 'package': 'picomatch', 'version': '2.3.1', 'fixed': '2.3.2',
+                                   'direct': False}, root)
         need(self, 'the npm registry is unreachable' if result['exit'] != 0 else '', tool=False)
         self.assertEqual(result['files_changed'], 2)
         self.assertIn('override picomatch@>=2.3.1 <=2.3.2 with 2.3.2 in package.json', command)
@@ -91,13 +102,16 @@ class CodemodTests(Workspace):
         # A card of a bun.lock has a codemod, so it can pass.
         root = self.project({'package.json': '{"devDependencies": {"vitest": "4"}}', 'bun.lock': '{}'})
         steps = _commands(card_for(*upgrade('bun.lock', 'npm:vitest@4.1.6', '4.1.11'), root), root)
-        self.assertEqual([step[1:] for step, _ in steps], [['add', 'vitest@4.1.11', '--lockfile-only', '--ignore-scripts']])
+        self.assertEqual([step[1:] for step, _ in steps], [['add', 'vitest@4.1.11', '--lockfile-only',
+                                                            '--ignore-scripts']])
         steps = _commands(card_for(*upgrade('bun.lock', 'npm:nanoid@3.3.12', '3.3.18'), root), root)
-        self.assertEqual([callable(step) or step[1:] for step, _ in steps], [True, ['install', '--lockfile-only', '--ignore-scripts']])
+        self.assertEqual([callable(step) or step[1:] for step, _ in steps], [True, ['install', '--lockfile-only',
+            '--ignore-scripts']])
         # The real bun, on a lock holding the vulnerable version: only the lock and its manifest change.
         need(self, '' if binary('bun') else 'bun is not installed')
         (root / 'bun.lock').unlink()
-        root = self.project({'package.json': json.dumps({'name': 'f', 'dependencies': {'micromatch': '4.0.5'}, 'overrides': {'picomatch': '2.3.1'}})})
+        root = self.project({'package.json': json.dumps({'name': 'f', 'dependencies': {'micromatch': '4.0.5'},
+                                                         'overrides': {'picomatch': '2.3.1'}})})
         command = [binary('bun'), 'install', '--lockfile-only', '--ignore-scripts']
         refused = subprocess.run(command, cwd=root, capture_output=True).returncode
         need(self, 'the npm registry is unreachable' if refused else '', tool=False)
@@ -110,12 +124,15 @@ class CodemodTests(Workspace):
     def test_a_uv_lock_card_is_one_uv_lock_run_that_installs_nothing(self):
         # A card of a uv.lock has a codemod, so it can pass.
         root = self.project({'uv.lock': ''})
-        members = [card_for(*upgrade('uv.lock', f'PyPI:{name}@1', fixed), root) for name, fixed in (('idna', '3.7'), ('dnspython', '2.9.0'))]
+        members = [card_for(*upgrade('uv.lock', f'PyPI:{name}@1', fixed), root) for name, fixed in (('idna', '3.7'),
+            ('dnspython', '2.9.0'))]
         steps = _commands({'kind': 'uv', 'group': members}, root)
-        self.assertEqual([step[1:] for step, _ in steps], [['lock', '--upgrade-package', 'idna==3.7', '--upgrade-package', 'dnspython==2.9.0']])
+        self.assertEqual([step[1:] for step, _ in steps], [['lock', '--upgrade-package', 'idna==3.7',
+                                                            '--upgrade-package', 'dnspython==2.9.0']])
         need(self, '' if binary('uv') else 'uv is not installed')
         (root / 'uv.lock').unlink()
-        root = self.project({'pyproject.toml': '[project]\nname = "f"\nversion = "0"\nrequires-python = ">=3.9"\ndependencies = ["requests==2.32.3"]\n'})
+        root = self.project({'pyproject.toml': '[project]\nname = "f"\nversion = "0"\nrequires-python = '
+                                               '">=3.9"\ndependencies = ["requests==2.32.3"]\n'})
         command = [binary('uv'), 'lock', '--upgrade-package', 'idna==3.6']
         refused = subprocess.run(command, cwd=root, capture_output=True).returncode
         need(self, 'the Python package index is unreachable' if refused else '', tool=False)
@@ -128,7 +145,8 @@ class CodemodTests(Workspace):
         # A card of a go.mod has a codemod, so the vulnerable modules of a Go app can pass.
         root = self.project({'go.mod': 'module m\n\ngo 1.21\n'})
         members = [card_for(*upgrade('go.mod', f'Go:{name}@{version}', fixed), root)
-                   for name, version, fixed in (('golang.org/x/text', '0.21.0', '0.22.0'), ('github.com/golang-jwt/jwt/v5', 'v5.2.1', '5.2.2'))]
+                   for name, version, fixed in (('golang.org/x/text', '0.21.0', '0.22.0'),
+                                                ('github.com/golang-jwt/jwt/v5', 'v5.2.1', '5.2.2'))]
         self.assertEqual(_commands({'kind': 'go', 'group': members}, root)[0][1],
                          'go get golang.org/x/text@v0.22.0 github.com/golang-jwt/jwt/v5@v5.2.2 && go mod tidy')
         need(self, '' if binary('go') else 'go is not installed')
@@ -143,7 +161,8 @@ class CodemodTests(Workspace):
 
     def test_a_cargo_lock_card_moves_its_crate_with_cargo_alone(self):
         # A Rust crate card has a codemod: a tool rewrites Cargo.lock with the very command the person is told.
-        root = self.project({'Cargo.toml': '[package]\nname = "m"\nversion = "0.1.0"\nedition = "2021"\n\n[dependencies]\nitoa = "=1.0.10"\n',
+        root = self.project({'Cargo.toml': '[package]\nname = "m"\nversion = "0.1.0"\nedition = '
+                                           '"2021"\n\n[dependencies]\nitoa = "=1.0.10"\n',
                              'src/main.rs': 'fn main() {}\n', 'Cargo.lock': ''})
         card = card_for(*upgrade('Cargo.lock', 'crates.io:itoa@1.0.10', '1.0.11'), root)
         self.assertEqual(_commands(card, root)[0][1], 'cargo update -p itoa@1.0.10 --precise 1.0.11')
@@ -162,8 +181,10 @@ class CodemodTests(Workspace):
         # One go get of a lock file card's modules must not ask x/sys at its fix while the fixed x/net needs a newer
         # x/sys, or Go refuses the whole card.
         need(self, '' if binary('go') else 'go is not installed')
-        root = self.project({'go.mod': 'module m\n\ngo 1.23\n\nrequire (\n\tgolang.org/x/net v0.34.0\n\tgolang.org/x/sys v0.29.0\n)\n',
-                             'main.go': 'package main\n\nimport (\n\t_ "golang.org/x/net/html"\n\t_ "golang.org/x/sys/unix"\n)\n\nfunc main() {}\n'})
+        root = self.project({'go.mod': 'module m\n\ngo 1.23\n\nrequire (\n\tgolang.org/x/net '
+                                       'v0.34.0\n\tgolang.org/x/sys v0.29.0\n)\n',
+                             'main.go': 'package main\n\nimport (\n\t_ "golang.org/x/net/html"\n\t_ '
+                                        '"golang.org/x/sys/unix"\n)\n\nfunc main() {}\n'})
         members = [card_for(*upgrade('go.mod', f'Go:golang.org/x/{name}@{version}', fixed), root)
                    for name, version, fixed in (('sys', '0.29.0', '0.30.0'), ('net', '0.34.0', '0.38.0'))]
         code, shown = _run_steps(_commands({'kind': 'go', 'group': members}, root), root)
@@ -176,13 +197,15 @@ class CodemodTests(Workspace):
     def test_two_versions_of_one_package_are_overridden_each_at_its_own(self):
         # The 2.x upgrade of a package must not overwrite its 1.x override: forcing every copy to 2.x would sit below
         # what its consumers ask and undo the 1.x fix.
-        root = self.project({'package.json': '{\n  "name": "f",\n  "dependencies": {"minimatch": "3"}\n}\n', 'package-lock.json': '{}'})
+        root = self.project({'package.json': '{\n  "name": "f",\n  "dependencies": {"minimatch": "3"}\n}\n',
+                             'package-lock.json': '{}'})
         for vulnerable, fixed in (('1.1.11', '1.1.21'), ('2.0.1', '2.1.7')):
             card = {'kind': 'npm', 'package': 'brace-expansion', 'version': vulnerable, 'fixed': fixed, 'direct': False}
             for step, _ in _commands(card, root):
                 if callable(step): step()
         written = (root / 'package.json').read_text()
-        self.assertEqual(json.loads(written)['overrides'], {'brace-expansion@>=1.1.11 <=1.1.21': '1.1.21', 'brace-expansion@>=2.0.1 <=2.1.7': '2.1.7'})
+        self.assertEqual(json.loads(written)['overrides'], {'brace-expansion@>=1.1.11 <=1.1.21': '1.1.21',
+                                                            'brace-expansion@>=2.0.1 <=2.1.7': '2.1.7'})
         self.assertTrue(written.startswith('{\n  "name"'), 'the file keeps its own indent')
 
     def test_a_fixed_version_that_is_itself_vulnerable_is_passed_to_the_next_fix(self):
@@ -201,7 +224,8 @@ class CodemodTests(Workspace):
         out = Path(self.tmp) / 'out'
         (out / 'facts').mkdir(parents=True)
         (out / 'facts/deadcode.json').write_text(json.dumps({'facts': [
-            {'id': 'F1', 'kind': 'dead', 'value': {'rule': 'unreferenced-symbol'}, 'location': {'path': 'a.py', 'symbol': 'gone'}},
+            {'id': 'F1', 'kind': 'dead', 'value': {'rule': 'unreferenced-symbol'}, 'location': {'path': 'a.py',
+                'symbol': 'gone'}},
             {'id': 'F2', 'kind': 'leftover', 'value': {}, 'location': {'path': 'old.txt'}}]}))
         tasks = [{'pattern': 'leftover', 'evidence': {'fact_ids': ['F2']}} for _ in range(2)]
         before = self.leftovers()

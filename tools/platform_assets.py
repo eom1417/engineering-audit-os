@@ -24,7 +24,8 @@ REGISTRY = ROOT / 'eaos/data/toolchain.json'
 WORDS = {'darwin-arm64': (r'(darwin|macos|mac|apple)', r'(arm64|aarch64|universal|_all)'),
          'darwin-x86_64': (r'(darwin|macos|mac|apple)', r'(x86_64|amd64|x64|64bit|64-bit|universal|_all)(?!.*arm)')}
 NEUTRAL = re.compile(r'(linux|x86|amd64|x64|64bit)', re.I)
-SKIP = re.compile(r'\.(sha256|sha512|sig|pem|asc|sbom|json|txt|deb|rpm|apk|msi|pkg|dmg)$|checksums|sbom|provenance', re.I)
+SKIP = re.compile(r'\.(sha256|sha512|sig|pem|asc|sbom|json|txt|deb|rpm|apk|msi|pkg|dmg)$'
+                  r'|checksums|sbom|provenance', re.I)
 
 
 def fetch(url):
@@ -50,7 +51,8 @@ def _named_like(names, wanted, tree):
     base = lambda n: n.rsplit('/', 1)[-1]
     found = [n for n in names if base(n) == wanted and (not tree or '/bin/' in n)]
     # A binary named after its release (reforge-0.3.0-darwin-arm64) is still the tool.
-    return found or [n for n in names if base(n).startswith(wanted + '-') and not re.search(r'\.(txt|md|json|sha256)$', base(n))]
+    return found or [n for n in names if base(n).startswith(wanted + '-')
+                     and not re.search(r'\.(txt|md|json|sha256)$', base(n))]
 
 
 def member(blob, kind, binary, tree_entry=None):
@@ -65,7 +67,8 @@ def _asset_for(assets, platform_words, spec, linux_name):
     chosen = [a for a in assets if re.search(system, a['name'], re.I) and re.search(machine, a['name'], re.I)]
     if spec.get('tree'): chosen = [a for a in chosen if re.search(r'jre', a['name'], re.I)] or chosen
     if not chosen: return None
-    common = lambda name: next((i for i, (a, b) in enumerate(zip(name, linux_name)) if a != b), min(len(name), len(linux_name)))
+    common = lambda name: next((i for i, (a, b) in enumerate(zip(name, linux_name)) if a != b),
+                               min(len(name), len(linux_name)))
     return max(chosen, key=lambda a: (common(a['name']), -len(a['name'])))
 
 

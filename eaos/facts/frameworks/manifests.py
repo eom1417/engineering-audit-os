@@ -227,4 +227,5 @@ def _makefile(context, base):
 
 
 # The manifests read here, by file name, and the reader of each.
-READERS = {'package.json': _package_json, 'pyproject.toml': _pyproject, 'Dockerfile': _dockerfile, 'Makefile': _makefile}
+READERS = {'package.json': _package_json, 'pyproject.toml': _pyproject, 'Dockerfile': _dockerfile,
+           'Makefile': _makefile}

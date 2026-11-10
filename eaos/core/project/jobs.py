@@ -63,8 +63,10 @@ def read(job, project):
     if not path.is_file(): raise ValueError(f'no job named {job!r} in this project')
     record = json.loads(path.read_text(encoding='utf-8'))
     if record['status'] == 'running' and not _alive(record.get('pid')):
-        record.update(status='failed', ended=now(), error='the job stopped before it finished (the computer slept or the process was '
-                      'killed); start it again' + (': the batch keeps every change it kept, and fix_finish goes on from them'
+        record.update(status='failed', ended=now(), error='the job stopped before it finished (the computer slept '
+                      'or the process was '
+                      'killed); start it again' + (': the batch keeps every change it kept, '
+                      'and fix_finish goes on from them'
                                                    if record.get('kind') == 'fix_finish' else ''))
         _write(record)
     return record
@@ -146,25 +148,30 @@ def _launches_that_failed(project):
     process of its job never started. Age proves nothing: systemd can start a job and tell no pid in time."""
     for path in folder(project).glob('*.json'):
         record = read_json(path, {})
-        if not (isinstance(record, dict) and record.get('status') == 'running' and record.get('id') and not record.get('pid')): continue
+        if not (isinstance(record, dict) and record.get('status') == 'running' and record.get('id')
+                and not record.get('pid')): continue
         if _has_process(record['id']): continue
         record = read_json(path, {})        # as it is now: a worker may have ended while it was looked for
         if record.get('status') == 'running' and not record.get('pid'):
-            record.update(status='failed', ended=now(), error='the job never started: its launch was cut short; start it again')
+            record.update(status='failed', ended=now(),
+                          error='the job never started: its launch was cut short; start it again')
             _write(record)
 
 
 def _has_process(job):
     """Whether a process of the job exists; when that cannot be told, it may."""
-    try: return subprocess.run(['pgrep', '-f', f'eaos.core.project.jobs {job}'], capture_output=True, timeout=10).returncode != 1
+    try: return subprocess.run(['pgrep', '-f', f'eaos.core.project.jobs {job}'], capture_output=True,
+                               timeout=10).returncode != 1
     except (OSError, subprocess.SubprocessError): return True
 
 
 def start(kind, project, arguments, runner='eaos.journeys.agent_tools'):
     job = f"{kind}-{stamp('%Y%m%d-%H%M%S')}-{os.urandom(2).hex()}"
     log = folder(project) / f'{job}.log'
-    record = {'id': job, 'kind': kind, 'runner': runner, 'project': str(project), 'arguments': arguments, 'status': 'running',
-              'progress': None, 'result': None, 'error': None, 'log': str(log), 'started': now(), 'ended': None, 'pid': None}
+    record = {'id': job, 'kind': kind, 'runner': runner, 'project': str(project),
+              'arguments': arguments, 'status': 'running',
+              'progress': None, 'result': None, 'error': None, 'log': str(log),
+              'started': now(), 'ended': None, 'pid': None}
     _write(record)
     pid = _launch(job, project, log)
     record = json.loads(_path(job, project).read_text(encoding='utf-8'))
@@ -183,13 +190,17 @@ def _launch(job, project, log):
     env = {**os.environ, 'PYTHONUNBUFFERED': '1', 'EAOS_ENGINE_CACHE': str(cache(project))}
     log.write_text('', encoding='utf-8')
     unit = 'eaos-job-' + job
-    if launch.durable() and launch.as_unit(unit, argv, env, {'description': f'EAOS {job}', 'log': log, 'cwd': folder(project)}):
+    if launch.durable() and launch.as_unit(unit, argv, env,
+        {'description': f'EAOS {job}', 'log': log, 'cwd': folder(project)}):
         for _ in range(50):          # None: it ended already, its record says how
-            if (pid := launch.unit_pid(unit)) or _path(job, project).read_text(encoding='utf-8').find('"running"') < 0: return pid
+            if (pid := launch.unit_pid(unit)) or _path(job, project).read_text(encoding='utf-8').find('"running"') < 0:
+                return pid
             time.sleep(0.1)
         return None
     with log.open('w', encoding='utf-8') as out:
-        return subprocess.Popen(argv, stdout=out, stderr=subprocess.STDOUT, stdin=subprocess.DEVNULL, start_new_session=True, env=env).pid  # nosemgrep: python.lang.security.audit.dangerous-subprocess-use-audit -- EAOS starts itself (sys.executable -m eaos), a list argv, no shell
+        # nosemgrep: python.lang.security.audit.dangerous-subprocess-use-audit -- EAOS starts itself (sys.executable -m eaos), a list argv, no shell
+        return subprocess.Popen(argv, stdout=out, stderr=subprocess.STDOUT, stdin=subprocess.DEVNULL,
+                                start_new_session=True, env=env).pid
 
 
 def wait(job, seconds, project):

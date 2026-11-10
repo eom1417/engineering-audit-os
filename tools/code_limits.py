@@ -1,13 +1,13 @@
 """The code limits EAOS holds itself to: each function's cyclomatic complexity, length and parameters, each module's
 length, logic written once, and no unused import or variable.
 
-Complexity, lengths and parameters: what exceeds the limit today is listed in tools/code_limits.json with its current size and may
-only shrink; a new entry, or a listed one that grew, fails tests/guards/test_code_limits.py. When an entry shrinks or drops
-under the limit, `python tools/code_limits.py --tighten` rewrites the list. A function whose parameters cannot be grouped
-(a public tool mirroring its command's options, a record's constructor) says why on its `def` line instead, the way a
-justified pyflakes or Semgrep line does: `# limits: parameters -- <why>`; it is not counted and needs no entry, and a
-comment with no reason after `--` does not count. Duplicates and leftovers have no list: there are none, and the test
-keeps it so.
+Complexity, lengths and parameters: what exceeds the limit today is listed in tools/code_limits.json with its current
+size and may only shrink; a new entry, or a listed one that grew, fails tests/guards/test_code_limits.py. When an entry
+shrinks or drops under the limit, `python tools/code_limits.py --tighten` rewrites the list. A function whose
+parameters cannot be grouped (a public tool mirroring its command's options, a record's constructor) says why on its
+`def` line instead, the way a justified pyflakes or Semgrep line does: `# limits: parameters -- <why>`; it is not
+counted and needs no entry, and a comment with no reason after `--` does not count. Duplicates and leftovers have no
+list: there are none, and the test keeps it so.
 """
 import ast
 import hashlib
@@ -20,14 +20,15 @@ from collections import defaultdict
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
-from eaos.core.contracts.code_laws import MAX_COMPLEXITY, MAX_FUNCTION_LINES, MAX_LINES, MAX_PARAMETERS, complexity  # noqa: E402
+from eaos.core.contracts.code_laws import (  # noqa: E402
+    MAX_COMPLEXITY, MAX_FUNCTION_LINES, MAX_LINES, MAX_PARAMETERS, complexity)
 
 ROOT = Path(__file__).resolve().parents[1]
 BASELINE = ROOT / 'tools' / 'code_limits.json'
 FOLDERS = ('eaos', 'tools')
 # Each kind of limit and its number; every kind but 'modules' is keyed by function.
-# EAOS holds itself to the target laws since M3 (2026-10-24): complexity 10, modules of 400 lines. The laws it holds every
-# project to stay eaos/core/contracts/code_laws.py's.
+# EAOS holds itself to the target laws since M3 (2026-10-24): complexity 10, modules of 400 lines. The laws it holds
+# every project to stay eaos/core/contracts/code_laws.py's.
 LIMITS = {'functions': min(MAX_COMPLEXITY, 10), 'function_lines': MAX_FUNCTION_LINES, 'parameters': MAX_PARAMETERS,
           'modules': min(MAX_LINES, 400)}
 # The kinds a function may justify on its signature, and the comment that does: the kind, then `--` and a reason.
@@ -119,9 +120,10 @@ def _source_line(message):
 
 
 def breaches(over, baseline):
-    """What is over a limit and not allowed by the baseline: new entries, and listed entries that grew. A listed function
-    moved to another module, or out of its class, keeps its allowance (_moved): splitting a module is how it shrinks, and
-    the move alone made each of its complex functions "new" (EAOS's five largest modules could not be split, 2026-10-15)."""
+    """What is over a limit and not allowed by the baseline: new entries, and listed entries that grew. A listed
+    function moved to another module, or out of its class, keeps its allowance (_moved): splitting a module is how it
+    shrinks, and the move alone made each of its complex functions "new" (EAOS's five largest modules could not be
+    split, 2026-10-15)."""
     allowed = {kind: baseline.get(kind, {}) if kind == 'modules' else
                {**_moved(over.get(kind, {}), baseline.get(kind, {})), **baseline.get(kind, {})} for kind in LIMITS}
     return [f'{key}: {size} (allowed {allowed[kind].get(key, limit)})'
@@ -149,7 +151,8 @@ def write(over):
 
 if __name__ == '__main__':
     current = measure()
-    if '--check' in sys.argv:      # the guard of the owner's pinned rule "the code laws" (M16): fails on any breach, each named
+    if '--check' in sys.argv:      # the guard of the owner's pinned rule "the code laws" (M16): fails on any breach,
+                                   # each named
         found = breaches(current, load())
         print('\n'.join(found))
         sys.exit(1 if found else 0)
@@ -159,5 +162,6 @@ if __name__ == '__main__':
     print(f"{len(current['functions'])} functions over complexity {LIMITS['functions']}, "
           f"{len(current['function_lines'])} over {MAX_FUNCTION_LINES} lines, "
           f"{len(current['parameters'])} over {MAX_PARAMETERS} parameters, "
-          f"{len(current['modules'])} modules over {LIMITS['modules']} lines, {len(duplicates())} duplicated functions, "
+          f"{len(current['modules'])} modules over {LIMITS['modules']} lines, "
+          f"{len(duplicates())} duplicated functions, "
           f"{len(leftovers())} leftovers")

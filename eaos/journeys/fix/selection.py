@@ -61,9 +61,12 @@ def resolve(selection, folder, verb):
 def _checked_cards(selection, folder):
     """The cards of the latest check, for a selection that says its kind."""
     if not isinstance(selection, dict) or selection.get('kind') not in ('card', 'cards', 'group', 'step'):
-        raise SelectionError('the selection must say its kind: card, cards, group or step', 'الاختيار لازم يحدد نوعه: بطاقة أو بطاقات أو مجموعة أو مرحلة')
+        raise SelectionError('the selection must say its kind: card, cards, group or step',
+                             'الاختيار لازم يحدد نوعه: بطاقة أو بطاقات أو مجموعة أو مرحلة')
     data = _load(folder, 'cards') if folder else None
-    if not data: raise SelectionError('this project has no check yet: run the check first (audit)', 'المشروع ما انفحص بعد: افحصه أول')
+    if not data:
+        raise SelectionError('this project has no check yet: run the check first (audit)',
+                             'المشروع ما انفحص بعد: افحصه أول')
     return data.get('cards') or []
 
 
@@ -82,7 +85,8 @@ def _named(selection, known):
     if selection['kind'] == 'card': ids = ids[:1]
     if len(ids) > 500: raise SelectionError('at most 500 cards at once', 'الحد 500 بطاقة في المرة الوحدة')
     unknown = [i for i in ids if i not in known]
-    if unknown: raise SelectionError(f"no card named {', '.join(unknown[:5])} in the latest check", f"آخر فحص ما فيه بطاقة باسم {'، '.join(unknown[:5])}")
+    if unknown: raise SelectionError(f"no card named {', '.join(unknown[:5])} in the latest check",
+                                     f"آخر فحص ما فيه بطاقة باسم {'، '.join(unknown[:5])}")
     return set(ids)
 
 
@@ -96,7 +100,8 @@ def _grouped(group, cards, folder):
     by, value = group.get('by'), str(group.get('value') or '')
     if by in GROUPS:
         return {card['id'] for card in cards if str(card.get(GROUPS[by]) or '') == value}
-    if by not in LISTED: raise SelectionError('a group is by area, severity, component, gap or operation', 'المجموعة تكون حسب المجال أو الخطورة أو المكوّن أو الفجوة أو العملية')
+    if by not in LISTED: raise SelectionError('a group is by area, severity, component, gap or operation',
+                                              'المجموعة تكون حسب المجال أو الخطورة أو المكوّن أو الفجوة أو العملية')
     return _listed(by, value, folder)
 
 
@@ -104,7 +109,9 @@ def _listed(by, value, folder):
     """The ids of the cards of a gap, component or operation (LISTED) of the records."""
     name, field, words = LISTED[by]
     rows = (_load(folder, name) or {}).get(name)
-    if rows is None: raise SelectionError(f'this check did not write {words} ({name}.json) yet', f'هذا الفحص ما كتب {name}.json بعد')
+    if rows is None:
+        raise SelectionError(f'this check did not write {words} ({name}.json) yet',
+                             f'هذا الفحص ما كتب {name}.json بعد')
     return {c for row in rows if str(row.get(field)) == value for c in row.get('cards') or []}
 
 
@@ -129,7 +136,8 @@ def _runs(card, fixing):
 def _left(card):
     """A card left out of the run, with why in both languages."""
     if own_batch(card) and card.get('state', 'open') in OPEN:
-        return {'id': card['id'], 'why': 'repository craft: it goes in its own batch (moves or the context), never with fixes',
+        return {'id': card['id'],
+                'why': 'repository craft: it goes in its own batch (moves or the context), never with fixes',
                 'why_ar': 'ترتيب للريبو: ينحل في دفعة لحاله (نقل ملفات أو ملفات الكونتكست)، مو مع الإصلاحات'}
     if card.get('state', 'open') in OPEN:
         names = ', '.join(card['waits'])
@@ -149,10 +157,12 @@ def estimate(verb, count, past):
     if len(rates) >= 3:
         middle = rates[len(rates) // 2]
         low, high = max(1, round(middle * count * 0.7)), max(2, round(middle * count * 1.5 + 1))
-        return low, high, {'en': f'from your last {len(rates)} runs of this kind', 'ar': f'من آخر {len(rates)} تشغيلات من هذا النوع'}
+        return low, high, {'en': f'from your last {len(rates)} runs of this kind',
+                           'ar': f'من آخر {len(rates)} تشغيلات من هذا النوع'}
     if verb == 'fix':
         low, high = fix_minutes(count)
-        return low, high, {'en': 'a rough rule: about 3 to 8 minutes a card, plus preparing the safe copy; it improves with your runs',
+        return low, high, {'en': 'a rough rule: about 3 to 8 minutes a card, plus preparing the safe copy; '
+                                 'it improves with your runs',
                            'ar': 'تقدير تقريبي: من 3 إلى 8 دقائق للبطاقة، مع تجهيز النسخة الآمنة؛ يتحسن مع تشغيلاتك'}
     low, high = 1, max(2, 1 + count)
     return low, high, {'en': 'a rough rule: under a minute or two a card; nothing in the project changes',
@@ -161,17 +171,23 @@ def estimate(verb, count, past):
 
 def risk(verb, cards, files):
     if verb != 'fix':
-        return {'level': 'low', 'why': {'en': 'It only reads: nothing in the project changes.', 'ar': 'قراءة فقط: لا يتغير شيء في المشروع.'}}
+        return {'level': 'low', 'why': {'en': 'It only reads: nothing in the project changes.',
+                                        'ar': 'قراءة فقط: لا يتغير شيء في المشروع.'}}
     hard = _hard(cards)
     severe = [card for card in cards if card.get('severity') in ('critical', 'high')]
     if hard or len(files) > 20:
-        return {'level': 'high', 'why': {'en': f'{len(hard)} card(s) need judgement or a decision, and {len(files)} file(s) are touched; '
+        return {'level': 'high', 'why': {'en': f'{len(hard)} card(s) need judgement or a decision, and '
+                                                f'{len(files)} file(s) are touched; '
                                                'each change is still checked, and your branch is not touched.',
-                                         'ar': f'{len(hard)} بطاقة تحتاج حكمًا أو قرارًا، و{len(files)} ملفًا ستُمس؛ كل تغيير يُفحص، وفرعك لا يُلمس.'}}
+                                         'ar': f'{len(hard)} بطاقة تحتاج حكمًا أو قرارًا، و{len(files)} ملفًا '
+                                               'ستُمس؛ كل تغيير يُفحص، وفرعك لا يُلمس.'}}
     if severe or len(files) > 5:
-        return {'level': 'medium', 'why': {'en': f'{len(severe)} important card(s), {len(files)} file(s); every change is checked in a copy first.',
-                                           'ar': f'{len(severe)} بطاقة مهمة و{len(files)} ملفًا؛ كل تغيير يُفحص في نسخة أولًا.'}}
-    return {'level': 'low', 'why': {'en': 'Few files, and every change is checked in a copy first.', 'ar': 'ملفات قليلة، وكل تغيير يُفحص في نسخة أولًا.'}}
+        return {'level': 'medium', 'why': {'en': f'{len(severe)} important card(s), {len(files)} file(s); '
+                                                  'every change is checked in a copy first.',
+                                           'ar': f'{len(severe)} بطاقة مهمة و{len(files)} ملفًا؛ '
+                                                 'كل تغيير يُفحص في نسخة أولًا.'}}
+    return {'level': 'low', 'why': {'en': 'Few files, and every change is checked in a copy first.',
+                                    'ar': 'ملفات قليلة، وكل تغيير يُفحص في نسخة أولًا.'}}
 
 
 def _hard(cards):
@@ -180,9 +196,10 @@ def _hard(cards):
 
 
 ON_FAILURE = {
-    'fix': {'en': 'A change that fails its checks is taken back with the reason. Nothing reaches your branch; at the end you choose to take '
-                  'the new branch or throw it away.',
-            'ar': 'التغيير الذي يفشل في الفحص يُرجَع مع السبب. لا يصل شيء إلى فرعك؛ وفي النهاية أنت تختار تعتمد الفرع الجديد أو ترميه.'},
+    'fix': {'en': 'A change that fails its checks is taken back with the reason. Nothing reaches your branch; '
+                  'at the end you choose to take the new branch or throw it away.',
+            'ar': 'التغيير الذي يفشل في الفحص يُرجَع مع السبب. لا يصل شيء إلى فرعك؛ '
+                  'وفي النهاية أنت تختار تعتمد الفرع الجديد أو ترميه.'},
     'read': {'en': 'Nothing changes. If the assistant stops, the run says why and you can try again.',
              'ar': 'لا يتغير شيء. إن توقف المساعد يقول التشغيل السبب وتقدر تعيد.'},
 }
@@ -193,7 +210,8 @@ def preview_of(verb, cards, left, past):
     low, high, basis = estimate(verb, len(cards), past)
     batches = [{'number': index + 1, 'cards': [card['id'] for card in cards[at:at + BATCH]]}
                for index, at in enumerate(range(0, len(cards), BATCH))] if verb == 'fix' else []
-    return {'cards': [{'id': card['id'], 'title': card.get('title'), 'severity': card.get('severity'), 'paths': _paths(card)} for card in cards],
+    return {'cards': [{'id': card['id'], 'title': card.get('title'), 'severity': card.get('severity'),
+                       'paths': _paths(card)} for card in cards],
             'left_out': left, 'files': files, 'batches': batches,
             'estimate': {'minutes_low': low, 'minutes_high': high, 'basis': basis},
             'risk': risk(verb, cards, files), 'on_failure': ON_FAILURE['fix' if verb == 'fix' else 'read']}

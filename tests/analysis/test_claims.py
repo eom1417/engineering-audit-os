@@ -44,7 +44,8 @@ class LedgerTests(unittest.TestCase):
                 self.assertIn(expected, ' '.join(claims.errors(rows, **options)))
         with tempfile.TemporaryDirectory() as tmp, self.assertRaisesRegex(ValueError, 'Claim ledger rejected'):
             claims.save(Path(tmp) / 'claims.json', [valid(falsifier='')])
-        self.assertTrue(any('unenforced keywords' in p for p in schema_errors('x', {'type': 'string', 'multipleOf': 2})))
+        self.assertTrue(any('unenforced keywords' in p for p in schema_errors('x', {'type': 'string',
+            'multipleOf': 2})))
 
     def test_a_claim_with_no_evidence_is_set_aside_not_stopping_the_ledger(self):
         bare = valid(evidence_ids=[], render={'key': 'layer_finding', 'params': {'rule': 'server-module-in-browser'}})
@@ -79,8 +80,10 @@ class LedgerTests(unittest.TestCase):
         self.assertEqual(claims.errors(rows, fact_ids={f['id'] for f in sets['graph']['facts']}), [])
         finding = {'id': 'F-27-001', 'current_behavior': 'Verification can pass with an unplanned file present',
                    'why_this_matters': 'A delivery can be described as verified when it is not',
-                   'claim_status': 'confirmed', 'status': 'open', 'evidence_ids': ['SRC-1'], 'affected_components': ['N-1']}
-        model = {'nodes': [{'id': 'N-1', 'name': 'remediate', 'responsibility': 'runs checks', 'evidence_ids': ['SRC-1']}],
+                   'claim_status': 'confirmed', 'status': 'open', 'evidence_ids': ['SRC-1'],
+                   'affected_components': ['N-1']}
+        model = {'nodes': [{'id': 'N-1', 'name': 'remediate', 'responsibility': 'runs checks',
+                            'evidence_ids': ['SRC-1']}],
                  'contracts': [], 'business_rules': []}
         legacy = record_claims.from_legacy([finding], model, [], [])
         self.assertEqual((legacy[0]['confidence'], legacy[0]['method']), ('LIKELY', ['model_inference']))
@@ -128,7 +131,8 @@ class EngineClusterImpactTests(unittest.TestCase):
         # A secret, data or a rule reachable by someone who does not own it: every layer card must say a why that fits
         # the boundary it broke.
         for language in ('ar', 'en'):
-            why = lambda boundary: impact_of({'render': {'key': 'layer_finding', 'params': {'boundary': boundary}}}, language)
+            why = lambda boundary: impact_of({'render': {'key': 'layer_finding', 'params': {'boundary': boundary}}},
+                                             language)
             self.assertEqual(why('tests'), IMPACTS[language]['untested'])
             self.assertNotEqual(why('endpoints'), IMPACTS[language]['layer_finding'])
 
@@ -193,13 +197,18 @@ class HotspotTests(unittest.TestCase):
         node = lambda path, rank_, deps=(): {'id': 'G-' + path, 'kind': 'graph_node', 'location': {'path': path},
                                              'value': {'attention_rank': rank_, 'depends_on': list(deps)}}
         observed = {'status': 'observed', 'granularity': 'symbol'}
-        sets = {'graph': {'facts': [node('a.py', 1), node('c.py', 2), node('d.py', 3), node('e.py', 4, ['a.py', 'c.py', 'd.py'])]},
+        sets = {'graph': {'facts': [node('a.py', 1), node('c.py', 2), node('d.py', 3), node('e.py', 4, ['a.py', 'c.py',
+            'd.py'])]},
                 'metrics': {'facts': [metric('a.py', 'run', 'function', 90), metric('a.py', 'Actions', 'class', 171)]},
                 'history': {'facts': [], 'summary': {'commits_analysed': 0}},
-                'external': {'facts': [measured('F-1', 'lizard', 'a.py', 45), measured('F-2', 'reforge', 'a.py', 45, 'function.complexity'),
-                                       measured('F-3', 'lizard', 'c.py', 16), measured('F-4', 'reforge', 'c.py', 16, 'function.complexity'),
-                                       measured('F-5', 'lizard', 'd.py', 45), measured('F-6', 'reforge', 'd.py', 45, 'function.complexity')],
-                             'summary': {'evaluated_kinds': {e: {'complexity': observed} for e in ('lizard', 'reforge')}}}}
+                'external': {'facts': [measured('F-1', 'lizard', 'a.py', 45), measured('F-2', 'reforge', 'a.py', 45,
+                    'function.complexity'),
+                                       measured('F-3', 'lizard', 'c.py', 16), measured('F-4', 'reforge', 'c.py', 16,
+                                           'function.complexity'),
+                                       measured('F-5', 'lizard', 'd.py', 45), measured('F-6', 'reforge', 'd.py', 45,
+                                           'function.complexity')],
+                             'summary': {'evaluated_kinds': {e: {'complexity': observed} for e in ('lizard',
+                                 'reforge')}}}}
         rows = from_facts(sets)
         hotspots = [c for c in rows if c['render']['key'] == 'hotspot']
         self.assertEqual([c['render']['params']['symbol'] for c in hotspots], ['run'])
@@ -207,7 +216,8 @@ class HotspotTests(unittest.TestCase):
         engine = {c['render']['params']['place']: c for c in rows if c['render']['key'] == 'engine_cluster'}
         self.assertEqual(sorted(engine), ['c.py', 'd.py'])
         # The ledger is English whatever the language of the check; reports render the template.
-        self.assertEqual(engine['c.py']['statement'], '2 independent engines (lizard, reforge) report complexity in c.py')
+        self.assertEqual(engine['c.py']['statement'],
+                         '2 independent engines (lizard, reforge) report complexity in c.py')
         ranked = rank(list(engine.values()), sets, {})
         self.assertEqual([c['render']['params']['place'] for c in ranked], ['d.py', 'c.py'])
         self.assertEqual(ranked[0]['priority_factors']['severity']['factor'], 3.0)

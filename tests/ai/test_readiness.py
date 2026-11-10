@@ -60,7 +60,8 @@ class Probe(unittest.TestCase):
             path.write_text(body, encoding='utf-8')
             path.chmod(path.stat().st_mode | stat.S_IEXEC)
         env = mock.patch.dict(os.environ, {'PATH': f'{self.bin}:/usr/bin:/bin', 'EAOS_HOME': str(root / 'home'),
-                                           'FAKE_LOG': str(self.log), 'FAKE_MODE': 'ready', 'CLAUDE_CONFIG_DIR': str(root / 'cfg')})
+                                           'FAKE_LOG': str(self.log), 'FAKE_MODE': 'ready',
+                                           'CLAUDE_CONFIG_DIR': str(root / 'cfg')})
         env.start()
         self.addCleanup(env.stop)
 
@@ -72,13 +73,16 @@ class Probe(unittest.TestCase):
 
     def test_a_ready_assistant_answers_and_each_state_that_is_not_ready_is_named_with_what_to_do(self):
         row = readiness.probe('claude', fresh=True)
-        self.assertEqual((row['ready'], row['installed'], row['version'], row['code']), (True, True, '9.9.9 (Claude Code)', 'claude_ready'))
-        self.assertTrue(any('-p' in call and "--tools" in call for call in self.calls()), 'a real one-word call was made')
+        self.assertEqual((row['ready'], row['installed'], row['version'], row['code']),
+                         (True, True, '9.9.9 (Claude Code)', 'claude_ready'))
+        self.assertTrue(any('-p' in call and "--tools" in call for call in self.calls()),
+                        'a real one-word call was made')
         self.assertTrue(readiness.probe('codex', fresh=True)['ready'])
         self.log.write_text('')
         (self.bin / 'codex').unlink()
         which = readiness.shutil.which      # a computer may have a real codex in /usr/bin, which is on this PATH
-        with mock.patch.object(readiness.shutil, 'which', side_effect=lambda name: None if name == 'codex' else which(name)):
+        with mock.patch.object(readiness.shutil, 'which',
+                               side_effect=lambda name: None if name == 'codex' else which(name)):
             row = readiness.probe('codex', fresh=True)
         self.assertEqual((row['installed'], row['ready'], row['code']), (False, False, 'codex_not_installed'))
         self.assertIn('github.com/openai/codex', row['reason']['en'])
@@ -91,13 +95,15 @@ class Probe(unittest.TestCase):
         self.assertIn('Run `claude` once', row['reason']['en'])
         self.assertFalse(any(' -p' in call for call in self.calls()), 'no call is made once the status says signed out')
         self.assertEqual(readiness.probe('codex', fresh=True)['code'], 'codex_not_signed_in')
-        for mode, name, code in (('call_signed_out', 'claude', 'claude_not_signed_in'), ('broken', 'claude', 'claude_not_working'),
+        for mode, name, code in (('call_signed_out', 'claude', 'claude_not_signed_in'),
+                                 ('broken', 'claude', 'claude_not_working'),
                                  ('limit', 'claude', 'claude_limit'), ('expired', 'codex', 'codex_sign_in_expired')):
             with self.subTest(mode=mode):
                 self.mode(mode)
                 row = readiness.probe(name, fresh=True)
                 self.assertEqual((row['installed'], row['ready'], row['code']), (True, False, code))
-        self.assertIn('codex login', row['reason']['en'], 'a used refresh token: not ready though its status says logged in')
+        self.assertIn('codex login', row['reason']['en'],
+                      'a used refresh token: not ready though its status says logged in')
         self.mode('session_limit')  # Claude Code's own words on a spent session: plain text, not JSON
         row = readiness.probe('claude', fresh=True)
         self.assertEqual((row['code'], row.get('resets')), ('claude_limit', '7:10pm (UTC)'))
@@ -162,7 +168,8 @@ class Probe(unittest.TestCase):
 
     def test_every_code_has_words_in_both_languages_and_an_answer_is_classified_by_what_it_says(self):
         for name in readiness.NAMES:
-            for problem in ('ready', 'not_installed', 'not_working', 'not_signed_in', 'sign_in_expired', 'limit', 'no_answer', 'failed'):
+            for problem in ('ready', 'not_installed', 'not_working', 'not_signed_in',
+                            'sign_in_expired', 'limit', 'no_answer', 'failed'):
                 found = readiness.words(f'{name}_{problem}')
                 self.assertTrue(found and found['ar'] and found['en'], f'{name}_{problem}')
                 self.assertIn(readiness.NAMES[name], found['en'])
@@ -180,14 +187,16 @@ class Probe(unittest.TestCase):
 class Choice(unittest.TestCase):
     def test_the_installed_assistant_is_used_and_none_means_none(self):
         import eaos.ai as assistants
-        with mock.patch.object(assistants.shutil, 'which', side_effect=lambda n: '/bin/codex' if n == 'codex' else None), \
+        with mock.patch.object(assistants.shutil, 'which', side_effect=lambda n: '/bin/codex' if n == 'codex'
+                               else None), \
                 mock.patch.dict(os.environ, {'EAOS_ASSISTANT': ''}):
             name, provider = assistants.provider()
         self.assertEqual(name, 'codex')
         self.assertIn('eaos.ai.assistant.codex_adapter', provider.config['argv'])
         with mock.patch.object(assistants.shutil, 'which', return_value=None):
             self.assertEqual(assistants.provider(), (None, None))
-        with mock.patch.object(assistants.shutil, 'which', return_value='/bin/x'), mock.patch.dict(os.environ, {'EAOS_ASSISTANT': 'none'}):
+        with (mock.patch.object(assistants.shutil, 'which', return_value='/bin/x'),
+              mock.patch.dict(os.environ, {'EAOS_ASSISTANT': 'none'})):
             self.assertEqual(assistants.provider(), (None, None), '`none` turns every assistant off')
 
     def test_codex_reads_only_what_eaos_sends_changes_nothing_and_needs_no_key(self):

@@ -49,8 +49,9 @@ class Browser:
         self._config.close()
         script = Path(__file__).resolve().parents[1] / 'templates/screens/agent.mjs'
         import os
-        self.process = subprocess.Popen(['node', str(script), self._config.name], stdin=subprocess.PIPE, stdout=subprocess.PIPE,
-                                        stderr=subprocess.DEVNULL, text=True, start_new_session=True,
+        self.process = subprocess.Popen(['node', str(script), self._config.name], stdin=subprocess.PIPE,
+                                        stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, text=True,
+                                        start_new_session=True,
                                         env={**os.environ, 'PLAYWRIGHT_BROWSERS_PATH': str(browsers())})
 
     def do(self, command):
@@ -89,8 +90,10 @@ def step_command(step):
 
 def seen(page, steps):
     """The page now and the last steps, as an assistant reads them before choosing the next step."""
-    return {'steps_so_far': [{k: s.get(k) for k in ('action', 'target', 'value', 'landed', 'error')} for s in steps[-10:]],
-            'page_now': {k: page.get(k) for k in ('path', 'title', 'text', 'controls', 'error')}, 'picture': page.get('picture')}
+    return {'steps_so_far': [{k: s.get(k) for k in ('action', 'target', 'value', 'landed', 'error')}
+                             for s in steps[-10:]],
+            'page_now': {k: page.get(k) for k in ('path', 'title', 'text', 'controls', 'error')},
+            'picture': page.get('picture')}
 
 
 def _brief(page, steps, goal):
@@ -106,7 +109,8 @@ def explore(browser, goal, provider, start='/'):
     screens = [page.get('path')] if page.get('ok') else []
     while len(steps) < STEPS and time.monotonic() - began < SECONDS and failed < 3:
         try: step = _next(browser, provider, page, steps, goal.format(seen=screens))
-        except Exception as problem: return _record(goal, start, steps, screens, f'the assistant could not go on: {problem}'[:300])
+        except Exception as problem:
+            return _record(goal, start, steps, screens, f'the assistant could not go on: {problem}'[:300])
         if step.get('action') == 'done': break
         if step.get('action') not in ('click', 'fill', 'press', 'open', 'back'):
             return _record(goal, start, steps, screens, f'the assistant answered no step: {json.dumps(step)[:200]}')
@@ -136,7 +140,8 @@ def _next(browser, provider, page, steps, goal):
 
 
 def _record(goal, start, steps, screens, stopped=''):
-    return {'goal': goal, 'start': start, 'steps': steps, 'screens': screens, **({'stopped': stopped} if stopped else {})}
+    return {'goal': goal, 'start': start, 'steps': steps, 'screens': screens,
+            **({'stopped': stopped} if stopped else {})}
 
 
 def replay(browser, record):

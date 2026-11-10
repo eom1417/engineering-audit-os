@@ -34,9 +34,11 @@ def _git(project, *args):
 
 def changed(project, base=None, staged=False):
     # a deletion is a change (a test may need the file), a rename the deletion of one name and the addition of another
-    if staged: names = _git(project, 'diff', '--cached', '--name-only', '--no-renames', '--diff-filter=ACMD').stdout.split('\n')
+    if staged: names = _git(project, 'diff', '--cached', '--name-only', '--no-renames',
+                            '--diff-filter=ACMD').stdout.split('\n')
     else:
-        names = _git(project, 'diff', '--name-only', '--no-renames', '--diff-filter=ACMD', base or 'HEAD').stdout.split('\n')
+        names = _git(project, 'diff', '--name-only', '--no-renames', '--diff-filter=ACMD',
+                     base or 'HEAD').stdout.split('\n')
         names += _git(project, 'ls-files', '--others', '--exclude-standard').stdout.split('\n')
     return sorted({n for n in names if n.strip()})
 
@@ -85,7 +87,8 @@ def snapshot(project, paths, folder, revision=None):
             target.parent.mkdir(parents=True, exist_ok=True)
             shutil.copyfile(source, target)
             continue
-        shown = subprocess.run(['git', '-C', str(project), 'show', f'{revision}{path}' if revision == ':' else f'{revision}:{path}'],
+        shown = subprocess.run(['git', '-C', str(project), 'show',
+                                f'{revision}{path}' if revision == ':' else f'{revision}:{path}'],
                                capture_output=True)
         if shown.returncode: continue
         target.parent.mkdir(parents=True, exist_ok=True)
@@ -96,7 +99,8 @@ def _digests(folder, path):
     """The six-line windows of one file (EAOS's own measure of code copied word for word, facts/code/metrics)."""
     from ...facts.code.metrics import windows_of
     file = Path(folder) / path
-    return {key for key, _ in windows_of(path, file.read_text(encoding='utf-8', errors='replace').splitlines())} if file.is_file() else set()
+    return ({key for key, _ in windows_of(path, file.read_text(encoding='utf-8', errors='replace').splitlines())}
+            if file.is_file() else set())
 
 
 def sources(project, after, paths):
@@ -140,7 +144,8 @@ def _held(project, rules, change, since, gates):
         after, before = _sides(project, paths, since, scratch)
         # the code laws read the changed files and the files they hold six lines of (a copy and its source), never
         # their importers, which are for the rules' guards
-        problems = laws(*reversed(_sides(project, paths + sources(project, after, paths), since, Path(scratch) / 'laws')), paths) if gates else []
+        problems = (laws(*reversed(_sides(project, paths + sources(project, after, paths), since,
+                                          Path(scratch) / 'laws')), paths) if gates else [])
         tested = [r for r in rules if (registry.in_force(r) or {}).get('kind') == 'test']
         results = held.on_change([r for r in rules if r not in tested], after, paths, before, held.found_of(problems))
         results += _tested(project, tested, files, since)
@@ -154,7 +159,10 @@ def _tested(project, rules, files, since):
     base, staged = since
     with held.at_commit(project, base or 'HEAD') as earlier, held.at_commit(project, 'HEAD', index=True) as index:
         tree = index() if staged and held.unstaged(project) else project
-        if tree is None: return [held.row(r, {'status': 'not_run', 'places': [], 'said': 'the staged code could not be checked out apart', 'seconds': 0}) for r in rules]
+        if tree is None:
+            return [held.row(r, {'status': 'not_run', 'places': [],
+                                 'said': 'the staged code could not be checked out apart', 'seconds': 0})
+                    for r in rules]
         return held.on_change(rules, tree, files, earlier)
 
 

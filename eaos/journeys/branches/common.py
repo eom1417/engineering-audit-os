@@ -28,7 +28,8 @@ def git(project, *args, timeout=60, env=None):
     """git -C project <args> as argv; a timeout is an exit code of 124, never an exception."""
     environment = {**os.environ, 'GIT_TERMINAL_PROMPT': '0', 'GIT_OPTIONAL_LOCKS': '0', 'LC_ALL': 'C', **(env or {})}
     try:
-        return subprocess.run(['git', '-C', str(project), *args], capture_output=True, text=True, timeout=timeout, env=environment)
+        return subprocess.run(['git', '-C', str(project), *args], capture_output=True, text=True, timeout=timeout,
+                              env=environment)
     except subprocess.TimeoutExpired:
         return subprocess.CompletedProcess(args, 124, '', 'git timed out')  # nosemgrep: python.lang.security.audit.dangerous-subprocess-use-audit -- runs nothing: the answer of a git that timed out
 
@@ -39,7 +40,8 @@ def _out(project, *args):
 
 
 def _eaos_env():
-    return {'GIT_AUTHOR_NAME': EAOS_NAME, 'GIT_AUTHOR_EMAIL': EAOS_EMAIL, 'GIT_COMMITTER_NAME': EAOS_NAME, 'GIT_COMMITTER_EMAIL': EAOS_EMAIL}
+    return {'GIT_AUTHOR_NAME': EAOS_NAME, 'GIT_AUTHOR_EMAIL': EAOS_EMAIL, 'GIT_COMMITTER_NAME': EAOS_NAME,
+            'GIT_COMMITTER_EMAIL': EAOS_EMAIL}
 
 
 def valid_name(project, name):

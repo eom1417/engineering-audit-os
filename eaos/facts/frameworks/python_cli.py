@@ -10,7 +10,8 @@ HANDLER = re.compile(r'set_defaults\(\s*func\s*=\s*(?P<handler>[A-Za-z_]\w*)')
 LOOP_PAIRS = re.compile(r'for\s+\w+\s*,\s*(?P<variable>\w+)\s+in\s*\[(?P<pairs>[^\]]*)\]')
 PAIR = re.compile(r'\(\s*[\'"](?P<name>[^\'"]+)[\'"]\s*,\s*(?P<handler>[A-Za-z_]\w*)\s*\)')
 DYNAMIC = re.compile(r'add_parser\(\s*(?P<expr>[A-Za-z_][\w.\[\]]*)\s*[,)]', re.M)
-CLICK = re.compile(r'^[ \t]*@(?:click|typer|app)\.(?:command|group)\((?:\s*(?P<quote>[\'"])(?P<name>[^\'"]*)(?P=quote))?', re.M)
+CLICK = re.compile(r'^[ \t]*@(?:click|typer|app)\.(?:command|group)\('
+                   r'(?:\s*(?P<quote>[\'"])(?P<name>[^\'"]*)(?P=quote))?', re.M)
 PARSER = re.compile(r'ArgumentParser\(\s*(?:prog\s*=\s*(?P<quote>[\'"])(?P<prog>[^\'"]+)(?P=quote))?')
 # A script guarded by __main__ is an invocation surface; without it the file looks unreachable.
 MAIN_GUARD = re.compile(r'^if\s+__name__\s*==\s*[\'"]__main__[\'"]\s*:(?P<body>(?:\n[ \t]+.*)*)', re.M)
@@ -42,7 +43,8 @@ def _argparse(context):
     root = PARSER.search(context.text)
     if root:
         line = context.line_of(root.start())
-        found.append({'surface': 'cli', 'route': root.group('prog') or context.rel.rsplit('/', 1)[-1].removesuffix('.py'),
+        found.append({'surface': 'cli', 'route': root.group('prog') or context.rel.rsplit('/',
+                                                                                          1)[-1].removesuffix('.py'),
                       'http_method': None, 'handler': context.symbol_at(line), 'framework': 'argparse', 'line': line})
     for match in SUBPARSER.finditer(context.text):
         line = context.line_of(match.start())
@@ -56,7 +58,8 @@ def _argparse(context):
         line = context.line_of(match.start())
         # A command name computed at runtime is a visible gap, not a silent omission.
         found.append({'surface': 'cli', 'route': None, 'http_method': None, 'handler': context.symbol_at(line),
-                      'framework': 'argparse_dynamic', 'line': line, 'note': 'Command name is built at runtime from ' + match.group('expr')})
+                      'framework': 'argparse_dynamic', 'line': line,
+                      'note': 'Command name is built at runtime from ' + match.group('expr')})
     return found
 
 

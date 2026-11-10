@@ -30,8 +30,10 @@ class CodeLimits(unittest.TestCase):
     def test_a_function_says_why_on_its_signature_or_counts(self):
         source = ('def tool(a, b, c, d, e, f):  # limits: parameters -- mirrors the command\'s options\n    return a\n'
                   'def bare(a, b, c, d, e, f):  # limits: parameters --\n    return a\n'
-                  'def other(a, b, c, d, e, f):  # limits: functions -- not a kind that may be justified\n    return a\n'
-                  'def wrapped(a, b, c,\n            d, e, f):  # limits: parameters -- a record\'s fields\n    """Doc."""\n'
+                  'def other(a, b, c, d, e, f):  # limits: functions -- not a kind that may be justified\n'
+                  '    return a\n'
+                  'def wrapped(a, b, c,\n            d, e, f):  # limits: parameters -- a record\'s fields\n'
+                  '    """Doc."""\n'
                   'def plain(a, b, c, d, e, f):\n    return a\n')
         lines = source.splitlines()
         said = {node.name: code_limits.justified(node, lines) for node in ast.parse(source).body}
@@ -52,13 +54,17 @@ class CodeLimits(unittest.TestCase):
     def test_a_temporary_folder_is_removed_by_what_made_it(self):
         # A folder from mkdtemp stays for ever unless its maker removes it, so a suite using it piles them up.
         # TemporaryDirectory removes its own; each of these removes its folders as said.
-        owners = {'eaos/live/isolation/sandbox.py': 'the next run sweeps what no live run holds', 'eaos/analysis/repair/codemods.py': 'removed in finally',
+        owners = {'eaos/live/isolation/sandbox.py': 'the next run sweeps what no live run holds',
+                  'eaos/analysis/repair/codemods.py': 'removed in finally',
                   'tests/shared_fixture.py': 'scratch() and Workspace: removed when the run or the test ends'}
         root = Path(__file__).resolve().parents[2]
-        code = [path for folder in ('eaos', 'tests', 'tools') for path in (root / folder).rglob('*.py') if 'fixtures' not in path.parts]
+        code = [path for folder in ('eaos', 'tests',
+                                    'tools') for path in (root / folder).rglob('*.py') if 'fixtures' not in path.parts]
         makers = sorted(path.relative_to(root).as_posix() for path in code
-                        if any(isinstance(node, ast.Attribute) and node.attr == 'mkdtemp' for node in ast.walk(ast.parse(path.read_bytes()))))
-        self.assertEqual(sorted(set(makers) - set(owners)), [], 'use tempfile.TemporaryDirectory, or scratch() in a test')
+                        if any(isinstance(node, ast.Attribute) and node.attr == 'mkdtemp'
+                               for node in ast.walk(ast.parse(path.read_bytes()))))
+        self.assertEqual(sorted(set(makers) - set(owners)), [],
+                         'use tempfile.TemporaryDirectory, or scratch() in a test')
 
     def test_every_assistant_works_to_the_code_laws(self):
         from eaos.interfaces.mcp_server import server as mcp_server
@@ -66,7 +72,8 @@ class CodeLimits(unittest.TestCase):
         from eaos.ai.nodes import framework as core
         data = {'lang': 'en', 'project': {'language': 'English'}}
         carried = {'fixing (MCP)': mcp_server.INSTRUCTIONS,
-                   'every node': core.prompt('task', data), 'node critique': core.critique_prompt('task', data, {}, 'en')}
+                   'every node': core.prompt('task', data),
+                   'node critique': core.critique_prompt('task', data, {}, 'en')}
         self.assertEqual([name for name, text in carried.items() if LAWS not in text], [])
 
     def test_complexity_counts_decisions_and_skips_nested_functions(self):

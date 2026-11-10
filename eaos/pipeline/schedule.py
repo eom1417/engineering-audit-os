@@ -160,7 +160,8 @@ class _Run:
     def launch(self, pool):
         """Start every stage ready now; whether one waits for room."""
         waiting = False
-        for name in ready_stages(self.left, self.seen, self.running.values(), self.mode, width(self.mode) - len(self.running), self.quick):
+        for name in ready_stages(self.left, self.seen, self.running.values(), self.mode,
+                                 width(self.mode) - len(self.running), self.quick):
             # no room for it yet: a lighter stage behind it may still start (it never waits for this one)
             if _no_room(name, self.running.values(), self.began, self.quick):
                 waiting = True

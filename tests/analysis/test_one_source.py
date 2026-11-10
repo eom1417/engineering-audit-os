@@ -37,16 +37,23 @@ class NearCopies(unittest.TestCase):
         self.assertIn('--similarity', jscpd.NEAR_MODES)
 
     def test_a_list_of_imports_alike_is_no_copy_and_code_is(self):
-        imports = "  said, t, tn, L, num, esc,\n  client, contract, ac,\n} from 'eaos';\n\n/* ====\n   S-47 ONE BRANCH\n   ==== */\nconst enc = encodeURIComponent;"
+        imports = (
+            "  said, t, tn, L, num, esc,\n  client, contract, ac,\n} from 'eaos';\n\n/* ====\n   S-47 ONE BRANCH\n"
+            "   ==== */\nconst enc = encodeURIComponent;"
+        )
         self.assertTrue(jscpd.imports_only(imports))
-        self.assertFalse(jscpd.imports_only('for x in xs:\n    if x:\n        break\n    else:\n        pass\n    y(a, b)'))
+        self.assertFalse(jscpd.imports_only('for x in xs:\n    if x:\n        break\n    else:\n        pass\n    y(a, '
+                                            'b)'))
 
     def test_pairs_sharing_a_place_are_one_cluster_whose_source_is_the_fullest_copy(self):
-        found = one_source.near_copies(sets(near(('a.py', 10), ('b.py', 40), lines=12), near(('b.py', 42), ('c.py', 5), 'similar', 6),
-                                            near(('x.py', 1), ('y.py', 1)), near(('tests/t1.py', 1), ('tests/t2.py', 1))))
+        found = one_source.near_copies(sets(near(('a.py', 10), ('b.py', 40), lines=12), near(('b.py', 42), ('c.py', 5),
+            'similar', 6),
+                                            near(('x.py', 1), ('y.py', 1)), near(('tests/t1.py', 1), ('tests/t2.py',
+                                                1))))
         self.assertEqual(len(found), 2, 'the tests alone are no card')
         three = next(f for f in found if f['evidence']['copies'] == 3)
-        self.assertEqual((three['place'], three['severity'], three['evidence']['kinds']), ('a.py', 'medium', ['renamed', 'similar']))
+        self.assertEqual((three['place'], three['severity'], three['evidence']['kinds']), ('a.py', 'medium', ['renamed',
+            'similar']))
 
 
 class ThreeConditions(unittest.TestCase):
@@ -62,7 +69,8 @@ class ThreeConditions(unittest.TestCase):
         self.assertEqual(one_source.findings(None, idle)[0], [])
 
     def test_the_history_says_which_copies_belong_together_and_keep_costing(self):
-        history = {'facts': [{'kind': 'history_churn', 'location': {'path': p}, 'value': {'commits': 5, 'fix_commits': 0}}
+        history = {'facts': [{'kind': 'history_churn', 'location': {'path': p}, 'value': {'commits': 5,
+            'fix_commits': 0}}
                              for p in ('src/billing/a.js', 'src/billing/b.js')]}
         busy = {**sets(near(('src/billing/a.js', 1), ('src/billing/b.js', 1))), 'history': history}
         self.assertEqual(len(one_source.findings(None, busy)[0]), 1, 'two copies whose files keep changing cost upkeep')
@@ -71,11 +79,13 @@ class ThreeConditions(unittest.TestCase):
     def test_the_history_alone_decides_nothing_yet_copies_in_two_parts_stay_a_note(self):
         # A known limit: "simpler" asks for one shared part, so copies in two parts are a note even when they changed
         # together; the history is said as a reason, never the verdict.
-        history = {'facts': [{'kind': 'history_cochange', 'location': {'path': 'src/billing/a.js', 'paired_path': 'src/orders/b.js'}, 'value': {}}]}
+        history = {'facts': [{'kind': 'history_cochange', 'location': {'path': 'src/billing/a.js',
+            'paired_path': 'src/orders/b.js'}, 'value': {}}]}
         apart = {**sets(near(('src/billing/a.js', 1), ('src/orders/b.js', 1), 'similar')), 'history': history}
         note = one_source.likenesses(None, apart)
         self.assertEqual(one_source.findings(None, apart)[0], [])
-        self.assertEqual((note[0]['evidence']['why']['belongs'], note[0]['evidence']['why']['simpler']), ('they changed together in the history', None))
+        self.assertEqual((note[0]['evidence']['why']['belongs'], note[0]['evidence']['why']['simpler']),
+                         ('they changed together in the history', None))
 
     def test_copies_renamed_in_one_part_are_proposed_only_when_keeping_them_costs(self):
         renamed = near(('src/billing/total.js', 1), ('src/billing/sum.js', 1), 'renamed')
@@ -86,18 +96,21 @@ class ThreeConditions(unittest.TestCase):
 
     def test_one_mass_commit_never_makes_files_change_together(self):
         from eaos.facts.code import history
-        def commit(paths): return {'files': [(1, 1, p) for p in paths], 'fix': False, 'author': 'a', 'date': '2026-10-28'}
+        def commit(paths): return {'files': [(1, 1, p) for p in paths], 'fix': False, 'author': 'a',
+                                   'date': '2026-10-28'}
         _, pairs = history._tally([commit([f'src/f{i}.js' for i in range(60)])], history.Settings().bulk_limit)
         self.assertEqual(dict(pairs), {}, 'a reformat of sixty files is no pair')
         _, pairs = history._tally([commit(['src/a.js', 'src/b.js'])], 50)
-        self.assertLess(pairs[('src/a.js', 'src/b.js')], history.Settings().min_support, 'one commit of two is under the support')
+        self.assertLess(pairs[('src/a.js', 'src/b.js')], history.Settings().min_support,
+                        'one commit of two is under the support')
 
     def test_a_proposal_from_shape_and_folder_is_kept_aside_by_the_packaged_verdicts(self):
         # Two responsibilities alike in one folder: the rules propose a card, nobody is told to merge them.
         import os
         from unittest import mock
         from eaos.analysis.claims import ledger
-        claims = from_one_source.one_source_claims(None, sets(near(('src/billing/tax.js', 1), ('src/billing/fee.js', 1), 'similar')), None, 0)
+        claims = from_one_source.one_source_claims(None, sets(near(('src/billing/tax.js', 1), ('src/billing/fee.js', 1),
+                                                                   'similar')), None, 0)
         with mock.patch.dict(os.environ, {'EAOS_DETECTOR_VERDICTS': str(ledger.VERDICTS)}):
             self.assertEqual(ledger.withhold(claims)[0], [])
 
@@ -112,11 +125,14 @@ class Idioms(unittest.TestCase):
         self.assertEqual(len(found), 1, 'two records two lines apart are one place')
         self.assertEqual((found[0]['evidence']['count'], found[0]['evidence']['home']), (3, 'src/lib'))
         self.assertEqual(one_source.idioms(sets(idiom('a.ts', 1), idiom('b.ts', 1)), set()), [])
-        self.assertEqual(one_source.idioms(sets(*(idiom('src/lib/dates.ts', n) for n in (1, 10, 20))), set()), [], 'the home itself')
-        self.assertEqual(len(one_source.idioms(sets(*(idiom('api/routes.js', n) for n in (1, 10, 20))), set())), 1, 'three in one file')
+        self.assertEqual(one_source.idioms(sets(*(idiom('src/lib/dates.ts', n) for n in (1, 10, 20))), set()), [],
+                         'the home itself')
+        self.assertEqual(len(one_source.idioms(sets(*(idiom('api/routes.js', n) for n in (1, 10, 20))), set())), 1,
+                         'three in one file')
 
     def test_a_guard_repeated_in_routes_calls_for_a_middleware(self):
-        guards = [record(f'server/routes/{n}.js', 4, engine='ast-grep', record='idiom', form='route_guard', rule='eaos.idiom.route-guard')
+        guards = [record(f'server/routes/{n}.js', 4, engine='ast-grep', record='idiom', form='route_guard',
+                         rule='eaos.idiom.route-guard')
                   for n in ('orders', 'users', 'billing')]
         found = one_source.idioms(sets(*guards), {'server', 'server/routes'})
         self.assertEqual((found[0]['severity'], found[0]['evidence']['home']), ('medium', 'server/routes/middleware'))
@@ -124,7 +140,8 @@ class Idioms(unittest.TestCase):
 
 class Cards(unittest.TestCase):
     def test_every_finding_is_one_card_in_both_languages_whose_probe_reads_the_code_again(self):
-        idioms = [record(f'src/p{n}.js', 1, engine='ast-grep', record='idiom', form='json_read', rule='eaos.idiom.json-read') for n in range(3)]
+        idioms = [record(f'src/p{n}.js', 1, engine='ast-grep', record='idiom', form='json_read',
+                         rule='eaos.idiom.json-read') for n in range(3)]
         facts = sets(near(('a.py', 1), ('b.py', 1), 'similar'), *idioms)
         claims = from_one_source.one_source_claims(None, facts, None, 0)
         self.assertEqual(sorted(c['render']['params']['kind'] for c in claims), ['idiom:json_read', 'near_copy'])
@@ -133,7 +150,8 @@ class Cards(unittest.TestCase):
         self.assertEqual(from_one_source.present(spec, facts)[0], 'CONFIRMED')
         self.assertEqual(from_one_source.present(spec, sets())[0], 'REFUTED')
         idiom = next(c for c in claims if c['render']['params']['kind'] == 'idiom:json_read')
-        self.assertEqual(claim_paths(idiom, {}), ['src/p0.js', 'src/p1.js', 'src/p2.js'], 'the card is about every place')
+        self.assertEqual(claim_paths(idiom, {}), ['src/p0.js', 'src/p1.js', 'src/p2.js'],
+                         'the card is about every place')
 
 
 class KeptAside(unittest.TestCase):
@@ -143,13 +161,16 @@ class KeptAside(unittest.TestCase):
         from eaos.analysis.claims import ledger
         claims = from_one_source.one_source_claims(None, sets(near(('a.py', 1), ('b.py', 1), 'similar')), None, 0)
         verdicts = Path(scratch('eaos-verdicts-')) / 'verdicts.json'
-        verdicts.write_text(json.dumps({'hidden': {'one_source:near_copy': 'precision under the bar'}, 'shown': []}), encoding='utf-8')
+        verdicts.write_text(json.dumps({'hidden': {'one_source:near_copy': 'precision under the bar'}, 'shown': []}),
+                            encoding='utf-8')
         with mock.patch.dict(os.environ, {'EAOS_DETECTOR_VERDICTS': str(verdicts)}):
             shown, withheld = ledger.withhold(claims)
         self.assertEqual((shown, withheld[0]['withheld']['detector']), ([], 'one_source:near_copy'))
         said = ledger.withheld_said(withheld + withheld, ar=False)
-        self.assertEqual(said, ['an experimental detector kept aside until it is measured precise: one_source:near_copy '
-                                '(2 results not shown: precision under the bar)'], 'the report says what it kept aside and why')
+        self.assertEqual(said,
+                         ['an experimental detector kept aside until it is measured precise: one_source:near_copy '
+                                '(2 results not shown: precision under the bar)'],
+                         'the report says what it kept aside and why')
 
 
 if __name__ == '__main__':

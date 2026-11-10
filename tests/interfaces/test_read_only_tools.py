@@ -30,7 +30,8 @@ def _called(server, name, **arguments):
 
 
 def _files(root):
-    return {path.relative_to(root).as_posix(): path.read_bytes() for path in root.rglob('*') if path.is_file() and '.git' not in path.parts}
+    return {path.relative_to(root).as_posix(): path.read_bytes()
+            for path in root.rglob('*') if path.is_file() and '.git' not in path.parts}
 
 
 class Home(unittest.TestCase):
@@ -39,7 +40,9 @@ class Home(unittest.TestCase):
         self.addCleanup(scratch.cleanup)
         self.root = Path(scratch.name)
         home = self.root / 'home'
-        patcher = mock.patch.dict(os.environ, {'EAOS_HOME': str(home), 'EAOS_OUTPUT': str(self.root / 'out'), 'EAOS_ASSISTANT': 'none'})
+        patcher = mock.patch.dict(os.environ,
+                                  {'EAOS_HOME': str(home), 'EAOS_OUTPUT': str(self.root / 'out'),
+                                   'EAOS_ASSISTANT': 'none'})
         patcher.start()
         self.addCleanup(patcher.stop)
         self.home = home
@@ -47,17 +50,21 @@ class Home(unittest.TestCase):
         self.project.mkdir()
         (self.project / 'app.py').write_text('print(1)\n', encoding='utf-8')
         for argv in (('init', '-q', '-b', 'main'), ('add', '-A'), ('commit', '-qm', 'first')):
-            subprocess.run(['git', '-C', str(self.project), '-c', 'user.name=t', '-c', 'user.email=t@t', *argv], check=True, capture_output=True)
+            subprocess.run(['git', '-C', str(self.project), '-c', 'user.name=t', '-c', 'user.email=t@t', *argv],
+                           check=True, capture_output=True)
         self.server = build(every)
 
     def checked(self):
-        with mock.patch.dict(by_rules.RUNNERS, engines=_no_engines, architecture=_no_engines), mock.patch.object(guided, 'tools_for_check', return_value={}):
+        with mock.patch.dict(by_rules.RUNNERS, engines=_no_engines, architecture=_no_engines), mock.patch.object(guided,
+            'tools_for_check', return_value={}):
             agent_tools.state_of(str(self.project))
             agent_tools.choose_branch('main', str(self.project), 'the work goes on here')
             agent_tools._audit_job(str(self.project), {}, None)
 
     def _everything_but_the_journal(self):
-        return {f'{root.name}/{name}': data for root in (self.project, self.home, self.root / 'out') for name, data in _files(root).items()
+        return {f'{root.name}/{name}': data
+                for root in (self.project, self.home, self.root / 'out')
+                for name, data in _files(root).items()
                 if not name.endswith('journal.jsonl')}
 
 
@@ -69,7 +76,8 @@ class OpeningTheReport(Home):
         self.assertFalse(hints.open_world_hint)
 
     def test_it_rewrites_the_page_and_saves_the_state_which_is_why_it_is_not_reading(self):
-        with mock.patch.dict(by_rules.RUNNERS, engines=_no_engines, architecture=_no_engines), mock.patch.object(guided, 'tools_for_check', return_value={}):
+        with mock.patch.dict(by_rules.RUNNERS, engines=_no_engines, architecture=_no_engines), mock.patch.object(guided,
+            'tools_for_check', return_value={}):
             state = agent_tools.state_of(str(self.project))
             agent_tools.choose_branch('main', str(self.project), 'the work goes on here')
             agent_tools._audit_job(str(self.project), {}, None)
@@ -81,7 +89,8 @@ class OpeningTheReport(Home):
         answer = _called(self.server, 'open_report', show=False, project=str(self.project))
         self.assertTrue(Path(answer['report_for_people']).is_file(), 'the page is made again')
         self.assertFalse(answer['opened_in_browser'], 'and opened only when asked')
-        self.assertNotEqual(json.loads(record.read_text(encoding='utf-8'))['updated'], 'an older stamp', 'the state is saved')
+        self.assertNotEqual(json.loads(record.read_text(encoding='utf-8'))['updated'], 'an older stamp',
+                            'the state is saved')
 
     def test_the_tools_the_server_calls_reading_leave_it_out(self):
         self.assertNotIn('open_report', read_only())
@@ -108,7 +117,9 @@ class AskingWhereTheProjectIs(Home):
     def test_on_a_settled_project_it_changes_no_state_no_project_file_and_no_report(self):
         self.checked()
         record = Path(project_state.load(self.project)['workspace']) / 'state.json'
-        record.write_text(json.dumps({**json.loads(record.read_text(encoding='utf-8')), 'updated': 'an older stamp'}), encoding='utf-8')   # a save would change it, even within one second
+        # a save would change it, even within one second
+        record.write_text(json.dumps({**json.loads(record.read_text(encoding='utf-8')), 'updated': 'an older stamp'}),
+                          encoding='utf-8')
         before = self._everything_but_the_journal()
         for _ in range(2):
             answer = _called(self.server, 'status', project=str(self.project))
@@ -122,17 +133,22 @@ class AskingWhereTheProjectIs(Home):
         self.assertEqual(_called(self.server, 'status', project=str(self.project))['branch'], 'main')
 
     def test_the_person_can_answer_only_a_branch_question_it_recorded_having_asked(self):
-        for argv in (('checkout', '-qb', 'feature'), ('commit', '-q', '--allow-empty', '-m', 'more'), ('checkout', '-q', 'main')):
-            subprocess.run(['git', '-C', str(self.project), '-c', 'user.name=t', '-c', 'user.email=t@t', *argv], check=True, capture_output=True)
+        for argv in (('checkout', '-qb', 'feature'), ('commit', '-q', '--allow-empty', '-m', 'more'),
+                     ('checkout', '-q', 'main')):
+            subprocess.run(['git', '-C', str(self.project), '-c', 'user.name=t', '-c', 'user.email=t@t', *argv],
+                           check=True, capture_output=True)
         (self.project / 'more.py').write_text('x = 1\n', encoding='utf-8')
         subprocess.run(['git', '-C', str(self.project), 'checkout', '-q', 'feature'], check=True, capture_output=True)
         subprocess.run(['git', '-C', str(self.project), 'add', '-A'], check=True, capture_output=True)
-        subprocess.run(['git', '-C', str(self.project), '-c', 'user.name=t', '-c', 'user.email=t@t', 'commit', '-qm', 'more'], check=True, capture_output=True)
+        subprocess.run(['git', '-C', str(self.project), '-c', 'user.name=t', '-c', 'user.email=t@t', 'commit', '-qm',
+                        'more'], check=True, capture_output=True)
         subprocess.run(['git', '-C', str(self.project), 'checkout', '-q', 'main'], check=True, capture_output=True)
         with mock.patch('eaos.journeys.agent_tools.where.ANSWER_SECONDS', 0):
-            self.assertEqual(_called(self.server, 'choose_branch', branch='feature', person_said='feature', project=str(self.project))['status'], 'needs_the_person')
+            self.assertEqual(_called(self.server, 'choose_branch', branch='feature', person_said='feature',
+                                     project=str(self.project))['status'], 'needs_the_person')
             self.assertEqual(_called(self.server, 'status', project=str(self.project))['status'], 'needs_branch')
-            self.assertEqual(_called(self.server, 'choose_branch', branch='feature', person_said='feature', project=str(self.project))['status'], 'chosen')
+            self.assertEqual(_called(self.server, 'choose_branch', branch='feature', person_said='feature',
+                                     project=str(self.project))['status'], 'chosen')
 
 
 if __name__ == '__main__':

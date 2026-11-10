@@ -46,8 +46,10 @@ def coverage_of(sets, records, verification=None):
             'semantic_review': bool(records['findings']),
             'runtime_confirmation': 0,  # replaced below when execution evidence exists
             'not_examined': [
-                f"unparsed source files: {syntax['by_status'].get('BLOCKED', 0) + syntax['by_status'].get('UNSUPPORTED', 0)}",
-                f"unresolved or ambiguous imports: {resolve['by_resolution']['UNRESOLVED'] + resolve['by_resolution']['AMBIGUOUS']}",
+                "unparsed source files: "
+                f"{syntax['by_status'].get('BLOCKED', 0) + syntax['by_status'].get('UNSUPPORTED', 0)}",
+                "unresolved or ambiguous imports: "
+                f"{resolve['by_resolution']['UNRESOLVED'] + resolve['by_resolution']['AMBIGUOUS']}",
                 f"invocation surfaces with no detector: {sum(entry['files_without_any_detector'].values())} files",
                 ('runtime behaviour: no execution evidence in this run'
                  if not (verification and verification.get('executed'))
@@ -88,7 +90,8 @@ def tasks_of(records):
     for task in (records['roadmap'] or {}).get('tasks', []):
         rows.append({'id': task['id'], 'title': task.get('title', ''), 'kind': task.get('kind'),
                      'status': task.get('status'), 'readiness': 'needs_revalidation',
-                     'compatibility': {'source': 'legacy', 'missing': ['typed decision', 'revision-bound checks']}, 'finding_ids': task.get('finding_ids', []),
+                     'compatibility': {'source': 'legacy', 'missing': ['typed decision', 'revision-bound checks']},
+                     'finding_ids': task.get('finding_ids', []),
                      'verify_command': task.get('verify_command'), 'files': task.get('files', [])})
     return rows
 
@@ -117,7 +120,8 @@ def inventory_rows(language):
 def describe(sets, records):
     syntax = sets['syntax']['summary']
     entry = sets['entrypoints']['summary']
-    languages = ', '.join(f'{name} ({count})' for name, count in sorted(syntax['by_language'].items(), key=lambda kv: -kv[1])[:4])
+    languages = ', '.join(f'{name} ({count})'
+                          for name, count in sorted(syntax['by_language'].items(), key=lambda kv: -kv[1])[:4])
     surfaces = ', '.join(f'{name} ({count})' for name, count in sorted(entry['by_surface'].items()))
     line = (f"⬤ {syntax['source_files']} source files, {syntax['symbols']} symbols, languages: {languages}. "
             f"Invocation surfaces: {surfaces or 'none detected'}.")
@@ -253,7 +257,8 @@ def assemble(target, out, run=None, language='ar', version=None, exclude=(), eng
     records = legacy_records(run) if run else {'findings': [], 'architecture': {}, 'flows': [], 'coverage': [],
                                                'evidence': [], 'roadmap': {}, 'state': {}}
     verification = read(out / 'verification.json') if (out / 'verification.json').is_file() else None
-    request, inputs = _Request(target, out, run, language, version, exclude), _Inputs(map_result, sets, records, verification)
+    request, inputs = (_Request(target, out, run, language, version, exclude),
+                       _Inputs(map_result, sets, records, verification))
     rows, withheld = _claims(request, inputs)
     progress.count('claim steps', 3, CLAIM_STEPS)
     rows, withheld = aside.screen(rows, withheld, records, sets)
@@ -295,8 +300,10 @@ def _claims(request, inputs):
     rows, fact_index, withheld = build_claims(inputs.sets, inputs.records, target=request.target)
     progress.count('claim steps', 2, CLAIM_STEPS)
     coverage_set = _more_sets(request.out, inputs.sets)
-    runtime = runtime_claims(inputs.verification, len(rows), (coverage_set or {}).get('facts'), excluded=_excluded(request.exclude))
-    runtime += from_runs.run_claims(request.out, inputs.sets, request.target, len(rows) + len(runtime))   # they read what ran
+    runtime = runtime_claims(inputs.verification, len(rows), (coverage_set or {}).get('facts'),
+                             excluded=_excluded(request.exclude))
+    runtime += from_runs.run_claims(request.out, inputs.sets, request.target,
+                                    len(rows) + len(runtime))   # they read what ran
     runtime += from_rules.rule_claims(request.out, rows + runtime, fact_index, len(rows) + len(runtime))  # the person's own rules, last: a detector's guard reads the others
     runtime, held = ledger.withhold(runtime)        # a detector under its measured bar is kept aside here too
     for number, row in enumerate(held, start=len(withheld) + 1): row['id'] = 'WHD-%03d' % number
@@ -305,8 +312,10 @@ def _claims(request, inputs):
     for row in runtime:
         row['origin'] = origin_of(row, fact_index)
         row.setdefault('artifacts', [REGISTER])
-        row.setdefault('disposition', {'kind': 'investigate', 'reason': 'Ranked for review; no owner assigned yet in this run.'})
-    if request.target is not None: assess_mechanically(runtime, inputs.sets, request.target)   # one source per pattern's repair
+        row.setdefault('disposition', {'kind': 'investigate',
+                                       'reason': 'Ranked for review; no owner assigned yet in this run.'})
+    if request.target is not None:
+        assess_mechanically(runtime, inputs.sets, request.target)   # one source per pattern's repair
     from ..planning.ranking import rank
     return rank(rows + runtime, inputs.sets, fact_index), withheld
 
@@ -317,9 +326,11 @@ def _dossier(request, inputs, rows, withheld):
     return {
         'schema_version': 1,
         'provenance': {'target': str(target), 'tool_version': request.version or __version__,
-                       'generated_at': stamp('%Y-%m-%d %H:%M UTC', utc=True), 'snapshot_fingerprint': sets['syntax']['input_sha'],
+                       'generated_at': stamp('%Y-%m-%d %H:%M UTC', utc=True),
+                       'snapshot_fingerprint': sets['syntax']['input_sha'],
                        'audit_run': str(run) if run else None,
-                       'model_calls': 0 if not run else (records['state'] or {}).get('model_calls', 'see engine-state.json'),
+                       'model_calls': 0 if not run else (records['state'] or {}).get('model_calls',
+                                                                    'see engine-state.json'),
                        'extractors': {name: data['extractor_version'] for name, data in sorted(sets.items())},
                        'excluded_patterns': inputs.map_result.get('exclude_patterns', list(request.exclude or []))},
         'coverage': _dossier_coverage(sets, records, verification, rows),
@@ -347,7 +358,8 @@ def _dossier(request, inputs, rows, withheld):
 def _dossier_coverage(sets, records, verification, rows):
     """What was examined, with how many claims execution confirmed and how much of the code the tests ran."""
     return {**coverage_of(sets, records, verification),
-            'runtime_confirmation': sum(1 for row in rows if 'test_evidence' in row['method'] or 'runtime_probe' in row['method']),
+            'runtime_confirmation': sum(1 for row in rows
+                                        if 'test_evidence' in row['method'] or 'runtime_probe' in row['method']),
             'executed_verification': bool(verification and verification.get('executed')),
             'executed_coverage_percent': (verification or {}).get('overall_percent')}
 

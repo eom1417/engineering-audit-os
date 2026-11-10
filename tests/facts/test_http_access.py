@@ -16,8 +16,10 @@ USER = ('import { api } from "@/lib/Api";\nconst DRIVERS_ENDPOINT = "/drivers";\
 class HttpAccessTests(unittest.TestCase):
     def test_calls_through_the_apps_own_client_are_endpoints_with_their_method(self):
         names = http_access.prepare({'src/lib/Api.ts': API, 'src/lib/operatorsApi.ts': USER})
-        self.assertEqual(names['src/lib/operatorsApi.ts'], {'api'}, 'an axios.create client is followed into its importers')
-        found = [(r['operation'], r['target']) for _, _, r in http_access.extract_calls(USER, names['src/lib/operatorsApi.ts'])]
+        self.assertEqual(names['src/lib/operatorsApi.ts'], {'api'}, 'an axios.create client is followed into its '
+                         'importers')
+        found = [(r['operation'], r['target']) for _, _, r in http_access.extract_calls(USER,
+            names['src/lib/operatorsApi.ts'])]
         # Another object with a get method and a third-party host are not the app's back end.
         self.assertEqual(sorted(found), sorted([('get', '/operators'), ('put', '/operators/{}'), ('post', '/drivers'),
                                                 ('post', '/ai/ask')]))
@@ -26,10 +28,12 @@ class HttpAccessTests(unittest.TestCase):
         from types import SimpleNamespace
         from eaos.facts.frameworks import js_web
         def routes(text):
-            context = SimpleNamespace(text=text, rel='src/x.ts', line_of=lambda i: text[:i].count('\n') + 1, symbol_at=lambda line: None, prepared={})
+            context = SimpleNamespace(text=text, rel='src/x.ts', line_of=lambda i: text[:i].count('\n') + 1,
+                                      symbol_at=lambda line: None, prepared={})
             return [(r['http_method'], r['route']) for r in js_web.detect(context)]
         self.assertEqual(routes(USER), [])
-        self.assertEqual(routes('import { Hono } from "hono";\nconst api = new Hono();\napi.get("/health", health);\n'), [('GET', '/health')])
+        self.assertEqual(routes('import { Hono } from "hono";\nconst api = new Hono();\napi.get("/health", health);\n'),
+                         [('GET', '/health')])
         self.assertEqual(routes('app.get("/x", handler);\n'), [('GET', '/x')])
 
     def test_a_write_records_the_keys_it_sends_never_the_values(self):

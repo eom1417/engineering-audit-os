@@ -36,11 +36,13 @@ class Loop:
 
 
 LOOPS = (
-    Loop('understand', ('facts', 'features', 'roles', 'intake', 'engines', 'policy', 'rules'), needs=('facts',), on_fail='stop'),
+    Loop('understand', ('facts', 'features', 'roles', 'intake', 'engines', 'policy', 'rules'), needs=('facts',),
+         on_fail='stop'),
     # the app's stages break on a loaded computer (a browser that timed out, an app slow to answer): one more round
     Loop('run_and_see', ('setup', 'verify', 'session', 'crawl', 'lock', 'record', 'journeys', 'screens', 'layers'),
          needs=('setup', 'screens'), max_rounds=2),
-    Loop('judge', ('measure', 'architecture', 'claims', 'probe', 'plan', 'triage', 'cards'), needs=('claims', 'triage')),
+    Loop('judge', ('measure', 'architecture', 'claims', 'probe', 'plan', 'triage', 'cards'),
+         needs=('claims', 'triage')),
     Loop('plan', ('order', 'steps'), needs=('steps',)),
     Loop('hand_over', ('reports', 'translate'), needs=('reports',), on_fail='escalate'),
 )
@@ -90,7 +92,8 @@ def _in_loops():
 def _loop_errors(loop, declared, seen):
     found = [f'{loop.name}: {name} is not a declared stage' for name in loop.stages if name not in declared]
     found += [f'{loop.name}: {name} is already in another loop' for name in loop.stages if name in seen]
-    found += [f'{loop.name}: needs {name}, which is not one of its stages' for name in loop.needs if name not in loop.stages]
+    found += [f'{loop.name}: needs {name}, which is not one of its stages' for name in loop.needs
+              if name not in loop.stages]
     if loop.on_fail not in ON_FAIL: found.append(f'{loop.name}: unknown on_fail {loop.on_fail!r}')
     if loop.max_rounds < 1: found.append(f'{loop.name}: max_rounds below 1')
     return found

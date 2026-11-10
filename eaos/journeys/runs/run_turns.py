@@ -12,7 +12,8 @@ from . import lane_assistants as helpers
 from ...core.project import state as project_state
 from ...core.system.clock import now
 
-SAID = {'type': 'object', 'additionalProperties': False, 'required': ['text'], 'properties': {'text': {'type': 'string'}}}
+SAID = {'type': 'object', 'additionalProperties': False, 'required': ['text'],
+        'properties': {'text': {'type': 'string'}}}
 
 
 def _read_from(path, offset):
@@ -40,7 +41,8 @@ def _tried_in(wave, cards):
 def _last_answer(state, status, needed=None):
     """The last EAOS answer of the turn with `status` (and, when `needed` is named, that field filled); None."""
     return next((payload for tool, payload in reversed(state['eaos_results'])
-                 if isinstance(payload, dict) and payload.get('status') == status and (needed is None or payload.get(needed))), None)
+                 if isinstance(payload, dict) and payload.get('status') == status
+                 and (needed is None or payload.get(needed))), None)
 
 
 class Turns:
@@ -50,15 +52,19 @@ class Turns:
         record = self._baseline(run)
         verb = next((v for v in self.contract['verbs'] if v['id'] == record.get('verb')), None)
         tools = [tool for tool in verb['tools'] if tool not in adapters.PERSON_ONLY] if verb else None
-        if record.get('owner_decision') or record.get('review'): tools = ['status', 'overview', 'finding', 'findings', 'impact', 'structure']
+        if record.get('owner_decision') or record.get('review'):
+            tools = ['status', 'overview', 'finding', 'findings', 'impact', 'structure']
         argv = adapter.argv(prompt, run, folder, session, tools=tools)
         stream = folder / 'stream.jsonl'
         offset = stream.stat().st_size if stream.is_file() else 0
         env = {**os.environ, 'EAOS_STUDIO_RUN': run, 'EAOS_STUDIO_LANG': self.lang}
         with open(stream, 'ab') as out, open(folder / 'stderr.log', 'ab') as err:
-            process = subprocess.Popen(argv, cwd=self.project, stdout=out, stderr=err, stdin=subprocess.DEVNULL, env=env, start_new_session=True)  # nosemgrep: python.lang.security.audit.dangerous-subprocess-use-audit -- an argument list, no shell: the adapter's own command
+            # nosemgrep: python.lang.security.audit.dangerous-subprocess-use-audit -- an argument list, no shell: the adapter's own command
+            process = subprocess.Popen(argv, cwd=self.project, stdout=out, stderr=err, stdin=subprocess.DEVNULL,
+                                       env=env, start_new_session=True)
         self.children[run] = process
-        self.store.update(run, pid=process.pid, offset=offset, turn_started=now('milliseconds'), turns=(record.get('turns') or 0) + 1)
+        self.store.update(run, pid=process.pid, offset=offset, turn_started=now('milliseconds'),
+                          turns=(record.get('turns') or 0) + 1)
         self._follow_assistant(run, adapter)
 
     def _follow_assistant(self, run, adapter):
@@ -69,7 +75,8 @@ class Turns:
         threading.Thread(target=self._read_stream, args=(run, adapter), daemon=True).start()
 
     def _ended(self, run, pid):
-        """Whether the assistant's process of `run` has ended (a child of this process, or one a restart found alive)."""
+        """Whether the assistant's process of `run` has ended (a child of this process, or one a restart found
+        alive)."""
         alive = helpers.alive
         return not (self.children[run].poll() is None if run in self.children else alive(pid))
 
@@ -94,7 +101,8 @@ class Turns:
                 if lines: self.store.update(run, offset=offset - len(buffer), session=state['session'])
                 if finished and not chunk:
                     if buffer.strip():
-                        self._record(run, record, adapter.parse(buffer.decode('utf-8', 'replace'), state, self.labels), state)
+                        self._record(run, record,
+                                     adapter.parse(buffer.decode('utf-8', 'replace'), state, self.labels), state)
                     break
                 if self._closed.is_set(): return
                 time.sleep(0.2)
@@ -134,7 +142,9 @@ class Turns:
         return tried
 
     def _cards_progress(self, run, tried, cards):
-        self.store.append(run, 'progress', {'en': f'{len(tried)} of {len(cards)} cards tried', 'ar': f'جُرّبت {len(tried)} من {len(cards)} بطاقات'},
+        self.store.append(run, 'progress',
+                          {'en': f'{len(tried)} of {len(cards)} cards tried',
+                           'ar': f'جُرّبت {len(tried)} من {len(cards)} بطاقات'},
                           {'batch': None, 'done': len(tried), 'total': len(cards), 'stage': 'cards'})
 
     def _end_turn(self, run, state, code):
@@ -142,7 +152,9 @@ class Turns:
         if record.get('state') in ('stopped',): return
         words = state.get('final') or '\n'.join(state.get('texts') or [])
         if record.get('pending_question') and not state.get('failed') and code in (0, None):
-            self.store.append(run, 'result', {'en': 'Clarification finished; your explicit answer is still needed', 'ar': 'انتهى التوضيح؛ ما زالت إجابتك الصريحة مطلوبة'}, {'answer': words})
+            self.store.append(run, 'result',
+                              {'en': 'Clarification finished; your explicit answer is still needed',
+                               'ar': 'انتهى التوضيح؛ ما زالت إجابتك الصريحة مطلوبة'}, {'answer': words})
             return self._restore_question(run)
         question = self._question_for(record, state, words)
         if question: return self._ask(run, question)
@@ -156,20 +168,29 @@ class Turns:
         reason = state.get('failed') or f'the assistant stopped with code {code}'
         try: tail = (self.store.path(run) / 'stderr.log').read_text(encoding='utf-8', errors='replace')[-600:]
         except OSError: tail = ''
-        return self.store.scrub(str(reason))[:500] + (f' ({self.store.scrub(tail.strip())[-300:]})' if tail.strip() and not state.get('failed') else '')
+        return self.store.scrub(str(reason))[:500] + (
+            f' ({self.store.scrub(tail.strip())[-300:]})' if tail.strip() and not state.get('failed') else '')
 
     def _finish_turn(self, run, record, words):
         payload = self._outcome(run, answer=self._readable(run, words))
-        if record.get('verb') == 'fix' and not payload.get('branch') and not payload.get('cards_closed') and not record.get('lane'):
-            # a Fix run that handed nothing over did not succeed, whatever the assistant said; nor did it break anything:
-            # it ends unchanged, and the person reads why and what to do
-            self.store.append(run, 'result', {'en': "Nothing changed: no fix was kept, so no branch waits for you. Read the assistant's words for why, then try again or pick other cards.",
-                                              'ar': 'ما تغيّر شي: ما انقبل أي إصلاح، فما فيه فرع ينتظرك. اقرأ كلام المساعد لتعرف السبب، ثم أعد المحاولة أو اختر بطاقات ثانية.'}, {**payload, 'nothing_changed': True})
+        if (record.get('verb') == 'fix' and not payload.get('branch') and not payload.get('cards_closed')
+                and not record.get('lane')):
+            # a Fix run that handed nothing over did not succeed, whatever the assistant said; nor did it break
+            # anything: it ends unchanged, and the person reads why and what to do
+            self.store.append(run, 'result',
+                              {'en': "Nothing changed: no fix was kept, so no branch waits for you. "
+                                     "Read the assistant's words for why, then try again or pick other cards.",
+                               'ar': 'ما تغيّر شي: ما انقبل أي إصلاح، فما فيه فرع ينتظرك. '
+                                     'اقرأ كلام المساعد لتعرف السبب، ثم أعد المحاولة أو اختر بطاقات ثانية.'},
+                              {**payload, 'nothing_changed': True})
             return self.set_state(run, 'unchanged', 'nothing changed', result={**payload, 'nothing_changed': True})
-        self.store.append(run, 'result', {'en': 'Done' + (f": the branch {payload['branch']} waits for you" if payload.get('branch') else
-                                                          f": the fixes are on {payload['landed_on']} itself" if payload.get('landed_on') else ''),
-                                          'ar': 'تم' + (f": الفرع {payload['branch']} ينتظرك" if payload.get('branch') else
-                                                        f": الإصلاحات صارت في {payload['landed_on']} نفسه" if payload.get('landed_on') else '')}, payload)
+        self.store.append(run, 'result',
+                          {'en': 'Done' + (f": the branch {payload['branch']} waits for you" if payload.get('branch')
+                                           else f": the fixes are on {payload['landed_on']} itself"
+                                           if payload.get('landed_on') else ''),
+                           'ar': 'تم' + (f": الفرع {payload['branch']} ينتظرك" if payload.get('branch')
+                                         else f": الإصلاحات صارت في {payload['landed_on']} نفسه"
+                                         if payload.get('landed_on') else '')}, payload)
         self.set_state(run, 'done', result=payload)
         self._auto_accept(run, payload)
 
@@ -178,20 +199,25 @@ class Turns:
         person-only), asked by the Studio so the answer is recorded first; else the agreement to run the app."""
         question = prompts.question_in(words)
         branch = question is None and _last_answer(state, 'needs_branch', 'branches')
-        if question is not None or branch: return question if question is not None else prompts.branch_question(branch)
+        if question is not None or branch:
+            return question if question is not None else prompts.branch_question(branch)
         asked = _last_answer(state, 'needs_agreement')
-        if asked and not self._waiting_branches() - set(record.get('branches_before') or []): return prompts.consent_question(asked)
+        if asked and not self._waiting_branches() - set(record.get('branches_before') or []):
+            return prompts.consent_question(asked)
 
     def _readable(self, run, words):
-        """The assistant's last words in the person's language: asked of it again once when they are not (eaos/core/language/check.py);
-        still not, they are kept as they are and the run says so."""
+        """The assistant's last words in the person's language: asked of it again once when they are not
+        (eaos/core/language/check.py); still not, they are kept as they are and the run says so."""
         adapter = self.adapters.get(self.store.load(run).get('assistant'))
         if not mostly_foreign(words, self.lang) or adapter is None: return words
-        try: said = str((adapters.ask(adapter, restate({'text': words}, [words], self.lang), SAID, self.store.path(run) / 'language',
+        try: said = str((adapters.ask(adapter, restate({'text': words}, [words], self.lang), SAID,
+                                      self.store.path(run) / 'language',
                                       tier=tiers.tier_of('translation'))['answer'] or {}).get('text') or '')
         except Exception: said = ''
         if said and not mostly_foreign(said, self.lang): return said
-        self.store.append(run, 'check', {'en': "The assistant's last words are not in your language, even asked again",
-                                         'ar': 'كلام المساعد الأخير مو بلغتك، حتى بعد ما طُلب منه مرة ثانية'},
-                          {'name': 'language', 'passed': False, 'summary': 'the closing words stayed mostly in another language'})
+        self.store.append(run, 'check',
+                          {'en': "The assistant's last words are not in your language, even asked again",
+                           'ar': 'كلام المساعد الأخير مو بلغتك، حتى بعد ما طُلب منه مرة ثانية'},
+                          {'name': 'language', 'passed': False,
+                           'summary': 'the closing words stayed mostly in another language'})
         return words

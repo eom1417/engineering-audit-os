@@ -12,17 +12,20 @@ FACT_KIND = 'data_access'
 # `supabase.from("x")` on one line and `.select(...)` on the next. A `.from(...)` not followed by
 # one of these verbs is a different chain (typically storage) and is reported by its own matcher
 # below.
-TABLE_CALL = re.compile(r'''\.from\s*\(\s*(?P<q>['"`])(?P<target>[^'"`]+)(?P=q)\s*\)\s*\.\s*(?P<op>select|insert|update|upsert|delete)\b''')
+TABLE_CALL = re.compile(r'''\.from\s*\(\s*(?P<q>['"`])(?P<target>[^'"`]+)(?P=q)\s*\)\s*'''
+                        r'''\.\s*(?P<op>select|insert|update|upsert|delete)\b''')
 RPC_CALL = re.compile(r'''\.rpc\s*\(\s*(?P<q>['"`])(?P<target>[^'"`]+)(?P=q)''')
 STORAGE_CALL = re.compile(r'''\.storage\.from\s*\(\s*(?P<q>['"`])(?P<target>[^'"`]+)(?P=q)''')
-AUTH_CALL = re.compile(r'''\.auth\.(?P<op>signIn|signOut|signUp|signInWithPassword|signInWithOAuth|getSession|getUser|resetPasswordForEmail|updateUser|onAuthStateChange)\b''')
+AUTH_CALL = re.compile(r'''\.auth\.(?P<op>signIn|signOut|signUp|signInWithPassword|signInWithOAuth|getSession|'''
+                       r'''getUser|resetPasswordForEmail|updateUser|onAuthStateChange)\b''')
 SB_NAME = re.compile(r'''\b[A-Za-z_$][\w$]*[Ss]upabase\b|\bsupabase\b|\bsupabase[A-Z][\w$]*\b''')
 # A client is often injected under another name (`this.client`, `db`, a parameter typed with an alias of
 # SupabaseClient). The receiver of a `.from("table").<verb>` chain is resolved against the names the file,
 # or a file it imports, binds to a Supabase client: no other name makes the chain a Supabase call.
 IMPORT = re.compile(r'''(?:\bfrom|\bimport)\s*\(?\s*['"]([^'"]+)['"]''')
 TYPE_ALIAS = re.compile(r'''\btype\s+([A-Za-z_$][\w$]*)\s*=\s*SupabaseClient\b''')
-FROM_FACTORY = re.compile(r'''\b([A-Za-z_$][\w$]*)\s*=\s*(?:await\s+)?(?:createClient|createServerClient|createBrowserClient)\b''')
+FROM_FACTORY = re.compile(r'''\b([A-Za-z_$][\w$]*)\s*=\s*(?:await\s+)?'''
+                          r'''(?:createClient|createServerClient|createBrowserClient)\b''')
 NAMED_IMPORT = re.compile(r'''\bimport\s*(?:type\s+)?\{([^}]*)\}\s*from\s*['"]([^'"]*supabase[^'"]*)['"]''', re.I)
 RECEIVER = re.compile(r'''([A-Za-z_$][\w$]*)\s*$''')
 # The row a write sends: `.insert({ ... })`, `.insert([{ ... }])`, `.update({ ... })`; its keys are the table's columns.
@@ -34,7 +37,8 @@ def client_names(text, inherited=()):
     names = set(inherited) | set(FROM_FACTORY.findall(text))
     # `import { supabaseAdmin as admin } from "@/integrations/supabase/client.server"`: the imported names.
     for listed, _ in NAMED_IMPORT.findall(text):
-        names |= {part.split(' as ')[-1].strip() for part in listed.split(',') if part.strip() and not part.strip()[0].isupper()}
+        names |= {part.split(' as ')[-1].strip() for part in listed.split(',')
+                  if part.strip() and not part.strip()[0].isupper()}
     for kind in types:
         names |= set(re.findall(r'([A-Za-z_$][\w$]*)\s*\??\s*:\s*' + re.escape(kind) + r'\b', text))
     return names
@@ -131,7 +135,8 @@ def _table_record(text, match, names):
 # The calls that count only with a Supabase-named client earlier in their statement, and the record of each.
 PREFIXED = (
     (RPC_CALL, lambda m: {'client': 'supabase', 'target': m.group('target'), 'operation': 'rpc', 'symbol': 'rpc'}),
-    (STORAGE_CALL, lambda m: {'client': 'supabase', 'target': m.group('target'), 'operation': 'storage', 'symbol': 'storage'}),
+    (STORAGE_CALL, lambda m: {'client': 'supabase', 'target': m.group('target'), 'operation': 'storage',
+                              'symbol': 'storage'}),
     (AUTH_CALL, lambda m: {'client': 'supabase', 'target': 'auth', 'operation': m.group('op'), 'symbol': 'auth'}),
 )
 

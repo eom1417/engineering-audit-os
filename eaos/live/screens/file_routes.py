@@ -43,7 +43,8 @@ def _web_routes(root):
     deps = dependencies(package) if package is not None else {}
     if any(FILE_ROUTER.search(c.read_text(encoding='utf-8', errors='replace')) for c in app.glob('vite.config.*')):
         deps['vite-plugin-pages'] = ''      # Vue Router's own file routes (vue-router/vite)
-    return [route for dependency, folder, kind in LAYOUTS if dependency in deps for route in _routes(app / folder, kind)]
+    return [route for dependency, folder, kind in LAYOUTS if dependency in deps
+            for route in _routes(app / folder, kind)]
 
 
 def _routes(folder, kind):
@@ -71,7 +72,8 @@ def _django(app):
     """The pages of a Django project's URL configuration, each include's prefix joined (/catalog/books/ when
     catalog/urls.py says only books/)."""
     settings = next((p for p in sorted(app.glob('*/settings.py'))), None)
-    root = re.search(r'''ROOT_URLCONF\s*=\s*['"]([\w.]+)''', settings.read_text(encoding='utf-8', errors='replace')) if settings else None
+    root = (re.search(r'''ROOT_URLCONF\s*=\s*['"]([\w.]+)''', settings.read_text(encoding='utf-8', errors='replace'))
+            if settings else None)
     return _urlconf(app, root[1], '/', 0) if root else []
 
 
@@ -80,7 +82,8 @@ def _urlconf(app, module, prefix, depth):
     path = app / (module.replace('.', '/') + '.py')
     text = path.read_text(encoding='utf-8', errors='replace') if path.is_file() else ''
     routes = [prefix + route for route in URL.findall(text) if not DYNAMIC.search(route) and '<' not in route]
-    for inner, included in INCLUDE.findall(text) if depth < 3 else []: routes += _urlconf(app, included, prefix + inner, depth + 1)
+    for inner, included in INCLUDE.findall(text) if depth < 3 else []:
+        routes += _urlconf(app, included, prefix + inner, depth + 1)
     return routes
 
 

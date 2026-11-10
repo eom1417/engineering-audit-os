@@ -47,16 +47,21 @@ class Interleaved(Batch):
 
     def keep(self):
         with mock.patch('eaos.journeys.fix.waves.edit_gates', return_value=([], 0, None)):
-            self.assertTrue(fixing._fix_edit_job(self.where, {'card': 'TASK-001', 'edits': EDIT, 'summary': ''}, lambda *_: None)['kept'])
+            self.assertTrue(fixing._fix_edit_job(self.where, {'card': 'TASK-001', 'edits': EDIT, 'summary': ''},
+                                                 lambda *_: None)['kept'])
 
     def hand_over(self):
         self.keep()
         state = project_state.load(self.project)
         state['open_wave']['failed']['TASK-002'] = 'skipped: x'
         guided.save(state)
-        patches = [mock.patch.object(batch_steps, '_accepted', side_effect=lambda b, cards, kept, *_: kept), mock.patch.object(batch_steps, '_secure', side_effect=lambda b, kept, *_: kept),
-                   mock.patch.object(batch_steps, '_through_gates', side_effect=lambda b, kept, *_: kept), mock.patch.object(batch_steps, '_declare'), mock.patch.object(batch_steps, '_new_truth'),
-                   mock.patch('eaos.journeys.fix.regenerate.regenerate'), mock.patch('eaos.journeys.fix.regenerate.keep_guide')]
+        patches = [mock.patch.object(batch_steps, '_accepted',
+                                     side_effect=lambda b, cards, kept, *_: kept),
+                   mock.patch.object(batch_steps, '_secure', side_effect=lambda b, kept, *_: kept),
+                   mock.patch.object(batch_steps, '_through_gates', side_effect=lambda b, kept, *_: kept),
+                   mock.patch.object(batch_steps, '_declare'), mock.patch.object(batch_steps, '_new_truth'),
+                   mock.patch('eaos.journeys.fix.regenerate.regenerate'),
+                   mock.patch('eaos.journeys.fix.regenerate.keep_guide')]
         for patch in patches: patch.start()
         try: batch_finish.finish_job(self.where, {}, lambda *_: None)
         finally:
@@ -105,7 +110,9 @@ class OpenReport(Interleaved):
 
     def test_a_state_broken_or_gone_meanwhile_is_not_written_over_with_the_earlier_one(self):
         record = project_state.workspace(self.project) / 'state.json'
-        for name, change, left in (('broken', lambda: record.write_text('{ not json'), '{ not json'), ('not a state', lambda: record.write_text('{}'), '{}'), ('gone', record.unlink, None)):
+        for name, change, left in (('broken', lambda: record.write_text('{ not json'), '{ not json'),
+                                    ('not a state', lambda: record.write_text('{}'), '{}'),
+                                    ('gone', record.unlink, None)):
             with self.subTest(state=name):
                 good = record.read_text()
                 with self.assertRaises(LookupError):
@@ -175,7 +182,8 @@ class TheLocks(Interleaved):
         self.merged_earlier_batch()
         done = []
         def start():
-            with mock.patch.object(fixing, '_start', return_value={'job': 'j'}): done.append(agent_tools.fix_start(self.where))
+            with mock.patch.object(fixing, '_start', return_value={'job': 'j'}):
+                done.append(agent_tools.fix_start(self.where))
         thread = threading.Thread(target=start, daemon=True)
         thread.start()
         thread.join(SECONDS)
@@ -194,7 +202,10 @@ class ACheckThatClosesABatch(Interleaved):
     def test_it_keeps_what_it_stamped(self):
         self.person_commits()
         head = git(self.project, 'rev-parse', 'HEAD')
-        with mock.patch('eaos.journeys.check.check', return_value={}), mock.patch('eaos.journeys.check.remedies.apply', return_value={}), mock.patch('eaos.journeys.check.source', return_value=self.project):
+        with mock.patch('eaos.journeys.check.check', return_value={}), \
+                mock.patch('eaos.journeys.check.remedies.apply', return_value={}), \
+                mock.patch('eaos.journeys.check.source', return_value=self.project):
             check_journey.run(project_state.load(self.project), {})
         state = self.on_disk()
-        self.assertEqual((state['scanned_commit'], state.get('open_wave'), state['waves'][-1]['status']), (head, None, 'superseded'))
+        self.assertEqual((state['scanned_commit'], state.get('open_wave'), state['waves'][-1]['status']),
+                         (head, None, 'superseded'))

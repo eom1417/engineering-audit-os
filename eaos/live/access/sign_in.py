@@ -94,7 +94,8 @@ def page_of(page, base):
     """The sign-in page the probe's pages were sent to, at `base` (the app's address this run), else `base` itself."""
     from urllib.parse import urlsplit
     from ..app.setup import signed_out
-    sent = next((row.get('url') for row in ([page, *(page.get('others') or [])] if page else []) if signed_out(row) and row.get('url')), None)
+    sent = next((row.get('url') for row in ([page, *(page.get('others') or [])] if page else [])
+                 if signed_out(row) and row.get('url')), None)
     if not sent: return base
     parts = urlsplit(sent)
     return base.rstrip('/') + parts.path + (f'?{parts.query}' if parts.query else '')
@@ -110,11 +111,14 @@ def works(live, base, state, report=None):
 
 # ---------------------------------------------------------------- the check asks, the person answers
 
-def ask(workspace, base, state, why, log=None, mail=None, published=False):  # limits: parameters -- the fields of the one question the person reads, each named
+def ask(workspace, base, state, why, log=None, mail=None,
+        published=False):  # limits: parameters -- the fields of the one question the person reads, each named
     """The check asks the person to sign in to the app at `base`; the browser of the sign-in page saves to `state`."""
     now = datetime.now(timezone.utc)
-    _write(Path(workspace) / ASKED, {'asked': now.isoformat(timespec='seconds'), 'until': (now + timedelta(seconds=WAIT)).isoformat(timespec='seconds'),
-                                     'base': base, 'session': str(state), 'why': why, 'log': str(log) if log else None,
+    _write(Path(workspace) / ASKED, {'asked': now.isoformat(timespec='seconds'),
+                                     'until': (now + timedelta(seconds=WAIT)).isoformat(timespec='seconds'),
+                                     'base': base, 'session': str(state), 'why': why,
+                                     'log': str(log) if log else None,
                                      'mail': mail, 'published': published, 'state': 'waiting'})
 
 
@@ -146,8 +150,8 @@ def wait(workspace, seconds=None):
     from ...core import progress
     from ...core.system.process import check_cancelled
     path, end = Path(workspace) / ASKED, time.monotonic() + (WAIT if seconds is None else seconds)
-    progress.step('your sign-in', 0, 1, 'waiting', reason='waiting for you to sign in to the app: the Studio\'s Waiting for you, '
-                  'or eaos sign-in', reason_code='sign_in_waiting')
+    progress.step('your sign-in', 0, 1, 'waiting', reason='waiting for you to sign in to the app: '
+                  'the Studio\'s Waiting for you, or eaos sign-in', reason_code='sign_in_waiting')
     try:
         while time.monotonic() < end:
             check_cancelled()
@@ -188,7 +192,8 @@ def codes(record, lines=40):
     """What the app sent the person while they sign in: the last lines of its own output, and the mail it sent to the
     run's mail catcher (Mailpit), newest first. Nothing typed on the sign-in page is ever kept."""
     said = []
-    try: said = Path(record['log']).read_text(encoding='utf-8', errors='replace').splitlines()[-lines:] if record.get('log') else []
+    try: said = (Path(record['log']).read_text(encoding='utf-8', errors='replace').splitlines()[-lines:]
+                 if record.get('log') else [])
     except OSError as error: noted('an app log that cannot be read shows no output', error)
     return {'output': [line for line in said if line.strip()], 'mail': _mail(record.get('mail'))}
 
@@ -201,8 +206,10 @@ def _mail(address):
         with opened(f'{address}/api/v1/messages?limit=5', timeout=3) as response: listed = json.loads(response.read())
         found = []
         for row in listed.get('messages') or []:
-            with opened(f"{address}/api/v1/message/{row['ID']}", timeout=3) as response: whole = json.loads(response.read())
-            found.append({'to': ', '.join(t.get('Address', '') for t in whole.get('To') or []), 'subject': whole.get('Subject'),
+            with opened(f"{address}/api/v1/message/{row['ID']}", timeout=3) as response:
+                whole = json.loads(response.read())
+            found.append({'to': ', '.join(t.get('Address', '') for t in whole.get('To') or []),
+                          'subject': whole.get('Subject'),
                           'text': (whole.get('Text') or '')[:2000], 'at': row.get('Created')})
         return found
     except (OSError, ValueError, KeyError):
@@ -230,5 +237,6 @@ def step(state, otherwise):
     """For the assistant's status while a job runs: ('sign_in', why) when the check waits for the person to sign in,
     else `otherwise`."""
     if not asked(state['workspace']): return otherwise
-    return ('sign_in', 'the check waits for the person to sign in to their app: tell them to open Waiting for you in the Studio, '
-                       'or to run eaos sign-in in a terminal; the stages that open no page go on meanwhile')
+    return ('sign_in', 'the check waits for the person to sign in to their app: tell them to open Waiting for you '
+                       'in the Studio, or to run eaos sign-in in a terminal; '
+                       'the stages that open no page go on meanwhile')

@@ -63,7 +63,9 @@ def open_lanes(wave, cards, assistants):
     most = int(assistants or 1) if os.environ.get('EAOS_STUDIO_RUN') else 1
     lanes = deal([cards[card] for card in untried(wave, wave['cards'])], most) if most > 1 else []
     if len(lanes) < 2: return []
-    wave.update(lanes=lanes, claims={path: lane for lane, ids in enumerate(lanes) for card in ids for path in cards[card].get('paths') or []},
+    wave.update(lanes=lanes,
+                claims={path: lane for lane, ids in enumerate(lanes) for card in ids
+                        for path in cards[card].get('paths') or []},
                 helpers={}, later=[], released=[])
     return lanes[1:]
 
@@ -72,9 +74,10 @@ def told(helpers):
     """What fix_start adds to its answer when other assistants fix lanes of the batch beside the first one."""
     if not helpers: return {}
     return {'helpers': helpers,
-            'what_now': f'{len(helpers)} more assistants fix the other cards of this batch at the same time, each its own '
-                        'files: fix only the cards in to_do (finding, fix_read, then fix_edit), then call fix_finish, which waits '
-                        'for them and gives you any card left for the end. Keep every feature, route and behaviour.'}
+            'what_now': f'{len(helpers)} more assistants fix the other cards of this batch at the same time, '
+                        'each its own files: fix only the cards in to_do (finding, fix_read, then fix_edit), then '
+                        'call fix_finish, which waits for them and gives you any card left for the end. Keep every '
+                        'feature, route and behaviour.'}
 
 
 def mine(wave, cards):
@@ -100,7 +103,8 @@ def held(wave, card, files):
     left for the end. Else none, and the lane of `card` holds them from now on."""
     lane, claims = lane_of(wave, card), wave.get('claims')
     if claims is None: return []
-    busy = {other for other, ids in enumerate(wave['lanes']) if other != lane and (other == 0 or untried(wave, ids))} - set(wave['released'])
+    busy = {other for other, ids in enumerate(wave['lanes'])
+            if other != lane and (other == 0 or untried(wave, ids))} - set(wave['released'])
     taken = sorted(path for path in files if claims.get(path) in busy)
     if taken: wave['later'] = list(dict.fromkeys(wave['later'] + [card]))
     else: claims.update(dict.fromkeys(files, lane))
@@ -112,18 +116,22 @@ def take(project, card, edits):
     the card waits for the end, another lane holding one of its files."""
     if not ((project_state.load(project) or {}).get('open_wave') or {}).get('lanes'): return None
     with changing(project) as state:
-        taken = held(state['open_wave'], card, [PurePosixPath(str(edit.get('path'))).as_posix() for edit in edits if isinstance(edit, dict)])
-    return {'card': card, 'kept': False, 'later': True, 'why': f"another assistant of this batch is changing {', '.join(taken)}",
-            'what_now': 'Nothing changed. Leave this card for now and go on with the next one: it is fixed at the end, once the '
-                        'other assistants are done (fix_finish gives it to the first assistant).'} if taken else None
+        taken = held(state['open_wave'], card,
+                     [PurePosixPath(str(edit.get('path'))).as_posix() for edit in edits if isinstance(edit, dict)])
+    return {'card': card, 'kept': False, 'later': True,
+            'why': f"another assistant of this batch is changing {', '.join(taken)}",
+            'what_now': 'Nothing changed. Leave this card for now and go on with the next one: it is fixed at '
+                        'the end, once the other assistants are done (fix_finish gives it to the first '
+                        'assistant).'} if taken else None
 
 
 def not_yours(state):
     """Why an assistant started for a lane may not hand the batch over or close it; None for the first
     one."""
     if helper((state or {}).get('open_wave') or {}) is None: return None
-    return {'status': 'not_yours', 'what_now': 'The first assistant of this batch hands it over. Once each of your cards is '
-                                               'kept, skipped or left for the end, tell the person what you fixed and end your turn.'}
+    return {'status': 'not_yours',
+            'what_now': 'The first assistant of this batch hands it over. Once each of your cards is kept, skipped '
+                        'or left for the end, tell the person what you fixed and end your turn.'}
 
 
 def next_step(wave, left):
@@ -144,7 +152,8 @@ def release(wave, lane):
 def waiting(wave):
     """The cards the other lanes still have to try: the batch is handed over once there are none."""
     released = set(wave.get('released') or [])
-    return [card for lane, ids in enumerate(wave.get('lanes') or []) if lane and lane not in released for card in untried(wave, ids)]
+    return [card for lane, ids in enumerate(wave.get('lanes') or []) if lane and lane not in released
+            for card in untried(wave, ids)]
 
 
 def untried(wave, cards):
@@ -161,9 +170,11 @@ def finish_wait(project):
     while left and time.monotonic() < until:
         time.sleep(2)
         left = waiting((project_state.load(project) or {}).get('open_wave') or {})
-    if not left: return {'status': 'others_done', 'what_now': 'The other assistants of this batch are done: call fix_finish again now.'}
+    if not left: return {'status': 'others_done',
+                         'what_now': 'The other assistants of this batch are done: call fix_finish again now.'}
     return {'status': 'others_fixing', 'cards': left,
-            'what_now': 'The other assistants of this batch are still fixing these cards: call fix_finish again, it waits for them.'}
+            'what_now': 'The other assistants of this batch are still fixing these cards: call fix_finish again, '
+                        'it waits for them.'}
 
 
 @contextmanager

@@ -27,7 +27,8 @@ from .move_python import Moves, Unmovable
 
 PYTHON = ('.py',)
 SCRIPT = tuple(move_js.JS_SUFFIXES)
-OWN_PLACE = {'.py': re.compile(r'\b__file__\b'), 'js': re.compile(r'\b__dirname\b|\b__filename\b|import\.meta\.(?:url|dirname|filename)')}
+OWN_PLACE = {'.py': re.compile(r'\b__file__\b'),
+             'js': re.compile(r'\b__dirname\b|\b__filename\b|import\.meta\.(?:url|dirname|filename)')}
 MENTION = re.compile(r'(?<![\w.@/-])((?:\.{1,2}/)*[\w@][\w.@-]*(?:/[\w.@-]+)+/?)')
 NOT_TEXT = ('package-lock.json', 'yarn.lock', 'pnpm-lock.yaml', 'bun.lockb', 'poetry.lock', 'uv.lock', 'Cargo.lock')
 BIGGEST = 2 * 1024 * 1024
@@ -37,7 +38,8 @@ def files(root):
     """Every file of the project, relative and in posix form: git's own list in a repository (what a push publishes
     and what the code can name), else every file outside the folders tools fill (node_modules, .venv...)."""
     if (Path(root) / '.git').exists():          # its own repository, not a folder inside another one
-        done = subprocess.run(['git', '-C', str(root), 'ls-files', '-co', '--exclude-standard'], capture_output=True, text=True)
+        done = subprocess.run(['git', '-C', str(root), 'ls-files', '-co', '--exclude-standard'],
+                              capture_output=True, text=True)
         if done.returncode == 0: return sorted(set(done.stdout.splitlines()))
     from ...core.project.workspace import SKIP_DIRS
     found = []
@@ -136,7 +138,8 @@ def _roots(known):
 
 def _spans(path, text, moves, aliased, folders):
     suffix = PurePosixPath(path).suffix
-    found = move_python.spans(path, text, moves) if suffix in PYTHON else move_js.spans(path, text, moves, aliased) if suffix in SCRIPT else []
+    found = (move_python.spans(path, text, moves) if suffix in PYTHON
+             else move_js.spans(path, text, moves, aliased) if suffix in SCRIPT else [])
     return found + _mentions(path, text, moves, folders)
 
 
@@ -203,10 +206,12 @@ def apply(root, moves):
     texts = edits(root, drawn, known)
     git = (root / '.git').exists()
     for old, new in sorted(drawn['mapping'].items()): _move(root, old, new, git)
-    for old, text in texts.items(): (root / drawn['mapping'].get(old, old)).write_text(text, encoding='utf-8', newline='')
+    for old, text in texts.items():
+        (root / drawn['mapping'].get(old, old)).write_text(text, encoding='utf-8', newline='')
     created = _new_packages(root, drawn['mapping'], set(known))
     _prune(root, drawn['mapping'])
-    return {'moved': len(drawn['mapping']), 'rewritten': sorted(drawn['mapping'].get(p, p) for p in texts), 'created': created}
+    return {'moved': len(drawn['mapping']), 'rewritten': sorted(drawn['mapping'].get(p, p) for p in texts),
+            'created': created}
 
 
 def _move(root, old, new, git):

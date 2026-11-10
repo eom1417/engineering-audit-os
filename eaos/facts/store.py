@@ -45,7 +45,8 @@ def write_set(out, name, extractor, version, limitations, result):  # limits: pa
 def _shared(facts):
     """The SHARED fields every fact holds with the first fact's value."""
     first = facts[0] if facts else {}
-    return {key: first[key] for key in SHARED if key in first and all(fact.get(key, ...) == first[key] for fact in facts)}
+    return {key: first[key] for key in SHARED
+            if key in first and all(fact.get(key, ...) == first[key] for fact in facts)}
 
 
 def read_set(out, name):
@@ -80,7 +81,8 @@ class Sets(Mapping):
 
 def _holding(out, kinds):
     """The sets that can hold a fact of `kinds`: those the index lists with one, and any it does not describe."""
-    index = {row['set']: row.get('kinds') for row in (read_json(Path(out) / 'facts/index.json') or {}).get('sets') or []}
+    index = {row['set']: row.get('kinds')
+             for row in (read_json(Path(out) / 'facts/index.json') or {}).get('sets') or []}
     return [name for name in Sets(out) if index.get(name) is None or set(index[name]) & set(kinds)]
 
 

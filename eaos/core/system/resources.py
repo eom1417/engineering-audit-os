@@ -57,4 +57,5 @@ def cpu_pressure():
 def room(megabytes):
     """Whether this computer can take `megabytes` more now, keeping RESERVE_MB free, its processors not saturated."""
     available, pressure = capacity()[2], cpu_pressure()
-    return (available is None or available // 2 ** 20 >= megabytes + RESERVE_MB) and (pressure is None or pressure < BUSY)
+    return (available is None or available // 2 ** 20 >= megabytes + RESERVE_MB) and (
+        pressure is None or pressure < BUSY)

@@ -28,13 +28,15 @@ _MIN_SIZE = 8
 _CLUSTER_MIN_MEMBERS = 2
 
 
-_UNSHAPED = frozenset({'ctx', 'type_comment', 'type_ignore', 'end_lineno', 'end_col_offset', 'lineno', 'col_offset', 'parent'})
+_UNSHAPED = frozenset({'ctx', 'type_comment', 'type_ignore', 'end_lineno', 'end_col_offset', 'lineno', 'col_offset',
+                       'parent'})
 
 
 def _field_shape(value, depth):
     """One field of a node: a subtree, a list of subtrees and plain values, or the type of a plain value."""
     if isinstance(value, ast.AST): return _python_shape(value, depth)
-    if isinstance(value, list): return [_python_shape(item, depth) if isinstance(item, ast.AST) else item for item in value]
+    if isinstance(value, list): return [_python_shape(item, depth) if isinstance(item,
+                                                                                 ast.AST) else item for item in value]
     return type(value).__name__
 
 
@@ -42,7 +44,8 @@ def _fields(node):
     """A node's fields as Python 3.12 has them, so one code has one shape on every Python: `type_params` exists
     from 3.12."""
     yield from ast.iter_fields(node)
-    if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)) and 'type_params' not in node._fields: yield 'type_params', []
+    if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef,
+                         ast.ClassDef)) and 'type_params' not in node._fields: yield 'type_params', []
 
 
 def _python_shape(node, depth=0):
@@ -117,7 +120,8 @@ _TS_FUNCTIONS = {'function_declaration', 'function_definition', 'function_item',
                  'method_declaration', 'method_definition', 'function', 'function_expression',
                  'arrow_function', 'generator_function_declaration', 'singleton_method',
                  'function_signature', 'method_signature', 'local_function_statement'}
-_TS_CONTAINERS = {'class_declaration', 'class_definition', 'impl_item', 'class_specifier', 'struct_item', 'object_definition'}
+_TS_CONTAINERS = {'class_declaration', 'class_definition', 'impl_item', 'class_specifier', 'struct_item',
+                  'object_definition'}
 
 
 def _function_types(language):
@@ -229,5 +233,7 @@ def run(target, source, symbols=None, **options):
                'interpretation': 'A cluster contains symbols whose AST shape is identical up to identifier names. '
                                  'Membership is structural; the cluster itself is a hypothesis, not a defect.'}
     return {'facts': fingerprints_for_facts + cluster_facts, 'summary': summary,
-            'available': True, 'input_sha': digest(''.join(sorted([m['shape_sha'] for m in fingerprints])).encode()) if fingerprints else digest(b''),
+            'available': True,
+            'input_sha': digest(''.join(sorted([m['shape_sha'] for m in fingerprints])).encode())
+                         if fingerprints else digest(b''),
             'reason': None}

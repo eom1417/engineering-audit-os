@@ -20,16 +20,20 @@ def _looks(page, row):
 
 
 def _permitted(allowed, prop, old, new):
-    return any(rule.get('from') == old and rule.get('to') == new and rule.get('property') in (None, prop) for rule in allowed or ())
+    return any(rule.get('from') == old and rule.get('to') == new and rule.get('property') in (None, prop)
+               for rule in allowed or ())
 
 
 def _differences(key, before, after, allowed):
     found = []
     for state in sorted(set(before) | set(after)):
         old, new = before.get(state), after.get(state)
-        if old is None or new is None: found.append({'key': key, 'state': state, 'property': None, 'from': bool(old), 'to': bool(new)})
-        else: found += [{'key': key, 'state': state, 'property': prop, 'from': old.get(prop), 'to': new.get(prop)} for prop in sorted(set(old) | set(new))
-                        if old.get(prop) != new.get(prop) and not _permitted(allowed, prop, old.get(prop), new.get(prop))]
+        if old is None or new is None:
+            found.append({'key': key, 'state': state, 'property': None, 'from': bool(old), 'to': bool(new)})
+        else: found += [{'key': key, 'state': state, 'property': prop, 'from': old.get(prop), 'to': new.get(prop)}
+                        for prop in sorted(set(old) | set(new))
+                        if old.get(prop) != new.get(prop)
+                        and not _permitted(allowed, prop, old.get(prop), new.get(prop))]
     return found
 
 
@@ -39,7 +43,8 @@ def compare(before, after, allowed=None):
     found = []
     for key in sorted(set(before['els']) | set(after['els'])):
         old, new = before['els'].get(key), after['els'].get(key)
-        if old is None or new is None: found.append({'key': key, 'state': None, 'property': None, 'from': old is not None, 'to': new is not None})
+        if old is None or new is None:
+            found.append({'key': key, 'state': None, 'property': None, 'from': old is not None, 'to': new is not None})
         else: found += _differences(key, _looks(before, old), _looks(after, new), allowed)
     return found
 
@@ -62,7 +67,8 @@ def _noisy(original, control):
 
 
 def _beyond(original, now, name, allowed, noisy):
-    return [_said(name[:-5], row) for row in compare(_read(original / name), _read(now / name), allowed) if (name[:-5], row['key']) not in noisy]
+    return [_said(name[:-5], row) for row in compare(_read(original / name), _read(now / name), allowed)
+            if (name[:-5], row['key']) not in noisy]
 
 
 def judged(original, now, allowed=None, control=None):
@@ -92,7 +98,8 @@ def look_changed(runtime, name, look, control=None):
     look. The reading is kept when it fails with no control read yet: a control pass may clear it; `control`: that
     pass, then removed too."""
     saved = Path(runtime) / 'behavior-lock' / 'look'
-    said = judged(saved / 'original', saved / name, look, saved / control if control else None) if look is not None else ''
+    said = (judged(saved / 'original', saved / name, look, saved / control if control else None)
+            if look is not None else '')
     if not said or control:
         shutil.rmtree(saved / name, ignore_errors=True)
         if control: shutil.rmtree(saved / control, ignore_errors=True)

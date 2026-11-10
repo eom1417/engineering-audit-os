@@ -25,7 +25,8 @@ def git(project, *args):
 class SandboxTests(Workspace):
     def setUp(self):
         super().setUp()
-        home = mock.patch.dict(os.environ, {'EAOS_HOME': str(Path(self.tmp) / 'eaos-home')})   # this machine's projects aside
+        # this machine's projects aside
+        home = mock.patch.dict(os.environ, {'EAOS_HOME': str(Path(self.tmp) / 'eaos-home')})
         home.start()
         self.addCleanup(home.stop)
         self.project = Path(self.tmp) / 'project'
@@ -37,7 +38,8 @@ class SandboxTests(Workspace):
         self.write_grant()
 
     def commit(self, message):
-        git(self.project, '-c', 'user.name=t', '-c', 'user.email=t@t', 'commit', '-qam' if message != 'app' else '-qm', message)
+        git(self.project, '-c', 'user.name=t', '-c', 'user.email=t@t', 'commit',
+            '-qam' if message != 'app' else '-qm', message)
         return git(self.project, 'rev-parse', 'HEAD')
 
     def write_grant(self, **change):
@@ -64,7 +66,8 @@ class SandboxTests(Workspace):
         self.assertEqual(sandbox.refusal(self.grant, 'S08', head, self.project), '')
         self.assertIn('granted for commit', sandbox.refusal(self.grant, 'S05', head, self.project))
         self.write_grant(stages=['S08'], commit='0' * 40)
-        self.assertIn('granted for commit', sandbox.refusal(self.grant, 'S08', head, self.project), 'an unrelated commit')
+        self.assertIn('granted for commit', sandbox.refusal(self.grant, 'S08', head, self.project),
+                      'an unrelated commit')
 
     def test_a_submodule_is_in_the_copy_at_its_pinned_commit_and_one_not_here_is_named(self):
         # a submodule is copied with its files at its pinned commit, not as an empty folder whose setup fetches the
@@ -72,7 +75,8 @@ class SandboxTests(Workspace):
         library = Path(self.tmp) / 'library'
         library.mkdir()
         (library / 'api.txt').write_text('pinned\n')
-        git(library, 'init', '-q'); git(library, 'add', '.'); git(library, '-c', 'user.name=t', '-c', 'user.email=t@t', 'commit', '-qm', 'one')
+        git(library, 'init', '-q'); git(library, 'add', '.')
+        git(library, '-c', 'user.name=t', '-c', 'user.email=t@t', 'commit', '-qm', 'one')
         pinned = git(library, 'rev-parse', 'HEAD')
         for name in ('lib', 'away'):
             git(self.project, '-c', 'protocol.file.allow=always', 'submodule', 'add', '-q', str(library), name)
@@ -82,7 +86,8 @@ class SandboxTests(Workspace):
         git(self.project, 'submodule', 'deinit', '-q', '-f', 'away')
         copy = sandbox.committed_copy(self.project, head, Path(self.tmp) / 'copy')
         self.assertEqual((copy / 'lib/api.txt').read_text(), 'pinned\n')
-        self.assertEqual([(row['path'], row['commit']) for row in sandbox.unfilled(self.project, head)], [('away', pinned)])
+        self.assertEqual([(row['path'], row['commit']) for row in sandbox.unfilled(self.project, head)],
+                         [('away', pinned)])
 
     def test_the_copy_is_the_authorised_commit_without_env_files_or_unallowed_secrets_and_the_project_stays_as_it_was(self):
         (self.project / '.gitignore').write_text('.env\n')
@@ -98,8 +103,10 @@ class SandboxTests(Workspace):
         self.assertFalse((copy / '.env').exists(), 'the real .env never reaches the copy')
         self.assertFalse((copy / 'config/.env.production').exists(), 'a committed .env is removed too')
         self.assertTrue((copy / '.env.example').is_file())
-        self.assertEqual((copy / 'app.py').read_text(), 'print("app")\n', 'the copy is the commit, not the working folder')
-        code, out, _ = box.run([sys.executable, '-c', 'import os; open("written.txt", "w").write("x"); print(os.getcwd())'], cwd='.')
+        self.assertEqual((copy / 'app.py').read_text(), 'print("app")\n',
+                         'the copy is the commit, not the working folder')
+        code, out, _ = box.run([sys.executable, '-c',
+                                'import os; open("written.txt", "w").write("x"); print(os.getcwd())'], cwd='.')
         self.assertEqual(code, 0)
         self.assertEqual(Path(out.strip()).resolve(), copy.resolve())
         self.assertTrue((copy / 'written.txt').is_file())
@@ -114,8 +121,10 @@ class SandboxTests(Workspace):
         # install never goes into EAOS's own environment
         box = self.box()
         env = box.environment({'PATH': os.environ['PATH']}, ['python3', '-m', 'pip', 'install', '-e', '.'])
-        self.assertEqual((env['PATH'].split(os.pathsep)[0], env['VIRTUAL_ENV']), (str(box.folder / 'python/bin'), str(box.folder / 'python')))
-        self.assertEqual(box.run(['python3', '-c', 'import sys; print(sys.prefix)'])[1].strip(), str(box.folder / 'python'))
+        self.assertEqual((env['PATH'].split(os.pathsep)[0], env['VIRTUAL_ENV']),
+                         (str(box.folder / 'python/bin'), str(box.folder / 'python')))
+        self.assertEqual(box.run(['python3', '-c', 'import sys; print(sys.prefix)'])[1].strip(),
+                         str(box.folder / 'python'))
 
     def test_network_is_cut_where_the_kernel_allows_it_and_the_record_says_when_it_is_not(self):
         box = self.box()
@@ -123,7 +132,8 @@ class SandboxTests(Workspace):
             listener = socket.socket(); listener.bind(('127.0.0.1', 0)); listener.listen(1)
             port = listener.getsockname()[1]
             try:
-                code, _, _ = box.run([sys.executable, '-c', f'import socket; socket.create_connection(("127.0.0.1", {port}), 2)'])
+                code, _, _ = box.run([sys.executable, '-c',
+                                      f'import socket; socket.create_connection(("127.0.0.1", {port}), 2)'])
             finally:
                 listener.close()
             self.assertNotEqual(code, 0)
@@ -138,11 +148,14 @@ class SandboxTests(Workspace):
 
     def test_a_service_that_stops_says_why_and_the_record_keeps_its_exit(self):
         with self.assertRaisesRegex(RuntimeError, 'APP_URL must be an https'):
-            self.box().start([sys.executable, '-c', 'import sys; print("APP_URL must be an https address"); sys.exit(1)'], 'http://127.0.0.1:9/')
+            self.box().start([sys.executable, '-c',
+                              'import sys; print("APP_URL must be an https address"); sys.exit(1)'],
+                             'http://127.0.0.1:9/')
         with self.assertRaisesRegex(RuntimeError, 'exited with 3 before answering'):
             self.box().start([sys.executable, '-c', 'raise SystemExit(3)'], 'http://127.0.0.1:9/health', timeout=10)
         record = self.record()
-        self.assertTrue(any(line.startswith('network not isolated for the started service') for line in record['limitations']))
+        self.assertTrue(any(line.startswith('network not isolated for the started service')
+                            for line in record['limitations']))
         self.assertEqual(record['commands'][-1]['exit'], 3)
 
     def test_a_first_page_that_fails_with_its_own_error_is_a_started_app_and_a_gateways_503_is_not(self):
@@ -185,7 +198,8 @@ class SandboxTests(Workspace):
         self.commit('a php app')
         self.write_grant()
         draft = setup.detect(self.project)['profile']
-        self.assertEqual((draft['start'][:2], draft['start'][-1], draft['checks']), (['php', '-S'], 'public', [['php', 'vendor/bin/phpunit']]))
+        self.assertEqual((draft['start'][:2], draft['start'][-1], draft['checks']),
+                         (['php', '-S'], 'public', [['php', 'vendor/bin/phpunit']]))
         self.assertEqual(profile.safe(draft), [])
         need(self, '' if shutil.which('php') else 'php is not installed')
         (Path(self.tmp) / 'run.json').write_text(json.dumps({**draft, 'install': [['true']]}))
@@ -195,7 +209,8 @@ class SandboxTests(Workspace):
             with urllib.request.urlopen(base + '/', timeout=10) as page: said = page.read().decode()
         finally: live.stop()
         self.assertEqual(said, 'hello from cli-server')
-        self.assertEqual(draft['env'], {'PHP_CLI_SERVER_WORKERS': detect_php.WORKERS}, 'more than one request at a time')
+        self.assertEqual(draft['env'], {'PHP_CLI_SERVER_WORKERS': detect_php.WORKERS},
+                         'more than one request at a time')
         self.assertIsNone(detect_php.detect(Path(self.tmp) / 'nowhere'))
 
     def test_a_port_another_program_holds_is_given_up_and_only_the_runs_own_service_counts_as_answering(self):
@@ -208,7 +223,8 @@ class SandboxTests(Workspace):
         self.addCleanup(other.shutdown)
         taken = other.server_address[1]                         # another project's app, answering 200
         with self.assertRaisesRegex(RuntimeError, 'no 200'):
-            self.box().start([sys.executable, '-c', 'import time; time.sleep(30)'], f'http://127.0.0.1:{taken}/', timeout=3)
+            self.box().start([sys.executable, '-c', 'import time; time.sleep(30)'],
+                             f'http://127.0.0.1:{taken}/', timeout=3)
         (Path(self.tmp) / 'run.json').write_text(json.dumps({'schema_version': 1, 'install': [], 'port': taken, 'health': '/',
                                                              'start': [sys.executable, '-m', 'http.server', str(taken), '--bind', '127.0.0.1'],
                                                              'env': {'APP_URL': f'http://127.0.0.1:{taken}'}}))
@@ -221,7 +237,8 @@ class SandboxTests(Workspace):
     def test_a_timeout_kills_the_whole_process_group_and_dispose_keeps_only_the_record(self):
         box = self.box()
         marker = box.tmp / 'child.pid'
-        script = (f'import subprocess, sys, time; p = subprocess.Popen([sys.executable, "-c", "import time; time.sleep(60)"]); '
+        script = (f'import subprocess, sys, time; '
+                  f'p = subprocess.Popen([sys.executable, "-c", "import time; time.sleep(60)"]); '
                   f'open({str(marker)!r}, "w").write(str(p.pid)); time.sleep(60)')
         code, _, err = box.run([sys.executable, '-c', script], timeout=3)
         self.assertNotEqual(code, 0)
@@ -299,14 +316,16 @@ class TwoProjectsTests(Workspace):
         outputs = workspace.parent.parent.parent / 'EAOS' / name
         outputs.mkdir()
         (outputs / 'REPORT.html').write_text(name)
-        (workspace / 'state.json').write_text(json.dumps({'project': str(source), 'workspace': str(workspace), 'outputs': str(outputs)}))
+        (workspace / 'state.json').write_text(json.dumps({'project': str(source), 'workspace': str(workspace),
+                                                          'outputs': str(outputs)}))
         studio = workspace.parent.parent / 'studio' / workspace.name
         studio.with_suffix('.json').write_text(json.dumps({'token': f'{name}-token'}))
         studio.with_suffix('.token').write_text(f'{name}-token')
         return {'source': source, 'workspace': workspace, 'runtime': runtime, 'outputs': outputs, 'studio': studio}
 
     def box(self, project):
-        return sandbox.Sandbox(project['source'], project['runtime'] / 'authorization.json', project['runtime'] / 'sandbox', 'S05')
+        return sandbox.Sandbox(project['source'], project['runtime'] / 'authorization.json',
+                               project['runtime'] / 'sandbox', 'S05')
 
     def test_a_new_projects_run_reads_its_own_report_whose_folder_was_never_saved(self):
         # a new project's state keeps `outputs`, or its report is hidden and k6 does not find its load script
@@ -348,7 +367,8 @@ class TwoProjectsTests(Workspace):
         if binaries() is None: return
         database = LocalPostgres(b['runtime'])
         url = database.create('app')
-        self.addCleanup(lambda: (database.stop(), shutil.rmtree(database.data, True), shutil.rmtree(database.sockets, True)))
+        self.addCleanup(lambda: (database.stop(), shutil.rmtree(database.data, True),
+                                 shutil.rmtree(database.sockets, True)))
         psql = [str(binaries() / 'psql'), '-h', '127.0.0.1', '-p', url.rsplit(':', 1)[1].split('/')[0], '-U', 'postgres', '-w', '-tAc', 'select 1', 'app']
         code, _, err = box.run(psql, network=True)
         self.assertNotEqual(code, 0, "A connected to B's database without its password")

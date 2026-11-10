@@ -58,7 +58,8 @@ class AuditCommandTests(unittest.TestCase):
 
     def test_the_check_reads_the_project_and_never_writes_it(self):
         before = {p.name: p.read_bytes() for p in self.target.iterdir()}
-        code, printed = self.call('audit', str(self.target), '--out', str(self.out), '--skip', 'engines', '--lang', 'en')
+        code, printed = self.call('audit', str(self.target), '--out', str(self.out), '--skip', 'engines', '--lang',
+                                  'en')
         self.assertIn(code, (0, 2))
         summary = json.loads(printed)
         self.assertEqual(summary['stages']['claims'], 'ok')
@@ -71,7 +72,8 @@ class AuditCommandTests(unittest.TestCase):
         self.call('audit', str(self.target), '--out', str(self.out), '--skip', 'engines', '--lang', 'en')
         first = json.loads((self.out / 'run-manifest.json').read_text())
         again = resume(str(self.target), str(self.out), skip=('engines',), language='en')
-        self.assertEqual({n: r['status'] for n, r in again['stages'].items()}, {n: r['status'] for n, r in first['stages'].items()})
+        self.assertEqual({n: r['status'] for n, r in again['stages'].items()},
+                         {n: r['status'] for n, r in first['stages'].items()})
         (self.target / 'app.py').write_text('changed\n')
         with self.assertRaises(ValueError):
             resume(str(self.target), str(self.out))

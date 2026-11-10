@@ -148,7 +148,8 @@ def server(argv, env, folder, copy, python=False):
     options = ' '.join(filter(None, [env.get('NODE_OPTIONS', ''), f'--require={PRELOAD}']))
     env = {**env, 'NODE_V8_COVERAGE': str(folder / 'v8'), 'NODE_OPTIONS': options}
     if python:
-        (Path(copy) / RC).write_text(f'[run]\ndata_file = {folder / ".coverage"}\nparallel = true\nsigterm = true\n', encoding='utf-8')
+        (Path(copy) / RC).write_text(
+            f'[run]\ndata_file = {folder / ".coverage"}\nparallel = true\nsigterm = true\n', encoding='utf-8')
         # the interpreter's own options (-u, -X dev) stay the interpreter's, before `-m coverage`: Coverage.py takes
         # none
         flags = list(takewhile(lambda part: str(part).startswith('-') and str(part) != '-m', argv[1:]))
@@ -159,6 +160,7 @@ def server(argv, env, folder, copy, python=False):
 def server_record(out, folder, copy):
     """The server's record from what its run left in `folder`, then the raw data removed."""
     files = merged(v8(Path(folder) / 'v8', copy), python_data(sorted(Path(folder).glob('.coverage*')), copy))
-    record(out, 'server', files, '' if files else 'the server wrote no coverage EAOS can read (neither Node nor a Python '
-                                                 'with Coverage.py ran the project\'s own code)')
+    record(out, 'server', files,
+           '' if files else 'the server wrote no coverage EAOS can read (neither Node nor a Python '
+           'with Coverage.py ran the project\'s own code)')
     shutil.rmtree(folder, ignore_errors=True)

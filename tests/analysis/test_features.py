@@ -63,10 +63,12 @@ class BuildTests(unittest.TestCase):
                  entry_point('/_authenticated/transfers', path='src/x.tsx'),
                  data_access('transfers', operation='insert', path='src/x.tsx'),
                  entry_point('/rare/route', surface='http', framework='express', fact_id='F3'),
-                 entry_point(None, surface='cli', framework='python_script', handler=None, path='manage.py', fact_id='F-CLI-1')]
+                 entry_point(None, surface='cli', framework='python_script', handler=None, path='manage.py',
+                             fact_id='F-CLI-1')]
         result = build(facts)
         found = {f['name']: f for f in result['features']}
-        self.assertEqual(set(found['cartoes']['surfaces']), {'/_authenticated/cartoes', '/_authenticated/cartoes/$invoiceId'})
+        self.assertEqual(set(found['cartoes']['surfaces']), {'/_authenticated/cartoes',
+                                                             '/_authenticated/cartoes/$invoiceId'})
         self.assertIn('movements', found['movements']['tables'])
         self.assertTrue(any(eid.startswith('FACT-DA-') for eid in found['movements']['evidence']))
         self.assertTrue(found['transfers']['critical'], 'a write marks the feature critical')
@@ -79,15 +81,19 @@ class BuildTests(unittest.TestCase):
     def test_a_cli_groups_by_subcommand_and_its_scripts_tools_and_web_root_are_not_features(self):
         # One feature per module with `__main__` would give 53 features for tools/ scripts, and the whole Studio front
         # end would be `home` in a command-line program.
-        cli = lambda route, path, framework='argparse': entry_point(route, surface='cli', framework=framework, path=path,
+        cli = lambda route, path, framework='argparse': entry_point(route, surface='cli', framework=framework,
+                                                                    path=path,
                                                                      fact_id=f'C-{route}-{path}')
-        facts = [cli('eaos', 'eaos/interfaces/cli.py'), cli('check', 'eaos/interfaces/cli.py'), cli('fix', 'eaos/interfaces/cli.py'),
-                 cli('eaos', 'pyproject.toml', 'console_script'), cli('plan', 'eaos/analysis/planning/cards.py', 'python_script'),
+        facts = [cli('eaos', 'eaos/interfaces/cli.py'), cli('check', 'eaos/interfaces/cli.py'), cli('fix',
+            'eaos/interfaces/cli.py'),
+                 cli('eaos', 'pyproject.toml', 'console_script'), cli('plan', 'eaos/analysis/planning/cards.py',
+                                                                      'python_script'),
                  cli('sbom', 'tools/sbom.py', 'python_script'), cli('shot', 'scripts/shot.py', 'python_script'),
                  entry_point('/', path='studio/src/App.tsx', fact_id='P1')]
         result = build(facts)
         self.assertEqual({f['name'] for f in result['features']}, {'cli:eaos', 'cli:check', 'cli:fix', 'studio'})
-        self.assertEqual(set(result['unassigned_surfaces']), {'eaos/analysis/planning/cards.py', 'tools/sbom.py', 'scripts/shot.py'})
+        self.assertEqual(set(result['unassigned_surfaces']), {'eaos/analysis/planning/cards.py', 'tools/sbom.py',
+                                                              'scripts/shot.py'})
         # A web app's `/` is its home; a program made only of scripts keeps them.
         self.assertEqual({f['name'] for f in build([entry_point('/', path='src/routes/index.tsx'),
                                                      cli(None, 'manage.py', 'python_script')])['features']},
@@ -100,9 +106,11 @@ class FeatureDataTests(unittest.TestCase):
     def facts(self):
         edge = lambda i, path, to, names: [
             {'kind': 'import_edge', 'id': f'I{i}', 'location': {'path': path}, 'value': {'module': to, 'names': names}},
-            {'kind': 'module_edge', 'id': f'M{i}', 'location': {'path': path}, 'value': {'to_path': to, 'import_fact_id': f'I{i}'}}]
+            {'kind': 'module_edge', 'id': f'M{i}', 'location': {'path': path}, 'value': {'to_path': to,
+                'import_fact_id': f'I{i}'}}]
         page = lambda i, route, handler: {'kind': 'entry_point', 'id': f'E{i}', 'location': {'path': 'src/App.tsx'},
-                                          'value': {'surface': 'page', 'route': route, 'handler': handler, 'framework': 'react_router'}}
+                                          'value': {'surface': 'page', 'route': route, 'handler': handler,
+                                                    'framework': 'react_router'}}
         access = lambda i, path, client, target, op: {'kind': 'data_access', 'id': f'D{i}', 'location': {'path': path},
                                                       'value': {'client': client, 'target': target, 'operation': op}}
         return ([page(1, '/drivers', 'DriversPage'), page(2, '/tolls', 'TollsPage'), page(3, '/login', 'Login'),

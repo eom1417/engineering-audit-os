@@ -10,8 +10,10 @@ from .project import _head, _read, _start, state_of
 
 # ---------------------------------------------------------------- running the app
 
-CONSENT = ('May I run your app in a separate copy on this computer, with a temporary database and none of your secrets, '
-           'and prepare fixes there that reach your project only as a new branch (your current branch and files stay as they are)?')
+CONSENT = ('May I run your app in a separate copy on this computer, with a temporary database and none of your '
+           'secrets, '
+           'and prepare fixes there that reach your project only as a new branch (your current branch and files stay '
+           'as they are)?')
 
 
 def _consented(state):
@@ -22,7 +24,8 @@ def run_setup(project=None, person_agreed=False):
     state = state_of(project)
     if not person_agreed and not _consented(state):
         return {'status': 'needs_agreement', 'ask_the_person': CONSENT,
-                'what_now': 'Ask the person this, in their language. Only if they say yes, call run_setup again with person_agreed=true.'}
+                'what_now': 'Ask the person this, in their language. Only if they say yes, call run_setup again with '
+                            'person_agreed=true.'}
     head = _head(state)
     if not head: raise RuntimeError(f"{state['project']}: fatal: not a git repository")
     check_choices.agree_to_run(state, 'assistant')
@@ -31,9 +34,13 @@ def run_setup(project=None, person_agreed=False):
     source = guided.source(state)
     live_setup.authorize(source, runtime, live_setup.owner(state['project']))
     detected = live_setup.detect(source, guided.report_of(state))
-    detected.setdefault('facts', {})['submodules_not_in_copy'] = [{**row, 'fill': f"at its pinned commit {row['commit']}, never the latest"} for row in unfilled(source, head)]
+    detected.setdefault('facts', {})['submodules_not_in_copy'] = [{**row,
+                                                                   'fill': f"at its pinned commit {row['commit']}, "
+                                                                       f"never the latest"} for row in unfilled(source,
+                                                                           head)]
     (runtime / 'setup').mkdir(parents=True, exist_ok=True)
-    (runtime / 'setup/detected.json').write_text(json.dumps(detected, ensure_ascii=False, indent=1) + '\n', encoding='utf-8')
+    (runtime / 'setup/detected.json').write_text(json.dumps(detected, ensure_ascii=False, indent=1) + '\n',
+                                                 encoding='utf-8')
     # its secrets kept: a session holds
     run_profile.write_profile(runtime, live_setup.kept(runtime, detected['profile']))
     return _start('run_try', state, {'proposal': None, 'mode': 'lock'})
@@ -44,28 +51,35 @@ def run_try(proposal=None, mode='lock', project=None):
     state = state_of(project)
     runtime = project_state.runtime_of(state)
     if not (runtime / 'run.json').is_file(): return {'status': 'not_set_up', 'what_now': 'Call run_setup first.'}
-    if mode not in ('lock', 'baseline'): raise ValueError("mode is 'lock' (the app as developers run it) or 'baseline' (the production build)")
+    if mode not in ('lock',
+                    'baseline'): raise ValueError("mode is 'lock' (the app as developers run it) or 'baseline' (the "
+                                                  "production build)")
     refused = run_profile.safe(proposal or {})
     if refused:
         return {'status': 'refused', 'reasons': refused,
-                'rules': 'Every address is 127.0.0.1 or localhost; commands start with one of: ' + run_profile.SAID + '; '
-                         'nothing deploys or reaches a hosted service; no real secret. Use {database_url} and {run_dir}.'}
+                'rules': 'Every address is 127.0.0.1 or localhost; commands start with one of: ' + run_profile.SAID
+                + '; '
+                         'nothing deploys or reaches a hosted service; no real secret. Use {database_url} and '
+                         '{run_dir}.'}
     return _start('run_try', state, {'proposal': proposal, 'mode': mode})
 
 
 def _limitations(profile, record, runtime, missing):
     """The profile's limitations, the ones a run decides again replaced by what this run found."""
     unset = _unset(profile, runtime)
-    limitations = [l for l in profile.get('limitations') or [] if not l.startswith(('run without a value', 'screens that need', 'the app could not'))]
+    limitations = [l for l in profile.get('limitations') or [] if not l.startswith(('run without a value',
+        'screens that need', 'the app could not'))]
     if unset and record['ok']: limitations.append('run without a value for: ' + ', '.join(unset[:12]))
     if missing: limitations.append('screens that need these values are not recorded: ' + ', '.join(missing))
-    if not record['ok']: limitations.append('the app could not be made to answer: ' + (record.get('failure') or '')[:300])
+    if not record['ok']: limitations.append('the app could not be made to answer: ' + (record.get('failure')
+        or '')[:300])
     return sorted(set(limitations))
 
 
 def _unset(profile, runtime):
     """The environment names the app reads that the profile gives no value (NODE_ENV aside)."""
-    return [n for n in (_read(runtime / 'setup/detected.json')['facts'].get('env_names') or []) if n not in profile['env'] and n != 'NODE_ENV']
+    return [n for n in (_read(runtime / 'setup/detected.json')['facts'].get('env_names') or [])
+            if n not in profile['env'] and n != 'NODE_ENV']
 
 
 def _lock_run(project, runtime, report, record, profile):
@@ -79,7 +93,8 @@ def _lock_run(project, runtime, report, record, profile):
     profile['limitations'] = _limitations(profile, record, runtime, missing)
     run_profile.write_profile(runtime, profile)
     state = project_state.load(project)
-    state['setup'] = {'commit': _head(state), 'ok': record['ok'], 'attempts': record['attempt'], 'limitations': profile['limitations'],
+    state['setup'] = {'commit': _head(state), 'ok': record['ok'], 'attempts': record['attempt'],
+                      'limitations': profile['limitations'],
                       **({'no_interface': True} if record.get('no_interface') else {})}
     state.pop('safety', None)
     guided.save(state)
@@ -105,7 +120,8 @@ def _first_page(page):
             'errors': (page.get('errors') or [])[:5]}
 
 
-NO_INTERFACE = ('The project has no interface to open: do not start a stand-in server. Call safety_net: the project\'s own '
+NO_INTERFACE = ('The project has no interface to open: do not start a stand-in server. Call safety_net: the project\'s '
+                'own '
                 'tests and build, run on the original, are what keeps a change safe.')
 
 
@@ -114,8 +130,10 @@ def _run_what_now(ok, mode):
     if ok: return 'The production build runs.'
     return ('Read the failure and the code, then call run_try with a proposal: {"env": {...complete environment...}, '
             '"start": [...], "install": [[...]], "prepare": [[...]], "database": "postgres"|"none", '
-            '"seed_script": "<node script that signs in and saves storage state>", "fixtures": {...}}; when nothing in the '
-            'project opens in a browser (a library, a command-line tool, a mobile app): {"no_interface": "<why>"}, never a '
+            '"seed_script": "<node script that signs in and saves storage state>", "fixtures": {...}}; when nothing in '
+            'the '
+            'project opens in a browser (a library, a command-line tool, a mobile app): {"no_interface": "<why>"}, '
+            'never a '
             'stand-in server'
             + (' (mode="baseline", with "build": [[...]] too)' if mode == 'baseline' else ''))
 
@@ -146,9 +164,11 @@ def _verified(source, runtime, attempt, report, way):
     mode, proposal = way
     try:
         if proposal and mode == 'lock': live_setup.declined(proposal)
-        return live_setup.verify(source, runtime, attempt, report if (report / 'plan.json').is_file() else None, mode=mode)
+        return live_setup.verify(source, runtime, attempt, report if (report / 'plan.json').is_file() else None,
+                                 mode=mode)
     except live_setup.NoInterface as none:
-        return {'ok': False, 'attempt': attempt, 'fixtures': {}, 'failure': f'no interface found: {none}', 'no_interface': True}
+        return {'ok': False, 'attempt': attempt, 'fixtures': {}, 'failure': f'no interface found: {none}',
+                'no_interface': True}
 
 
 def _run_answer(answer, record, profile, source, mode):
@@ -157,9 +177,11 @@ def _run_answer(answer, record, profile, source, mode):
     if not record['ok']:
         answer['failure'] = (record.get('failure') or '')[-3000:]
         folder = profile.get('app') or '.'
-        answer['code_that_raised_it'] = live_assist.relevant_source(source, folder, record.get('failure') or '', limit=2, context=30)[:8000]
+        answer['code_that_raised_it'] = live_assist.relevant_source(source, folder, record.get('failure') or '',
+                                                                    limit=2, context=30)[:8000]
     if record.get('seed_output'): answer['seed_output'] = record['seed_output'][-1500:]
-    answer['profile'] = {k: profile.get(k) for k in ('app', 'install', 'prepare', 'start', 'port', 'env', 'database', 'seed', 'checks', 'baseline', 'limitations')}
+    answer['profile'] = {k: profile.get(k) for k in ('app', 'install', 'prepare', 'start', 'port', 'env', 'database',
+                                                     'seed', 'checks', 'baseline', 'limitations')}
     answer['what_now'] = (NO_INTERFACE if record.get('no_interface') else _run_what_now(record['ok'], mode))
     return answer
 
@@ -172,7 +194,8 @@ def safety_net(project=None):
 
 def _safety_job(project, arguments, progress):
     state = project_state.load(project)
-    outcome = guided.safety_run(state, lambda n: progress(n - 1, 2, 'recording every screen' if n == 1 else 'measuring speed under load'))
+    outcome = guided.safety_run(state, lambda n: progress(n - 1, 2, 'recording every screen' if n == 1
+                                                          else 'measuring speed under load'))
     outcome['record'] = str(project_state.runtime_of(state) / 'behavior-lock/results.json')
     outcome['what_now'] = 'Call fix_start to open a batch of fixes.'
     return outcome

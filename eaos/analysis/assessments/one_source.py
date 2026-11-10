@@ -20,12 +20,15 @@ PRIMITIVES = re.compile(r'(^|/)(components/ui|ui/primitives|primitives)/')
 TEST = re.compile(r'(^|/)(tests?|__tests__|spec|e2e)(/|$)|[._-](test|spec)\.[a-z]+$')
 # What is written alike on purpose or by a tool, never a copy to give one home: generated migrations and types, a
 # framework's twin entry points, examples and documentation pages that show each variant whole.
-ASIDE = re.compile(r'(^|/)(migrations|alembic|docs?|examples?|demos?|stories|storybook|showcase)(/|$)|\.stories\.|\.generated\.|\.gen\.|'
+ASIDE = re.compile(r'(^|/)(migrations|alembic|docs?|examples?|demos?|stories|storybook|showcase)(/|$)'
+                   r'|\.stories\.|\.generated\.|\.gen\.|'
                    r'(^|/)(asgi|wsgi)\.py$|(^|/)integrations/supabase/types\.ts$|(^|/)database\.types\.ts$')
 NEARBY = 3            # two records of one idiom this close in one file are one place (one statement's lines)
 # The kind of home each idiom calls for, by the folders a project already names it with.
-HOMES = {'hook': ('hooks', 'composables', 'lib', 'utils'), 'helper': ('lib', 'utils', 'helpers', 'shared', 'common', 'core'),
-         'middleware': ('middleware', 'middlewares', 'lib', 'utils'), 'component': ('components/ui', 'components', 'ui')}
+HOMES = {'hook': ('hooks', 'composables', 'lib', 'utils'),
+         'helper': ('lib', 'utils', 'helpers', 'shared', 'common', 'core'),
+         'middleware': ('middleware', 'middlewares', 'lib', 'utils'),
+         'component': ('components/ui', 'components', 'ui')}
 IDIOM_HOME = {'request_state': 'hook', 'popup_close': 'component', 'drag_drop': 'hook', 'route_guard': 'middleware'}
 
 
@@ -62,7 +65,8 @@ def _pairs(sets):
     for fact in engine_records(sets, 'near_copy'):
         value = fact['value']
         if not _kept(fact): continue
-        yield {'first': {'path': fact['location']['path'], 'line': fact['location'].get('line'), 'end_line': value.get('end_line')},
+        yield {'first': {'path': fact['location']['path'], 'line': fact['location'].get('line'),
+                         'end_line': value.get('end_line')},
                'second': value.get('other') or {}, 'kind': value.get('kind'), 'similarity': value.get('similarity'),
                'lines': value.get('lines') or 0, 'digest': value.get('digest'), 'fact_id': fact['id']}
 
@@ -74,7 +78,8 @@ def _cluster(members, pairs):
     similar = [p['similarity'] for p in pairs if p['similarity']]
     return _finding('near_copy', path, start, 'medium' if len(members) >= 3 or end - start >= 15 else 'low',
                     copies=len(members), lines=end - start + 1, kinds=sorted({p['kind'] for p in pairs}),
-                    similarity=min(similar, default=1.0), places=[{'path': p, 'line': s, 'end_line': e} for p, s, e in members],
+                    similarity=min(similar, default=1.0),
+                    places=[{'path': p, 'line': s, 'end_line': e} for p, s, e in members],
                     home=f'{path}:{start}', fact_ids=[p['fact_id'] for p in pairs][:20],
                     digests=sorted({p['digest'] for p in pairs if p['digest']}))
 
@@ -89,7 +94,8 @@ def _kept(fact):
     aside."""
     value, path = fact['value'], fact['location']['path']
     other = value.get('other') or {}
-    alike = value.get('lines', 0) >= NEAR_COPY['min_lines'] and (value.get('similarity') or 1.0) >= NEAR_COPY['similarity']
+    alike = value.get('lines',
+                      0) >= NEAR_COPY['min_lines'] and (value.get('similarity') or 1.0) >= NEAR_COPY['similarity']
     two = path != other.get('path') or _apart(fact['location'].get('line', 0), value.get('end_line'), other)
     return alike and two and not any(ASIDE.search(where) for where in (path, other.get('path') or ''))
 
@@ -148,9 +154,11 @@ def idioms(sets, folders):
     for (form, _), records in sorted(by_form.items()):
         places = _places(records)
         if len(places) < PATTERN_REPEATS or _the_home(places): continue
-        found.append(_finding('idiom', places[0]['path'], places[0]['line'], 'medium' if form == 'route_guard' else 'low',
+        found.append(_finding('idiom', places[0]['path'], places[0]['line'],
+                              'medium' if form == 'route_guard' else 'low',
                               form=form, count=len(places), places=places[:40],
-                              home=home_for(IDIOM_HOME.get(form, 'helper'), places, folders), fact_ids=[p['fact_id'] for p in places][:20]))
+                              home=home_for(IDIOM_HOME.get(form, 'helper'), places, folders),
+                              fact_ids=[p['fact_id'] for p in places][:20]))
     return found
 
 
@@ -161,7 +169,8 @@ def _finding(kind, place, line, severity, **evidence):
 def folders_of(sets):
     """Every folder of the project the facts name a file in."""
     paths = {f['location'].get('path') for f in (sets.get('syntax') or {}).get('facts', [])}
-    return {parent.as_posix() for path in paths if path for parent in PurePosixPath(path).parents if parent.as_posix() != '.'}
+    return {parent.as_posix() for path in paths if path
+            for parent in PurePosixPath(path).parents if parent.as_posix() != '.'}
 
 
 def _gated(out, sets, folders):

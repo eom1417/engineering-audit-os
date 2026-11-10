@@ -31,7 +31,8 @@ def _validate(policy):
     if analysis is not None and not isinstance(analysis, dict): raise ValueError('analysis must be an object')
     for rule in policy.get('rules', []):
         if not ({'deny', 'allow_only'} & set(rule)): raise ValueError('Each rule needs deny or allow_only')
-        if not rule.get('reason'): raise ValueError('Each rule needs a reason; an unexplained rule cannot be argued with')
+        if not rule.get('reason'):
+            raise ValueError('Each rule needs a reason; an unexplained rule cannot be argued with')
 
 
 def load_policy(target, path=None):
@@ -105,20 +106,23 @@ def _edge_violations(edge, policy, layers, unmatched):
 
 
 def run(target, out, policy_path=None, **options):
-    sets = {name: read_set(out, name) for name in ['resolve', 'graph'] if (Path(out) / 'facts' / (name + '.json')).is_file()}
+    sets = {name: read_set(out, name) for name in ['resolve', 'graph']
+            if (Path(out) / 'facts' / (name + '.json')).is_file()}
     if 'resolve' not in sets or 'graph' not in sets:
         raise ValueError('Collect facts before checking policy: eaos facts or eaos dossier')
     policy, location = load_policy(target, policy_path)
     if policy is None:
         return {'facts': [], 'summary': {'declared': False, 'expected_at': location,
                                          'interpretation': 'No policy is declared, so no layering rule is enforced. '
-                                                           'Create one with eaos policy init to turn the intended architecture into a checked contract.'},
+                                                           'Create one with eaos policy init to turn the '
+                                                           'intended architecture into a checked contract.'},
                 'available': False, 'input_sha': digest(b''), 'reason': 'No policy file at ' + location}
     found, unmatched = violations(policy, sets)
     facts = [make('policy_violation', NAME, VERSION, digest(json.dumps(policy, sort_keys=True).encode()),
                   {'path': row['from_path'], 'start_line': row['line']},
                   {'to_path': row['to_path'], 'from_layer': row['from_layer'], 'to_layer': row['to_layer'],
-                   'module': row['module'], 'reason': row['reason'], 'edge_fact_id': row['edge_fact_id']}, limitations=LIMITATIONS)
+                   'module': row['module'], 'reason': row['reason'],
+                   'edge_fact_id': row['edge_fact_id']}, limitations=LIMITATIONS)
              for row in sorted(found, key=lambda row: (row['from_path'], row['to_path']))]
     summary = {'declared': True, 'policy_file': location, 'layers': sorted(policy['layers']),
                'rules': len(policy.get('rules', [])), 'violations': len(facts),

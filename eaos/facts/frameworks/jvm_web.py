@@ -2,7 +2,8 @@
 import re
 
 LANGUAGES = ('java', 'kotlin')
-MAPPING = re.compile(r'@(?P<kind>Get|Post|Put|Patch|Delete|Request)Mapping\(\s*(?:value\s*=\s*)?(?:"(?P<route>[^"]*)")?', re.M)
+MAPPING = re.compile(r'@(?P<kind>Get|Post|Put|Patch|Delete|Request)Mapping\(\s*'
+                     r'(?:value\s*=\s*)?(?:"(?P<route>[^"]*)")?', re.M)
 JAXRS = re.compile(r'@Path\(\s*"(?P<route>[^"]*)"\s*\)', re.M)
 
 

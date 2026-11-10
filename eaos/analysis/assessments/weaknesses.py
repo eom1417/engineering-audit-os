@@ -121,11 +121,13 @@ def new(before, after, paths):
     from pathlib import Path
     from ...facts.store import read_set
     built = before is None
-    before, after = ({'external': read_set(folder, 'external')} if folder and (Path(folder) / 'facts/external.json').is_file() else {}
+    before, after = ({'external': read_set(folder, 'external')}
+                     if folder and (Path(folder) / 'facts/external.json').is_file() else {}
                      for folder in (before, after))
     engines = observed(after) & (observed(after) if built else observed(before))
     def found(sets):
-        return {(f['value']['engine'], f['value']['rule'], f['location']['path']) for f in _findings(sets, justified=True)
+        return {(f['value']['engine'], f['value']['rule'], f['location']['path']) for f in _findings(sets,
+            justified=True)
                 if f['value']['engine'] in engines and f['location']['path'] in paths}
     return sorted(found(after) - found(before))
 
@@ -156,7 +158,8 @@ def claims(fact_sets, add, target):
         files = group['place'] if group['place'] != PROJECT else f"{len(group['paths'])} files"
         said = (f"{len(group['engines'])} engines ({', '.join(group['engines'])}) agree on" if group['agreed']
                 else f"{group['engines'][0]} alone reports")
-        add(f"{said} {group['kind']} {', '.join(group['labels'])} in {files}; {group['severity']} severity", 'risk', confidence,
+        add(f"{said} {group['kind']} {', '.join(group['labels'])} in {files}; {group['severity']} severity", 'risk',
+            confidence,
             ['external_engine'],
             (KEYED if keyed else '') +
             'Show from the code at each finding that no untrusted input reaches it, or that the secret is not a real '
@@ -167,6 +170,7 @@ def claims(fact_sets, add, target):
                                'engines': ', '.join(group['engines']), 'agreed': group['agreed'],
                                'severity': group['severity'], 'count': len(group['fact_ids'])}},
             probe_spec={'probe_type': 'graph_query',
-                        'specification': {'query': 'weakness_present', 'labels': group['labels'], 'paths': group['paths'],
+                        'specification': {'query': 'weakness_present', 'labels': group['labels'],
+                                          'paths': group['paths'],
                                           'engines': group['engines'],
                                           'expected': 'An engine still reports this weakness at these files.'}})

@@ -21,7 +21,8 @@ class PlacementTests(Workspace):
     def test_every_file_is_placed_and_every_forbidden_import_named(self):
         features = [{'name': 'Contas', 'files': ['src/components/accounts/Card.tsx', 'src/lib/format.ts']},
                     {'name': 'Metas', 'files': ['src/lib/format.ts']}]
-        placed = place(['src/components/accounts/Card.tsx', 'src/lib/format.ts', 'src/components/ui/button.tsx', 'vite.config.ts'],
+        placed = place(['src/components/accounts/Card.tsx', 'src/lib/format.ts', 'src/components/ui/button.tsx',
+                        'vite.config.ts'],
                        features, REFERENCE)
         self.assertEqual(placed['src/components/accounts/Card.tsx'], ('feature:contas', 'features'))
         self.assertEqual(placed['src/lib/format.ts'], ('lib', 'lib'))
@@ -42,7 +43,8 @@ class DispositionTests(Workspace):
     def test_each_disposition_follows_the_declared_rules_in_order_and_says_why(self):
         # A complex function or a critical item is changed in place; only a structural reason (most files move) is a
         # rebuild.
-        cases = [(dict(unreachable=4, moved=4, moved_share=1.0), 'delete'), (dict(moved=3, moved_share=0.75), 'rebuild'),
+        cases = [(dict(unreachable=4, moved=4, moved_share=1.0), 'delete'), (dict(moved=3, moved_share=0.75),
+                                                                             'rebuild'),
                  (dict(complexity_max=41), 'modify'), (dict(critical=1), 'modify'), ({}, 'retain'),
                  (dict(forbidden=1), 'modify'), (dict(complexity_max=15), 'modify')]
         for change, expected in cases:
@@ -61,7 +63,8 @@ class InfrastructureTests(Workspace):
     def test_every_baseline_item_is_decided_from_evidence_for_the_kind_of_program(self):
         root = Path(self.tmp)
         (root / 'supabase/migrations').mkdir(parents=True)
-        facts = self.facts(ci_step=[{}], env_read=[{'location': {'path': 'src/a.ts'}}, {'location': {'path': 'src/b.ts'}}],
+        facts = self.facts(ci_step=[{}], env_read=[{'location': {'path': 'src/a.ts'}},
+                                                   {'location': {'path': 'src/b.ts'}}],
                            data_table=[{'value': {'rls_enabled': True}}, {'value': {'rls_enabled': False}}])
         rows = {row['area']: row for row in infrastructure(REFERENCE, facts, root, ['src/a.ts'])}
         self.assertTrue(rows['ci']['present'])

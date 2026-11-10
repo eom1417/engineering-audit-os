@@ -17,7 +17,8 @@ def _spans(metrics):
 
 
 def _length(fact):
-    return next((m.get('value') for m in (fact.get('value') or {}).get('measurements') or [] if m.get('name') == 'nloc'), None)
+    return next((m.get('value') for m in (fact.get('value') or {}).get('measurements') or []
+                 if m.get('name') == 'nloc'), None)
 
 
 def _too_long(fact, spans):
@@ -31,5 +32,6 @@ def _too_long(fact, spans):
 def set_aside(facts, metrics):
     """(the facts kept, how many complexity measures were set aside as longer than their function)."""
     spans = _spans(metrics)
-    kept = [fact for fact in facts if not ((fact.get('value') or {}).get('kind') == 'complexity' and _too_long(fact, spans))]
+    kept = [fact for fact in facts
+            if not ((fact.get('value') or {}).get('kind') == 'complexity' and _too_long(fact, spans))]
     return kept, len(facts) - len(kept)

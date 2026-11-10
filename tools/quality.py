@@ -1,9 +1,10 @@
-"""Every law of docs/STANDARDS.md §1-2 in one command (tools/quality.sh): code limits, layers, one source per pattern, dead
-code and security, measured on EAOS's own code by the same engines and detectors EAOS runs on any project.
+"""Every law of docs/STANDARDS.md §1-2 in one command (tools/quality.sh): code limits, layers, one source
+per pattern, dead code and security, measured on EAOS's own code by the same engines and detectors EAOS runs on
+any project.
 
 Code limits, written-once and layers hold as tools/code_limits.json and pyproject.toml say. Every other number is
-recorded in tools/quality.json and may only go down: one that grew, or a finding of a kind not recorded, fails. After a
-number went down, `tools/quality.sh --record` writes the new numbers (refused while anything is worse).
+recorded in tools/quality.json and may only go down: one that grew, or a finding of a kind not recorded, fails.
+After a number went down, `tools/quality.sh --record` writes the new numbers (refused while anything is worse).
 """
 import json
 import subprocess
@@ -26,13 +27,15 @@ CODE = ('python', 'javascript', 'css')  # what jscpd compares: the code, not dat
 
 
 def engine_counts(workdir):
-    """({'engine:rule': findings}, [engines that did not run], the engines' records as fact sets) over the repository."""
+    """({'engine:rule': findings}, [engines that did not run], the engines' records as fact sets)
+    over the repository."""
     from eaos.facts.engine_findings import metric_facts
     manifest = engines.analyze(ROOT, workdir, exclude=EXCLUDE, only=ENGINES, formats=CODE)
     failed = [f'{name} did not run: {row["status"]} {row["reason"]}'.strip()
               for name, row in manifest['coverage'].items() if row['status'] != 'observed']
     counts = Counter(f"{row['engine']}:{row['rule']}" for row in manifest['findings'])
-    return counts, failed, {'external': {'facts': metric_facts(manifest, ''), 'summary': {'engines_observed': engines.observed(manifest)}}}
+    return counts, failed, {'external': {'facts': metric_facts(manifest, ''),
+                                         'summary': {'engines_observed': engines.observed(manifest)}}}
 
 
 def one_source_counts(workdir, sets):
@@ -41,16 +44,18 @@ def one_source_counts(workdir, sets):
     from eaos.analysis.assessments.one_source import numbers
     from eaos.facts.run import collect
     collect(ROOT, workdir, ['history'], exclude=EXCLUDE)
-    for name in ('history',): sets[name] = json.loads((Path(workdir) / 'facts' / f'{name}.json').read_text(encoding='utf-8'))
+    for name in ('history',):
+        sets[name] = json.loads((Path(workdir) / 'facts' / f'{name}.json').read_text(encoding='utf-8'))
     return Counter({f'one_source:{name}': count for name, count in numbers(sets).items()})
 
 
 def dead_counts(workdir):
-    """{'deadcode:rule': findings} of EAOS's own dead-code detector (eaos/facts/dead_code/detect.py) over the Python code, the one
-    every check runs. A name called only through dispatch is read as used. tools/ is EAOS's code too: what only
-    it reads still counts as read."""
+    """{'deadcode:rule': findings} of EAOS's own dead-code detector (eaos/facts/dead_code/detect.py) over the Python
+    code, the one every check runs. A name called only through dispatch is read as used. tools/ is EAOS's code too:
+    what only it reads still counts as read."""
     from eaos.facts.run import collect
-    collect(ROOT, workdir, ['syntax', 'resolve', 'entrypoints', 'deadcode'], exclude=tuple(e for e in EXCLUDE if e != 'tools'))
+    collect(ROOT, workdir, ['syntax', 'resolve', 'entrypoints', 'deadcode'],
+            exclude=tuple(e for e in EXCLUDE if e != 'tools'))
     facts = json.loads((Path(workdir) / 'facts' / 'deadcode.json').read_text(encoding='utf-8'))['facts']
     return Counter(f"deadcode:{fact['value']['rule']}" for fact in facts if fact.get('kind') == 'engine_finding'
                    and fact['value']['adjudication']['verdict'] == 'confirmed')
@@ -69,15 +74,18 @@ def kept_on_purpose():
     """(the copies EAOS keeps on purpose, the markers that say no why): every `jscpd:ignore-start` (a near copy) and
     `ast-grep-ignore` (a way of working) in what EAOS ships names its reason after ` -- ` (docs/STANDARDS.md §1, one
     source per pattern)."""
-    listed = subprocess.run(['git', 'ls-files', 'eaos'], cwd=ROOT, capture_output=True, text=True, check=True).stdout.split()
+    listed = subprocess.run(['git', 'ls-files', 'eaos'], cwd=ROOT, capture_output=True, text=True,
+                            check=True).stdout.split()
     kept, silent = 0, []
     for rel in listed:
-        if not rel.endswith(('.py', '.js', '.mjs', '.css')) or any(f'/{part}/' in f'/{rel}' for part in EXCLUDE): continue
+        if (not rel.endswith(('.py', '.js', '.mjs', '.css'))
+                or any(f'/{part}/' in f'/{rel}' for part in EXCLUDE)): continue
         for number, line in enumerate((ROOT / rel).read_text(encoding='utf-8').splitlines(), 1):
             marker = next((m for m in ('jscpd:ignore-start', 'ast-grep-ignore') if m in line), None)
             if not marker: continue
             kept += 1
-            if ' -- ' not in line: silent.append(f'one source: {rel}:{number} keeps a copy without saying why ({marker} -- <why>)')
+            if ' -- ' not in line:
+                silent.append(f'one source: {rel}:{number} keeps a copy without saying why ({marker} -- <why>)')
     return kept, silent
 
 
@@ -89,9 +97,11 @@ def law_problems():
     problems += [f'leftover: {message}' for message in code_limits.leftovers()]
     problems += kept_on_purpose()[1]
     problems += repository_craft()
-    layers = subprocess.run([str(Path(sys.executable).parent / 'lint-imports')], cwd=ROOT, capture_output=True, text=True)
+    layers = subprocess.run([str(Path(sys.executable).parent / 'lint-imports')], cwd=ROOT,
+                            capture_output=True, text=True)
     problems += [f'layers: {line.strip()}' for line in layers.stdout.splitlines() if line.rstrip().endswith('BROKEN')]
-    return problems + (['layers: lint-imports failed: ' + layers.stderr.strip()[-300:]] if layers.returncode > 1 else [])
+    return problems + (['layers: lint-imports failed: ' + layers.stderr.strip()[-300:]]
+                       if layers.returncode > 1 else [])
 
 
 def worse(now, recorded):
@@ -116,7 +126,8 @@ def main(record=False):
     recorded = json.loads(BASELINE.read_text(encoding='utf-8')) if BASELINE.is_file() else {}
     if recorded or not record: problems += worse(now, recorded)  # the first --record writes today's numbers
     lower = sorted(key for key, count in recorded.items() if now.get(key, 0) < count)
-    for key in sorted(set(now) | set(recorded)): print(f'{key:70} {now.get(key, 0):6} (recorded {recorded.get(key, 0)})')
+    for key in sorted(set(now) | set(recorded)):
+        print(f'{key:70} {now.get(key, 0):6} (recorded {recorded.get(key, 0)})')
     if problems:
         print('\nREFUSED, worse than recorded or against a law:\n  ' + '\n  '.join(problems))
         return 1

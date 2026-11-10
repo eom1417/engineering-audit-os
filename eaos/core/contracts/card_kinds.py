@@ -20,8 +20,10 @@ class CardKind(NamedTuple):
 _SAYS_ITSELF = {'own_fix': True, 'own_text': True}
 KINDS = {
     **{key: CardKind() for key in (
-        'broken_code', 'cochange', 'cycle', 'dead_code', 'dead_code_review', 'duplicated_rule', 'external_write', 'hotspot',
-        'large_module', 'load_blocker', 'mutable_global', 'policy', 'redundant_work', 'security_weakness', 'trace_gap', 'untested',
+        'broken_code', 'cochange', 'cycle', 'dead_code', 'dead_code_review', 'duplicated_rule',
+        'external_write', 'hotspot',
+        'large_module', 'load_blocker', 'mutable_global', 'policy', 'redundant_work',
+        'security_weakness', 'trace_gap', 'untested',
         'vulnerable_dependency', 'vulnerable_lockfile')},
     'engine_cluster': CardKind(detector=('engine_cluster', 'kind')),
     'layer_finding': CardKind(detector=('layer', 'rule'), **_SAYS_ITSELF),
@@ -29,9 +31,11 @@ KINDS = {
     'logic_flaw': CardKind(detector=('logic', 'class'), **_SAYS_ITSELF),
     'experience_difficulty': CardKind(detector=('experience', 'kind'), **_SAYS_ITSELF),
     'real_data': CardKind(detector=('real_data', 'kind'), **_SAYS_ITSELF),
-    'old_engine': CardKind(detector=('old_engine', 'kind'), own_pattern=True, debt_category='dead_code', **_SAYS_ITSELF),
+    'old_engine': CardKind(detector=('old_engine', 'kind'), own_pattern=True,
+                           debt_category='dead_code', **_SAYS_ITSELF),
     'data_keeping': CardKind(detector=('data_keeping', 'kind'), own_pattern=True, debt_category='data', **_SAYS_ITSELF),
-    'one_source': CardKind(detector=('one_source', 'kind'), own_pattern=True, debt_category='maintainability', **_SAYS_ITSELF),
+    'one_source': CardKind(detector=('one_source', 'kind'), own_pattern=True,
+                           debt_category='maintainability', **_SAYS_ITSELF),
     'person_rule': CardKind(own_pattern=True, debt_category='reliability', **_SAYS_ITSELF),
 }
 _NOT_REGISTERED = CardKind()

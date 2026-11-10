@@ -14,7 +14,8 @@ def engine_fact(identifier, engine, kind, path, rule='r', sites=None, message='m
     return {'id': identifier, 'kind': 'engine_finding',
             'location': {'path': path, 'line': None, 'symbol': path},
             'value': {'engine': engine, 'engine_version': '1', 'rule': rule, 'kind': kind, 'method': 'heuristic',
-                      'message': message, 'measurements': list(measurements), 'engine_confidence': None, 'subject_kind': 'file',
+                      'message': message, 'measurements': list(measurements), 'engine_confidence': None,
+                          'subject_kind': 'file',
                       'sites': sites if sites is not None else [{'path': path, 'line': None}]}}
 
 
@@ -60,13 +61,15 @@ class DegradationTests(unittest.TestCase):
             with tempfile.TemporaryDirectory() as workdir:
                 manifest = analyze('.', workdir, only=['exploding', 'calm', 'imaginary'])
                 # Run again alone within the same check, the one that failed joins the others' results kept from it.
-                Exploding.analyze = staticmethod(lambda *_a, **_k: Report('exploding', None, '0', UNAVAILABLE, reason='fixed'))
+                Exploding.analyze = staticmethod(lambda *_a, **_k: Report('exploding', None, '0', UNAVAILABLE,
+                                                                          reason='fixed'))
                 again = analyze('.', workdir, only=['exploding'], keep=True)
         finally:
             del ADAPTERS['exploding'], ADAPTERS['calm']
         self.assertEqual(manifest['coverage']['exploding']['status'], 'error')
         self.assertIn('engine crashed', manifest['coverage']['exploding']['reason'])
-        self.assertEqual({name: row['reason'] for name, row in again['coverage'].items()}, {'calm': 'nothing here', 'exploding': 'fixed'})
+        self.assertEqual({name: row['reason'] for name, row in again['coverage'].items()}, {'calm': 'nothing here',
+            'exploding': 'fixed'})
         self.assertEqual((manifest['unknown_engines'], manifest['findings']), (['imaginary'], []))
         # A tool with nothing to read is not applicable, not absent.
         from unittest import mock
@@ -80,7 +83,8 @@ class DegradationTests(unittest.TestCase):
                 self.assertEqual(tool.declined('knip', 'knip', tmp).status, 'unavailable')
         # A loaded host: the installed binary answers its version check too late, twice. It is installed, not absent.
         late = (127, '', "Command '['lizard', '--version']' timed out after 120 seconds", 120.0)
-        with mock.patch.object(tool, 'which', return_value='/bin/lizard'), mock.patch.object(tool, 'run', return_value=late) as asked:
+        with mock.patch.object(tool, 'which', return_value='/bin/lizard'), mock.patch.object(tool, 'run',
+            return_value=late) as asked:
             self.assertEqual(tool.version('lizard'), 'unknown')
         self.assertEqual([call.kwargs['timeout'] for call in asked.call_args_list], list(tool.SLOW))
 
@@ -100,7 +104,8 @@ class EnginesAtOnceTests(unittest.TestCase):
                 with guard: state['now'] -= 1
                 return Report(name, None, '0', UNAVAILABLE, reason='test')
             return type(name, (), {'NAME': name, 'PINNED': '0', 'AFTER': after, 'analyze': staticmethod(analyze)})
-        fakes = {'one': adapter('one'), 'two': adapter('two'), 'three': adapter('three'), 'reader': adapter('reader', ('one',))}
+        fakes = {'one': adapter('one'), 'two': adapter('two'), 'three': adapter('three'), 'reader': adapter('reader',
+            ('one',))}
         for room, most in ((False, 1), (True, 3)):
             state.update(now=0, most=0, order=[])
             with mock.patch.dict(ADAPTERS, fakes), mock.patch.object(engines.resources, 'room', return_value=room), \
@@ -112,9 +117,12 @@ class EnginesAtOnceTests(unittest.TestCase):
 
 class CorrelationTests(unittest.TestCase):
     def test_agreement_silence_and_resolution_decide_the_verdict(self):
-        both = {'enola': evaluated_at(complexity=('observed', 'file')), 'reforge': evaluated_at(complexity=('observed', 'file'))}
+        both = {'enola': evaluated_at(complexity=('observed', 'file')), 'reforge': evaluated_at(complexity=('observed',
+            'file'))}
         [cluster] = correlate.clusters(fact_set([engine_fact('F1', 'enola', 'complexity', 'a.py'),
-                                                 engine_fact('F2', 'reforge', 'complexity', 'a.py', measurements=[{'name': 'function.complexity', 'value': 30, 'threshold': 15}])], both))
+                                                 engine_fact('F2', 'reforge', 'complexity', 'a.py',
+                                                             measurements=[{'name': 'function.complexity', 'value': 30,
+                                                                            'threshold': 15}])], both))
         self.assertEqual(cluster['corroboration']['complexity']['verdict'], correlate.CORROBORATED)
         self.assertEqual(cluster['engines'], ['enola', 'reforge'])
         # Silence about a threshold rule is not a denial.
@@ -128,11 +136,13 @@ class CorrelationTests(unittest.TestCase):
         self.assertEqual((detail['verdict'], detail['denied_by']), (correlate.CONTESTED, ['codegraph']))
         # Silence at another resolution is a gap, not a contradiction.
         detail = cycle({'codegraph': evaluated_at(cycle=('observed', 'file'))}, enola_level='package')
-        self.assertEqual((detail['verdict'], detail['denied_by'], detail['silent_at_another_resolution'], detail['asserted_at']),
+        self.assertEqual((detail['verdict'], detail['denied_by'], detail['silent_at_another_resolution'],
+                          detail['asserted_at']),
                          (correlate.GRANULARITY_GAP, [], ['codegraph'], ['package']))
         # A partial evaluation does not deny.
         detail = cycle({'reforge': evaluated_at(cycle=('partial', 'file'))})
-        self.assertEqual((detail['verdict'], detail['evaluated_and_silent']), (correlate.SINGLE, {'reforge': 'partial'}))
+        self.assertEqual((detail['verdict'], detail['evaluated_and_silent']), (correlate.SINGLE,
+                                                                               {'reforge': 'partial'}))
         # A multi-site finding belongs to every site.
         sets = fact_set([engine_fact('F1', 'jscpd', 'literal_duplication', 'a.py',
                                      sites=[{'path': 'a.py', 'line': 1}, {'path': 'b.py', 'line': 9}])],
@@ -147,10 +157,13 @@ class EngineClaimTests(unittest.TestCase):
         self.assertEqual(from_engines(fact_set([engine_fact('F1', 'enola', 'complexity', 'a.py')],
                                                {'enola': evaluated_at(complexity=('observed', 'file'))})), [])
         [claim] = from_engines(fact_set([engine_fact('F1', 'enola', 'complexity', 'a.py'),
-                                         engine_fact('F2', 'reforge', 'complexity', 'a.py', measurements=[{'name': 'function.complexity', 'value': 30, 'threshold': 15}])],
+                                         engine_fact('F2', 'reforge', 'complexity', 'a.py',
+                                                     measurements=[{'name': 'function.complexity', 'value': 30,
+                                                                    'threshold': 15}])],
                                         {'enola': evaluated_at(complexity=('observed', 'file')),
                                          'reforge': evaluated_at(complexity=('observed', 'file'))}))
-        self.assertEqual((claim['confidence'], claim['confidence_ceiling'], claim['method']), ('LIKELY', 'LIKELY', ['external_engine']))
+        self.assertEqual((claim['confidence'], claim['confidence_ceiling'], claim['method']), ('LIKELY', 'LIKELY',
+            ['external_engine']))
         self.assertTrue(claim['falsifier'].strip())
         [contested] = from_engines(fact_set([engine_fact('F1', 'enola', 'cycle', 'pkg')],
                                             {'enola': evaluated_at(cycle=('observed', 'file')),
@@ -161,14 +174,19 @@ class EngineClaimTests(unittest.TestCase):
         alone = engine_fact('F3', 'reforge', 'complexity', 'b.py', rule='reforge.codebase.many_parameters')
         alone['location']['symbol'] = 'b.py::send'
         reforge = {'reforge': evaluated_at(complexity=('observed', 'file'))}
-        [counted] = from_engines(fact_set([alone, dict(engine_fact('F4', 'reforge', 'complexity', 'b.py'), location={'path': 'b.py', 'symbol': 'b.py::other'})], reforge))
+        [counted] = from_engines(fact_set([alone, dict(engine_fact('F4', 'reforge', 'complexity', 'b.py'),
+                                                       location={'path': 'b.py', 'symbol': 'b.py::other'})], reforge))
         spec = counted['probe_spec']['specification']
-        self.assertEqual((spec['targets'], spec['engines']), ([{'rule': 'reforge.codebase.many_parameters', 'path': 'b.py', 'name': 'send'}], ['reforge']))
+        self.assertEqual((spec['targets'], spec['engines']), ([{'rule': 'reforge.codebase.many_parameters',
+                                                                'path': 'b.py', 'name': 'send'}], ['reforge']))
         over = [{'name': 'cyclomatic_complexity', 'value': 40, 'threshold': 15}]
-        found = [dict(engine_fact(i, e, 'complexity', 'c.py', rule=r, measurements=over), location={'path': 'c.py', 'symbol': 'c.py::run'})
+        found = [dict(engine_fact(i, e, 'complexity', 'c.py', rule=r, measurements=over), location={'path': 'c.py',
+            'symbol': 'c.py::run'})
                  for i, e, r in (('F5', 'enola', 'r'), ('F6', 'lizard', 'ccn'))]
-        branches = {**fact_set(found, {'enola': evaluated_at(complexity=('observed', 'file')), 'lizard': evaluated_at(complexity=('observed', 'file'))}),
-                    'metrics': {'facts': [{'location': {'path': 'c.py', 'symbol': 'c.py::run'}, 'value': {'scope': 'function', 'branches': 40}}]}}
+        branches = {**fact_set(found, {'enola': evaluated_at(complexity=('observed', 'file')),
+                                       'lizard': evaluated_at(complexity=('observed', 'file'))}),
+                    'metrics': {'facts': [{'location': {'path': 'c.py', 'symbol': 'c.py::run'},
+                                           'value': {'scope': 'function', 'branches': 40}}]}}
         self.assertEqual(from_engines(branches)[0]['probe_spec']['specification']['engines'], [])
         # A probe cannot raise an external claim to confirmed; a claim without a ceiling is left alone.
         claim = {'confidence': 'CONFIRMED', 'confidence_ceiling': 'LIKELY', 'method': ['external_engine']}

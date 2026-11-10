@@ -30,8 +30,11 @@ def findings(source, resolved, target=None):
     read = context.texts(source, everything, rules)
     return _strongest(craft.crowded(paths, rules) + craft.families(paths, rules) + craft.vague(source, paths, rules)
             + craft.versions(paths, rules) + craft.traps(paths, _imported_modules(resolved or []), rules)
-            + craft.stale_docs(source, everything, rules) + craft.tests_flat(paths, rules) + craft.no_guide(paths, everything, rules) + craft.dev_details(source, published(target or source.inventory['root'], paths), rules)
-            + context.heavy(read, rules) + context.repeats(read, rules) + context.done(read, rules), rules['per_rule'])
+            + craft.stale_docs(source, everything, rules) + craft.tests_flat(paths, rules)
+            + craft.no_guide(paths, everything, rules)
+            + craft.dev_details(source, published(target or source.inventory['root'], paths), rules)
+            + context.heavy(read, rules) + context.repeats(read, rules) + context.done(read, rules),
+            rules['per_rule'])
 
 
 def _strongest(found, most):
@@ -47,8 +50,10 @@ def _strongest(found, most):
 def run(target, source, resolved=None, **options):
     found = findings(source, resolved, Path(target) if target else None)
     facts = [make('repository_finding', NAME, VERSION, digest(f"{f['rule']}:{f['path']}".encode('utf-8')),
-                  {'path': f['path'], 'start_line': f['params'].get('line') or 1}, f, limitations=LIMITATIONS) for f in found]
+                  {'path': f['path'], 'start_line': f['params'].get('line') or 1}, f,
+                  limitations=LIMITATIONS) for f in found]
     by_rule = {}
     for f in found: by_rule[f['rule']] = by_rule.get(f['rule'], 0) + 1
     return {'facts': facts, 'summary': {'findings': len(facts), 'by_rule': by_rule}, 'available': True,
-            'input_sha': source.content_fingerprint if hasattr(source, 'content_fingerprint') else digest(b'repository'), 'reason': None}
+            'input_sha': source.content_fingerprint if hasattr(source, 'content_fingerprint')
+            else digest(b'repository'), 'reason': None}

@@ -21,21 +21,29 @@ class FileRouteTests(unittest.TestCase):
     def test_framework_page_folders_make_pages_and_parameters_layouts_and_apis_do_not(self):
         vitesse = project({'package.json': {'scripts': {'dev': 'vite'}, 'devDependencies': {'vite': '6'}},
                            'vite.config.ts': "import VueRouter from 'vue-router/vite'\n",
-                           'src/pages/index.vue': '', 'src/pages/README.md': '', 'src/pages/hi/[name].vue': '', 'src/pages/[...all].vue': ''})
+                           'src/pages/index.vue': '', 'src/pages/README.md': '',
+                           'src/pages/hi/[name].vue': '', 'src/pages/[...all].vue': ''})
         self.assertEqual(file_routes(vitesse), ['/README', '/'])
-        expo = project({'package.json': {'scripts': {'start': 'expo start'}, 'dependencies': {'expo': '53', 'expo-router': '5'}},
-                        'app/_layout.tsx': '', 'app/+not-found.tsx': '', 'app/(tabs)/explore.tsx': '', 'app/onboarding/step-1.tsx': ''})
+        expo = project({'package.json': {'scripts': {'start': 'expo start'},
+                                         'dependencies': {'expo': '53', 'expo-router': '5'}},
+                        'app/_layout.tsx': '', 'app/+not-found.tsx': '', 'app/(tabs)/explore.tsx': '',
+                        'app/onboarding/step-1.tsx': ''})
         self.assertEqual(file_routes(expo), ['/explore', '/onboarding/step-1'])
         next_app = project({'package.json': {'scripts': {'dev': 'next dev'}, 'dependencies': {'next': '15'}},
-                            'app/page.tsx': '', 'app/about/page.tsx': '', 'app/api/x/route.ts': '', 'app/about/card.tsx': ''})
+                            'app/page.tsx': '', 'app/about/page.tsx': '', 'app/api/x/route.ts': '',
+                            'app/about/card.tsx': ''})
         self.assertCountEqual(file_routes(next_app), ['/', '/about'])
 
     def test_streamlit_pages_and_django_urls_with_their_include_prefixes(self):
-        streamlit = project({'requirements.txt': 'streamlit\n', 'app.py': 'import streamlit\n', 'pages/1_📈_Plotting.py': '', 'pages/chat.py': ''})
+        streamlit = project({'requirements.txt': 'streamlit\n', 'app.py': 'import streamlit\n',
+                             'pages/1_📈_Plotting.py': '', 'pages/chat.py': ''})
         self.assertEqual(file_routes(streamlit), ['/Plotting', '/chat'])
-        django = project({'manage.py': '', 'requirements.txt': 'Django\n', 'site/settings.py': "ROOT_URLCONF = 'site.urls'\n",
-                          'site/urls.py': "urlpatterns = [\n    path('catalog/', include('catalog.urls')),\n    path('admin/', admin.site.urls),\n]\n",
-                          'catalog/urls.py': "urlpatterns = [\n    path('', views.index),\n    path('books/', views.books),\n"
+        django = project({'manage.py': '', 'requirements.txt': 'Django\n',
+                          'site/settings.py': "ROOT_URLCONF = 'site.urls'\n",
+                          'site/urls.py': "urlpatterns = [\n    path('catalog/', include('catalog.urls')),\n"
+                                          "    path('admin/', admin.site.urls),\n]\n",
+                          'catalog/urls.py': "urlpatterns = [\n    path('', views.index),\n"
+                                             "    path('books/', views.books),\n"
                                              "    path('book/<int:pk>', views.book),\n]\n"})
         self.assertEqual(file_routes(django), ['/admin/', '/catalog/', '/catalog/books/'])
 
@@ -48,8 +56,10 @@ class CodeRouteTests(unittest.TestCase):
         self.assertEqual(code_routes(coreui), ['/#/forms/form-control', '/#/charts'])
 
     def test_pages_the_code_declares_are_each_their_own_however_many_siblings(self):
-        pages = ['/catalog/books/', '/catalog/authors/', '/catalog/genres/', '/catalog/languages/', '/catalog/mybooks/', '/catalog/borrowed/']
-        self.assertEqual(len(distinct(pages)), 1, 'six siblings the code does not name are one template with other data')
+        pages = ['/catalog/books/', '/catalog/authors/', '/catalog/genres/', '/catalog/languages/',
+                 '/catalog/mybooks/', '/catalog/borrowed/']
+        self.assertEqual(len(distinct(pages)), 1,
+                         'six siblings the code does not name are one template with other data')
         self.assertEqual(len(distinct(pages, declared=pages[:5])), 6)
 
 
@@ -67,8 +77,10 @@ class VisitorTests(unittest.TestCase):
         state = out / 'session.json'
         state.write_text('{}')
         groups = {'/index': ['/index'], '/auth/login': ['/auth/login'], '/auth/register': ['/auth/register']}
-        rows = [{'url': 'http://h/auth/login', 'landed': 'http://h/auth/login', 'password': 1, 'status': 'observed', 'http': 200},
-                {'url': 'http://h/auth/register', 'landed': 'http://h/auth/register', 'password': 2, 'status': 'observed', 'http': 200}]
+        rows = [{'url': 'http://h/auth/login', 'landed': 'http://h/auth/login', 'password': 1,
+                 'status': 'observed', 'http': 200},
+                {'url': 'http://h/auth/register', 'landed': 'http://h/auth/register', 'password': 2,
+                 'status': 'observed', 'http': 200}]
         context = mock.MagicMock(out=out)
         with mock.patch.object(pages, '_audit_pages', return_value=({'rows': rows}, None)) as audit:
             seen = pages._visitor(context, (None, 'http://h', [(None, state)]), groups, None)
@@ -83,7 +95,8 @@ class NotFoundTests(unittest.TestCase):
     def test_pages_that_answered_404_are_named_as_not_measured(self):
         # an Express app mounts its router under /api in another file: its pages are opened with that prefix
         from eaos.pipeline.runners import pages
-        rows = [{'url': 'http://h/', 'http': 200}, {'url': 'http://h/user', 'http': 404}, {'url': 'http://h/user', 'http': 404}]
+        rows = [{'url': 'http://h/', 'http': 200}, {'url': 'http://h/user', 'http': 404},
+                {'url': 'http://h/user', 'http': 404}]
         said = pages._not_found(rows)
         self.assertIn('/user', said[0])
         self.assertIn('prefix', said[0])

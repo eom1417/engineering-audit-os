@@ -22,13 +22,16 @@ from .project import _git
 REMOVING, PROVED = '.removing-', '.proved'
 # What a copy's or this computer's settings could hide or run while it is looked at; its filters are its own, EAOS made
 # it.
-QUIET = ('-c', 'core.fsmonitor=false', '-c', 'core.excludesFile=', '-c', 'core.ignoreCase=false', '-c', 'core.hooksPath=/dev/null')
+QUIET = ('-c', 'core.fsmonitor=false', '-c', 'core.excludesFile=', '-c', 'core.ignoreCase=false',
+         '-c', 'core.hooksPath=/dev/null')
 UNREADABLE = (OSError, ValueError, KeyError, IndexError, TypeError, AttributeError)
 WHY = {'unknown': ('حالة المشروع مفقودة أو لا تُقرأ', "the project's state is missing or does not read"),
        'project': ('مجلد المشروع غير موجود للمقارنة', "the project's folder is not there to compare with"),
-       'held': ('قد يكون عمل جارٍ أو في الانتظار، أو لا يُعرف مشروعها', 'work may be going on or waiting, or whose it is cannot be told'),
+       'held': ('قد يكون عمل جارٍ أو في الانتظار، أو لا يُعرف مشروعها',
+                'work may be going on or waiting, or whose it is cannot be told'),
        'working': ('عمل يجري أو ينتظر، أو سجل مهمة أو تشغيل لا يُقرأ (jobs وruns في مجلد المشروع)',
-                   "work is running or waiting, or a job's or a run's record does not read (jobs and runs in the project's folder)"),
+                   "work is running or waiting, or a job's or a run's record does not read (jobs and runs in the "
+                   "project's folder)"),
        'open': ('دفعة مفتوحة', 'a batch is open on it'),
        'folder': ('ليست مستودع git', 'it is not a git repository'),
        'inner': ('فيها مستودعات خاصة بها', 'it holds repositories of its own'),
@@ -138,7 +141,8 @@ def _removed(proved):
         aside = copy if _going(copy) else _moved_aside(copy)
         if aside and _deleted(aside): freed += size
         elif aside or copy.exists(): failed.append((aside or copy, 'failed'))
-        elif copy.with_name(REMOVING + copy.name).exists(): failed.append((copy.with_name(REMOVING + copy.name), 'failed'))
+        elif copy.with_name(REMOVING + copy.name).exists():
+            failed.append((copy.with_name(REMOVING + copy.name), 'failed'))
     return freed, failed
 
 
@@ -173,7 +177,8 @@ def _deleted(aside):
 def _cannot_tell(state, folder):
     """Why this state cannot tell what is safe in `folder`; None when it can."""
     if not isinstance(state, dict) or not state.get('project') or not state.get('workspace'): return 'unknown'
-    if {Path(state['workspace']).resolve(), workspace(state['project']).resolve()} != {folder.resolve()}: return 'unknown'
+    if {Path(state['workspace']).resolve(), workspace(state['project']).resolve()} != {folder.resolve()}:
+        return 'unknown'
     return None if Path(state['project']).is_dir() else 'project'
 
 
@@ -183,7 +188,9 @@ def _waiting(folder):
     if any(_job_holds(path) for path in (folder / 'jobs').glob('*.json')): return True
     runs = folder / 'runs'
     queue = read_json(runs / 'queue.json') if (runs / 'queue.json').exists() else []
-    return not all(_ended(run) for run in (*(entry for entry in runs.glob('*') if entry.is_dir() and entry.name != 'chat'), *(runs / str(name) for name in queue)))
+    return not all(_ended(run) for run in (*(entry for entry in runs.glob('*')
+                                             if entry.is_dir() and entry.name != 'chat'),
+                                           *(runs / str(name) for name in queue)))
 
 
 def _job_holds(path):
@@ -219,7 +226,8 @@ def _open_folders(state):
     """The folders of the batches and the build the state holds open, on any branch; None when one does not say
     where."""
     try:
-        opened = [state.get('open_wave'), state.get('open_build'), *[branch.get('open_wave') for branch in (state.get('by_branch') or {}).values()]]
+        opened = [state.get('open_wave'), state.get('open_build'),
+                  *[branch.get('open_wave') for branch in (state.get('by_branch') or {}).values()]]
         roots = [str(batch.get('root') or '') for batch in opened if batch]
     except AttributeError:
         return None
@@ -236,15 +244,16 @@ def _has_repositories(copy):
     """Repositories inside, which git would not look into: filled submodules, or linked work folders."""
     stage = _git(copy, *QUIET, 'ls-files', '--stage', '-z')
     links = [row.split('\t', 1)[1] for row in stage.stdout.split('\0') if row.startswith('160000 ')]
-    return stage.returncode or any(path.is_dir() and any(path.iterdir()) for path in (copy / link for link in links)) or \
-        any((copy / '.git' / inner).exists() for inner in ('modules', 'worktrees'))
+    return (stage.returncode or any(path.is_dir() and any(path.iterdir()) for path in (copy / link for link in links))
+            or any((copy / '.git' / inner).exists() for inner in ('modules', 'worktrees')))
 
 
 def _why_its_files_stay(copy):
     """Why what is in the copy's files is not all in its commits, or None: a file git was told not to look at, a
     change, an untracked file, or an ignored one. A copy a stopped clean had proved may miss files: that clean took
     them."""
-    status = _git(copy, *QUIET, 'status', '--porcelain', '-z', '--untracked-files=all', '--ignored=matching', '--ignore-submodules=none')
+    status = _git(copy, *QUIET, 'status', '--porcelain', '-z', '--untracked-files=all', '--ignored=matching',
+                  '--ignore-submodules=none')
     looked_at = _git(copy, *QUIET, 'ls-files', '-v')
     if status.returncode or looked_at.returncode: return 'unreadable'
     if any(line[:1] != 'H' for line in looked_at.stdout.splitlines()): return 'uncommitted'
@@ -259,7 +268,8 @@ def _rows_left(status, going):
 
 def _commits_only_here(copy, project):
     kinds = _git(copy, 'for-each-ref', '--format=%(objecttype) %(*objecttype)')
-    if kinds.returncode or {'blob', 'tree'} & set(kinds.stdout.split()): return 'unreadable' if kinds.returncode else 'commits'
+    if kinds.returncode or {'blob', 'tree'} & set(kinds.stdout.split()):
+        return 'unreadable' if kinds.returncode else 'commits'
     made = _git(copy, 'rev-list', 'HEAD', '--all', '--not', *_as_cloned(copy))
     if made.returncode: return 'unreadable'
     if not made.stdout.strip(): return None

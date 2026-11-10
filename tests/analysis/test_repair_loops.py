@@ -11,7 +11,8 @@ from shared_fixture import scratch
 def check(*loops):
     folder = Path(scratch())
     (folder / 'facts').mkdir()
-    facts = [{'kind': 'graph_cycle', 'location': {'path': members[0]}, 'value': {'members': list(members)}} for members in loops]
+    facts = [{'kind': 'graph_cycle', 'location': {'path': members[0]}, 'value': {'members': list(members)}}
+             for members in loops]
     (folder / 'facts/graph.json').write_text(json.dumps({'facts': facts}), encoding='utf-8')
     return folder
 

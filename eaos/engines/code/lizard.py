@@ -41,8 +41,10 @@ def normalise(parsed, found):
                                          'parameters': int(row['parameters']), 'length': int(row['length']),
                                          'end_line': int(row['end'])}})
         if ccn > THRESHOLD:
-            findings.append(finding(NAME, found, 'ccn', 'complexity', subject('symbol', f"{path}::{row['function']}", path, start),
-                                    f"function {row['function']} has cyclomatic complexity {ccn} (threshold {THRESHOLD})",
+            findings.append(finding(NAME, found, 'ccn', 'complexity',
+                                    subject('symbol', f"{path}::{row['function']}", path, start),
+                                    f"function {row['function']} has cyclomatic complexity {ccn} "
+                                    f"(threshold {THRESHOLD})",
                                     measurements=[measurement('cyclomatic_complexity', ccn, THRESHOLD),
                                                   measurement('nloc', nloc)],
                                     raw_ref=f'{NAME}/lizard.csv'))

@@ -15,12 +15,15 @@ from ...core.contracts import owner_share
 from ...core.system.files import read_json
 from .model import CLOSED
 
-STOP = frozenset('هل في وفي فيه اذا إذا اللي عليه كل شي من على إلى الى او أو أم و ما ماذا كيف وين أين لما لها له لهم هذا هذه نفس نفسه the a an of in on to is are do does or and what which how where should we it'.split())
+STOP = frozenset('هل في وفي فيه اذا إذا اللي عليه كل شي من على إلى الى او أو أم و ما ماذا كيف وين أين لما لها له '
+                 'لهم هذا هذه نفس نفسه the a an of in on to is are do does or and what which how where should '
+                 'we it'.split())
 QUOTED = re.compile(r'[«“"]([^»”"]{2,60})[»”"]')
 # What the assistant did to a card the rules wrote ({ar, en}) and where that left it: rejected, out of the plan; doubted
 # and closed as not proven (eaos/analysis/repair/review.py).
 REJECTED = ({'ar': 'رفضها', 'en': 'rejected it'}, {'ar': 'خارج الخطة', 'en': 'out of the plan'})
-NOT_PROVEN = ({'ar': 'أغلقها لأنها ما ثبتت', 'en': 'closed it as not proven'}, {'ar': 'مغلقة، ما ثبتت', 'en': 'closed, not proven'})
+NOT_PROVEN = ({'ar': 'أغلقها لأنها ما ثبتت', 'en': 'closed it as not proven'},
+              {'ar': 'مغلقة، ما ثبتت', 'en': 'closed, not proven'})
 
 
 def _in(lang, ar, en):
@@ -40,7 +43,8 @@ def _owner_question(card):
     if asked.get('kind') != 'owner': return None
     options = [{'id': f'o{i + 1}', 'label': text} for i, text in enumerate(asked['options'])]
     return {'id': f"card:{card['id']}", 'question': asked['question'], 'recommendation': asked['recommendation'],
-            'options': options, 'recommended_option': next((o['id'] for o in options if o['label'] == asked['recommendation']), None),
+            'options': options,
+            'recommended_option': next((o['id'] for o in options if o['label'] == asked['recommendation']), None),
             'blocks': [card['id']], 'state': 'waiting', 'answer': None, 'plan': 'fix', 'asked': '', 'tool': 'findings'}
 
 
@@ -49,8 +53,10 @@ def _investigations(review, lang):
             'question': _in(lang, f'{len(review)} بطاقة تحتاج تحققًا قبل أي تغيير. هل يتولاها المساعد؟',
                             f'{len(review)} cards need checking before any change. Should the assistant take them on?'),
             'recommendation': _in(lang, 'نعم: يتحقق المساعد من كل بطاقة بدليلها ويعرض عليك ما يحتاج قرارك فقط.',
-                                  'Yes: the assistant checks each card against its evidence and brings you only what needs you.'),
-            'options': [{'id': 'yes', 'label': _in(lang, 'نعم', 'Yes')}, {'id': 'later', 'label': _in(lang, 'لاحقًا', 'Later')}],
+                                  'Yes: the assistant checks each card against its evidence and brings you only '
+                                  'what needs you.'),
+            'options': [{'id': 'yes', 'label': _in(lang, 'نعم', 'Yes')},
+                        {'id': 'later', 'label': _in(lang, 'لاحقًا', 'Later')}],
             'blocks': [c['id'] for c in review][:200], 'state': 'waiting', 'answer': None, 'plan': 'fix',
             'asked': '', 'tool': 'findings'}
 
@@ -80,7 +86,8 @@ def _open_questions(name, last):
     return [{'id': 'node-' + nodes_core.short(f"{name}:{d['subject']}:{q['id']}", 120), 'question': q['question'],
              'recommendation': q.get('recommendation') or '',
              'options': [{'id': f'o{i + 1}', 'label': str(o)} for i, o in enumerate(q.get('options') or [])],
-             'blocks': [], 'state': 'waiting', 'answer': None, 'plan': None, 'asked': last.get('at') or '', 'tool': 'run_nodes'}
+             'blocks': [], 'state': 'waiting', 'answer': None, 'plan': None, 'asked': last.get('at') or '',
+             'tool': 'run_nodes'}
             for d in last.get('decisions') or [] for q in d.get('open_questions') or []]
 
 
@@ -88,8 +95,10 @@ def _set_aside(row, ar, done=REJECTED):
     """The answered row of one card the rules wrote and the assistant took out: rejected, or doubted and closed."""
     did, left = (words['ar' if ar else 'en'] for words in done)
     short = nodes_core.short
-    question = (f"{row['card']}: القواعد كتبت البطاقة «{short(row.get('title'), 160)}» ومساعدك {did}. {row.get('why') or ''}" if ar else
-                f"{row['card']}: the rules wrote the card \"{short(row.get('title'), 160)}\" and your assistant {did}. {row.get('why') or ''}")
+    question = (f"{row['card']}: القواعد كتبت البطاقة «{short(row.get('title'), 160)}» ومساعدك {did}. "
+                f"{row.get('why') or ''}" if ar else
+                f"{row['card']}: the rules wrote the card \"{short(row.get('title'), 160)}\" and your assistant "
+                f"{did}. {row.get('why') or ''}")
     return {'id': f"disagree-{_slug(row['card'])}", 'question': short(question, 600),
             'recommendation': f'رأي مساعدك: البطاقة {left}' if ar else f"your assistant's view: the card is {left}",
             'options': [{'id': 'assistant', 'label': left},

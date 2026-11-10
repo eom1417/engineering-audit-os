@@ -36,7 +36,8 @@ BOUNDARIES = {'import_cycle', 'hidden_coupling', 'policy_violation', 'canonicali
 HARDENING = {'load_blocker', 'redundant_work'}
 FRONTEND_SUFFIXES = ('.tsx', '.jsx', '.vue', '.svelte', '.css', '.scss', '.html')
 SCRIPT_SUFFIXES = ('.ts', '.js', '.mjs', '.cjs')
-FRONTEND_FOLDERS = {'src', 'components', 'pages', 'views', 'hooks', 'ui', 'client', 'frontend', 'web', 'public', 'static'}
+FRONTEND_FOLDERS = {'src', 'components', 'pages', 'views', 'hooks', 'ui', 'client', 'frontend', 'web', 'public',
+                    'static'}
 BUILDS_SHOWN = 3
 GOALS_AR = {
     'stabilize': ('لا يبقى إصدار معروف الثغرات، ولا مرجع معطّل، ولا كود ميت، ولا فجوة وصول مفتوحة.',
@@ -73,17 +74,20 @@ def _secret(task, paths):
 
 
 def _frontend(paths):
-    return any(p.endswith(FRONTEND_SUFFIXES) or (p.endswith(SCRIPT_SUFFIXES) and FRONTEND_FOLDERS & set(p.split('/')[:-1]))
+    return any(p.endswith(FRONTEND_SUFFIXES)
+               or (p.endswith(SCRIPT_SUFFIXES) and FRONTEND_FOLDERS & set(p.split('/')[:-1]))
                for p in paths)
 
 
 # The section of a card: the first rule that holds, in this order.
 SECTION_RULES = (
     ('security', _secret),
-    ('infrastructure', lambda task, paths: any(p.startswith('.github/') or p.endswith(('Dockerfile', 'vercel.json', 'netlify.toml'))
+    ('infrastructure', lambda task, paths: any(p.startswith('.github/')
+                                               or p.endswith(('Dockerfile', 'vercel.json', 'netlify.toml'))
                                                for p in paths)),
     ('data', lambda task, paths: any(p.endswith('.sql') or p.startswith('supabase/') for p in paths)),
-    ('backend', lambda task, paths: any(part in ('server', 'api', 'functions') for p in paths for part in p.split('/')[:-1])),
+    ('backend', lambda task, paths: any(part in ('server', 'api', 'functions')
+                                        for p in paths for part in p.split('/')[:-1])),
     ('quality', lambda task, paths: task.get('pattern') in SAFETY_NET),
     ('general', lambda task, paths: not paths),
     ('frontend', lambda task, paths: _frontend(paths)),
@@ -132,7 +136,8 @@ def _grouped(tasks, placements):
 def _milestone(number, name, members, dispositions):
     """One milestone: its goal and exit in both languages, its cards, and whether it rebuilds behind a flag."""
     rebuild = name.startswith('build:') and dispositions.get(name.split(':', 1)[1]) == 'rebuild'
-    goal, exit_, goal_ar, exit_ar = _build_words(name.split(':', 1)[1], rebuild) if name.startswith('build:') else (*GOALS[name], *GOALS_AR[name])
+    goal, exit_, goal_ar, exit_ar = (_build_words(name.split(':', 1)[1], rebuild) if name.startswith('build:')
+                                     else (*GOALS[name], *GOALS_AR[name]))
     return {'id': f'M{number:02d}', 'name': name, 'goal': goal, 'exit': exit_, 'goal_ar': goal_ar, 'exit_ar': exit_ar,
             'tasks': [t['id'] for t in members], 'strangler': rebuild}
 
@@ -146,7 +151,8 @@ def _build_words(component, rebuild):
              'Every card here passes, and the next audit places every file of the component in its target layer.')
     goal_ar = (f"إعادة بناء `{component}` في طبقته المستهدفة خلف علم (Strangler Fig)، بالسلوك نفسه." if rebuild
                else f"تشكيل `{component}` على صورته المستهدفة: بطاقاته منجزة وملفاته في أماكنها.")
-    exit_ar = ('كل بطاقة هنا تمر، وتثبيت السلوك يطابق على المسار الجديد، والمسار القديم يُزال في خطوة مستقلة بعد التكافؤ (E7).'
+    exit_ar = ('كل بطاقة هنا تمر، وتثبيت السلوك يطابق على المسار الجديد، '
+               'والمسار القديم يُزال في خطوة مستقلة بعد التكافؤ (E7).'
                        if rebuild else 'كل بطاقة هنا تمر، ويضع التدقيق التالي كل ملف من المكوّن في طبقته المستهدفة.')
     return goal, exit_, goal_ar, exit_ar
 
@@ -161,4 +167,5 @@ def sections(tasks):
             other = by_id.get(ref.get('task_id'))
             if other and other['section'] != task['section']: needs[task['section']].add(other['section'])
     order = ['security', 'infrastructure', 'data', 'backend', 'frontend', 'quality', 'general']
-    return [{'section': name, 'tasks': grouped[name], 'depends_on': sorted(needs[name])} for name in order if grouped[name]]
+    return [{'section': name, 'tasks': grouped[name], 'depends_on': sorted(needs[name])}
+            for name in order if grouped[name]]

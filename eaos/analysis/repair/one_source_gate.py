@@ -45,20 +45,23 @@ def _counted(kind, key, places, paths, what):
     count."""
     mine = sorted((p for p in places if p['path'] in paths), key=lambda p: (p['path'], p.get('line') or 0))
     where = ', '.join(f"{p['path']}:{p.get('line') or 1}" for p in mine[:4])
-    return {(kind, key, n): {'gate': 'copy', 'where': where, 'what': what.replace('{where}', where)} for n in range(1, len(mine) + 1)}
+    return {(kind, key, n): {'gate': 'copy', 'where': where, 'what': what.replace('{where}', where)}
+            for n in range(1, len(mine) + 1)}
 
 
 def _copy(finding, paths):
     """The rows of a cluster of near copies, one per copy in the changed files, keyed by the copied code."""
     evidence = finding['evidence']
     key = tuple(evidence.get('digests') or sorted({p['path'] for p in evidence['places']}))
-    return _counted('near_copy', key, evidence['places'], paths, 'the same code is written again at {where}: give it one home and call it')
+    return _counted('near_copy', key, evidence['places'], paths,
+                    'the same code is written again at {where}: give it one home and call it')
 
 
 def _again(finding, paths):
     """The rows of an idiom written again in the changed files."""
     evidence = finding['evidence']
-    key, what = evidence.get('form'), f"{evidence.get('form', '').replace('_', ' ')} is written by hand again at {{where}}"
+    key, what = evidence.get('form'), (f"{evidence.get('form', '').replace('_', ' ')} "
+                                       "is written by hand again at {where}")
     return _counted(finding['kind'], key, evidence['places'], paths, f"{what}: use the one in {evidence.get('home')}")
 
 
@@ -98,13 +101,15 @@ def _lines(place, window):
 
 def _copied(places):
     return {'gate': 'copy', 'where': places[0]['path'], 'what': 'the same code is written in '
-            + ', '.join(f"{p['path']}:{p.get('start_line') or 1}" for p in places[:4]) + ': give it one home and call it'}
+            + ', '.join(f"{p['path']}:{p.get('start_line') or 1}" for p in places[:4])
+            + ': give it one home and call it'}
 
 
 def rows(record, paths, kinds=None):
     """The rows of the gate over one check (`record(name)`: its fact set, None when it has none) at the files `paths`;
     `kinds`: those the check before the change measured (None: every kind, nothing was there before)."""
     live, paths = refusing(), set(paths)
-    found = [f for f in findings(None, {'external': record('external') or {}})[0] if detector(f) in live] if live else []
+    found = ([f for f in findings(None, {'external': record('external') or {}})[0] if detector(f) in live]
+             if live else [])
     out = {**_found(found, paths), **_clones(record, paths)}
     return {key: row for key, row in out.items() if kinds is None or key[0] in kinds}

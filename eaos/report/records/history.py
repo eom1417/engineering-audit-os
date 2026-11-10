@@ -66,8 +66,10 @@ def _recorded_scan(i, point, checks, now):
             'commit': commit, 'branch': now['scan'].get('branch') if last else None, 'at': point['at'],
             'event': point.get('event'), 'score': now['score'] if last else recorded_score,
             'open': now['open'] if last else recorded_open or {s: None for s in SEVERITIES},
-            'open_total': _open_total(total, closed), 'closed': _whole(closed), 'total': _whole(total), 'added': _added(i, last, now),
-            'resolved': _resolved_between(now['cards'], checks[i - 1]['at'] if i else None, point['at']), 'open_keys': []}
+            'open_total': _open_total(total, closed), 'closed': _whole(closed), 'total': _whole(total),
+            'added': _added(i, last, now),
+            'resolved': _resolved_between(now['cards'], checks[i - 1]['at'] if i else None, point['at']),
+            'open_keys': []}
 
 
 def _open_total(total, closed):
@@ -91,7 +93,8 @@ def _this_scan(scan, card_rows, now_score, now_open):
 
 def _progress(points):
     return [{'at': p['at'], 'event': p.get('event') or '', 'closed': p.get('closed'), 'total': p.get('total'),
-             'percent': round(p['closed'] / p['total'], 4) if isinstance(p.get('closed'), int) and p.get('total') else None,
+             'percent': round(p['closed'] / p['total'], 4) if isinstance(p.get('closed'), int) and p.get('total')
+             else None,
              'commit': p.get('commit')}
             for p in points if isinstance(p.get('closed'), int) and isinstance(p.get('total'), int)]
 
@@ -99,24 +102,30 @@ def _progress(points):
 def _point_event(point):
     event = point.get('event')
     if event in SCAN_EVENTS:
-        return {'at': point['at'], 'kind': 'scan', 'title': event, 'ref': point.get('commit'), 'count': point.get('total')}
+        return {'at': point['at'], 'kind': 'scan', 'title': event, 'ref': point.get('commit'),
+                'count': point.get('total')}
     if event == 'merged':
-        return {'at': point['at'], 'kind': 'merge', 'title': event, 'ref': point.get('commit'), 'count': point.get('closed')}
+        return {'at': point['at'], 'kind': 'merge', 'title': event, 'ref': point.get('commit'),
+                'count': point.get('closed')}
     return None
 
 
 def _events(points, waves):
     """The checks, the fixes taken in and the batches with a date, in time order."""
     events = [event for event in (_point_event(point) for point in points) if event]
-    events += [{'at': wave['merged_at'], 'kind': 'batch', 'title': f"batch {wave.get('number')}", 'ref': wave.get('branch'),
-                'count': len(wave.get('kept') or [])} for wave in waves or () if isinstance(wave, dict) and wave.get('merged_at')]
+    events += [{'at': wave['merged_at'], 'kind': 'batch', 'title': f"batch {wave.get('number')}",
+                'ref': wave.get('branch'),
+                'count': len(wave.get('kept') or [])} for wave in waves or () if isinstance(wave, dict)
+               and wave.get('merged_at')]
     events.sort(key=lambda e: e['at'])
     return events
 
 
 def _changed(cards):
-    return [{'key': c.get('key') or '', 'id': c.get('id'), 'title': str(c.get('title') or '')[:300], 'state': c.get('state'),
-             'at': c.get('at'), 'new': bool(c.get('new')), 'batch': c.get('batch') if isinstance(c.get('batch'), int) else None}
+    return [{'key': c.get('key') or '', 'id': c.get('id'), 'title': str(c.get('title') or '')[:300],
+             'state': c.get('state'),
+             'at': c.get('at'), 'new': bool(c.get('new')), 'batch': c.get('batch') if isinstance(c.get('batch'), int)
+             else None}
             for c in cards if c.get('state') in CLOSED or c.get('new')]
 
 
@@ -140,10 +149,13 @@ def history(scan, score, card_rows, ledger=None, waves=()):
     events = _events(points, waves)
     changed = _changed(cards)
     unscored = sum(1 for s in scans if s['score'] is None)
-    missing = [{'id': 'scores', 'state': 'not_measured', 'step': 'NS31.T1', 'count': {'value': unscored, 'src': 'history.json#scans[score=null]'},
+    missing = [{'id': 'scores', 'state': 'not_measured', 'step': 'NS31.T1',
+                'count': {'value': unscored, 'src': 'history.json#scans[score=null]'},
                 'detail': {'ar': f'{unscored} فحص سابق بلا درجة مسجلة: السجل لا يحفظ درجة كل فحص بعد',
-                           'en': f'{unscored} earlier checks with no recorded score: the ledger does not keep each check\'s score yet'}}] if unscored else []
+                           'en': f'{unscored} earlier checks with no recorded score: '
+                           f'the ledger does not keep each check\'s score yet'}}] if unscored else []
     return {'scans': scans, 'progress': progress, 'events': events, 'cards': changed[:2000], 'missing': missing,
             'src': {'scans': 'ledger.json#history[event in baseline, recheck]; the last: this check',
                     'score': 'model.score of this check; older checks: ledger.json#history[].scores (NS31.T1)',
-                    'progress': 'ledger.json#history[].closed / total', 'cards': 'ledger.json#cards[state done, or new]'}}
+                    'progress': 'ledger.json#history[].closed / total',
+                    'cards': 'ledger.json#cards[state done, or new]'}}

@@ -14,7 +14,8 @@ def cards(m, claims, lang, task_cards):
     rows = {r['id']: r for r in m['rows']}
     plan = {t.get('id'): t for t in m['plan'].get('tasks') or [] if isinstance(t, dict)}
     tasks = [(card, plan.get(card['id']) or {}) for card in task_cards]
-    return [_card(card, rows.get(card['id']) or {}, task, claims.get(task.get('claim_id')) or {}, lang) for card, task in tasks]
+    return [_card(card, rows.get(card['id']) or {}, task, claims.get(task.get('claim_id')) or {}, lang) for card,
+            task in tasks]
 
 
 def _needs_decision(task, card):
@@ -55,7 +56,8 @@ def resolution_of(row):
     """What the assistant decided for a card (eaos/analysis/planning/cards.py resolve): {kind: fix | owner, by, words,
     and the change of a fix or the question, options and recommendation of the person's choice; capped when it was the
     person's but turned into the assistant's recommendation}."""
-    out = {'kind': row.get('resolution'), 'by': row.get('by') or 'assistant', 'words': row.get('words') or '', 'why': row.get('why') or ''}
+    out = {'kind': row.get('resolution'), 'by': row.get('by') or 'assistant', 'words': row.get('words') or '',
+           'why': row.get('why') or ''}
     if out['kind'] == 'fix': out.update(change=row.get('change') or '', capped=bool(row.get('capped')))
     if out['kind'] == 'owner': out.update(question=row.get('question') or '', options=list(row.get('options') or []),
                                           recommendation=row.get('recommendation') or '')

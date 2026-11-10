@@ -74,7 +74,8 @@ def said(record):
     """({answer keys}, the words for the assistant) of the branches of each kind the batch's `record` was split into."""
     if 'split' not in record: return {}, ''
     return {'split_branches': record['split'], 'not_split': record['not_split']}, (
-        (" The fixes are also on one branch per kind (split_branches: each with its cards), so a reviewer can merge them "
-         "one by one with git; only the whole branch went through every check, each kind's branch through its cards' "
-         "acceptance. Accept or undo still takes the whole batch and removes these branches too." if record['split'] else '')
+        (" The fixes are also on one branch per kind (split_branches: each with its cards), so a reviewer can merge "
+         "them one by one with git; only the whole branch went through every check, each kind's branch through its "
+         "cards' acceptance. Accept or undo still takes the whole batch and removes these branches too."
+         if record['split'] else '')
         + (" Name the kinds that could not stand alone (not_split) and why." if record['not_split'] else ''))

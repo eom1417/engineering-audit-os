@@ -210,7 +210,8 @@ def _namer(surface_facts):
     `if __name__ == '__main__'` is then a helper, not a feature. A script under tools/ or scripts/ is dev tooling.
     Route `/` is `home` only in a web app; in a program with commands, a web front end is named by its folder
     (studio/src/App.tsx is `studio`)."""
-    commands = any((f.get('value') or {}).get('surface') == 'cli' and (f.get('value') or {}).get('framework') in _COMMANDS
+    commands = any((f.get('value') or {}).get('surface') == 'cli'
+                   and (f.get('value') or {}).get('framework') in _COMMANDS
                    and (f.get('value') or {}).get('route') for f in surface_facts)
     return lambda fact: _feature_of(fact, commands)
 
@@ -250,7 +251,8 @@ def build(facts):
 
 def _unassigned(surface_facts, consumed):
     """The files of the surfaces no feature took, sorted, each once."""
-    unassigned = [(fact.get('location') or {}).get('path') or '' for fact in surface_facts if fact.get('id') not in consumed]
+    unassigned = [(fact.get('location') or {}).get('path') or '' for fact in surface_facts
+                  if fact.get('id') not in consumed]
     return sorted(set([s for s in unassigned if s]))
 
 
@@ -371,7 +373,8 @@ def _count(n, nouns):
 
 def _reached_words(record):
     """What the user reaches, counted by kind of surface."""
-    return (' و'.join(_count(n, _NOUNS.get(kind, _NOUNS['page'])) for kind, n in sorted(record.get('kinds', {}).items()))
+    return (' و'.join(_count(n, _NOUNS.get(kind, _NOUNS['page']))
+                      for kind, n in sorted(record.get('kinds', {}).items()))
             or _count(len(record['surfaces']), _NOUNS['page']))
 
 

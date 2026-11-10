@@ -16,16 +16,19 @@ from ...core.system.errors import noted
 
 WRITE_METHODS = {'POST', 'PUT', 'PATCH', 'DELETE'}
 PARAM = re.compile(r':\w+|\{\w+\}|\[\w+\]|<(?:\w+:)?\w+>|\(\?P<\w+>')
-WRITE_TEXT = re.compile(r'\.(?:insert|update|upsert|delete|destroy|remove|save|create|createMany|updateMany|deleteMany|add|'
+WRITE_TEXT = re.compile(r'\.(?:insert|update|upsert|delete|destroy|remove|save|create|createMany|updateMany|'
+                        r'deleteMany|add|'
                         r'commit|bulk_create|set|push|put)\s*\(|\bdelete\s+\w+\[|\b\w+\[[^\]\n]+\]\s*=[^=]|'
                         r'request\.method\s*==\s*[\'"](?:POST|PUT|PATCH|DELETE)', re.I)
 STORE = re.compile(r'^(?:const|let|var)\s+(?P<name>[a-z]\w*)\s*=\s*(?:\{|\[|new\s+Map\b)', re.M)
-FILE_GUARD = re.compile(r'\.use\(\s*[^)\n]*\b(auth\w*|requireAuth\w*|passport\.\w+|jwt\w*|session\w*|protect\w*|ensureAuth\w*|'
-                        r'requireUser\w*|clerkMiddleware|verifyToken)\b|@\w+\.before_request|APIRouter\([^)]*dependencies|'
+FILE_GUARD = re.compile(r'\.use\(\s*[^)\n]*\b(auth\w*|requireAuth\w*|passport\.\w+|jwt\w*|session\w*|protect\w*|'
+                        r'ensureAuth\w*|requireUser\w*|clerkMiddleware|verifyToken)\b|@\w+\.before_request|'
+                        r'APIRouter\([^)]*dependencies|'
                         r'DEFAULT_PERMISSION_CLASSES[^\]]*IsAuthenticated|LoginRequiredMiddleware', re.S)
 # A middleware the app wraps around every route, wherever the file declares it (Starlette, FastAPI).
 APP_GUARD = re.compile(r'(?:\bMiddleware\(|add_middleware\()\s*[\w.]*(?:Guard|Auth|Token|Session|Login)\w*')
-NEXT_MIDDLEWARE = ('middleware.ts', 'middleware.js', 'src/middleware.ts', 'src/middleware.js', 'proxy.ts', 'src/proxy.ts')
+NEXT_MIDDLEWARE = ('middleware.ts', 'middleware.js', 'src/middleware.ts', 'src/middleware.js',
+                   'proxy.ts', 'src/proxy.ts')
 MATCHER = re.compile(r'''matcher\s*:\s*\[?(?P<list>[^\]\n]*)''')
 
 
@@ -50,8 +53,10 @@ def _inline_end(lines, start):
     """The last line of a call that opens on `start` (its parentheses closed), 200 lines at most."""
     depth = 0
     for number in range(start, min(len(lines), start + 200) + 1):
-        depth += lines[number - 1].count('(') + lines[number - 1].count('{') - lines[number - 1].count(')') - lines[number - 1].count('}')
-        if depth <= 0 and number > start or depth <= 0 and lines[number - 1].rstrip().endswith((');', ')')): return number
+        depth += (lines[number - 1].count('(') + lines[number - 1].count('{')
+                  - lines[number - 1].count(')') - lines[number - 1].count('}'))
+        if depth <= 0 and number > start or depth <= 0 \
+                and lines[number - 1].rstrip().endswith((');', ')')): return number
     return start
 
 
@@ -61,7 +66,8 @@ DECORATED = ('flask_or_fastapi', 'fastapi', 'starlette')
 def _span(project, spans, fact):
     """(path, first line, last line) of the code that answers this endpoint."""
     value, where = fact['value'], fact['location']
-    path, line, handler, framework = where['path'], where.get('start_line') or 1, value.get('handler'), value['framework']
+    path, line, handler, framework = (where['path'], where.get('start_line') or 1, value.get('handler'),
+                                      value['framework'])
     if framework == 'supabase_edge': return path, 1, len(project.lines(path))
     if framework == 'django' and handler: return _django_span(spans, handler) or (path, line, line)
     named = _named(spans, path, handler, None if framework == 'node_http' else line)
@@ -103,7 +109,8 @@ def next_middleware(project):
     for name in NEXT_MIDDLEWARE:
         text = project.text(name)
         if not text: continue
-        said = guards.AUTHENTICATION.search(text) or re.search(r'\bauth\s+as\s+middleware\b|updateSession|withAuth|clerkMiddleware', text)
+        said = (guards.AUTHENTICATION.search(text)
+                or re.search(r'\bauth\s+as\s+middleware\b|updateSession|withAuth|clerkMiddleware', text))
         if said:
             matcher = MATCHER.search(text)
             return said.group(0), re.findall(r'''['"`]([^'"`]+)['"`]''', matcher.group('list')) if matcher else []
@@ -128,7 +135,8 @@ def _stores(project, path):
 def _data(project, path, first, last, text):
     """The tables and in-memory stores the handler reaches."""
     tables = {f['value']['target'] for f in project.facts('entrypoints', 'data_access')
-              if f['location']['path'] == path and first <= (f['location'].get('start_line') or 0) <= last and f['value'].get('target')}
+              if f['location']['path'] == path and first <= (f['location'].get('start_line') or 0) <= last
+              and f['value'].get('target')}
     named = guards.unquoted(text)
     stores = {name for name in _stores(project, path) if re.search(r'\b' + re.escape(name) + r'\b', named)}
     return sorted(map(str, tables | stores))
@@ -138,7 +146,8 @@ def _route_guard(value, route_line, middleware):
     """What the route's declaration or Next.js's middleware says of the sign-in, before the handler's own text."""
     if value['framework'] in ('nextjs', 'nextjs_action') and middleware[0]:
         route = value['route'] if value['framework'] == 'nextjs' else '/'
-        if _matched('/api' + route if value['framework'] == 'nextjs' and not route.startswith('/api') else route, middleware[1]):
+        if _matched('/api' + route if value['framework'] == 'nextjs' and not route.startswith('/api') else route,
+                    middleware[1]):
             return f"Next.js middleware ({middleware[0]})"
     said = guards.AUTHENTICATION.search(route_line)
     return said.group(0) if said else None
@@ -153,7 +162,8 @@ def _authentication(project, fact, said, route_line, middleware):
     """Who is signed in, by what says it first: the route or the middleware, the file's guard, the handler's own text,
     or the request's own token handed to the database."""
     where = fact['location']
-    return (_route_guard(fact['value'], route_line, middleware) or _file_guard(project, where['path'], where.get('start_line') or 1)
+    return (_route_guard(fact['value'], route_line, middleware)
+            or _file_guard(project, where['path'], where.get('start_line') or 1)
             or said['authentication'] or (said['user_client'] and "the request's own token, to the database"))
 
 
@@ -168,12 +178,15 @@ def row(project, spans, fact, middleware):
     path, first, last = _span(project, spans, fact)
     text, route_line = _text(project, path, first, last), _route_line(project, where)
     said, method = guards.read(text), value.get('http_method') or 'ANY'
-    return {'method': method, 'route': value['route'], 'path': path, 'line': first, 'end': last, 'declared_at': [where['path'], where.get('start_line')],
+    return {'method': method, 'route': value['route'], 'path': path, 'line': first, 'end': last,
+            'declared_at': [where['path'], where.get('start_line')],
             'handler': value.get('handler'), 'framework': value['framework'],
             'authentication': _authentication(project, fact, said, route_line, middleware),
             'authorisation': said['authorisation'] or (said['user_client'] and 'row-level security'),
-            'validation': said['validation'] or _file_validation(project, where['path']), 'signature': said['signature'],
-            'service_key': said['service_client'], 'data': _data(project, path, first, last, text), 'writes': _writes(method, value['framework'], text),
+            'validation': said['validation'] or _file_validation(project, where['path']),
+            'signature': said['signature'],
+            'service_key': said['service_client'], 'data': _data(project, path, first, last, text),
+            'writes': _writes(method, value['framework'], text),
             'by_id': bool(PARAM.search(str(value['route']))), 'public': guards.public(value['route']),
             'unknown_guards': guards.unknown_middleware(route_line), 'empty': not text.strip() or _empty_body(text)}
 
@@ -191,7 +204,8 @@ def table(project):
     """The endpoint table: one row per HTTP endpoint the entry-point facts name, tests left out."""
     spans, middleware = Spans(project), next_middleware(project)
     facts = [f for f in project.facts('entrypoints', 'entry_point') if f['value'].get('surface') == 'http'
-             and f['value'].get('category') != 'test' and f['value'].get('http_method') != 'MOUNT' and f['location']['path'] not in project.tests]
+             and f['value'].get('category') != 'test' and f['value'].get('http_method') != 'MOUNT'
+             and f['location']['path'] not in project.tests]
     return [row(project, spans, fact, middleware) for fact in facts if not _in_docstring(project, fact)]
 
 
@@ -202,13 +216,15 @@ def _guarded(row):
 def _question(row, names):
     listed = ', '.join(names)
     return {'boundary': 'endpoints', 'path': row['path'], 'line': row['line'],
-            'question': f"{row['method']} {row['route']} writes, and its route passes {listed} before the handler: does it "
-                        'check who is signed in?',
-            'question_ar': f"{row['method']} {row['route']} يكتب، ومساره يمرّ على {listed} قبل المعالج: هل يتحقق ممن سجّل الدخول؟"}
+            'question': f"{row['method']} {row['route']} writes, and its route passes {listed} before the handler: "
+                        'does it check who is signed in?',
+            'question_ar': f"{row['method']} {row['route']} يكتب، ومساره يمرّ على {listed} قبل المعالج: "
+                           'هل يتحقق ممن سجّل الدخول؟'}
 
 
 def _finding(rule, row, **params):
-    return {'rule': rule, 'path': row['path'], 'line': row['line'], 'evidence': f"{row['framework']} {row['method']} {row['route']}",
+    return {'rule': rule, 'path': row['path'], 'line': row['line'],
+            'evidence': f"{row['framework']} {row['method']} {row['route']}",
             'params': {'method': row['method'], 'route': row['route'], 'path': row['path'], **params}}
 
 

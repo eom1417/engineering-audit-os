@@ -17,9 +17,10 @@ from pathlib import Path
 from ...core.system.files import read_json
 
 TOKENS = ('input', 'cache_write', 'cache_read', 'output', 'thinking')
-CLAUDE = {'input_tokens': 'input', 'cache_creation_input_tokens': 'cache_write', 'cache_read_input_tokens': 'cache_read',
-          'output_tokens': 'output'}
-CODEX = {'input_tokens': 'input', 'cached_input_tokens': 'cache_read', 'output_tokens': 'output', 'reasoning_output_tokens': 'thinking'}
+CLAUDE = {'input_tokens': 'input', 'cache_creation_input_tokens': 'cache_write',
+          'cache_read_input_tokens': 'cache_read', 'output_tokens': 'output'}
+CODEX = {'input_tokens': 'input', 'cached_input_tokens': 'cache_read', 'output_tokens': 'output',
+         'reasoning_output_tokens': 'thinking'}
 FILE = 'usage.jsonl'
 
 
@@ -30,7 +31,8 @@ def row(usage, cost=None, models=(), duration_ms=None, turns=None, **labels):
     out = {field: 0 for field in TOKENS}
     for name, field in names.items(): out[field] += int(usage.get(name) or 0)
     out['thinking'] += int((usage.get('output_tokens_details') or {}).get('thinking_tokens') or 0)
-    return {**out, 'cost_usd': cost, 'models': sorted(models), 'duration_ms': duration_ms, 'turns': turns, 'calls': 1, **labels}
+    return {**out, 'cost_usd': cost, 'models': sorted(models), 'duration_ms': duration_ms, 'turns': turns,
+            'calls': 1, **labels}
 
 
 def from_stream(lines):
@@ -43,7 +45,8 @@ def from_stream(lines):
 def _result(events):
     """Every turn's result event, summed: a run resumed with the person's answer, or tried again, is one process per
     turn, each ending with its own use and cost."""
-    return total([row(e['usage'], e.get('total_cost_usd'), e.get('modelUsage') or (), e.get('duration_ms'), e.get('num_turns'))
+    return total([row(e['usage'], e.get('total_cost_usd'), e.get('modelUsage') or (), e.get('duration_ms'),
+                      e.get('num_turns'))
                   for e in events if e.get('type') == 'result' and isinstance(e.get('usage'), dict)])
 
 

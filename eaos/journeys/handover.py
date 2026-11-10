@@ -23,8 +23,9 @@ from ..core.system.clock import now
 from ..core.system.errors import noted
 
 KEEP = 2000                  # journal lines kept
-READING = {'status', 'wait', 'overview', 'findings', 'finding', 'structure', 'plan', 'report_file', 'fix_read', 'build_read',
-           'open_blueprint', 'handover', 'branches', 'menu', 'tools_check', 'assistant_check', 'impact', 'ask'}
+READING = {'status', 'wait', 'overview', 'findings', 'finding', 'structure', 'plan', 'report_file',
+           'fix_read', 'build_read', 'open_blueprint', 'handover', 'branches', 'menu', 'tools_check',
+           'assistant_check', 'impact', 'ask'}
 
 
 def assistant():
@@ -32,7 +33,8 @@ def assistant():
     if os.environ.get('EAOS_ASSISTANT'): return os.environ['EAOS_ASSISTANT']
     if os.environ.get('CLAUDECODE') or os.environ.get('CLAUDE_CODE_ENTRYPOINT'): return 'Claude Code'
     if any(name.startswith('CODEX_') for name in os.environ): return 'Codex'
-    try: parent = subprocess.run(['ps', '-o', 'comm=', '-p', str(os.getppid())], capture_output=True, text=True, timeout=5).stdout.strip()
+    try: parent = subprocess.run(['ps', '-o', 'comm=', '-p', str(os.getppid())], capture_output=True, text=True,
+                                 timeout=5).stdout.strip()
     except (OSError, subprocess.SubprocessError): parent = ''
     name = Path(parent).name.lower()
     return 'Codex' if 'codex' in name else 'Claude Code' if 'claude' in name else (Path(parent).name or 'an assistant')
@@ -69,14 +71,16 @@ def _outcome(result):
     parts = [str(result[k]) for k in ('status',) if result.get(k)]
     kept = _kept_words(result)
     if kept: parts.append(kept)
-    parts += [f'{k} {result[k]}' for k in ('job', 'batch', 'branch', 'milestone', 'skipped') if result.get(k) not in (None, '', False)]
+    parts += [f'{k} {result[k]}' for k in ('job', 'batch', 'branch', 'milestone', 'skipped')
+              if result.get(k) not in (None, '', False)]
     if result.get('failed'): parts.append('not passed: ' + ', '.join(map(str, result['failed']))[:200])
     return '; '.join(parts)[:400]
 
 
 def _kept_words(result):
     """Whether one change was kept (and why not), or which cards were; None when the answer says neither."""
-    if isinstance(result.get('kept'), bool): return 'kept' if result['kept'] else 'not kept: ' + str(result.get('why') or '')[:200]
+    if isinstance(result.get('kept'), bool): return ('kept' if result['kept'] else
+        'not kept: ' + str(result.get('why') or '')[:200])
     if result.get('kept'): return 'kept: ' + ', '.join(map(str, result['kept']))[:200]
     return None
 
@@ -86,7 +90,8 @@ def _arguments(arguments):
     for k, v in (arguments or {}).items():
         if k in ('project', 'edits', 'spec', 'proposal', 'text') or v in (None, '', [], {}): continue
         shown[k] = v if isinstance(v, (int, float, bool)) else str(v)[:160]
-    if arguments and arguments.get('edits'): shown['files'] = sorted({str(e.get('path')) for e in arguments['edits'] if isinstance(e, dict)})[:12]
+    if arguments and arguments.get('edits'): shown['files'] = sorted(
+        {str(e.get('path')) for e in arguments['edits'] if isinstance(e, dict)})[:12]
     return shown
 
 
@@ -133,7 +138,8 @@ def _open_batch(wave):
     left = [c for c in wave['cards'] if c not in wave['kept'] and c not in wave['failed']]
     return {'kind': 'fix batch', 'number': wave['number'], 'cards': wave['cards'], 'kept': list(wave['kept']),
             'not_kept': dict(wave['failed']), 'left': left,
-            'resume': (f"batch {wave['number']} is open: fix_start returns its cards left ({', '.join(left) or 'none'}); "
+            'resume': (f"batch {wave['number']} is open: fix_start returns its cards left "
+                       f"({', '.join(left) or 'none'}); "
                        "fix each with fix_edit (finding + fix_read first), then fix_finish" if left else
                        f"batch {wave['number']} has every card kept or skipped: call fix_finish")}
 
@@ -142,9 +148,10 @@ def _open_milestone(build):
     """The open build milestone: its cards kept, set aside and left, and how to go on with it."""
     kept, skipped = list(build.get('kept') or []), dict(build.get('skipped') or {})
     left = [c for c in build.get('cards') or [] if c not in kept and c not in skipped]
-    return {'kind': 'build milestone', 'milestone': build.get('milestone'), 'kept': kept, 'not_kept': skipped, 'left': left,
-            'resume': (f"milestone {build.get('milestone')} is open: build_start returns its cards left; build each with "
-                       "build_edit, then build_finish")}
+    return {'kind': 'build milestone', 'milestone': build.get('milestone'), 'kept': kept, 'not_kept': skipped,
+            'left': left,
+            'resume': (f"milestone {build.get('milestone')} is open: build_start returns its cards left; "
+                       "build each with build_edit, then build_finish")}
 
 
 def in_progress(state, log=None):
@@ -162,7 +169,8 @@ def in_progress(state, log=None):
 
 def _files_read(log):
     """The last twelve files the steps of `log` read, each once."""
-    read = [e['arguments'].get('path') for e in log if e.get('tool') in ('fix_read', 'build_read') and (e.get('arguments') or {}).get('path')]
+    read = [e['arguments'].get('path') for e in log if e.get('tool') in ('fix_read', 'build_read')
+            and (e.get('arguments') or {}).get('path')]
     return list(dict.fromkeys(read))[-12:]
 
 
@@ -180,14 +188,15 @@ def brief(state, steps=12, notes=8):
     last = log[-1] if log else {}
     busy = jobs.running(state['project'])
     work, on = _open_work(state), in_progress(state, log)
-    return {'mode': 'build from a plan' if state.get('mode') == 'build' else 'check and fix', 'branch': state.get('branch'),
-            'last_assistant': last.get('by'), 'last_activity': last.get('at'),
+    return {'mode': 'build from a plan' if state.get('mode') == 'build' else 'check and fix',
+            'branch': state.get('branch'), 'last_assistant': last.get('by'), 'last_activity': last.get('at'),
             'running_job': busy and {'id': busy['id'], 'kind': busy['kind'], 'progress': busy.get('progress')},
             'open_work': work, 'in_progress': on, 'waiting_for_the_person': _waiting(state),
             'progress': (load(state) or {}).get('totals'),
             'person_already_answered': _answered(state),
             'last_steps': _last_steps(log, steps),
-            'notes': [{k: e.get(k) for k in ('at', 'by', 'card', 'note')} for e in log if e.get('tool') == 'note'][-notes:],
+            'notes': [{k: e.get(k) for k in ('at', 'by', 'card', 'note')}
+                      for e in log if e.get('tool') == 'note'][-notes:],
             'how_to_continue': _how_to_continue(busy, work, on)}
 
 
@@ -204,8 +213,10 @@ def _last_steps(log, count):
 
 
 def _answered(state):
-    answered = [{'question': q.get('id'), 'answer': q.get('answer')} for q in state.get('questions') or [] if 'answer' in q]
-    if (state.get('consent') or {}).get('run_and_fix'): answered.append({'question': 'run the app and prepare fixes', 'answer': True})
+    answered = [{'question': q.get('id'), 'answer': q.get('answer')} for q in state.get('questions') or []
+                if 'answer' in q]
+    if (state.get('consent') or {}).get('run_and_fix'): answered.append(
+        {'question': 'run the app and prepare fixes', 'answer': True})
     return answered
 
 
@@ -227,9 +238,12 @@ def refresh(state, status=None):
     ar = state.get('lang') == 'ar'
     step = live.get('next') or {}
     lines = ['# HANDOVER: ' + Path(state['project']).name, '',
-             ('> هذا الملف يُكتب تلقائيًا بعد كل خطوة، ليكمل أي مساعد ذكي (Claude Code أو Codex) من حيث توقف الآخر.' if ar else
-              '> Written automatically after every step, so that any AI assistant (Claude Code or Codex) continues where the other stopped.'),
-             '', f"Updated: {now()} · project: `{state['project']}` · branch: `{b['branch'] or 'the one checked out'}` · mode: {b['mode']}", '',
+             ('> هذا الملف يُكتب تلقائيًا بعد كل خطوة، '
+              'ليكمل أي مساعد ذكي (Claude Code أو Codex) من حيث توقف الآخر.' if ar else
+              '> Written automatically after every step, so that any AI assistant (Claude Code or Codex) '
+              'continues where the other stopped.'),
+             '', f"Updated: {now()} · project: `{state['project']}` · "
+             f"branch: `{b['branch'] or 'the one checked out'}` · mode: {b['mode']}", '',
              '## Continue from here', '',
              '1. Call the eaos `status` tool first: it is the live version of this page (this file is a snapshot).',
              f"2. Next tool: `{step.get('tool', 'status')}`: {step.get('why', '')}".rstrip(': '),
@@ -248,26 +262,34 @@ def refresh(state, status=None):
 def _notes_and_steps(b):
     """The handover's sections of the assistants' notes and of the last steps."""
     lines = ['', '## Notes from the assistants', '']
-    lines += [f"- {n['at']} · {n['by']}{' · ' + n['card'] if n.get('card') else ''}: {n['note']}" for n in b['notes']] or ['- None.']
-    lines += ['', '## The last steps', '', '| When | Assistant | Tool | Card | What came of it |', '| --- | --- | --- | --- | --- |']
-    return lines + ([f"| {s.get('at', '')} | {s.get('by', '')} | {s.get('tool', '')} | {s.get('card') or ''} | {str(s.get('outcome') or '').replace('|', '/')} |"
+    lines += [f"- {n['at']} · {n['by']}{' · ' + n['card'] if n.get('card') else ''}: {n['note']}"
+              for n in b['notes']] or ['- None.']
+    lines += ['', '## The last steps', '', '| When | Assistant | Tool | Card | What came of it |',
+              '| --- | --- | --- | --- | --- |']
+    return lines + ([f"| {s.get('at', '')} | {s.get('by', '')} | {s.get('tool', '')} | {s.get('card') or ''} "
+                     f"| {str(s.get('outcome') or '').replace('|', '/')} |"
                      for s in b['last_steps']] or ['| | | | | nothing yet |'])
 
 
 def _where_things_are(b):
     """The handover's lines on progress, a running job, the open work and a branch waiting for the person."""
     lines, p, work = [], b['progress'] or {}, b['open_work']
-    if p: lines.append(f"- Progress (in the person's branch): {p.get('closed', 0)} of {p.get('total', 0)} cards closed ({p.get('percent', 0)}%); "
-                       f"{p.get('on_branch', 0)} waiting on a branch, {p.get('in_batch', 0)} in the open batch, {p.get('skipped', 0)} need a decision.")
-    if b['running_job']: lines.append(f"- A job is running: `{b['running_job']['id']}` ({b['running_job']['kind']}). Follow it with `wait`.")
+    if p: lines.append(f"- Progress (in the person's branch): {p.get('closed', 0)} of {p.get('total', 0)} "
+                       f"cards closed ({p.get('percent', 0)}%); "
+                       f"{p.get('on_branch', 0)} waiting on a branch, {p.get('in_batch', 0)} in the open batch, "
+                       f"{p.get('skipped', 0)} need a decision.")
+    if b['running_job']: lines.append(f"- A job is running: `{b['running_job']['id']}` "
+        f"({b['running_job']['kind']}). Follow it with `wait`.")
     if work: lines.append(_work_line(work))
-    if b['waiting_for_the_person']: lines.append(f"- Waiting for the person: take in or throw away `{b['waiting_for_the_person']['branch']}`.")
+    if b['waiting_for_the_person']: lines.append(
+        f"- Waiting for the person: take in or throw away `{b['waiting_for_the_person']['branch']}`.")
     return lines or ['- Nothing is open.']
 
 
 def _work_line(work):
     """The handover's line on the open batch or milestone: its cards kept, not kept and left."""
-    return (f"- Open {work['kind']} {work.get('number') or work.get('milestone')}: kept {', '.join(work['kept']) or 'none'}; "
+    return (f"- Open {work['kind']} {work.get('number') or work.get('milestone')}: "
+            f"kept {', '.join(work['kept']) or 'none'}; "
             f"not kept {', '.join(work['not_kept']) or 'none'}; left {', '.join(work['left']) or 'none'}.")
 
 
@@ -286,16 +308,19 @@ def _project_of(folder):
 def open_things(b):
     """What is not finished, in a few words each (English, for an assistant)."""
     things = []
-    if b['running_job']: things.append(f"a {b['running_job']['kind']} job is still running ({b['running_job']['id']}): follow it with `wait`")
+    if b['running_job']: things.append(f"a {b['running_job']['kind']} job is still running "
+        f"({b['running_job']['id']}): follow it with `wait`")
     work = b['open_work']
     if work:
-        things.append(f"{work['kind']} {work.get('number') or work.get('milestone')} is open: kept {len(work['kept'])}, "
+        things.append(f"{work['kind']} {work.get('number') or work.get('milestone')} is open: "
+                      f"kept {len(work['kept'])}, "
                       f"left {len(work['left'])} ({', '.join(work['left'][:8]) or 'none'})")
     if b.get('in_progress'):
         p = b['in_progress']
         things.append(f"{p['by']} was on {p['card']} (since {p['since']}"
                       + (f", had read {', '.join(p['files_read'][:5])}" if p['files_read'] else '') + ')')
-    if b['waiting_for_the_person']: things.append(f"the branch {b['waiting_for_the_person']['branch']} waits for the person: accept or undo")
+    if b['waiting_for_the_person']: things.append(
+        f"the branch {b['waiting_for_the_person']['branch']} waits for the person: accept or undo")
     return things
 
 
@@ -306,22 +331,25 @@ def hook_context(folder):
     b = brief(state)
     things = open_things(b)
     if not things and not b['last_activity']: return None
-    lines = ['EAOS (Engineering Audit OS) is working on this project' + (f", branch {b['branch']}" if b['branch'] else '') + '.']
+    lines = ['EAOS (Engineering Audit OS) is working on this project'
+             + (f", branch {b['branch']}" if b['branch'] else '') + '.']
     lines += _hook_state(b)
     lines += [f'- {t}' for t in things] or ['- Nothing is open.']
     lines.append(HOOK_OPEN if things else HOOK_IDLE)
     return '\n'.join(lines)
 
 
-HOOK_OPEN = ('Before anything else, call the eaos `status` tool and continue exactly from its handover, without asking the '
-             'person again what they already answered. If the person asks to continue, this is the work they mean.')
+HOOK_OPEN = ('Before anything else, call the eaos `status` tool and continue exactly from its handover, '
+             'without asking the person again what they already answered. '
+             'If the person asks to continue, this is the work they mean.')
 HOOK_IDLE = 'When the person asks about the project or to continue, call the eaos `status` tool first.'
 
 
 def _hook_state(b):
     lines = []
     if b['last_activity']: lines.append(f"Last step: {b['last_activity']} by {b['last_assistant']}.")
-    if b['progress']: lines.append(f"Progress in the person's branch: {b['progress']['closed']} of {b['progress']['total']} cards closed ({b['progress']['percent']}%).")
+    if b['progress']: lines.append(f"Progress in the person's branch: {b['progress']['closed']} of "
+        f"{b['progress']['total']} cards closed ({b['progress']['percent']}%).")
     return lines
 
 
@@ -332,7 +360,8 @@ def resume(folder, lang='ar'):
     b, ar = brief(state), lang == 'ar'
     work, busy, waiting = b['open_work'], b['running_job'], b['waiting_for_the_person']
     say = 'كمّل شغل EAOS' if ar else 'Continue the EAOS work'
-    return {'rows': _resume_rows(b, ar), 'open': bool(work or busy or waiting), 'say': say, 'handover': str(guided.outputs(state) / 'HANDOVER.md')}
+    return {'rows': _resume_rows(b, ar), 'open': bool(work or busy or waiting), 'say': say,
+            'handover': str(guided.outputs(state) / 'HANDOVER.md')}
 
 
 def _resume_rows(b, ar):
@@ -344,7 +373,8 @@ def _resume_rows(b, ar):
     if b['last_activity']: rows.append((pick('آخر خطوة', 'Last step'), f"{b['last_activity']} ({b['last_assistant']})"))
     if b['progress']:
         g = b['progress']
-        rows.append(pick(('المنجز', f"{g['closed']} من {g['total']} ({g['percent']}%)"), ('Done', f"{g['closed']} of {g['total']} ({g['percent']}%)")))
+        rows.append(pick(('المنجز', f"{g['closed']} من {g['total']} ({g['percent']}%)"),
+                         ('Done', f"{g['closed']} of {g['total']} ({g['percent']}%)")))
     if busy: rows.append((pick('يعمل الآن', 'Running now'), busy['kind']))
     if work: rows.append(_resume_work(work, ar))
     if p: rows.append((pick('كان يعمل على', 'It was on'), p['card']))

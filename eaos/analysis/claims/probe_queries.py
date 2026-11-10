@@ -11,7 +11,8 @@ from ..assessments import weaknesses
 # refuting a claim because the evidence was not loaded is the worst failure this tool can make.
 QUERY_REQUIRES = {
     'cycle_present': 'graph', 'flow_has_unresolved_steps': 'flows', 'no_code_dependency': 'graph',
-    'metric_threshold': 'metrics', 'module_size': 'metrics', 'mutable_global_present': 'domain', 'external_write_present': 'domain',
+    'metric_threshold': 'metrics', 'module_size': 'metrics', 'mutable_global_present': 'domain',
+    'external_write_present': 'domain',
     'policy_violation_present': 'graph', 'redundancy_present': 'redundancy',
     'engine_cluster_present': 'external',
     'dead_code_present': 'deadcode', 'broken_code_present': 'broken', 'vulnerable_dependency_present': 'external',
@@ -27,7 +28,8 @@ def _verdict(holds, confirmed, refuted):
 
 def _graph_nodes(sets):
     """{file: the files it imports} of the resolved graph."""
-    return {fact['location']['path']: set(fact['value']['depends_on']) for fact in sets['graph']['facts'] if fact['kind'] == 'graph_node'}
+    return {fact['location']['path']: set(fact['value']['depends_on'])
+            for fact in sets['graph']['facts'] if fact['kind'] == 'graph_node'}
 
 
 def _cycle_present(specification, sets):
@@ -36,7 +38,8 @@ def _cycle_present(specification, sets):
 
 
 def _flow_unresolved(specification, sets):
-    flow = next((fact['value'] for fact in sets['flows']['facts'] if fact['value']['flow_id'] == specification['flow_id']), None)
+    flow = next((fact['value'] for fact in sets['flows']['facts']
+                 if fact['value']['flow_id'] == specification['flow_id']), None)
     if flow is None: return 'INCONCLUSIVE', 'flow not present in this snapshot'
     return _verdict(flow['unresolved_steps'], f"{flow['unresolved_steps']} unresolved steps", 'all steps resolve now')
 
@@ -54,25 +57,30 @@ def _vulnerable(specification, sets):
 def _at_place(facts, specification):
     """The first fact at the specification's path and symbol with its rule; None when there is none."""
     wanted = (specification['path'], specification.get('symbol'), specification['rule'])
-    return next((fact for fact in facts if (fact['location'].get('path'), fact['location'].get('symbol'), fact['value'].get('rule')) == wanted), None)
+    return next((fact for fact in facts
+                 if (fact['location'].get('path'), fact['location'].get('symbol'),
+                     fact['value'].get('rule')) == wanted), None)
 
 
 def _broken(specification, sets):
     fact = _at_place(sets['broken']['facts'], specification)
-    return ('CONFIRMED', fact['value']['message']) if fact else ('REFUTED', 'the reference resolves in the current snapshot')
+    return (('CONFIRMED', fact['value']['message']) if fact
+            else ('REFUTED', 'the reference resolves in the current snapshot'))
 
 
 def _dead(specification, sets):
     # The detector is deterministic: running it again over this snapshot is the probe.
     fact = _at_place(sets['deadcode']['facts'], specification)
-    return ('CONFIRMED', fact['value']['message']) if fact else ('REFUTED', 'the candidate is reached or referenced in the current snapshot')
+    return (('CONFIRMED', fact['value']['message']) if fact
+            else ('REFUTED', 'the candidate is reached or referenced in the current snapshot'))
 
 
 def _finish_line(targets, sets):
     """A claim with a finish line (eaos/analysis/repair/finish_line.py): confirmed while one of its targets stands."""
     from ..repair.finish_line import left, said
     still = left(targets, sets)
-    return ('CONFIRMED', 'still to clear: ' + '; '.join(map(said, still))) if still else ('REFUTED', 'every target is cleared')
+    return (('CONFIRMED', 'still to clear: ' + '; '.join(map(said, still))) if still
+            else ('REFUTED', 'every target is cleared'))
 
 
 def _engine_cluster(specification, sets):
@@ -84,7 +92,8 @@ def _engine_cluster(specification, sets):
     from .correlate import clusters
     for cluster in (c for c in clusters(sets) if c['place'] == specification['place']):
         named = set(specification.get('engines') or ())
-        still = [s for s in cluster.get('standing', {}).get(specification['kind'], []) if not named or s.split(':')[0] in named]
+        still = [s for s in cluster.get('standing', {}).get(specification['kind'], [])
+                 if not named or s.split(':')[0] in named]
         if still: return 'CONFIRMED', 'still reported: ' + '; '.join(still[:12])
         return 'REFUTED', 'no engine of the claim reports this kind past its threshold here any more'
     return 'REFUTED', 'no engine reports anything at this place any more'
@@ -97,7 +106,8 @@ def _metric(specification, sets):
     if not rows: return 'INCONCLUSIVE', 'the symbol is no longer present under that name'
     value = rows[0]['value']          # the code laws' count (facts/code/metrics.py); a fact may carry it as branches
     measured = value.get('complexity') or value['branches']
-    return _verdict(measured > specification['max_branches'], f"complexity {measured}, limit {specification['max_branches']}",
+    return _verdict(measured > specification['max_branches'],
+                    f"complexity {measured}, limit {specification['max_branches']}",
                     f"complexity {measured}, now within the limit of {specification['max_branches']}")
 
 
@@ -155,7 +165,8 @@ def _no_dependency(specification, sets):
 QUERIES = {
     'cycle_present': _cycle_present, 'flow_has_unresolved_steps': _flow_unresolved,
     'vulnerable_dependency_present': _vulnerable, 'broken_code_present': _broken, 'dead_code_present': _dead,
-    'engine_cluster_present': _engine_cluster, 'weakness_present': weaknesses.present, 'metric_threshold': _metric, 'module_size': _module_size, 'mutable_global_present': _mutable,
+    'engine_cluster_present': _engine_cluster, 'weakness_present': weaknesses.present,
+    'metric_threshold': _metric, 'module_size': _module_size, 'mutable_global_present': _mutable,
     'external_write_present': _external_write, 'policy_violation_present': _policy,
     'redundancy_present': _redundancy,
     'no_code_dependency': _no_dependency, 'boundary_finding_present': layer_claims.present,

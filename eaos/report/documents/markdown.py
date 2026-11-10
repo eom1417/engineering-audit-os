@@ -24,7 +24,8 @@ def wrap(text, **indents):
     `#`, `- ` or `3. ` would turn into a heading or a list."""
     lines = textwrap.wrap(escape(text), WIDTH, break_long_words=False, break_on_hyphens=False, **indents)
     first = len(indents.get('initial_indent', ''))
-    return [line if index == 0 and first else LEADING_MARKER.sub(lambda m: m.group(1) + '\\' + m.group(2), line, count=1)
+    return [line if index == 0 and first
+            else LEADING_MARKER.sub(lambda m: m.group(1) + '\\' + m.group(2), line, count=1)
             for index, line in enumerate(lines)]
 
 

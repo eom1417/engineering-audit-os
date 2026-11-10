@@ -8,7 +8,8 @@ from .live_app import _keep, _live, _ran
 from ..stages import SkipStage
 from ...core.system.files import read_json
 
-VISITOR = re.compile(r'/(login|log-in|signin|sign-in|sign_in|register|signup|sign-up|sign_up|join|auth)(\b|/|\?|$)', re.I)   # pages a visitor sees
+VISITOR = re.compile(r'/(login|log-in|signin|sign-in|sign_in|register|signup|sign-up|sign_up|join|auth)(\b|/|\?|$)',
+                     re.I)   # pages a visitor sees
 
 
 def _published(context):
@@ -27,7 +28,8 @@ def journeys(context):
     from ...live.behavior.lock import run_journeys
     from .live_app import shared_app
     try:     # one session, as the lock it compares with was recorded: each kind's pages are walked by the crawl
-        result = run_journeys(context.out, context.target, runtime, context.out / 'live/journeys', app=shared_app(context))
+        result = run_journeys(context.out, context.target, runtime, context.out / 'live/journeys',
+                              app=shared_app(context))
     except FileNotFoundError as problem:
         raise SkipStage(str(problem)[:300], code='browser_missing') from None
     _keep(context, 'journeys.json', result)
@@ -49,9 +51,12 @@ def screens(context):
     rows, speed, audit = _pictured(context, (live, base, made), groups, measured)
     covered = _coverage(context, live, base, made, rows)
     from ...live.access.roles import proven
-    _keep(context, 'screens.json', {'schema_version': 1, 'base': '/', 'tools': audit['tools'], 'rows': rows, 'coverage': covered,
-                                    'unreachable': [{'page': page, 'why': why} for page, why in proven(context.out).items()],
-                                    'pages': [{'path': paths[0], 'template': template, 'same_as': paths[1:]} for template, paths in groups.items()],
+    _keep(context, 'screens.json',
+          {'schema_version': 1, 'base': '/', 'tools': audit['tools'], 'rows': rows, 'coverage': covered,
+                                    'unreachable': [{'page': page, 'why': why} for page,
+                                                    why in proven(context.out).items()],
+                                    'pages': [{'path': paths[0], 'template': template, 'same_as': paths[1:]}
+                                              for template, paths in groups.items()],
                                     'lighthouse': {k: v for k, v in speed.items() if k != 'report'}})
     from .live_app import records
     records(context)
@@ -64,15 +69,17 @@ def _no_api(context):
     """The screens stop on an API (eaos/live/behavior/specs.py api_only): it has no page to picture."""
     from ...live.behavior.specs import api_only
     if api_only(context.out):
-        raise SkipStage('an API has no page to picture: its GET routes are recorded by the behaviour lock', code='api_only')
+        raise SkipStage('an API has no page to picture: its GET routes are recorded by the behaviour lock',
+                        code='api_only')
 
 
 def _not_found(rows):
     """The pages that answered 404: the code declares them, the running app did not serve them there."""
     from urllib.parse import urlsplit
     paths = sorted({urlsplit(row['url']).path or '/' for row in rows if row.get('http') == 404})
-    return [f"{len(paths)} page(s) answered 404 ({', '.join(paths[:10])}): the code declares them but the app did not serve "
-            "them there (a prefix built at runtime, or a router passed through a function, is not followed)"] if paths else []
+    return [f"{len(paths)} page(s) answered 404 ({', '.join(paths[:10])}): the code declares them but the app "
+            "did not serve them there (a prefix built at runtime, or a router passed through a function, is not "
+            "followed)"] if paths else []
 
 
 def _pictured(context, app, groups, measured):
@@ -82,7 +89,8 @@ def _pictured(context, app, groups, measured):
     live, base, made = app
     rows, speed, held = [], None, {kind for kind, _ in made if kind}
     for n, (kind, state) in enumerate(made):
-        audit, measure = _audit_pages(context, app, (kind, state), (share(read(context.out), groups, kind, n == 0, held), measured), n == 0)
+        audit, measure = _audit_pages(context, app, (kind, state),
+                                      (share(read(context.out), groups, kind, n == 0, held), measured), n == 0)
         if audit['status'] != 'observed' and not rows:
             raise SkipStage(f"the pages could not be opened: {audit.get('reason')}"[:300], code='screens_unavailable')
         speed = speed or measure
@@ -105,7 +113,8 @@ def _as_visitor(row):
     """A visitor's picture of a sign-in page: its password field is the page itself, seen when it stayed where it
     was."""
     from urllib.parse import urlsplit
-    if (urlsplit(row.get('landed') or row['url']).path.rstrip('/') or '/') == (urlsplit(row['url']).path.rstrip('/') or '/'): row.pop('unseen', None)
+    if (urlsplit(row.get('landed') or row['url']).path.rstrip('/') or '/') == (urlsplit(row['url']).path.rstrip('/')
+            or '/'): row.pop('unseen', None)
     return row
 
 
@@ -116,9 +125,12 @@ def _seen(context, row, kind, nowhere):
     from urllib.parse import urlsplit
     from ...live.access.test_users import _reached
     path = urlsplit(row['url']).path or '/'
-    shown = row.get('status') != 'observed' or _reached({'path': path, 'url': row.get('landed'), 'status': row.get('http'),
-                                                         'password': row.get('password'), 'text': row.pop('text', None)}, nowhere)
-    return {**row, 'kind': kind, 'screenshot': Path(row['screenshot']).relative_to(context.out).as_posix() if row.get('screenshot') else None,
+    shown = row.get('status') != 'observed' or _reached({'path': path, 'url': row.get('landed'),
+                                                         'status': row.get('http'),
+                                                         'password': row.get('password'),
+                                                         'text': row.pop('text', None)}, nowhere)
+    return {**row, 'kind': kind, 'screenshot': Path(row['screenshot']).relative_to(context.out).as_posix()
+            if row.get('screenshot') else None,
             **({} if shown else {'unseen': True})}
 
 
@@ -174,7 +186,8 @@ def _named_pages(context):
     from ...live.access.roles import pages_of, read
     from ...live.screens.crawl import as_screen, hash_routed
     hashed = hash_routed(context.target)
-    return [as_screen(page, hashed) for page in pages_of(context.out, served=False) + [page for kind in read(context.out) for page in kind['pages']]]
+    return [as_screen(page, hashed) for page in pages_of(context.out, served=False)
+            + [page for kind in read(context.out) for page in kind['pages']]]
 
 
 def _audit_pages(context, app, session, pages, speed):
@@ -186,7 +199,8 @@ def _audit_pages(context, app, session, pages, speed):
     state = state if state.is_file() else None
     folder = context.out / 'live/screens' / (kind or '')
     audit = page_audit([base + paths[0] for paths in groups.values()], [v for v in VIEWPORTS if v['name'] != 'tablet'],
-                       variants(**((live.profile.get('screens') if live else None) or {})), out=folder, storage_state=state,
+                       variants(**((live.profile.get('screens') if live else None) or {})), out=folder,
+                       storage_state=state,
                        read_only=not live)
     return audit, _entry_speed(measured, base, folder, state, live) if speed else None
 
@@ -195,7 +209,8 @@ def _entry_speed(measured, base, folder, state, live):
     """The entry's speed: what the crawl measured, else Lighthouse's, with session `state` (a published address as a
     visitor)."""
     from ...live.screens.audit import lighthouse
-    if measured: return {'status': 'observed', 'source': 'live/crawl.json', **{k: measured.get(k) for k in ('scores', 'lcp_ms', 'cls')}}
+    if measured: return {'status': 'observed', 'source': 'live/crawl.json',
+                         **{k: measured.get(k) for k in ('scores', 'lcp_ms', 'cls')}}
     return lighthouse(base + '/', out=folder, storage_state=state if live else None)
 
 
@@ -213,8 +228,10 @@ def _browser_ran(context):
     import shutil
     from ...live.testing.ran import browser, merged, record
     folder = Path(context.runtime) / 'ran-browser'
-    parts = [browser(json.loads(path.read_text(encoding='utf-8')), context.target) for path in sorted(folder.glob('*.json'))]
-    record(context.out, 'browser', merged(*parts), '' if any(parts) else 'the pages loaded no script EAOS can name as a '
+    parts = [browser(json.loads(path.read_text(encoding='utf-8')), context.target)
+             for path in sorted(folder.glob('*.json'))]
+    record(context.out, 'browser', merged(*parts), '' if any(parts)
+           else 'the pages loaded no script EAOS can name as a '
            'file of the project (a built bundle names none)')
     shutil.rmtree(folder, ignore_errors=True)
 
@@ -242,7 +259,8 @@ def crawl(context):
     if live: _merge_explored(routes, _explored(context, base, made[0][1])); _browser_ran(context)
     from ...live.screens.crawl import distinct
     _keep(context, 'crawl.json', {'schema_version': 1, **founds[0], 'routes': list(routes.values()),
-                                  'pages': [paths[0] for paths in distinct(routes, seeds).values()], 'seeds': seeds})     # one per template: the lock's stand-in
+                                  'pages': [paths[0] for paths in distinct(routes, seeds).values()],
+                                  'seeds': seeds})     # one per template: the lock's stand-in
     return {'pages': len(routes)}
 
 
@@ -255,7 +273,8 @@ def _seeds(context, live):
     from ...live.screens.crawl import code_routes
     from ...live.app.detect_python import served_pages
     found = code_routes(context.target) + served_pages(live) + pages_of(context.out)
-    return [route for route in dict.fromkeys(found) if not route.startswith('/api') and not re.search(LEAVES, route, re.I)]
+    return [route for route in dict.fromkeys(found) if not route.startswith('/api')
+            and not re.search(LEAVES, route, re.I)]
 
 
 def _file(path):
@@ -265,7 +284,8 @@ def _file(path):
 
 def _merge_explored(routes, paths):
     """The screens the browser agent reached, each a route once."""
-    for path in paths: routes.setdefault(path, {'path': path, 'depth': None, 'status': 'observed', 'explored': True, 'kinds': []})
+    for path in paths:
+        routes.setdefault(path, {'path': path, 'depth': None, 'status': 'observed', 'explored': True, 'kinds': []})
 
 
 def _merge_routes(routes, found, kind):
@@ -288,5 +308,6 @@ def _explored(context, base, state):
         done = replay(browser, record) if record else {'broken_at': 0, 'screens': []}
         if 'broken_at' not in done or not context.provider: return done['screens']
         record = explore(browser, SCREENS, context.provider)
-    if not record.get('stopped'): saved.write_text(json.dumps(record, ensure_ascii=False, indent=1) + '\n', encoding='utf-8')
+    if not record.get('stopped'):
+        saved.write_text(json.dumps(record, ensure_ascii=False, indent=1) + '\n', encoding='utf-8')
     return record['screens']       # an exploration the assistant could not finish is never replayed as the app's steps

@@ -35,7 +35,8 @@ def followed(start, everything, read):
         if path in out or path not in everything: continue
         out[path] = read(path)
         if PurePosixPath(path).name == 'CLAUDE.md':
-            queue += [posixpath.normpath(posixpath.join(posixpath.dirname(path), name)) for name in IMPORT.findall(out[path])]
+            queue += [posixpath.normpath(posixpath.join(posixpath.dirname(path), name))
+                      for name in IMPORT.findall(out[path])]
     return out
 
 
@@ -80,7 +81,8 @@ def repeats(read, limits):
     if not twice: return []
     where = sorted({p for paths in twice.values() for p in paths})
     return [finding('context-repeat', where[0], {'count': len(twice), 'files': ', '.join(where[:6]),
-                                                 'tokens': sum(tokens(line) * (len(paths) - 1) for line, paths in twice.items())})]
+                                                 'tokens': sum(tokens(line) * (len(paths) - 1)
+                                                               for line, paths in twice.items())})]
 
 
 def done(read, limits):

@@ -28,7 +28,8 @@ def rule_shown(project, rule):
 class Actions(engine.Actions):
     """`eaos.journeys.runs.Actions` with this EAOS's tools, read-only tools and rules."""
     def __init__(self, project, **options):
-        super().__init__(project, **{'tools': server_tools, 'reading': reading_tools, 'rule_shown': rule_shown, **options})
+        super().__init__(project,
+                         **{'tools': server_tools, 'reading': reading_tools, 'rule_shown': rule_shown, **options})
 
 
 _where_of = engine._where_of

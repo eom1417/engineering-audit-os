@@ -54,7 +54,8 @@ class PolicyAssessmentTests(unittest.TestCase):
     def test_no_repair_without_a_target_or_a_violation(self):
         with tempfile.TemporaryDirectory() as tmp:
             sets, _ = self._claims(tmp, violating=True)
-            self.assertIsNone(build_assessment({'render': {'key': 'policy'}, 'fact_ids': [], 'evidence_ids': []}, sets, target=None))
+            self.assertIsNone(build_assessment({'render': {'key': 'policy'}, 'fact_ids': [], 'evidence_ids': []}, sets,
+                                               target=None))
         with tempfile.TemporaryDirectory() as tmp:
             _, claims = self._claims(tmp, violating=False)
             self.assertFalse([c for c in claims if (c.get('render') or {}).get('key') == 'policy'])

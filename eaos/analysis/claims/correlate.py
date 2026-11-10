@@ -174,7 +174,8 @@ def _ids_by_kind(facts, kinds):
 
 def _measurements(facts):
     """(name, unit) of every named measurement the findings carry, sorted."""
-    return sorted({(m['name'], m.get('unit')) for fact in facts for m in fact['value'].get('measurements', []) if m.get('name')})
+    return sorted({(m['name'], m.get('unit')) for fact in facts for m in fact['value'].get('measurements',
+        []) if m.get('name')})
 
 
 def _standing(facts):
@@ -184,7 +185,8 @@ def _standing(facts):
     for fact in facts:
         kind = fact['value']['kind']
         if kind not in MEASURED or over_threshold(fact):
-            out.setdefault(kind, set()).add(f"{fact['value']['engine']}: {(fact.get('location') or {}).get('symbol') or '(file)'}")
+            out.setdefault(kind, set()).add(
+                f"{fact['value']['engine']}: {(fact.get('location') or {}).get('symbol') or '(file)'}")
     return {kind: sorted(found) for kind, found in out.items()}
 
 

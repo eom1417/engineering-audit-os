@@ -22,7 +22,8 @@ LIVE = {stage.name for stage in STAGES if 'app' in stage.uses}
 
 def _commit(project, message):
     subprocess.run(['git', 'add', '-A'], cwd=project, check=True)
-    subprocess.run(['git', '-c', 'user.email=t@t', '-c', 'user.name=t', 'commit', '-qm', message], cwd=project, check=True)
+    subprocess.run(['git', '-c', 'user.email=t@t', '-c', 'user.name=t', 'commit', '-qm', message],
+                   cwd=project, check=True)
 
 
 class PathsTests(unittest.TestCase):
@@ -30,8 +31,10 @@ class PathsTests(unittest.TestCase):
         security = resolve(['security'])
         self.assertFalse(LIVE & set(security['stages']), 'the security path never runs the app')
         self.assertIn('engines', security['stages'])
-        vulnerable = {name for name, adapter in ADAPTERS.items() if 'vulnerability' in {c.kind for c in adapter.capabilities()}}
-        self.assertTrue(vulnerable and vulnerable <= set(security['engines']), 'an engine joins its path by what it finds')
+        vulnerable = {name for name, adapter in ADAPTERS.items()
+                      if 'vulnerability' in {c.kind for c in adapter.capabilities()}}
+        self.assertTrue(vulnerable and vulnerable <= set(security['engines']),
+                        'an engine joins its path by what it finds')
         both = resolve(['look', 'security'])
         self.assertEqual(set(both['stages']), set(security['stages']) | set(resolve(['look'])['stages']))
         self.assertEqual(resolve(['security', 'complete'])['stages'], None)
@@ -43,11 +46,13 @@ class PathsTests(unittest.TestCase):
         self.assertEqual(set(PATTERNS) - {n for p in chosen for n in p.get('patterns', ())}, set())
         kinds = {c.kind for adapter in ADAPTERS.values() for c in adapter.capabilities()}
         self.assertEqual(kinds - {k for p in chosen for k in p.get('kinds', ())}, set())
-        actions = json.loads((Path(__file__).parents[2] / 'eaos/data/studio-actions.json').read_text(encoding='utf-8'))['actions']
+        actions = json.loads((Path(__file__).parents[2] / 'eaos/data/studio-actions.json')
+                             .read_text(encoding='utf-8'))['actions']
         audit = next(a for a in actions if a['id'] == 'audit')['inputs']['properties']
         self.assertEqual(audit['paths']['items']['enum'], list(PATHS), 'the Studio offers every path, in their order')
         named = {n for p in chosen for n in p.get('engines', ())}
-        self.assertEqual({n for n, a in ADAPTERS.items() if not a.capabilities()} - named, set(), 'an engine that names no capability')
+        self.assertEqual({n for n, a in ADAPTERS.items() if not a.capabilities()} - named, set(),
+                         'an engine that names no capability')
 
 
     def test_a_redo_from_a_stage_is_timed_as_that_stage_and_its_readers_only(self):
@@ -62,9 +67,11 @@ class PathsTests(unittest.TestCase):
     def test_a_redo_from_a_check_made_without_the_assistant_runs_without_it_unless_one_is_chosen_now(self):
         from eaos.journeys import check_choices
         with tempfile.TemporaryDirectory() as report:
-            Path(report, 'run-manifest.json').write_text(json.dumps({'stages': {'triage': {'reason_code': 'ai_skipped'}}}))
+            Path(report, 'run-manifest.json').write_text(
+                json.dumps({'stages': {'triage': {'reason_code': 'ai_skipped'}}}))
             self.assertTrue(check_choices.without_ai_kept(report, False, 'reports', False))
-            self.assertFalse(check_choices.without_ai_kept(report, False, 'reports', True), 'an assistant chosen now is used')
+            self.assertFalse(check_choices.without_ai_kept(report, False, 'reports', True),
+                             'an assistant chosen now is used')
             self.assertFalse(check_choices.without_ai_kept(report, False, None, False), 'a new check asks as always')
             Path(report, 'run-manifest.json').write_text(json.dumps({'stages': {'triage': {'status': 'ok'}}}))
             self.assertFalse(check_choices.without_ai_kept(report, False, 'reports', False))
@@ -94,7 +101,8 @@ class FocusedCheckTests(unittest.TestCase):
         self.assertTrue(picture.is_file(), "a focused check deletes nothing of the last one")
         self.assertEqual(second['stages']['lock'].get('checked_at'), first['started_at'])
         page = (self.out / 'START-HERE.md').read_text(encoding='utf-8')
-        self.assertIn('This check followed: Security. It did not look at: Look and screens, Code, Speed and scale', page)
+        self.assertIn('This check followed: Security. It did not look at: Look and screens, Code, '
+                      'Speed and scale', page)
         self.assertIn(f"the check of {first['started_at'][:10]}", page)
         self.assertEqual([t['id'] for t in json.loads((self.out / 'plan.json').read_text(encoding='utf-8'))['tasks']],
                          [t['id'] for t in tasks], 'the cards of the other paths stay')
@@ -104,7 +112,8 @@ class FocusedCheckTests(unittest.TestCase):
         (self.project / 'core' / 'added.py').write_text('def added():\n    return 1\n', encoding='utf-8')
         _commit(self.project, 'more')
         manifest = check(self.project, self.out, language='en', paths=['look'])
-        ran = {name for name, row in manifest['stages'].items() if row.get('reason_code') not in ('outside_paths', 'loop_off')}
+        ran = {name for name, row in manifest['stages'].items()
+               if row.get('reason_code') not in ('outside_paths', 'loop_off')}
         self.assertEqual(ran, set(resolve(['look'])['stages']))
         patterns = {t['pattern'] for t in json.loads((self.out / 'plan.json').read_text(encoding='utf-8'))['tasks']}
         self.assertLessEqual(patterns, set(PATHS['look']['patterns']))

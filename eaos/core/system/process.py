@@ -60,7 +60,8 @@ def wait(process, outputs, cancel=None):
             now = [os.fstat(output.fileno()).st_size for output in outputs]
             if now != sizes: sizes, quiet = now, time.monotonic()
             elif time.monotonic() - quiet > STUCK:
-                raise Stuck(f'the assistant gave no output at all for {STUCK // 60} minutes, so it was stuck and was ended')
+                raise Stuck(f'the assistant gave no output at all for {STUCK // 60} minutes, '
+                            f'so it was stuck and was ended')
             time.sleep(0.25)
     finally:
         if process.poll() is None: _end(process)

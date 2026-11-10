@@ -20,7 +20,8 @@ def _reached(fact_sets, known):
     """Browser-to-server chains only dependency-cruiser followed: (file, message, the engine fact that says it)."""
     return [(f['location']['path'], f['value'].get('message', ''), f['id'])
             for f in (fact_sets.get('external') or {}).get('facts', [])
-            if f.get('kind') == 'engine_finding' and f['value'].get('rule') == REACH and f['location']['path'] not in known]
+            if f.get('kind') == 'engine_finding' and f['value'].get('rule') == REACH
+                and f['location']['path'] not in known]
 
 
 def _claim(fact, add):
@@ -30,9 +31,11 @@ def _claim(fact, add):
     add(value['en'], 'risk', confidence, ['runtime_probe' if value.get('live') else 'static_fact'],
         'The code, the migrations or the built output no longer showing it when the layers are read again.',
         fact_ids=[fact['id']], confidence_ceiling=confidence,
-        render={'key': 'layer_finding', 'params': {'rule': value['rule'], 'boundary': value['boundary'], 'severity': value['severity'],
+        render={'key': 'layer_finding',
+                'params': {'rule': value['rule'], 'boundary': value['boundary'], 'severity': value['severity'],
                                                    'en': value['en'], 'ar': value['ar'], 'fix_en': value['fix_en'],
-                                                   'fix_ar': value['fix_ar'], 'path': where['path'], 'line': where.get('start_line')}},
+                                                   'fix_ar': value['fix_ar'], 'path': where['path'],
+                           'line': where.get('start_line')}},
         probe_spec={'probe_type': 'graph_query',
                     'specification': {'query': 'boundary_finding_present', 'rule': value['rule'], 'path': where['path'],
                                       'params': value['params'], 'expected': 'The layers still show this finding.',
@@ -50,11 +53,13 @@ def layer_findings(fact_sets, add, target):
         params = {'path': path, 'target': message.rsplit(' imports ', 1)[-1].split(',')[0] or 'server code'}
         add(sentence('server-module-in-browser', params), 'risk', 'LIKELY', ['external_engine'],
             'A resolved import chain from this browser file to server code no longer existing.', fact_ids=[fact_id],
-            render={'key': 'layer_finding', 'params': {'rule': 'server-module-in-browser', 'boundary': 'browser', 'severity': 'high',
+            render={'key': 'layer_finding',
+                    'params': {'rule': 'server-module-in-browser', 'boundary': 'browser', 'severity': 'high',
                                                        'en': sentence('server-module-in-browser', params),
                                                        'ar': sentence('server-module-in-browser', params, 'ar'),
                                                        'fix_en': fix('server-module-in-browser', params),
-                                                       'fix_ar': fix('server-module-in-browser', params, 'ar'), 'path': path, 'line': None}},
+                                                       'fix_ar': fix('server-module-in-browser', params, 'ar'),
+                               'path': path, 'line': None}},
             impact={'scenario': fix('server-module-in-browser', params)})
 
 
@@ -71,5 +76,6 @@ def _same(fact, specification):
 def present(specification, sets):
     """The probe of a layer card: CONFIRMED while the layers still show the finding at its file."""
     facts = (sets.get('boundaries') or {}).get('facts') or []
-    if any(_same(fact, specification) for fact in facts): return 'CONFIRMED', f"{specification['rule']} still shown at {specification['path']}"
+    if any(_same(fact, specification) for fact in facts):
+        return 'CONFIRMED', f"{specification['rule']} still shown at {specification['path']}"
     return 'REFUTED', f"the layers no longer show {specification['rule']} at {specification['path']}"

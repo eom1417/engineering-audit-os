@@ -100,7 +100,8 @@ def engine(name, binary, fresh=False, shared=False):
         def analyze(target, workdir, exclude=(), formats=None):
             declined, found = started(name, binary, target)
             if declined: return declined
-            return body(Path(target).resolve(), Path(workdir) if shared else folder(workdir, name, fresh), exclude, formats, found)
+            return body(Path(target).resolve(), Path(workdir) if shared else folder(workdir, name, fresh),
+                        exclude, formats, found)
         return analyze
     return adapter
 

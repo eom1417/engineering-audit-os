@@ -14,7 +14,8 @@ WORDS = {
     'en': {'stage': 'Stage', 'status': 'Status', 'seconds': 'Seconds', 'reason': 'Reason',
            'produced': 'Produced', 'header': 'A stage that did not run proves nothing. Read the absences first.',
            'examined': 'Examined', 'absent': 'Not examined, and why', 'total': 'Total',
-           'without': 'The check started without these tools, whose install failed', 'loops': 'What each loop of the check covered',
+           'without': 'The check started without these tools, whose install failed',
+           'loops': 'What each loop of the check covered',
            'loop': 'Loop', 'covered': 'Covered', 'missed': 'Not covered'},
 }
 STATE = {'ar': {'ok': 'تمّت', 'skipped': 'مُستبعدة', 'unavailable': 'غير متاحة', 'failed': 'فشلت',
@@ -22,7 +23,8 @@ STATE = {'ar': {'ok': 'تمّت', 'skipped': 'مُستبعدة', 'unavailable': 
          'en': {'ok': 'ok', 'skipped': 'skipped', 'unavailable': 'unavailable', 'failed': 'failed',
                 'not_reached': 'not reached'}}
 LOOP_STATE = {'ar': {'met': 'اكتملت', 'explained': 'ناقصة بسبب معروف', 'not_met': 'لم تكتمل', 'running': 'تعمل'},
-              'en': {'met': 'met', 'explained': 'short, for a stated reason', 'not_met': 'not met', 'running': 'running'}}
+              'en': {'met': 'met', 'explained': 'short, for a stated reason', 'not_met': 'not met',
+                     'running': 'running'}}
 GAP = {'ar': ('فجوة كبيرة', 'لم يُغطَّ'), 'en': ('Big gap', 'not covered')}
 
 
@@ -48,7 +50,8 @@ def big_gaps(record, language='ar'):
     for entry in record.get('coverage') or []:
         if not entry.get('big'): continue
         rows = {row['stage']: row for row in entry['missed']}
-        why = '; '.join(f"{_stage_title(name, lang)}: {_reason(rows.get(name) or {})[lang]}" for name in entry['behind'])
+        why = '; '.join(f"{_stage_title(name, lang)}: {_reason(rows.get(name) or {})[lang]}"
+                        for name in entry['behind'])
         lines.append(f"🔴 **{gap}: {entry['name'][lang]}** ({missing}). {why}")
     return lines
 
@@ -93,5 +96,6 @@ def document(manifest, language='ar'):
     _loops(doc, manifest, language, words)
     doc.section(words['absent'])
     doc.table([words['stage'], words['status'], words['reason']],
-              [[row['stage'], states.get(row['status'], row['status']), row['reason'][language]] for row in absences(manifest)])
+              [[row['stage'], states.get(row['status'], row['status']), row['reason'][language]]
+               for row in absences(manifest)])
     return doc

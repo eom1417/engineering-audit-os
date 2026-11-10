@@ -47,7 +47,8 @@ class RuleThirteenTests(unittest.TestCase):
         return validate(out, {'claims': []})
 
     def test_undeclared_and_unexplained_missing_artifacts_are_violations(self):
-        cases = [('ok', {'SURPRISE.md': '# surprise\n'}, 'R13 SURPRISE.md'), (None, {'STRAY.md': '# stray\n'}, 'R13 STRAY.md'),
+        cases = [('ok', {'SURPRISE.md': '# surprise\n'}, 'R13 SURPRISE.md'), (None, {'STRAY.md': '# stray\n'},
+                                                                              'R13 STRAY.md'),
                  ('ok', None, 'R13 CURRENT-STATE.md')]
         for statuses, extra, expected in cases:
             with self.subTest(expected), tempfile.TemporaryDirectory() as directory:
@@ -129,14 +130,16 @@ class SingleWriterTests(unittest.TestCase):
             for name, code in {
                 'root': "(report / 'plan.json').write_text('root')",
                 'behavior': "folder = report / 'behavior-lock'\n(folder / 'plan.json').write_text('nested')",
-                'aliased': "folder = Path(report) / 'behavior-lock'\nalias = folder\n(alias / 'plan.json').write_text('nested')",
+                'aliased': "folder = Path(report) / 'behavior-lock'\nalias = folder\n"
+                           "(alias / 'plan.json').write_text('nested')",
                 'node': "folder = core.folder_of(report, record['node'])\n(folder / 'plan.json').write_text('nested')",
                 'direct': "(report / 'nodes' / 'planner' / 'plan.json').write_text('nested')",
             }.items():
                 (source / (name + '.py')).write_text(code, encoding='utf-8')
             self.assertEqual(self._writers(contract.RECORD, source),
                              {'plan.json': {(source / 'root.py').as_posix()},
-                              'behavior-lock/plan.json': {(source / 'behavior.py').as_posix(), (source / 'aliased.py').as_posix()}})
+                              'behavior-lock/plan.json': {(source / 'behavior.py').as_posix(),
+                                                          (source / 'aliased.py').as_posix()}})
         with tempfile.TemporaryDirectory() as directory:
             source = Path(directory)
             (source / 'first.py').write_text("(report / 'plan.json').write_text('one')", encoding='utf-8')

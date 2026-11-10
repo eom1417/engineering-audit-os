@@ -35,7 +35,8 @@ def _guide(target, report):
     """What the batch would write of the extension guide, or None without a check that read the layers."""
     drawn = project_guide.drawn_from_report(target, report)
     if not drawn: return None
-    return {'path': project_guide.place(project_guide.tracked(target)), 'recipes': [r['title'] for r in drawn['recipes']],
+    return {'path': project_guide.place(project_guide.tracked(target)),
+            'recipes': [r['title'] for r in drawn['recipes']],
             'not_yet': drawn['missing'], 'tokens': len(project_guide.text(drawn, Path(target).name)) // 4}
 
 
@@ -46,9 +47,11 @@ def proposal(target, private_to=None, report=None):
     before = sum(len(text) for text in drawn['before'].values()) // 4
     after = sum(len(drawn['edits'].get(path, text)) for path, text in drawn['before'].items()) // 4
     return {'files': sorted(drawn['before']), 'archive': [row.strip() for _, row in drawn['archive']],
-            'archive_file': drawn['archive_file'], 'kept_once': sorted(drawn['edits']), 'kept_twice': drawn['kept_twice'],
+            'archive_file': drawn['archive_file'], 'kept_once': sorted(drawn['edits']),
+            'kept_twice': drawn['kept_twice'],
             'renamed': drawn['renamed'], 'personal': drawn['personal'], 'private_file': drawn['private_file'],
-            'tokens_before': before, 'tokens_after': after, 'guide': _guide(target, report), 'refused': private_problem(private_to)}
+            'tokens_before': before, 'tokens_after': after, 'guide': _guide(target, report),
+            'refused': private_problem(private_to)}
 
 
 def make(batch):
@@ -57,22 +60,30 @@ def make(batch):
     private_to, report, project, deliver_as}."""
     batch = {**batch, 'kind': 'context', 'items': []}
     root, base = own_batch(batch['target'], batch['runtime'], f"CONTEXT-{batch['number']}")
-    if (why := private_problem(batch.get('private_to')) or _ignored(root, _extra(batch))): return record_batch(batch, root, base, [], [why])
+    if (why := private_problem(batch.get('private_to')) or _ignored(root, _extra(batch))):
+        return record_batch(batch, root, base, [], [why])
     allowed = set(context_trim.plan(root)['before']) | set(_extra(batch))
     try: done = context_trim.apply(root, batch.get('private_to'))
-    except context_trim.Untrimmable as problem: return record_batch(batch, root, base, [], [f'an instruction would be lost or repeated: {problem}'])
+    except context_trim.Untrimmable as problem:
+        return record_batch(batch, root, base, [], [f'an instruction would be lost or repeated: {problem}'])
     written = [*done['written'], *_guide_written(root, batch)]
-    if not written: return record_batch(batch, root, base, [], ['nothing to trim: the context is already as light as it can be made'])
+    if not written: return record_batch(batch, root, base, [],
+                                        ['nothing to trim: the context is already as light as it can be made'])
     allowed |= set(written)
     if (stray := sorted(set(_changed(root)) - allowed)):
         git(root, 'reset', '--hard', '--quiet', base)
-        return record_batch(batch, root, base, [], [f'the trim would write files that are not the context: {", ".join(stray[:5])}'])
-    commit_all(root, f"Trim the assistants' context and keep the extension guide\n\n{done['archived']} done item(s) archived, "
-                     f"{done['tokens_before'] - done['tokens_after']} tokens fewer every session.\n\n{TRAILER}: context")
+        return record_batch(batch, root, base, [],
+                            [f'the trim would write files that are not the context: {", ".join(stray[:5])}'])
+    commit_all(root, f"Trim the assistants' context and keep the extension guide\n\n"
+                     f"{done['archived']} done item(s) archived, "
+                     f"{done['tokens_before'] - done['tokens_after']} tokens fewer every session.\n\n"
+                     f"{TRAILER}: context")
     if (lost := _not_committed(root, written)):
         git(root, 'reset', '--hard', '--quiet', base)
-        return record_batch(batch, root, base, [], [f'the commit does not hold what the trim checked: {", ".join(lost[:5])}'])
-    batch['extra'] = {k: done[k] for k in ('archived', 'private', 'renamed', 'kept_twice', 'tokens_before', 'tokens_after')}
+        return record_batch(batch, root, base, [],
+                            [f'the commit does not hold what the trim checked: {", ".join(lost[:5])}'])
+    batch['extra'] = {k: done[k] for k in ('archived', 'private', 'renamed', 'kept_twice', 'tokens_before',
+                                           'tokens_after')}
     return record_batch(batch, root, base, written, [])
 
 
@@ -101,7 +112,8 @@ def _not_committed(root, written):
 def _extra(batch):
     """The files a trim may add: the archive and the private file."""
     from ...facts.repository.catalog import limits
-    return [limits()['context_archive']] + ([posixpath.normpath(batch['private_to'])] if batch.get('private_to') else [])
+    return [limits()['context_archive']] + (
+        [posixpath.normpath(batch['private_to'])] if batch.get('private_to') else [])
 
 
 def _changed(root):

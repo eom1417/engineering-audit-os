@@ -51,8 +51,8 @@ def analyze(target, workdir, exclude=(), formats=None):
     folder = tool.folder(workdir, NAME, fresh=True)
     output = folder / 'presidio.jsonl'
     python = venv_of(_tool()) / 'bin/python'
-    code, out, error, seconds = run([str(python), '-I', str(SCRIPT), str(Path(target).resolve()), str(RULES), str(output),
-                                     *exclude], cwd=folder)
+    code, out, error, seconds = run([str(python), '-I', str(SCRIPT), str(Path(target).resolve()), str(RULES),
+                                     str(output), *exclude], cwd=folder)
     if code or not output.is_file():
         return tool.failed(NAME, found, seconds, code, error)
     metrics = rows(output.read_text(encoding='utf-8'))

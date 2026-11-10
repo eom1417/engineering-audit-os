@@ -42,12 +42,14 @@ class ArabicName(PatternRecognizer):
     """A common Arabic given name followed by another Arabic word: a person, not a phrase of the interface."""
     def __init__(self, names):
         given = '|'.join(sorted((re.escape(n) for n in names), key=len, reverse=True))
-        super().__init__(supported_entity='AR_NAME', patterns=[Pattern('ar_name', rf'(?<![؀-ۿ])(?:{given})\s+(?:بن\s+)?[؀-ۿ]{{2,}}', 0.7)])
+        super().__init__(supported_entity='AR_NAME',
+                         patterns=[Pattern('ar_name', rf'(?<![؀-ۿ])(?:{given})\s+(?:بن\s+)?[؀-ۿ]{{2,}}', 0.7)])
 
 
 def engine(rules):
     nlp = NlpEngineProvider(nlp_configuration={'nlp_engine_name': 'spacy',
-                                               'models': [{'lang_code': 'en', 'model_name': 'en_core_web_sm'}]}).create_engine()
+                                               'models': [{'lang_code': 'en',
+                                                           'model_name': 'en_core_web_sm'}]}).create_engine()
     analyzer = AnalyzerEngine(nlp_engine=nlp, supported_languages=['en'])
     for entity, regex in rules['patterns'].items():
         kind = Checked if entity in rules['luhn'] else PatternRecognizer
@@ -80,13 +82,15 @@ def placeholder(entity, value, rules):
 
 
 def masked(entity, value):
-    if entity in ('PERSON', 'AR_NAME'): return ' '.join(word[:1] + '•' * max(len(word) - 1, 1) for word in value.split())
+    if entity in ('PERSON', 'AR_NAME'):
+        return ' '.join(word[:1] + '•' * max(len(word) - 1, 1) for word in value.split())
     if '@' in value: return value[:1] + '•••@' + value.rsplit('@', 1)[-1]
     return value[:3] + '•' * max(len(value) - 6, 1) + value[-3:]
 
 
 def digest(entity, value):
-    normal = re.sub(r'\D', '', value) if entity not in ('PERSON', 'AR_NAME', 'EMAIL_ADDRESS') else ' '.join(value.lower().split())
+    normal = re.sub(r'\D', '', value) if entity not in ('PERSON', 'AR_NAME',
+                                                        'EMAIL_ADDRESS') else ' '.join(value.lower().split())
     return hashlib.sha256(normal.encode('utf-8')).hexdigest()[:16]
 
 
@@ -94,7 +98,8 @@ def counted(result, where, value, rules):
     """Whether a hit is a personal value: a strong kind, or a name or phone under a key that names it. A name is a whole
     literal of two words or more (a field's value, never a word inside a sentence of the interface)."""
     if result.score < rules['min_score']: return False
-    if result.entity_type in ('PERSON', 'AR_NAME') and (value != where[4].strip() or len(value.split()) < 2): return False
+    if result.entity_type in ('PERSON', 'AR_NAME') and (value != where[4].strip()
+                                                       or len(value.split()) < 2): return False
     if result.entity_type == 'PERSON' and not LATIN.fullmatch(value): return False
     if result.entity_type in rules['strong']: return True
     keys = rules.get(rules['keyed'].get(result.entity_type, ''), ())
@@ -114,8 +119,10 @@ def results(analyzer, found, rules):
     """(text, offsets, Presidio's results): the patterns over every literal, read without the language model; the
     model's names only in each literal under a name key, read alone, so a file is never read whole by it."""
     text, offsets = joined(found)
-    patterns = [r for r in analyzer.registry.recognizers if r.supported_entities[0] in rules['strong'] + ['PHONE_NUMBER']]
-    out = [hit for recognizer in patterns for hit in recognizer.analyze(text, recognizer.supported_entities, None) or ()]
+    patterns = [r for r in analyzer.registry.recognizers if r.supported_entities[0] in rules['strong']
+                + ['PHONE_NUMBER']]
+    out = [hit for recognizer in patterns for hit in recognizer.analyze(text, recognizer.supported_entities, None)
+           or ()]
     for start, end, line, key, value in offsets:
         if not any(word in key for word in rules['name_keys']): continue
         # one value alone, as a field holds it
@@ -139,7 +146,8 @@ def hits(analyzer, rel, text, rules):
         if where is None or not counted(result, where, value, rules): continue
         out.append({'path': rel, 'line': where[2], 'key': where[3], 'entity': result.entity_type,
                     'score': round(result.score, 2), 'masked': masked(result.entity_type, value),
-                    'digest': digest(result.entity_type, value), 'placeholder': placeholder(result.entity_type, value, rules)})
+                    'digest': digest(result.entity_type, value),
+                    'placeholder': placeholder(result.entity_type, value, rules)})
     return _best(out)
 
 

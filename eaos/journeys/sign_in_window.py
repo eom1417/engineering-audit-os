@@ -27,9 +27,11 @@ class Browser:
         self.folder = tempfile.TemporaryDirectory(prefix='eaos-sign-in-')
         config = Path(self.folder.name) / 'config.json'
         config.write_text(json.dumps({'base': base, 'state': str(state), 'headed': headed,
-                                      'modules': {'playwright': str(toolchain.home() / 'node/node_modules')}}), encoding='utf-8')
-        self.process = subprocess.Popen(['node', str(SCRIPT), str(config)], stdin=subprocess.PIPE, stdout=subprocess.PIPE,
-                                        stderr=subprocess.DEVNULL, text=True, start_new_session=True,
+                                      'modules': {'playwright': str(toolchain.home() / 'node/node_modules')}}),
+                          encoding='utf-8')
+        self.process = subprocess.Popen(['node', str(SCRIPT), str(config)], stdin=subprocess.PIPE,
+                                        stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, text=True,
+                                        start_new_session=True,
                                         env={**os.environ, 'PLAYWRIGHT_BROWSERS_PATH': str(toolchain.browsers())})
         self.lock = threading.Lock()
 
@@ -39,7 +41,8 @@ class Browser:
             if self.process.poll() is not None: raise LookupError('the sign-in browser has closed: open it again')
             self.process.stdin.write(json.dumps(command) + '\n')
             self.process.stdin.flush()
-            if not select.select([self.process.stdout], [], [], timeout)[0]: raise TimeoutError('the sign-in browser did not answer')
+            if not select.select([self.process.stdout], [], [], timeout)[0]:
+                raise TimeoutError('the sign-in browser did not answer')
             return json.loads(self.process.stdout.readline() or '{}')
 
     def done(self):
@@ -69,8 +72,10 @@ def _asked(workspace):
 def status(project):
     state = _state(project)
     record = sign_in.asked(state['workspace'])
-    return {'asked': {k: record[k] for k in ('asked', 'until', 'base', 'why', 'published', 'tried') if k in record} if record else None,
-            'open': state['workspace'] in _OPEN, 'kept': sign_in.by_hand(sign_in.session(project_state.runtime_of(state))),
+    return {'asked': {k: record[k] for k in ('asked', 'until', 'base', 'why', 'published', 'tried')
+                      if k in record} if record else None,
+            'open': state['workspace'] in _OPEN,
+            'kept': sign_in.by_hand(sign_in.session(project_state.runtime_of(state))),
             'codes': sign_in.codes(record) if record else None}
 
 
@@ -86,7 +91,8 @@ def done(project):
     """The person is in: the session saved by hand (kept as their way to sign in), and the check goes on."""
     state = _state(project)
     browser = _OPEN.pop(state['workspace'], None)
-    if browser is None or not browser.done(): raise LookupError('the sign-in browser is not open: open it, sign in, then press done')
+    if browser is None or not browser.done():
+        raise LookupError('the sign-in browser is not open: open it, sign in, then press done')
     sign_in.answer(state['workspace'], sign_in.SIGNED_IN)
     from .check_choices import keep
     if keep(state, sign_in='hand'): guided.save(state)

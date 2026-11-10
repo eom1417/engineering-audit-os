@@ -62,7 +62,8 @@ def _card_radius(document, task, language):
     if not task['paths']:
         document.text('هذا الادعاء يخص المنتج ككل ولا يشير إلى ملف بعينه، فلا نطاق أثر محسوبًا له؛ '
                       'حدّد الملفات المعنية أثناء التحقيق.' if language == 'ar' else
-                      'This claim is about the product as a whole and names no file, so there is no computed blast radius; identify the affected files during the investigation.')
+                      'This claim is about the product as a whole and names no file, so there is no computed '
+                      'blast radius; identify the affected files during the investigation.')
         return False
     document.bullets([
         f"الملفات المعنية: {capped(task['paths'])}" if language == 'ar' else f"files: {capped(task['paths'])}",
@@ -84,7 +85,8 @@ def _card_options(document, task, language):
                    ([['Investigate the requirement', 'unknown', 'Determine repair or retain'],
                      ['Keep current design', 'unknown', 'Valid outcome if no violation is established']]
                     if language == 'en' and task['kind'] == 'investigate' else
-                    [[option.get('option'), option.get('cost'), option.get('verdict', '')] for option in task['options']]))
+                    [[option.get('option'), option.get('cost'), option.get('verdict', '')]
+                     for option in task['options']]))
     if task.get('before') or task.get('after'):
         document.section(tr('قبل وبعد', 'Before and after'))
         document.bullets([str(task.get('before')), str(task.get('after'))])
@@ -95,12 +97,15 @@ def _card_steps(document, task, language):
     tr = partial(say, language)
     document.section(tr('التغيير المقترح', 'Proposed change'))
     localized = falsifier_of({'falsifier': task['evidence']['falsifier'], 'render': task.get('render')}, language)
-    prefix = 'Establish or refute this observation before changing code: ' if language == 'en' else 'أثبت هذا الادعاء أو انقضه قبل أي تغيير: '
+    prefix = ('Establish or refute this observation before changing code: ' if language == 'en'
+              else 'أثبت هذا الادعاء أو انقضه قبل أي تغيير: ')
     document.text(prefix + localized if task['kind'] == 'investigate' else task['change'])
     document.section(tr('معيار القبول', 'Acceptance criterion'))
-    document.table([tr('الأمر', 'Command'), tr('المتوقع', 'Expected')], [[step['command'], step['expect']] for step in task['acceptance']])
+    document.table([tr('الأمر', 'Command'), tr('المتوقع', 'Expected')],
+                   [[step['command'], step['expect']] for step in task['acceptance']])
     document.section(tr('التراجع', 'Rollback'))
-    document.text('No code changes during investigation.' if language == 'en' and task['kind'] == 'investigate' else task['rollback'])
+    document.text('No code changes during investigation.'
+                  if language == 'en' and task['kind'] == 'investigate' else task['rollback'])
     document.section(tr('التقدير', 'Effort'))
     document.text(tr(f"{task['effort']} · ثقة التقدير: {task['effort_confidence']}",
                      f"{task['effort']} · estimate confidence: {task['effort_confidence']}"))
@@ -110,7 +115,9 @@ def _compact_waves(document, plan, by_id, language):
     """One row per wave: every task id kept, every title deferred to its card."""
     tr = partial(say, language)
     conditions = {(wave['entry_condition'], wave['exit_condition']) for wave in plan}
-    document.header([tr(*SHARED_FILE), tr(f"{len(plan)} موجات · التفاصيل في بطاقات PLAN/", f'{len(plan)} waves · the detail is in the PLAN/ cards')])
+    document.header([tr(*SHARED_FILE),
+                     tr(f"{len(plan)} موجات · التفاصيل في بطاقات PLAN/",
+                        f'{len(plan)} waves · the detail is in the PLAN/ cards')])
     if len(conditions) == 1:
         document.bullets(list(_condition_lines(*conditions.copy().pop(), language)))
     document.table(['#', tr('المهام', 'Tasks'), tr('النوع', 'Kinds'), tr('الأولوية', 'Top priority')],

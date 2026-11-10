@@ -14,7 +14,8 @@ from eaos.facts.store import read_set
 ROOT = Path(__file__).resolve().parents[1]
 FIXTURE = ROOT / 'fixtures/polyglot'
 GOLDEN = ROOT / 'fixtures/golden'
-SETS = ['syntax', 'resolve', 'structure', 'fingerprint', 'redundancy', 'runtime', 'entrypoints', 'config', 'metrics', 'domain', 'graph', 'flows', 'leftovers', 'deadcode', 'broken', 'secrets', 'repository']
+SETS = ['syntax', 'resolve', 'structure', 'fingerprint', 'redundancy', 'runtime', 'entrypoints', 'config', 'metrics',
+        'domain', 'graph', 'flows', 'leftovers', 'deadcode', 'broken', 'secrets', 'repository']
 
 
 class GoldenFactTests(TemporaryWorkspace):
@@ -64,7 +65,8 @@ class StoreTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as out:
             rows = [make('symbol', 'syntax', '3', 'sha', {'path': f'a{i}.py'}, {'n': i}, limitations=['syntax only'])
                     for i in range(3)]
-            entries = [store.write_set(out, 'syntax', 'syntax', '3', ['syntax only'], {'facts': rows, 'input_sha': 'sha'}),
+            entries = [store.write_set(out, 'syntax', 'syntax', '3', ['syntax only'],
+                                       {'facts': rows, 'input_sha': 'sha'}),
                        store.write_set(out, 'graph', 'graph', '1', [], {'facts': [], 'input_sha': 'sha'})]
             store.write_index(out, out, entries)
             self.assertNotIn('limitations', json.loads((Path(out) / 'facts/syntax.json').read_text())['facts'][0])

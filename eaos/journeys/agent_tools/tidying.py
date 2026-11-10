@@ -13,9 +13,11 @@ from .project import _head, _report, _start, state_of
 from .running import CONSENT, _consented
 from ...core.system.clock import now
 
-SAID = {'moves': ('the moves passed the move gate (the same public surface, every test back with its name and result, the '
+SAID = {'moves': ('the moves passed the move gate (the same public surface, every test back with its name and result, '
+                  'the '
                   'build and every screen)'),
-        'context': 'the context is lighter and every instruction is still said once (the done items kept in the archive)'}
+        'context': 'the context is lighter and every instruction is still said once (the done items kept in the '
+                   'archive)'}
 
 
 def moves_propose(project=None):
@@ -23,9 +25,11 @@ def moves_propose(project=None):
     from ..fix.move_batch import proposal
     state = state_of(project)
     drawn = proposal(_report(state), guided.source(state))
-    return {**drawn, 'what_now': ('Show the person the tree (today → proposed) and the reason of each move, in plain words, '
+    return {**drawn,
+            'what_now': ('Show the person the tree (today → proposed) and the reason of each move, in plain words, '
                                   'and what `limits` says. '
-                                  'Ask which moves they accept; then call moves_make with their ids and person_agreed=true. '
+                                  'Ask which moves they accept; then call moves_make with their ids and '
+                                  'person_agreed=true. '
                                   'Nothing moves without their choice.' if drawn['moves'] else
                                   'Nothing to move: tell the person the layout needs no move.')}
 
@@ -36,7 +40,8 @@ def moves_make(project=None, moves=None, person_agreed=False):
     stop, chosen = _not_now(state) or _chosen(state, moves)
     if stop: return stop
     if not person_agreed:
-        return {'status': 'needs_agreement', 'ask_the_person': f'Move {len(chosen)} file(s) on a new branch, proved to change nothing?',
+        return {'status': 'needs_agreement',
+                'ask_the_person': f'Move {len(chosen)} file(s) on a new branch, proved to change nothing?',
                 'what_now': 'Only if the person says yes, call moves_make again with person_agreed=true.'}
     return _start('moves_make', state, {'moves': [{k: m[k] for k in ('id', 'from', 'to')} for m in chosen]})
 
@@ -46,10 +51,15 @@ def context_propose(project=None, private_to=None):
     from ..fix.context_batch import proposal
     state = state_of(project)
     drawn = proposal(guided.source(state), private_to, guided.report_of(state))
-    return {**drawn, 'what_now': ('Tell the person, plainly, what the trim does (the done items it archives, the lines said twice it '
-                                  'keeps once, the paths it fixes) and the tokens saved, and the extension guide it writes (`guide`: '
-                                  'its file and recipes, with one line in the context files pointing at it). Lines in `personal` are their own ways: ask '
-                                  'whether to move them to a private file they name (private_to). Then context_make with '
+    return {**drawn,
+            'what_now': ('Tell the person, plainly, what the trim does (the done items it archives, the lines said '
+                         'twice it '
+                                  'keeps once, the paths it fixes) and the tokens saved, and the extension guide it '
+                                  'writes (`guide`: '
+                                  'its file and recipes, with one line in the context files pointing at it). Lines in '
+                                  '`personal` are their own ways: ask '
+                                  'whether to move them to a private file they name (private_to). Then context_make '
+                                  'with '
                                   'person_agreed=true.')}
 
 
@@ -59,7 +69,9 @@ def context_make(project=None, private_to=None, person_agreed=False):
     stop = _not_now(state)
     if stop: return stop[0]
     if not person_agreed:
-        return {'status': 'needs_agreement', 'ask_the_person': "Trim the assistants' context and write the project's extension guide on a new branch, every instruction kept?",
+        return {'status': 'needs_agreement',
+                'ask_the_person': "Trim the assistants' context and write the project's extension guide on a new "
+                                  "branch, every instruction kept?",
                 'what_now': 'Only if the person says yes, call context_make again with person_agreed=true.'}
     return _start('context_make', state, {'private_to': private_to})
 
@@ -79,20 +91,26 @@ def _not_chosen(named, drawn, chosen):
     none named, or one the tool cannot make; else None."""
     if (gone := [i for i in named if i not in drawn]):
         return {'status': 'error', 'error': f"no longer proposed: {', '.join(gone[:5])}; call moves_propose again"}
-    if not chosen: return {'status': 'error', 'error': 'no move of the proposal was named: call moves_propose and pass the ids the person accepted'}
+    if not chosen: return {'status': 'error',
+                           'error': 'no move of the proposal was named: call moves_propose and pass the ids the person '
+                                    'accepted'}
     if (cannot := [m['id'] for m in chosen if m['refused']]):
-        return {'status': 'error', 'error': f"these moves cannot be made: {', '.join(cannot)} (see `refused` in moves_propose)"}
+        return {'status': 'error',
+                'error': f"these moves cannot be made: {', '.join(cannot)} (see `refused` in moves_propose)"}
     return None
 
 
 def _not_now(state):
     """(why no batch of its own may start: no agreement to run the app, or a batch open or waiting; []), or None."""
     if not _consented(state): return {'status': 'needs_agreement', 'ask_the_person': CONSENT,
-                                      'what_now': 'Ask the person; if they agree, call run_setup with person_agreed=true.'}, []
+                                      'what_now': 'Ask the person; if they agree, call run_setup with '
+                                                  'person_agreed=true.'}, []
     if not guided.set_up(state, _head(state)): return {'status': 'not_set_up', 'what_now': 'Call run_setup first.'}, []
     if state.get('open_wave') or waiting_batch(state):
-        return {'status': 'batch_waiting', 'what_now': 'A batch is open or waits for the person\'s decision: a batch of moves or of the '
-                                                       'context never mixes with another. Finish it or close it with fix_abandon, accept it or undo it first.'}, []
+        return {'status': 'batch_waiting',
+                'what_now': 'A batch is open or waits for the person\'s decision: a batch of moves or of the '
+                                                       'context never mixes with another. Finish it or close it with '
+                                                       'fix_abandon, accept it or undo it first.'}, []
     return None
 
 
@@ -108,11 +126,13 @@ def _context_job(project, arguments, progress):
     from ..fix.context_batch import make
     progress(0, 1, "trimming the assistants' context")
     return _own_batch(project, 'context', lambda state, batch: make({**batch, 'private_to': arguments.get('private_to'),
-                                                                  'report': guided.report_of(state), 'project': state['project']}))
+                                                                  'report': guided.report_of(state),
+                                                                     'project': state['project']}))
 
 
 def _own_batch(project, kind, made):
-    """A batch of its own made by `made(state, batch)`, then handed over as a branch waiting for the person's decision."""
+    """A batch of its own made by `made(state, batch)`, then handed over as a branch waiting for the person's
+    decision."""
     from ..fix.waves import apply as hand_over
     state = project_state.load(project)
     number = sum(1 for w in state.get('waves') or [] if w.get('kind') == kind) + 1
@@ -121,15 +141,18 @@ def _own_batch(project, kind, made):
                            'deliver_as': f'eaos/{branches.slug(working)}/{kind}-{number}'})
     if not summary['kept']:
         return {'batch': number, 'branch': None, 'refused': summary['refused'],
-                'what_now': 'Tell the person, plainly, that the batch was refused as a whole and why (refused): nothing reached their project.'}
+                'what_now': 'Tell the person, plainly, that the batch was refused as a whole and why (refused): '
+                            'nothing reached their project.'}
     hand_over(state['project'], summary)
     state = project_state.load(project)
     state.setdefault('waves', []).append({
         'number': len(state.get('waves') or []) + 1, 'kind': kind, 'cards': [], 'kept': summary['kept'], 'failed': {},
-        'items': summary['items'], 'base': summary['base'], 'branch': summary['branch'], 'stat': summary['stat'], 'status': 'applied',
+        'items': summary['items'], 'base': summary['base'], 'branch': summary['branch'], 'stat': summary['stat'],
+                                          'status': 'applied',
         'opened': now(), 'merge_into': working, 'base_branch': working,
         'tip': guided._git(state['project'], 'rev-parse', summary['branch']).stdout.strip()})
     guided.save(state)
     return {'batch': number, 'branch': summary['branch'], 'kept': summary['kept'], 'changes': summary['stat'],
-            'what_now': (f"Tell the person {SAID[kind]}, and that it waits on the branch {summary['branch']}; their current branch is "
+            'what_now': (f"Tell the person {SAID[kind]}, and that it waits on the branch {summary['branch']}; their "
+                         f"current branch is "
                          'unchanged. Ask whether to take it in (accept) or throw it away (undo).')}

@@ -25,8 +25,10 @@ LIMITATIONS = [
     'Row-level security and access policies are read from .sql files in path order, which is migration order when '
     'names carry a timestamp; a policy created from a dashboard and never written to SQL is not seen.',
 ]
-JS_CONST = re.compile(r'^[ \t]*(?:export\s+)?(?:const|let|var)\s+(?P<name>[A-Z][A-Z0-9_]{2,})\s*=\s*(?P<value>[^;\n]+)', re.M)
-# The name is never the keyword: `CREATE TABLE IF NOT EXISTS ${name}` (a name built at run time) is no table called "IF".
+JS_CONST = re.compile(r'^[ \t]*(?:export\s+)?(?:const|let|var)\s+(?P<name>[A-Z][A-Z0-9_]{2,})\s*=\s*(?P<value>[^;\n]+)',
+                      re.M)
+# The name is never the keyword: `CREATE TABLE IF NOT EXISTS ${name}` (a name built at run time) is no table called
+# "IF".
 SQL_TABLE = re.compile(r'CREATE\s+TABLE\s+(?:IF\s+NOT\s+EXISTS\s+)?[`"\[]?(?!IF\b)(?P<name>[\w.]+)', re.I)
 # Prose that quotes a schema (a plan, a README) declares no table.
 PROSE = ('.md', '.mdx', '.markdown', '.txt', '.rst')
@@ -34,9 +36,12 @@ ORM_MODEL = re.compile(r'^[ \t]*class\s+(?P<name>\w+)\s*\(([^)]*(?:Model|Base|Do
 TS_MODEL = re.compile(r'^[ \t]*(?:export\s+)?(?:interface|type)\s+(?P<name>\w+)\s*[={]', re.M)
 MIGRATION = re.compile(r'(migrations?|alembic|flyway|liquibase)/', re.I)
 SQL_NAME = r'(?P<table>(?:"?\w+"?\.)?"?\w+"?)'
-SQL_RLS = re.compile(r'ALTER\s+TABLE\s+(?:IF\s+EXISTS\s+)?(?:ONLY\s+)?' + SQL_NAME + r'\s+ENABLE\s+ROW\s+LEVEL\s+SECURITY', re.I)
-SQL_POLICY = re.compile(r'CREATE\s+POLICY\s+(?P<quote>"?)(?P<name>.+?)(?P=quote)\s+ON\s+' + SQL_NAME + r'(?P<body>[^;]*)', re.I | re.S)
-SQL_DROP_POLICY = re.compile(r'DROP\s+POLICY\s+(?:IF\s+EXISTS\s+)?(?P<quote>"?)(?P<name>.+?)(?P=quote)\s+ON\s+' + SQL_NAME, re.I)
+SQL_RLS = re.compile(r'ALTER\s+TABLE\s+(?:IF\s+EXISTS\s+)?(?:ONLY\s+)?' + SQL_NAME
+                     + r'\s+ENABLE\s+ROW\s+LEVEL\s+SECURITY', re.I)
+SQL_POLICY = re.compile(r'CREATE\s+POLICY\s+(?P<quote>"?)(?P<name>.+?)(?P=quote)\s+ON\s+' + SQL_NAME
+                        + r'(?P<body>[^;]*)', re.I | re.S)
+SQL_DROP_POLICY = re.compile(r'DROP\s+POLICY\s+(?:IF\s+EXISTS\s+)?(?P<quote>"?)(?P<name>.+?)(?P=quote)\s+ON\s+'
+                             + SQL_NAME, re.I)
 SQL_DROP_TABLE = re.compile(r'DROP\s+TABLE\s+(?:IF\s+EXISTS\s+)?' + SQL_NAME, re.I)
 SQL_OPEN = re.compile(r'\b(USING|WITH\s+CHECK)\s*\(\s*true\s*\)', re.I)
 # Per-module metadata, not shared domain rules: repeating these names says nothing about rule ownership.
@@ -130,8 +135,10 @@ def _add_mutables(found, rel, text, language, rows):
 def _scan_python(found, rel, text, owned):
     for name, value, line in python_constants(text): found['constants'][name].append((rel, line, value))
     _add_mutables(found, rel, text, 'python', python_mutable_globals(text))
-    found['external_writes'] += [(rel, module, attribute, line) for module, attribute, line in python_external_writes(text, owned)]
-    found['models'] += [(match.group('name'), rel, _line(text, match), 'python_class') for match in ORM_MODEL.finditer(text)]
+    found['external_writes'] += [(rel, module, attribute, line) for module, attribute,
+                                 line in python_external_writes(text, owned)]
+    found['models'] += [(match.group('name'), rel, _line(text, match),
+                         'python_class') for match in ORM_MODEL.finditer(text)]
 
 
 def _js_value(raw):
@@ -142,7 +149,8 @@ def _js_value(raw):
 def _scan_js(found, rel, text, language):
     _add_mutables(found, rel, text, language, js_mutable_globals(text))
     for match in JS_CONST.finditer(text):
-        found['constants'][match.group('name')].append((rel, _line(text, match), _js_value(match.group('value').strip().rstrip(','))))
+        found['constants'][match.group('name')].append((rel, _line(text, match),
+                                                        _js_value(match.group('value').strip().rstrip(','))))
     found['models'] += [(match.group('name'), rel, _line(text, match), 'ts_type') for match in TS_MODEL.finditer(text)]
 
 
@@ -174,7 +182,8 @@ def _constant_fact(name, places):
     per_module_identifier = (len(places) > 1 and len(values) == len(places)
                              and all(isinstance(value, str) for _, _, value in places))
     duplicate = len(places) > 1 and name not in CONVENTIONAL and not per_module_identifier
-    return make('domain_constant', NAME, VERSION, digest(name.encode('utf-8')), {'path': places[0][0], 'start_line': places[0][1]},
+    return make('domain_constant', NAME, VERSION, digest(name.encode('utf-8')), {'path': places[0][0],
+                                                                                 'start_line': places[0][1]},
                 {'name': name, 'definitions': [{'path': path, 'line': line} for path, line, _ in places],
                  'distinct_values': len(values), 'duplicated': duplicate,
                  'same_value_everywhere': len(values) == 1 and duplicate,
@@ -213,10 +222,12 @@ def _facts(found):
     constants = found['constants']
     facts = [_constant_fact(name, sorted(constants[name])) for name in sorted(constants)]
     facts += [make('data_model', NAME, VERSION, digest((name + rel).encode('utf-8')), {'path': rel, 'start_line': line},
-                   {'name': name, 'kind': kind}, limitations=LIMITATIONS) for name, rel, line, kind in sorted(found['models'])]
+                   {'name': name, 'kind': kind}, limitations=LIMITATIONS) for name, rel, line,
+                   kind in sorted(found['models'])]
     access = sql_access(found['sql_files'])
     facts += [make('data_table', NAME, VERSION, digest((name + rel).encode('utf-8')), {'path': rel, 'start_line': line},
-                   _table_value(name, rel, access), limitations=LIMITATIONS) for name, rel, line in sorted(found['tables'])]
+                   _table_value(name, rel, access), limitations=LIMITATIONS) for name, rel,
+                   line in sorted(found['tables'])]
     facts += [_policy_fact(table, name, policy) for (table, name), policy in sorted(access['policies'].items())]
     facts += [_mutable_fact(row) for row in sorted(found['mutable_globals'])]
     facts += [make('external_state_write', NAME, VERSION, digest((rel + module + attribute).encode('utf-8')),
@@ -230,18 +241,21 @@ def _summary(facts, found):
     constants, mutable_globals = found['constants'], found['mutable_globals']
     return {'constants': len(constants), **_duplicates(facts, constants),
             'excluded_from_duplication': sorted({fact['value']['name'] for fact in facts
-                                                 if fact['kind'] == 'domain_constant' and fact['value'].get('excluded_reason')}),
+                                                 if fact['kind'] == 'domain_constant'
+                                                 and fact['value'].get('excluded_reason')}),
             'mutable_globals': len(mutable_globals),
             'mutable_globals_changed_at_runtime': sum(1 for row in mutable_globals if row[6] == 'function'),
             'external_state_writes': len(found['external_writes']),
             'data_models': len(found['models']), 'data_tables': len(found['tables']),
             'migration_paths': sorted(set(found['migrations']))[:20],
-            'interpretation': 'A constant repeated in two modules is a question about rule ownership, not yet a defect.'}
+            'interpretation': 'A constant repeated in two modules is a question about rule ownership, not yet a '
+                              'defect.'}
 
 
 def _duplicates(facts, constants):
     """How many constants are written in more than one place, and which of them hold the same value or differ."""
-    flagged = {fact['value']['name'] for fact in facts if fact['kind'] == 'domain_constant' and fact['value']['duplicated']}
+    flagged = {fact['value']['name'] for fact in facts
+               if fact['kind'] == 'domain_constant' and fact['value']['duplicated']}
     distinct = lambda name: len({repr(v) for _, _, v in constants[name]})
     return {'duplicated_constants': len(flagged),
             'duplicated_with_same_value': sorted(name for name in flagged if distinct(name) == 1),

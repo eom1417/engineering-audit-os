@@ -55,7 +55,8 @@ def justification(result, root, sites):
 
 
 def _suppressed(result):
-    return any(s.get('kind') == 'inSource' and s.get('status') in (None, 'accepted') for s in result.get('suppressions') or [])
+    return any(s.get('kind') == 'inSource' and s.get('status') in (None, 'accepted')
+               for s in result.get('suppressions') or [])
 
 
 def _said(lines, line):
@@ -80,7 +81,8 @@ def _score(raw):
 
 
 def _severity(result, rule, floor):
-    score = _score((result.get('properties') or {}).get('security-severity') or (rule.get('properties') or {}).get('security-severity'))
+    score = _score((result.get('properties') or {}).get('security-severity')
+                   or (rule.get('properties') or {}).get('security-severity'))
     if score is not None:
         severity = 'critical' if score >= 9 else 'high' if score >= 7 else 'medium' if score >= 4 else 'low'
     else: severity = {'error': 'high', 'warning': 'medium'}.get(_level(result, rule), 'low')
@@ -93,7 +95,8 @@ def _level(result, rule):
 
 
 def _tags(result, rule):
-    return [tag for tag in ((rule.get('properties') or {}).get('tags') or []) + ((result.get('properties') or {}).get('tags') or [])
+    return [tag for tag in ((rule.get('properties') or {}).get('tags') or [])
+            + ((result.get('properties') or {}).get('tags') or [])
             if isinstance(tag, str)]
 
 
@@ -187,12 +190,16 @@ class Declared:
         if declined := tool.declined(self.NAME, self.entry['binary'], target): return declined
         output = Path(workdir) / self.NAME / 'out.sarif'
         output.parent.mkdir(parents=True, exist_ok=True)
-        args = [str(a).replace('{target}', str(Path(target).resolve())).replace('{output}', str(output)) for a in self.entry['engine']['args']]
+        args = [str(a).replace('{target}', str(Path(target).resolve())).replace('{output}', str(output))
+                for a in self.entry['engine']['args']]
         code, _, error, seconds = run([which(self.entry['binary']), *args], cwd=output.parent)
-        if not output.is_file(): return Report(self.NAME, self.version(), self.PINNED, ERROR, seconds=seconds, reason=error.strip()[-300:] or f'exit {code}')
-        findings, unmapped = read(output, self.NAME, self.version(), self.entry['engine'].get('rules') or [{'match': '*', 'kind': 'risk'}],
-                                  target)
-        return Report(self.NAME, self.version(), self.PINNED, OBSERVED, seconds=seconds, findings=findings, unmapped=unmapped, raw=str(output))
+        if not output.is_file():
+            return Report(self.NAME, self.version(), self.PINNED, ERROR, seconds=seconds,
+                          reason=error.strip()[-300:] or f'exit {code}')
+        findings, unmapped = read(output, self.NAME, self.version(),
+                                  self.entry['engine'].get('rules') or [{'match': '*', 'kind': 'risk'}], target)
+        return Report(self.NAME, self.version(), self.PINNED, OBSERVED, seconds=seconds, findings=findings,
+                      unmapped=unmapped, raw=str(output))
 
 
 def declared():

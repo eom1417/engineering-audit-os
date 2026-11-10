@@ -64,7 +64,8 @@ def _recursive_callers(source):
 
 def _calls_itself(function):
     """Whether a function's body calls it by its bare name."""
-    return function.name in {c.func.id for c in ast.walk(function) if isinstance(c, ast.Call) and isinstance(c.func, ast.Name)}
+    return function.name in {c.func.id for c in ast.walk(function) if isinstance(c, ast.Call) and isinstance(c.func,
+                                                                                                             ast.Name)}
 
 
 def _pyproject_entry_points(text):
@@ -73,7 +74,8 @@ def _pyproject_entry_points(text):
                               text):
         names.add(match.group('name'))
     for match in _re.finditer(
-            r'''\[\[project\.entry-points\.([^\]]+)\]\][^\[]*?(?P<name>[A-Za-z_][\w.-]*)\s*=\s*[A-Za-z_][\w.]*:(?P<callable>[A-Za-z_][\w]*)''',
+            r'''\[\[project\.entry-points\.([^\]]+)\]\][^\[]*?(?P<name>[A-Za-z_][\w.-]*)\s*=\s*'''
+            r'''[A-Za-z_][\w.]*:(?P<callable>[A-Za-z_][\w]*)''',
             text):
         names.add(f"{match.group('name')}:{match.group('callable')}")
     return names

@@ -13,7 +13,8 @@ def packages(source, known):
     above it."""
     folders = {''}
     for path in known:
-        if path.endswith('.dart'): folders |= {parent.as_posix() for parent in PurePosixPath(path).parents if parent.as_posix() != '.'}
+        if path.endswith('.dart'):
+            folders |= {parent.as_posix() for parent in PurePosixPath(path).parents if parent.as_posix() != '.'}
     found = {}
     for folder in sorted(folders, key=len):
         named = NAME.search(source.text(posixpath.join(folder, 'pubspec.yaml')) or '')

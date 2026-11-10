@@ -16,7 +16,8 @@ NOT_APPLICABLE = 'not_applicable'
 # and counted, so an unmapped rule shows up as reduced coverage instead of silently disappearing.
 KINDS = ('cycle', 'coupling', 'complexity', 'duplication', 'dead_code', 'dataflow', 'surface',
          'literal_duplication', 'test_quality', 'naming', 'boundary',
-         'symbol_metric_external', 'vulnerability', 'misconfiguration', 'secret', 'sql_quality', 'api_contract', 'unused_dependency')
+         'symbol_metric_external', 'vulnerability', 'misconfiguration', 'secret', 'sql_quality', 'api_contract',
+         'unused_dependency')
 
 
 # At what resolution an engine answers a question. Two engines disagreeing about cycles while
@@ -62,7 +63,8 @@ class Report:
         return {'engine': self.engine, 'version': self.version, 'pinned_version': self.pinned_version,
                 'status': self.status, 'seconds': round(self.seconds, 3), 'reason': self.reason,
                 'findings': self.findings, 'coverage': self.coverage, 'provenance': self.provenance,
-                'raw': self.raw, 'unmapped_rules': self.unmapped, 'evaluated_kinds': dict(sorted(self.evaluated.items())),
+                'raw': self.raw, 'unmapped_rules': self.unmapped,
+                'evaluated_kinds': dict(sorted(self.evaluated.items())),
                 'version_matches_pin': self.version == self.pinned_version, 'artifacts': self.artifacts,
                 'metrics': self.metrics}
 

@@ -48,7 +48,8 @@ def _number_problems(value, schema, where, root):
 def _text_problems(value, schema, where, root):
     problems = []
     if len(value) < schema.get('minLength', 0): problems.append(f'{where}: shorter than {schema["minLength"]}')
-    if 'pattern' in schema and not re.search(schema['pattern'], value): problems.append(f'{where}: {value!r} does not match {schema["pattern"]}')
+    if 'pattern' in schema and not re.search(schema['pattern'], value): problems.append(
+        f'{where}: {value!r} does not match {schema["pattern"]}')
     return problems
 
 

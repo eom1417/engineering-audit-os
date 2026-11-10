@@ -36,7 +36,8 @@ def analyze(target, workdir, exclude, formats, found):
     names = [re.escape(name.strip('/')) for name in EXCLUDED + tuple(exclude) if name.strip('/')]
     config.write_text(CONFIG.replace('{names}', '|'.join(names)), encoding='utf-8')
     code, _, error, seconds = run([which(BINARY), 'dir', str(Path(target).resolve()), '-c', str(config), '-f', 'sarif',
-                                   '-r', str(output), '--redact', '--no-banner', '--exit-code', '0', '-l', 'error'], cwd=workdir)
+                                   '-r', str(output), '--redact', '--no-banner', '--exit-code', '0',
+                                   '-l', 'error'], cwd=workdir)
     if code != 0 or not output.is_file():
         return tool.failed(NAME, found, seconds, code, error)
     findings, unmapped = sarif.collected(output, target, NAME, found)

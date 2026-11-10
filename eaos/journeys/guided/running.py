@@ -21,7 +21,8 @@ def ready(state, args):
     _, model = provider()
     result = live_setup.setup(source(state), runtime, report=report_of(state), provider=model,
                               say=lambda n: _setup_progress(lang, n, live_setup.ATTEMPTS))
-    state['setup'] = {'commit': commit, 'ok': result['ok'], 'attempts': result['attempts'], 'limitations': result['limitations'],
+    state['setup'] = {'commit': commit, 'ok': result['ok'], 'attempts': result['attempts'],
+                      'limitations': result['limitations'],
                       **({'no_interface': True} if result.get('no_interface') else {})}
     state.pop('safety', None)
     save(state)
@@ -33,29 +34,35 @@ def _run_question(lang, assistant):
     if lang == 'ar':
         return ("لأصلح بأمان، أحتاج أن أشغّل برنامجك في نسخة منفصلة على جهازك، بقاعدة بيانات مؤقتة وبلا أسرارك"
                 + (f"، وقد أستعين بمساعدك الذكي ({assistant}) لأفهم طريقة تشغيله" if assistant else '') + '. أوافق؟')
-    return ("To fix safely I need to run your app in a separate copy on this computer, with a temporary database and none of your secrets"
+    return ("To fix safely I need to run your app in a separate copy on this computer, with a temporary database "
+            "and none of your secrets"
             + (f"; I may ask your AI assistant ({assistant}) how it runs" if assistant else '') + '. OK?')
 
 
 def _setup_progress(lang, n, attempts):
     if str(n).startswith('baseline'):
-        say('   ' + ('أجهّز نسخة الإنتاج من برنامجك لقياس سرعته…' if lang == 'ar' else 'Preparing the production build of your app, to measure its speed…'))
+        say('   ' + ('أجهّز نسخة الإنتاج من برنامجك لقياس سرعته…' if lang == 'ar'
+                     else 'Preparing the production build of your app, to measure its speed…'))
     else:
-        say(f"   [{n}/{attempts}] " + ('أشغّل برنامجك وأفتح بعض شاشاته…' if lang == 'ar' else 'Starting your app and opening some of its screens…'))
+        say(f"   [{n}/{attempts}] " + ('أشغّل برنامجك وأفتح بعض شاشاته…' if lang == 'ar'
+                                      else 'Starting your app and opening some of its screens…'))
 
 
 def _setup_box(state, lang, result, runtime):
     """How the setup ended, with the unsaved edits and the limitations noted."""
     notes = [n for n in [_saved_note(state)] if n]
     if result['limitations']:
-        notes.append((f"{len(result['limitations'])} ملاحظة عمّا لم يكتمل، مكتوبة في الملف أدناه (limitations)" if lang == 'ar'
-                      else f"{len(result['limitations'])} notes on what is incomplete, written in the file below (limitations)"))
+        notes.append((f"{len(result['limitations'])} ملاحظة عمّا لم يكتمل، مكتوبة في الملف أدناه (limitations)"
+                      if lang == 'ar' else
+                      f"{len(result['limitations'])} notes on what is incomplete, written in the file below "
+                      "(limitations)"))
     if result['ok']:
         box(lang, 'برنامجك يعمل في النسخة المنفصلة' if lang == 'ar' else 'Your app runs in the separate copy',
             where=runtime / 'run.json', commands=['eaos next'], note=notes or None)
         return
     box(lang, ('لم أستطع تشغيل برنامجك كاملًا؛ سأكمل بما أمكن، والقيود مكتوبة' if lang == 'ar'
-               else 'I could not get your app fully running; I will go on with what works, and the limits are written down'),
+               else 'I could not get your app fully running; I will go on with what works, '
+                    'and the limits are written down'),
         where=runtime / 'run.json', commands=['eaos next'], status='warn', note=notes)
 
 
@@ -78,12 +85,15 @@ def _safety_run(state, step):
     from ...live.behavior.lock import refused
     runtime = runtime_of(state)
     step(1)
-    # The specs written again by this EAOS, so a change in how they are written reaches the safety net with no new check.
+    # The specs written again by this EAOS, so a change in how they are written reaches the safety net with no new
+    # check.
     lock_specs.build(report_of(state), source(state))
     lock = _screens(state, runtime)
     results, skipped = lock['results'], refused(lock)
-    outcome = {'screens': len(results), 'passed': (passed := sum(r['status'] == 'passed' for r in results)), 'skipped': skipped}
-    state['safety'] = {'commit': state['setup']['commit'], 'screens': len(results), 'passed': passed, 'skipped': skipped[:5]}
+    outcome = {'screens': len(results), 'passed': (passed := sum(r['status'] == 'passed' for r in results)),
+               'skipped': skipped}
+    state['safety'] = {'commit': state['setup']['commit'], 'screens': len(results), 'passed': passed,
+                       'skipped': skipped[:5]}
     outcome['own_checks'] = state['safety']['own_checks'] = _own_checks(state, passed)
     save(state)
     return outcome
@@ -108,9 +118,10 @@ def _own_checks(state, screens_passed):
     checks = original_checks(source(state), runtime_of(state))
     if checks and all(row['exit'] == 0 for row in checks): return len(checks)
     failed = [' '.join(map(str, row['argv'])) for row in checks if row['exit']]
-    state['safety']['skipped'] = [{'reason': f"the project has no interface and its own checks fail on the original: {', '.join(failed)}"[:400]
-                                   if failed else 'the project has no interface and no tests EAOS can run (it runs those of '
-                                                  'Rust, Go and Python projects)'}]
+    state['safety']['skipped'] = [{'reason': f"the project has no interface and its own checks fail on the original: "
+                                             f"{', '.join(failed)}"[:400]
+                                   if failed else 'the project has no interface and no tests EAOS can run '
+                                                  '(it runs those of Rust, Go and Python projects)'}]
     return 0
 
 
@@ -134,7 +145,8 @@ def _safety_notes(outcome, lang):
     ar = lang == 'ar'
     notes = []
     if outcome['skipped']: notes.append((f"{len(outcome['skipped'])} شاشة لم تُصوَّر، وأسبابها في السجل" if ar
-                                         else f"{len(outcome['skipped'])} screens were not recorded; the reasons are in the record"))
+                                         else f"{len(outcome['skipped'])} screens were not recorded; "
+                                              "the reasons are in the record"))
     return notes
 
 
@@ -143,8 +155,9 @@ def _waves(state):
 
 
 def fix_done(state):
-    """A wave of this commit is in the person's project as a branch, or no ready card is left to try; never while a batch is
-    open, as its changes are not handed over yet (a hand-over a stopped session cut stays open: no card is ready then)."""
+    """A wave of this commit is in the person's project as a branch, or no ready card is left to try; never while a
+    batch is open, as its changes are not handed over yet (a hand-over a stopped session cut stays open: no card is
+    ready then)."""
     from ..fix.waves import next_batch
     if state.get('open_wave'): return False
     if any(w.get('status') == 'applied' for w in _waves(state)): return True
@@ -158,10 +171,11 @@ def fix(state, args):
     lang = state['lang']
     if wave := state.get('open_wave'): return _open_batch(lang, wave)
     batch = next_batch(report_of(state), state)
-    box(lang, (f'{len(batch)} إصلاحات جاهزة. يصلحها مساعدك الذكي: افتح Claude Code أو Codex في هذا المجلد واكتب /eaos ثم '
+    box(lang, (f'{len(batch)} إصلاحات جاهزة. يصلحها مساعدك الذكي: افتح Claude Code أو Codex في هذا المجلد '
+               'واكتب /eaos ثم '
                '"أصلح"، أو اضغط "أصلح" في الاستوديو' if lang == 'ar' else
-               f'{len(batch)} fixes are ready. Your AI assistant makes them: open Claude Code or Codex in this folder and type '
-               '/eaos then "fix", or press "Fix" in the Studio'),
+               f'{len(batch)} fixes are ready. Your AI assistant makes them: open Claude Code or Codex in this folder '
+               'and type /eaos then "fix", or press "Fix" in the Studio'),
         commands=['eaos studio'], note=None)
     return 0
 
@@ -169,9 +183,12 @@ def fix(state, args):
 def _open_batch(lang, wave):
     """An open batch is not handed over: its assistant continues it (fix_finish once every card is kept or left out)."""
     kept = len(wave.get('kept') or {})
-    box(lang, (f"الدفعة {wave['number']} مفتوحة ولم تُسلَّم بعد ({kept} تعديلًا مقبولًا). ليكملها مساعدك الذكي: افتح Claude Code "
+    box(lang, (f"الدفعة {wave['number']} مفتوحة ولم تُسلَّم بعد ({kept} تعديلًا مقبولًا). "
+               "ليكملها مساعدك الذكي: افتح Claude Code "
                'أو Codex في هذا المجلد واكتب /eaos ثم "كمّل"، أو افتح الاستوديو' if lang == 'ar' else
-               f"Batch {wave['number']} is open and not handed over yet ({kept} changes kept). Your AI assistant continues it: "
-               'open Claude Code or Codex in this folder and type /eaos then "continue", or open the Studio'),
+               f"Batch {wave['number']} is open and not handed over yet ({kept} changes kept). "
+               'Your AI assistant continues it: open Claude Code or Codex in this folder '
+               'and type /eaos then "continue", '
+               'or open the Studio'),
         commands=['eaos studio'], status='warn')
     return 0

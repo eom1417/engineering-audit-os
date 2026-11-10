@@ -9,7 +9,8 @@ from eaos.facts.run import collect
 from shared_fixture import TemporaryWorkspace
 
 FIXTURES = Path(__file__).parents[1] / 'fixtures'
-PLANTED = {('ui-database', 'web/Orders.jsx'), ('secret-in-browser', 'web/payments.js'), ('key-in-built-output', 'dist/assets/index-7c1e2a.js'),
+PLANTED = {('ui-database', 'web/Orders.jsx'), ('secret-in-browser', 'web/payments.js'), ('key-in-built-output',
+    'dist/assets/index-7c1e2a.js'),
            ('unguarded-write', 'server.js'), ('unowned-row', 'server.js'), ('browser-only-rule', 'server.js'),
            ('table-without-rls', 'supabase/migrations/20261025000000_orders.sql'),
            ('open-write-policy', 'supabase/migrations/20261025000000_orders.sql'), ('untested-write', 'server.js')}
@@ -47,7 +48,8 @@ class LayersTests(TemporaryWorkspace):
     def test_the_endpoint_table_reads_each_guard(self):
         rows = {(row['method'], row['route']): row for row in self.app['endpoints']}
         removal = rows[('DELETE', '/api/orders/:id')]
-        self.assertEqual((removal['authentication'], removal['authorisation'], removal['writes']), ('signedIn', 'owner', True))
+        self.assertEqual((removal['authentication'], removal['authorisation'], removal['writes']), ('signedIn', 'owner',
+            True))
         self.assertIsNone(rows[('POST', '/api/orders')]['authentication'])
         self.assertTrue(rows[('ANY', '/health')]['public'])
 
@@ -63,9 +65,11 @@ class LayersTests(TemporaryWorkspace):
         # sign-ins. A current time is still no sign-in.
         from eaos.analysis.layers import guards
         signed_in = lambda text: guards.read(text)['authentication']
-        self.assertIsNotNone(signed_in('@router.patch(\n    "/{user_id}",\n    dependencies=[Depends(get_current_active_superuser)],\n)\n'
+        self.assertIsNotNone(signed_in('@router.patch(\n    "/{user_id}",\n    '
+                                       'dependencies=[Depends(get_current_active_superuser)],\n)\n'
                                        'def update_user(*, session: SessionDep, user_in: UserUpdate):\n    ...'))
-        self.assertIsNotNone(signed_in('def create_item(*, session: SessionDep, user: CurrentUser, item_in: ItemCreate):'))
+        self.assertIsNotNone(signed_in('def create_item(*, session: SessionDep, user: CurrentUser, item_in: '
+                                       'ItemCreate):'))
         self.assertIsNone(signed_in('def f():\n    now = get_current_time()\n'))
 
     def test_a_route_after_an_interpolated_prefix_is_named_by_the_test(self):
@@ -78,8 +82,10 @@ class LayersTests(TemporaryWorkspace):
     def test_a_finding_the_code_alone_cannot_show_again_is_never_taken_for_gone(self):
         # a layer card's recheck reads the code again: failing tests and live findings are never in it, so it cannot say
         # "gone"
-        failing = {'rule': 'tests-failing', 'path': '*', 'params': {'failed': 3, 'total': 40, 'command': 'npm run test'}}
+        failing = {'rule': 'tests-failing', 'path': '*', 'params': {'failed': 3, 'total': 40,
+                                                                    'command': 'npm run test'}}
         built = {'rule': 'key-in-built-output', 'path': 'web/payments.js', 'params': {}, 'live': True}
         for specification in (failing, built):
-            spec = {'probe_type': 'graph_query', 'specification': {'query': 'boundary_finding_present', **specification}}
+            spec = {'probe_type': 'graph_query', 'specification': {'query': 'boundary_finding_present',
+                                                                   **specification}}
             self.assertEqual(recheck(self.app_root, spec)[0], 'INCONCLUSIVE', specification['rule'])

@@ -25,7 +25,8 @@ def _diff_stat(project, branch):
     labels = [part.split()[1] for part in shortstat.split(',') if part.strip()[:1].isdigit()]
     stat = {'files': 0, 'insertions': 0, 'deletions': 0}
     for number, label in zip(numbers, labels):
-        stat['files' if label.startswith('file') else 'insertions' if label.startswith('insertion') else 'deletions'] = number
+        stat['files' if label.startswith('file') else 'insertions' if label.startswith('insertion')
+             else 'deletions'] = number
     return stat
 
 
@@ -54,11 +55,16 @@ class Outcomes:
         if not target or not self.branch_control: return None
         reason = self.branch_control.policy()['protected'].get(target)
         if reason:
-            self.store.append(run, 'say', {'en': f'Not accepted automatically: {target} is protected ({reason["en"]}); the branch {branch} waits for you',
-                                           'ar': f'ما اعتُمد تلقائيًا: {target} محمي ({reason["ar"]})؛ الفرع {branch} ينتظرك'}, {'branch': branch, 'target': target})
+            self.store.append(run, 'say',
+                              {'en': f'Not accepted automatically: {target} is protected ({reason["en"]}); '
+                                     f'the branch {branch} waits for you',
+                               'ar': f'ما اعتُمد تلقائيًا: {target} محمي ({reason["ar"]})؛ الفرع {branch} ينتظرك'},
+                              {'branch': branch, 'target': target})
             return None
-        self.store.append(run, 'action', {'en': f'Accepting {branch} automatically: you chose it in the preview and the checks passed',
-                                          'ar': f'أعتمد {branch} تلقائيًا: اخترت هذا في المعاينة والفحوص نجحت'},
+        self.store.append(run, 'action',
+                          {'en': f'Accepting {branch} automatically: '
+                                 'you chose it in the preview and the checks passed',
+                           'ar': f'أعتمد {branch} تلقائيًا: اخترت هذا في المعاينة والفحوص نجحت'},
                           {'action': 'accept', 'by': 'person', 'arguments': {'branch': branch, 'auto_accept': True}})
         try: result = self.call('accept', {'person_agreed': True})
         except Exception as problem: result = {'error': f'{type(problem).__name__}: {problem}'}
@@ -69,37 +75,45 @@ class Outcomes:
         """Whether this Fix run's own batch may be accepted by itself: the person chose it, a change was kept, nothing
         decided it yet, and its branch is the newest waiting."""
         branch = payload.get('branch')
-        if not (record.get('verb') == 'fix' and record.get('auto_accept') is True and branch and payload.get('cards_closed')): return False
+        if not (record.get('verb') == 'fix' and record.get('auto_accept') is True and branch
+                and payload.get('cards_closed')): return False
         return not record.get('outcome') and self.newest_waiting() == branch
 
     def _merge_target(self, record, payload):
         """Where the batch merges: as its wave says, else as the run's preview chose, else the run's target."""
         branch = payload.get('branch')
-        wave = next((w for w in reversed((project_state.load(self.project) or {}).get('waves') or []) if w.get('branch') == branch), {})
+        wave = next((w for w in reversed((project_state.load(self.project) or {}).get('waves') or [])
+                     if w.get('branch') == branch), {})
         return wave.get('merge_into') or (record.get('where') or {}).get('merge_into') or payload.get('target')
 
     def _accepted_by_itself(self, run, branch, result):
         """What the accept by itself came to, in the run: taken in, or why the branch still waits for the person."""
         ok = isinstance(result, dict) and not result.get('error') and result.get('status') == 'accepted'
         if ok:
-            self.store.append(run, 'result', {'en': f'Taken in automatically: {branch}', 'ar': f'اعتُمد تلقائيًا: {branch}'},
+            self.store.append(run, 'result', {'en': f'Taken in automatically: {branch}',
+                                              'ar': f'اعتُمد تلقائيًا: {branch}'},
                               {'branch': branch, 'outcome': 'accept', 'auto_accept': True, 'answer': result})
             self.store.update(run, outcome='accepted', decided=now('milliseconds'))
         else:
             why = str((result or {}).get('status') or (result or {}).get('error'))
-            self.store.append(run, 'say', {'en': f'Not accepted automatically ({why}): the branch {branch} waits for you',
-                                           'ar': f'ما اعتُمد تلقائيًا ({why}): الفرع {branch} ينتظرك'}, {'branch': branch, 'reason': why})
+            self.store.append(run, 'say',
+                              {'en': f'Not accepted automatically ({why}): '
+                                     f'the branch {branch} waits for you',
+                               'ar': f'ما اعتُمد تلقائيًا ({why}): الفرع {branch} ينتظرك'},
+                              {'branch': branch, 'reason': why})
 
     def _waiting_branches(self):
         state = project_state.load(self.project) or {}
-        return {wave['branch'] for wave in state.get('waves') or [] if wave.get('status') == 'applied' and wave.get('branch')}
+        return {wave['branch'] for wave in state.get('waves') or []
+                if wave.get('status') == 'applied' and wave.get('branch')}
 
     def newest_waiting(self):
         """The branch accept and undo act on: the newest wave still waiting for the person, or None."""
         return (project_state.waiting_batch(project_state.load(self.project) or {}) or {}).get('branch')
 
     def _outcome(self, run, answer=None):
-        """The result event's data: the new branch, its diff and its checks, the cards it closes, and the assistant's words."""
+        """The result event's data: the new branch, its diff and its checks, the cards it closes, and the
+        assistant's words."""
         record = self.store.load(run)
         state = project_state.load(self.project) or {}
         fresh = [] if record.get('read') else _fresh_waves(record, state)   # a reading run hands no batch over
@@ -113,7 +127,8 @@ class Outcomes:
     def _wave_outcome(self, run, wave, state, out):
         """A batch handed over as a branch: its tip, the branch it merges into, its record, its checks and its diff."""
         out['branch'] = wave['branch']
-        out['branch_tip'] = subprocess.run(['git', '-C', str(self.project), 'rev-parse', '--verify', '--quiet', f"refs/heads/{wave['branch']}^{{commit}}"],
+        out['branch_tip'] = subprocess.run(['git', '-C', str(self.project), 'rev-parse', '--verify', '--quiet',
+                                            f"refs/heads/{wave['branch']}^{{commit}}"],
                                            capture_output=True, text=True).stdout.strip() or None
         out['target'] = state.get('branch') or state.get('home_branch')
         if self.branch_control:

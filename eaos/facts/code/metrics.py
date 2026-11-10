@@ -11,7 +11,8 @@ NAME = 'metrics'
 VERSION = '4'
 LIMITATIONS = [
     'Branch counting is a lexical approximation, not a compiler-accurate cyclomatic complexity.',
-    "A function's complexity is the code laws' count (eaos/core/contracts/code_laws.py) in Python; elsewhere 1 + its lexical "
+    "A function's complexity is the code laws' count (eaos/core/contracts/code_laws.py) in Python; elsewhere 1 + its "
+    "lexical "
     'branches. Either way a nested function is counted alone.',
     'Large or branch-heavy code is not a defect; it marks where a change scenario deserves review.',
     'Duplicate detection compares normalised lines; renamed variables still match, restructured logic does not.',
@@ -89,7 +90,8 @@ def _counter(lines, language, mine):
     if language == 'python':
         try: tree = ast.parse('\n'.join(lines))
         except (SyntaxError, ValueError): tree = None
-        exact = {node.lineno: complexity(node) for node in ast.walk(tree) if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))} if tree else {}
+        exact = {node.lineno: complexity(node) for node in ast.walk(tree)
+                 if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))} if tree else {}
     def counted(fact):
         start, end = fact['location']['start_line'], fact['location']['end_line']
         if start in exact: return exact[start]
@@ -136,14 +138,16 @@ def _clone_fact(key, places):
 def _summary(facts, totals, clusters):
     metrics = [f for f in facts if f['kind'] == 'metric']
     hotspots = sorted((f for f in metrics if f['value']['scope'] != 'file'),
-                      key=lambda f: (-f['value'].get('complexity', 0), -f['value']['lines'], f['location']['path']))[:20]
+                      key=lambda f: (-f['value'].get('complexity', 0), -f['value']['lines'],
+                                     f['location']['path']))[:20]
     largest = sorted((f for f in metrics if f['value']['scope'] == 'file'), key=lambda f: -f['value']['lines'])[:15]
     return {**totals, 'clone_clusters': clusters,
             'largest_files': [{'path': f['location']['path'], 'lines': f['value']['lines']} for f in largest],
             'most_branching_symbols': [{'path': f['location']['path'], 'symbol': f['location'].get('symbol'),
                                         'branches': f['value']['branches'], 'complexity': f['value'].get('complexity'),
                                         'lines': f['value']['lines']} for f in hotspots],
-            'interpretation': 'Size and branching are attention signals. They are never severity, and never a reason to split code on their own.'}
+            'interpretation': 'Size and branching are attention signals. They are never severity, and never a reason '
+                              'to split code on their own.'}
 
 
 def _symbols_by_path(target, source, symbols):

@@ -22,7 +22,8 @@ PAGE, EVIDENCE = 30, 24     # EVIDENCE: facts shown behind one card, enough for 
 class SeveralProjects(ValueError):
     """A folder that is no project but holds several git repositories directly under it: the person says which."""
     def __init__(self, folder, projects):
-        super().__init__(f'{folder} holds several projects: {", ".join(str(p) for p in projects[:10])}; pass one as `project`')
+        super().__init__(f'{folder} holds several projects: {", ".join(str(p) for p in projects[:10])}; pass one as '
+                         f'`project`')
         self.projects = projects
 
 
@@ -48,7 +49,8 @@ def _project_folder(project, new):
     if not new and not _state_in(folder): folder = locate(folder)
     if new or (_state_in(folder) or {}).get('mode') == 'build':
         if folder in (Path.home().resolve(), Path(folder.anchor)):
-            raise ValueError(f'not a project folder: {folder} (make an empty folder for the new project and open the assistant there)')
+            raise ValueError(f'not a project folder: {folder} (make an empty folder for the new project and open the '
+                             f'assistant there)')
         folder.mkdir(parents=True, exist_ok=True)
         return folder
     if not folder.is_dir(): raise ValueError(f'project folder not found: {folder}')
@@ -130,7 +132,8 @@ def busy_answer(record):
     job = record['id']
     return {'job': job, 'status': 'busy', 'kind': record['kind'], 'progress': record.get('progress'),
             'error': f"a {record['kind']} is running for this project, so nothing was done",
-            'what_now': (f'Another piece of work is running for this project: call `wait` with job="{job}" first, then ask again.' if job else
+            'what_now': (f'Another piece of work is running for this project: call `wait` with job="{job}" first, then '
+                         f'ask again.' if job else
                          'Another step is at work on this project: ask again in a moment.')}
 
 

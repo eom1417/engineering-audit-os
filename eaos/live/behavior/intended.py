@@ -127,5 +127,6 @@ def _index(recorded):
 
 
 def _holds(target, commit):
-    done = subprocess.run(['git', '-C', str(target), 'merge-base', '--is-ancestor', commit, 'HEAD'], capture_output=True)
+    done = subprocess.run(['git', '-C', str(target), 'merge-base', '--is-ancestor', commit, 'HEAD'],
+                          capture_output=True)
     return done.returncode == 0

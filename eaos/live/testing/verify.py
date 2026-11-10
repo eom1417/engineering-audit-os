@@ -209,8 +209,8 @@ def declared(target, out, reason, source=None):
     out.mkdir(parents=True, exist_ok=True)
     sets = _read_sets(out, ('resolve',))
     tests, covered = discover_tests(source or Source(target), sets)
-    result = {'target': str(target), 'out': str(out), 'test_files': tests, 'declared_coverage': covered, 'executed': False,
-              'reason': reason, 'limitations': LIMITATIONS}
+    result = {'target': str(target), 'out': str(out), 'test_files': tests, 'declared_coverage': covered,
+              'executed': False, 'reason': reason, 'limitations': LIMITATIONS}
     write(out / 'verification.json', result)
     return result
 
@@ -267,8 +267,8 @@ def run_profile(target, out, runtime, timeout=1800):
             files.update(covered); health.append(healthy); lines.append(ran)
         result['suite'] = _one_suite(health)
         for path, row in v8_coverage(v8, live.sandbox.copy).items():
-            files.setdefault(path, {'covered_lines': row['functions_hit'], 'statements': row['functions'], 'percent': row['percent'],
-                                    'unit': 'functions'})
+            files.setdefault(path, {'covered_lines': row['functions_hit'], 'statements': row['functions'],
+                                    'percent': row['percent'], 'unit': 'functions'})
         record(out, 'tests', merged(v8_functions(v8, live.sandbox.copy), *lines))     # what the tests ran, by function
     finally:
         live.stop()
@@ -279,8 +279,8 @@ def run_profile(target, out, runtime, timeout=1800):
     result['passed'] = all(a['exit_code'] == 0 for a in result['attempts'])
     if files: result.update(_coverage_summary(files, sets))
     else:
-        result['reason'] = ('The tests ran, but no coverage could be read from them (no Python coverage module in the project, '
-                            'and no Node process wrote V8 coverage).')
+        result['reason'] = ('The tests ran, but no coverage could be read from them '
+                            '(no Python coverage module in the project, and no Node process wrote V8 coverage).')
     write(out / 'verification.json', result)
     publish_facts(out, result)
     return result
@@ -325,11 +325,15 @@ def _run_tests(live, suite, app, v8, timeout):
     for argv in commands:
         started = time.monotonic()
         run_argv = argv
-        if Path(str(argv[0])).name in INTERPRETER_NAMES | {Path(INTERPRETER).name} and live.run([argv[0], '-c', 'import coverage'], timeout=60, at_root=at_root)[0] == 0:
+        if Path(str(argv[0])).name in INTERPRETER_NAMES | {Path(INTERPRETER).name} \
+                and live.run([argv[0], '-c', 'import coverage'], timeout=60, at_root=at_root)[0] == 0:
             run_argv, python = [argv[0], '-m', 'coverage', 'run', '--rcfile=.eaos-coveragerc', *argv[1:]], argv[0]
-        code, stdout, stderr = live.run(with_timing(run_argv, app), timeout=timeout, env={**CHECKS_ENV, 'NODE_V8_COVERAGE': str(v8)}, at_root=at_root)
-        attempts.append({'argv': [str(a) for a in argv], 'exit_code': code, 'timed_out': f'stopped after {timeout}s' in stderr,
-                         'duration_seconds': round(time.monotonic() - started, 2), 'output_tail': (stdout + stderr)[-2000:]})
+        code, stdout, stderr = live.run(with_timing(run_argv, app), timeout=timeout,
+                                        env={**CHECKS_ENV, 'NODE_V8_COVERAGE': str(v8)}, at_root=at_root)
+        attempts.append({'argv': [str(a) for a in argv], 'exit_code': code,
+                         'timed_out': f'stopped after {timeout}s' in stderr,
+                         'duration_seconds': round(time.monotonic() - started, 2),
+                         'output_tail': (stdout + stderr)[-2000:]})
     return python, attempts
 
 
@@ -337,7 +341,8 @@ def _python_coverage(live, python, app, at_root=False):
     """({path: coverage row}, {test: lines it ran}) from Coverage.py's report with its contexts; empty when none was
     made."""
     files, contexts = {}, {}
-    code, _, _ = live.run([python, '-m', 'coverage', 'json', '--rcfile=.eaos-coveragerc', '--show-contexts', '-o', '.eaos-coverage.json'],
+    code, _, _ = live.run([python, '-m', 'coverage', 'json', '--rcfile=.eaos-coveragerc', '--show-contexts',
+                           '-o', '.eaos-coverage.json'],
                           timeout=300, at_root=at_root)
     report = app / '.eaos-coverage.json'
     if code != 0 or not report.is_file(): return files, contexts
@@ -348,7 +353,8 @@ def _python_coverage(live, python, app, at_root=False):
         relative = Path(name).as_posix().removeprefix('./')
         relative = f'{prefix}/{relative}' if prefix else relative
         summary = entry.get('summary', {})
-        files[relative] = {'covered_lines': summary.get('covered_lines', 0), 'statements': summary.get('num_statements', 0),
+        files[relative] = {'covered_lines': summary.get('covered_lines', 0),
+                           'statements': summary.get('num_statements', 0),
                            'percent': round(summary.get('percent_covered', 0.0), 1)}
     return files, contexts
 
@@ -358,7 +364,8 @@ def _coverage_summary(files, sets):
     reachable = _reachable(sets)
     total = sum(row['statements'] or 0 for row in files.values())
     return {'coverage': dict(sorted(files.items())),
-            'overall_percent': round(100 * sum(row['covered_lines'] or 0 for row in files.values()) / total, 1) if total else 0.0,
+            'overall_percent': (round(100 * sum(row['covered_lines'] or 0 for row in files.values()) / total, 1)
+                                if total else 0.0),
             'entry_reachable_files': len(reachable),
             'uncovered_entry_reachable_files': _uncovered(reachable, files)}
 
@@ -385,7 +392,9 @@ def publish_facts(out, result):
                'overall_percent': result.get('overall_percent'),
                'test_files': len(result.get('test_files', [])),
                'uncovered_entry_reachable_files': result.get('uncovered_entry_reachable_files', []),
-               'interpretation': 'Coverage of the command that ran. Not proof of correctness, and not proof that uncovered code is dead.'}
+               'interpretation': 'Coverage of the command that ran. Not proof of correctness, '
+                                 'and not proof that uncovered code is dead.'}
     write_set(out, NAME, NAME, VERSION, LIMITATIONS, {'facts': facts, 'input_sha': fingerprint, 'summary': summary,
-                                                     'available': bool(result.get('executed')), 'reason': result.get('reason')})
+                                                     'available': bool(result.get('executed')),
+                                                     'reason': result.get('reason')})
     return facts

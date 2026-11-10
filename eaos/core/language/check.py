@@ -27,7 +27,8 @@ def mostly_foreign(text, lang):
     """`foreign`, or, in an Arabic Studio, a message of four words or more whose words beyond its code, paths and
     names are mostly not Arabic (bilingual.wrong): a closing summary that is mostly English would pass `foreign` on
     its one Arabic word."""
-    return foreign(text, lang) or (lang == 'ar' and isinstance(text, str) and len(WORD.findall(text)) >= 4 and wrong(text, lang))
+    return foreign(text, lang) or (lang == 'ar' and isinstance(text, str) and len(WORD.findall(text)) >= 4
+                                   and wrong(text, lang))
 
 
 def foreign_texts(answer, lang):
@@ -48,6 +49,9 @@ def foreign_texts(answer, lang):
 def restate(answer, texts, lang):
     """The question that sends an answer back to be written again in the person's language, everything else kept."""
     return (f'Your answer below has texts for the person that are not in {NAMES[lang]}, the only language they read. '
-            'Return the same JSON object, unchanged in every id, path, number, choice and decision, with these texts, and '
-            f'any other text for the person, written in {NAMES[lang]} (ids, paths and code names inside them stay as they '
-            'are):\n' + json.dumps(texts, ensure_ascii=False) + '\n\nYour answer:\n' + json.dumps(answer, ensure_ascii=False))
+            'Return the same JSON object, unchanged in every id, path, number, choice and decision, '
+            'with these texts, and '
+            f'any other text for the person, written in {NAMES[lang]} (ids, paths and code names inside them '
+            f'stay as they '
+            'are):\n' + json.dumps(texts, ensure_ascii=False) + '\n\nYour answer:\n'
+            + json.dumps(answer, ensure_ascii=False))

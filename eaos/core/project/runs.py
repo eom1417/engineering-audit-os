@@ -8,7 +8,8 @@
         <run>/stream.jsonl          the assistant's raw output, which a restarted server can go on reading
         <run>/stderr.log            the assistant's error output, shown only in part
 
-The newest KEEP ended runs keep all of it, for a diagnosis; an older one keeps its record alone (trim), with what it used.
+The newest KEEP ended runs keep all of it, for a diagnosis; an older one keeps its record alone
+(trim), with what it used.
 
 A run's events carry a gapless `seq` (the SSE id), and each its `prev` and `hash` = sha256(prev + canonical JSON of
 the event without `hash`), so a reader can tell a log that was edited. Nothing secret is written: every string goes
@@ -44,9 +45,12 @@ RETRYABLE = ('failed', 'stopped', 'unchanged')
 ACTIVE = ('running', 'paused', 'waiting_for_person')
 DIFF_LIMIT = 64 * 1024
 KEEP = 10
-SECRET = re.compile(r'(sk-[A-Za-z0-9_-]{16,}|sk-ant-[A-Za-z0-9_-]{16,}|gh[pousr]_[A-Za-z0-9]{20,}|github_pat_[A-Za-z0-9_]{20,}'
-                    r'|AKIA[0-9A-Z]{16}|xox[abpr]-[A-Za-z0-9-]{10,}|eyJ[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}'
-                    r'|(?i:bearer)\s+[A-Za-z0-9._~+/-]{16,}=*|-----BEGIN [A-Z ]*PRIVATE KEY-----[\s\S]*?-----END [A-Z ]*PRIVATE KEY-----)')
+SECRET = re.compile(r'(sk-[A-Za-z0-9_-]{16,}|sk-ant-[A-Za-z0-9_-]{16,}|gh[pousr]_[A-Za-z0-9]{20,}'
+                    r'|github_pat_[A-Za-z0-9_]{20,}'
+                    r'|AKIA[0-9A-Z]{16}|xox[abpr]-[A-Za-z0-9-]{10,}'
+                    r'|eyJ[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}'
+                    r'|(?i:bearer)\s+[A-Za-z0-9._~+/-]{16,}=*'
+                    r'|-----BEGIN [A-Z ]*PRIVATE KEY-----[\s\S]*?-----END [A-Z ]*PRIVATE KEY-----)')
 
 
 def canonical(value):
@@ -73,7 +77,8 @@ class Scrubber:
 
 
 def _write_json(path, data, create=False):
-    if create: path.parent.mkdir(exist_ok=True)       # a new run's folder, never the runs folder: a deleted project stays deleted
+    # a new run's folder, never the runs folder: a deleted project stays deleted
+    if create: path.parent.mkdir(exist_ok=True)
     elif not path.parent.is_dir(): raise KeyError(path.parent.name)
     temporary = path.with_name(path.name + f'.{os.getpid()}.{threading.get_ident()}.tmp')
     temporary.write_text(json.dumps(data, ensure_ascii=False, indent=1) + '\n', encoding='utf-8')
@@ -175,8 +180,10 @@ class Store:
                 out.seek(0)
                 lines = [line for line in out.read().splitlines() if line.strip()]
                 last = json.loads(lines[-1]) if lines else {'seq': 0, 'hash': ZERO}
-                event = {'seq': last['seq'] + 1, 'id': f"{run}-{last['seq'] + 1}", 'run': run, 'at': now('milliseconds'), 'kind': kind,
-                         'text': self.scrub(text), 'data': self.scrub(data), 'detail': self.scrub(detail), 'prev': last['hash']}
+                event = {'seq': last['seq'] + 1, 'id': f"{run}-{last['seq'] + 1}", 'run': run,
+                         'at': now('milliseconds'), 'kind': kind,
+                         'text': self.scrub(text), 'data': self.scrub(data),
+                         'detail': self.scrub(detail), 'prev': last['hash']}
                 event['hash'] = hashlib.sha256((event['prev'] + canonical(event)).encode('utf-8')).hexdigest()
                 out.write(json.dumps(event, ensure_ascii=False) + '\n')
                 out.flush()
@@ -198,7 +205,8 @@ class Store:
 
     def refused(self, method, path, reason, keep=500):
         """A call the locks refused, in runs/refused.jsonl: when, which route, why; never a token or a query."""
-        line = json.dumps({'at': now('milliseconds'), 'method': method, 'path': self.scrub(str(path).split('?')[0])[:200], 'reason': reason}, ensure_ascii=False)
+        line = json.dumps({'at': now('milliseconds'), 'method': method,
+                           'path': self.scrub(str(path).split('?')[0])[:200], 'reason': reason}, ensure_ascii=False)
         path = self.folder / 'refused.jsonl'
         with self.lock:
             if not self.folder.is_dir(): return
@@ -212,5 +220,6 @@ class Store:
 
 def decision_scope(folder, question):
     """The key a person's answer is kept under: the project folder, the question's id and its revision."""
-    identity = question.get('revision') or {k: question.get(k) for k in ('id', 'question', 'options', 'blocks', 'asked', 'tool')}
+    identity = question.get('revision') or {k: question.get(k)
+                                            for k in ('id', 'question', 'options', 'blocks', 'asked', 'tool')}
     return hashlib.sha256(canonical([str(Path(folder).resolve()), question['id'], identity]).encode()).hexdigest()

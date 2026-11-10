@@ -25,7 +25,8 @@ def _call(libc, name, *args):
 
 
 def _mount(libc, source, target, kind, flags):
-    _call(libc, 'mount', source and source.encode(), target.encode(), kind and kind.encode(), ctypes.c_ulong(flags), None)
+    _call(libc, 'mount', source and source.encode(), target.encode(), kind and kind.encode(),
+          ctypes.c_ulong(flags), None)
 
 
 def _place(target, folder):
@@ -37,7 +38,8 @@ def _place(target, folder):
 
 def _map_user(uid, gid):
     """The caller's user and group (taken before unshare) as the namespace's own; root becomes INSIDE."""
-    for name, text in (('setgroups', 'deny'), ('uid_map', f'{uid or INSIDE} {uid} 1'), ('gid_map', f'{gid or INSIDE} {gid} 1')):
+    for name, text in (('setgroups', 'deny'), ('uid_map', f'{uid or INSIDE} {uid} 1'),
+                       ('gid_map', f'{gid or INSIDE} {gid} 1')):
         with open(f'/proc/self/{name}', 'w') as out: out.write(text)
 
 

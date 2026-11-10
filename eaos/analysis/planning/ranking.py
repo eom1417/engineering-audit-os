@@ -31,7 +31,8 @@ def severity_of(claim):
     value, threshold = params.get('value'), params.get('threshold')
     if threshold is None and specification.get('max_branches'):
         value, threshold = params.get('branches'), specification['max_branches']
-    if not all(map(_number, (value, threshold))) or threshold <= 0: return {'value': None, 'threshold': None, 'factor': 1.0}
+    if not all(map(_number, (value, threshold))) or threshold <= 0:
+        return {'value': None, 'threshold': None, 'factor': 1.0}
     return {'value': value, 'threshold': threshold, 'factor': round(min(value / threshold, SEVERITY_CAP), 4)}
 
 
@@ -53,7 +54,8 @@ def claim_paths(claim, fact_index):
 def _places(params):
     """The files of a pattern written in many places (one source per pattern names each 'path:line'): its card is about
     all of them."""
-    return [str(where).rsplit(':', 1)[0] for where in params['places']] if isinstance(params.get('places'), list) else []
+    return [str(where).rsplit(':', 1)[0] for where in params['places']] \
+        if isinstance(params.get('places'), list) else []
 
 
 def cost_of(paths, sets):

@@ -118,5 +118,6 @@ def run(check, target, *, execute=False, timeout=60):
     after = fingerprint(target, cached=False)
     result['after_sha256'] = after
     if before != after:
-        return {**result, 'status': 'inconclusive', 'errors': ['Check changed the candidate; review and rebind before acceptance.']}
+        return {**result, 'status': 'inconclusive',
+                'errors': ['Check changed the candidate; review and rebind before acceptance.']}
     return {**result, 'status': 'pass' if code == check['expected_exit'] else 'fail'}

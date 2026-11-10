@@ -14,7 +14,8 @@ def record_intended(report, target, runtime, screens):
     """The declared `screens` recorded again on `target` (a kept batch's copy, at its commit), kept for every later
     run on code that holds the commit: behavior-lock/intended/<commit>/, and the screens recorded."""
     recorded = Path(runtime) / 'behavior-lock'
-    commit = subprocess.run(['git', '-C', str(target), 'rev-parse', 'HEAD'], capture_output=True, text=True).stdout.strip()
+    commit = subprocess.run(['git', '-C', str(target), 'rev-parse', 'HEAD'], capture_output=True,
+                            text=True).stdout.strip()
     live = LiveRun(target, runtime, 'S09')
     lock = _prepare(live, report, recorded)
     restore_intended(recorded, lock, target)

@@ -59,7 +59,8 @@ def normalise(rows, found):
         path, line = tool.relative(row['file']), row['range']['start']['line'] + 1
         symbol = captures.get('NAME') or captures.get('SETTER')
         if meta.get('kind') in KINDS:
-            findings.append(finding(NAME, found, rule, meta['kind'], subject('symbol', f'{path}:{line}:{symbol}', path, line),
+            findings.append(finding(NAME, found, rule, meta['kind'],
+                                    subject('symbol', f'{path}:{line}:{symbol}', path, line),
                                     row.get('message') or rule, raw_ref=f'{NAME}/ast-grep.jsonl'))
             continue
         metrics.append({'path': path, 'line': line, 'symbol': symbol, 'granularity': 'symbol',
@@ -71,7 +72,9 @@ def normalise(rows, found):
 
 def _spans(single):
     """{'spans': {'BODY': [first line, last line]}}: the lines of a branch's body; nothing for a rule without one."""
-    return {'spans': {'BODY': [single['BODY']['range']['start']['line'] + 1, single['BODY']['range']['end']['line'] + 1]}} if 'BODY' in single else {}
+    return ({'spans': {'BODY': [single['BODY']['range']['start']['line'] + 1,
+                                single['BODY']['range']['end']['line'] + 1]}}
+            if 'BODY' in single else {})
 
 
 @tool.engine(NAME, BINARY)
@@ -92,4 +95,5 @@ def analyze(target, workdir, exclude, formats, found):
                   coverage={'status': 'observed', 'rule_pack': 'eaos/rules/ast-grep', 'rules': len(rules()),
                             'matches_by_rule': by_rule, 'records': dict(sorted(by_record.items())),
                             'files_with_matches': len({row['path'] for row in metrics})},
-                  evaluated={capability.kind: {'status': 'observed', 'granularity': SYMBOL} for capability in capabilities()})
+                  evaluated={capability.kind: {'status': 'observed', 'granularity': SYMBOL}
+                             for capability in capabilities()})

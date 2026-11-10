@@ -21,7 +21,8 @@ HOTSPOTS, CLUSTERS, MEMBERS = 10, 8, 8
 
 
 def _facts(out, name, kind):
-    return [f for f in (read_json(Path(out) / 'facts' / f'{name}.json', {}) or {}).get('facts') or [] if f.get('kind') == kind]
+    return [f for f in (read_json(Path(out) / 'facts' / f'{name}.json', {}) or {}).get('facts') or []
+            if f.get('kind') == kind]
 
 
 def _path(fact): return (fact.get('location') or {}).get('path') or ''
@@ -136,4 +137,5 @@ def digest(out):
     """{hotspots, clusters, modularity} of one check's facts."""
     graph, fan_in = import_graph(out)
     member = louvain(graph)
-    return {'hotspots': hotspots(out), 'clusters': clusters(graph, member, fan_in), 'modularity': modularity(graph, member)}
+    return {'hotspots': hotspots(out), 'clusters': clusters(graph, member, fan_in),
+            'modularity': modularity(graph, member)}

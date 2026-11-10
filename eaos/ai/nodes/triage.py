@@ -21,25 +21,30 @@ RESOLUTIONS = ('fix', 'keep', 'owner')
 _TEXT = {'type': ['string', 'null']}
 DETAIL = {'type': 'object', 'additionalProperties': False,
           'required': ['falsifier', 'resolution', 'change', 'question', 'options', 'recommendation'],
-          'properties': {'falsifier': {'type': 'string'}, 'harmed': _TEXT, 'boundary': _TEXT, 'resolution': {'type': ['string', 'null'], 'enum': [*RESOLUTIONS, None]},
+          'properties': {'falsifier': {'type': 'string'}, 'harmed': _TEXT, 'boundary': _TEXT,
+                         'resolution': {'type': ['string', 'null'], 'enum': [*RESOLUTIONS, None]},
                          'change': _TEXT, 'question': _TEXT, 'options': {'type': 'array', 'items': {'type': 'string'}},
                          'recommendation': _TEXT}}
 TASK = '''GOAL
-You are the card triage of EAOS, an engineering audit. Each card below is a problem EAOS's engines found in this project.
+You are the card triage of EAOS, an engineering audit. Each card below is a problem EAOS's engines found in this \
+project.
 Before the person sees it, judge each card: does its own evidence show the problem it names?
 
 WHAT YOU ARE GIVEN
 `cards`: each with its id, title, kind, severity, the engines' confidence, paths, and `evidence`: up to 4 of its facts,
 those carrying a measurement first (the largest value over its declared threshold first), each with its summary, path,
-line, `measurements` (name, value, threshold) and `code` (a few lines of the project's code at that line). A fact's summary is what
+line, `measurements` (name, value, threshold) and `code` (a few lines of the project's code at that line). A fact's \
+summary is what
 a deterministic engine found over the whole project: its message, its measurements and how it knows (for example "the
 name occurs nowhere in product code or configuration except line 76"). `batch` says which part of the list this is. A
 card may stand on more facts than the ones shown.
 
 WHAT TO RETURN
 One decision per card, subject = the card id: "confirm" when the evidence shows the problem the card names; "doubt" when
-it neither shows nor contradicts it (the card is kept as not proven, and the next check judges it again); "reject" when it
-contradicts it (a false alarm: the card is set aside and its rule is told). `why`: one or two plain sentences naming what
+it neither shows nor contradicts it (the card is kept as not proven, and the next check judges it again); "reject" \
+when it
+contradicts it (a false alarm: the card is set aside and its rule is told). `why`: one or two plain sentences naming \
+what
 in the evidence decided it. `detail.falsifier`: the observation that would show your decision wrong. `evidence`: the
 card id and the fact ids you relied on.
 
@@ -74,7 +79,8 @@ evidence or on anything outside its own.'''
 REJUDGE = '''
 
 AGAIN
-You doubted these cards in a first pass. Each now carries every fact it stands on (up to 12, the largest measurement over
+You doubted these cards in a first pass. Each now carries every fact it stands on (up to 12, the largest measurement \
+over
 its threshold first) and `first_doubt`, what you said was missing. Decide each again on this evidence. Doubt again only
 when even all its facts neither show nor contradict the problem: a doubted card is never fixed automatically, a person
 reviews it.'''
@@ -86,7 +92,8 @@ def _facts(report):
     out = {}
     for row in (core.load(report / 'studio/evidence.json', {}) or {}).get('facts') or []:
         if isinstance(row, dict) and row.get('id'):
-            out[row['id']] = {'summary': core.short(row.get('summary'), LIMIT['summary']), 'path': row.get('path'), 'line': row.get('line')}
+            out[row['id']] = {'summary': core.short(row.get('summary'), LIMIT['summary']), 'path': row.get('path'),
+                              'line': row.get('line')}
     return out
 
 
@@ -122,7 +129,8 @@ def _measurements(report, wanted):
 def _measured(row):
     """[{name, value, threshold}] of one fact: an engine finding's numeric measurements, a metric's branches."""
     value = row.get('value') or {}
-    found = [{'name': m.get('name'), 'value': m['value'], 'threshold': m.get('threshold') if _number(m.get('threshold')) else None}
+    found = [{'name': m.get('name'), 'value': m['value'],
+              'threshold': m.get('threshold') if _number(m.get('threshold')) else None}
              for m in value.get('measurements') or [] if isinstance(m, dict) and _number(m.get('value'))]
     if row.get('kind') == 'metric' and _number(value.get('branches')):
         found.append({'name': 'branches', 'value': value['branches'], 'threshold': None})
@@ -141,12 +149,15 @@ def inputs(report, **options):
     and their code in options['project'], those carrying the measurement first. options['rejudge'] ({card: why it was
     doubted}): only those cards, each with all its facts and its doubt. options['lang']: the person's language
     ('en')."""
-    report, project, lang, rejudge, limit = Path(report), options.get('project'), options.get('lang', 'en'), options.get('rejudge'), options.get('limit')
+    report, project, lang, rejudge, limit = Path(report), options.get('project'), options.get('lang',
+        'en'), options.get('rejudge'), options.get('limit')
     rows = _open_cards(report, options.get('cards'), rejudge)
     out = _bundled(report, rows[:limit] if limit else rows, project, rejudge)
     if not out: return None
-    return {'project': {'name': (project and Path(project).name) or report.name, 'language': 'Arabic' if lang == 'ar' else 'English'},
-            'trust': {'code': core.UNTRUSTED, 'titles': core.UNTRUSTED}, 'cards': out, 'omitted': len(rows) - len(out), 'lang': lang,
+    return {'project': {'name': (project and Path(project).name) or report.name,
+                        'language': 'Arabic' if lang == 'ar' else 'English'},
+            'trust': {'code': core.UNTRUSTED, 'titles': core.UNTRUSTED}, 'cards': out, 'omitted': len(rows) - len(out),
+            'lang': lang,
             **({'rejudge': True} if rejudge else {})}
 
 
@@ -157,7 +168,8 @@ def _bundled(report, rows, project, rejudge):
     cited = {card['id']: _cites(card) for card in rows}
     measured = _measurements(report, {f for ids in cited.values() for f in ids})
     most = LIMIT['rejudge_facts' if rejudge else 'facts']
-    return [{'id': card['id'], 'title': core.short(card.get('title'), 200), 'kind': card.get('kind'), 'severity': card.get('severity'),
+    return [{'id': card['id'], 'title': core.short(card.get('title'), 200), 'kind': card.get('kind'),
+             'severity': card.get('severity'),
              'confidence': card.get('confidence'), 'paths': (card.get('paths') or [])[:3],
              'evidence': _card_evidence(cited[card['id']], measured, facts, project, most),
              **({'first_doubt': core.short(rejudge[card['id']], 400)} if rejudge else {})} for card in rows]
@@ -182,20 +194,23 @@ def _card_evidence(cited, measured, facts, project, most):
     evidence = []
     for fact in sorted(cited, key=lambda f: _weight(measured.get(f) or []))[:most]:
         known = facts.get(fact) or {}
-        evidence.append({'id': fact, 'summary': known.get('summary'), 'path': known.get('path'), 'line': known.get('line'),
+        evidence.append({'id': fact, 'summary': known.get('summary'), 'path': known.get('path'),
+                         'line': known.get('line'),
                          'measurements': (measured.get(fact) or [])[:LIMIT['measurements']],
                          'code': _excerpt(project, known.get('path'), known.get('line'))})
     return evidence
 
 
 BATCH = 40
-LIST = 'cards'          # each verdict kept under its own evidence (runner.Run._judged): only new or changed cards are asked
+# each verdict kept under its own evidence (runner.Run._judged): only new or changed cards are asked
+LIST = 'cards'
 
 
 def batches(data):
     """The cards in batches of BATCH, each with the rest of the bundle."""
     cards = data['cards']
-    return [{**data, 'cards': cards[i:i + BATCH], 'batch': {'from': i + 1, 'to': min(i + BATCH, len(cards)), 'of': len(cards)}}
+    return [{**data, 'cards': cards[i:i + BATCH],
+             'batch': {'from': i + 1, 'to': min(i + BATCH, len(cards)), 'of': len(cards)}}
             for i in range(0, len(cards), BATCH)] or [data]
 
 
@@ -214,8 +229,10 @@ def known(report, data):
 
 
 def rules(data):
-    return {c['id']: ([c['id']] + [e['id'] for e in c['evidence']], 'The engines wrote this card; no assistant reviewed it.',
-                      float(c['confidence']) if isinstance(c.get('confidence'), (int, float)) and 0 <= c['confidence'] <= 1 else 0.5, {})
+    return {c['id']: ([c['id']] + [e['id'] for e in c['evidence']],
+                      'The engines wrote this card; no assistant reviewed it.',
+                      float(c['confidence']) if isinstance(c.get('confidence'), (int, float))
+                      and 0 <= c['confidence'] <= 1 else 0.5, {})
             for c in data['cards']}
 
 
@@ -227,9 +244,11 @@ def check(data, decision):
     """A verdict must stand on the card's own evidence: the card itself or one of its facts. A confirm is strict: one
     that names no one harmed is kept as a doubt."""
     card = next(c for c in data['cards'] if c['id'] == decision['subject'])
-    if not ({card['id']} | {e['id'] for e in card['evidence']}) & set(decision['evidence']): return "none of its evidence is this card's"
+    if not ({card['id']} | {e['id'] for e in card['evidence']}) & set(decision['evidence']):
+        return "none of its evidence is this card's"
     if decision['decision'] == 'confirm' and not str((decision.get('detail') or {}).get('harmed') or '').strip():
-        decision.update(decision='doubt', demoted='a confirm that names no one harmed')      # its words stay the person's
+        # its words stay the person's
+        decision.update(decision='doubt', demoted='a confirm that names no one harmed')
     return None
 
 
@@ -240,12 +259,16 @@ def finish(report, record, data):
     folder.mkdir(parents=True, exist_ok=True)
     verdicts = _verdicts(record, {c['id']: c for c in data['cards']})
     probes = _probe_requests(record, verdicts, _claims(report), probe)
-    feedback = [{'card': v['card'], 'kind': v['kind'], 'why': v['why'], 'evidence': v['evidence']} for v in verdicts if v['decision'] == 'reject']
-    body = {'schema_version': 1, 'at': record['at'], 'method': record['method'], 'assistant': record['assistant'], 'model': record['model'],
-            'verdicts': verdicts, 'counts': {r['decision']: len(r['subjects']) for r in record['routes']}, 'by_kind': by_kind(verdicts),
+    feedback = [{'card': v['card'], 'kind': v['kind'], 'why': v['why'],
+                 'evidence': v['evidence']} for v in verdicts if v['decision'] == 'reject']
+    body = {'schema_version': 1, 'at': record['at'], 'method': record['method'], 'assistant': record['assistant'],
+            'model': record['model'],
+            'verdicts': verdicts, 'counts': {r['decision']: len(r['subjects']) for r in record['routes']},
+            'by_kind': by_kind(verdicts),
             'resolutions': {name: sum(v.get('resolution') == name for v in verdicts) for name in RESOLUTIONS},
             'omitted': data['omitted']}
-    for name, value in (('verdicts.json', body), ('probes.json', {'schema_version': 1, 'at': record['at'], 'probes': probes}),
+    for name, value in (('verdicts.json', body),
+                        ('probes.json', {'schema_version': 1, 'at': record['at'], 'probes': probes}),
                         ('library-feedback.json', {'schema_version': 1, 'at': record['at'], 'rejected': feedback})):
         (folder / name).write_text(json.dumps(value, ensure_ascii=False, indent=1) + '\n', encoding='utf-8')
 
@@ -263,7 +286,8 @@ def _verdicts(record, cards):
 
 def _probe_requests(record, verdicts, claims, probe):
     """A falsification probe for each doubted card, with the doubt as its question and the assistant's falsifier."""
-    falsifier = lambda card: next((d['detail'].get('falsifier') for d in record['decisions'] if d['subject'] == card), None)
+    falsifier = lambda card: next((d['detail'].get('falsifier') for d in record['decisions'] if d['subject'] == card),
+                                  None)
     doubted = [v for v in verdicts if v['decision'] == 'doubt']
     return [probe(i + 1, claims.get(v['card']) or v['card'], 'falsification',
                   {'card': v['card'], 'question': v['why'], 'falsifier': falsifier(v['card']), 'from': 'card_triage'})
@@ -287,7 +311,8 @@ def _fix(detail):
 def _owners(detail):
     question, recommendation = (core.short(detail.get(k), 300) or None for k in ('question', 'recommendation'))
     options = [core.short(o, 120) for o in detail.get('options') or [] if isinstance(o, str) and o.strip()][:4]
-    return {'resolution': 'owner', 'question': question, 'options': options, 'recommendation': recommendation} if question and recommendation else {}
+    return {'resolution': 'owner', 'question': question, 'options': options,
+            'recommendation': recommendation} if question and recommendation else {}
 
 
 def by_kind(verdicts):
@@ -307,7 +332,8 @@ def _merge_second(node, first, second):
     """The first run with each card judged again by the assistant taking its second verdict (the doubt kept in its
     detail)."""
     again = _rejudged(second)
-    decisions = [{**again[d['subject']], 'detail': {**(again[d['subject']].get('detail') or {}), 'first_doubt': d['why']}}
+    decisions = [{**again[d['subject']],
+                  'detail': {**(again[d['subject']].get('detail') or {}), 'first_doubt': d['why']}}
                  if d['subject'] in again else d for d in first['decisions']]
     return {**first, 'decisions': decisions, 'routes': core.routes(node, decisions),
             'dropped': first['dropped'] + (second.get('dropped') or [] if again else []),
@@ -316,12 +342,14 @@ def _merge_second(node, first, second):
 
 def _rejudged(second):
     """{card: decision} of the second run's verdicts the assistant gave."""
-    return {d['subject']: d for d in second.get('decisions') or [] if second.get('method') == 'model' and d['source'] == 'model'}
+    return {d['subject']: d for d in second.get('decisions') or []
+            if second.get('method') == 'model' and d['source'] == 'model'}
 
 
 def _both(first, second):
     """{seconds, cost_usd} of both passes together (None where the first pass did not say)."""
-    return {k: round((first.get(k) or 0) + (second.get(k) or 0), 4) if first.get(k) is not None else None for k in ('seconds', 'cost_usd')}
+    return {k: round((first.get(k) or 0) + (second.get(k) or 0),
+                     4) if first.get(k) is not None else None for k in ('seconds', 'cost_usd')}
 
 
 def run(node, report, **options):
@@ -331,7 +359,8 @@ def run(node, report, **options):
     spec = sys.modules[__name__]
     first = runner.run_node(node, spec, report, **options, logged=False)
     if not first: return first
-    doubted = {d['subject']: d['why'] for d in first['decisions'] if d['source'] == 'model' and d['decision'] == 'doubt'}
+    doubted = {d['subject']: d['why'] for d in first['decisions']
+               if d['source'] == 'model' and d['decision'] == 'doubt'}
     if first['method'] != 'model' or not doubted:
         core.log_run(report, node, first)
         return first
@@ -339,6 +368,7 @@ def run(node, report, **options):
     row = core.keep(report, node, _merge_second(node, first, second), logged=False)
     # one line for the run, both passes' time and cost: the first pass's alone counted it twice beside the merged one
     core.log_run(report, node, {**row, **_both(first, second)})
-    finish(report, row, inputs(report, project=options.get('project'), lang=options.get('lang', 'en'), cards=options.get('cards'),
+    finish(report, row,
+           inputs(report, project=options.get('project'), lang=options.get('lang', 'en'), cards=options.get('cards'),
                                limit=options.get('limit')))
     return row

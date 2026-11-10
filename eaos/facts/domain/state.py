@@ -1,6 +1,6 @@
-"""Module state, for the domain facts (eaos/facts/domain/model.py): the module-level values a program changes while it runs
-(Python, Go, JavaScript and TypeScript), whether that state is private to its module, and the assignments a Python
-module makes into another module's namespace.
+"""Module state, for the domain facts (eaos/facts/domain/model.py): the module-level values a program changes
+while it runs (Python, Go, JavaScript and TypeScript), whether that state is private to its module,
+and the assignments a Python module makes into another module's namespace.
 """
 import ast
 import re
@@ -9,7 +9,8 @@ import re
 MUTABLE = (ast.List, ast.Dict, ast.Set, ast.ListComp, ast.DictComp, ast.SetComp)
 
 
-MUTATORS = {'append', 'extend', 'insert', 'pop', 'remove', 'clear', 'update', 'add', 'discard', 'setdefault', 'popitem', 'sort'}
+MUTATORS = {'append', 'extend', 'insert', 'pop', 'remove', 'clear', 'update', 'add', 'discard', 'setdefault', 'popitem',
+            'sort'}
 
 
 def python_mutable_globals(text):
@@ -23,7 +24,8 @@ def python_mutable_globals(text):
     bound = _mutable_bindings(tree)
     mutated = _mutations(tree, bound)
     found = [(name, shape, line, *mutated[name]) for name, (shape, line) in sorted(bound.items()) if name in mutated]
-    found += [(name, 'rebound_global', where, how, where, scope) for name, (how, where, scope) in sorted(mutated.items())
+    found += [(name, 'rebound_global', where, how, where, scope) for name, (how, where,
+                                                                            scope) in sorted(mutated.items())
               if name not in bound and how == 'global_statement']
     return found
 
@@ -140,7 +142,8 @@ def go_mutable_globals(text):
 
 
 JS_TOP_LET = re.compile(r'^(?:export\s+)?(?:let|var)\s+(?P<name>[A-Za-z_$][\w$]*)', re.M)
-JS_TOP_CONTAINER = re.compile(r'^(?:export\s+)?const\s+(?P<name>[A-Za-z_$][\w$]*)\s*(?::[^=]+)?=\s*(?P<shape>\[|\{|new\s+(?:Map|Set|WeakMap)\b)', re.M)
+JS_TOP_CONTAINER = re.compile(r'^(?:export\s+)?const\s+(?P<name>[A-Za-z_$][\w$]*)\s*(?::[^=]+)?=\s*'
+                              r'(?P<shape>\[|\{|new\s+(?:Map|Set|WeakMap)\b)', re.M)
 
 
 def js_mutable_globals(text):
@@ -156,9 +159,11 @@ def js_mutable_globals(text):
     for match in JS_TOP_CONTAINER.finditer(text):
         name, tail = match.group('name'), text[match.end():]
         body = tail.split('\n', 1)[1] if '\n' in tail else ''
-        if re.search(rf'(?<![\w$.]){re.escape(name)}\s*(?:\.(?:push|pop|shift|unshift|splice|set|add|delete|clear)\s*\(|\[[^\]]+\]\s*=(?!=)|\.[A-Za-z_$][\w$]*\s*=(?!=))', body):
+        if re.search(rf'(?<![\w$.]){re.escape(name)}\s*(?:\.(?:push|pop|shift|unshift|splice|set|add|delete|clear)\s*\('
+                     r'|\[[^\]]+\]\s*=(?!=)|\.[A-Za-z_$][\w$]*\s*=(?!=))', body):
             line = text.count('\n', 0, match.start()) + 1
-            found.append((name, match.group('shape').split()[0].replace('new', 'collection'), line, 'mutation', line, 'function'))
+            found.append((name, match.group('shape').split()[0].replace('new', 'collection'), line, 'mutation', line,
+                          'function'))
     return found
 
 
@@ -174,5 +179,6 @@ def encapsulated(name, text, language):
     exported = (re.search(rf'\bexport\s+(?:let|var|const)\s+{escaped}\b', text)
                 or re.search(rf'\bexport\s*\{{[^}}]*\b{escaped}\b[^}}]*\}}', text)
                 or re.search(rf'\bexport\s+default\s+{escaped}\b', text)
-                or re.search(rf'\b(?:module\.)?exports\.{escaped}\b|\bmodule\.exports\s*=\s*\{{[^}}]*\b{escaped}\b', text))
+                or re.search(rf'\b(?:module\.)?exports\.{escaped}\b|\bmodule\.exports\s*=\s*\{{[^}}]*\b{escaped}\b',
+                             text))
     return not exported

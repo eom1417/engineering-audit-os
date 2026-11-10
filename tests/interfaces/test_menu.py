@@ -14,7 +14,8 @@ CHECKED = {'project': '/p', 'branch': 'main', 'checked': True, 'progress': {'clo
 
 
 def offer(answer, lang='ar'):
-    with mock.patch.object(m, '_status', return_value=answer), mock.patch('eaos.core.project.state.looks_like_project', return_value=True):
+    with mock.patch.object(m, '_status', return_value=answer), mock.patch('eaos.core.project.state.looks_like_project',
+                                                                          return_value=True):
         return m.menu(tempfile.gettempdir(), lang)
 
 
@@ -26,14 +27,16 @@ class WhatIsOffered(unittest.TestCase):
     def test_only_what_makes_sense_now_is_offered_the_most_pressing_first(self):
         work = {'kind': 'fix batch', 'number': 4, 'cards': ['A', 'B', 'C'], 'kept': ['A'], 'left': ['B', 'C']}
         never = offer({**CHECKED, 'checked': False, 'progress': None, 'next': {'tool': 'audit'}})
-        self.assertEqual((ids(never), len(never['pages'])), (['audit', 'status', 'tools'], 1), 'no report before a check')
+        self.assertEqual((ids(never), len(never['pages'])), (['audit', 'status', 'tools'], 1),
+                         'no report before a check')
         checked = offer(CHECKED)
         first = checked['pages'][0][0]
         self.assertEqual(first['id'], 'fix')
         self.assertIn('7', first['description'], 'the problems left, from the project itself')
         self.assertIn('3 من 10', checked['state'])
         self.assertTrue({'report', 'tasks', 'ask', 'audit'} <= set(ids(checked)))
-        self.assertFalse({'continue', 'decide'} & set(ids(checked)), 'no "continue" without open work, no "review" without a branch waiting')
+        self.assertFalse({'continue', 'decide'} & set(ids(checked)),
+                         'no "continue" without open work, no "review" without a branch waiting')
         waiting = offer({**CHECKED, 'waiting_branch': 'eaos/wave-2'})
         self.assertEqual(ids(waiting)[0], 'decide')
         self.assertIn('eaos/wave-2', waiting['pages'][0][0]['description'])
@@ -45,7 +48,8 @@ class WhatIsOffered(unittest.TestCase):
         changed = offer({**CHECKED, 'next': {'tool': 'audit'}})
         self.assertEqual(ids(changed)[0], 'audit')
         self.assertNotIn('fix', ids(changed))
-        self.assertEqual(ids(offer({'project': '/p', 'branch': None, 'status': 'needs_branch', 'handover': {}})), ['branch', 'status', 'tools'])
+        self.assertEqual(ids(offer({'project': '/p', 'branch': None, 'status': 'needs_branch', 'handover': {}})),
+                         ['branch', 'status', 'tools'])
 
 class Words(unittest.TestCase):
     def test_at_most_four_to_a_page_each_option_once_and_only_the_first_recommended_in_the_persons_language(self):
@@ -57,7 +61,8 @@ class Words(unittest.TestCase):
             self.assertTrue(all(page[-1] == m.MORE for page in pages[:-1]), 'every page but the last ends with "more"')
             self.assertNotIn(m.MORE, pages[-1])
         work = {'kind': 'fix batch', 'number': 1, 'cards': ['A'], 'kept': [], 'left': ['A']}
-        for answer in (CHECKED, {**CHECKED, 'waiting_branch': 'eaos/wave-1'}, {**CHECKED, 'checked': False, 'progress': None},
+        for answer in (CHECKED, {**CHECKED, 'waiting_branch': 'eaos/wave-1'},
+                       {**CHECKED, 'checked': False, 'progress': None},
                        {**CHECKED, 'handover': {'open_work': work}}, {'status': 'needs_branch', 'handover': {}}, None):
             for lang, mark in (('ar', '(موصى به)'), ('en', '(Recommended)')):
                 result = offer(answer, lang)
@@ -75,7 +80,8 @@ class Words(unittest.TestCase):
             self.assertIn(key, m.DESCRIBE)
             self.assertTrue(m.OPTIONS[key][0] and m.OPTIONS[key][1] and m.OPTIONS[key][2])
         for key, (_, _, do) in m.OPTIONS.items():
-            for name in re.findall(r'\b([a-z]+_[a-z_]+|status|audit|wait|finding|structure|plan|accept|undo|impact|ask)\b', do):
+            for name in re.findall(r'\b([a-z]+_[a-z_]+|status|audit|wait|finding|structure|plan|accept|undo|impact|'
+                                   r'ask)\b', do):
                 if name in ('person_agreed', 'person_said', 'how_to_continue', 'report_errors', 'needed_here'): continue
                 self.assertIn(name, registered, f'{key}: {name}')
 
@@ -95,7 +101,8 @@ class OnDisk(unittest.TestCase):
         empty = Path(self.tmp.name) / 'empty'
         empty.mkdir()
         self.assertEqual(ids(m.menu(str(empty), 'ar')), ['tools'])
-        self.assertFalse((Path(self.tmp.name) / 'home').exists() and any((Path(self.tmp.name) / 'home').rglob('empty*')),
+        self.assertFalse((Path(self.tmp.name) / 'home').exists()
+                         and any((Path(self.tmp.name) / 'home').rglob('empty*')),
                          'a folder that is no project is left without any EAOS state')
 
 

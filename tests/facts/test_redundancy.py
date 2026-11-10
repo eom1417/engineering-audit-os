@@ -19,7 +19,8 @@ CASES = [
      "    return orders\n", 'n_plus_one', ['filter_by']),
     ("def run(items):\n    for x in items:\n        v = fetch(x)\n    return items\n", 'n_plus_one', ['fetch']),
     # A method call is not a query; treating every one as N+1 would raise false claims.
-    ("def run(orders):\n    for order in orders:\n        total = order.get_total()\n    return orders\n", 'n_plus_one', []),
+    ("def run(orders):\n    for order in orders:\n        total = order.get_total()\n    return orders\n", 'n_plus_one',
+     []),
     ("def wrapper(payload):\n    return inner(payload)\n", 'pass_through', ['inner']),
     ("def wrapper(payload):\n    cleaned = clean(payload)\n    return inner(cleaned)\n", 'pass_through', []),
 ]

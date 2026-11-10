@@ -49,7 +49,8 @@ def analyze(target, workdir, exclude=(), formats=None):
     ignored = ','.join(ALWAYS_IGNORED + tuple(f'**/{pattern}/**' for pattern in exclude))
     # Read from inside the target: the patterns to skip then match its own folders, never the ones it sits in (a
     # project under a folder named fixtures would be skipped whole).
-    command = [which(BINARY), '.', *NEAR_MODES, '--reporters', 'json', '--output', str(workdir.resolve()), '--ignore', ignored, '--silent']
+    command = [which(BINARY), '.', *NEAR_MODES, '--reporters', 'json', '--output', str(workdir.resolve()),
+               '--ignore', ignored, '--silent']
     # Without a format list jscpd counts markdown and JSON as duplication, which inflates the share. The caller owns
     # the source vocabulary, so it passes it in.
     if formats:
@@ -61,7 +62,8 @@ def analyze(target, workdir, exclude=(), formats=None):
     report = json.loads(report_path.read_text(encoding='utf-8'))
     pairs = [clone for clone in report.get('duplicates', []) if not imports_only(clone.get('fragment') or '')]
     return Report(NAME, found, PINNED, OBSERVED, seconds=seconds, metrics=[_record(clone) for clone in pairs],
-                  coverage=_coverage(report, ignored, formats), provenance={'near_copy': NEAR_COPY}, raw=str(report_path))
+                  coverage=_coverage(report, ignored, formats), provenance={'near_copy': NEAR_COPY},
+                  raw=str(report_path))
 
 
 def _formats(formats):
@@ -92,7 +94,8 @@ def _record(clone):
     digest."""
     first, second = _place(clone['firstFile']), _place(clone['secondFile'])
     return {'path': first['path'], 'line': first['line'], 'symbol': None, 'granularity': 'file',
-            'measurements': {'record': 'near_copy', 'kind': clone.get('kind') or 'exact', 'similarity': clone.get('similarity'),
+            'measurements': {'record': 'near_copy', 'kind': clone.get('kind') or 'exact',
+                             'similarity': clone.get('similarity'),
                              'digest': fragment_digest(clone.get('fragment') or ''),
                              'lines': clone.get('lines'), 'tokens': clone.get('tokens'), 'end_line': first['end_line'],
                              'format': clone.get('format'), 'other': second}}

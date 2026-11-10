@@ -29,14 +29,16 @@ class CraftTests(unittest.TestCase):
         files = {f'src/part{n}.py': 'x = 1\n' for n in range(26)}
         files.update({f'src/pipeline_{n}.py': '' for n in ('a', 'b', 'c', 'd')})
         files.update({f'app/page{n}.tsx': '' for n in range(30)})             # Next.js routes: the framework's layout
-        files.update({'lib/utils.py': 'x = 1\n' * 301, 'lib/small/helpers.py': 'x = 1\n', 'lib/api.js': '', 'lib/api_v2.js': ''})
+        files.update({'lib/utils.py': 'x = 1\n' * 301, 'lib/small/helpers.py': 'x = 1\n', 'lib/api.js': '',
+                      'lib/api_v2.js': ''})
         rules = {rule for rule, _ in found(project(files))}
         self.assertEqual(rules, {'crowded-folder', 'prefix-family', 'vague-name', 'version-name', 'no-extending-guide'})
         self.assertIn(('crowded-folder', 'src'), found(project(files)))
         self.assertNotIn(('vague-name', 'lib/small/helpers.py'), found(project(files)), 'a short helpers file is fine')
 
     def test_a_document_naming_a_path_of_the_tree_that_is_gone_is_found_and_an_output_path_is_not(self):
-        root = project({'src/app.py': '', 'README.md': 'See `src/app.py`, `src/gone.py` and the report in `technical/RUN.md`.',
+        root = project({'src/app.py': '',
+                        'README.md': 'See `src/app.py`, `src/gone.py` and the report in `technical/RUN.md`.',
                         'CHANGELOG.md': 'Moved `src/old.py`.'})
         self.assertEqual(found(root), {('stale-doc-path', 'README.md')})
 
@@ -54,9 +56,11 @@ class ContextTests(unittest.TestCase):
     def test_heavy_repeated_and_done_context_is_measured_and_eaos_own_block_is_not_counted(self):
         rule = 'Every change goes through a branch of its own and is verified first.'
         eaos = '<!-- EAOS: begin (eaos assistant install) -->\n' + 'x' * 40000 + '\n<!-- EAOS: end -->\n'
-        root = project({'AGENTS.md': rule + '\n' + '- [x] done\n' * 5, 'CLAUDE.md': '@AGENTS.md\n@docs/more.md\n' + eaos,
+        root = project({'AGENTS.md': rule + '\n' + '- [x] done\n' * 5,
+                        'CLAUDE.md': '@AGENTS.md\n@docs/more.md\n' + eaos,
                         'docs/more.md': rule + '\n'})
-        self.assertEqual({r for r, _ in found(root)}, {'context-repeat', 'context-done'}, "EAOS's block is not the person's weight")
+        self.assertEqual({r for r, _ in found(root)}, {'context-repeat', 'context-done'},
+                         "EAOS's block is not the person's weight")
         heavy = project({'AGENTS.md': 'y' * 30000})
         self.assertEqual(found(heavy), {('context-heavy', 'AGENTS.md')})
 
@@ -68,7 +72,8 @@ class ContextTests(unittest.TestCase):
                   for n in range(26)}
         self.assertEqual(found(project({'AGENTS.md': 'Read the guide first.\n', **skills})), set())
         long = {'.claude/skills/one/SKILL.md': '---\nname: one\ndescription: ' + 'w' * 30000 + '\n---\nbody'}
-        self.assertEqual(found(project({'AGENTS.md': 'Read the guide first.\n', **long})), {('context-heavy', 'AGENTS.md')})
+        self.assertEqual(found(project({'AGENTS.md': 'Read the guide first.\n', **long})),
+                         {('context-heavy', 'AGENTS.md')})
 
 
 class CleanTwinTests(unittest.TestCase):

@@ -7,7 +7,8 @@ import re
 
 from ..project.workspace import INFRA, STACKS
 
-SOURCE = {'.py','.js','.jsx','.ts','.tsx','.mjs','.cjs','.go','.rs','.java','.kt','.cs','.php','.rb','.ex','.exs','.dart','.vue','.svelte','.swift','.c','.cpp','.h','.sql'}
+SOURCE = {'.py','.js','.jsx','.ts','.tsx','.mjs','.cjs','.go','.rs','.java','.kt','.cs','.php','.rb','.ex','.exs',
+          '.dart','.vue','.svelte','.swift','.c','.cpp','.h','.sql'}
 CONFIG = {'.json','.toml','.yaml','.yml','.xml','.ini','.cfg','.tf','.sh'}
 
 SUPPORTED_KEYWORDS={'type','enum','const','properties','required','additionalProperties','items',
@@ -25,7 +26,8 @@ TYPES={'object':dict,'array':list,'string':str,'null':type(None),'boolean':bool,
 def _is_test(name, parts):
     # Only pytest names a test by a `test_` prefix: `test_email.tsx` is an email and Go's `test_helpers.go` is
     # compiled in.
-    return bool(parts & {'tests','test','__tests__','spec'}) or bool(re.search(r'(^test_.*\.py$|[._](test|spec)\.)',name))
+    return (bool(parts & {'tests','test','__tests__','spec'})
+            or bool(re.search(r'(^test_.*\.py$|[._](test|spec)\.)',name)))
 
 
 def _kind_by_suffix(suffix, name):
@@ -71,7 +73,8 @@ def _number_errors(value, spec, path):
 def _list_errors(value, spec, path):
     errors=[]
     if len(value)<spec.get('minItems',0):errors.append(path+' needs at least '+str(spec['minItems'])+' items')
-    if 'maxItems' in spec and len(value)>spec['maxItems']:errors.append(path+' has more than '+str(spec['maxItems'])+' items')
+    if 'maxItems' in spec and len(value)>spec['maxItems']:errors.append(path+' has more than '
+        +str(spec['maxItems'])+' items')
     if 'items' in spec:
         for i,v in enumerate(value):errors+=schema_errors(v,spec['items'],path+f'[{i}]')
     return errors

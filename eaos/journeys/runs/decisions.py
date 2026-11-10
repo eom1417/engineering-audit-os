@@ -76,7 +76,8 @@ class Decisions:
             fcntl.flock(lock, fcntl.LOCK_EX)
             row = next((r for r in self.report_decisions() if r['id'] == decision), None)
             if not row: raise KeyError(decision)
-            if body.get('scope') != row['scope']: raise LookupError('the report question changed; reload before answering')
+            if body.get('scope') != row['scope']:
+                raise LookupError('the report question changed; reload before answering')
             question = row['question']
             option, text = body.get('option'), body.get('text')
             chosen = _chosen_answer(question, option, text)
@@ -103,7 +104,8 @@ class Decisions:
         assistant = self._assistant(wanted, True)
         record = {'id': run, 'action': 'report_decision', 'verb': None,
                   'label': {'en': 'Review owner answer', 'ar': 'مراجعة إجابة المالك'},
-                  'inputs': {}, 'owner_decision': self._review_context(question, response), 'cards': question.get('blocks', []),
+                  'inputs': {}, 'owner_decision': self._review_context(question, response),
+                  'cards': question.get('blocks', []),
                   'assistant': None if assistant == 'handoff' else assistant,
                   'mode': 'handoff' if assistant == 'handoff' else 'assistant', 'state': 'queued',
                   'attempt': 1, 'created': now('milliseconds'), 'queued_at': now('milliseconds'), 'read': False}
@@ -118,11 +120,13 @@ class Decisions:
         return {'question': question, 'answer': response,
                 'evidence': [f for f in facts if f.get('id') in evidence_ids][:40],
                 'project': self.project.name, 'report': Path(self._studio()).parent.name,
-                'blocked_cards': [{'id': c['id'], 'title': c.get('title'), 'paths': c.get('paths'), 'evidence': c.get('evidence')} for c in blocked]}
+                'blocked_cards': [{'id': c['id'], 'title': c.get('title'), 'paths': c.get('paths'),
+                                   'evidence': c.get('evidence')} for c in blocked]}
 
     def _blocked_cards(self, question):
         """The cards of the latest check that wait for the answer to `question`."""
-        return [c for c in (selecting._load(self._studio(), 'cards') or {}).get('cards', []) if c['id'] in question.get('blocks', [])]
+        return [c for c in (selecting._load(self._studio(), 'cards') or {}).get('cards', [])
+                if c['id'] in question.get('blocks', [])]
 
     def _merge_choice(self, body):
         """Where Accept merges, as the person chose in its sheet (one of their branches, never a protected one), and
@@ -132,9 +136,12 @@ class Decisions:
         if target:
             from ..branches import valid_name
             valid_name(self.project, target)
-            if not self.branches.tip(f'refs/heads/{target}'): raise LookupError(f'no branch named {target} to merge into')
+            if not self.branches.tip(f'refs/heads/{target}'):
+                raise LookupError(f'no branch named {target} to merge into')
             reason = self.branches.blocked_target(target)
-            if reason: raise Refused(409, f"{target} is protected ({reason['en']}): choose another branch to merge into", reasons=[reason])
+            if reason:
+                raise Refused(409, f"{target} is protected ({reason['en']}): choose another branch to merge into",
+                              reasons=[reason])
             chosen['merge_into'] = target
         if body.get('delete_after') is False: chosen['delete_after'] = False
         return chosen
@@ -142,7 +149,8 @@ class Decisions:
     def decide(self, run, operation, body):
         """Accept or undo the branch a run handed over: only with the confirm token of that preview."""
         if not self.locks.spend(body.get('confirm'), operation, None, self.project):
-            raise Refused(403, f'{operation} needs your explicit confirmation: open its preview and confirm', needs='confirm')
+            raise Refused(403, f'{operation} needs your explicit confirmation: open its preview and confirm',
+                          needs='confirm')
         record = self.store.load(run)
         branch = (record.get('result') or {}).get('branch')
         if not branch: raise LookupError('this run handed no branch over')
@@ -151,11 +159,14 @@ class Decisions:
         # run never takes in or throws away another run's work
         newest = self.manager.newest_waiting()
         if newest != branch:
-            raise LookupError(f'another branch ({newest}) waits after {branch}: decide that one first' if newest else f'{branch} is not waiting for a decision any more')
-        # Accept merges where the person chose in its sheet (one of their branches, never a protected one) and deletes the
-        # branch after merging unless they unticked it
+            raise LookupError(f'another branch ({newest}) waits after {branch}: decide that one first' if newest
+                              else f'{branch} is not waiting for a decision any more')
+        # Accept merges where the person chose in its sheet (one of their branches, never a protected one) and
+        # deletes the branch after merging unless they unticked it
         chosen = self._merge_choice(body) if operation == 'accept' else {}
-        self.store.append(run, 'action', {'en': f'You chose to {operation} {branch}', 'ar': f"اخترت {'اعتماد' if operation == 'accept' else 'رمي'} {branch}"},
+        self.store.append(run, 'action',
+                          {'en': f'You chose to {operation} {branch}',
+                           'ar': f"اخترت {'اعتماد' if operation == 'accept' else 'رمي'} {branch}"},
                           {'action': operation, 'by': 'person', 'arguments': {'branch': branch, **chosen}})
         result = self.manager.call(operation, {'person_agreed': True, **chosen})
         self._decided(run, operation, branch, result)
@@ -163,9 +174,12 @@ class Decisions:
 
     def _decided(self, run, operation, branch, result):
         """What the accept or undo came to, in the run: its result and outcome, or why it did not happen."""
-        ok = isinstance(result, dict) and not result.get('error') and result.get('status') == {'accept': 'accepted', 'undo': 'undone'}[operation]
+        ok = (isinstance(result, dict) and not result.get('error')
+              and result.get('status') == {'accept': 'accepted', 'undo': 'undone'}[operation])
         self.store.append(run, 'result' if ok else 'error', _decision_words(operation, branch, ok, result),
                           {'branch': branch, 'outcome': operation if ok else None, 'answer': result} if ok else
                           {'reason': str(result.get('status') or result.get('error')), 'recoverable': True,
-                           'what_now': {'en': str(result.get('what_now') or ''), 'ar': str(result.get('what_now') or '')}})
-        if ok: self.store.update(run, outcome={'accept': 'accepted', 'undo': 'undone'}[operation], decided=now('milliseconds'))
+                           'what_now': {'en': str(result.get('what_now') or ''),
+                                        'ar': str(result.get('what_now') or '')}})
+        if ok: self.store.update(run, outcome={'accept': 'accepted', 'undo': 'undone'}[operation],
+                                 decided=now('milliseconds'))

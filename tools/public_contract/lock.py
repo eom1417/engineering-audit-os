@@ -73,7 +73,8 @@ def _parameter(old, new, where, found):
         found.broke(f'{where}: kind narrowed from {sorted(_kinds(old))} to {sorted(_kinds(new))}')
     elif _kinds(new) - _kinds(old):
         found.added(f'{where}: kind widened')
-    if 'default' in old and 'default' in new and old['default'] != new['default']: found.broke(f'{where}: default changed')
+    if 'default' in old and 'default' in new and old['default'] != new['default']:
+        found.broke(f'{where}: default changed')
     _values(old, new, where, found)
 
 
@@ -84,7 +85,8 @@ def _tool_input(old, new, where, found):
         if name in after: _parameter(schema, after[name], f'{where}.{name}', found)
         else: found.broke(f'{where}: parameter {name} removed')
     for name in after.keys() - before.keys():
-        (found.broke if name in wanted_after else found.added)(f'{where}: new {"required" if name in wanted_after else "optional"} parameter {name}')
+        (found.broke if name in wanted_after else found.added)(
+            f'{where}: new {"required" if name in wanted_after else "optional"} parameter {name}')
     for name in (wanted_after - wanted_before) & before.keys(): found.broke(f'{where}.{name}: optional became required')
     for name in (wanted_before - wanted_after) & after.keys(): found.added(f'{where}.{name}: required became optional')
 
@@ -109,8 +111,10 @@ def _by_flag(rows):
 
 def _choices(old, new, where, found):
     before, after = old['choices'], new['choices']
-    if after is not None and (before is None or set(before) - set(after)): found.broke(f'{where}: fewer choices accepted')
-    elif before is not None and (after is None or set(after) - set(before)): found.added(f'{where}: more choices accepted')
+    if after is not None and (before is None or set(before) - set(after)):
+        found.broke(f'{where}: fewer choices accepted')
+    elif before is not None and (after is None or set(after) - set(before)):
+        found.added(f'{where}: more choices accepted')
 
 
 def _argument(old, new, where, found):
@@ -132,7 +136,8 @@ def _cli(old, new, found):
             else: found.broke(f'{command}: argument {flag} removed')
         for flag in after.keys() - before.keys():
             required = after[flag]['required']
-            (found.broke if required else found.added)(f'{command}: new {"required" if required else "optional"} argument {flag}')
+            (found.broke if required else found.added)(
+                f'{command}: new {"required" if required else "optional"} argument {flag}')
     for command in new.keys() - old.keys(): found.added(f'CLI command {command} added')
 
 
@@ -169,7 +174,8 @@ def hermetic(scratch, root):
     (scratch / 'home').mkdir()
     (scratch / 'work').mkdir()
     os.symlink(shutil.which('git'), scratch / 'bin' / 'git')
-    return {'PATH': str(scratch / 'bin'), 'HOME': str(scratch / 'home'), 'LANG': 'C.UTF-8', 'PYTHONSAFEPATH': '1', 'PYTHONPATH': str(root),
+    return {'PATH': str(scratch / 'bin'), 'HOME': str(scratch / 'home'), 'LANG': 'C.UTF-8',
+            'PYTHONSAFEPATH': '1', 'PYTHONPATH': str(root),
             'PYTHONDONTWRITEBYTECODE': '1', 'EAOS_HOME': str(scratch / 'eaos'), 'EAOS_OUTPUT': str(scratch / 'output'),
             'EAOS_ENGINE_TOOLS': str(scratch / 'tools'), 'EAOS_ASSISTANT': 'none', 'EAOS_ANSWER_SECONDS': '0',
             'EAOS_CONTRACT_SCRATCH': str(scratch / 'work')}
@@ -191,7 +197,8 @@ def load(lock=LOCK):
 def write(snapshot, lock=LOCK):
     lock.mkdir(parents=True, exist_ok=True)
     for part in PARTS:
-        (lock / f'{part}.json').write_text(json.dumps(snapshot[part], ensure_ascii=False, indent=1, sort_keys=True) + '\n', encoding='utf-8')
+        (lock / f'{part}.json').write_text(json.dumps(snapshot[part], ensure_ascii=False, indent=1,
+                                                      sort_keys=True) + '\n', encoding='utf-8')
 
 
 def accepted(lock=LOCK):
@@ -214,7 +221,8 @@ def record(new, lock=LOCK):
 
 def accept_break(new, why, approved_by, lock=LOCK):
     """A break the maintainers agreed to, kept in the lock with its reason, who agreed and what it takes away."""
-    if not (why or '').strip() or not (approved_by or '').strip(): raise Refused('a break needs its reason and who approved it')
+    if not (why or '').strip() or not (approved_by or '').strip():
+        raise Refused('a break needs its reason and who approved it')
     breaks = compare(load(lock), new)[0]
     if not breaks: raise Refused('nothing breaks: use --record')
     _every_tool_accounted(new)
@@ -226,7 +234,8 @@ def accept_break(new, why, approved_by, lock=LOCK):
 
 def save_project():
     with tempfile.TemporaryDirectory(prefix='eaos-contract-') as scratch:
-        subprocess.run([sys.executable, str(CAPTURE), '--save-project'], env=hermetic(Path(scratch).resolve(), ROOT), stdin=subprocess.DEVNULL, check=True)
+        subprocess.run([sys.executable, str(CAPTURE), '--save-project'],
+                       env=hermetic(Path(scratch).resolve(), ROOT), stdin=subprocess.DEVNULL, check=True)
 
 
 def _option(name):

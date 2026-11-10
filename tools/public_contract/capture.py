@@ -21,9 +21,11 @@ from unittest import mock
 
 SAVED = Path(__file__).resolve().parents[2] / 'tests' / 'fixtures' / 'saved-project'
 DATE = '2026-01-01T00:00:00Z'    # the saved project's one commit keeps its id, so the frozen state still names it
-TOKENS = ('{{PROJECT}}', '{{WORKSPACE}}', '{{OUTPUT}}', '{{PYTHON}}')   # a report names its places and the Python that ran it
+# a report names its places and the Python that ran it
+TOKENS = ('{{PROJECT}}', '{{WORKSPACE}}', '{{OUTPUT}}', '{{PYTHON}}')
 # What a frozen report does not need to be read, and only makes the fixture heavy.
-UNSAVED = ('technical/human', 'technical/progress', 'technical/behavior-lock', 'technical/run-progress.jsonl', 'REPORT.html')
+UNSAVED = ('technical/human', 'technical/progress', 'technical/behavior-lock', 'technical/run-progress.jsonl',
+           'REPORT.html')
 
 # Tools no contract run may call, with why; a new tool that reads or writes must be named here or called below.
 NOT_CALLED = {
@@ -33,11 +35,13 @@ NOT_CALLED = {
 # Not declared read-only, as they settle the state, but read like the rest: their answers stay held.
 ANSWERED = ('status', 'menu', 'plan')
 EMPTY_WRITING = (
-    'accept', 'act', 'context_make', 'fix_abandon', 'fix_edit', 'fix_finish', 'fix_skip', 'fix_start', 'safety_net', 'undo')
+    'accept', 'act', 'context_make', 'fix_abandon', 'fix_edit', 'fix_finish', 'fix_skip', 'fix_start',
+    'safety_net', 'undo')
 # A writing tool that succeeds on a real batch or job: the existing test that drives it, or why nothing locks it yet.
 WRITING_ELSEWHERE = {
     'audit': 'tests/guards/test_journey.py',
-    'open_report': 'tests/interfaces/test_read_only_tools.py', 'choose_branch': 'tests/interfaces/test_mcp.py', 'note': 'tests/interfaces/test_mcp.py',
+    'open_report': 'tests/interfaces/test_read_only_tools.py', 'choose_branch': 'tests/interfaces/test_mcp.py',
+    'note': 'tests/interfaces/test_mcp.py',
     'rule': 'tests/analysis/test_person_rules.py', 'runs': 'tests/interfaces/test_mcp.py',
     'waiting': 'tests/interfaces/test_mcp.py', 'branch_change': 'tests/interfaces/test_mcp.py',
     'check_changed': 'not locked: it reads a change the fixture does not have',
@@ -45,10 +49,13 @@ WRITING_ELSEWHERE = {
     'run_try': 'not locked: it runs the app',
     'tools_add': 'not locked: it installs a tool', 'tools_check': 'not locked: it reads the installed tools',
 }
-UNACCOUNTED = 'UNACCOUNTED: name it in NOT_CALLED, EMPTY_WRITING or WRITING_ELSEWHERE of tools/public_contract/capture.py'
+UNACCOUNTED = ('UNACCOUNTED: name it in NOT_CALLED, EMPTY_WRITING or WRITING_ELSEWHERE '
+               'of tools/public_contract/capture.py')
 EMPTY_OF = {'array': [], 'object': {}, 'integer': 0, 'boolean': False}
-SAVED_ARGUMENTS = {'finding': {'id': 'TASK-001'}, 'report_file': {'name': 'START-HERE.md'}, 'impact': {'target': 'app/prices.py'}}
-EMPTY_CLI = ([], ['--version'], ['--help'], ['nosuch'], ['status'], ['status', '--lang', 'xx'], ['status', '{missing}'], ['problem'],
+SAVED_ARGUMENTS = {'finding': {'id': 'TASK-001'}, 'report_file': {'name': 'START-HERE.md'},
+                   'impact': {'target': 'app/prices.py'}}
+EMPTY_CLI = ([], ['--version'], ['--help'], ['nosuch'], ['status'], ['status', '--lang', 'xx'],
+             ['status', '{missing}'], ['problem'],
              ['facts'], ['facts', '{missing}', '--out', '{missing}'], ['decided'], ['policy'], ['show', 'NOPE'])
 SAVED_CLI = (['status'], ['problems', '--project', '.'], ['history', '--project', '.'], ['runs', '--project', '.'],
              ['plan', '--project', '.'], ['usage', '--project', '.'], ['rules', 'list', '--project', '.'],
@@ -62,8 +69,10 @@ def _plain(value):
 
 
 def _argument(action):
-    return {'dest': action.dest, 'flags': sorted(action.option_strings), 'nargs': action.nargs, 'default': _plain(action.default),
-            'choices': None if action.choices is None else sorted(map(str, action.choices)), 'required': bool(action.required),
+    return {'dest': action.dest, 'flags': sorted(action.option_strings), 'nargs': action.nargs,
+            'default': _plain(action.default),
+            'choices': None if action.choices is None else sorted(map(str, action.choices)),
+            'required': bool(action.required),
             'kind': type(action).__name__.lstrip('_'), 'type': getattr(action.type, '__name__', None)}
 
 
@@ -134,7 +143,8 @@ def command(argv, missing):
 
 def _git(project, *argv):
     env = {**os.environ, 'GIT_AUTHOR_DATE': DATE, 'GIT_COMMITTER_DATE': DATE}
-    subprocess.run(['git', '-C', str(project), '-c', 'user.name=fixture', '-c', 'user.email=fixture@example.invalid', *argv],
+    subprocess.run(['git', '-C', str(project), '-c', 'user.name=fixture',
+                    '-c', 'user.email=fixture@example.invalid', *argv],
                    check=True, capture_output=True, env=env)
 
 
@@ -149,14 +159,16 @@ def new_project(where):
 
 def reading_tools(mcp):
     declared = mcp_declared(mcp)['tools']
-    return {name: tool for name, tool in declared.items() if (tool['annotations'].get('read_only_hint') or name in ANSWERED) and name not in NOT_CALLED}
+    return {name: tool for name, tool in declared.items()
+            if (tool['annotations'].get('read_only_hint') or name in ANSWERED) and name not in NOT_CALLED}
 
 
 def _required(tool, known=None):
     """The arguments a tool cannot go without, of the kinds it declares and naming nothing, so it answers rather than
     the schema."""
     kinds = tool['input'].get('properties', {})
-    made = {name: EMPTY_OF.get(kinds.get(name, {}).get('type'), 'nothing-such') for name in tool['input'].get('required', [])}
+    made = {name: EMPTY_OF.get(kinds.get(name, {}).get('type'), 'nothing-such')
+            for name in tool['input'].get('required', [])}
     return made | (known or {})
 
 
@@ -167,7 +179,8 @@ def empty_behaviour(mcp, scratch):
     os.chdir(project)
     declared = mcp_declared(mcp)['tools']
     rows = {f'empty:mcp:{name}': answer(mcp, name, _required(tool)) for name, tool in reading_tools(mcp).items()}
-    rows |= {f'empty:writing:{name}': answer(mcp, name, _required(declared[name])) for name in EMPTY_WRITING if name in declared}
+    rows |= {f'empty:writing:{name}': answer(mcp, name, _required(declared[name]))
+             for name in EMPTY_WRITING if name in declared}
     rows['empty:missing-argument:fix_skip'] = answer(mcp, 'fix_skip', {})
     rows['empty:unknown-tool'] = answer(mcp, 'nothing_such', {})
     rows |= {'empty:cli:' + ' '.join(argv): command(argv, scratch / 'none') for argv in EMPTY_CLI}
@@ -207,7 +220,8 @@ def accounting(tools):
     say."""
     def how(name, tool):
         if name in NOT_CALLED: return f'not called: {NOT_CALLED[name]}'
-        if tool['annotations'].get('read_only_hint') or name in ANSWERED: return 'called on an empty and on a saved project'
+        if tool['annotations'].get('read_only_hint') or name in ANSWERED:
+            return 'called on an empty and on a saved project'
         if name in EMPTY_WRITING: return 'called on an empty project; its success is not locked'
         return WRITING_ELSEWHERE.get(name, UNACCOUNTED)
     return {name: how(name, tool) for name, tool in tools.items()}
@@ -241,11 +255,13 @@ def save_project(scratch):
         agent_tools._audit_job(str(project), {}, None)
     room, output = workspace(project), Path(os.environ['EAOS_OUTPUT']) / project.name
     made_by, places = digest(), (project, room, output, sys.executable)
-    _freeze(room, SAVED / __version__ / 'workspace', places, ('runs', 'jobs', 'logs', 'runtime', 'rules.lock', 'state.lock'), made_by)
+    _freeze(room, SAVED / __version__ / 'workspace', places,
+            ('runs', 'jobs', 'logs', 'runtime', 'rules.lock', 'state.lock'), made_by)
     _freeze(output, SAVED / __version__ / 'output', places, UNSAVED, made_by)
 
 
-def _freeze(source, target, values, left_out, made_by):  # limits: parameters -- a private step of save_project, called twice
+def _freeze(source, target, values,  # limits: parameters -- a private step of save_project, called twice
+            left_out, made_by):
     """A folder of the check kept with its places as tokens and the fingerprint of the code that made it worn off, so
     that every EAOS reads it as an older one's: it is, from the next change on, and the answer must not turn on that
     change."""

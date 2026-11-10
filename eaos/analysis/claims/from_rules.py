@@ -11,7 +11,8 @@ from . import ledger
 from .gather import _located
 
 WORDS = {
-    'en': ('Your rule {id} is broken in {count} places: "{words}"', 'You said this on {said_on}', '; it came back {returns} times',
+    'en': ('Your rule {id} is broken in {count} places: "{words}"', 'You said this on {said_on}',
+           '; it came back {returns} times',
            '; said {said} times', 'Fix every place at once, from its cause, until its guard ({guard}) finds none.'),
     'ar': ('قاعدتك {id} مكسورة في {count} أماكن: «{words}»', 'قلتها في {said_on}', '، ورجعت تنكسر {returns} مرات',
            '، وقلتها {said} مرات', 'أصلح كل الأماكن مرة وحدة من السبب، لين ما يلقى حارسها ({guard}) ولا مكان.'),
@@ -31,8 +32,10 @@ def detected(claims, fact_index):
     """What the other detectors found, as a detector guard reads it: [{detector, places, said, card}]."""
     found = []
     for claim in claims:
-        places = (claim.get('render') or {}).get('params', {}).get('places') or _located(claim, fact_index) or claim.get('evidence_ids') or []
-        found.append({'detector': ledger.detector_of(claim), 'places': [str(p) for p in places], 'said': claim['statement'][:120],
+        places = ((claim.get('render') or {}).get('params', {}).get('places')
+                  or _located(claim, fact_index) or claim.get('evidence_ids') or [])
+        found.append({'detector': ledger.detector_of(claim), 'places': [str(p) for p in places],
+                      'said': claim['statement'][:120],
                       'card': claim['id']})
     return found
 
@@ -49,7 +52,8 @@ def results(out, claims, fact_index):
         guard = _guard_of(record, row['id'])
         result = guards.run(guard, None, None, found)
         row.update(status=result['status'], places=result['places'], found=result['said'],
-                   cards=sorted({f['card'] for f in found if any(guards._named(f['detector'], n) for n in guard['detectors'])}))
+                   cards=sorted({f['card'] for f in found
+                                 if any(guards._named(f['detector'], n) for n in guard['detectors'])}))
     return record, rows
 
 
@@ -72,14 +76,18 @@ def rule_claims(out, claims, fact_index, offset):
         ar, fix_ar = _said(row, 'ar')
         params = {'kind': row['kind'], 'rule': row['id'], 'en': en, 'ar': ar, 'fix_en': fix_en, 'fix_ar': fix_ar,
                   'place': row['places'][0].split(':')[0] if row['places'] else None, 'places': row['places'],
-                  'words': row['words'], 'said_on': row['said_on'], 'returns': row['returns'], 'cards': row.get('cards') or [],
-                  'severity': 'high' if row['scope']['kind'] == 'pinned' or row['returns'] else 'medium', 'category': 'reliability'}
-        probe = ({'probe_type': 'graph_query', 'specification': {'query': 'rule_broken', 'rule': row['id'], 'guard': _guard_of(record, row['id']),
-                                                                 'engines': []}} if row['kind'] in ('pattern', 'test') else None)
+                  'words': row['words'], 'said_on': row['said_on'], 'returns': row['returns'],
+                  'cards': row.get('cards') or [],
+                  'severity': 'high' if row['scope']['kind'] == 'pinned' or row['returns'] else 'medium',
+                  'category': 'reliability'}
+        probe = ({'probe_type': 'graph_query',
+                  'specification': {'query': 'rule_broken', 'rule': row['id'], 'guard': _guard_of(record, row['id']),
+                                    'engines': []}} if row['kind'] in ('pattern', 'test') else None)
         made.append(ledger.make(offset + len(made) + 1, en, 'business_rule', 'CONFIRMED',
                                 ['static_fact' if row['kind'] != 'test' else 'test_evidence'], ['rules.json'],
                                 "The rule's guard, run again, finding nothing.", confidence_ceiling='CONFIRMED',
-                                render={'key': 'person_rule', 'params': params}, probe_spec=probe, impact={'scenario': fix_en}))
+                                render={'key': 'person_rule', 'params': params},
+                                probe_spec=probe, impact={'scenario': fix_en}))
     return made
 
 
@@ -88,7 +96,8 @@ def present(specification, sets):
     batch's check), still finds the rule broken; never what an earlier check found."""
     result = sets['rule']
     if result['status'] not in ('broken', 'held'): return 'INCONCLUSIVE', 'the rule\'s guard did not run on this code'
-    if result['status'] == 'broken': return 'CONFIRMED', f"the rule is still broken at {', '.join(result['places'][:4])}"
+    if result['status'] == 'broken': return ('CONFIRMED',
+                                             f"the rule is still broken at {', '.join(result['places'][:4])}")
     return 'REFUTED', 'its guard finds the rule broken nowhere'
 
 

@@ -26,7 +26,8 @@ def set_aside(copy):
     if copy.is_dir() and not copy.is_symlink() and not any(copy.iterdir()): return copy.rmdir()
     if not (copy.exists() or copy.is_symlink()): return None
     aside = None
-    while aside is None or aside.exists() or aside.is_symlink(): aside = copy.with_name(f'{copy.name}.left-{os.urandom(6).hex()}')
+    while aside is None or aside.exists() or aside.is_symlink():
+        aside = copy.with_name(f'{copy.name}.left-{os.urandom(6).hex()}')
     return copy.rename(aside)
 
 
@@ -39,7 +40,8 @@ def candidate(target, runtime, card_id):
     for args in (('clone', '--quiet', '--no-hardlinks', str(target), str(where)),):
         done = subprocess.run(['git', *args], capture_output=True, text=True)
         if done.returncode: raise RuntimeError(f'clone failed: {done.stderr[-300:]}')
-    if git(where, 'checkout', '--quiet', grant['commit']).returncode: raise RuntimeError('the authorised commit is not in the target')
+    if git(where, 'checkout', '--quiet', grant['commit']).returncode:
+        raise RuntimeError('the authorised commit is not in the target')
     git(where, 'checkout', '--quiet', '-b', f'eaos/{card_id.lower()}')
     return where
 
@@ -63,7 +65,8 @@ def commit_all(root, message, paths=None):
         if not paths: raise RuntimeError('the batch left nothing to commit')
     added = git(root, 'add', '-A', *(['-f', '--', *paths] if paths is not None else []))
     if added.returncode: raise RuntimeError(f'git add failed: {added.stderr.strip()[-300:]}')
-    if git(root, '-c', 'user.name=EAOS', '-c', 'user.email=eaos@localhost', 'commit', '--quiet', '-m', message).returncode:
+    if git(root, '-c', 'user.name=EAOS', '-c', 'user.email=eaos@localhost', 'commit', '--quiet',
+           '-m', message).returncode:
         raise RuntimeError('the batch left nothing to commit')
 
 
@@ -74,7 +77,8 @@ def record_batch(batch, root, base, kept, refused):
     folder = Path(batch['runtime']) / kind / f'{kind}-{number}'
     folder.mkdir(parents=True, exist_ok=True)
     if kept: git(root, 'format-patch', '--quiet', '-o', str(folder), f'{base}..HEAD')
-    summary = {'batch': number, 'kind': kind, 'branch': batch.get('deliver_as') or f'eaos/{kind}-{number}', 'root': str(root),
+    summary = {'batch': number, 'kind': kind, 'branch': batch.get('deliver_as') or f'eaos/{kind}-{number}',
+               'root': str(root),
                'base': base, 'kept': kept, 'items': batch['items'], 'refused': refused, **(batch.get('extra') or {}),
                'at': now(),
                'stat': git(root, 'diff', '--shortstat', f'{base}..HEAD').stdout.strip() if kept else ''}
@@ -103,9 +107,12 @@ def _run_codemod(name, detail, root):
         if callable(step):
             step()
             continue
-        done = subprocess.run(step, cwd=root, capture_output=True, text=True, timeout=600)  # nosemgrep: python.lang.security.audit.dangerous-subprocess-use-audit -- a codemod's argv rebuilt from the report's facts, run in the candidate copy, no shell
+        # nosemgrep: python.lang.security.audit.dangerous-subprocess-use-audit -- a codemod's argv rebuilt from the report's facts, run in the candidate copy, no shell
+        done = subprocess.run(step, cwd=root, capture_output=True, text=True, timeout=600)
         # its own words (npm's ERESOLVE), never only its command line, which names this machine's paths
-        if done.returncode: raise RuntimeError(f"{' '.join([Path(step[0]).name, *map(str, step[1:2])])} exited {done.returncode}: {(done.stderr or done.stdout).strip()[-240:]}")
+        if done.returncode:
+            raise RuntimeError(f"{' '.join([Path(step[0]).name, *map(str, step[1:2])])} exited {done.returncode}: "
+                               f"{(done.stderr or done.stdout).strip()[-240:]}")
 
 
 def codemod_by_member(card, root, report):
@@ -163,7 +170,8 @@ def new_breakage(report, root, collected=None):
         else: collect(root, out, ['syntax', 'resolve', 'graph', 'broken', 'domain', 'runtime', 'secrets', 'config']
                       + (['entrypoints'] if had is not None else []))
         broke = words(structure(report, out, policy)) + _layers_broken(report, root, out) + _dependencies_broken(root)
-        has = surfaces(json.loads((Path(out) / 'facts/entrypoints.json').read_text(encoding='utf-8'))['facts']) if had is not None else set()
+        has = (surfaces(json.loads((Path(out) / 'facts/entrypoints.json').read_text(encoding='utf-8'))['facts'])
+               if had is not None else set())
     if had is not None:
         broke += [f'the endpoint {method} {route} is gone' for method, route in sorted(had - has, key=str)]
     return broke
@@ -203,7 +211,9 @@ def _dependencies_broken(root):
 def _npm_problems(npm, folder):
     """The problems `npm ls` finds in a folder's package.json and lock, without the folder's path."""
     if not (folder / 'package.json').is_file(): return set()
-    done = subprocess.run([npm, 'ls', '--all', '--package-lock-only', '--json'], cwd=folder, capture_output=True, text=True, timeout=120)  # nosemgrep: python.lang.security.audit.dangerous-subprocess-use-audit -- npm at its path, a fixed list argv, reading the lock only (no install, no script)
+    # nosemgrep: python.lang.security.audit.dangerous-subprocess-use-audit -- npm at its path, a fixed list argv, reading the lock only (no install, no script)
+    done = subprocess.run([npm, 'ls', '--all', '--package-lock-only', '--json'], cwd=folder, capture_output=True,
+                          text=True, timeout=120)
     try: problems = json.loads(done.stdout).get('problems') or []
     except ValueError: return set()
     return {problem.replace(f'{folder.resolve()}/', '').replace(f'{folder}/', '') for problem in problems}
@@ -262,7 +272,8 @@ def _check(live, target, argv, at_root):
     after = _stamps(live.sandbox.copy, before)
     written = [name for name, stamp in before.items() if after.get(name) != stamp]
     if written:
-        files = subprocess.run(['git', '-C', str(target), 'archive', '--format=tar', live.commit, '--', *[f':(literal){name}' for name in written]],
+        files = subprocess.run(['git', '-C', str(target), 'archive', '--format=tar', live.commit, '--',
+                                *[f':(literal){name}' for name in written]],
                                capture_output=True, check=True).stdout
         subprocess.run(['tar', '-x', '-C', str(live.sandbox.copy)], input=files, check=True)
         row['writes'] = written
@@ -308,7 +319,8 @@ JEST_FAILURE = re.compile(r'^\s*(?:\u25cf|FAIL\s+\S+\s+>)\s+(?!Console$)(.+?)\s*
 def failing(output):
     """The names of the failing tests a TAP reporter (node --test, tap...), unittest, pytest, jest or vitest printed:
     sorted, unique."""
-    return sorted(set(TAP_FAILURE.findall(output)) | set(JEST_FAILURE.findall(output)) | {a or b for a, b in PYTHON_FAILURE.findall(output)})
+    return sorted(set(TAP_FAILURE.findall(output)) | set(JEST_FAILURE.findall(output))
+                  | {a or b for a, b in PYTHON_FAILURE.findall(output)})
 
 
 def not_run(checks):

@@ -1,9 +1,9 @@
 """The assistant handoff: a run for which no assistant can be started here (docs/studio-actions.json `assistants`).
 
 The request waits in the project's EAOS workspace (`studio-requests.json`, never inside the project). The next `status`
-call of any assistant returns it (eaos/interfaces/mcp_server/server.py), which marks it taken; the assistant closes it with a `note` that
-starts with `studio-request <id> done`. The Studio also shows the request as text to copy, for an assistant that is not
-connected to EAOS at all.
+call of any assistant returns it (eaos/interfaces/mcp_server/server.py), which marks it taken; the assistant closes it
+with a `note` that starts with `studio-request <id> done`. The Studio also shows the request as text to copy, for an
+assistant that is not connected to EAOS at all.
 """
 import json
 import os
@@ -37,7 +37,8 @@ def _write(project, rows, create=False):
 def request_text(prompt, run):
     """What the person copies to an assistant, and what `status` hands over: the run's prompt and how to close it."""
     close = DONE.format(id=run)
-    return {'en': f'{prompt}\n\nWhen you are done, call the eaos `note` tool with a text that starts with "{close}:" and says what you did.',
+    return {'en': f'{prompt}\n\nWhen you are done, call the eaos `note` tool with a text that starts with '
+                  f'"{close}:" and says what you did.',
             'ar': f'{prompt}\n\nلما تخلص، استدعِ أداة eaos `note` بنص يبدأ بـ "{close}:" ويقول وش سويت.'}
 
 
@@ -78,8 +79,10 @@ def close(project, text):
     with _lock:
         rows = _read(project)
         for row in rows:
-            if row.get('state') in ('waiting', 'taken') and str(text or '').strip().startswith(DONE.format(id=row['id'])):
-                row.update(state='done', done=str(text)[len(DONE.format(id=row['id'])):].lstrip(' :')[:4000], closed_at=now())
+            if (row.get('state') in ('waiting', 'taken')
+                    and str(text or '').strip().startswith(DONE.format(id=row['id']))):
+                row.update(state='done', done=str(text)[len(DONE.format(id=row['id'])):].lstrip(' :')[:4000],
+                           closed_at=now())
                 _write(project, rows)
                 return row['run']
     return None
@@ -96,4 +99,5 @@ def for_status(project, by):
     except Exception: return {}
     if not row: return {}
     return {'studio_request': {'id': row['id'], 'label': row['label'], 'request': row['request']['en'],
-                               'what_now': 'The person asked for this from the EAOS Studio: do it now, before anything else, then close it with note as it says.'}}
+                               'what_now': 'The person asked for this from the EAOS Studio: do it now, before anything '
+                                           'else, then close it with note as it says.'}}

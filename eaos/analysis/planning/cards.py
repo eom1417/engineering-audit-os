@@ -89,7 +89,8 @@ def _task(index, claim, decision, context):
         'acceptance': acceptance_for(claim, target, out),
         'verify_command': verify_command_for(claim, target, out),
         'effort': size_of(paths, radius['blast_radius'])[0], 'effort_basis': size_of(paths, radius['blast_radius'])[1],
-        'effort_confidence': 'A rule on the files it touches and its dependents (eaos/analysis/planning/roadmap.py), not a measured duration.',
+        'effort_confidence': 'A rule on the files it touches and its dependents '
+                             '(eaos/analysis/planning/roadmap.py), not a measured duration.',
         'invariants': invariants_of(claim),
         'harm': harm_of(claim, radius, effort, effort_confidence),
         'finding_ids': [claim['id']],
@@ -109,7 +110,9 @@ def _link_prerequisites(tasks, dossier):
     by_claim = {claim_id: task['id'] for task in tasks for claim_id in task['claim_ids']}
     source_claims = {claim['id']: claim for claim in dossier['claims']}
     for task in tasks:
-        for dependency in (d for claim_id in task['claim_ids'] for d in (source_claims[claim_id].get('assessment') or {}).get('prerequisites', [])):
+        for dependency in (d for claim_id in task['claim_ids']
+                           for d in (source_claims[claim_id].get('assessment') or {})
+                           .get('prerequisites', [])):
             _prerequisite(task, dependency, by_claim)
 
 
@@ -134,13 +137,14 @@ def build_tasks(target, out, dossier, sets, patterns=None):
 
 def _split_last(tasks):
     """A module is split after its complex functions are simplified: split first, those functions move to new files
-    and their cards no longer find them (EAOS, 2026-10-14: four files over 1000 lines with complexity cards). Only a card a
-    batch can take is waited for: one awaiting the person's decision would hold the split forever."""
+    and their cards no longer find them (EAOS, 2026-10-14: four files over 1000 lines with complexity cards).
+    Only a card a batch can take is waited for: one awaiting the person's decision would hold the split forever."""
     for split in (t for t in tasks if t.get('pattern') == 'split_module'):
         for task in tasks:
             if task.get('pattern') == 'hotspot' and ready(task) and set(task['paths']) & set(split['paths']):
                 split['prerequisites'].append({'task_id': task['id'],
-                                               'reason': 'its complex functions are simplified before the module is split'})
+                                               'reason': 'its complex functions are simplified '
+                                                         'before the module is split'})
 
 
 # Kinds of card whose findings in one file are fixed by one change there: one card per (kind, file).
@@ -162,7 +166,8 @@ def grouped(tasks):
             continue
         first['claim_ids'].append(task['claim_id'])
         first['finding_ids'].append(task['claim_id'])
-        first.setdefault('grouped', []).append({'claim_id': task['claim_id'], 'title': task['title'], 'render': task.get('render')})
+        first.setdefault('grouped', []).append({'claim_id': task['claim_id'], 'title': task['title'],
+                                                'render': task.get('render')})
         for name in ('fact_ids', 'evidence_ids', 'probe_ids'):
             first['evidence'][name] = list(dict.fromkeys(first['evidence'][name] + task['evidence'][name]))
         seen = {step['command'] for step in first['acceptance']}
@@ -264,7 +269,8 @@ def _write_plan(where, dossier, tasks, decisions, language):
     from ..repair.codemods import attach
     attach(tasks, out, target)
     plan_milestones, plan_sections = schedule(out, target, tasks)
-    write(out / 'plan.json', {'contract_version': 1, 'tasks': tasks, 'waves': plan, 'milestones': plan_milestones, 'sections': plan_sections, 'decisions': decisions})
+    write(out / 'plan.json', {'contract_version': 1, 'tasks': tasks, 'waves': plan,
+                              'milestones': plan_milestones, 'sections': plan_sections, 'decisions': decisions})
     return plan
 
 
@@ -281,7 +287,9 @@ def build(target, out, language='ar', patterns=None):
     refresh_views(out, language)
     return {'target': str(target), 'out': str(out), 'tasks': len(tasks), 'waves': len(plan),
             'cards': [str(directory / (task['id'] + '.md')) for task in tasks],
-            'limits': 'Repairs require evidenced violations and independent checks. Investigations may conclude no change. Effort is an estimate with declared confidence, not a commitment.'}
+            'limits': 'Repairs require evidenced violations and independent checks. '
+                      'Investigations may conclude no change. Effort is an estimate with declared confidence, '
+                      'not a commitment.'}
 
 
 def confirm(target, out, language='ar', triaged=False, reviewed=False):
@@ -291,7 +299,8 @@ def confirm(target, out, language='ar', triaged=False, reviewed=False):
     priority drawn again; when the visual reviewer ran, its findings join the plan as design cards. The assistant's
     resolution of each card (resolutions) then settles it: `fix` makes it ready work, `keep` closes it with why
     (cards.json `closed`; a doubted card too, as not proven), `owner` asks the person, at most one card in ten
-    (cap_owner). A doubted security card has no resolution: it stays for a person's review, never fixed automatically. The waves, milestones and cards are then drawn again. Without either every card stands as the
+    (cap_owner). A doubted security card has no resolution: it stays for a person's review, never fixed
+    automatically. The waves, milestones and cards are then drawn again. Without either every card stands as the
     rules wrote it. Writes cards.json, the record of who decided each card, and returns it."""
     target, out = Path(target).resolve(), Path(out).resolve()
     plan = read(out / 'plan.json')

@@ -48,7 +48,8 @@ def templates(paths, declared=()):
     marked = {path: (prefix, [':id' if i and DATA.search(s) else s for i, s in enumerate(segments)])
               for path, (prefix, segments) in split.items()}
     leaves, named = _leaves(split, marked), {_plain(path) for path in declared}
-    return {path: _plain(path) if _plain(path) in named else _template(prefix, segments, leaves) for path, (prefix, segments) in marked.items()}
+    return {path: _plain(path) if _plain(path) in named else _template(prefix, segments, leaves)
+            for path, (prefix, segments) in marked.items()}
 
 
 def _plain(path):
@@ -68,7 +69,8 @@ def _leaves(split, marked):
 
 
 def _has_pages_under(prefix, segments, shapes):
-    return any(other[0] == prefix and len(other[1]) > len(segments) and other[1][:len(segments)] == tuple(segments) for other in shapes)
+    return any(other[0] == prefix and len(other[1]) > len(segments)
+               and other[1][:len(segments)] == tuple(segments) for other in shapes)
 
 
 def _template(prefix, segments, leaves):
@@ -105,7 +107,9 @@ def code_routes(root, most=100):
     texts = list(_code_texts(root))
     hashed = any(HASH_ROUTER.search(text) for text in texts)
     found = {}
-    for text in texts: found.update(dict.fromkeys('/#' + route for route in HASH_ROUTE.findall(text) + (PATH.findall(text) if hashed else [])))
+    for text in texts:
+        found.update(dict.fromkeys('/#' + route for route in HASH_ROUTE.findall(text)
+                                   + (PATH.findall(text) if hashed else [])))
     found.update(dict.fromkeys(as_screen(route, hashed) for route in file_routes(root)))
     return list(found)[:most]
 
@@ -130,7 +134,8 @@ def as_screen(route, hashed):
     return '/#' + route if hashed and route.startswith('/') and '#' not in route else route
 
 
-def discover(base, max_routes=200, storage_state=None, read_only=False, seeds=(), coverage=None):  # limits: parameters -- the crawl's options, each a keyword with its default
+def discover(base,  # limits: parameters -- the crawl's options, each a keyword with its default
+             max_routes=200, storage_state=None, read_only=False, seeds=(), coverage=None):
     """(routes, error): every page of the app reached from `base` by its links, [{path, depth, status}], within half an
     hour. Signed in (`storage_state`), a link that would sign out, delete or change (lock_specs.LEAVES) is never
     followed; `read_only` (a published address) sends nothing but GET; `coverage`: a file for the JavaScript the pages
@@ -138,7 +143,8 @@ def discover(base, max_routes=200, storage_state=None, read_only=False, seeds=()
     from ..behavior.specs import LEAVES
     absent = missing('playwright')
     if absent: return None, absent
-    config = {'base': base, 'max_routes': max_routes, 'modules': {'playwright': str(toolchain.home() / 'node/node_modules')},
+    config = {'base': base, 'max_routes': max_routes,
+              'modules': {'playwright': str(toolchain.home() / 'node/node_modules')},
               'read_only': read_only, 'seeds': list(seeds), 'budget_ms': (CRAWL_SECONDS - CRAWL_MARGIN) * 1000}
     if storage_state: config.update(storage_state=str(storage_state), leaves=LEAVES)
     if coverage: config['coverage'] = str(coverage)
@@ -148,7 +154,8 @@ def discover(base, max_routes=200, storage_state=None, read_only=False, seeds=()
 
 def _measure(row, base, out, number, storage_state):
     """Lighthouse on one page: its scores into the row, else why it could not be measured."""
-    speed = lighthouse(base.rstrip('/') + row['path'], out=out / 'lighthouse' / f'{number:02d}', storage_state=storage_state)
+    speed = lighthouse(base.rstrip('/') + row['path'], out=out / 'lighthouse' / f'{number:02d}',
+                       storage_state=storage_state)
     if speed.get('status') != 'observed':
         row['reason'] = speed.get('reason')
         return
@@ -163,7 +170,8 @@ def crawl(base, out, max_routes=200, measured=MEASURED, **way):
     if read_only: max_routes, measured = min(max_routes, PUBLISHED_ROUTES), min(measured, PUBLISHED_MEASURED)
     routes, error = discover(base, max_routes, **way)
     if routes is None:
-        return {'status': 'unavailable' if error and error.startswith(('not installed', 'Node.js')) else 'error', 'reason': error, 'routes': []}
+        return {'status': 'unavailable' if error and error.startswith(('not installed', 'Node.js')) else 'error',
+                'reason': error, 'routes': []}
     routes = [r for r in routes if r.get('status') == 'observed']
     if not routes: return {'status': 'error', 'reason': 'the crawl opened no page of the app', 'routes': []}
     # a published site: Lighthouse cannot be held to reading only, so it loads the pages as any visitor, signed out

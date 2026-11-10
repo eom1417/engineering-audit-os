@@ -47,7 +47,8 @@ class SizeNeedsHarm(unittest.TestCase):
 
     def test_a_long_cohesive_module_is_kept_and_a_short_history_says_nothing(self):
         # a message list of one cohesive 1523-line unit; its fixes are unknown with one commit read
-        facts = sets([metric('lib/model/message_list.dart', 'f', 6)], commits=1, fixes={'lib/model/message_list.dart': 5})
+        facts = sets([metric('lib/model/message_list.dart', 'f', 6)], commits=1,
+                     fixes={'lib/model/message_list.dart': 5})
         self.assertEqual(self.kinds([claim('large_module', path='lib/model/message_list.dart')], facts), ['retain'])
 
     def test_an_engine_complexity_at_a_file_follows_its_deepest_function(self):
@@ -68,7 +69,8 @@ class NestingTests(unittest.TestCase):
         # only a block is a level: counting every brace would read most complex functions five deep
         from eaos.facts.code.metrics import nesting_depth
         script = ['function f(a) {', '  const o = { x: { y: 1 } };', '  if (a) {', '    for (const b of a) {',
-                  '      call({ k: () => { return 1; } });', '    }', '  } else {', '    return <div>{a}</div>;', '  }', '}']
+                  '      call({ k: () => { return 1; } });', '    }', '  } else {', '    return <div>{a}</div>;', '  }',
+                  '}']
         self.assertEqual(nesting_depth(script, 'typescript'), 4)          # f, if, for, the arrow's body
         self.assertEqual(nesting_depth(['    def f(self):', '        if a:', '            return 1'], 'python'), 2)
 

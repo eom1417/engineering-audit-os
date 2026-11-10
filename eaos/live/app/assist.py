@@ -6,10 +6,11 @@ from pathlib import Path
 from ...core.system.files import read_json
 from .profile import SAID
 
-ENV_EXAMPLES = ('.env.example', '.env.sample', '.env.template', '.env.local.example', '.env.development.example', 'example.env')
+ENV_EXAMPLES = ('.env.example', '.env.sample', '.env.template', '.env.local.example', '.env.development.example',
+                'example.env')
 
 
-ASSIST_SYSTEM = """You set up a web app to run on this computer for automated checks, in an isolated copy, with a
+ASSIST_SYSTEM = ("""You set up a web app to run on this computer for automated checks, in an isolated copy, with a
 local database EAOS provides. You do not change the app. You answer with one JSON object:
 {"action": "final", "result": {"reason": "<one sentence>",
   "env": {"NAME": "value"}, "start": ["argv", "..."] or null, "install": [["argv"]] or null,
@@ -24,19 +25,23 @@ and "no_interface" saying why: never start a stand-in server (a file server on t
 The app may be written in any language: JavaScript, Python (a server it starts itself, its own command line, or
 uvicorn and gunicorn), or Go (`go mod download`, then `go run .`). When the current profile starts nothing
 ("start": ["true"]), EAOS found no JavaScript web app: read the documentation and say how to install and start the
-app's web server, on 127.0.0.1 and the profile's "port". Rules, each one enforced: every address is http://127.0.0.1 or http://localhost; no real secret (generate
-values); no command that deploys, publishes, or reaches a hosted service; every command starts with one of: """ + SAID + """;
+app's web server, on 127.0.0.1 and the profile's "port". Rules, each one enforced: every address is """
+"""http://127.0.0.1 or http://localhost; no real secret (generate
+values); no command that deploys, publishes, or reaches a hosted service; """
+"""every command starts with one of: """ + SAID + """;
 commands run in the app's folder.
 Use "{database_url}" for the local database's address, and "{run_dir}" (an empty folder of the run's own,
 outside the app, made for you) for any folder the app needs outside its code: backups, uploads, data. Never
 create folders with commands. The seed script runs with Node after the app starts,
-with BASE_URL in its environment; EAOS's Playwright is require(process.env.EAOS_PLAYWRIGHT) (never require('playwright'): the
+with BASE_URL in its environment; EAOS's Playwright is require(process.env.EAOS_PLAYWRIGHT) """
+"""(never require('playwright'): the
 app's own, another version, has no browsers here). It adds a little sample data if the app is
 empty, and its console output ends with one JSON line of fixture values it created, for example
 {"E2E_PROFILEID": "..."}, when the checks need them. A page asking for a sign-in is the app working: the sign-in is
 made in the next step, on the running app. An app that opens signed in on a chooser or gate (a profile, workspace or
 organization to pick) gets one picked by the seed, the browser state saved with context.storageState({ path:
-process.env.EAOS_STORAGE_STATE }): the screens open with that state, never a fresh browser that meets the chooser again."""
+process.env.EAOS_STORAGE_STATE }): the screens open with that state, never a fresh browser that meets the """
+"""chooser again.""")
 
 DOCS = ('README.md', 'README', 'CLAUDE.md', 'AGENTS.md', 'CONTRIBUTING.md', 'docs/DEVELOPMENT.md', 'docs/SETUP.md',
         'docs/development.md', 'docs/setup.md', 'docs/LOCAL.md')
@@ -95,7 +100,8 @@ def _phrases(failure):
 def _source_files(root):
     """The project's own source files under `root`: no build output, no libraries."""
     return [f for f in root.rglob('*') if f.suffix in SOURCE_SUFFIXES and f.is_file()
-            and not any(part in ('node_modules', 'dist', 'dist-server', 'build', '.next', 'coverage', '.venv', '__pycache__') for part in f.parts)][:6000]
+            and not any(part in ('node_modules', 'dist', 'dist-server', 'build', '.next', 'coverage', '.venv',
+                                 '__pycache__') for part in f.parts)][:6000]
 
 
 def _around(text, at, name, context):
@@ -112,10 +118,12 @@ def assist_messages(run, failure, needs, mode='lock'):
     folder = detected['profile']['app']
     package = read_json(Path(project) / folder / 'package.json', {})
     profile = json.loads((Path(run.runtime) / 'run.json').read_text(encoding='utf-8'))
-    if mode == 'baseline': profile = {**{k: v for k, v in profile.items() if k != 'baseline'}, **(profile.get('baseline') or {})}
+    if mode == 'baseline':
+        profile = {**{k: v for k, v in profile.items() if k != 'baseline'}, **(profile.get('baseline') or {})}
     brief = {'what_failed': failure, 'current_profile': profile,
              'detected': detected['facts'], 'scripts': package.get('scripts'), 'fixtures_the_checks_need': needs}
     return [{'role': 'system', 'content': ASSIST_SYSTEM + ('\n\n' + BASELINE_NOTE if mode == 'baseline' else '')},
             {'role': 'user', 'content': 'The situation:\n' + json.dumps(brief, ensure_ascii=False, indent=1)
              + '\n\nThe project documentation:\n' + _excerpt(project, folder)
-             + ('\n\nThe code that raised the failure:\n' + source if (source := relevant_source(project, folder, failure)) else '')}]
+             + ('\n\nThe code that raised the failure:\n' + source
+                if (source := relevant_source(project, folder, failure)) else '')}]

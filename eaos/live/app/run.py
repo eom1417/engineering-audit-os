@@ -58,7 +58,8 @@ def _printed_fixtures(out):
         except ValueError as error:
             noted('a seed line that is not JSON prints no fixtures', error)
             continue
-        fixtures = {k: str(v) for k, v in printed.items() if re.fullmatch(r'E2E_[A-Z0-9_]+', str(k))} if isinstance(printed, dict) else {}
+        fixtures = ({k: str(v) for k, v in printed.items() if re.fullmatch(r'E2E_[A-Z0-9_]+', str(k))}
+                    if isinstance(printed, dict) else {})
         if fixtures: return fixtures
     return {}
 
@@ -119,7 +120,8 @@ class LiveRun:
         declares one."""
         database = self.profile.get('database') or {}
         # A value naming {database_url} needs a database, declared or not.
-        if database.get('kind') != 'postgres' and any('{database_url}' in str(v) for v in (self.profile.get('env') or {}).values()):
+        if database.get('kind') != 'postgres' \
+                and any('{database_url}' in str(v) for v in (self.profile.get('env') or {}).values()):
             database = {'kind': 'postgres', 'name': 'app'}
         if database.get('kind') != 'postgres': return None
         if not hasattr(self, '_database'):
@@ -142,7 +144,8 @@ class LiveRun:
                 folder = self.runtime / '-'.join(filter(None, ('run-data', self.apart)))
                 folder.mkdir(parents=True, exist_ok=True)
             mail = str(self._mail_port())
-            fill = lambda value: (str(value).replace('{database_url}', url) if url else str(value)).replace('{run_dir}', str(folder)).replace('{mail_port}', mail)
+            fill = lambda value: ((str(value).replace('{database_url}', url) if url else str(value))
+                                  .replace('{run_dir}', str(folder)).replace('{mail_port}', mail))
             self._extra = {**{k: self._frozen(k, fill(v)) for k, v in (self.profile.get('env') or {}).items()},
                            'PATH': f"{home() / 'bin'}{os.pathsep}{os.environ.get('PATH', '/usr/bin:/bin')}",
                            'NODE_PATH': str(home() / 'node/node_modules'), 'PLAYWRIGHT_BROWSERS_PATH': str(browsers()),
@@ -161,7 +164,8 @@ class LiveRun:
         never leaves this computer; 9 (nobody answers) when the app sends none or Mailpit is not installed."""
         from ...core.toolchain import home
         binary = home() / 'bin/mailpit'
-        if not hasattr(self, '_mailpit') and binary.exists() and any('{mail_port}' in str(v) for v in (self.profile.get('env') or {}).values()):
+        if not hasattr(self, '_mailpit') and binary.exists() \
+                and any('{mail_port}' in str(v) for v in (self.profile.get('env') or {}).values()):
             import subprocess
             from ...core.system.local_db import free_port
             smtp, page = free_port(), free_port()
@@ -199,7 +203,8 @@ class LiveRun:
     def run(self, argv, timeout=900, network=True, env=None, at_root=False):
         """(exit, stdout, stderr) of argv in the app folder of the copy (its root with `at_root`), with the
         run's environment."""
-        result = self.sandbox.run(argv, timeout=timeout, network=network, cwd=None if at_root else self.profile.get('app') or None,
+        result = self.sandbox.run(argv, timeout=timeout, network=network,
+                                  cwd=None if at_root else self.profile.get('app') or None,
                                   env={**self.run_env(), **(env or {})})
         self.log.append({'argv': [str(a) for a in argv], 'exit': result[0], 'tail': (result[1] + result[2])[-6000:]})
         return result
@@ -287,7 +292,8 @@ class LiveRun:
 
     def record(self, name):
         (self.runtime / name).parent.mkdir(parents=True, exist_ok=True)
-        (self.runtime / name).write_text(json.dumps({'commit': self.commit, 'commands': self.log}, ensure_ascii=False, indent=1) + '\n',
+        (self.runtime / name).write_text(json.dumps({'commit': self.commit, 'commands': self.log},
+                                                    ensure_ascii=False, indent=1) + '\n',
                                          encoding='utf-8')
 
 

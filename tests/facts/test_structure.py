@@ -26,7 +26,8 @@ class StructureFactTests(unittest.TestCase):
         self.assertEqual((data['summary']['loops'], data['summary']['branches']), (2, 1))
         self.assertTrue({'loop', 'branch', 'scope'} <= {f['kind'] for f in data['facts']})
         sites = [f for f in data['facts'] if f['kind'] == 'call_site']
-        self.assertEqual({s['location']['symbol'] for s in sites if s['value']['callee'] == 'helper'}, {'<module>.loop'})
+        self.assertEqual({s['location']['symbol'] for s in sites if s['value']['callee'] == 'helper'},
+                         {'<module>.loop'})
         self.assertEqual(len([s for s in sites if s['value']['callee'] == 'helper']), 2)
         for site in sites:
             self.assertTrue(site['location']['symbol'].startswith('<module>.'))

@@ -67,17 +67,20 @@ def _node(script, config, timeout, env=None):
         path.write_text(json.dumps(config, default=str), encoding='utf-8')
         try:
             done = run_command(['node', str(TEMPLATES / script), str(path)], timeout=timeout,
-                                  env={**os.environ, 'PLAYWRIGHT_BROWSERS_PATH': str(toolchain.browsers()), **(env or {})})
+                               env={**os.environ, 'PLAYWRIGHT_BROWSERS_PATH': str(toolchain.browsers()),
+                                    **(env or {})})
         except (OSError, subprocess.TimeoutExpired) as problem:
             return None, f'{script}: {problem}'
     lines = [line for line in done.stdout.splitlines() if line.startswith('{')]
-    if done.returncode or not lines: return None, f'{script} exited {done.returncode}: {(done.stderr or done.stdout)[-800:]}'
+    if done.returncode or not lines:
+        return None, f'{script} exited {done.returncode}: {(done.stderr or done.stdout)[-800:]}'
     try: return json.loads(lines[-1]), ''
     except ValueError as problem: return None, f'{script} printed no JSON: {problem}'
 
 
-def variants(lang_key=None, lang_param=None, theme_key=None, theme_param=None, langs=('ar', 'en'), themes=(None,),
-             lang_field=None, theme_field=None):  # limits: parameters -- the keys of an app profile's `screens` settings, passed as **settings
+def variants(  # limits: parameters -- the keys of an app profile's `screens` settings, passed as **settings
+             lang_key=None, lang_param=None, theme_key=None, theme_param=None, langs=('ar', 'en'), themes=(None,),
+             lang_field=None, theme_field=None):
     """The page variants to audit. A language is set through a localStorage key or a query parameter, when one is
     named; a theme the same way, and always through prefers-color-scheme. By default one theme only, the app's own:
     nothing is set and the browser asks for light (a dark pass would double the pictures and the review, for a theme the
@@ -133,7 +136,8 @@ def page_audit(urls, viewports=VIEWPORTS, page_variants=None, out=None, **limits
               'phone_width': phone_width, 'target_min': limits.get('target_min', TARGET_MIN),
               'screenshots_dir': str(Path(out) / 'screenshots') if out else None,
               'storage_state': limits.get('storage_state'), 'read_only': bool(limits.get('read_only')),
-              'modules': {'playwright': str(toolchain.home() / 'node/node_modules'), 'axe': str(toolchain.node_modules('axe-core'))}}
+              'modules': {'playwright': str(toolchain.home() / 'node/node_modules'),
+                          'axe': str(toolchain.node_modules('axe-core'))}}
     result, error = _node('audit.mjs', config, limits.get('timeout', 900))
     if error: return {'status': 'error', 'reason': error, 'rows': []}
     tools = _versions(('playwright', 'axe-core'))
@@ -143,7 +147,8 @@ def page_audit(urls, viewports=VIEWPORTS, page_variants=None, out=None, **limits
 
 def _own_budgets(urls):
     """{page name: its own height budget} of the pages that name one."""
-    return {u['name']: u['height_budget'] for u in urls if isinstance(u, dict) and u.get('name') and u.get('height_budget')}
+    return {u['name']: u['height_budget'] for u in urls
+            if isinstance(u, dict) and u.get('name') and u.get('height_budget')}
 
 
 def _sent(urls):
@@ -167,7 +172,8 @@ def failures(row, phone_width=PHONE_WIDTH, height_budget=None):
     if row.get('status') != 'observed': return [f"error: {row.get('reason', 'not audited')}"]
     found = _layout_failures(row) + _access_failures(row, phone_width) + _content_failures(row) + _variant_failures(row)
     if height_budget and row['width'] <= phone_width and row.get('page_height', 0) > height_budget * row['height']:
-        found.append(f"height: {row['page_height']}px tall, over the budget of {height_budget:g} x {row['height']}px screens")
+        found.append(f"height: {row['page_height']}px tall, over the budget of {height_budget:g} x "
+                     f"{row['height']}px screens")
     return found
 
 
@@ -202,7 +208,8 @@ def _content_failures(row):
     """Clipped text, letter-spaced Arabic, script errors and blocked requests."""
     found = []
     if row.get('truncated_count'):
-        found.append(f"truncation: {row['truncated_count']} clipped text element(s) without data-truncate and a full-text path: "
+        found.append(f"truncation: {row['truncated_count']} clipped text element(s) without data-truncate "
+                     "and a full-text path: "
                      + ', '.join(t['selector'] for t in row['truncated'][:3]))
     if row.get('arabic_tracking_count'):
         found.append(f"arabic_tracking: letter-spacing on {row['arabic_tracking_count']} Arabic text element(s): "
@@ -210,7 +217,8 @@ def _content_failures(row):
     if row.get('page_errors'):
         found.append(f"script_errors: {len(row['page_errors'])}: {row['page_errors'][0][:200]}")
     if row.get('blocked_requests'):
-        found.append(f"offline: {len(row['blocked_requests'])} request(s) outside the page's origin: {row['blocked_requests'][0][:200]}")
+        found.append(f"offline: {len(row['blocked_requests'])} request(s) outside the page's origin: "
+                     f"{row['blocked_requests'][0][:200]}")
     return found
 
 
@@ -218,18 +226,22 @@ def _variant_failures(row):
     """The language, direction or theme the variant expects and the page did not apply."""
     expect = row.get('expect') or {}
     attributes = row.get('root_attributes') or {}
-    wrong = [f'{name}={attributes.get(name)!r} (expected {value!r})' for name, value in (expect.get('attributes') or {}).items()
+    wrong = [f'{name}={attributes.get(name)!r} (expected {value!r})'
+             for name, value in (expect.get('attributes') or {}).items()
              if attributes.get(name) != value]
-    if expect.get('dir') and row.get('dir') != expect['dir']: wrong.insert(0, f"dir={row.get('dir')!r} (expected {expect['dir']!r})")
+    if expect.get('dir') and row.get('dir') != expect['dir']:
+        wrong.insert(0, f"dir={row.get('dir')!r} (expected {expect['dir']!r})")
     return ['variant: the page did not apply it: ' + ', '.join(wrong)] if wrong else []
 
 
 def chromium_path():
     """The executable of the Chromium the pinned Playwright installed, or None."""
-    script = "const r=require('module').createRequire(process.argv[1]+'/x.js');let p;try{p=r('playwright')}catch{p=r('@playwright/test')}" \
-             ";process.stdout.write(p.chromium.executablePath())"
+    script = ("const r=require('module').createRequire(process.argv[1]+'/x.js');let p;"
+              "try{p=r('playwright')}catch{p=r('@playwright/test')};"
+              "process.stdout.write(p.chromium.executablePath())")
     try:
-        done = subprocess.run(['node', '-e', script, str(toolchain.home() / 'node/node_modules')], capture_output=True, text=True,
+        done = subprocess.run(['node', '-e', script, str(toolchain.home() / 'node/node_modules')],
+                              capture_output=True, text=True,
                               timeout=60, env={**os.environ, 'PLAYWRIGHT_BROWSERS_PATH': str(toolchain.browsers())})
     except (OSError, subprocess.TimeoutExpired):
         return None
@@ -256,7 +268,9 @@ def lighthouse(url, out=None, timeout=300, storage_state=None):
     absent = missing('playwright', 'lighthouse')
     if absent: return unavailable(absent)
     chrome = chromium_path()
-    if not chrome: return unavailable('the Chromium of the pinned Playwright was not found; run: python -m eaos tools install --only playwright')
+    if not chrome:
+        return unavailable('the Chromium of the pinned Playwright was not found; '
+                           'run: python -m eaos tools install --only playwright')
     with tempfile.TemporaryDirectory(prefix='eaos-lighthouse-') as folder:
         report = Path(out) / 'lighthouse.json' if out else Path(folder) / 'lighthouse.json'
         if storage_state:
@@ -266,7 +280,8 @@ def lighthouse(url, out=None, timeout=300, storage_state=None):
                             'lighthouse': str(toolchain.node_modules('lighthouse'))}}, timeout)
         else: data, error = _run_lighthouse(url, report, chrome, folder, timeout)
     if error: return {'status': 'error', 'reason': error}
-    if data.get('runtimeError'): return {'status': 'error', 'reason': f"lighthouse: {data['runtimeError'].get('message')}"}
+    if data.get('runtimeError'):
+        return {'status': 'error', 'reason': f"lighthouse: {data['runtimeError'].get('message')}"}
     return _lighthouse_result(data, url, report if out else None)
 
 
@@ -289,7 +304,8 @@ def _run_lighthouse(url, report, chrome, folder, timeout):
 
 def _lighthouse_result(data, url, kept):
     """The category scores (0-100), LCP and CLS of a Lighthouse report; `kept` is the report's path when it is kept."""
-    scores = {name: None if (data['categories'].get(name) or {}).get('score') is None else round(data['categories'][name]['score'] * 100)
+    scores = {name: None if (data['categories'].get(name) or {}).get('score') is None
+              else round(data['categories'][name]['score'] * 100)
               for name in LIGHTHOUSE_CATEGORIES}
     audit = lambda key: (data['audits'].get(key) or {}).get('numericValue')
     return {'status': 'observed', 'version': data.get('lighthouseVersion'), 'url': data.get('finalDisplayedUrl') or url,

@@ -29,7 +29,9 @@ def accept(project=None, person_agreed=False, merge_into=None, delete_after=True
     into = (merge_into or '').strip() or None
     if (problem := _merge_problem(state, wave, into)): return {'status': 'error', 'error': problem}
     if not person_agreed:
-        return {'status': 'needs_agreement', 'ask_the_person': f"Take the fixes on {wave['branch']} into {into or wave.get('merge_into') or 'your current branch'}?",
+        return {'status': 'needs_agreement',
+                'ask_the_person': f"Take the fixes on {wave['branch']} into "
+                                  f"{into or wave.get('merge_into') or 'your current branch'}?",
                 'what_now': 'Only if the person says yes, call accept again with person_agreed=true.'}
     outcome = guided.merge(state, wave, into=into, delete_after=delete_after is not False)
     return _not_merged(outcome, wave) or _accepted(state['project'], wave, into)
@@ -37,11 +39,15 @@ def accept(project=None, person_agreed=False, merge_into=None, delete_after=True
 
 def _not_merged(outcome, wave):
     """accept's answer when the merge did not happen (unsaved changes, a conflict); None when it did."""
-    if outcome == 'unsaved_changes': return {'status': 'unsaved_changes', 'what_now': 'The project has unsaved changes; ask the person to save (commit) them first.'}
+    if outcome == 'unsaved_changes': return {'status': 'unsaved_changes',
+                                             'what_now': 'The project has unsaved changes; ask the person to save '
+                                                         '(commit) them first.'}
     if outcome == 'conflict':
         return {'status': 'conflict', 'branch': wave['branch'],
-                'what_now': f"The person's branch changed in the same places since the fixes; nothing was merged. Ask whether to merge "
-                            f"{wave['branch']} by hand, resolving the conflict; once it is merged, `status` records it and the next fix_start removes the branch."}
+                'what_now': f"The person's branch changed in the same places since the fixes; nothing was merged. Ask "
+                            f"whether to merge "
+                            f"{wave['branch']} by hand, resolving the conflict; once it is merged, `status` records it "
+                            f"and the next fix_start removes the branch."}
     return None
 
 
@@ -51,10 +57,13 @@ def _accepted(project, wave, into):
     state = project_state.load(project)
     page = guided.report_of(state) / 'START-HERE.md'
     deleted = not guided._branch_exists(state, wave['branch'])
-    return {'status': 'accepted', 'branch': wave['branch'], 'merged_into': into or wave.get('merge_into') or state.get('branch'),
+    return {'status': 'accepted', 'branch': wave['branch'], 'merged_into': into or wave.get('merge_into')
+            or state.get('branch'),
             'branch_deleted': deleted, 'progress': (load(state) or {}).get('totals'), 'report_for_people': str(page),
-            'what_now': (f"Done: the branch is merged{' and deleted' if deleted else ' and kept, as the person chose'}, and the report is "
-                         'up to date. Tell the person the progress in plain words (closed of total, percent), then fix_start opens '
+            'what_now': (f"Done: the branch is "
+                         f"merged{' and deleted' if deleted else ' and kept, as the person chose'}, and the report is "
+                         'up to date. Tell the person the progress in plain words (closed of total, percent), then '
+                         'fix_start opens '
                          'the next batch (no new check is needed).')}
 
 
@@ -64,12 +73,17 @@ def undo(project=None, person_agreed=False):
     guided.reconcile(state)
     wave = waiting_batch(state)
     if wave is None: return {'status': 'nothing_to_undo'}
-    if not person_agreed: return {'status': 'needs_agreement', 'ask_the_person': f"Throw away the fixes on {wave['branch']}? None of them reaches the project.",
+    if not person_agreed: return {'status': 'needs_agreement',
+                                  'ask_the_person': f"Throw away the fixes on {wave['branch']}? None of them reaches "
+                                                    f"the project.",
                                   'what_now': 'Only if the person says yes, call undo again with person_agreed=true.'}
     outcome = drop(state['project'], wave['branch'])
-    if outcome == 'merged': return {'status': 'merged', 'what_now': 'It is merged already; undoing it is a git revert, the person\'s decision.'}
+    if outcome == 'merged': return {'status': 'merged',
+                                    'what_now': 'It is merged already; undoing it is a git revert, the person\'s '
+                                                'decision.'}
     from ..fix.split import drop as drop_split
-    for each in [w for w in state.get('waves') or [] if w.get('status') == 'applied' and w.get('branch') == wave['branch']]:
+    for each in [w for w in state.get('waves') or [] if w.get('status') == 'applied'
+                 and w.get('branch') == wave['branch']]:
         # every batch on it, and the branches of each kind
         each['status'] = 'undone'
         drop_split(state['project'], each)

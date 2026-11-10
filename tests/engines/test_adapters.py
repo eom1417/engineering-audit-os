@@ -46,7 +46,8 @@ class SemgrepTests(Workspace):
         rules = []
         for path in sorted(self.RULES.glob('*.yml')):
             for block in re.split(r'\n\s*- id: ', '\n' + path.read_text())[1:]:
-                rules.append({'id': block.split()[0], 'metadata': {'kind': re.search(r'\bkind: (\w+)', block).group(1)}})
+                rules.append({'id': block.split()[0], 'metadata': {'kind': re.search(r'\bkind: (\w+)',
+                    block).group(1)}})
         return rules
 
     def test_every_own_rule_is_in_the_eaos_namespace_with_a_kind_an_example_and_a_mapping_and_no_official_rule_is_here(self):
@@ -78,21 +79,26 @@ class SemgrepTests(Workspace):
     def test_the_silenced_official_rules_are_left_out_and_the_other_security_rules_kept(self):
         from eaos.engines.security import semgrep
         checkout = Path(self.tmp) / 'official'
-        for name in (*semgrep.SILENCED, 'javascript/browser/security/insecure-innerhtml.yaml', 'javascript/lang/style/x.yaml',
+        for name in (*semgrep.SILENCED, 'javascript/browser/security/insecure-innerhtml.yaml',
+                     'javascript/lang/style/x.yaml',
                      'php/lang/security/injection.yaml', 'php/lang/style/x.yaml'):
             (checkout / name).parent.mkdir(parents=True, exist_ok=True)
             (checkout / name).write_text('rules: []\n')
         with mock.patch.object(semgrep, 'official_checkout', return_value=(checkout, 'c' * 40)):
             semgrep.assemble(Path(self.tmp))
-        copied = {p.relative_to(Path(self.tmp) / 'rules/official').as_posix() for p in (Path(self.tmp) / 'rules/official').rglob('*.yaml')}
-        self.assertEqual(copied, {'javascript/browser/security/insecure-innerhtml.yaml', 'php/lang/security/injection.yaml'})
+        copied = {p.relative_to(Path(self.tmp) / 'rules/official').as_posix()
+                  for p in (Path(self.tmp) / 'rules/official').rglob('*.yaml')}
+        self.assertEqual(copied, {'javascript/browser/security/insecure-innerhtml.yaml',
+                                  'php/lang/security/injection.yaml'})
 
     def test_rule_ids_and_paths_do_not_depend_on_where_things_are_installed(self):
         from eaos.engines.security import semgrep
         sarif = Path(self.tmp) / 'out.sarif'
-        sarif.write_text(json.dumps({'runs': [{'tool': {'driver': {'rules': [{'id': 'rules.official.python.lang.security.x'}]}},
+        sarif.write_text(json.dumps({'runs': [{'tool': {'driver': {'rules': [
+                                                   {'id': 'rules.official.python.lang.security.x'}]}},
                                                'results': [{'ruleId': 'rules.eaos.eaos.security.y', 'locations': [
-                                                   {'physicalLocation': {'artifactLocation': {'uri': f'{self.tmp}/app/db.py'}}}]}]}]}))
+                                                   {'physicalLocation': {'artifactLocation':
+                                                       {'uri': f'{self.tmp}/app/db.py'}}}]}]}]}))
         semgrep.normalise(sarif, self.tmp)
         run = json.loads(sarif.read_text())['runs'][0]
         self.assertEqual(run['tool']['driver']['rules'][0]['id'], 'python.lang.security.x')
@@ -103,7 +109,8 @@ class SemgrepTests(Workspace):
         (root / 'app').mkdir(parents=True)
         (root / 'Dockerfile').write_text('FROM x\n')
         for written, expected in ((f'{root}/app/db.py', 'app/db.py'), (f'file://{root}/app/db.py', 'app/db.py'),
-                                  ('project/Dockerfile', 'Dockerfile'), ('project/missing.txt', 'project/missing.txt'), ('.env', '.env')):
+                                  ('project/Dockerfile', 'Dockerfile'), ('project/missing.txt', 'project/missing.txt'),
+                                      ('.env', '.env')):
             self.assertEqual(relative(written, root), expected, written)
 
 
@@ -128,8 +135,10 @@ class DependencyCruiserTests(Workspace):
         (root / 'src').mkdir(parents=True)
         (root / 'src/a.ts').write_text('import { b } from "./b";\nexport const a = () => b();\n')
         (root / 'src/b.ts').write_text('import { a } from "./a";\nexport const b = () => a();\n')
-        (root / 'src/page.ts').write_text('import { render } from "./child";\nexport interface Message { text: string }\nrender();\n')
-        (root / 'src/child.ts').write_text('import type { Message } from "./page";\nexport const render = (m?: Message) => m;\n')
+        (root / 'src/page.ts').write_text('import { render } from "./child";\nexport interface Message { text: string '
+                                          '}\nrender();\n')
+        (root / 'src/child.ts').write_text('import type { Message } from "./page";\nexport const render = (m?: '
+                                           'Message) => m;\n')
         from eaos.engines.process import state_digest
         before = state_digest(root)
         report = dependency_cruiser.analyze(root, Path(self.tmp) / 'work')
@@ -160,11 +169,13 @@ class ReportedRunTests(Workspace):
         def fake_run(command, **_):
             out = Path(command[command.index('--output-to') + 1])
             out.write_text(json.dumps({'summary': {'totalCruised': 0, 'violations': [],
-                                                   'environment': {'issues': [{'name': 'missing-typescript-transpiler'}]}}}))
+                                                   'environment': {'issues': [
+                                                       {'name': 'missing-typescript-transpiler'}]}}}))
             return 0, '', '', 0.1
         (Path(self.tmp) / 'a.ts').write_text('export const a = 1;\n')
         with mock.patch.object(dependency_cruiser.tool, 'started', return_value=(None, '18.4.0')), \
-                mock.patch.object(dependency_cruiser, 'run', fake_run), mock.patch.object(dependency_cruiser, 'which', return_value='depcruise'):
+                mock.patch.object(dependency_cruiser, 'run', fake_run), mock.patch.object(dependency_cruiser, 'which',
+                    return_value='depcruise'):
             report = dependency_cruiser.analyze(self.tmp, Path(self.tmp) / 'work-depcruise')
         self.assertEqual(report.status, 'error')
         self.assertIn('missing-typescript-transpiler', report.reason)

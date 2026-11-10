@@ -10,7 +10,8 @@ from ...core.system.files import read_json
 # Per-test measurements, read from the runners' own reports and Coverage.py's "who tests what" (dynamic contexts):
 # how long each test takes, and which tests run no line another test does not run too (redundant).
 COVERAGERC = '[run]\nbranch = True\ndynamic_context = test_function\n'
-TIMING = {'pytest': ['--junitxml=.eaos-junit.xml'], 'vitest': ['--reporter=default', '--reporter=json', '--outputFile.json=.eaos-tests.json'],
+TIMING = {'pytest': ['--junitxml=.eaos-junit.xml'],
+          'vitest': ['--reporter=default', '--reporter=json', '--outputFile.json=.eaos-tests.json'],
           'jest': ['--json', '--outputFile=.eaos-tests.json']}
 
 
@@ -40,13 +41,15 @@ def test_times(app):
 def _junit_times(junit):
     if not junit.is_file(): return []
     from defusedxml import ElementTree as ET       # a report the project's tests wrote: no entities
-    return [(f"{case.get('classname', '')}::{case.get('name', '')}", case.get('file') or case.get('classname', ''), float(case.get('time') or 0))
+    return [(f"{case.get('classname', '')}::{case.get('name', '')}",
+             case.get('file') or case.get('classname', ''), float(case.get('time') or 0))
             for case in ET.parse(junit).iter('testcase')]
 
 
 def _jest_times(report, app):
     if not report.is_file(): return []
-    return [(case.get('fullName') or case.get('title') or '', os.path.relpath(suite.get('name') or '', app), (case.get('duration') or 0) / 1000)
+    return [(case.get('fullName') or case.get('title') or '', os.path.relpath(suite.get('name') or '', app),
+             (case.get('duration') or 0) / 1000)
             for suite in json.loads(report.read_text(encoding='utf-8')).get('testResults') or []
             for case in suite.get('assertionResults') or []]
 
@@ -65,7 +68,9 @@ def suite_health(app, contexts):
     redundant = redundant_tests(contexts)
     total = sum(seconds for _, _, seconds in times)
     return {'tests': len(times) or len(contexts), 'seconds': round(total, 1),
-            'slowest': [{'test': t, 'file': f, 'seconds': round(s, 2)} for t, f, s in sorted(times, key=lambda r: -r[2])[:10]],
+            'slowest': [{'test': t, 'file': f, 'seconds': round(s, 2)}
+                        for t, f, s in sorted(times, key=lambda r: -r[2])[:10]],
             'redundant': redundant[:30], 'redundant_count': len(redundant),
             'redundant_share': round(len(redundant) / len(contexts), 3) if contexts else None,
-            'source': 'the runner\'s own per-test report; Coverage.py dynamic contexts (dynamic_context = test_function)'}
+            'source': 'the runner\'s own per-test report; '
+                      'Coverage.py dynamic contexts (dynamic_context = test_function)'}

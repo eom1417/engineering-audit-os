@@ -58,17 +58,20 @@ class SetupTests(unittest.TestCase):
             (app / 'node_modules/playwright').mkdir(parents=True)
             (app / 'node_modules/playwright/index.js').write_text("throw new Error('the app own playwright')")
             eaos.mkdir()
-            (eaos / 'index.js').write_text("module.exports = { chromium: { launch: async () => { throw new Error('eaos playwright') } } }")
+            (eaos / 'index.js').write_text("module.exports = { chromium: { launch: async () => "
+                                           "{ throw new Error('eaos playwright') } } }")
             (app / '.eaos-probe.cjs').write_text(PROBE)
             done = subprocess.run(['node', '.eaos-probe.cjs'], cwd=app, capture_output=True, text=True, timeout=60,
-                                  env={'PATH': __import__('os').environ['PATH'], 'EAOS_PLAYWRIGHT': str(eaos), 'BASE_URL': 'http://127.0.0.1:9'})
+                                  env={'PATH': __import__('os').environ['PATH'], 'EAOS_PLAYWRIGHT': str(eaos),
+                                       'BASE_URL': 'http://127.0.0.1:9'})
         self.assertIn('eaos playwright', done.stdout + done.stderr)
         self.assertNotIn('the app own playwright', done.stdout + done.stderr)
         run = LiveRun.__new__(LiveRun)
         run.profile, run.runtime, run.apart = {}, Path(tempfile.gettempdir()), None
         run.database_url = lambda: None
         self.assertEqual(run.run_env()['EAOS_PLAYWRIGHT'], str(home() / 'node/node_modules/playwright'))
-        self.assertIn('process.env.EAOS_PLAYWRIGHT', live_assist.PROMPT if hasattr(live_assist, 'PROMPT') else Path(live_assist.__file__).read_text())
+        self.assertIn('process.env.EAOS_PLAYWRIGHT',
+                      live_assist.PROMPT if hasattr(live_assist, 'PROMPT') else Path(live_assist.__file__).read_text())
 
 
 class SharedAppTests(unittest.TestCase):
@@ -92,8 +95,10 @@ class SharedAppTests(unittest.TestCase):
                      ['git', '-c', 'user.name=Test', '-c', 'user.email=test@example.test', 'commit', '-qm', 'fixture']):
             subprocess.run(argv, cwd=self.target, check=True, capture_output=True)
         self.counts = self.root / 'counts.txt'
-        install = "from pathlib import Path; p=Path(__import__('sys').argv[1]); p.write_text(p.read_text()+'install\\n' if p.exists() else 'install\\n')"
-        write_profile(self.runtime, {'schema_version': 1, 'install': [[sys.executable, '-c', install, str(self.counts)]],
+        install = ("from pathlib import Path; p=Path(__import__('sys').argv[1]); "
+                   "p.write_text(p.read_text()+'install\\n' if p.exists() else 'install\\n')")
+        write_profile(self.runtime, {'schema_version': 1,
+                                     'install': [[sys.executable, '-c', install, str(self.counts)]],
             'start': [sys.executable, '-u', 'server.py', str(free_port()), str(self.counts)], 'port': 1,
             'health': '/health', 'seed': [[sys.executable, 'seed.py', str(self.counts)]]})
         profile = json.loads((self.runtime / 'run.json').read_text())
@@ -122,7 +127,8 @@ class SharedAppTests(unittest.TestCase):
                         return write(context)
                     runners[name] = visit
                 result = execute(self.target, self.root / mode, runners=runners, runtime=self.runtime, mode=mode)
-                self.assertEqual(result['status'], 'COMPLETE', {n: r.get('reason') for n, r in result['stages'].items() if r['status'] == 'failed'})
+                self.assertEqual(result['status'], 'COMPLETE',
+                                 {n: r.get('reason') for n, r in result['stages'].items() if r['status'] == 'failed'})
                 self.assertEqual(len(seen), 3)
                 self.assertEqual(seen, [seen[0]] * 3)
                 self.assertEqual(self.counts.read_text().splitlines(), ['install', 'start', 'seed'])
@@ -146,15 +152,19 @@ class SharedAppTests(unittest.TestCase):
         state, workspace = sign_in.session(self.runtime), self.root / 'workspace'
         for cookie, asked in (('a' * 48, False), ('expired', True)):
             with self.subTest(asked=asked):
-                state.write_text(json.dumps({'cookies': [{'name': 'session', 'value': cookie, 'domain': '127.0.0.1', 'path': '/', 'expires': -1,
-                                                          'httpOnly': True, 'secure': False, 'sameSite': 'Lax'}], 'origins': []}))
+                state.write_text(json.dumps({'cookies': [{'name': 'session', 'value': cookie,
+                                                          'domain': '127.0.0.1', 'path': '/', 'expires': -1,
+                                                          'httpOnly': True, 'secure': False,
+                                                          'sameSite': 'Lax'}], 'origins': []}))
                 sign_in.mark(state)
                 person = _as_the_person(workspace, 'a' * 48) if asked else None
-                context = Context(target=self.target, runtime=str(self.runtime), out=self.root, sign_in={'folder': str(workspace)})
+                context = Context(target=self.target, runtime=str(self.runtime), out=self.root,
+                                  sign_in={'folder': str(workspace)})
                 try:
                     shared_app(context)
                     self.assertTrue(sign_in.by_hand(state), "the seed never replaces the person's session")
-                    self.assertFalse(context['sign_in']['gave_up'], 'it works, or works again once the person signed in')
+                    self.assertFalse(context['sign_in']['gave_up'],
+                                     'it works, or works again once the person signed in')
                 finally: close_app(context)
                 self.assertEqual(person is not None and not person.is_alive(), asked, 'asked only when it had expired')
                 self.assertEqual(json.loads(state.read_text())['cookies'][0]['value'], 'a' * 48)

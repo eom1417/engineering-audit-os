@@ -64,7 +64,9 @@ class Adapter:
         self.command = list(command or [self.id_command])
 
     def _run(self, *arguments, timeout=15):
-        try: return subprocess.run(self.command + list(arguments), capture_output=True, text=True, timeout=timeout)  # nosemgrep: python.lang.security.audit.dangerous-subprocess-use-audit -- the assistant's CLI as its adapter builds it, a list argv, no shell
+        # nosemgrep: python.lang.security.audit.dangerous-subprocess-use-audit -- the assistant's CLI as its adapter builds it, a list argv, no shell
+        try: return subprocess.run(self.command + list(arguments), capture_output=True, text=True,
+                                   timeout=timeout)
         except (OSError, subprocess.SubprocessError): return None
 
     def detect(self, fresh=False):
@@ -90,7 +92,8 @@ class Adapter:
         return found['installed'] and found['logged_in']
 
     def new_state(self):
-        return {'session': None, 'resumed': False, 'pending': {}, 'final': None, 'failed': None, 'texts': [], 'eaos_results': []}
+        return {'session': None, 'resumed': False, 'pending': {}, 'final': None, 'failed': None, 'texts': [],
+                'eaos_results': []}
 
     def model(self):
         """The model this assistant uses when its stream does not say."""
@@ -102,7 +105,10 @@ class Adapter:
 
     def _started(self, state):
         """The step event of the assistant's start, or of its going on with the person's answer."""
-        return ('step', {'en': f'{self.name} went on', 'ar': f'{self.name} كمّل'} if state['resumed'] else {'en': f'{self.name} started', 'ar': f'بدأ {self.name}'},
+        return ('step',
+                {'en': f'{self.name} went on',
+                 'ar': f'{self.name} كمّل'} if state['resumed'] else {'en': f'{self.name} started',
+                                                                      'ar': f'بدأ {self.name}'},
                 {'tool': None, 'assistant': self.name}, None)
 
 

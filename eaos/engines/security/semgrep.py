@@ -56,7 +56,8 @@ def assemble(workdir):
     """rules/eaos and rules/official/<pack> under workdir; returns the rule sets it holds."""
     rules = workdir / 'rules'
     if rules.exists(): shutil.rmtree(rules)
-    shutil.copytree(OWN, rules / 'eaos', ignore=lambda _, names: [n for n in names if not n.endswith(('.yml', '.yaml'))])
+    shutil.copytree(OWN, rules / 'eaos',
+                    ignore=lambda _, names: [n for n in names if not n.endswith(('.yml', '.yaml'))])
     used = ['eaos']
     checkout, commit = official_checkout()
     if checkout is None: return used, None
@@ -103,8 +104,10 @@ def analyze(target, workdir, exclude, formats, found):
     normalise(output, target)
     findings, unmapped = sarif.read(output, NAME, found, root=target)
     return Report(NAME, found, PINNED, OBSERVED, seconds=seconds, findings=findings, unmapped=unmapped, raw=str(output),
-                  coverage={'status': 'observed', 'rule_sets': used, 'silenced': list(SILENCED), 'official_commit': commit,
-                            'official_missing': None if commit else 'python -m eaos tools install --only semgrep-rules'},
+                  coverage={'status': 'observed', 'rule_sets': used, 'silenced': list(SILENCED),
+                            'official_commit': commit,
+                            'official_missing': None if commit
+                            else 'python -m eaos tools install --only semgrep-rules'},
                   evaluated={'dataflow': {'status': 'observed', 'granularity': 'file'},
                              'vulnerability': {'status': 'observed' if commit else 'partial', 'granularity': 'file'},
                              'secret': {'status': 'observed' if commit else 'partial', 'granularity': 'file'}})

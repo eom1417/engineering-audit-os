@@ -12,12 +12,14 @@ def cap_owner(resolved, cards):
     asked = [card for card, r in resolved.items() if r['resolution'] == 'owner']
     room = max(1, int(cards * OWNER_SHARE))
     if len(asked) <= room: return []
-    weight = lambda card: (-CARD_SEVERITY.get(resolved[card].get('severity'), 1) * (1 + (resolved[card].get('reach') or 0)), card)
+    weight = lambda card: (-CARD_SEVERITY.get(resolved[card].get('severity'), 1)
+                           * (1 + (resolved[card].get('reach') or 0)), card)
     turned = sorted(asked, key=weight)[room:]
     for card in turned:
         row = resolved[card]
         row.update(resolution='fix', change=row['recommendation'], capped=True,
-                   note=(f'it would have asked you about "{row["question"]}"; with more questions than one in ten cards, '
+                   note=(f'it would have asked you about "{row["question"]}"; '
+                         f'with more questions than one in ten cards, '
                          f'this one mattered less (severity x reach), so its own recommendation is taken'))
     return turned
 
@@ -28,7 +30,8 @@ def capped(rows, cards):
     answered by the assistant, as triage does for cards (cap_owner)."""
     waiting = [row for row in rows if row.get('state') == 'waiting']
     room = max(1, int(cards * OWNER_SHARE))
-    ranked = sorted(waiting, key=lambda row: (row.get('recommended_option') is not None, row.get('id') != 'target-architecture'))
+    ranked = sorted(waiting, key=lambda row: (row.get('recommended_option') is not None,
+                                              row.get('id') != 'target-architecture'))
     for row in ranked[room:]:
         if row.get('recommended_option'): row.update(state='answered', answer=row['recommended_option'])
     return rows

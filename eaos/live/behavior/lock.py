@@ -89,7 +89,8 @@ def _pass(live, lock, base, output, how):
         code, out, err = live.sandbox.run(argv, timeout=3600, network=True, cwd='.eaos-lock',
                                           env={**live.run_env(), 'BASE_URL': base, 'EAOS_LOCK_REPORT': str(output),
                                                'EAOS_LOCK_STREAM': str(stream), 'EAOS_LOCK_KIND': kind or '',
-                                               'EAOS_LOCK_UPDATE': '1' if update else '', 'EAOS_LOCK_WORDS': str(words or ''),
+                                               'EAOS_LOCK_UPDATE': '1' if update else '',
+                                               'EAOS_LOCK_WORDS': str(words or ''),
                                                'EAOS_LOCK_LOOK': str(look or '')})
     finally:
         screens.stop()
@@ -173,8 +174,7 @@ def _results(report, statuses):
 
 def _kind_rows(path, statuses):
     """The results of spec `path` in the passes as each kind of user (their statuses keyed <file>@<kind>)."""
-    return [{'path': path, 'kind': file.rsplit('@', 1)[1], 'status': s, **({'reason': r} if r else {})}
-            for file, (s, r) in statuses.items() if '@' in file and Path(file.rsplit('@', 1)[0]).name == Path(path).name]
+    return [{'path': path, 'kind': file.rsplit('@', 1)[1], 'status': s, **({'reason': r} if r else {})} for file, (s, r) in statuses.items() if '@' in file and Path(file.rsplit('@', 1)[0]).name == Path(path).name]
 
 
 def key(result):
@@ -201,8 +201,8 @@ def _write(runtime, name, live, results):
 # ── the live map: the safety flow, and each screen as it is recorded ───────────────────────────────────────
 STREAM = 'stream.jsonl'
 FLOW = (
-    Stage('prepare', description='Copy the report\'s specs (its screens and the interfaces of its code) into the separate '
-                                 'copy, with the offline browser settings'),
+    Stage('prepare', description='Copy the report\'s specs (its screens and the interfaces of its code) into '
+                                 'the separate copy, with the offline browser settings'),
     Stage('start', requires=('prepare',), description='Install, start and sign in to the app in the separate copy'),
     Stage('record', requires=('start',),
           description='Open every screen and load every interface of the code once, and record how each is today'),
@@ -345,12 +345,14 @@ def _journey_results(folder, report):
     walked = [{'spec': name, **({'kind': kind} if kind else {}), 'pages': pages.get(Path(name).name, [])[:20], 'status': status,
                'reason': reason[:300]} for (name, kind), (status, reason) in sorted(statuses.items())]
     for path in folder.glob('report@*.json'): path.unlink()
-    return {'specs': len(statuses), 'walked': walked, 'failed': sum(w['status'] == 'failed' for w in walked), **cap_journeys(folder)}
+    return {'specs': len(statuses), 'walked': walked, 'failed': sum(w['status'] == 'failed' for w in walked),
+            **cap_journeys(folder)}
 
 
 def _pages_of(plan):
     """{spec file name: the pages it walks} of the plan's Playwright specs (their HTTP routes aside)."""
-    return {Path(s['path']).name: [x for x in s.get('surfaces') or [] if not str(x).startswith(('GET ', 'POST ', 'PUT ', 'PATCH ', 'DELETE '))]
+    return {Path(s['path']).name: [x for x in s.get('surfaces') or []
+                                   if not str(x).startswith(('GET ', 'POST ', 'PUT ', 'PATCH ', 'DELETE '))]
             for s in plan.get('specs') or [] if s.get('tool') == 'playwright' and s.get('path')}
 
 

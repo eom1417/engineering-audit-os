@@ -25,12 +25,14 @@ class PlatformTests(unittest.TestCase):
         gitleaks = next(t for t in toolchain.registry()['tools'] if t['name'] == 'gitleaks')
         with mock.patch.object(toolchain.pins, 'platform_key', return_value='darwin-arm64'):
             self.assertIn('darwin_arm64', toolchain.release_spec(gitleaks)['url'])
-        with mock.patch.object(toolchain.pins, 'platform_key', return_value='windows-arm64'), tempfile.TemporaryDirectory() as tmp, \
+        with mock.patch.object(toolchain.pins, 'platform_key',
+                               return_value='windows-arm64'), tempfile.TemporaryDirectory() as tmp, \
                 mock.patch.dict('os.environ', {'EAOS_ENGINE_TOOLS': tmp}):
             with self.assertRaises(toolchain.Unavailable):
                 toolchain.release_spec(gitleaks)
             with mock.patch.object(toolchain.installers, 'found_version', return_value=(None, 'not installed')):
-                self.assertEqual(toolchain.install(names=['gitleaks'], echo=lambda line: None), [], 'skipped, not failed')
+                self.assertEqual(toolchain.install(names=['gitleaks'], echo=lambda line: None), [],
+                                 'skipped, not failed')
 
     def test_tools_and_the_browser_live_in_the_persons_eaos_folder_where_the_engines_find_them(self):
         self.assertTrue(toolchain.registry()['home']['default'].startswith('~/'))
@@ -47,7 +49,9 @@ class PlatformTests(unittest.TestCase):
                 self.assertEqual(process.which('pinned-only-tool'), str(binary))
         with mock.patch.dict('os.environ', {'EAOS_ENGINE_TOOLS': '/opt/eaos-tools', 'PLAYWRIGHT_BROWSERS_PATH': ''}):
             self.assertEqual(toolchain.browsers(), Path('/opt/eaos-tools/browsers'))
-        with tempfile.TemporaryDirectory() as tmp, mock.patch.dict('os.environ', {'EAOS_ENGINE_TOOLS': tmp, 'PLAYWRIGHT_BROWSERS_PATH': ''}):
+        with tempfile.TemporaryDirectory() as tmp, mock.patch.dict('os.environ',
+                                                                   {'EAOS_ENGINE_TOOLS': tmp,
+                                                                    'PLAYWRIGHT_BROWSERS_PATH': ''}):
             core = Path(tmp) / 'node/node_modules/playwright-core'
             core.mkdir(parents=True)
             (core / 'browsers.json').write_text(json.dumps({'browsers': [{'name': 'chromium', 'revision': '1243'}]}))
@@ -65,18 +69,22 @@ class PlatformTests(unittest.TestCase):
         tool = {'name': 'demo', 'binary': 'demo'}
         buffer = io.BytesIO()
         with tarfile.open(fileobj=buffer, mode='w:gz') as archive:        # reforge's Mac archive: ./demo
-            info = tarfile.TarInfo('./demo'); data = b'binary'; info.size = len(data); archive.addfile(info, io.BytesIO(data))
-        self.assertEqual(toolchain.installers._member(tool, {'archive': 'tar.gz', 'member': './demo'}, io.BytesIO(buffer.getvalue())), b'binary')
+            info = tarfile.TarInfo('./demo'); data = b'binary'; info.size = len(data); archive.addfile(info,
+                io.BytesIO(data))
+        self.assertEqual(toolchain.installers._member(tool, {'archive': 'tar.gz', 'member': './demo'},
+                                                      io.BytesIO(buffer.getvalue())), b'binary')
         buffer = io.BytesIO()
         with zipfile.ZipFile(buffer, 'w') as archive:                      # k6's Mac build is a zip
             archive.writestr('demo-v1-macos-arm64/demo', b'zipped')
-        self.assertEqual(toolchain.installers._member(tool, {'archive': 'zip', 'member': 'demo-v1-macos-arm64/demo'}, io.BytesIO(buffer.getvalue())), b'zipped')
+        self.assertEqual(toolchain.installers._member(tool, {'archive': 'zip', 'member': 'demo-v1-macos-arm64/demo'},
+                                                      io.BytesIO(buffer.getvalue())), b'zipped')
         tools = [{'name': 'first', 'version': '1', 'stages': ['S01'], 'install': {'method': 'release'}},
                  {'name': 'second', 'version': '1', 'stages': ['S01'], 'install': {'method': 'pip'}}]
         installed = []
         with mock.patch.object(toolchain.runs, 'selected', return_value=tools), tempfile.TemporaryDirectory() as tmp, \
                 mock.patch.dict('os.environ', {'EAOS_ENGINE_TOOLS': tmp}), \
-                mock.patch.object(toolchain.installers, 'found_version', side_effect=lambda t: ('1', '') if t['name'] in installed else (None, '')), \
+                mock.patch.object(toolchain.installers, 'found_version',
+                                  side_effect=lambda t: ('1', '') if t['name'] in installed else (None, '')), \
                 mock.patch.object(toolchain.installers, '_release', side_effect=KeyError('zip')), \
                 mock.patch.object(toolchain.installers, '_pip', side_effect=lambda t: installed.append(t['name'])):
             self.assertEqual(toolchain.install(echo=lambda line: None), ['first'])
@@ -84,26 +92,37 @@ class PlatformTests(unittest.TestCase):
 
     def test_a_tool_that_refuses_this_node_says_so_and_is_not_read_as_another_version(self):
         cruiser = next(t for t in toolchain.registry()['tools'] if t['name'] == 'dependency-cruiser')
-        refusal = mock.Mock(returncode=1, stdout='', stderr='ERROR: node 20.20.2 is not supported; it requires ^22||^24||>=26')
-        with mock.patch.object(toolchain.versions, 'binary_path', return_value='/x/depcruise'), mock.patch.object(toolchain.versions.subprocess, 'run', return_value=refusal):
+        refusal = mock.Mock(returncode=1, stdout='',
+                            stderr='ERROR: node 20.20.2 is not supported; it requires ^22||^24||>=26')
+        with mock.patch.object(toolchain.versions, 'binary_path',
+                               return_value='/x/depcruise'), mock.patch.object(toolchain.versions.subprocess, 'run',
+                                                                               return_value=refusal):
             found, reason = toolchain.found_version(cruiser)
         self.assertIsNone(found)
         self.assertIn('needs a newer Node.js', reason)
         noisy = mock.Mock(returncode=0, stdout='node v20.20.2 detected\n18.4.0\n', stderr='')
-        with mock.patch.object(toolchain.versions, 'binary_path', return_value='/x/depcruise'), mock.patch.object(toolchain.versions.subprocess, 'run', return_value=noisy), \
+        with mock.patch.object(toolchain.versions, 'binary_path',
+                               return_value='/x/depcruise'), mock.patch.object(toolchain.versions.subprocess, 'run',
+                                                                               return_value=noisy), \
                 mock.patch.object(toolchain.versions, '_companions_missing', return_value=''):
-            self.assertEqual(toolchain.found_version(cruiser), ('18.4.0', ''), 'its own version, wherever it is printed')
+            self.assertEqual(toolchain.found_version(cruiser), ('18.4.0', ''),
+                             'its own version, wherever it is printed')
 
 class PortabilityTests(unittest.TestCase):
     def test_one_version_everywhere(self):
         # No file points at the machine EAOS was built on: tests/guards/test_public_tree.py.
         import re
         from eaos import __version__
-        package = re.search(r'^version = "([^"]+)"', (ROOT / 'pyproject.toml').read_text(encoding='utf-8'), re.M).group(1)
-        changelog = re.search(r'^## (\d+\.\d+\.\d+)', (ROOT / 'CHANGELOG.md').read_text(encoding='utf-8'), re.M).group(1)
-        self.assertEqual((__version__, changelog), (package, package), 'eaos doctor, the package and the changelog say one version')
-        badges = {name: re.findall(r'badge/version-([\d.]+)-', (ROOT / name).read_text(encoding='utf-8')) for name in ('README.md', 'README.ar.md')}
-        self.assertEqual(badges, {name: [package] for name in badges}, "the READMEs' version badge (it read 0.0.28 at 0.0.35)")
+        package = re.search(r'^version = "([^"]+)"', (ROOT / 'pyproject.toml').read_text(encoding='utf-8'),
+                            re.M).group(1)
+        changelog = re.search(r'^## (\d+\.\d+\.\d+)', (ROOT / 'CHANGELOG.md').read_text(encoding='utf-8'),
+                              re.M).group(1)
+        self.assertEqual((__version__, changelog), (package, package),
+                         'eaos doctor, the package and the changelog say one version')
+        badges = {name: re.findall(r'badge/version-([\d.]+)-',
+                                   (ROOT / name).read_text(encoding='utf-8')) for name in ('README.md', 'README.ar.md')}
+        self.assertEqual(badges, {name: [package] for name in badges},
+                         "the READMEs' version badge (it read 0.0.28 at 0.0.35)")
 
 
 class InstalledPackageTests(unittest.TestCase):
@@ -114,10 +133,12 @@ class InstalledPackageTests(unittest.TestCase):
             venv = Path(tmp) / 'venv'
             # Without pip inside (ensurepip is not everywhere), filled by this pip with --python.
             subprocess.run([sys.executable, '-m', 'venv', '--without-pip', str(venv)], check=True)
-            done = subprocess.run([sys.executable, '-m', 'pip', '--python', str(venv / 'bin/python'), 'install', '--quiet',
+            done = subprocess.run([sys.executable, '-m', 'pip', '--python', str(venv / 'bin/python'), 'install',
+                                   '--quiet',
                                    '--no-deps', str(ROOT)], capture_output=True, text=True)
             need(self, 'pip could not build the package here: ' + done.stderr[-200:] if done.returncode else '', False)
-            probe = ('import json, eaos.core.toolchain.pins as t, eaos.journeys.guided as g, eaos.core.contracts.artifact_rules as a;'
+            probe = ('import json, eaos.core.toolchain.pins as t, eaos.journeys.guided as g,'
+                     ' eaos.core.contracts.artifact_rules as a;'
                      'assert "site-packages" in str(t.REGISTRY), t.REGISTRY; print(len(t.registry()["tools"]));'
                      'from pathlib import Path; import eaos;'
                      'g.catalog(); a.contracts()')

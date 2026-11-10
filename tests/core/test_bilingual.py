@@ -39,6 +39,9 @@ class BilingualTests(unittest.TestCase):
             self.assertEqual(again.sent, [], 'the next check sends nothing it translated before')
             (report.parent / bilingual.MEMORY).unlink()
             unsound = Dictionary({'The component has ⟦1⟧ live claims in ⟦2⟧.': 'للمكوّن ادعاءات قائمة.'})
-            self.assertEqual(bilingual.translate(report, unsound)['failed'], 1, 'an answer that lost a slot is not kept')
-            self.assertEqual(unsound.sent.count('The component has ⟦1⟧ live claims in ⟦2⟧.'), 2, 'it is asked once more')
-            self.assertIn('- The component has 7 live claims in `cli.py`.', (report / 'i18n/ar/START-HERE.md').read_text())
+            self.assertEqual(bilingual.translate(report, unsound)['failed'], 1, 'an answer that lost a slot is not '
+                             'kept')
+            self.assertEqual(unsound.sent.count('The component has ⟦1⟧ live claims in ⟦2⟧.'), 2, 'it is asked once '
+                             'more')
+            self.assertIn('- The component has 7 live claims in `cli.py`.',
+                          (report / 'i18n/ar/START-HERE.md').read_text())

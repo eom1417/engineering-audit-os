@@ -33,7 +33,8 @@ def run(command, cwd=None, timeout=DEFAULT_TIMEOUT, env=None):
     cache = os.environ.get('EAOS_ENGINE_CACHE')
     try:
         done = run_command(command, cwd=cwd, timeout=timeout,
-                           env={**toolchain.tool_env(), 'NO_COLOR': '1', **({'XDG_CACHE_HOME': cache} if cache else {}), **(env or {})})
+                           env={**toolchain.tool_env(), 'NO_COLOR': '1',
+                                **({'XDG_CACHE_HOME': cache} if cache else {}), **(env or {})})
     except (OSError, subprocess.TimeoutExpired) as problem:
         return 127, '', str(problem), time.monotonic() - started
     return done.returncode, done.stdout, done.stderr, time.monotonic() - started
@@ -54,5 +55,6 @@ def state_digest(target):
             except OSError as error:
                 noted('a file that vanished or is unreadable is left out of the digest', error)
                 continue
-            digest.update(f'{path.relative_to(target)}|{stat.st_size}|{stat.st_mtime_ns}\n'.encode('utf-8', 'surrogateescape'))
+            digest.update(f'{path.relative_to(target)}|{stat.st_size}|{stat.st_mtime_ns}\n'
+                          .encode('utf-8', 'surrogateescape'))
     return digest.hexdigest()

@@ -12,7 +12,8 @@ class StoppedCheckTests(unittest.TestCase):
             report = Path(tmp)
             self.assertEqual(_stopped(report), '')
             (report / 'run-manifest.json').write_text(json.dumps({'stages': {
-                'facts': {'status': 'ok'}, 'claims': {'status': 'failed', 'reason': 'ValueError: Claim ledger rejected'},
+                'facts': {'status': 'ok'},
+                'claims': {'status': 'failed', 'reason': 'ValueError: Claim ledger rejected'},
                 'plan': {'status': 'not_reached'}}}), encoding='utf-8')
             said = _stopped(report)
             self.assertIn('`claims`', said)

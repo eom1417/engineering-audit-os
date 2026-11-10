@@ -38,7 +38,8 @@ def _index_js(structure, entrypoints):
         if fact['kind'] != 'data_access': continue
         value = fact.get('value') or {}
         index[fact['location']['path']]['data'].append(
-            (fact['location'].get('start_line') or 0, value.get('client', 'data'), value.get('operation', ''), value.get('target', '')))
+            (fact['location'].get('start_line') or 0, value.get('client', 'data'), value.get('operation', ''),
+             value.get('target', '')))
     return index
 
 
@@ -68,7 +69,8 @@ def _retry_loop(lines, loop):
     """
     if not lines or not 0 < loop[0] <= len(lines): return False
     header = lines[loop[0] - 1]
-    if not COUNTED.search(header) or '.length' in header or re.search(r'\b(of|in)\b', header.split(';')[0]): return False
+    if not COUNTED.search(header) or '.length' in header or re.search(r'\b(of|in)\b',
+                                                                      header.split(';')[0]): return False
     return any(EXITS.search(lines[n - 1]) for n in range(loop[0] + 1, min(loop[1], len(lines)) + 1))
 
 

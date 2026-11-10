@@ -22,7 +22,8 @@ NOT_THE_PERSONS = ('eaos/', 'dependabot/', 'renovate/', 'snyk-', 'greenkeeper/',
 # Branches kept only for the record: never a choice of where the work goes on.
 ARCHIVED = ('archive/', 'archived/')
 # What each branch keeps of its own in state.json; the others are the project's (consent, language, questions).
-KEYS = ('scanned', 'scanned_commit', 'scanned_with', 'scanned_branch', 'scanned_detached', 'scanned_dirty', 'setup', 'safety',
+KEYS = ('scanned', 'scanned_commit', 'scanned_with', 'scanned_branch', 'scanned_detached',
+        'scanned_dirty', 'setup', 'safety',
         'waves', 'open_wave', 'tried', 'applied')
 # EAOS's own commits (eaos/journeys/fix/waves.commit, guided.merge): code the person did not write, so a scan still
 # holds after them.
@@ -78,7 +79,8 @@ def protected(project, name):
     The project's own policy joins them (eaos/journeys/branches/ BranchControl.policy)."""
     if name in ('main', 'master'): return 'the main branch'
     done = _git(project, 'symbolic-ref', '--quiet', '--short', 'refs/remotes/origin/HEAD')
-    return "the remote's default branch" if done.returncode == 0 and done.stdout.strip().split('/', 1)[-1] == name else ''
+    return ("the remote's default branch" if done.returncode == 0
+            and done.stdout.strip().split('/', 1)[-1] == name else '')
 
 
 def _persons(name):
@@ -105,7 +107,8 @@ def inventory(project):
 
 def _refs(project, kind, pattern):
     """(name, tip, date, subject) of each branch under `pattern`; an origin branch named without its remote."""
-    listed = _git(project, 'for-each-ref', '--format=%(refname:short)%00%(objectname)%00%(committerdate:iso-strict)%00%(subject)', pattern)
+    listed = _git(project, 'for-each-ref',
+                  '--format=%(refname:short)%00%(objectname)%00%(committerdate:iso-strict)%00%(subject)', pattern)
     for line in listed.stdout.splitlines():
         name, tip, when, subject = (line.split('\x00') + ['', '', ''])[:4]
         if kind == 'origin': name = name.split('/', 1)[-1] if '/' in name else ''
@@ -136,7 +139,8 @@ def choice(project):
     branches are left out); else the question: the branches with what each is, and the recommendation."""
     rows = [row for row in inventory(project) if _a_choice(row)]
     if len({r['tip'] for r in rows}) <= 1: return None
-    return {'branches': rows, 'recommended': recommend(rows), 'main': next((r['name'] for r in rows if r['main']), None)}
+    return {'branches': rows, 'recommended': recommend(rows),
+            'main': next((r['name'] for r in rows if r['main']), None)}
 
 
 def dirty(folder):
@@ -213,7 +217,8 @@ def _tip_now(state, project, detached):
 
 def _on_other_branch(state, out, detached):
     scanned_branch = state.get('scanned_branch')
-    return bool(out['recorded'] and not detached and scanned_branch and out['branch'] and scanned_branch != out['branch'])
+    return bool(out['recorded'] and not detached and scanned_branch and out['branch']
+                and scanned_branch != out['branch'])
 
 
 def _rewritten_since(project, scanned, tip):
@@ -227,14 +232,16 @@ def _what_came_after(project, scanned, tip):
     others = _commits_by_others(project, scanned, tip)
     count = _git(project, 'rev-list', '--count', f'{scanned}..{tip}').stdout.strip()
     files = _git(project, '-c', 'core.quotePath=false', 'diff', '--name-only', scanned, tip).stdout.splitlines()
-    return others, {'commits': int(count) if count.isdigit() else None, 'files': len(files), 'file_list': files[:FILES_SHOWN],
+    return others, {'commits': int(count) if count.isdigit() else None, 'files': len(files),
+                    'file_list': files[:FILES_SHOWN],
                     'truncated': len(files) > FILES_SHOWN, 'eaos_only': others == []}
 
 
 def _moved_on(project, scanned, tip, out):
     """The verdict when the branch is past the scanned commit; None when only EAOS's own fixes came after it."""
     if _git(project, 'merge-base', '--is-ancestor', scanned, tip).returncode:
-        return {**out, 'state': 'rewritten', 'reason': 'not_in_history', 'since_common': _rewritten_since(project, scanned, tip)}
+        return {**out, 'state': 'rewritten', 'reason': 'not_in_history',
+                'since_common': _rewritten_since(project, scanned, tip)}
     others, behind = _what_came_after(project, scanned, tip)
     out['behind'] = behind
     return {**out, 'state': 'behind'} if others != [] else None
@@ -248,18 +255,23 @@ def _dirty_verdict(project, detached, out):
     return {**out, 'state': 'dirty'} if changes and (changes['tracked'] or changes['untracked']) else None
 
 
-FRESH = {'fresh': ('الفحص حديث: لهذا الفرع عند آخر commit فيه.', 'The check is current: of this branch at its last commit.'),
-         'behind': ('الفحص قديم: جاء بعده {n} commit. افحص من جديد: eaos check', 'The check is behind: {n} commit(s) came after it. Check again: eaos check'),
+FRESH = {'fresh': ('الفحص حديث: لهذا الفرع عند آخر commit فيه.',
+                   'The check is current: of this branch at its last commit.'),
+         'behind': ('الفحص قديم: جاء بعده {n} commit. افحص من جديد: eaos check',
+                    'The check is behind: {n} commit(s) came after it. Check again: eaos check'),
          'not_scanned': ('ما انفحص بعد: eaos check', 'Not checked yet: eaos check'),
-         'other': ('الفحص ما يطابق الكود الحين ({n}). افحص من جديد: eaos check', 'The check is not of this code now ({n}). Check again: eaos check')}
+         'other': ('الفحص ما يطابق الكود الحين ({n}). افحص من جديد: eaos check',
+                   'The check is not of this code now ({n}). Check again: eaos check')}
 
 
 def fresh_line(state, lang):
     """Whether the check on record is of the code now, in one line (eaos/core/project/branches.py freshness)."""
     found = freshness(state)
-    key = found['state'] if found['state'] in ('fresh', 'behind') else 'not_scanned' if found.get('reason') == 'not_scanned' else 'other'
+    key = (found['state'] if found['state'] in ('fresh', 'behind') else 'not_scanned'
+           if found.get('reason') == 'not_scanned' else 'other')
     words = FRESH[key][0 if lang == 'ar' else 1]
-    return words.format(n=(found.get('behind') or {}).get('commits', '?') if key == 'behind' else found['state'] if found['state'] != 'unknown' else found.get('reason'))
+    return words.format(n=(found.get('behind') or {}).get('commits', '?') if key == 'behind'
+                        else found['state'] if found['state'] != 'unknown' else found.get('reason'))
 
 
 def _words(en, ar, code):
@@ -270,7 +282,8 @@ def remote_default(project):
     """{name, source}: a remote's HEAD when known; otherwise unknown (None), never guessed from a name."""
     for remote in sorted(_git(project, 'remote').stdout.split()):
         done = _git(project, 'symbolic-ref', '--quiet', '--short', f'refs/remotes/{remote}/HEAD')
-        if done.returncode == 0 and done.stdout.strip(): return {'name': done.stdout.strip().split('/', 1)[-1], 'source': f'{remote}/HEAD'}
+        if done.returncode == 0 and done.stdout.strip():
+            return {'name': done.stdout.strip().split('/', 1)[-1], 'source': f'{remote}/HEAD'}
     return {'name': None, 'source': None}
 
 
@@ -287,15 +300,17 @@ def policy(project, default=None):
     default = default or remote_default(project)
     saved = read_json(workspace(project) / 'runs' / POLICY, {}) or {}
     protected = {}
-    if default['name']: protected[default['name']] = _words(f"the default branch ({default['source']})", f"الفرع الافتراضي ({default['source']})", 'default')
+    if default['name']: protected[default['name']] = _words(f"the default branch ({default['source']})",
+        f"الفرع الافتراضي ({default['source']})", 'default')
     for name in MAIN_NAMES:
         protected.setdefault(name, _words('named main or master: protected unless the project policy says otherwise',
                                           'اسمه main أو master: محمي ما لم تقل سياسة المشروع غير ذلك', 'main_name'))
     for name in saved.get('protected') or []:
         protected[name] = _words('protected by this project\'s policy', 'محمي بسياسة هذا المشروع', 'policy')
     for name in saved.get('unprotected') or []: protected.pop(name, None)
-    if is_eaos_itself(project): protected['main'] = _words("EAOS's own main is the owner's mother copy: never changed from here",
-                                                            'main في EAOS نفسه هي النسخة الأم للمالك: لا تُغيَّر من هنا', 'eaos_main')
+    if is_eaos_itself(project): protected['main'] = _words(
+        "EAOS's own main is the owner's mother copy: never changed from here",
+        'main في EAOS نفسه هي النسخة الأم للمالك: لا تُغيَّر من هنا', 'eaos_main')
     return {'protected': protected, 'saved': saved}
 
 

@@ -28,10 +28,12 @@ class PageServer(unittest.TestCase):
 
     def test_a_server_of_the_pages_alone_is_refused_and_one_of_the_program_passes(self):
         # A `vite preview` fallback answers /api/* with the page itself: the baseline must run the program behind it.
-        with mock.patch.object(page_server, 'server_routes', return_value=['/', '/api/session', '/api/runs', '/index.html']):
+        with mock.patch.object(page_server, 'server_routes',
+                               return_value=['/', '/api/session', '/api/runs', '/index.html']):
             with self.assertRaisesRegex(page_server.PagesOnly, 'serves only its pages'):
                 page_server.refuse_a_page_server('report', self.serve(api=False))
-            with self.assertRaisesRegex(page_server.PagesOnly, 'serves only its pages'):  # its routes not found: still the pages
+            # its routes not found: still the pages
+            with self.assertRaisesRegex(page_server.PagesOnly, 'serves only its pages'):
                 page_server.refuse_a_page_server('report', self.serve(api='missing'))
             page_server.refuse_a_page_server('report', self.serve(api=True))
             page_server.refuse_a_page_server('report', self.serve(api='signin'))  # the program, behind its sign-in

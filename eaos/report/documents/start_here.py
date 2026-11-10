@@ -1,8 +1,7 @@
 """START-HERE.md: the first page of every report, in plain words (eaos/core/language/plain.py).
 
-Written by the reports stage of every check, and read by the guided commands. Counts come from plan.json;
-nothing is scored or invented. Its own module, because both the pipeline and eaos/journeys/guided/ need it.
-"""
+Written by the reports stage of every check, and read by the guided commands. Counts come from plan.json; nothing is
+scored or invented. Its own module, because both the pipeline and eaos/journeys/guided/ need it. """
 import json
 import subprocess
 from pathlib import Path
@@ -25,15 +24,18 @@ def summary_counts(report):
     ready = [t for t in tasks if unattended(t)]
     # A tool that broke, said with the counts: the check goes on from it (audit again_from=engines engines=[...]).
     engines = _read_json(Path(report) / 'run-manifest.json', {}).get('stages', {}).get('engines') or {}
-    return {'problems': len(tasks), 'ready': len(ready), 'decide': len(tasks) - len(ready), 'unmeasured': _unmeasured(report, tasks),
+    return {'problems': len(tasks), 'ready': len(ready), 'decide': len(tasks) - len(ready),
+            'unmeasured': _unmeasured(report, tasks),
             'failed_tools': sorted((engines.get('detail') or {}).get('tools_failed') or {})}
 
 
 def _unmeasured(report, tasks):
     """How many cards come from a detector whose precision was not measured yet: said, never taken as measured."""
-    claims = {claim.get('id'): claim for claim in (_read_json(Path(report) / 'dossier.json', {}) or {}).get('claims') or ()}
+    claims = {claim.get('id'): claim for claim in (_read_json(Path(report) / 'dossier.json', {}) or {}).get('claims')
+              or ()}
     shown = measured_detectors()
-    return sum(1 for task in tasks if task.get('claim_id') in claims and detector_of(claims[task['claim_id']]) not in shown)
+    return sum(1 for task in tasks if task.get('claim_id') in claims
+               and detector_of(claims[task['claim_id']]) not in shown)
 
 
 def _say(ar, arabic, english): return arabic if ar else english
@@ -50,12 +52,15 @@ def _grouped(tasks):
 def _summary_lines(counts, ar):
     return ['## ' + _say(ar, 'الخلاصة', 'In short'), '',
             _say(ar, f"- وجدت **{counts['problems']}** مشكلة.", f"- I found **{counts['problems']}** problems."),
-            _say(ar, f"- **{counts['ready']}** منها يستطيع EAOS إصلاحها آليًا، ويتحقق بعد كل إصلاح أن برنامجك لم ينكسر.",
-                 f"- **{counts['ready']}** of them EAOS can fix automatically, checking after each fix that your app still works."),
+            _say(ar,
+                 f"- **{counts['ready']}** منها يستطيع EAOS إصلاحها آليًا، ويتحقق بعد كل إصلاح أن برنامجك لم ينكسر.",
+                  f"- **{counts['ready']}** of them EAOS can fix automatically, "
+                  f"checking after each fix that your app still works."),
             _say(ar, f"- **{counts['decide']}** تحتاج قرارك أو نظرة شخص قبل أي تغيير.",
                  f"- **{counts['decide']}** need your decision, or a person's look, before any change."),
             *([_say(ar, f"- **{counts['unmeasured']}** منها من كواشف لسا ما انقاست دقتها: اعتبرها مرشحة.",
-                    f"- **{counts['unmeasured']}** come from detectors whose precision is not measured yet: take them as candidates.")] if counts.get('unmeasured') else []), '',
+                     f"- **{counts['unmeasured']}** come from detectors whose precision is not measured yet: "
+                     f"take them as candidates.")] if counts.get('unmeasured') else []), '',
             '## ' + _say(ar, 'أهم المشاكل', 'The main problems'), '']
 
 
@@ -65,7 +70,8 @@ def _pattern_lines(index, pattern, rows, lang, ar):
     example = next((p for t in rows for p in t.get('paths') or [] if p != '*'), '')
     shown = f" · {_say(ar, 'مثال', 'example')}: `{example}`" if example else ''
     return [f"{index}. **{title}** ({len(rows)})", f"   {why}",
-            f"   {_say(ar, 'يمكن إصلاحه آليًا', 'Can be fixed automatically')}: {ready} {_say(ar, 'من', 'of')} {len(rows)}" + shown, '']
+            f"   {_say(ar, 'يمكن إصلاحه آليًا', 'Can be fixed automatically')}: "
+            f"{ready} {_say(ar, 'من', 'of')} {len(rows)}" + shown, '']
 
 
 def _problem_lines(report, tasks, counts, lang, ar):
@@ -79,8 +85,10 @@ def _problem_lines(report, tasks, counts, lang, ar):
     target = _read_json(report / 'target-architecture.json', {})
     lines += ['## ' + _say(ar, 'من قرر', 'Who decided'), '', who_decided(target, lang), '']
     lines += ['## ' + _say(ar, 'ما أنصح به', 'What I recommend'), '',
-              _say(ar, 'ابدأ بالإصلاحات الآلية: هي الأكثر أمانًا، وكل واحدة تُجرَّب في نسخة منفصلة من مشروعك قبل أن تراها.',
-                   'Start with the automatic fixes: they are the safest, and each is tried on a separate copy of your project before you see it.'), '']
+              _say(ar,
+                   'ابدأ بالإصلاحات الآلية: هي الأكثر أمانًا، وكل واحدة تُجرَّب في نسخة منفصلة من مشروعك قبل أن تراها.',
+                   'Start with the automatic fixes: they are the safest, and each is tried on a separate copy of '
+                   'your project before you see it.'), '']
     return lines
 
 
@@ -109,23 +117,31 @@ def _path_lines(report, lang, ar):
     name = lambda p: PATHS[p]['names'][1 if ar else 0]
     others = [p for p in PATHS if p not in paths and p != 'complete']
     return ['## ' + _say(ar, 'مسار هذا الفحص', "This check's path"), '',
-            _say(ar, 'تبع هذا الفحص: ', 'This check followed: ') + _say(ar, '، ', ', ').join(name(p) for p in paths) + '. '
-            + _say(ar, 'ولم ينظر في: ', 'It did not look at: ') + _say(ar, '، ', ', ').join(name(p) for p in others) + _say(ar, '؛ ', '; ')
+            _say(ar, 'تبع هذا الفحص: ', 'This check followed: ') + _say(ar, '، ', ', ').join(name(p) for p in paths)
+            + '. '
+            + _say(ar, 'ولم ينظر في: ', 'It did not look at: ') + _say(ar, '، ', ', ').join(name(p) for p in others)
+            + _say(ar, '؛ ', '; ')
             + _not_looked_at(manifest, ar), '']
 
 
 def _not_looked_at(manifest, ar):
-    """What became of the paths a check did not look at: their results kept from an earlier check (its date), or none."""
+    """What became of the paths a check did not look at: their results kept from an earlier check (its date), or
+    none."""
     kept = sorted(row['checked_at'] for row in (manifest.get('stages') or {}).values() if row.get('checked_at'))
-    return (_say(ar, f'نتائجها هنا من فحص {kept[0][:10]}.', f'their results here are those of the check of {kept[0][:10]}.') if kept else
-            _say(ar, 'لم تُفحص هذه المرة: افحص مسارها، أو الفحص الشامل، لتراها.', 'they were not checked this time: check their path, or the complete check, to see them.'))
+    return (_say(ar, f'نتائجها هنا من فحص {kept[0][:10]}.',
+                 f'their results here are those of the check of {kept[0][:10]}.') if kept else
+            _say(ar, 'لم تُفحص هذه المرة: افحص مسارها، أو الفحص الشامل، لتراها.',
+                 'they were not checked this time: check their path, or the complete check, to see them.'))
 
 
 def _one_page_lines(report, ar):
     if not (report / 'human' / 'index.html').is_file(): return []
     return ['## ' + _say(ar, 'التقرير في صفحة واحدة', 'The report on one page'), '',
-            _say(ar, 'افتح `human/index.html` في المتصفح: الملخص، والفجوات والمخاطر، وخريطة البنية، والخطة، بالعربية والإنجليزية.',
-                 'Open `human/index.html` in a browser: the summary, gaps and risks, structure map and plan, in Arabic and English.'), '']
+            _say(ar,
+                 'افتح `human/index.html` في المتصفح: الملخص، والفجوات والمخاطر، وخريطة البنية، والخطة، بالعربية '
+                 'والإنجليزية.',
+                 'Open `human/index.html` in a browser: the summary, gaps and risks, structure map and plan, in '
+                 'Arabic and English.'), '']
 
 
 def _closing_lines(ar):
@@ -136,10 +152,12 @@ def _closing_lines(ar):
 
 
 def project_name(folder):
-    """The project's name: its folder's, or the project's for EAOS's own copy of a branch (eaos/journeys/guided/ source)."""
+    """The project's name: its folder's, or the project's for EAOS's own copy of a branch (eaos/journeys/guided/
+    source)."""
     folder = Path(folder)
     if not folder.name.startswith('checkout'): return folder.name
-    origin = subprocess.run(['git', '-C', str(folder), 'config', '--get', 'remote.origin.url'], capture_output=True, text=True).stdout.strip()
+    origin = subprocess.run(['git', '-C', str(folder), 'config', '--get', 'remote.origin.url'], capture_output=True,
+                            text=True).stdout.strip()
     return Path(origin).name if origin else folder.name
 
 

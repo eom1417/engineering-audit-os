@@ -42,7 +42,8 @@ def recheck(root, spec):
         # No engine named (a branch count, EAOS's own) runs none: an empty list would ask for every engine.
         collect(Path(root).resolve(), out, engines=specification.get('engines') or None)
         sets = read_available(out)
-        for name, made in (MORE[specification['query']](root, out, specification) if specification.get('query') in MORE else {}).items():
+        for name, made in (MORE[specification['query']](root, out, specification)
+                           if specification.get('query') in MORE else {}).items():
             sets[name] = made
         return decide_probe(spec, sets)
 

@@ -28,11 +28,14 @@ SIGNS = re.compile(r'\b(roles?|is_?admin|admin|permissions?|rbac|authori[sz]\w*|
 # An address no app has: the page an app shows for it is its page for an address it does not have (opened).
 NOWHERE = '/eaos-no-such-page-7f3a'
 # The words a page opens with when it is not the page asked for but the app's "not found" or a refusal (absent).
-NOT_SEEN = re.compile(r'\b(404|403|not found|could not be found|does not exist|doesn.t exist|no longer exists|not available|'
-                      r'no access|access denied|forbidden|not allowed|not authori[sz]ed|unauthori[sz]ed|no permission)\b|'
+NOT_SEEN = re.compile(r'\b(404|403|not found|could not be found|does not exist|doesn.t exist|no longer exists|'
+                      r'not available|no access|access denied|forbidden|not allowed|not authori[sz]ed|'
+                      r'unauthori[sz]ed|no permission)\b|'
                       r'غير موجود|غير متاح|لا (توجد|يوجد)|ليس لديك|غير مصرح|لا تملك|لا يمكنك الوصول', re.I)
-SKIP = ('node_modules', 'dist', 'build', '.next', 'coverage', '.venv', '__pycache__', '.git', 'test', 'tests', '__tests__')
-SOURCE = ('.js', '.jsx', '.ts', '.tsx', '.mjs', '.cjs', '.vue', '.svelte', '.py', '.rb', '.php', '.go', '.prisma', '.sql')
+SKIP = ('node_modules', 'dist', 'build', '.next', 'coverage', '.venv', '__pycache__', '.git', 'test', 'tests',
+        '__tests__')
+SOURCE = ('.js', '.jsx', '.ts', '.tsx', '.mjs', '.cjs', '.vue', '.svelte', '.py', '.rb', '.php', '.go', '.prisma',
+          '.sql')
 
 SYSTEM = """You read a web app's code and name every view it has: each set of pages one kind of user sees (an
 administrator, support staff, a customer; a clinic's reception, doctor, nurse, pharmacy, insurance...). A person may
@@ -124,7 +127,8 @@ def errors(answer, target, pages):
     found = [] if len(kinds) <= MOST else [f'at most {MOST} kinds']
     found += [wrong for kind in kinds for wrong in _wrong(kind, target, pages)]
     if len({str(k.get('id')) for k in kinds if isinstance(k, dict)}) < len(kinds): found.append('each "id" once')
-    if answer.get('strategy') not in (None, *STRATEGIES): found.append('"strategy" is "one_account" or "account_per_view"')
+    if answer.get('strategy') not in (None, *STRATEGIES):
+        found.append('"strategy" is "one_account" or "account_per_view"')
     return found
 
 
@@ -132,22 +136,26 @@ def _wrong(kind, target, pages):
     if not isinstance(kind, dict) or not re.fullmatch(r'[a-z0-9-]{1,20}', str(kind.get('id') or '')):
         return [f'{kind}: "id" is a short lowercase word']
     switch = kind.get('enter') == 'switch'
-    wrong = [] if _line(target, kind.get('evidence')) else [f"{kind['id']}: evidence {kind.get('evidence')!r} is no line of the code"]
+    wrong = [] if _line(target, kind.get('evidence')) else [
+        f"{kind['id']}: evidence {kind.get('evidence')!r} is no line of the code"]
     if kind.get('enter') not in ('account', 'switch'): wrong.append(f'{kind["id"]}: "enter" is "account" or "switch"')
-    if switch and not _line(target, kind.get('switch')): wrong.append(f"{kind['id']}: switch {kind.get('switch')!r} is no line of the code")
+    if switch and not _line(target, kind.get('switch')):
+        wrong.append(f"{kind['id']}: switch {kind.get('switch')!r} is no line of the code")
     return wrong + _unlisted(kind, pages)
 
 
 def _unlisted(kind, pages):
     """What is wrong with the pages a kind names: each one not in the list."""
-    return [f"{kind['id']}: {page!r} is not in the list of pages" for page in kind.get('pages') or [] if page not in pages]
+    return [f"{kind['id']}: {page!r} is not in the list of pages"
+            for page in kind.get('pages') or [] if page not in pages]
 
 
 def _line(target, cited):
     """Whether `cited` ("file:line") is a line of the project's code."""
     file, _, line = str(cited or '').rpartition(':')
     path = Path(target) / file
-    return bool(file and line.isdigit() and path.is_file() and 0 < int(line) <= len(path.read_text(errors='replace').splitlines()))
+    return bool(file and line.isdigit() and path.is_file()
+                and 0 < int(line) <= len(path.read_text(errors='replace').splitlines()))
 
 
 def find(target, out, provider, lacking=None):
@@ -156,9 +164,12 @@ def find(target, out, provider, lacking=None):
     (eaos/live/access/test_users.py make), the reading asked again with it and the views so far, its answer added to
     them (add), never in their place."""
     pages = pages_of(out)
-    told = f'\n\nThe views so far:\n{json.dumps(read(out), ensure_ascii=False)}\n\nOn the running app, still lacking:\n{lacking}' if lacking else ''
+    told = (f'\n\nThe views so far:\n{json.dumps(read(out), ensure_ascii=False)}'
+            f'\n\nOn the running app, still lacking:\n{lacking}' if lacking else '')
     messages = [{'role': 'system', 'content': SYSTEM},
-                {'role': 'user', 'content': 'The page routes:\n' + json.dumps(pages) + '\n\nThe code about users:\n' + about_users(target, out=out) + told}]
+                {'role': 'user',
+                 'content': 'The page routes:\n' + json.dumps(pages) + '\n\nThe code about users:\n'
+                            + about_users(target, out=out) + told}]
     for _ in range(ROUNDS):
         answer, _ = provider.complete(messages, stage='roles', reads=target, deep=True)
         wrong = errors(answer, target, pages)
@@ -201,8 +212,10 @@ def prove(out, target, verdicts):
         row = row if isinstance(row, dict) else {}
         if _proved(row, pages, target):
             kept.append({k: row[k] for k in ('page', 'why', 'evidence')})
-        else: refused.append(f"unreachable {row.get('page')!r}: a page of the list, a why and its evidence, a line of the code")
-    if kept: _write(out, read(out), {r['page']: r for r in _record(out).get('unreachable') or []} | {r['page']: r for r in kept})
+        else: refused.append(f"unreachable {row.get('page')!r}: "
+                             "a page of the list, a why and its evidence, a line of the code")
+    if kept: _write(out, read(out),
+                    {r['page']: r for r in _record(out).get('unreachable') or []} | {r['page']: r for r in kept})
     return refused
 
 
@@ -220,7 +233,8 @@ def claim(out, owned):
 
 
 def _kept(kind):
-    return {k: kind.get(k) for k in ('id', 'name', 'evidence', 'enter', 'switch', 'found') if kind.get(k)} | {'pages': kind.get('pages') or []}
+    return {k: kind.get(k) for k in ('id', 'name', 'evidence', 'enter', 'switch', 'found')
+            if kind.get(k)} | {'pages': kind.get('pages') or []}
 
 
 def way_in(out):
@@ -283,7 +297,8 @@ def coverage(kinds, sessions, seen):
     for kind in kinds:
         own = kind.get('pages') or []
         name = kind.get('name') or kind['id']
-        row = {'id': kind['id'], 'name': name if isinstance(name, dict) else {'en': name, 'ar': name}, 'pages': len(own),
+        row = {'id': kind['id'], 'name': name if isinstance(name, dict) else {'en': name, 'ar': name},
+               'pages': len(own),
                'seen': sum(page in seen for page in own)}
         row['reached'] = row['seen'] > 0 or (not own and sessions is not None and kind['id'] in sessions)
         if not row['reached']: row['why'] = _why_unseen(kind, sessions)
@@ -302,7 +317,8 @@ def unseen(screens):
     eaos/pipeline/runners/pages.py): what they show is unknown, never a page missing or to build."""
     rows = (screens or {}).get('rows') or []
     seen = {row.get('url') for row in rows if not row.get('unseen')}
-    missed = sorted({(row.get('url'), row.get('kind')) for row in rows if row.get('unseen') and row.get('url') not in seen}, key=str)
+    missed = sorted({(row.get('url'), row.get('kind')) for row in rows
+                     if row.get('unseen') and row.get('url') not in seen}, key=str)
     return [{'page': page, 'view': view} for page, view in missed]
 
 

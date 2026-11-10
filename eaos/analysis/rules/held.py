@@ -23,9 +23,11 @@ def read(out):
 
 def row(rule, result):
     """One rule's result as the check, the gate and the views read it."""
-    return {'id': rule['id'], 'words': rule['words'], 'lang': rule['lang'], 'scope': rule['scope'], 'said_on': registry.said_on(rule),
-            'said': len(rule['said']), 'kind': (registry.in_force(rule) or {}).get('kind'), 'guard': guards.said(registry.in_force(rule)),
-            'status': result['status'], 'places': result['places'], 'found': result['said'], 'seconds': result['seconds'],
+    return {'id': rule['id'], 'words': rule['words'], 'lang': rule['lang'], 'scope': rule['scope'],
+            'said_on': registry.said_on(rule), 'said': len(rule['said']),
+            'kind': (registry.in_force(rule) or {}).get('kind'), 'guard': guards.said(registry.in_force(rule)),
+            'status': result['status'], 'places': result['places'], 'found': result['said'],
+            'seconds': result['seconds'],
             'waiting': rule.get('pending') if rule.get('guard') else None,
             'broken_before': rule.get('broken', 0), 'returns': registry.came_back(rule)}
 
@@ -60,9 +62,11 @@ def _tree(repo, where, commit, index=False):
 def _linked(repo, where):
     """The project's installed dependency folders (DEPENDENCIES, as git ignores them) linked into the tree at
     `where`."""
-    ignored = _git(repo, 'ls-files', '--others', '--ignored', '--exclude-standard', '--directory', text=True).stdout.split('\n')
+    ignored = _git(repo, 'ls-files', '--others', '--ignored', '--exclude-standard', '--directory',
+                   text=True).stdout.split('\n')
     for folder in (f.rstrip('/') for f in ignored if f.endswith('/') and Path(f.rstrip('/')).name in DEPENDENCIES):
-        if (where / folder).parent.is_dir() and not (where / folder).exists(): (where / folder).symlink_to(Path(repo).resolve() / folder)
+        if (where / folder).parent.is_dir() and not (where / folder).exists():
+            (where / folder).symlink_to(Path(repo).resolve() / folder)
 
 
 @contextlib.contextmanager
@@ -72,7 +76,8 @@ def at_commit(repo, commit, index=False):
     made = {}
     with tempfile.TemporaryDirectory(prefix='eaos-rule-tree-') as folder:
         def code():
-            if 'where' not in made: made['where'] = Path(folder) / 'code' if _tree(repo, Path(folder) / 'code', commit, index) else None
+            if 'where' not in made:
+                made['where'] = Path(folder) / 'code' if _tree(repo, Path(folder) / 'code', commit, index) else None
             return made['where']
         try:
             yield code
@@ -82,7 +87,8 @@ def at_commit(repo, commit, index=False):
 
 def unstaged(repo):
     """Whether the working tree holds anything a commit would not: a tracked file changed and not staged, a new file."""
-    return bool(_git(repo, 'diff', '--quiet').returncode or _git(repo, 'ls-files', '--others', '--exclude-standard', text=True).stdout.strip())
+    return bool(_git(repo, 'diff', '--quiet').returncode
+                or _git(repo, 'ls-files', '--others', '--exclude-standard', text=True).stdout.strip())
 
 
 def _new_places(after, before):
@@ -129,13 +135,16 @@ def broken(results):
 
 def brief(project, state, card=None, batch=None):
     """The rules that hold for this work, as its assistant reads them: [{id, words, said_on, guard}]."""
-    return [{'id': r['id'], 'words': r['words'], 'said_on': registry.said_on(r), 'guard': guards.said(registry.in_force(r))}
+    return [{'id': r['id'], 'words': r['words'], 'said_on': registry.said_on(r),
+             'guard': guards.said(registry.in_force(r))}
             for r in registry.holding(project, state, card, batch)]
 
 
-SAID = {'en': ('it breaks your rule {id}, said on {said_on}: "{words}" at {where}', '; this change brought it back ({returns} time(s) '
-              'it came back)', '; pin it so it holds for every change (eaos rules pin {id})'),
-        'ar': ('يكسر قاعدتك {id} اللي قلتها في {said_on}: «{words}» عند {where}', '؛ هذا التعديل رجّعها (رجعت تنكسر {returns} مرة)',
+SAID = {'en': ('it breaks your rule {id}, said on {said_on}: "{words}" at {where}',
+               '; this change brought it back ({returns} time(s) '
+               'it came back)', '; pin it so it holds for every change (eaos rules pin {id})'),
+        'ar': ('يكسر قاعدتك {id} اللي قلتها في {said_on}: «{words}» عند {where}',
+               '؛ هذا التعديل رجّعها (رجعت تنكسر {returns} مرة)',
                '؛ ثبّتها عشان تنطبق على كل تعديل (eaos rules pin {id})')}
 
 
@@ -177,12 +186,14 @@ def gate(owner, rules, root, changed, laws):
 def as_gate(state, card, root, changed, laws):
     """The gate's problems ({gate, where, what}) of the person's rules that hold for this card (a build's)."""
     rules = registry.holding(state['project'], state, card)
-    return [{'gate': 'rules', 'where': card or '', 'what': said} for said in gate(state['project'], rules, root, changed, laws)] if rules else []
+    return ([{'gate': 'rules', 'where': card or '', 'what': said}
+             for said in gate(state['project'], rules, root, changed, laws)] if rules else [])
 
 
 def found_of(problems):
     """The gates' problems as a detector guard reads them."""
-    return [{'detector': p['gate'], 'places': [part.strip() for part in p['where'].split(',') if part.strip()], 'said': p['what']}
+    return [{'detector': p['gate'],
+             'places': [part.strip() for part in p['where'].split(',') if part.strip()], 'said': p['what']}
             for p in problems]
 
 

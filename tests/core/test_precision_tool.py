@@ -25,7 +25,8 @@ class PrecisionTool(unittest.TestCase):
         self.assertIn('precision', precision.why_hidden('hotspot', precision.measured(judged(4, 2)), BAR))
 
     def test_only_what_was_scored_moves(self):
-        moved = precision.apply(BASE, {'old': precision.measured(judged(6, 0)), 'seen': precision.measured(judged(1, 0))})
+        moved = precision.apply(BASE, {'old': precision.measured(judged(6, 0)), 'seen': precision.measured(judged(1,
+            0))})
         self.assertEqual(moved['shown'], ['old'])
         self.assertEqual(set(moved['hidden']), {'kept', 'seen'})
 

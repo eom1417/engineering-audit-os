@@ -30,8 +30,10 @@ class RuntimeFactTests(unittest.TestCase):
             'migrations/0001_initial.py': 'pass'})
         targets = [f for f in facts if f['kind'] == 'deployment_target']
         self.assertEqual(sorted(t['value']['port'] for t in targets if t['value'].get('port')), ['8080', '9090'])
-        self.assertEqual({t['value']['service'] for t in targets if t['value'].get('kind') == 'compose'}, {'api', 'worker'})
-        self.assertEqual({(t['location']['path'], t['value']['host']) for t in targets if t['value'].get('kind') == 'hosting'},
+        self.assertEqual({t['value']['service'] for t in targets if t['value'].get('kind') == 'compose'},
+                         {'api', 'worker'})
+        self.assertEqual({(t['location']['path'],
+                           t['value']['host']) for t in targets if t['value'].get('kind') == 'hosting'},
                          {('vercel.json', 'Vercel'), ('app/railway.toml', 'Railway')})
         self.assertIn('install', [s['value']['name'] for s in facts if s['kind'] == 'ci_step'])
         self.assertEqual(len([f for f in facts if f['kind'] == 'migration_step']), 1)
@@ -51,12 +53,17 @@ class RuntimeFactTests(unittest.TestCase):
 
     def test_orm_models_are_data_models_with_their_framework(self):
         for name, body, framework in [
-                ('a.py', 'from sqlalchemy import Column, Integer\n\nclass Order(Base):\n    id = Column(Integer, primary_key=True)\n', 'sqlalchemy'),
-                ('b.py', 'from django.db import models\n\nclass Order(models.Model):\n    name = models.CharField(max_length=100)\n', 'django'),
+                ('a.py',
+                 'from sqlalchemy import Column, Integer\n\nclass Order(Base):\n'
+                 '    id = Column(Integer, primary_key=True)\n', 'sqlalchemy'),
+                ('b.py',
+                 'from django.db import models\n\nclass Order(models.Model):\n'
+                 '    name = models.CharField(max_length=100)\n', 'django'),
                 ('c.py', 'class Order < ApplicationRecord\nend\n', 'rails')]:
             with self.subTest(framework=framework):
                 models = runtime_facts({name: body}, 'data_model')
-                self.assertEqual([(m['value']['name'], m['value']['framework']) for m in models], [('Order', framework)])
+                self.assertEqual([(m['value']['name'], m['value']['framework']) for m in models],
+                                 [('Order', framework)])
 
     def test_query_bounds_are_recorded_bounded_unbounded_or_unknown(self):
         cases = [('a.py', 'def f():\n    return Order.query.filter(Order.paid == True).all()\n', False),
@@ -66,7 +73,8 @@ class RuntimeFactTests(unittest.TestCase):
                  ('a.ts', 'async function f() { return await prisma.order.findMany({ take: 25 }); }\n', True),
                  ('a.go', 'package main\nimport "database/sql"\nfunc f(db *sql.DB) error {\n'
                           '    return db.Query("SELECT * FROM orders LIMIT 100")\n}\n', True),
-                 ('a.go', 'package main\nfunc f(db *gorm.DB) error {\n    return db.Limit(50).Find(&orders)\n}\n', True),
+                 ('a.go', 'package main\nfunc f(db *gorm.DB) error {\n    return db.Limit(50).Find(&orders)\n}\n',
+                  True),
                  # A file with no detectable pattern says unknown rather than omitting the question.
                  ('a.py', 'def f():\n    x = 1 + 1\n    return x\n', 'unknown')]
         for name, body, bounded in cases:
@@ -83,8 +91,10 @@ class RuntimeFactTests(unittest.TestCase):
         call = "    return requests.get('https://api.example.com'{})\n"
         cases = [('a.py', "import requests\ndef f():\n" + call.format(''), (False, False, False)),
                  ('a.py', "import requests\nfrom tenacity import retry\nimport pybreaker\n@retry\n"
-                          "@pybreaker.CircuitBreaker(fail_max=5)\ndef f():\n" + call.format(', timeout=30'), (True, True, True)),
-                 ('a.py', "import requests\nfrom tenacity import retry\n@retry\ndef f():\n" + call.format(''), (False, True, False)),
+                          "@pybreaker.CircuitBreaker(fail_max=5)\ndef f():\n" + call.format(', timeout=30'),
+                  (True, True, True)),
+                 ('a.py', "import requests\nfrom tenacity import retry\n@retry\ndef f():\n" + call.format(''),
+                  (False, True, False)),
                  ('a.go', 'package api\nimport ("context"; "net/http"; "time")\n'
                           'var client = http.Client{Timeout: 2 * time.Second}\n'
                           'func Call(ctx context.Context) { ctx, cancel := context.WithTimeout(ctx, time.Second); '
@@ -111,10 +121,13 @@ class RuntimeFactTests(unittest.TestCase):
         self.assertTrue(uncovered['reason'])
 
     def test_cache_sites_carry_their_scope_and_whether_a_ttl_was_declared(self):
-        cases = [('a.py', 'import functools\n@functools.lru_cache(maxsize=128)\ndef f(n):\n    return n\n', 'process', False),
+        cases = [('a.py', 'import functools\n@functools.lru_cache(maxsize=128)\ndef f(n):\n    return n\n', 'process',
+                  False),
                  ('a.py', "import redis\nr = redis.Redis()\ndef g():\n    return r.get('k')\n", 'shared', None),
-                 ('a.py', "import redis\nr = redis.Redis()\ndef g():\n    return r.set('k', 'v', ex=30)\n", 'shared', True),
-                 ('a.py', "from fastapi import Response\nresp = Response()\nresp.headers['Cache-Control'] = 'max-age=60'\n",
+                 ('a.py', "import redis\nr = redis.Redis()\ndef g():\n    return r.set('k', 'v', ex=30)\n", 'shared',
+                  True),
+                 ('a.py',
+                  "from fastapi import Response\nresp = Response()\nresp.headers['Cache-Control'] = 'max-age=60'\n",
                   'http', None),
                  ('a.go', 'package api\nimport "github.com/patrickmn/go-cache"\n'
                           'var local = cache.New(cache.DefaultExpiration, 0)\n', None, None)]
@@ -132,12 +145,18 @@ class RuntimeFactTests(unittest.TestCase):
 
     def test_rate_limits_and_concurrency_bounds_are_found_in_code_and_config(self):
         cases = [('a.py', "@limiter.limit(limit=100, per=60)\ndef f():\n    pass\n", 'code', None),
-                 ('a.py', "import asyncio\nsem = asyncio.Semaphore(10)\nasync def f():\n    async with sem: pass\n", 'code', 'semaphore'),
-                 ('a.py', "from concurrent.futures import ThreadPoolExecutor\npool = ThreadPoolExecutor(max_workers=8)\n", 'code', 'worker'),
-                 ('nginx.conf', 'http {\n  limit_req_zone $binary_remote_addr zone=api:10m rate=100r/s;\n}\n', 'config', None),
+                 ('a.py', "import asyncio\nsem = asyncio.Semaphore(10)\nasync def f():\n    async with sem: pass\n",
+                  'code', 'semaphore'),
+                 ('a.py',
+                  "from concurrent.futures import ThreadPoolExecutor\npool = ThreadPoolExecutor(max_workers=8)\n",
+                  'code', 'worker'),
+                 ('nginx.conf', 'http {\n  limit_req_zone $binary_remote_addr zone=api:10m rate=100r/s;\n}\n', 'config',
+                  None),
                  ('deployment.yaml', 'apiVersion: apps/v1\nkind: Deployment\nspec:\n  containers:\n  - name: app\n'
-                                     '    resources:\n      limits:\n        cpu: "1"\n        memory: "1Gi"\n', 'config', 'resources'),
-                 ('a.go', 'package api\nimport "golang.org/x/time/rate"\nvar limit = rate.NewLimiter(10, 20)\n', None, None)]
+                                     '    resources:\n      limits:\n        cpu: "1"\n        memory: "1Gi"\n',
+                  'config', 'resources'),
+                 ('a.go', 'package api\nimport "golang.org/x/time/rate"\nvar limit = rate.NewLimiter(10, 20)\n', None,
+                  None)]
         for name, body, source, mechanism in cases:
             with self.subTest(body=body):
                 limits = runtime_facts({name: body}, 'rate_limit')
@@ -153,9 +172,11 @@ class RuntimeFactTests(unittest.TestCase):
         self.assertEqual(runtime_facts({'a.py': 'def f():\n    return 1 + 1\n'}, 'rate_limit'), [])
 
     def test_declared_connection_pools_are_recorded_and_defaults_are_never_assumed(self):
-        cases = [('a.py', "from sqlalchemy import create_engine\ne = create_engine('postgresql://x', pool_size=20)\n", 20),
+        cases = [('a.py', "from sqlalchemy import create_engine\ne = create_engine('postgresql://x', pool_size=20)\n",
+                  20),
                  ('a.go', 'package main\nimport "net/http"\nfunc f() *http.Client {\n'
-                          '    transport := &http.Transport{MaxIdleConns: 100}\n    return &http.Client{Transport: transport}\n}\n', 100),
+                          '    transport := &http.Transport{MaxIdleConns: 100}\n'
+                          '    return &http.Client{Transport: transport}\n}\n', 100),
                  ('a.go', 'package main\nimport "github.com/jackc/pgx/v4/pgxpool"\nfunc f() {\n'
                           '    cfg, _ := pgxpool.ParseConfig("")\n    cfg.MaxConns = 30\n}\n', 30),
                  ('config.py', 'DATABASE_URL = "postgres://x?pool=50"\n', None)]
@@ -176,7 +197,8 @@ class RuntimeFactTests(unittest.TestCase):
         positive = ('package api\nimport "sync"\nvar mu sync.RWMutex\nvar count int\n'
                     'func Add() { mu.Lock(); count++; mu.Unlock() }\n')
         self.assertEqual({row[0] for row in go_mutable_globals(positive)}, {'mu', 'count'})
-        self.assertEqual(go_mutable_globals('package api\nconst maximum = 10\nfunc Value() int { return maximum }\n'), [])
+        self.assertEqual(go_mutable_globals('package api\nconst maximum = 10\nfunc Value() int { return maximum }\n'),
+                         [])
 
     def test_two_collections_of_the_same_tree_are_byte_identical(self):
         from eaos.facts.runtime.operations import KINDS

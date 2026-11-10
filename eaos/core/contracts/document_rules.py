@@ -27,7 +27,8 @@ def validate(out, dossier):
         problems.append('R12 README.md: the dossier has no index or reading order')
     problems += missing_required(out, documents)
     problems += documents_without_a_record_twin()
-    problems += [f"R5 {claim['id']}: a live risk needs a task or a documented acceptance" for claim in claims if _undecided_risk(claim)]
+    problems += [f"R5 {claim['id']}: a live risk needs a task or a documented acceptance" for claim in claims
+                 if _undecided_risk(claim)]
     for task in dossier.get('tasks', []): problems += _task_rules(task)
     problems += [f"R11 {claim['id']}: priority without the inputs it was computed from"
                  for claim in claims if 'priority' in claim and not claim.get('priority_factors')]
@@ -66,7 +67,8 @@ def _undecided_risk(claim):
 def _task_rules(task):
     """R7 on one task: a typed, checkable decision, or a runnable acceptance command for an older task."""
     if task.get('contract_version') != 1:
-        return [] if task.get('verify_command') else [f"R7 {task.get('id', '?')}: the acceptance criterion is not a runnable command"]
+        return [] if task.get('verify_command') else [
+            f"R7 {task.get('id', '?')}: the acceptance criterion is not a runnable command"]
     problems = []
     decision = task.get('decision') or {}
     if decision.get('kind') not in {'repair', 'investigate', 'retain'}:
@@ -84,7 +86,8 @@ def _duplicate_rules(claims):
         artifacts = claim.get('artifacts') or []
         if len(artifacts) > 1:
             problems.append(f"R4 {claim['id']}: presented in full in more than one artifact ({', '.join(artifacts)})")
-        seen.setdefault((claim.get('statement'), json.dumps(claim.get('probe_spec') or {}, sort_keys=True)), []).append(claim['id'])
+        seen.setdefault((claim.get('statement'), json.dumps(claim.get('probe_spec') or {}, sort_keys=True)),
+                        []).append(claim['id'])
     problems += ['R4 duplicate statement across ' + ', '.join(identifiers)
                  for _, identifiers in sorted(seen.items()) if len(identifiers) > 1]
     return problems

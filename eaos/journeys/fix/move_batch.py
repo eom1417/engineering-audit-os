@@ -26,8 +26,8 @@ from .execute import commit_all, git, new_breakage, own_batch, record_batch
 FAMILY, TESTS = 'prefix-family', 'tests-flat'
 # Moves drawn but never proposed: the target shape's gave a reader the same answers to ten questions for 9 to 16% more
 # tokens, in folders named after routes and files.
-MEASURED_WORSE = {'target-shape': "not proposed: the target shape's moves cost a reader more (the same answers, 9 to 16% "
-                                  "more tokens, M9.5); drawn for the picture only"}
+MEASURED_WORSE = {'target-shape': "not proposed: the target shape's moves cost a reader more (the same answers, "
+                                  "9 to 16% more tokens, M9.5); drawn for the picture only"}
 SOURCE = ('.py', '.js', '.jsx', '.mjs', '.cjs', '.ts', '.tsx', '.vue', '.svelte')
 
 
@@ -47,7 +47,8 @@ def proposal(report, target):
         refused = [MEASURED_WORSE[move['rule']]] if move['rule'] in MEASURED_WORSE else \
             _not_a_package(move) or _cannot(target, move, known) + _shared_place(move, drawn)
         rows.append({'id': move_id(move), **move, 'refused': '; '.join(refused)})
-    return {'moves': rows, 'tree': tree(rows), 'limits': [move_gate.PUBLISHED] if move_gate.published(target, known) else []}
+    return {'moves': rows, 'tree': tree(rows),
+            'limits': [move_gate.PUBLISHED] if move_gate.published(target, known) else []}
 
 
 def _not_a_package(move):
@@ -104,10 +105,11 @@ def _family(finding, known):
     """pipeline_run.py, pipeline_load.py ... into pipeline/: run.py, load.py."""
     folder, prefix = finding['params']['path'], finding['params']['prefix']
     base = '' if folder in ('', '.') else folder + '/'
-    members = [p for p in sorted(known) if posixpath.dirname(p) == folder.strip('.') and PurePosixPath(p).name.startswith(prefix)
-               and PurePosixPath(p).suffix in SOURCE]
+    members = [p for p in sorted(known) if posixpath.dirname(p) == folder.strip('.')
+               and PurePosixPath(p).name.startswith(prefix) and PurePosixPath(p).suffix in SOURCE]
     return [{'from': p, 'to': f"{base}{prefix.rstrip('_-')}/{PurePosixPath(p).name[len(prefix):]}", 'rule': FAMILY,
-             'reason': finding.get('en') or f'{len(members)} files share {prefix}: they want their own folder'} for p in members]
+             'reason': finding.get('en') or f'{len(members)} files share {prefix}: they want their own folder'}
+            for p in members]
 
 
 def _mirrored(report, finding, known):
@@ -127,7 +129,8 @@ def _imports_of(report):
     out = {}
     for fact in _set(report, 'resolve'):
         value = fact.get('value') or {}
-        if value.get('to_path') and fact.get('kind') == 'module_edge' and value.get('resolution', 'RESOLVED') == 'RESOLVED':
+        if (value.get('to_path') and fact.get('kind') == 'module_edge'
+                and value.get('resolution', 'RESOLVED') == 'RESOLVED'):
             out.setdefault(fact['location']['path'], []).append(value['to_path'])
     return out
 
@@ -189,8 +192,11 @@ def make(batch):
     root, base = own_batch(batch['target'], batch['runtime'], f"MOVES-{batch['number']}")
     say('before')
     try: before = {'checks': named_checks(root, batch['runtime'], f"moves-{batch['number']}-before"), 'surface': None}
-    except RuntimeError as problem: return record_batch(batch, root, base, [], [f'proposal only: the app could not be set up before the moves: {str(problem)[-400:]}'])
-    if (why := move_gate.unproven(before['checks'])): return record_batch(batch, root, base, [], ['proposal only: ' + why])
+    except RuntimeError as problem:
+        return record_batch(batch, root, base, [],
+                            [f'proposal only: the app could not be set up before the moves: {str(problem)[-400:]}'])
+    if (why := move_gate.unproven(before['checks'])):
+        return record_batch(batch, root, base, [], ['proposal only: ' + why])
     before['surface'] = move_gate.surface(root, moves.files(root))
     before['mapping'] = moves.plan(root, batch['moves'])['mapping']
     say('moves')
@@ -198,19 +204,24 @@ def make(batch):
     except Unmovable as problem: return record_batch(batch, root, base, [], [f'the move tool refused: {problem}'])
     # never what a run left
     touched = [*before['mapping'], *made['rewritten'], *made['created'], *before['mapping'].values()]
-    commit_all(root, f"Move {made['moved']} file(s) to their place\n\n" + '\n'.join(f"  {m['from']} -> {m['to']}" for m in batch['moves'])
+    commit_all(root, f"Move {made['moved']} file(s) to their place\n\n"
+               + '\n'.join(f"  {m['from']} -> {m['to']}" for m in batch['moves'])
                + f'\n\n{TRAILER}: moves', touched)
     say('gate')
     differences = _gate(batch, root, before)
     if differences: git(root, 'reset', '--hard', '--quiet', base)
-    return record_batch(batch, root, base, [] if differences else [m.get('id') or m['from'] for m in batch['moves']], differences)
+    return record_batch(batch, root, base, [] if differences else [m.get('id') or m['from'] for m in batch['moves']],
+                        differences)
 
 
 def _gate(batch, root, before):
     """Every difference the moves made: the surface, the tests and checks, what is newly broken, the screens."""
-    try: after = named_checks(root, batch['runtime'], f"moves-{batch['number']}-after", [(r['argv'], r['at_root']) for r in before['checks']])
-    except RuntimeError as problem: return [f'the app could not be set up after the moves, as it was before them: {str(problem)[-500:]}']
-    out = move_gate.surface_differences(before['surface'], move_gate.surface(root, moves.files(root)), before['mapping'])
+    try: after = named_checks(root, batch['runtime'], f"moves-{batch['number']}-after",
+                              [(r['argv'], r['at_root']) for r in before['checks']])
+    except RuntimeError as problem:
+        return [f'the app could not be set up after the moves, as it was before them: {str(problem)[-500:]}']
+    out = move_gate.surface_differences(before['surface'], move_gate.surface(root, moves.files(root)),
+                                        before['mapping'])
     out += move_gate.test_differences(before['checks'], after, before['mapping'])
     return out + new_breakage(batch['report'], root) + _lock(batch, root)
 
@@ -234,7 +245,8 @@ def named_checks(root, runtime, name, checks=None):
     from ...live.testing.verify import python_tests
     live = LiveRun(root, runtime, 'S09')
     if checks is None:
-        checks = [(argv, False) for argv in live.profile.get('checks') or []] + [(argv, True) for argv in python_tests(root, live.profile)]
+        checks = ([(argv, False) for argv in live.profile.get('checks') or []]
+                  + [(argv, True) for argv in python_tests(root, live.profile)])
     if not checks: return []
     try:
         live.setup()

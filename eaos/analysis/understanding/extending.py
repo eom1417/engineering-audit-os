@@ -35,7 +35,8 @@ LIFT = 1.25
 
 def _kinds():
     rules = json.loads(RULES.read_text(encoding='utf-8'))
-    compiled = [{**kind, 'paths': [re.compile(p) for p in kind.get('paths') or ()], 'not': [re.compile(p) for p in kind.get('not') or ()]}
+    compiled = [{**kind, 'paths': [re.compile(p) for p in kind.get('paths') or ()],
+                 'not': [re.compile(p) for p in kind.get('not') or ()]}
                 for kind in rules['kinds']]
     return compiled, [re.compile(p) for p in rules['noise']], rules['role_order']
 
@@ -98,7 +99,8 @@ def _test_of(example, seen, tree):
     """The test that goes with it: one that changed with this kind, else one named for it, else none."""
     stem = PurePosixPath(example).stem.lower()
     together = (path for commit in seen for path in commit['changed'] if _a_test(path) and path in tree)
-    return next(together, None) or next((path for path in sorted(tree) if _a_test(path) and stem in PurePosixPath(path).stem.lower()), None)
+    return next(together, None) or next((path for path in sorted(tree)
+                                         if _a_test(path) and stem in PurePosixPath(path).stem.lower()), None)
 
 
 def _recipe(kind, tree, commits, context):
@@ -109,8 +111,10 @@ def _recipe(kind, tree, commits, context):
     example, commit = _example(own, seen, kind['grows'], tree)
     peers = _peers(_together(seen, commits, kind, (known_by, noise, tree)) + _wiring(own, importers), example)
     code = _code_of(peers, kind)
-    return {'id': kind['id'], 'title': kind['title'], 'grows': kind['grows'], 'example': example, 'commit': _stamp(commit), 'home': _home(own),
-            'seen': len(seen), 'read': [example, *code][:READ], 'touch': _ordered(code, rank)[:TOUCH], 'test': _test_of(example, seen, tree)}
+    return {'id': kind['id'], 'title': kind['title'], 'grows': kind['grows'], 'example': example,
+            'commit': _stamp(commit), 'home': _home(own),
+            'seen': len(seen), 'read': [example, *code][:READ],
+            'touch': _ordered(code, rank)[:TOUCH], 'test': _test_of(example, seen, tree)}
 
 
 def _home(own):
@@ -154,27 +158,32 @@ def _stamp(commit):
 def _ranks(record, order):
     """{path: its place in the order of work: the data first, the screens last}."""
     role = {layer['name']: layer.get('role') for layer in record.get('layers') or []}
-    return {row['path']: order.get(role.get(row.get('layer')), order.get(row.get('side'), 3)) for row in record.get('map') or []}
+    return {row['path']: order.get(role.get(row.get('layer')), order.get(row.get('side'), 3))
+            for row in record.get('map') or []}
 
 
 def _folders_of(record):
     """{layer: its folders by the number of files}."""
     folders = {}
     for row in record.get('map') or ():
-        if row.get('layer'): folders.setdefault(row['layer'], Counter())[PurePosixPath(row['path']).parent.as_posix()] += 1
+        if row.get('layer'):
+            folders.setdefault(row['layer'], Counter())[PurePosixPath(row['path']).parent.as_posix()] += 1
     return folders
 
 
 def _layers(record):
     """Each layer with its role, what it may and may not use, its files and the folders that hold most of them."""
     folders = _folders_of(record)
-    return [{'name': layer['name'], 'role': layer.get('role'), 'allowed': layer.get('allowed') or [], 'denied': layer.get('denied') or [],
-             'files': layer['files'], 'folders': [folder for folder, _ in folders.get(layer['name'], Counter()).most_common(FOLDERS)]}
+    return [{'name': layer['name'], 'role': layer.get('role'), 'allowed': layer.get('allowed') or [],
+             'denied': layer.get('denied') or [],
+             'files': layer['files'],
+             'folders': [folder for folder, _ in folders.get(layer['name'], Counter()).most_common(FOLDERS)]}
             for layer in record.get('layers') or () if layer.get('files')]
 
 
 def _area(area):
-    return {'name': area['name'], 'files': _production(area.get('files'))[:AREA_FILES], 'entries': (area.get('entries') or [])[:2]}
+    return {'name': area['name'], 'files': _production(area.get('files'))[:AREA_FILES],
+            'entries': (area.get('entries') or [])[:2]}
 
 
 def _production(paths):
@@ -234,28 +243,33 @@ def _tests_home(tree):
     """Where the tests live: their first folders, the most first, and how many."""
     tests = [path for path in tree if _a_test(path) and not _data(path)]
     folders = Counter(PurePosixPath(path).parts[0] if len(PurePosixPath(path).parts) > 1 else '.' for path in tests)
-    return {'count': len(tests), 'folders': [folder for folder, count in folders.most_common(FOLDERS) if count * 10 >= len(tests)]}
+    return {'count': len(tests),
+            'folders': [folder for folder, count in folders.most_common(FOLDERS) if count * 10 >= len(tests)]}
 
 
 def _nodes(out):
-    return [fact for fact in (read_json(Path(out) / 'facts' / 'graph.json', {}) or {}).get('facts') or () if fact.get('kind') == 'graph_node']
+    return [fact for fact in (read_json(Path(out) / 'facts' / 'graph.json', {}) or {}).get('facts') or ()
+            if fact.get('kind') == 'graph_node']
 
 
 def _reuse(out):
     """The production files most others import, the first place to look before writing something again."""
-    rows = sorted(((fact['value'].get('fan_in') or 0, fact['location']['path']) for fact in _nodes(out)), key=lambda row: (-row[0], row[1]))
+    rows = sorted(((fact['value'].get('fan_in') or 0, fact['location']['path']) for fact in _nodes(out)),
+                  key=lambda row: (-row[0], row[1]))
     return [{'path': path, 'users': users} for users, path in rows if users >= MIN_USERS and not _a_test(path)][:SHOWN]
 
 
 def _sensitive(out):
     """The files where complexity and changes meet (the code map's hotspots)."""
     digest = (read_json(Path(out) / 'architecture' / 'map.json', {}) or {}).get('digest') or {}
-    return [{'path': row['path'], 'commits': row.get('commits'), 'complexity': row.get('complexity')} for row in (digest.get('hotspots') or ())[:SENSITIVE]]
+    return [{'path': row['path'], 'commits': row.get('commits'), 'complexity': row.get('complexity')}
+            for row in (digest.get('hotspots') or ())[:SENSITIVE]]
 
 
 def _features(out):
     features = (read_json(Path(out) / 'features.json', {}) or {}).get('features') or ()
-    return [{'name': feature['name'], 'surfaces': (feature.get('surfaces') or ())[:2], 'tables': (feature.get('tables') or ())[:3]}
+    return [{'name': feature['name'], 'surfaces': (feature.get('surfaces') or ())[:2],
+             'tables': (feature.get('tables') or ())[:3]}
             for feature in features][:FEATURES]
 
 
@@ -264,7 +278,8 @@ def _departures(record):
     rank = {'high': 0, 'medium': 1, 'low': 2}
     found = sorted(record.get('findings') or (), key=lambda finding: rank.get(finding.get('severity'), 3))
     untested = (record.get('tests') or {}).get('layers_untested') or ()
-    return [finding['en'] for finding in found][:SHOWN] + ([f"Layers with no test: {', '.join(untested)}."] if untested else [])
+    return [finding['en'] for finding in found][:SHOWN] + (
+        [f"Layers with no test: {', '.join(untested)}."] if untested else [])
 
 
 def _heavy(root, tree):
@@ -281,13 +296,15 @@ def _keeps(recipe, record, layers):
     """What a new file of this recipe must keep: what its example's layer may not use."""
     placed = next((row.get('layer') for row in record.get('map') or () if row['path'] == recipe['example']), None)
     layer = next((layer for layer in layers if layer['name'] == placed), {})
-    return {**recipe, 'layer': placed, 'denied': list(layer.get('denied') or ()), 'allowed': list(layer.get('allowed') or ())}
+    return {**recipe, 'layer': placed, 'denied': list(layer.get('denied') or ()),
+            'allowed': list(layer.get('allowed') or ())}
 
 
 def _order(recipes):
     """The recipes of a new feature, in the order its work goes: data first, its test last."""
     order = json.loads(RULES.read_text(encoding='utf-8'))['feature_order']
-    return [recipe['id'] for recipe in sorted((r for r in recipes if r['id'] in order), key=lambda r: order.index(r['id']))]
+    return [recipe['id'] for recipe in sorted((r for r in recipes if r['id'] in order),
+                                              key=lambda r: order.index(r['id']))]
 
 
 def _grown(root):
@@ -301,12 +318,14 @@ def _recipes(tree, commits, record, out):
     context = (_known_by(record), noise, _ranks(record, order), _importers(out))
     drawn = [(kind, _recipe(kind, tree, commits, context)) for kind in kinds]
     layers = _layers(record)
-    return [_keeps(recipe, record, layers) for _, recipe in drawn if recipe], [kind['title'] for kind, recipe in drawn if not recipe]
+    return ([_keeps(recipe, record, layers) for _, recipe in drawn if recipe],
+            [kind['title'] for kind, recipe in drawn if not recipe])
 
 
 def _guide_facts(out, record):
     """What the check read that a recipe does not hold: the parts of the guide besides its recipes."""
-    return {'layers': _layers(record), 'gaps': len(record.get('gaps') or ()), 'areas': _areas(out), 'reuse': _reuse(out), 'sensitive': _sensitive(out),
+    return {'layers': _layers(record), 'gaps': len(record.get('gaps') or ()), 'areas': _areas(out),
+            'reuse': _reuse(out), 'sensitive': _sensitive(out),
             'features': _features(out), 'departures': _departures(record)}
 
 
@@ -316,5 +335,6 @@ def draft(root, out, tree, record=None, pinned=()):
     record = (read_json(Path(out) / 'layers.json', {}) or {}) if record is None else record
     tree, commits = set(tree), _grown(root)
     recipes, missing = _recipes(tree, commits, record, out)
-    return {**_guide_facts(out, record), 'recipes': recipes, 'feature_steps': _order(recipes), 'missing': missing, 'checks': commands(root, tree),
+    return {**_guide_facts(out, record), 'recipes': recipes, 'feature_steps': _order(recipes), 'missing': missing,
+            'checks': commands(root, tree),
             'tests': _tests_home(tree), 'heavy': _heavy(root, tree), 'pinned': list(pinned), 'commits': len(commits)}

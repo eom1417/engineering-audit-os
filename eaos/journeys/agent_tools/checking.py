@@ -22,8 +22,10 @@ def _not_yet(state):
     return lanes.not_yours(state) or _branch(state)
 
 
-def audit(project=None, fresh=False, use_assistant=None, without_tools=False, assistant=None, without_ai=False, again_from=None, engines=None,
-          paths=None, mode=None, sign_in=None, published=None, run_app=False, go_on=False, fixed=False, person_agreed=False):  # limits: parameters -- the audit tool's arguments, one for one (MCP server and CLI)
+def audit(project=None, fresh=False, use_assistant=None, without_tools=False, assistant=None, without_ai=False,
+          again_from=None, engines=None,
+          paths=None, mode=None, sign_in=None, published=None, run_app=False, go_on=False, fixed=False,
+          person_agreed=False):  # limits: parameters -- the audit tool's arguments, one for one (MCP server and CLI)
     """`use_assistant`, `assistant`: the person's choice for the check's AI, kept (one not ready stops it, with
     why); `without_ai`: the rules alone; `again_from`: the last check goes on from that stage (`engines`: only those
     tools); `paths`, `mode`, `sign_in`, `published`, `run_app` (kept: eaos/journeys/check_choices.py); `go_on`:
@@ -38,10 +40,13 @@ def audit(project=None, fresh=False, use_assistant=None, without_tools=False, as
     # A check on record stands until asked for anew (fresh), so code that moved on does not start one by itself.
     if guided.scan_done(state) and not any((fresh, again_from, go_on)):
         return {'status': 'done', 'already_checked': True, **overview(project), **_older_check(state)}
-    without_ai = check_choices.without_ai_kept(guided.report_of(state), without_ai, again_from, use_assistant is not None or assistant)
+    without_ai = check_choices.without_ai_kept(guided.report_of(state), without_ai, again_from,
+                                               use_assistant is not None or assistant)
     blocked = None if without_ai else _assistant_not_ready(state, fixed)
     if blocked: return blocked
-    arguments = {k: v for k, v in dict(without_tools=without_tools, without_ai=without_ai, again_from=again_from, engines=engines, paths=paths, published=signing.published(published), go_on=go_on).items() if v}
+    arguments = {k: v for k, v in dict(without_tools=without_tools, without_ai=without_ai, again_from=again_from,
+                                       engines=engines, paths=paths, published=signing.published(published),
+                                       go_on=go_on).items() if v}
     return _start('audit', state, arguments)
 
 
@@ -59,11 +64,14 @@ def _assistant_not_ready(state, fixed=False):
     if not name: return None
     found = readiness.probe(name, fresh=True)          # the person may have just fixed it
     if found['ready']: return None
-    return {'status': 'assistant_not_ready', 'assistant': found, 'why': (found.get('reason') or {}).get('en') or found['code'],
-            'what_now': f"The check did not start: {found['name']} is not ready. Tell the person, in their language and plain words, "
-                        f"what is wrong and how to fix it: {(found.get('reason') or {}).get('en') or found['code']} Then ask them: fix it and "
-                        'check again (call audit again), use the other assistant (audit with assistant=claude or codex), or start '
-                        'without AI (audit with use_assistant=false). End your turn until they answer.'}
+    return {'status': 'assistant_not_ready', 'assistant': found,
+            'why': (found.get('reason') or {}).get('en') or found['code'],
+            'what_now': f"The check did not start: {found['name']} is not ready. Tell the person, in their language "
+                        f"and plain words, what is wrong and how to fix it: "
+                        f"{(found.get('reason') or {}).get('en') or found['code']} Then ask them: fix it and "
+                        'check again (call audit again), use the other assistant (audit with assistant=claude or '
+                        'codex), or start without AI (audit with use_assistant=false). End your turn until they '
+                        'answer.'}
 
 
 def assistant_check(project=None, fresh=False, assistant=None):
@@ -75,17 +83,18 @@ def assistant_check(project=None, fresh=False, assistant=None):
     rows = readiness.probe_all(fresh=fresh, names=[assistant] if assistant else None)
     said = guided.answered(state, 'use_assistant')
     chosen = guided.chosen_assistant(state)
-    return {'assistants': rows, 'choice': {'use_assistant': said, 'assistant': chosen if said is not False else state.get('assistant'),
-                                           'kept': said is not None},
+    return {'assistants': rows,
+            'choice': {'use_assistant': said, 'assistant': chosen if said is not False else state.get('assistant'),
+                       'kept': said is not None},
             'permission': PERMISSION,
-            'what_now': 'Show the person each assistant with its readiness; when the one they want is not ready, its reason says how to fix '
-                        'it. Their choice goes to audit (use_assistant, assistant).'}
+            'what_now': 'Show the person each assistant with its readiness; when the one they want is not ready, its '
+                        'reason says how to fix it. Their choice goes to audit (use_assistant, assistant).'}
 
 
-PERMISSION = {'en': 'In the check the assistant only reads the facts EAOS gives it and answers: it has no tool, changes no file and '
-                    'runs nothing; everything it says stays a hypothesis tied to its evidence.',
-              'ar': 'في الفحص المساعد يقرأ فقط الحقائق اللي يعطيه إياها EAOS ويجاوب: ما عنده أي أداة، وما يغيّر أي ملف، وما يشغّل '
-                    'شيء؛ وكل ما يقوله يبقى فرضية مربوطة بدليلها.'}
+PERMISSION = {'en': 'In the check the assistant only reads the facts EAOS gives it and answers: it has no tool, '
+                    'changes no file and runs nothing; everything it says stays a hypothesis tied to its evidence.',
+              'ar': 'في الفحص المساعد يقرأ فقط الحقائق اللي يعطيه إياها EAOS ويجاوب: ما عنده أي أداة، وما '
+                    'يغيّر أي ملف، وما يشغّل شيء؛ وكل ما يقوله يبقى فرضية مربوطة بدليلها.'}
 
 
 def _audit_job(project, arguments, progress):
@@ -93,11 +102,17 @@ def _audit_job(project, arguments, progress):
     the person chose to start without them (`without_tools`)."""
     state = project_state.load(project)
     without = arguments.get('without_tools')
-    failed = guided.tools_for_check(state, lambda done, total: progress and progress(done, total, 'tools'), install=not without)
-    if failed and not without: raise guided.ToolsMissing('these tools could not be installed: ' + '; '.join(f'{n}: {r}' for n, r in sorted(failed.items())))
+    failed = guided.tools_for_check(state, lambda done, total: progress and progress(done, total, 'tools'),
+                                    install=not without)
+    if failed and not without:
+        raise guided.ToolsMissing('these tools could not be installed: '
+                                  + '; '.join(f'{n}: {r}' for n, r in sorted(failed.items())))
     options = check_choices.options(state, progress, failed, guided.check_provider(state), guided.check_runtime(state),
                                     arguments.get('paths'), arguments.get('engines'), arguments.get('published'))
-    if arguments.get('without_ai'): options['provider'] = NoAssistant('ai_skipped', 'the person started this check without AI, because their assistant was not ready')
+    if arguments.get('without_ai'):
+        options['provider'] = NoAssistant('ai_skipped',
+                                          'the person started this check without AI, because their assistant '
+                                          'was not ready')
     from ..check import run
     done = run(state, options, arguments.get('again_from'), bool(arguments.get('go_on')))[0]
     return {**overview(project), **remedies.consent(done, CONSENT)}
@@ -111,14 +126,17 @@ def overview(project=None):
     tasks = plan.get('tasks') or []
     manifest = _read(report / 'run-manifest.json') if (report / 'run-manifest.json').is_file() else {}
     claims = _read(report / 'dossier.json').get('claim_counts') if (report / 'dossier.json').is_file() else None
-    return {'project': state['project'], 'checked_commit': state.get('scanned_commit'), 'status': manifest.get('status'),
-            'incomplete_stages': [name for name, row in (manifest.get('stages') or {}).items() if row.get('status') in ('failed', 'not_reached')],
+    return {'project': state['project'], 'checked_commit': state.get('scanned_commit'),
+            'status': manifest.get('status'),
+            'incomplete_stages': [name for name, row in (manifest.get('stages') or {}).items()
+                                  if row.get('status') in ('failed', 'not_reached')],
             'counts': summary_counts(report), 'claims_by_confidence': claims, 'problem_kinds': _problem_kinds(tasks),
             'not_checked_by_this_version': _unchecked(),
             'milestones': _milestones(plan, tasks),
             'report_for_people': str(report / 'START-HERE.md') if (report / 'START-HERE.md').is_file() else None,
             'outputs_folder': str(guided.outputs(state)), 'technical_report': str(report),
-            'next': 'Use `findings` and `finding` for the evidence, `structure` for the architecture, `plan` for the order of work.'}
+            'next': 'Use `findings` and `finding` for the evidence, `structure` for the architecture, `plan` for the '
+                    'order of work.'}
 
 
 def _unchecked():
@@ -126,7 +144,8 @@ def _unchecked():
     there."""
     from ...core.language.words import catalog
     return [{'kind': kind, 'area': row['area'], 'what': row['one'][1], 'why': row['why'][1],
-             'say': 'not checked by this version of EAOS: do not call this ground good or clean'} for kind, row in catalog()['unchecked'].items()]
+             'say': 'not checked by this version of EAOS: do not call this ground good or clean'}
+            for kind, row in catalog()['unchecked'].items()]
 
 
 def _problem_kinds(tasks):

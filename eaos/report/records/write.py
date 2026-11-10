@@ -39,7 +39,8 @@ def scan_of(project, state=None):
     dirty are None."""
     state = state or {}
     if state.get('scanned_commit') and ('scanned_branch' in state or 'scanned_detached' in state):
-        return {'commit': state['scanned_commit'], 'branch': state.get('scanned_branch'), 'at': state.get('scanned') or '',
+        return {'commit': state['scanned_commit'], 'branch': state.get('scanned_branch'), 'at': state.get('scanned')
+                or '',
                 'recorded': True, 'detached': state.get('scanned_detached'), 'dirty': state.get('scanned_dirty')}
     commit = state.get('scanned_commit') or _git(project, 'rev-parse', 'HEAD')
     branch = state.get('branch') or _git(project, 'rev-parse', '--abbrev-ref', 'HEAD')
@@ -73,7 +74,8 @@ def _build(report, m, lang, project, scan):
     _attempt(built, errors, 'evidence', lambda: evidence(report, cited, sources(project, scan['commit'])))
     _attempt(built, errors, 'decisions', lambda: decision_rows(report, card_rows, lang))
     progress = m['progress']
-    _attempt(built, errors, 'history', lambda: history(scan, m['score'], card_rows, progress.get('ledger'), progress.get('waves') or ()))
+    _attempt(built, errors, 'history',
+             lambda: history(scan, m['score'], card_rows, progress.get('ledger'), progress.get('waves') or ()))
     return built, errors
 
 
@@ -82,7 +84,8 @@ def _publish(folder, built):
     entries = []
     for section in (s for s in ('cards', 'evidence', 'decisions', 'history') if s in built):
         blob = _write(folder, section, _body(section, built[section]))
-        entries.append({'name': section, 'file': f'{section}.json', 'sha256': hashlib.sha256(blob).hexdigest(), 'bytes': len(blob)})
+        entries.append({'name': section, 'file': f'{section}.json', 'sha256': hashlib.sha256(blob).hexdigest(),
+                        'bytes': len(blob)})
     return entries
 
 
@@ -106,7 +109,8 @@ def write(report, lang='ar', project=None, progress=None, state=None):
     if not scan['at']: scan['at'] = str(m['manifest'].get('started_at') or '')
     built, errors = _build(report, m, lang, project, scan)
     entries = _publish(folder, built)
-    manifest = {'schema_version': 1, 'language': lang, 'contract': CONTRACT, 'revision': REVISION, 'built': build_info.stamp(now()),
+    manifest = {'schema_version': 1, 'language': lang, 'contract': CONTRACT, 'revision': REVISION,
+                'built': build_info.stamp(now()),
                 'project': {'name': Path(str(project or report)).name}, 'scanned': scan, 'sections': entries}
     if entries: _write(folder, 'manifest', manifest)
     return {'written': [e['name'] for e in entries], 'errors': errors}

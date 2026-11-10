@@ -12,8 +12,10 @@ def _go_steps(members, executable, copy):
     x/net needs a newer x/sys: asking x/sys at its own fix in the same go get is refused), then `go mod tidy`: go.mod
     and go.sum alone are written, the modules fetched into a cache of its own, removed after; Go never downloads
     another toolchain."""
-    folder, wanted = Path(copy) / members[0]['folder'], [(m['package'], 'v' + str(m['fixed']).removeprefix('v')) for m in members]
-    return [(lambda: _go(executable, folder, wanted), f"go get {' '.join(f'{p}@{v}' for p, v in wanted)} && go mod tidy")]
+    folder, wanted = (Path(copy) / members[0]['folder'],
+                      [(m['package'], 'v' + str(m['fixed']).removeprefix('v')) for m in members])
+    return [(lambda: _go(executable, folder, wanted),
+             f"go get {' '.join(f'{p}@{v}' for p, v in wanted)} && go mod tidy")]
 
 
 def _go(executable, folder, wanted):
@@ -21,13 +23,16 @@ def _go(executable, folder, wanted):
         env = {**os.environ, 'GOMODCACHE': cache, 'GOFLAGS': '-modcacherw', 'GOTOOLCHAIN': 'local'}
         run = lambda *argv: _run([executable, *argv], folder, env)
         for module, fixed in wanted:
-            if _semver(run('list', '-m', '-f', '{{.Version}}', module).strip()) < _semver(fixed): run('get', f'{module}@{fixed}')
+            if _semver(run('list', '-m', '-f', '{{.Version}}', module).strip()) < _semver(fixed):
+                run('get', f'{module}@{fixed}')
         run('mod', 'tidy')
 
 
 def _run(argv, folder, env):
     done = subprocess.run(argv, cwd=folder, capture_output=True, text=True, timeout=600, env=env)  # nosemgrep: python.lang.security.audit.dangerous-subprocess-use-audit -- go or cargo at its path, a list argv built here, in an isolated copy, no shell
-    if done.returncode: raise OSError(f"{Path(argv[0]).name} {argv[1]} exited {done.returncode}: {(done.stderr or done.stdout).strip()[-240:]}")
+    if done.returncode:
+        raise OSError(f"{Path(argv[0]).name} {argv[1]} exited {done.returncode}: "
+                      f"{(done.stderr or done.stdout).strip()[-240:]}")
     return done.stdout
 
 
@@ -43,7 +48,8 @@ def _cargo_steps(members, executable, copy):
     is written, nothing built."""
     folder = Path(copy) / members[0]['folder']
     wanted = [(f"{m['package']}@{m['version']}", str(m['fixed']).removeprefix('v')) for m in members]
-    return [(lambda: _cargo(executable, folder, wanted), ' && '.join(f'cargo update -p {p} --precise {v}' for p, v in wanted))]
+    return [(lambda: _cargo(executable, folder, wanted),
+             ' && '.join(f'cargo update -p {p} --precise {v}' for p, v in wanted))]
 
 
 def _cargo(executable, folder, wanted):

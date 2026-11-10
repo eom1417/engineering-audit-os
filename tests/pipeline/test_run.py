@@ -64,12 +64,14 @@ class DeclarationTests(unittest.TestCase):
         cases = [((Stage('a', produces=('x',), requires=('b',)), Stage('b', produces=('y',))),
                   'a: requires b, which no earlier stage provides'),
                  ((Stage('a', produces=('x',)), Stage('b', produces=('x',))), 'b: x is already produced by a'),
-                 ((Stage('a', produces=('x',), necessity=OPTIONAL),), 'a: optional without saying when it may be absent'),
+                 ((Stage('a', produces=('x',), necessity=OPTIONAL),),
+                  'a: optional without saying when it may be absent'),
                  ((Stage('a', produces=()),), 'a: produces nothing, so nothing can depend on it')]
         for stages, problem in cases:
             with self.subTest(problem):
                 self.assertIn(problem, errors(stages))
-        self.assertEqual(errors((Stage('a', produces=('x',)), Stage('b', produces=('y',), requires=('a',), necessity=REQUIRED))), [])
+        self.assertEqual(errors((Stage('a', produces=('x',)),
+                                 Stage('b', produces=('y',), requires=('a',), necessity=REQUIRED))), [])
 
 
 class ExecutionTests(unittest.TestCase):
@@ -116,7 +118,8 @@ class ExecutionTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as directory:
             manifest = execute('.', directory, runners=fake_runners(triage=lost))
         row = manifest['stages']['triage']
-        self.assertEqual((row['status'], row['reason_code'], row['detail']['assistant_lost']['resets']), (UNAVAILABLE, 'claude_limit', '7:10pm (UTC)'))
+        self.assertEqual((row['status'], row['reason_code'], row['detail']['assistant_lost']['resets']),
+                         (UNAVAILABLE, 'claude_limit', '7:10pm (UTC)'))
         self.assertEqual(manifest['status'], 'PARTIAL')
         self.assertEqual(manifest['stages']['order']['status'], OK, 'what comes after a lost stage still runs')
         with tempfile.TemporaryDirectory() as directory:     # the lost stage keeps its earlier time for the estimate
@@ -175,7 +178,8 @@ class ResumeTests(unittest.TestCase):
             ran = []
             second = resume('.', directory, runners=recording(ran))
             # only what did not end ok runs again, once each, in the declared order of what waits for what
-            self.assertEqual(sorted(ran), sorted(n for n in order if stages.get(n, {}).get('status') != OK and n not in OFF))
+            self.assertEqual(sorted(ran),
+                             sorted(n for n in order if stages.get(n, {}).get('status') != OK and n not in OFF))
             self.assertIn('probe', ran)
             self.assertEqual(second['counts'][OK], RUN)
             self.assertFalse((Path(directory) / CHECKPOINT).exists())
@@ -229,7 +233,8 @@ class LoopTests(unittest.TestCase):
 
     def test_a_loop_says_what_its_goal_lacked_and_one_not_met_stops_the_check_when_declared(self):
         directory = scratch()
-        manifest = execute('.', directory, runners=fake_runners(setup=SkipStage('the app did not start', code='app_not_running')))
+        manifest = execute('.', directory,
+                           runners=fake_runners(setup=SkipStage('the app did not start', code='app_not_running')))
         self.assertEqual(manifest['loops']['run_and_see']['state'], 'explained')
         self.assertEqual(manifest['loops']['run_and_see']['stages'], ['setup'])
         # the coverage ledger: a gap the person did not choose is big, and RUN.md says it in red at its top
@@ -238,7 +243,8 @@ class LoopTests(unittest.TestCase):
         manifest = execute('.', scratch(), runners=fake_runners(setup=SkipStage('no consent', code='no_run_consent')))
         self.assertEqual([entry['loop'] for entry in manifest['coverage'] if entry['big']], [])  # the person's choice
         manifest = execute('.', scratch(), runners=fake_runners(facts=RuntimeError('boom')))
-        self.assertEqual(manifest['loops']['understand'], {'state': 'not_met', 'stages': ['facts'], 'rounds': 1, 'on_fail': 'stop'})
+        self.assertEqual(manifest['loops']['understand'],
+                         {'state': 'not_met', 'stages': ['facts'], 'rounds': 1, 'on_fail': 'stop'})
 
     def test_what_a_stage_could_not_measure_is_a_gap_in_red_never_dropped(self):
         # a stage says what it could not read and the ledger keeps it

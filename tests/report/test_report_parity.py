@@ -50,9 +50,12 @@ class ParityTests(unittest.TestCase):
         self.assertTrue(LATIN_WORD.search(text), 'symbol and path names must not be translated')
 
     def test_both_languages_render_the_same_records(self):
-        arabic, english = (json.loads((root / 'dossier.json').read_text(encoding='utf-8')) for root in (self.arabic, self.english))
-        self.assertEqual(sorted(c['claim_type'] for c in arabic['claims']), sorted(c['claim_type'] for c in english['claims']))
-        arabic, english = (json.loads((root / 'plan.json').read_text(encoding='utf-8')) for root in (self.arabic, self.english))
+        arabic, english = (json.loads((root / 'dossier.json').read_text(encoding='utf-8'))
+                           for root in (self.arabic, self.english))
+        self.assertEqual(sorted(c['claim_type'] for c in arabic['claims']),
+                         sorted(c['claim_type'] for c in english['claims']))
+        arabic, english = (json.loads((root / 'plan.json').read_text(encoding='utf-8'))
+                           for root in (self.arabic, self.english))
         self.assertEqual(sorted(arabic), sorted(english))
         self.assertEqual(len(arabic['tasks']), len(english['tasks']))
 
@@ -62,7 +65,8 @@ class ParityTests(unittest.TestCase):
         targets = re.findall(r'\]\(([^)]+)\)', (self.english / 'README.md').read_text(encoding='utf-8'))
         self.assertTrue(targets)
         optional = {artifact.name for artifact in DOCUMENTS if not artifact.required}
-        missing = [t for t in targets if not t.startswith(('http', '#')) and not (self.english / t).exists() and t not in optional]
+        missing = [t for t in targets
+                   if not t.startswith(('http', '#')) and not (self.english / t).exists() and t not in optional]
         self.assertEqual(missing, [], 'the index points at documents that were never produced')
 
 
@@ -89,6 +93,7 @@ class LabelCatalogueTests(unittest.TestCase):
         claim = {'statement': 'مسار: ينادي خدمة خارجية',
                  'render': {'key': 'load_blocker',
                             'params': {'where': 'route', 'kind': 'timeout', 'statement': 'ينادي خدمة خارجية'},
-                            'params_en': {'where': 'route', 'kind': 'timeout', 'statement': 'calls an external service'}}}
+                            'params_en': {'where': 'route', 'kind': 'timeout',
+                                          'statement': 'calls an external service'}}}
         self.assertNotRegex(statement_of(claim, 'en'), ARABIC)
         self.assertIn('calls an external service', statement_of(claim, 'en'))

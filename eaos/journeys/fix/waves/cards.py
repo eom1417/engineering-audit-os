@@ -22,7 +22,8 @@ def wave_cards(report, wave):
     """{id: card} of a batch's cards from the plan; a lock file card kept in part (wave['partial'], fix/automatic.py) is
     held to the check of the packages it moved."""
     partial = wave.get('partial') or {}
-    return {card['id']: {**card, **({'verify_command': partial[card['id']]['verify_command']} if card['id'] in partial else {})}
+    return {card['id']: {**card, **({'verify_command': partial[card['id']]['verify_command']}
+                                    if card['id'] in partial else {})}
             for card in plan(report)['tasks'] if card['id'] in set(wave['cards'])}
 
 
@@ -47,7 +48,8 @@ def ready_cards(report, state=None):
     they are open."""
     if not (Path(report) / 'plan.json').is_file(): return []
     book, tried = _book(state), set((state or {}).get('tried') or ())
-    cards = [card for card in _in_order(plan(report)) if ready(card) and not own_batch(card) and _free(card['key'], book, tried)]
+    cards = [card for card in _in_order(plan(report))
+             if ready(card) and not own_batch(card) and _free(card['key'], book, tried)]
     return _after_their_waits(cards, ledger.done(book))
 
 
@@ -101,9 +103,11 @@ def too_early(state, cards):
         if wait := waiting(card, done): early[card['id']] = wait
         done.add(card['id'])
     if not early: return None
-    return {'error': '; '.join(f'{c} waits for {", ".join(w)}' for c, w in list(early.items())[:5]) + ': no batch was opened',
-            'waits': early, 'what_now': 'A card goes in a batch once the cards it waits for are done (a module is split after '
-                                        'its complex functions are simplified): call fix_start again without these cards.'}
+    return {'error': '; '.join(f'{c} waits for {", ".join(w)}' for c, w in list(early.items())[:5])
+                     + ': no batch was opened',
+            'waits': early,
+            'what_now': 'A card goes in a batch once the cards it waits for are done (a module is split after '
+                        'its complex functions are simplified): call fix_start again without these cards.'}
 
 
 def kept_apart(cards):
@@ -111,9 +115,11 @@ def kept_apart(cards):
     else None."""
     craft = [card['id'] for card in cards if own_batch(card)]
     if not craft: return None
-    return {'error': f'{", ".join(craft[:5])}: repository craft goes in a batch of its own, never with fixes: no batch was opened',
-            'own_batch': craft, 'what_now': 'Call fix_start again without these cards. Moves go in moves_propose, the context and '
-                                            'the extension guide in context_propose, each on a branch of its own.'}
+    return {'error': f'{", ".join(craft[:5])}: repository craft goes in a batch of its own, never with fixes: '
+                     'no batch was opened',
+            'own_batch': craft,
+            'what_now': 'Call fix_start again without these cards. Moves go in moves_propose, the context and '
+                        'the extension guide in context_propose, each on a branch of its own.'}
 
 
 def next_batch(report, state, size=SIZE):

@@ -72,7 +72,8 @@ REVIEW_REASONS = {'test_only': 'only tests name it: delete it with them, or keep
                             'manifests or the docs runs it, so ask whether anyone still does before deleting it'}
 
 
-def _finding(rule, path, line, symbol, message, subject_kind, evidence, sha, tests=(), program=False):  # limits: parameters -- a record's constructor: one dead-code finding's fields
+def _finding(  # limits: parameters -- a record's constructor: one dead-code finding's fields
+             rule, path, line, symbol, message, subject_kind, evidence, sha, tests=(), program=False):
     # A name or module only tests read is either dead with its tests, or a contract the tests pin on purpose (a
     # test harness kept outside tests/); the text cannot tell which, so it is a review candidate (test_only), not an
     # asserted defect. A program in a scripts/ or tools/ folder is never imported: that nothing imports it says
@@ -80,7 +81,8 @@ def _finding(rule, path, line, symbol, message, subject_kind, evidence, sha, tes
     verdict = 'review' if program else 'test_only' if tests else 'confirmed'
     return make('engine_finding', NAME, VERSION, sha,
                 {'path': path, 'start_line': line, 'symbol': symbol},
-                {'engine': 'eaos', 'engine_version': VERSION, 'rule': rule, 'kind': 'dead_code', 'method': 'deterministic',
+                {'engine': 'eaos', 'engine_version': VERSION, 'rule': rule, 'kind': 'dead_code',
+                 'method': 'deterministic',
                  'message': message, 'subject_kind': subject_kind, 'measurements': [], 'engine_confidence': None,
                  'sites': [{'path': path, 'line': line}], 'evidence': evidence, 'tests': list(tests),
                  'adjudication': {'verdict': verdict, 'reason': REVIEW_REASONS.get(verdict, evidence)}},
@@ -164,7 +166,8 @@ def _never_named(text, start):
     # `declare global { interface Window {...} }` extends a type the platform owns. `export default function Home()`:
     # whoever loads the module (a framework, a CLI, `import Anything from`) never writes the name; the module's own
     # reachability judges it.
-    return 'declare ' in '\n'.join(lines[max(0, start - 4):start]) or bool(re.match(r'\s*export\s+default\b', (lines[start - 1:start] or [''])[0]))
+    return 'declare ' in '\n'.join(lines[max(0, start - 4):start]) or bool(
+        re.match(r'\s*export\s+default\b', (lines[start - 1:start] or [''])[0]))
 
 
 def _noun(text, start, kind):
@@ -203,8 +206,10 @@ def _constant_findings(path, scope):
         count, tests = scope['refs'].outside(name, path, (line, line))
         if count: continue
         out.append(_finding('unread-constant', path, line, name,
-                            f'constant `{module}.{name}` is never read' + (f' outside tests ({", ".join(tests[:3])})' if tests else ''),
-                            'symbol', f'the name occurs nowhere in product code or configuration except line {line}', scope['sha'], tests))
+                            f'constant `{module}.{name}` is never read'
+                            + (f' outside tests ({", ".join(tests[:3])})' if tests else ''),
+                            'symbol', f'the name occurs nowhere in product code or configuration except line {line}',
+                            scope['sha'], tests))
     return out
 
 
@@ -230,8 +235,10 @@ def run(target, source, symbols=None, resolved=None, entry_points=None, **option
     # outside the snapshot. Then only what is private by convention (`_name`) is judged, and no module is.
     judged = (lambda name: True) if seeds else (lambda name: name.startswith('_'))
     unreachable = _unreachable(code, seeds, reached, fixtures)
-    scope = {'code': code, 'dead_modules': set(unreachable), 'skipped': whole | fixtures, 'judged': judged, 'refs': refs, 'sha': sha}
-    facts = [_module_finding(path, test_importers, seeds, sha) for path in unreachable] + _symbol_findings(symbols or [], scope)
+    scope = {'code': code, 'dead_modules': set(unreachable), 'skipped': whole | fixtures, 'judged': judged,
+             'refs': refs, 'sha': sha}
+    facts = [_module_finding(path, test_importers, seeds,
+                             sha) for path in unreachable] + _symbol_findings(symbols or [], scope)
     summary = {'production_entry_points': len(seeds), 'modules_reached': len(reached & code), 'code_modules': len(code),
                'unreachable_modules': len(unreachable), **_symbol_counts(facts),
                'evaluated_kinds': {'eaos': {'dead_code': {'status': 'observed', 'granularity': 'symbol'}}}}
@@ -245,7 +252,8 @@ def _rule_fixtures(code, texts):
 
 def _unreachable(code, seeds, reached, fixtures):
     """The candidate modules no production entry point reaches; none when there is no entry point to judge from."""
-    return sorted(path for path in code if seeds and path not in reached and path not in fixtures and _candidate_file(path))
+    return sorted(path for path in code if seeds and path not in reached and path not in fixtures
+                  and _candidate_file(path))
 
 
 def _symbol_counts(facts):
@@ -267,7 +275,8 @@ def adjudicate(findings, source, own=()):
     ours = {((f.get('location') or {}).get('path'), (f.get('location') or {}).get('symbol')) for f in own}
     for fact in findings:
         value = fact.get('value') or {}
-        if fact.get('kind') != 'engine_finding' or value.get('kind') != 'dead_code' or value.get('engine') == 'eaos': continue
+        if fact.get('kind') != 'engine_finding' or value.get('kind') != 'dead_code' or value.get('engine') == 'eaos':
+            continue
         location = fact.get('location') or {}
         value['adjudication'] = _verdict(value, location, _candidate_name(value, location), ours, refs)
     return findings
@@ -299,7 +308,8 @@ def _verdict(value, location, name, ours, refs):
     path = location.get('path')
     if name and name == path:
         # A module: EAOS's own reachability (unreachable-module) is the second witness, or there is none.
-        return ({'verdict': 'confirmed', 'reason': 'EAOS finds no production entry point that reaches it either'} if (path, path) in ours
+        return ({'verdict': 'confirmed',
+                 'reason': 'EAOS finds no production entry point that reaches it either'} if (path, path) in ours
                 else {'verdict': 'unconfirmed', 'reason': 'the engine alone reports it'})
     if not name or not TOKEN.fullmatch(name):
         return {'verdict': 'not_a_symbol', 'reason': 'the finding names no symbol or module'}
@@ -308,5 +318,6 @@ def _verdict(value, location, name, ours, refs):
     if (path, name) in ours:
         return {'verdict': 'confirmed', 'reason': 'EAOS finds no reference outside its definition either'}
     count, _ = refs.outside(name, path, _span(location))
-    if count: return {'verdict': 'refuted', 'reason': f'the name occurs {count} time(s) in product text outside its definition'}
+    if count: return {'verdict': 'refuted',
+                      'reason': f'the name occurs {count} time(s) in product text outside its definition'}
     return {'verdict': 'unconfirmed', 'reason': 'the engine alone reports it'}

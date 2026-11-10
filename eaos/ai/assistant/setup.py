@@ -30,7 +30,8 @@ def eaos_command():
 
 
 def _hook():
-    return {'type': 'command', 'command': ' '.join(shlex.quote(part) for part in eaos_command() + ['handover', '--hook']), 'timeout': 20}
+    return {'type': 'command',
+            'command': ' '.join(shlex.quote(part) for part in eaos_command() + ['handover', '--hook']), 'timeout': 20}
 
 
 def add_session_hook(path):
@@ -53,7 +54,8 @@ def claude(home):
     skill.parent.mkdir(parents=True, exist_ok=True)
     skill.write_text((TEMPLATES / 'claude-skill.md').read_text(encoding='utf-8'), encoding='utf-8')
     if shutil.which('claude'):
-        listed = subprocess.run(['claude', 'mcp', 'get', 'eaos'], capture_output=True, text=True, env={**os.environ, 'HOME': str(home)})
+        listed = subprocess.run(['claude', 'mcp', 'get', 'eaos'], capture_output=True, text=True,
+                                env={**os.environ, 'HOME': str(home)})
         if listed.returncode != 0:
             subprocess.run(['claude', 'mcp', 'add', '--scope', 'user', 'eaos', '--', *eaos_command(), 'mcp'],
                            capture_output=True, text=True, env={**os.environ, 'HOME': str(home)})
@@ -89,8 +91,10 @@ def codex_skill():
     """The guide as a Codex skill: the frontmatter of the Claude Code skill (name and description only, all Codex
     reads), then the guide."""
     claude_skill = (TEMPLATES / 'claude-skill.md').read_text(encoding='utf-8')
-    front = [line for line in claude_skill.split('---')[1].strip().splitlines() if line.startswith(('name:', 'description:'))]
-    return '---\n' + '\n'.join(front).replace('Type /eaos alone', 'Type $eaos alone') + '\n---\n\n' + (TEMPLATES / 'guide.md').read_text(encoding='utf-8')
+    front = [line for line in claude_skill.split('---')[1].strip().splitlines()
+             if line.startswith(('name:', 'description:'))]
+    return ('---\n' + '\n'.join(front).replace('Type /eaos alone', 'Type $eaos alone') + '\n---\n\n'
+            + (TEMPLATES / 'guide.md').read_text(encoding='utf-8'))
 
 
 def install(home=None):

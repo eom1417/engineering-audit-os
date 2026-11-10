@@ -16,9 +16,12 @@ LANGUAGES = ('javascript', 'typescript', 'tsx')
 FACT_KIND = 'data_access'
 
 FACTORY = re.compile(r'''\b([A-Za-z_$][\w$]*)\s*=\s*(?:axios|ky|ofetch)\.create\s*\(''')
-IMPORT = re.compile(r'''\bimport\s*(?:type\s+)?(?:([A-Za-z_$][\w$]*)\s*,?\s*)?(?:\{([^}]*)\})?\s*from\s*['"]([^'"]+)['"]''')
-METHOD_CALL = re.compile(r'''\b([A-Za-z_$][\w$]*)\s*\.\s*(get|post|put|patch|delete)\s*(?:<[^>()]*>)?\s*\(\s*(['"`])([^'"`]*)\3?''')
-METHOD_CALL_BY_NAME = re.compile(r'''\b([A-Za-z_$][\w$]*)\s*\.\s*(get|post|put|patch|delete)\s*(?:<[^>()]*>)?\s*\(\s*([A-Za-z_$][\w$]*)\s*[,)]''')
+IMPORT = re.compile(r'''\bimport\s*(?:type\s+)?(?:([A-Za-z_$][\w$]*)\s*,?\s*)?(?:\{([^}]*)\})?\s*'''
+                    r'''from\s*['"]([^'"]+)['"]''')
+METHOD_CALL = re.compile(r'''\b([A-Za-z_$][\w$]*)\s*\.\s*(get|post|put|patch|delete)\s*(?:<[^>()]*>)?\s*'''
+                         r'''\(\s*(['"`])([^'"`]*)\3?''')
+METHOD_CALL_BY_NAME = re.compile(r'''\b([A-Za-z_$][\w$]*)\s*\.\s*(get|post|put|patch|delete)\s*(?:<[^>()]*>)?\s*'''
+                                 r'''\(\s*([A-Za-z_$][\w$]*)\s*[,)]''')
 FETCH_CALL = re.compile(r'''\bfetch\s*\(\s*(['"`])((?:/|\$\{)[^'"`]*)''')
 FETCH_METHOD = re.compile(r'''method\s*:\s*['"](GET|POST|PUT|PATCH|DELETE)['"]''', re.I)
 INTERPOLATION = re.compile(r'\$\{[^}]*\}')
@@ -192,7 +195,8 @@ def _calls_by_name(text, names):
         value = _value_of(variable, text, match.start())
         if value is not None and re.match(r'https?://', value): continue
         yield match.start(), text.count('\n', 0, match.start()) + 1, _with_keys(
-            {'client': 'http', 'target': endpoint(value) if value is not None else '{dynamic}', 'operation': method.lower(),
+            {'client': 'http', 'target': endpoint(value) if value is not None else '{dynamic}',
+             'operation': method.lower(),
              'symbol': receiver, 'bounded': bounded(method.lower(), value or '')},
             payload(text, match.end() - 1) if method.lower() in WRITES else None)
 
@@ -204,7 +208,8 @@ def _fetch_calls(text):
         method = FETCH_METHOD.search(window.split(');', 1)[0])
         operation = (method.group(1) if method else 'get').lower()
         following = text.find('fetch(', match.end())
-        body = FETCH_BODY.search(text, match.end(), min(match.end() + 600, following if following != -1 else len(text))) \
+        body = FETCH_BODY.search(text, match.end(), min(match.end() + 600,
+                                                        following if following != -1 else len(text))) \
             if operation in WRITES else None
         yield match.start(), text.count('\n', 0, match.start()) + 1, _with_keys(
             {'client': 'http', 'target': endpoint(match.group(2)), 'operation': operation, 'symbol': 'fetch'},

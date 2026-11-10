@@ -1,6 +1,6 @@
-"""The runners of the stages an assistant does (eaos/pipeline/runners/by_rules.py has the others): the kinds of users, the
-AI nodes (the triage and the plan's order) and the translation. Without its assistant, or with one lost midway, a stage is a recorded
-absence (SkipStage) and the rules' result stands."""
+"""The runners of the stages an assistant does (eaos/pipeline/runners/by_rules.py has the others): the kinds of users,
+the AI nodes (the triage and the plan's order) and the translation. Without its assistant, or with one lost midway, a
+stage is a recorded absence (SkipStage) and the rules' result stands."""
 from ..stages import SkipStage
 
 
@@ -15,28 +15,31 @@ def _absent(provider):
 
 
 def _lost(context, problem, code):
-    """SkipStage for an AI stage whose assistant failed midway: asked for one word again, an assistant that is no
-    longer ready gives its own reason (signed out during the check, its limit reached); else `problem` and `code`."""
+    """SkipStage for an AI stage whose assistant failed midway: asked for one word again, an assistant not
+    ready any more gives its own reason (signed out during the check, its limit reached); else `problem` and `code`."""
     name = (getattr(context.provider, 'config', None) or {}).get('assistant')
     if name:
         from ...ai.assistant import readiness
         try: found = readiness.probe(name, fresh=True)
         except Exception: found = {'ready': True}
         if not found['ready']:
-            return SkipStage(f"during the check {found['name']} stopped answering ({found['code']}): {problem}"[:300], code=found['code'],
+            return SkipStage(f"during the check {found['name']} stopped answering ({found['code']}): {problem}"[:300],
+                             code=found['code'],
                              lost={'assistant': name, 'resets': found.get('resets'), 'code': found['code']})
     return SkipStage(problem, code=code)
 
 
 def roles(context):
-    """The kinds of users the app has, read from its code by the assistant (eaos/live/access/roles.py): the app is opened as each."""
+    """The kinds of users the app has, read from its code by the assistant (eaos/live/access/roles.py): the app is
+    opened as each."""
     if not context.provider: raise _absent(context.provider)
     from ...core.system.process import Stuck
     from ...live.access.roles import find
     try: kinds = find(context.target, context.out, context.provider)
     except Stuck as problem: raise _lost(context, str(problem), 'ai_stuck') from None
     except Exception as problem:                       # the assistant never decides the fate of the check
-        raise _lost(context, f"the kinds of users could not be read ({type(problem).__name__}: {problem})"[:300], 'ai_failed') from None
+        raise _lost(context, f"the kinds of users could not be read ({type(problem).__name__}: {problem})"[:300],
+                    'ai_failed') from None
     return {'kinds': len(kinds)}
 
 
@@ -54,7 +57,8 @@ def _node(context, name):
     if record['method'] != 'model':
         raise _lost(context, record['why'], 'ai_stuck' if record['why'] == core.WORDS['stuck'] else 'ai_failed')
     return record, {'dropped': len(record['dropped']), 'calls': 0 if record['cached'] else record['calls'],
-                    'assistant': record['assistant'], 'model': record['model'], **_partly(context, record.get('batches'))}
+                    'assistant': record['assistant'], 'model': record['model'],
+                    **_partly(context, record.get('batches'))}
 
 
 def _partly(context, batches):
@@ -62,7 +66,8 @@ def _partly(context, batches):
     rules decided the rest, so the stage says so and the check is PARTIAL; running the stage again asks only those."""
     if not batches: return {}
     answered = batches['asked'] - batches['failed']
-    lost = _lost(context, f"the assistant answered {answered} of {batches['asked']} batches; the rules decided the rest "
+    lost = _lost(context,
+                 f"the assistant answered {answered} of {batches['asked']} batches; the rules decided the rest "
                           f"({batches['why']})", 'ai_partial')
     who = (getattr(context.provider, 'config', None) or {}).get('assistant')
     return {'assistant_lost': {**(lost.lost or {'assistant': who, 'resets': None}), 'why': str(lost)[:300],

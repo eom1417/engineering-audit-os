@@ -37,7 +37,8 @@ def _addresses(env):
 def _commands(proposal):
     """A command that deploys, or that starts with none of RUNNERS."""
     problems = []
-    for argv in [proposal.get('start')] + [c for key in ('install', 'prepare', 'build') for c in proposal.get(key) or []]:
+    for argv in [proposal.get('start')] + [c for key in ('install', 'prepare', 'build')
+                                           for c in proposal.get(key) or []]:
         if not argv: continue
         text = ' '.join(map(str, argv))
         if DANGER.search(text): problems.append(f'refused: {text[:120]}')
@@ -47,7 +48,8 @@ def _commands(proposal):
 
 def _seed(script):
     """A seed script that mentions a hosted environment or reaches another computer."""
-    problems = [f"the seed script mentions {DANGER.search(script)[0]!r}, which a run never reaches"] if DANGER.search(script) else []
+    problems = ([f"the seed script mentions {DANGER.search(script)[0]!r}, which a run never reaches"]
+                if DANGER.search(script) else [])
     return problems + [f'the seed script reaches {host}' for host in re.findall(r'https?://([^:/\s\'"`]+)', script)
                        if host not in ('127.0.0.1', 'localhost')]
 
@@ -57,7 +59,8 @@ def apply(runtime, proposal, mode='lock'):
     written beside it, never into the project."""
     profile = json.loads((Path(runtime) / 'run.json').read_text(encoding='utf-8'))
     _merge(profile.setdefault('baseline', {}) if mode == 'baseline' else profile, proposal, mode)
-    if proposal.get('database') == 'postgres' and 'database' not in profile: profile['database'] = {'kind': 'postgres', 'name': 'app'}
+    if proposal.get('database') == 'postgres' and 'database' not in profile:
+        profile['database'] = {'kind': 'postgres', 'name': 'app'}
     if mode == 'lock': _lock_only(runtime, profile, proposal)
     write_profile(runtime, profile)
     return profile

@@ -25,20 +25,24 @@ from ...core.system.files import tomllib
 from ...core.system.files import read_json
 from ...facts.repository.craft import normal_path
 
-PUBLISHED = ('This project publishes a package (pyproject [project] or package.json without "private"): a moved module '
-             'keeps its names under a new import path, and code outside this repository that imports the old path breaks. '
-             'The gate reads this repository only.')
+PUBLISHED = ('This project publishes a package (pyproject [project] or package.json without "private"): a moved '
+             'module keeps its names under a new import path, and code outside this repository that imports the old '
+             'path breaks. The gate reads this repository only.')
 SURFACES = ('http', 'page', 'cli', 'graphql', 'rpc', 'websocket', 'job', 'event')
-JS_EXPORT = re.compile(r'^\s*export\s+(?:default\s+(?:async\s+)?(?:function|class)?\s*(\w+)?|(?:declare\s+)?(?:async\s+)?'
-                       r'(?:function\*?|class|const|let|var|type|interface|enum|abstract\s+class)\s+(\w+)|\{([^}]*)\}|\*\s+as\s+(\w+))', re.M)
-UNITTEST = re.compile(r'^(\w+) \(([\w.]+)\)(?:\n[^\n]*?)? \.\.\. (ok|FAIL|ERROR|skipped|expected failure|unexpected success)', re.M)
+JS_EXPORT = re.compile(r'^\s*export\s+(?:default\s+(?:async\s+)?(?:function|class)?\s*(\w+)?|'
+                       r'(?:declare\s+)?(?:async\s+)?'
+                       r'(?:function\*?|class|const|let|var|type|interface|enum|abstract\s+class)\s+(\w+)|'
+                       r'\{([^}]*)\}|\*\s+as\s+(\w+))', re.M)
+UNITTEST = re.compile(r'^(\w+) \(([\w.]+)\)(?:\n[^\n]*?)? \.\.\. '
+                      r'(ok|FAIL|ERROR|skipped|expected failure|unexpected success)', re.M)
 PYTEST = re.compile(r'^(PASSED|FAILED|ERROR|XFAIL|XPASS) (\S+::\S+)', re.M)
 TAP = re.compile(r'^\s*(not ok|ok) \d+ - (.+?)(?:\s+#\s*(SKIP|TODO)\b.*)?$', re.M | re.I)
 MARKED = re.compile(r'^\s*(✓|√|✔|×|✕|✗|↓)\s+(.+?)(?:\s+\(?\d+(?:\.\d+)?\s*m?s\)?)?\s*$', re.M)
 COUNTS = re.compile(r'(\d+)\s+(passed|failed|skipped|errors?)\b|Ran (\d+) tests?', re.I)
-RESULT = {'ok': 'passed', 'passed': 'passed', 'xpass': 'passed', 'unexpected success': 'passed', '✓': 'passed', '√': 'passed',
-          '✔': 'passed', 'fail': 'failed', 'failed': 'failed', 'error': 'failed', 'not ok': 'failed', '×': 'failed', '✕': 'failed',
-          '✗': 'failed', 'skipped': 'skipped', 'expected failure': 'skipped', 'xfail': 'skipped', '↓': 'skipped'}
+RESULT = {'ok': 'passed', 'passed': 'passed', 'xpass': 'passed', 'unexpected success': 'passed', '✓': 'passed',
+          '√': 'passed', '✔': 'passed', 'fail': 'failed', 'failed': 'failed', 'error': 'failed', 'not ok': 'failed',
+          '×': 'failed', '✕': 'failed', '✗': 'failed', 'skipped': 'skipped', 'expected failure': 'skipped',
+          'xfail': 'skipped', '↓': 'skipped'}
 
 
 def surface(root, known):
@@ -75,14 +79,16 @@ def _python_commands(text, known, folder):
     project = data.get('project') or {}
     declared = {**(project.get('scripts') or {}), **(project.get('gui-scripts') or {}),
                 **(((data.get('tool') or {}).get('poetry') or {}).get('scripts') or {})}
-    return {f'script:{name}': _module_file(str(target).split(':')[0], known, folder) for name, target in declared.items()}
+    return {f'script:{name}': _module_file(str(target).split(':')[0], known, folder)
+            for name, target in declared.items()}
 
 
 def _module_file(module, known, folder):
     """The file a dotted module name is read from (the package's folder, then its src/ layout)."""
     base = '' if folder in ('', '.') else folder + '/'
     stem = module.replace('.', '/')
-    for candidate in (f'{base}{stem}.py', f'{base}{stem}/__init__.py', f'{base}src/{stem}.py', f'{base}src/{stem}/__init__.py'):
+    for candidate in (f'{base}{stem}.py', f'{base}{stem}/__init__.py', f'{base}src/{stem}.py',
+                      f'{base}src/{stem}/__init__.py'):
         if candidate in known: return candidate
     return f'missing:{module}'
 
@@ -131,8 +137,10 @@ def _defined(node):
     """The names one top-level statement binds."""
     if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)): return {node.name}
     if isinstance(node, (ast.Assign, ast.AnnAssign)):
-        return {t.id for t in (node.targets if isinstance(node, ast.Assign) else [node.target]) if isinstance(t, ast.Name)}
-    if isinstance(node, (ast.Import, ast.ImportFrom)): return {(a.asname or a.name).split('.')[0] for a in node.names if a.name != '*'}
+        return {t.id for t in (node.targets if isinstance(node, ast.Assign) else [node.target])
+                if isinstance(t, ast.Name)}
+    if isinstance(node, (ast.Import, ast.ImportFrom)):
+        return {(a.asname or a.name).split('.')[0] for a in node.names if a.name != '*'}
     return set()
 
 
@@ -153,7 +161,8 @@ def _text(root, path):
 
 def surface_differences(before, after, mapping):
     """Each difference of the public surface, the old places read through `mapping` {old file: new file}."""
-    return _entry_differences(before, after) + _command_differences(before, after, mapping) + _export_differences(before, after, mapping)
+    return (_entry_differences(before, after) + _command_differences(before, after, mapping)
+            + _export_differences(before, after, mapping))
 
 
 def _shown(row):
@@ -162,14 +171,16 @@ def _shown(row):
 
 def _entry_differences(before, after):
     return ([f'the entry point {_shown(row)} is gone' for row in before['entries'] if row not in after['entries']]
-            + [f'a new entry point appeared: {_shown(row)}' for row in after['entries'] if row not in before['entries']])
+            + [f'a new entry point appeared: {_shown(row)}' for row in after['entries']
+               if row not in before['entries']])
 
 
 def _command_differences(before, after, mapping):
     out = []
     for name, runs in before['commands'].items():
         now = after['commands'].get(name)
-        if now != mapping.get(runs, runs): out.append(f'the command {name} ran {runs} and now runs {now or "nothing"}')
+        if now != mapping.get(runs, runs):
+            out.append(f'the command {name} ran {runs} and now runs {now or "nothing"}')
     return out + [f'a new command appeared: {name}' for name in after['commands'] if name not in before['commands']]
 
 
@@ -190,7 +201,8 @@ def test_results(output):
     for test, name, result in UNITTEST.findall(output):
         found[(name if name.endswith(f'.{test}') else f'{name}.{test}', RESULT[result.lower()])] += 1
     for result, name in PYTEST.findall(output): found[(name, RESULT[result.lower()])] += 1
-    for result, name, directive in TAP.findall(output): found[(name.strip(), 'skipped' if directive else RESULT[result.lower()])] += 1
+    for result, name, directive in TAP.findall(output):
+        found[(name.strip(), 'skipped' if directive else RESULT[result.lower()])] += 1
     for mark, name in MARKED.findall(output): found[(name.strip(), RESULT[mark])] += 1
     if found: return found
     counts = Counter()
@@ -255,5 +267,6 @@ def test_differences(before, after, mapping):
 def unproven(before):
     """Why the project's tests cannot prove a move changed nothing (no test ran, or none could be counted), else ''."""
     if not before: return 'the project has no check or test EAOS can run'
-    if not any(test_results(row['output']) for row in before): return 'its tests ran, but EAOS could not read which passed'
+    if not any(test_results(row['output']) for row in before):
+        return 'its tests ran, but EAOS could not read which passed'
     return ''

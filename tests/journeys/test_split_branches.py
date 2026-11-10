@@ -29,7 +29,8 @@ def batch(changes):
     project.mkdir()
     git(project, 'init', '-q')
     commit_file(project, 'a.txt', 'a\n')
-    cards = [{'id': card_id, 'title': card_id, 'pattern': pattern, 'paths': [name]} for card_id, pattern, name, _ in changes]
+    cards = [{'id': card_id, 'title': card_id, 'pattern': pattern, 'paths': [name]}
+             for card_id, pattern, name, _ in changes]
     (report / 'plan.json').write_text(json.dumps({'tasks': cards}))
     root = Path(scratch()) / 'candidate'
     subprocess.run(['git', 'clone', '-q', str(project), str(root)], check=True)
@@ -44,14 +45,16 @@ def files(project, branch):
     return sorted(git(project, 'ls-tree', '--name-only', branch).split())
 
 
-PASSING = mock.patch('eaos.journeys.fix.split.batch_acceptance', side_effect=lambda report, cards, root, **_: {c['id']: 0 for c in cards})
+PASSING = mock.patch('eaos.journeys.fix.split.batch_acceptance',
+                     side_effect=lambda report, cards, root, **_: {c['id']: 0 for c in cards})
 
 
 class SplitTests(unittest.TestCase):
     def test_a_batch_of_a_dependency_and_a_refactor_is_handed_over_whole_and_as_one_branch_of_each(self):
         # without the split, one branch mixes upgrades, refactors and looks in many files, none mergeable in pieces
-        project, report, runtime, wave, summary = batch([('T1', 'upgrade_dependency', 'requirements.txt', 'fastapi==1\n'),
-                                                         ('T2', 'split_module', 'code.py', 'x = 1\n')])
+        project, report, runtime, wave, summary = batch([
+            ('T1', 'upgrade_dependency', 'requirements.txt', 'fastapi==1\n'),
+            ('T2', 'split_module', 'code.py', 'x = 1\n')])
         tip = git(wave['root'], 'rev-parse', 'HEAD')
         with PASSING:
             made = split.split((report, runtime, project), wave, summary)
@@ -59,12 +62,14 @@ class SplitTests(unittest.TestCase):
                                          {'kind': 'refactor', 'cards': ['T2'], 'branch': 'eaos/wave-1-refactor'}])
         self.assertEqual(files(project, 'eaos/wave-1-deps'), ['a.txt', 'requirements.txt'])
         self.assertEqual(files(project, 'eaos/wave-1-refactor'), ['a.txt', 'code.py'])
-        self.assertEqual(files(project, 'eaos/wave-1'), ['a.txt', 'code.py', 'requirements.txt'], 'the whole branch stays')
+        self.assertEqual(files(project, 'eaos/wave-1'), ['a.txt', 'code.py', 'requirements.txt'],
+                         'the whole branch stays')
         self.assertEqual(git(wave['root'], 'rev-parse', 'HEAD'), tip, "the batch's copy is back at its tip")
 
     def test_a_kind_whose_changes_do_not_apply_alone_is_named_not_made(self):
-        project, report, runtime, wave, summary = batch([('T1', 'upgrade_dependency', 'requirements.txt', 'fastapi==1\n'),
-                                                         ('T2', 'split_module', 'requirements.txt', 'fastapi==1\nx\n')])
+        project, report, runtime, wave, summary = batch([
+            ('T1', 'upgrade_dependency', 'requirements.txt', 'fastapi==1\n'),
+            ('T2', 'split_module', 'requirements.txt', 'fastapi==1\nx\n')])
         with PASSING:
             made = split.split((report, runtime, project), wave, summary)
         self.assertEqual([each['branch'] for each in made['split']], ['eaos/wave-1-deps'])
@@ -73,13 +78,15 @@ class SplitTests(unittest.TestCase):
         self.assertNotIn('eaos/wave-1-refactor', git(project, 'branch', '--list', 'eaos/wave-1-refactor'))
 
     def test_a_batch_of_one_kind_is_not_split(self):
-        project, report, runtime, wave, summary = batch([('T1', 'split_module', 'one.py', '1\n'), ('T2', 'hotspot', 'two.py', '2\n')])
+        project, report, runtime, wave, summary = batch([('T1', 'split_module', 'one.py', '1\n'),
+                                                         ('T2', 'hotspot', 'two.py', '2\n')])
         self.assertEqual(split.split((report, runtime, project), wave, summary), {})
 
     def test_undo_removes_the_branches_the_batch_was_split_into(self):
         from eaos.journeys import agent_tools, guided
-        project, report, runtime, wave, summary = batch([('T1', 'upgrade_dependency', 'requirements.txt', 'fastapi==1\n'),
-                                                         ('T2', 'design_review', 'site.css', 'a {}\n')])
+        project, report, runtime, wave, summary = batch([
+            ('T1', 'upgrade_dependency', 'requirements.txt', 'fastapi==1\n'),
+            ('T2', 'design_review', 'site.css', 'a {}\n')])
         with mock.patch.dict(os.environ, {'EAOS_HOME': scratch()}):
             with PASSING:
                 made = split.split((report, runtime, project), wave, summary)

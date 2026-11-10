@@ -13,16 +13,20 @@ from eaos.pipeline import execute
 
 ROOT = Path(__file__).resolve().parents[2]
 DEFINED = [{'path': 'app/prices.py', 'line': 1}, {'path': 'app/report.py', 'line': 1}]
-SAME = {'domain': {'facts': [{'id': 'FACT-1', 'kind': 'domain_constant', 'value': {'distinct_values': 1, 'definitions': DEFINED}}]}}
-DIFFERENT = {'domain': {'facts': [{'id': 'FACT-1', 'kind': 'domain_constant', 'value': {'distinct_values': 2, 'definitions': DEFINED}}]}}
+SAME = {'domain': {'facts': [{'id': 'FACT-1', 'kind': 'domain_constant', 'value': {'distinct_values': 1,
+    'definitions': DEFINED}}]}}
+DIFFERENT = {'domain': {'facts': [{'id': 'FACT-1', 'kind': 'domain_constant', 'value': {'distinct_values': 2,
+    'definitions': DEFINED}}]}}
 ACROSS = {'domain': {'facts': [{'id': 'FACT-1', 'kind': 'domain_constant', 'value': {
-    'distinct_values': 1, 'definitions': [{'path': 'api/orders.ts', 'line': 3}, {'path': 'core/pricing.py', 'line': 4}]}}]}}
+    'distinct_values': 1, 'definitions': [{'path': 'api/orders.ts', 'line': 3}, {'path': 'core/pricing.py',
+        'line': 4}]}}]}}
 
 
 def claim(key='duplicated_rule', origin='source', confidence='CONFIRMED'):
     return {'id': 'CLM-001', 'statement': 'RATE is defined in 2 places', 'confidence': confidence, 'origin': origin,
             'fact_ids': ['FACT-1'], 'render': {'key': key},
-            'probe_spec': {'probe_type': 'absence_search', 'specification': {'patterns': [r'\bRATE\b'], 'search_scope': ['source']}}}
+            'probe_spec': {'probe_type': 'absence_search', 'specification': {'patterns': [r'\bRATE\b'],
+                'search_scope': ['source']}}}
 
 
 class AssessmentTests(Workspace):
@@ -53,9 +57,11 @@ class AssessmentTests(Workspace):
     def test_a_load_blocker_is_rechecked_by_its_entry_path_and_route_not_by_a_fact_id(self):
         blocker = {**claim(key='load_blocker'), 'probe_spec': {'probe_type': 'graph_query', 'specification': {
             'query': 'load_blocker_present', 'entry_point': 'FACT-9', 'question': 'result_is_bounded'}}}
-        sets = {'entrypoints': {'facts': [{'id': 'FACT-9', 'location': {'path': 'src/api.ts'}, 'value': {'route': '/items'}}]}}
+        sets = {'entrypoints': {'facts': [{'id': 'FACT-9', 'location': {'path': 'src/api.ts'},
+                                           'value': {'route': '/items'}}]}}
         spec = json.loads(build_assessment(blocker, sets, self.tmp)['checks'][0]['argv'][5])
-        self.assertEqual((spec['specification']['entry_path'], spec['specification']['entry_route']), ('src/api.ts', '/items'))
+        self.assertEqual((spec['specification']['entry_path'], spec['specification']['entry_route']), ('src/api.ts',
+            '/items'))
 
 
 class RecheckTests(Workspace):

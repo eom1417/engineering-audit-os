@@ -27,7 +27,8 @@ class ScopeTests(Workspace):
 
     def syntax_paths(self, repo, out):
         result = collect(repo, out, ['syntax'])
-        return result, {fact['location']['path'] for fact in json.loads((out / 'facts/syntax.json').read_text())['facts']}
+        return result, {fact['location']['path']
+                        for fact in json.loads((out / 'facts/syntax.json').read_text())['facts']}
 
     def test_vendored_paths_and_assistant_worktrees_are_excluded_with_a_reason(self):
         repo = self.make_repo()

@@ -7,7 +7,9 @@ PATH = 'src/services/orders.ts'
 
 
 def at(fact_kind, start, end=None, **value):
-    return {'kind': fact_kind, 'location': {'path': PATH, 'start_line': start, 'end_line': end or start, 'symbol': value.pop('symbol', None)},
+    return {'kind': fact_kind,
+            'location': {'path': PATH, 'start_line': start, 'end_line': end or start,
+                         'symbol': value.pop('symbol', None)},
             'value': value}
 
 

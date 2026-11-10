@@ -32,8 +32,11 @@ def _as_the_person(workspace, cookie='signed'):
     def answer():
         while not sign_in.asked(workspace): time.sleep(0.05)
         record = sign_in.asked(workspace)
-        Path(record['session']).write_text(json.dumps({'cookies': [{'name': 'session', 'value': cookie, 'domain': '127.0.0.1', 'path': '/',
-                                                                    'expires': -1, 'httpOnly': True, 'secure': False, 'sameSite': 'Lax'}], 'origins': []}))
+        Path(record['session']).write_text(json.dumps({'cookies': [{'name': 'session', 'value': cookie,
+                                                                    'domain': '127.0.0.1', 'path': '/',
+                                                                    'expires': -1, 'httpOnly': True,
+                                                                    'secure': False, 'sameSite': 'Lax'}],
+                                                       'origins': []}))
         sign_in.answer(workspace, sign_in.SIGNED_IN)
     thread = threading.Thread(target=answer, daemon=True)
     thread.start()
@@ -61,25 +64,32 @@ class SignInTests(unittest.TestCase):
     def test_the_need_shows_in_a_redirect_to_the_sign_in_and_nothing_is_asked_without_one(self):
         self.assertEqual(sign_in.from_pages(SIGNED_OUT_PAGE), ['/ showed the sign-in page http://127.0.0.1:1/login'])
         self.assertEqual(sign_in.from_pages({**SIGNED_OUT_PAGE, 'url': 'http://127.0.0.1:1/'}), [])
-        (self.root / 'features.json').write_text(json.dumps({'features': [{'name': 'auth', 'surfaces': ['/login']}, {'name': 'shop', 'surfaces': ['/']}]}))
+        (self.root / 'features.json').write_text(json.dumps({'features': [{'name': 'auth', 'surfaces': ['/login']},
+                                                                          {'name': 'shop', 'surfaces': ['/']}]}))
         self.assertEqual(sign_in.from_code(self.root), ['/login: a sign-in route of the code'])
         # A sign-in route grouped with the rest of an API must still be seen, or the check says no sign-in is needed
-        (self.root / 'features.json').write_text(json.dumps({'features': [{'name': 'api', 'surfaces': ['/api/login', '/api/orders']}]}))
+        (self.root / 'features.json').write_text(
+            json.dumps({'features': [{'name': 'api', 'surfaces': ['/api/login', '/api/orders']}]}))
         self.assertEqual(sign_in.from_code(self.root), ['/api/login: a sign-in route of the code'])
         from eaos.live.app.setup import routes
         (self.root / 'behavior-lock').mkdir()
-        (self.root / 'behavior-lock/plan.json').write_text(json.dumps({'specs': [{'surfaces': ['/logout', '/settings', '/sign-out', '/reports']}]}))
-        self.assertEqual(routes(self.root), ['/settings', '/reports'], 'the probe of a session never opens a page that ends it')
+        (self.root / 'behavior-lock/plan.json').write_text(
+            json.dumps({'specs': [{'surfaces': ['/logout', '/settings', '/sign-out', '/reports']}]}))
+        self.assertEqual(routes(self.root), ['/settings', '/reports'],
+                         'the probe of a session never opens a page that ends it')
         runners = fake_runners()
         runners['session'] = sign_in_stage.session
         (self.root / 'project').mkdir()
         app = (SimpleNamespace(), 'http://127.0.0.1:1', self.root / 'runtime/session.json')
-        with mock.patch.object(sign_in_stage, 'shared_app', return_value=app), mock.patch('eaos.live.access.test_users.unreached', return_value={}), \
-                mock.patch.object(sign_in_stage, '_test_users') as made, mock.patch.object(sign_in_stage, '_ask') as asked:
+        with mock.patch.object(sign_in_stage, 'shared_app', return_value=app), \
+                mock.patch('eaos.live.access.test_users.unreached', return_value={}), \
+                mock.patch.object(sign_in_stage, '_test_users') as made, \
+                mock.patch.object(sign_in_stage, '_ask') as asked:
             result = execute(self.root / 'project', self.root / 'out', runners=runners, runtime=self.root / 'runtime',
                              sign_in={'folder': str(self.root)})
         self.assertEqual(result['stages']['session']['status'], 'ok')
-        self.assertEqual(json.loads((self.root / 'out/live/sign-in.json').read_text()), {'schema_version': 1, 'needed': False})
+        self.assertEqual(json.loads((self.root / 'out/live/sign-in.json').read_text()),
+                         {'schema_version': 1, 'needed': False})
         made.assert_not_called()                        # every page opens and the code has no view: nothing made
         asked.assert_not_called()
 
@@ -89,11 +99,13 @@ class SignInTests(unittest.TestCase):
         context.setdefault = lambda key, default: default
         (self.root / 'out').mkdir()
         app = (SimpleNamespace(), 'http://127.0.0.1:1', self.root / 'runtime/session.json')
-        with mock.patch.object(sign_in_stage, '_live'), mock.patch.object(sign_in_stage, 'shared_app', return_value=app), \
+        with mock.patch.object(sign_in_stage, '_live'), \
+                mock.patch.object(sign_in_stage, 'shared_app', return_value=app), \
                 mock.patch.object(sign_in_stage.sign_in, 'from_code', return_value=[]), \
                 mock.patch.object(sign_in_stage.sign_in, 'from_pages', return_value=[]), \
                 mock.patch.object(sign_in_stage, '_setup_page', return_value=None), \
-                mock.patch('eaos.live.access.test_users.unreached', return_value={'/access': 'src/programme/Access.tsx', '/rota': None}), \
+                mock.patch('eaos.live.access.test_users.unreached',
+                           return_value={'/access': 'src/programme/Access.tsx', '/rota': None}), \
                 mock.patch.object(sign_in_stage, '_test_users', return_value='') as made, \
                 mock.patch.object(sign_in_stage, '_ask') as asked, mock.patch.object(sign_in_stage, '_keep') as kept:
             sign_in_stage.session(context)
@@ -105,12 +117,15 @@ class SignInTests(unittest.TestCase):
     def test_a_sign_in_that_did_not_take_is_asked_again_on_the_page_the_app_sends_to(self):
         # "I signed in" with the pages still signed out must not end the wait as if nobody came; the browser opens the
         # sign-in page the pages are sent to, not the first page
-        page = {'url': 'http://127.0.0.1:4100/', 'others': [{'path': '/notes', 'url': 'http://127.0.0.1:4100/login?next=%2Fnotes'}]}
+        page = {'url': 'http://127.0.0.1:4100/',
+                'others': [{'path': '/notes', 'url': 'http://127.0.0.1:4100/login?next=%2Fnotes'}]}
         self.assertEqual(sign_in.page_of(page, 'http://127.0.0.1:5200'), 'http://127.0.0.1:5200/login?next=%2Fnotes')
         live = SimpleNamespace(runtime=self.root / 'runtime', mail=lambda: None)
         context = SimpleNamespace(out=self.root)
-        with mock.patch.object(sign_in, 'ask') as ask, mock.patch.object(sign_in, 'wait', return_value=sign_in.SIGNED_IN), \
-                mock.patch.object(sign_in, 'works', side_effect=[False, True]), mock.patch.object(sign_in, 'service_log', return_value=None):
+        with mock.patch.object(sign_in, 'ask') as ask, \
+                mock.patch.object(sign_in, 'wait', return_value=sign_in.SIGNED_IN), \
+                mock.patch.object(sign_in, 'works', side_effect=[False, True]), \
+                mock.patch.object(sign_in, 'service_log', return_value=None):
             sign_in_stage._ask(context, {}, live, 'http://127.0.0.1:5200', Path('session.json'))
         self.assertEqual([call.args[3] for call in ask.call_args_list], ['needed', 'not_signed_in'])
 
@@ -140,16 +155,20 @@ class SignInTests(unittest.TestCase):
                 runners.update(setup=setup, session=session, measure=measure)
                 if answered: _as_the_person(workspace)
                 works = lambda live, base, state, report=None: Path(state).is_file()
-                with mock.patch.object(sign_in_stage, 'shared_app', return_value=(live, 'http://127.0.0.1:1', sign_in.session(live.runtime))), \
-                        mock.patch.object(sign_in, 'WAIT', 2), mock.patch.object(sign_in_stage.sign_in, 'works', side_effect=works):
+                with mock.patch.object(sign_in_stage, 'shared_app',
+                                       return_value=(live, 'http://127.0.0.1:1', sign_in.session(live.runtime))), \
+                        mock.patch.object(sign_in, 'WAIT', 2), \
+                        mock.patch.object(sign_in_stage.sign_in, 'works', side_effect=works):
                     sign_in.session(live.runtime).unlink(missing_ok=True)
-                    result = execute(project, out, runners=runners, runtime=live.runtime, mode='normal', sign_in={'folder': str(workspace)})
+                    result = execute(project, out, runners=runners, runtime=live.runtime, mode='normal',
+                                     sign_in={'folder': str(workspace)})
                 row = result['stages']['session']
                 self.assertIsNone(sign_in.asked(workspace), 'the question goes once answered or no longer waited for')
                 if not answered:
                     self.assertEqual((row['status'], row['reason_code']), ('unavailable', 'signed_out'), row['reason'])
                     self.assertIn('seen signed out', row['reason'])
-                    self.assertLess(seen['began'], seen['measure'], 'a stage that opens no page ran while the check waited')
+                    self.assertLess(seen['began'], seen['measure'],
+                                    'a stage that opens no page ran while the check waited')
                     self.assertLess(seen['measure'], seen['ended'])
                 else:
                     self.assertEqual((row['status'], row['detail'].get('how')), ('ok', 'hand'), row)
@@ -168,14 +187,17 @@ class SignInTests(unittest.TestCase):
             [str(home() / 'bin/mailpit'), '--smtp', f'127.0.0.1:{smtp}', '--listen', f'127.0.0.1:{mail}', '--quiet'])]
         for process in catcher: self.addCleanup(process.wait); self.addCleanup(process.terminate)
         with open(log, 'w') as output:
-            app = subprocess.Popen(['node', 'server.mjs'], cwd=OTP_APP, env={**os.environ, 'PORT': str(port), 'AUTH_SECRET': 's' * 40,
-                                   **({'SMTP_HOST': '127.0.0.1', 'SMTP_PORT': str(smtp)} if catcher else {})}, stdout=output, stderr=output)
+            app = subprocess.Popen(['node', 'server.mjs'], cwd=OTP_APP,
+                                   env={**os.environ, 'PORT': str(port), 'AUTH_SECRET': 's' * 40,
+                                        **({'SMTP_HOST': '127.0.0.1', 'SMTP_PORT': str(smtp)} if catcher else {})},
+                                   stdout=output, stderr=output)
         self.addCleanup(app.wait)
         self.addCleanup(app.terminate)
         listening(port)
         browser = Browser(f'http://127.0.0.1:{port}/', self.root / 'session.json')
         self.assertTrue(browser.send({'do': 'look'})['url'].endswith('/login'))
-        for command in ({'do': 'key', 'key': 'Tab'}, {'do': 'type', 'text': 'me@example.test'}, {'do': 'key', 'key': 'Enter'}):
+        for command in ({'do': 'key', 'key': 'Tab'}, {'do': 'type', 'text': 'me@example.test'},
+                        {'do': 'key', 'key': 'Enter'}):
             shown = browser.send(command)
         self.assertIn('/verify', shown['url'])
         said = sign_in.codes({'log': str(log), 'mail': f'http://127.0.0.1:{mail}' if catcher else None})
@@ -185,7 +207,8 @@ class SignInTests(unittest.TestCase):
                 if said['mail']: break
                 time.sleep(0.25)
                 said = sign_in.codes({'mail': f'http://127.0.0.1:{mail}'})
-            self.assertEqual((said['mail'][0]['to'], said['mail'][0]['subject']), ('me@example.test', 'Your sign-in code'))
+            self.assertEqual((said['mail'][0]['to'], said['mail'][0]['subject']),
+                             ('me@example.test', 'Your sign-in code'))
             self.assertIn(code, said['mail'][0]['text'], 'the mail the app sent is caught here, never sent out')
         for command in ({'do': 'key', 'key': 'Tab'}, {'do': 'type', 'text': code}, {'do': 'key', 'key': 'Enter'}):
             shown = browser.send(command)
@@ -194,7 +217,8 @@ class SignInTests(unittest.TestCase):
         self.assertIsNotNone(browser.process.returncode, 'the browser has ended')
         self.assertEqual(os.stat(self.root / 'session.json').st_mode & 0o777, 0o600)
         cookie = json.loads((self.root / 'session.json').read_text())['cookies'][0]
-        request = urllib.request.Request(f'http://127.0.0.1:{port}/reports/1', headers={'Cookie': f"session={cookie['value']}"})
+        request = urllib.request.Request(f'http://127.0.0.1:{port}/reports/1',
+                                         headers={'Cookie': f"session={cookie['value']}"})
         with urllib.request.urlopen(request) as response: self.assertIn(b'Only me@example.test', response.read())
 
     @needs(missing('playwright') and 'the pinned Playwright is not installed')
@@ -219,7 +243,8 @@ class SignInTests(unittest.TestCase):
         self.addCleanup(site.server_close)
         self.addCleanup(site.shutdown)
         (self.root / 'session.json').write_text(json.dumps({'cookies': [], 'origins': []}))
-        routes, error = discover(f'http://127.0.0.1:{site.server_address[1]}/', storage_state=self.root / 'session.json', read_only=True)
+        routes, error = discover(f'http://127.0.0.1:{site.server_address[1]}/',
+                                 storage_state=self.root / 'session.json', read_only=True)
         self.assertFalse(error)
         self.assertEqual(sorted(row['path'] for row in routes), ['/', '/a'])
         self.assertEqual({method for method, _ in asked}, {'GET'})
@@ -231,15 +256,19 @@ class SignInTests(unittest.TestCase):
         session = self.root / 'published-session.json'
         session.write_text(json.dumps({'cookies': [{'name': 'session', 'value': 'live'}], 'origins': []}))
         measured = []
-        speed = lambda url, out=None, storage_state=None, **_: measured.append(storage_state) or {'status': 'unavailable', 'reason': 'x'}
+        speed = lambda url, out=None, storage_state=None, **_: measured.append(storage_state) or {
+            'status': 'unavailable', 'reason': 'x'}
         with mock.patch.object(crawl, 'lighthouse', side_effect=speed), \
-                mock.patch.object(crawl, 'discover', return_value=([{'path': '/', 'status': 'observed', 'depth': 0}], '')):
+                mock.patch.object(crawl, 'discover',
+                                  return_value=([{'path': '/', 'status': 'observed', 'depth': 0}], '')):
             crawl.crawl('https://app.example.com', self.root, storage_state=session, read_only=True)
-        context = SimpleNamespace(out=self.root, get=lambda key, default=None: {'sign_in': {'published': 'https://app.example.com',
-                                                                                             'folder': str(self.root)}}.get(key, default))
+        context = SimpleNamespace(out=self.root, get=lambda key, default=None: {
+            'sign_in': {'published': 'https://app.example.com', 'folder': str(self.root)}}.get(key, default))
         with mock.patch('eaos.live.screens.audit.lighthouse', side_effect=speed), \
-                mock.patch('eaos.live.screens.audit.page_audit', return_value={'status': 'observed', 'rows': [], 'tools': {}}):
-            pages._audit_pages(context, (None, 'https://app.example.com', []), (None, session), ({'/': ['/']}, None), True)
+                mock.patch('eaos.live.screens.audit.page_audit',
+                           return_value={'status': 'observed', 'rows': [], 'tools': {}}):
+            pages._audit_pages(context, (None, 'https://app.example.com', []), (None, session),
+                               ({'/': ['/']}, None), True)
         self.assertEqual(measured, [None, None], 'Lighthouse loads the live site as any visitor, never signed in')
 
     def test_the_session_is_its_owners_and_eaos_clean_forgets_it(self):

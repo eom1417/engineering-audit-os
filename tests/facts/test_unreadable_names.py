@@ -62,7 +62,8 @@ class Facts(unittest.TestCase):
             with self.subTest(layout):
                 _, done = self._collected(layout)
                 self.assertEqual([row['path'] for row in done['unread_names']], [SHOWN])
-                syntax = json.loads((self.root / f'{layout}-facts' / 'facts' / 'syntax.json').read_text(encoding='utf-8'))
+                syntax = json.loads((self.root / f'{layout}-facts' / 'facts' / 'syntax.json')
+                                    .read_text(encoding='utf-8'))
                 said = json.dumps(syntax['facts'])
                 self.assertIn('good', said)
                 self.assertNotIn('bad', said, 'a file not read has no facts of a clean file')
@@ -89,7 +90,8 @@ class TheEngines(unittest.TestCase):
             project = _project(Path(scratch) / 'app', 'no git')
             before = state_digest(project)
             (project / BAD).write_bytes(b'def bad():\n    return 22222\n')
-            self.assertNotEqual(state_digest(project), before, 'the proof no analyzer edited the project covers this file too')
+            self.assertNotEqual(state_digest(project), before,
+                                'the proof no analyzer edited the project covers this file too')
         said = run_command([sys.executable, '-c', r"import sys; sys.stdout.buffer.write(b'caf\xe9.py')"], 30)
         self.assertEqual((said.returncode, said.stdout), (0, SHOWN))
 

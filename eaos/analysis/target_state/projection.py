@@ -33,13 +33,16 @@ TOOLS = {  # area -> (tool by reference id prefix, else default; None means no t
     'dependencies': 'Renovate',
     'observability': {'python-desktop': None, 'python-cli': None, '': 'OpenTelemetry + SigNoz'},
     'tests': {'python': 'pytest + ApprovalTests', '': 'Playwright + Vitest'},
-    'migrations': {'python': 'Alembic', 'react-tanstack-start-supabase': 'Supabase CLI', 'react-vite-supabase': 'Supabase CLI', '': None},
+    'migrations': {'python': 'Alembic', 'react-tanstack-start-supabase': 'Supabase CLI',
+                   'react-vite-supabase': 'Supabase CLI', '': None},
     'data': {'react-tanstack-start-supabase': 'supabase gen types', 'react-vite-supabase': 'supabase gen types',
              'react-vite-spa-rest': 'OpenAPI + oasdiff', 'nextjs-app': 'Prisma', '': None},
-    'identity': {'react-tanstack-start-supabase': 'Supabase Auth + RLS', 'react-vite-supabase': 'Supabase Auth + RLS', '': None},
+    'identity': {'react-tanstack-start-supabase': 'Supabase Auth + RLS',
+                 'react-vite-supabase': 'Supabase Auth + RLS', '': None},
 }
 NO_TOOL = {'configuration': 'a code change: one typed settings module', 'secrets': "the host's own secret store",
-           'backup': 'a feature of the application', 'data': 'a schema owner in code', 'migrations': 'the stack has no migration tool to add',
+           'backup': 'a feature of the application', 'data': 'a schema owner in code',
+           'migrations': 'the stack has no migration tool to add',
            'identity': 'a code change in the api-client',
            'observability': 'a local rotating log inside the application; there is no server to collect from'}
 HOSTED = ('react-', 'nextjs', 'python-web')
@@ -138,7 +141,8 @@ def _rebuilds(stats, rule):
 
 
 def _retains(stats, rule):
-    return (stats['moved_share'] <= rule['moved_share_at_most'] and stats['forbidden'] <= rule['forbidden_edges_at_most']
+    return (stats['moved_share'] <= rule['moved_share_at_most']
+            and stats['forbidden'] <= rule['forbidden_edges_at_most']
             and stats['critical'] <= rule.get('critical_debt_at_most', 0)
             and stats['complexity_max'] < rule['complexity_max_below']
             and stats['duplicated_lines'] < rule['duplicated_lines_below'])
@@ -155,8 +159,10 @@ def _tool(area, reference_id):
     return choice
 
 
-MIGRATIONS = ('supabase/migrations', 'migrations', 'alembic', 'prisma/migrations', 'drizzle', 'server/migrations', 'db/migrations')
-HOSTING = ('vercel.json', 'netlify.toml', 'Dockerfile', 'fly.toml', 'railway.json', 'railway.toml', 'Procfile', 'nixpacks.toml', 'render.yaml')
+MIGRATIONS = ('supabase/migrations', 'migrations', 'alembic', 'prisma/migrations', 'drizzle',
+              'server/migrations', 'db/migrations')
+HOSTING = ('vercel.json', 'netlify.toml', 'Dockerfile', 'fly.toml', 'railway.json', 'railway.toml', 'Procfile',
+           'nixpacks.toml', 'render.yaml')
 
 
 def infrastructure(reference, facts, target, files, prefix=''):
@@ -164,7 +170,8 @@ def infrastructure(reference, facts, target, files, prefix=''):
     repository root or under the app root (a full-stack app keeps its app in app/ and its Dockerfile at the root)."""
     target = Path(target) if target else None
     observed = {**_observed_in_facts(facts), **_observed_in_files(_existing(target, prefix), files)}
-    if not observed['data'][0] and (client := _typed_client(facts)): observed['data'] = (True, f'typed data client: {client}')
+    if not observed['data'][0] and (client := _typed_client(facts)):
+        observed['data'] = (True, f'typed data client: {client}')
     return [_infrastructure_row(item, observed, reference['id']) for item in baseline_items(reference)]
 
 
@@ -184,7 +191,8 @@ TYPED_CLIENTS = ('@prisma/client', 'drizzle-orm', 'kysely', 'sqlalchemy', 'sqlmo
 def _typed_client(facts):
     """The typed data client the code imports (Drizzle's tables are its schema, in code), or None."""
     modules = {(f.get('value') or {}).get('module') or '' for f in facts.get('import_edge') or []}
-    return next((client for client in TYPED_CLIENTS if any(m == client or m.startswith(client + '/') for m in modules)), None)
+    return next((client for client in TYPED_CLIENTS
+                 if any(m == client or m.startswith(client + '/') for m in modules)), None)
 
 
 def _observed_in_facts(facts):
@@ -195,7 +203,8 @@ def _observed_in_facts(facts):
         'configuration': (len(env_files) <= 1, f"the environment is read in {len(env_files)} file(s)"
                           + (f": {', '.join(env_files[:4])}" if env_files else '')),
         'tests': (bool(tests), f"{len(tests)} test file(s)"),
-        'observability': (bool(facts['observability_signal']), f"{len(facts['observability_signal'])} observability signal(s)"),
+        'observability': (bool(facts['observability_signal']),
+                          f"{len(facts['observability_signal'])} observability signal(s)"),
         'secrets': _secrets_item(facts),
         'identity': _identity_item(facts),
     }
@@ -204,7 +213,8 @@ def _observed_in_facts(facts):
 def _secrets_item(facts):
     """(present, evidence) of the secrets item: no secret-class credential is committed."""
     # a sample in a test's data is no credential of the project's
-    secrets = [f for f in facts['committed_credential'] if (f.get('value') or {}).get('severity') not in ('public', 'test')
+    secrets = [f for f in facts['committed_credential']
+               if (f.get('value') or {}).get('severity') not in ('public', 'test')
                and classify((f.get('location') or {}).get('path') or '') != 'test']
     return not secrets, f"{len(secrets)} secret-class credential(s) committed"
 
@@ -230,7 +240,8 @@ def _observed_in_code(files):
     """The data and backup items: a typed schema source, and code that backs the data up."""
     schema = next((p for p in files if re.search(r'(supabase/types\.ts|openapi\.|schema\.prisma|alembic/)', p)), None)
     backup = next((p for p in files if 'backup' in p.lower()), None)
-    return {'data': (any(re.search(r'(supabase/types\.ts|openapi\.(ya?ml|json)|schema\.prisma|alembic/)', p) for p in files),
+    return {'data': (any(re.search(r'(supabase/types\.ts|openapi\.(ya?ml|json)|schema\.prisma|alembic/)', p)
+                         for p in files),
                      'typed schema source: ' + (schema or 'none')),
             'backup': (any('backup' in p.lower() for p in files), 'backup code: ' + (backup or 'none'))}
 
@@ -272,7 +283,8 @@ def project(out, target=None):
     known = _known(out, facts)
     components = _target_components(features, placed, reference, reference_id)
     _fill_components(components, placed, bad, reference)
-    return {'reference': reference_id, 'root': prefix, 'target_components': sorted(components.values(), key=lambda c: c['name']),
+    return {'reference': reference_id, 'root': prefix,
+            'target_components': sorted(components.values(), key=lambda c: c['name']),
             'target_edges': _target_edges(edges, placed, bad),
             'placements': {p: c for p, (c, _) in placed.items()}, 'forbidden_edges': bad,
             'current': _current_packages(files, placed, reference, bad, known),
@@ -282,8 +294,10 @@ def project(out, target=None):
 def _known(out, facts):
     """What decides a package's disposition beside its placement: each file's measurements, the unreachable modules,
     the critical debt items per file."""
-    return {'measured': {row['path']: row for row in (read_json(out / 'measurements.json', {}) or {}).get('files') or []},
-            'unreachable': {f['location']['path'] for f in facts['engine_finding'] if (f.get('value') or {}).get('rule') == 'unreachable-module'},
+    return {'measured': {row['path']: row
+                         for row in (read_json(out / 'measurements.json', {}) or {}).get('files') or []},
+            'unreachable': {f['location']['path'] for f in facts['engine_finding']
+                            if (f.get('value') or {}).get('rule') == 'unreachable-module'},
             'critical': _critical_by_file(out)}
 
 
@@ -340,7 +354,8 @@ def _measured_stats(members, measured):
 def _package_stats(members, placed, reference, bad, known):
     moved = sum(moves(p, placed[p][0], placed[p][1], reference) for p in members)
     return {'files': len(members), 'moved': moved, 'moved_share': moved / len(members),
-            'forbidden': sum(1 for source, _ in bad if source in members), **_measured_stats(members, known['measured']),
+            'forbidden': sum(1 for source, _ in bad if source in members),
+            **_measured_stats(members, known['measured']),
             'unreachable': sum(1 for p in members if p in known['unreachable']),
             'critical': sum(known['critical'][p] for p in members)}
 

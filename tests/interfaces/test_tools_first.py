@@ -33,7 +33,8 @@ class Project(unittest.TestCase):
         (self.project / 'src').mkdir(parents=True)
         (self.project / 'package.json').write_text('{"name": "shop", "scripts": {"dev": "vite"}}\n')
         (self.project / 'src/a.js').write_text('export const a = 1;\n')
-        for argv in (['init', '-q'], ['add', '-A'], ['-c', 'user.name=t', '-c', 'user.email=t@t', 'commit', '-qm', 'first']):
+        for argv in (['init', '-q'], ['add', '-A'],
+                     ['-c', 'user.name=t', '-c', 'user.email=t@t', 'commit', '-qm', 'first']):
             subprocess.run(['git', '-C', str(self.project), *argv], check=True, capture_output=True)
         self.state = agent_tools.state_of(str(self.project))
         self.report = guided.report_of(self.state).parent
@@ -57,7 +58,8 @@ class Entry(Project):
             with self.assertRaises(RuntimeError):
                 agent_tools._audit_job(str(self.project), {'without_tools': True}, None)
         self.assertEqual(check.call_args.kwargs['without_tools'], ['semgrep'])
-        self.assertEqual([c.args[2] for c in waited.call_args_list], [True, False], 'once chosen, it is not tried again first')
+        self.assertEqual([c.args[2] for c in waited.call_args_list], [True, False],
+                         'once chosen, it is not tried again first')
 
 
 class Terminal(unittest.TestCase):
@@ -93,7 +95,8 @@ class Terminal(unittest.TestCase):
 
 class Record(unittest.TestCase):
     def test_the_report_records_the_tools_the_check_ran_without(self):
-        manifest = {'seconds': 1.0, 'status': 'COMPLETE', 'stages': {}, 'options': {'without_tools': ['semgrep', 'trivy']}}
+        manifest = {'seconds': 1.0, 'status': 'COMPLETE', 'stages': {},
+                    'options': {'without_tools': ['semgrep', 'trivy']}}
         text = run_report.document(manifest, 'en').render()
         self.assertIn('The check started without these tools, whose install failed: semgrep, trivy', text)
         self.assertNotIn('without these tools', run_report.document({**manifest, 'options': {}}, 'en').render())

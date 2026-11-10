@@ -14,7 +14,8 @@ BY_MANIFEST = (
 def found(project):
     """(install commands, checks) of the first manifest at the project's root; ([['true']], []) without one."""
     root = Path(project)
-    return next(((install, checks) for name, install, checks in BY_MANIFEST if (root / name).is_file()), None) or _php(root) or _python(root)
+    return (next(((install, checks) for name, install, checks in BY_MANIFEST if (root / name).is_file()), None)
+            or _php(root) or _python(root))
 
 
 def _php(root):
@@ -53,8 +54,10 @@ def unknown_app(project=None):
     documentation (_attempts), safe() judging every command."""
     from ...core.system.local_db import free_port
     install, checks = found(project) if project else ([['true']], [])
-    profile = {'schema_version': 1, 'app': '.', 'install': install, 'start': ['true'], 'port': free_port(), 'health': '/',
-               'start_timeout': 180, 'env': {}, 'checks': checks}
-    return {'profile': profile, 'facts': {'folder': '.', 'manager': None, 'framework': None, 'database': None, 'env_names': [],
-                                          'reason': 'no package.json with a dev or start script: the assistant works out how to start it'},
+    profile = {'schema_version': 1, 'app': '.', 'install': install, 'start': ['true'], 'port': free_port(),
+               'health': '/', 'start_timeout': 180, 'env': {}, 'checks': checks}
+    return {'profile': profile,
+            'facts': {'folder': '.', 'manager': None, 'framework': None, 'database': None, 'env_names': [],
+                      'reason': 'no package.json with a dev or start script: '
+                                'the assistant works out how to start it'},
             'limitations': []}

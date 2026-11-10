@@ -28,7 +28,8 @@ class EntryPointTests(unittest.TestCase):
             data = load(tmp, FIXTURE)
         rows = [f['value'] | {'resolution': f['resolution']} for f in data['facts']]
         http = {(r['http_method'], r['route']) for r in rows if r['surface'] == 'http'}
-        self.assertTrue({('GET', '/orders'), ('POST', '/orders'), ('DELETE', '/orders/:id'), ('ANY', '/health')} <= http)
+        self.assertTrue({('GET', '/orders'), ('POST', '/orders'), ('DELETE', '/orders/:id'), ('ANY',
+            '/health')} <= http)
         handler = next(r for r in rows if r['route'] == '/orders' and r['http_method'] == 'POST')
         self.assertEqual((handler['handler'], handler['resolution']), ('createOrder', 'RESOLVED'))
         pairs = {(r['route'], r['framework']) for r in rows}
@@ -41,7 +42,8 @@ class EntryPointTests(unittest.TestCase):
         self.assertEqual(data['summary']['entry_points'], 0)
 
     def test_runtime_registered_commands_are_declared_as_gaps_not_hidden(self):
-        data = load_files({'tool.py': 'import argparse\n\n\ndef main():\n    parser = argparse.ArgumentParser(prog="tool")\n'
+        data = load_files({'tool.py': 'import argparse\n\n\ndef main():\n    parser = '
+                           'argparse.ArgumentParser(prog="tool")\n'
                                       '    sub = parser.add_subparsers()\n    for command in ["a", "b"]:\n'
                                       '        sub.add_parser(command)\n',
                           # A quoted `'add_parser('` inside a line of code must not become a command named after the
@@ -58,7 +60,8 @@ class EntryPointTests(unittest.TestCase):
         rows = [f['value'] for f in load_files({
             'Dockerfile': 'FROM python:3.12\nCMD ["python", "-m", "app"]\n',
             'Makefile': '.PHONY: test\ntest:\n\tpytest\n',
-            'render.py': 'def render():\n    return 1\n\n\nif __name__ == "__main__":\n    raise SystemExit(render())\n'})['facts']]
+            'render.py': 'def render():\n    return 1\n\n\nif __name__ == "__main__":\n    raise '
+                'SystemExit(render())\n'})['facts']]
         self.assertIn('container', {r['surface'] for r in rows})
         self.assertIn('make test', {r['route'] for r in rows})
         script = next(row for row in rows if row['framework'] == 'python_script')
@@ -84,12 +87,15 @@ class EntryPointTests(unittest.TestCase):
         data = load_files({
             'src/main.ts': "import express from 'express';\nimport routes from './routes/routes';\n"
                            "const app = express();\napp.use(routes);\napp.get('/', (req, res) => res.json({}));\n",
-            'src/routes/routes.ts': "import { Router } from 'express';\nimport articles from './article/article.controller';\n"
-                                    "const api = Router()\n  .use(articles);\n\nexport default Router().use('/api', api);\n",
+            'src/routes/routes.ts': "import { Router } from 'express';\nimport articles from "
+                "'./article/article.controller';\n"
+                                    "const api = Router()\n  .use(articles);\n\nexport default Router().use('/api', "
+                                        "api);\n",
             'src/routes/article/article.controller.ts': "import { Router } from 'express';\nconst router = Router();\n"
                                                         "router.get('/articles', async (req, res) => res.json([]));\n"
                                                         "export default router;\n"})
-        http = {(f['value']['http_method'], f['value']['route']) for f in data['facts'] if f['value']['surface'] == 'http'}
+        http = {(f['value']['http_method'],
+                 f['value']['route']) for f in data['facts'] if f['value']['surface'] == 'http'}
         self.assertEqual(http, {('GET', '/'), ('GET', '/api/articles')})
 
     def test_gin_routes_registered_on_a_group_carry_its_prefix(self):
@@ -101,7 +107,8 @@ class EntryPointTests(unittest.TestCase):
                         '    ping.GET("/", func(c *gin.Context) {})\n}\n',
             'articles/routers.go': 'package articles\n\nfunc ArticlesRegister(router *gin.RouterGroup) {\n'
                                    '    router.GET("/feed", ArticleFeed)\n    router.GET("", ArticleList)\n}\n'})
-        http = {(f['value']['http_method'], f['value']['route']) for f in data['facts'] if f['value']['surface'] == 'http'}
+        http = {(f['value']['http_method'],
+                 f['value']['route']) for f in data['facts'] if f['value']['surface'] == 'http'}
         self.assertEqual(http, {('GET', '/api/articles/feed'), ('GET', '/api/articles'), ('GET', '/api/ping')})
 
 
@@ -119,7 +126,8 @@ class TaskRunnerScriptTests(unittest.TestCase):
                    'build': 'npm run lint && vite build && node scripts/pack.mjs', 'check': 'pnpm typecheck',
                    'gates': '../.venv/bin/python ../tools/gates.py --strict', 'outside': 'node ../../elsewhere.js'}
         facts, summary = self.facts({'web/package.json': json.dumps({'scripts': scripts}),
-                                     'loop/package.json': json.dumps({'scripts': {'a': 'npm run b', 'b': 'npm run a'}})})
+                                     'loop/package.json': json.dumps({'scripts': {'a': 'npm run b', 'b': 'npm run '
+                                         'a'}})})
         handlers = {route[len('npm run '):]: fact['value']['handler'] for route, fact in facts.items()
                     if fact['kind'] == 'entry_point'}
         self.assertEqual(handlers, {'start': 'web/server.js', 'ship': 'web/scripts/ship.ts',
@@ -147,8 +155,10 @@ class TaskRunnerScriptTests(unittest.TestCase):
         self.assertEqual(facts['make all']['value']['handler'], 'app.py')
         self.assertEqual(facts['make run']['value']['handler'], 'app.py')
         self.assertEqual(facts['make serve']['value']['handler'], 'pkg/server.py')
-        self.assertEqual((facts['make test']['kind'], facts['make test']['value']['tools']), ('tool_command', ['pytest']))
+        self.assertEqual((facts['make test']['kind'], facts['make test']['value']['tools']), ('tool_command',
+            ['pytest']))
         self.assertEqual((facts['make lint']['kind'], facts['make lint']['value']['tools']), ('tool_command', ['ruff']))
         # A target with nothing to run is no evidence either way: it stays a declared entry point without a handler.
-        self.assertEqual((facts['make out.txt']['kind'], facts['make out.txt']['value']['handler']), ('entry_point', None))
+        self.assertEqual((facts['make out.txt']['kind'], facts['make out.txt']['value']['handler']), ('entry_point',
+            None))
         self.assertEqual(facts['make run']['location']['start_line'], 5)
