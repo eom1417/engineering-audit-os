@@ -1,9 +1,9 @@
 """Whether what an assistant wrote for the person is in the person's language.
 
-Every prompt asks for it, and the assistants do not always keep it (EAOS on itself, 2026-10-13: two design titles and
-the run messages in English in an Arabic Studio). So the texts meant for the person are checked after the answer, and
-the ones in another language go back to the assistant once, to be written again in the person's language, with the
-rest of the answer kept as it is. Ids, paths and code names are never texts for the person.
+Every prompt asks for it, and the assistants do not always keep it (a design title or a run message may come back
+in English in an Arabic Studio). So the texts meant for the person are checked after the answer, and the ones in
+another language go back to the assistant once, to be written again in the person's language, with the rest of the
+answer kept as it is. Ids, paths and code names are never texts for the person.
 """
 import json
 import re
@@ -24,9 +24,9 @@ def foreign(text, lang):
 
 
 def mostly_foreign(text, lang):
-    """`foreign`, or, in an Arabic Studio, a message of four words or more whose words beyond its code, paths and names are
-    mostly not Arabic (bilingual.wrong): a closing summary mostly English passed `foreign` on its one Arabic word (trial
-    on real projects)."""
+    """`foreign`, or, in an Arabic Studio, a message of four words or more whose words beyond its code, paths and
+    names are mostly not Arabic (bilingual.wrong): a closing summary that is mostly English would pass `foreign` on
+    its one Arabic word."""
     return foreign(text, lang) or (lang == 'ar' and isinstance(text, str) and len(WORD.findall(text)) >= 4 and wrong(text, lang))
 
 

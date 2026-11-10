@@ -41,7 +41,8 @@ def _cpus():
 
 
 def cpu_pressure():
-    """The share (0-100) of the last ten seconds in which some runnable work waited for a processor; None when unknown."""
+    """The share (0-100) of the last ten seconds in which some runnable work waited for a processor; None when
+    unknown."""
     for path in ('/sys/fs/cgroup/cpu.pressure', '/proc/pressure/cpu'):
         try:
             line = Path(path).read_text().splitlines()[0]

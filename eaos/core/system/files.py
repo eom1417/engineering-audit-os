@@ -1,5 +1,5 @@
-"""Reading what EAOS and the projects keep in files: the one JSON reader every layer calls, and the one reader of JSON lines
-(M15.3)."""
+"""Reading what EAOS and the projects keep in files: the one JSON reader every layer calls, and the one reader of JSON
+lines."""
 import json
 from pathlib import Path
 

@@ -63,8 +63,8 @@ def _scan_names(root, base, names, limits, found):
     return True
 
 def _set_aside_unread_names(root, base, names, found):
-    """A file or folder whose name is not valid UTF-8 cannot be said in a record, so it is not read; it is named instead,
-    with \\xNN for its bad bytes (as git's log reads, eaos/facts/code/history.py), and its bytes kept."""
+    """A file or folder whose name is not valid UTF-8 cannot be said in a record, so it is not read; it is named
+    instead, with \\xNN for its bad bytes (as git's log reads, eaos/facts/code/history.py), and its bytes kept."""
     for name in list(names):
         try: name.encode('utf-8')
         except UnicodeEncodeError:

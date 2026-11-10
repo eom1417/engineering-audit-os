@@ -96,7 +96,8 @@ def _companions_missing(tool):
     pip = tool['install']['method'] == 'pip'
     for spec in tool['install'].get('with', []):
         name, _, wanted = spec.partition('==') if pip else spec.rpartition('@')
-        if ' @ ' in spec: name, wanted = spec.split(' @ ')[0], WHEEL.search(spec).group(1)   # a wheel at its pinned address
+        # a wheel at its pinned address
+        if ' @ ' in spec: name, wanted = spec.split(' @ ')[0], WHEEL.search(spec).group(1)
         found = pip_version(name, venv_of(tool)) if pip else package_version(tool, name)
         if found != wanted: return f'{name} {wanted} is not installed beside it (found {found})'
     return ''

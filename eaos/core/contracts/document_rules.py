@@ -5,8 +5,8 @@ import re
 from .artifacts import BY_NAME, BUDGETS, DOCUMENT
 from ...core.system.files import read_json
 
-# One source for what may be produced and how long it may be; rules.py used to keep its own list,
-# and sixteen documents were outside it and therefore never checked at all.
+# One source for what may be produced and how long it may be: every document the report writes is declared here,
+# so none escapes the checks.
 CLAIM_REFERENCE = re.compile(r'\bCLM-\d{3,}\b')
 
 

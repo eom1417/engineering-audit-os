@@ -1,8 +1,9 @@
-"""A project's state, the one record of it: ~/.eaos/projects/<name>-<id>/state.json (or under $EAOS_HOME). The CLI, MCP,
-the Studio and every stage read and write it here and nowhere else (M3.2): what was chosen and asked, the check on
+"""A project's state, the one record of it: ~/.eaos/projects/<name>-<id>/state.json (or under $EAOS_HOME). The CLI,
+MCP, the Studio and every stage read and write it here and nowhere else: what was chosen and asked, the check on
 record, the batches, each branch's part (eaos/core/project/branches.py KEYS).
 
-The journeys save it through eaos/journeys/guided/ save, which then removes what that save closed (eaos/journeys/fix/waves.saved).
+The journeys save it through eaos/journeys/guided/ save, which then removes what that save closed
+(eaos/journeys/fix/waves.saved).
 """
 import json
 import os
@@ -56,7 +57,7 @@ def current(project='.'):
     here = Path(project).resolve()
     for folder in (here, *here.parents):
         state = load(folder)
-        # A record left by an older EAOS that scanned the home folder is never a project to go on with.
+        # A record that scanned the home folder is never a project to go on with.
         if state and looks_like_project(folder): return state
     raise LookupError('no EAOS project here: run eaos start first')
 

@@ -23,7 +23,7 @@ def cap_owner(resolved, cards):
 
 
 def capped(rows, cards):
-    """At most one waiting question in ten cards , from every source: the ones only the person can
+    """At most one waiting question in ten cards, from every source: the ones only the person can
     answer (no recommendation) and the target's approval stay; past the cap the rest take their recommended option,
     answered by the assistant, as triage does for cards (cap_owner)."""
     waiting = [row for row in rows if row.get('state') == 'waiting']

@@ -1,4 +1,4 @@
-"""The person's own rules (M16): every requirement they state, kept in their words with where and when it was said and
+"""The person's own rules: every requirement they state, kept in their words with where and when it was said and
 its scope, in one record per project (<workspace>/rules.json, eaos/core/project/places.py), never inside the project.
 
 A rule is not forever by default: it holds for the work it was said for (its scope: a card, or a batch of fixes) and
@@ -195,7 +195,8 @@ def guard(project, ident, written, by, door):
 
 
 def confirm(project, ident, by='person', door='terminal'):
-    """The person's word on a pending guard: its command approved, or the guard kept as matching the rule's new words."""
+    """The person's word on a pending guard: its command approved, or the guard kept as matching the rule's new
+    words."""
     with changing(project) as record:
         rule = find(record, ident)
         if not rule.get('guard') or not rule.get('pending'): raise ValueError(f'{ident} has no guard waiting for your word')
@@ -226,7 +227,8 @@ def broke(project, ident, where, places, commit=None):
         if rule['breaks'] and rule['breaks'][-1]['where'] == where and rule['breaks'][-1]['places'] == list(places)[:40]:
             return rule['broken']                    # the same check read again (a stage run once more)
         rule['broken'] = rule.get('broken', 0) + 1
-        if (rule.get('held') or {}).get('after_break'): rule['returns'] = rule.get('returns', 0) + 1     # it held, and broke again
+        # it held, and broke again
+        if (rule.get('held') or {}).get('after_break'): rule['returns'] = rule.get('returns', 0) + 1
         if rule.get('held'): rule['held']['after_break'] = False
         rule['breaks'] = (rule['breaks'] + [{'at': now(), 'where': where, 'places': list(places)[:40],
                                              **({'commit': commit} if commit else {})}])[-MAX_BREAKS:]
@@ -240,7 +242,7 @@ def held(project, ident, where):
 
 
 def came_back(rule):
-    """The times the rule was broken again after it had held (M16.5: "it came back <n> times")."""
+    """The times the rule was broken again after it had held ("it came back <n> times")."""
     return rule.get('returns', 0)
 
 

@@ -74,7 +74,8 @@ def _release(tool, step=lambda done, total: None):
 
 
 def _unpack(tool, spec, blob):
-    """The checked archive (an open file) unpacked into the tool's release folder, its binary linked; the older version goes."""
+    """The checked archive (an open file) unpacked into the tool's release folder, its binary linked; the older
+    version goes."""
     folder = home() / 'releases' / f"{tool['name']}-{tool['version']}"
     folder.mkdir(parents=True, exist_ok=True)
     if spec.get('tree'): target = _tree(tool, spec, blob, folder)
@@ -175,14 +176,14 @@ def _ensure(tool, step, echo):
     if tool['name'] == 'playwright': install_browsers(echo)
 
 
-# The caches of tools no longer pinned (Trivy's, retired in M18.1), removed with the tools themselves.
+# The caches of tools that are not pinned (Trivy's), removed with the tools themselves.
 RETIRED_CACHES = ('cache/trivy', 'cache/trivy-next')
 
 
 def retire():
-    """Remove from the tools home what no pinned tool owns: a release, an npm prefix or an own virtualenv of a tool the
-    registry no longer lists, the caches of retired tools and the links left pointing at nothing. What EAOS installed,
-    EAOS removes when it stops using it. Returns what was removed, relative to the tools home."""
+    """Remove from the tools home what no pinned tool owns: a release, an npm prefix or an own virtualenv of a tool
+    the registry does not list, the caches of unpinned tools and the links left pointing at nothing. What EAOS
+    installed, EAOS removes when it stops using it. Returns what was removed, relative to the tools home."""
     base = home()
     gone = _unowned(base, {t['name'] for t in registry()['tools']})
     for folder in gone: shutil.rmtree(folder, ignore_errors=True)

@@ -1,6 +1,6 @@
 """Labels for rendered artifacts. Content is language-neutral; only wording changes.
 
-`catalog()` is the one words catalog (eaos/data/words.json, M3.5): every word that names a concept (a stage, a path of
+`catalog()` is the one words catalog (eaos/data/words.json): every word that names a concept (a stage, a path of
 the check, a kind of problem), in Arabic then English, for the engine and the Studio alike.
 """
 import functools
@@ -177,9 +177,8 @@ IMPACTS = {
         'untested': 'تغيير في هذه الملفات قد يُشحن دون أن ينفّذه أي اختبار.',
         'redundant_work': 'المسار ينفّذ عملًا أكثر مما تحتاجه نتيجته، في كل تنفيذ.',
     },
-    # Every key Arabic carries needs an English twin. With only one of them filled, an English
-    # report fell back to the stored Arabic sentence for fourteen of fifteen claim kinds, so the
-    # reader who asked for English got Arabic wherever an impact was shown.
+    # Every key Arabic carries needs an English twin: with only one of them filled, an English report would fall
+    # back to the stored Arabic sentence wherever an impact is shown.
     'en': {
         'load_blocker': 'Cost grows with traffic or data at this entry point; current behavior may not survive higher load.',
         'engine_cluster': 'More than one engine points at the same place: a review candidate, not a verdict that a defect exists.',
@@ -225,7 +224,8 @@ def _render_key(render):
     """The key of a claim's words; a duplicated rule whose copies differ has its own."""
     key = render.get('key')
     params = render.get('params') or {}
-    if key == 'vulnerable_dependency' and params.get('fixed') in (None, '', '—'): return 'vulnerable_dependency_unfixed'   # an upgrade to nowhere
+    # A vulnerable dependency with no fixed version offers an upgrade to nowhere, so it has its own key.
+    if key == 'vulnerable_dependency' and params.get('fixed') in (None, '', '—'): return 'vulnerable_dependency_unfixed'
     return 'duplicated_rule_differs' if key == 'duplicated_rule' and params.get('differs') == 'yes' else key
 
 
@@ -254,9 +254,8 @@ def impact_of(claim, language):
 
 
 
-# A falsifier tells the reader what would prove the claim wrong. It is stored once in the ledger,
-# in English, and an Arabic report showed it untranslated in every claim it printed -- the same
-# gap IMPACTS had. Keyed by render key so both catalogues are checked the same way.
+# A falsifier tells the reader what would prove the claim wrong. It is stored once in the ledger, in English, so an
+# Arabic report needs its own translation of it. Keyed by render key so both catalogues are checked the same way.
 FALSIFIERS = {
     'ar': {
         'trace_gap': 'محلِّل أو تتبّع زمن تشغيل يتبع تلك النداءات إلى أهدافها.',
@@ -280,8 +279,8 @@ FALSIFIERS = {
     },
     'en': {},
 }
-# The ledger already stores the English sentence, so the English side is filled from the Arabic
-# keys rather than written twice: a key present in one language must be present in the other.
+# The ledger stores the English sentence, so the English side is filled from the Arabic keys rather than written
+# twice: a key present in one language must be present in the other.
 FALSIFIERS['en'] = {key: None for key in FALSIFIERS['ar']}
 
 
@@ -316,7 +315,8 @@ def statement_of(claim, language):
 def labels(language): return LABELS.get(language, LABELS['ar'])
 
 
-# Who decided an element of the final target (eaos/report/target_architecture/picture.py reconcile), in the person's two languages.
+# Who decided an element of the final target (eaos/report/target_architecture/picture.py reconcile), in the person's
+# two languages.
 DECIDED = {'agreed': ('اتفقت عليه الأدوات ومساعدك', 'agreed by the tools and your assistant'),
            'ai_modified': ('عدّله مساعدك بدليل', 'changed by your assistant, with evidence'),
            'rule_only': ('القواعد وحدها', 'the rules alone'),

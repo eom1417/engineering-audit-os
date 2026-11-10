@@ -1,4 +1,4 @@
-"""Personal values in a project's string literals, by Presidio (M12.1): run with the Python of Presidio's own environment.
+"""Personal values in a project's string literals, by Presidio: run with the Python of Presidio's own environment.
 
     python scan.py <project> <rules json> <output jsonl> [excluded name ...]
 
@@ -118,14 +118,16 @@ def results(analyzer, found, rules):
     out = [hit for recognizer in patterns for hit in recognizer.analyze(text, recognizer.supported_entities, None) or ()]
     for start, end, line, key, value in offsets:
         if not any(word in key for word in rules['name_keys']): continue
-        for hit in analyzer.analyze(text=value, language='en', entities=['PERSON']):  # one value alone, as a field holds it
+        # one value alone, as a field holds it
+        for hit in analyzer.analyze(text=value, language='en', entities=['PERSON']):
             hit.start, hit.end = start + hit.start, start + hit.end
             out.append(hit)
     return text, offsets, out
 
 
 def hits(analyzer, rel, text, rules):
-    """The personal values of one file's literals, each with its line, key, mask, digest and whether it is a placeholder."""
+    """The personal values of one file's literals, each with its line, key, mask, digest and whether it is a
+    placeholder."""
     found = list(literals(text, Path(rel).suffix, rules['literal']))
     if not found: return []
     text, offsets, found = results(analyzer, found, rules)

@@ -1,8 +1,9 @@
 """A PostgreSQL of the run's own, on 127.0.0.1, for a project that needs a database to start.
 
-The owner's database is never used: a run gets an empty one here, created for it, and the project's own
-migrations fill it; the project's checks get a copy of it of their own (copy()), dropped when they end. The binaries come from the `pgserver` package (Apache-2.0, installed with EAOS's `live`
-extra), so nothing needs an administrator; a PostgreSQL already installed on the machine is the fallback.
+The project's own database is never used: a run gets an empty one here, created for it, and the project's own
+migrations fill it; the project's checks get a copy of it of their own (copy()), dropped when they end. The binaries
+come from the `pgserver` package (Apache-2.0, installed with EAOS's `live` extra), so nothing needs an administrator;
+a PostgreSQL already installed on the machine is the fallback.
 It answers 127.0.0.1 only, to a password of its own (scram-sha-256) kept in <runtime>/database/password, readable by
 the person only and carried in the address the run gets: another project's run on this computer cannot connect.
 
@@ -11,7 +12,7 @@ of this runtime, as its own postmaster.pid says, is reused. Every run that creat
 (shared) until its stop(), and the last one leaving stops the server, keeping the data for the next step: runs side by
 side, each on a database of its own (eaos/live/app/run.py), never stop one another's. Under root the data
 sits in the temporary folder instead, with a note naming its runtime beside it: once that runtime is gone, the next
-start() removes the data (356 such databases had kept 16 GB after their projects were deleted).
+start() removes the data, so no data outlives a deleted project.
 """
 import contextlib
 import fcntl
@@ -85,7 +86,7 @@ def _reachable(bin_dir, owner):
 
 
 def _open_to(folder, owner):
-    """A folder the dedicated account owns, closed to every other account (it was open to all of them)."""
+    """A folder the dedicated account owns, closed to every other account."""
     shutil.chown(folder, user=owner, group=owner)
     os.chmod(folder, 0o700)  # nosemgrep: python.lang.security.audit.insecure-file-permissions -- 0o700 closes the folder to every other account
 
@@ -140,7 +141,8 @@ class LocalPostgres:
         return self.password_file.read_text().strip()
 
     def start(self):
-        """The server's address, postgresql://postgres:<password>@127.0.0.1:<port>, starting it when it is not running."""
+        """The server's address, postgresql://postgres:<password>@127.0.0.1:<port>, starting it when it is not
+        running."""
         state = self.running()
         if state: return self.url(state)
         bin_dir = binaries()
@@ -220,9 +222,10 @@ class LocalPostgres:
         return self.url(state, name)
 
     def copy(self, base):
-        """The address of a database of this holder's alone, copied from `base` as it is now (created empty when missing):
-        what setup wrote in it is there, nothing an earlier holder wrote in its copy is, and `base` is never written.
-        Dropped at stop(). A base another run is connected to cannot be copied: the database is then made empty."""
+        """The address of a database of this holder's alone, copied from `base` as it is now (created empty when
+        missing): what setup wrote in it is there, nothing an earlier holder wrote in its copy is, and `base` is never
+        written. Dropped at stop(). A base another run is connected to cannot be copied: the database is then made
+        empty."""
         name = f'{base[:40]}{COPY}{secrets.token_hex(4)}'
         with self._server() as state:
             self._ensure(state, base)
@@ -234,7 +237,8 @@ class LocalPostgres:
     def stop(self):
         """Leave the server, and stop it when no other run holds it (its data stays)."""
         state = self.running()
-        for name in self._copies if state else []:     # FORCE ends its connections in the same step: a check may leave one open
+        # FORCE ends its connections in the same step: a check may leave one open
+        for name in self._copies if state else []:
             self._psql(state, 'drop database if exists :"name" with (force)', name=name)
         self._copies = []
         if self._held is not None:

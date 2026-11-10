@@ -1,8 +1,6 @@
 """Two vocabularies every layer shares: what a path is, and whether a record fits its schema.
 
-Both lived in the agent-led run subsystem, so the facts and ledger layers reached across a
-boundary to borrow them. They belong to neither subsystem; they are how the whole system reads a
-path and checks a record.
+They belong to no one subsystem; they are how the whole system reads a path and checks a record.
 """
 from pathlib import Path
 import re
@@ -25,7 +23,8 @@ TYPES={'object':dict,'array':list,'string':str,'null':type(None),'boolean':bool,
 
 
 def _is_test(name, parts):
-    # Only pytest names a test by a `test_` prefix: `test_email.tsx` is an email and Go's `test_helpers.go` is compiled in.
+    # Only pytest names a test by a `test_` prefix: `test_email.tsx` is an email and Go's `test_helpers.go` is
+    # compiled in.
     return bool(parts & {'tests','test','__tests__','spec'}) or bool(re.search(r'(^test_.*\.py$|[._](test|spec)\.)',name))
 
 

@@ -149,9 +149,9 @@ def uv():
 
 
 def tool_env():
-    """The environment a pinned tool runs or installs in: without EAOS's own Python settings. With PYTHONPATH, pip took
-    a dependency EAOS happens to carry (attrs for Semgrep) as already installed, so a fresh tools folder missed it; with
-    PYTHONSAFEPATH, a tool's script no longer imports its sibling modules (CodeQL's Python extractor failed)."""
+    """The environment a pinned tool runs or installs in: without EAOS's own Python settings. With PYTHONPATH, pip
+    takes a dependency EAOS happens to carry (attrs for Semgrep) as already installed, so a fresh tools folder misses
+    it; with PYTHONSAFEPATH, a tool's script cannot import its sibling modules (CodeQL's Python extractor fails)."""
     return {name: value for name, value in os.environ.items() if name not in ('PYTHONPATH', 'PYTHONSAFEPATH')}
 
 

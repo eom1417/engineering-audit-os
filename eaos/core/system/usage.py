@@ -1,11 +1,12 @@
 """What the assistant used, read from what every call already leaves: tokens, the cost at API prices, time and models.
 
-Nothing is estimated. Claude Code's stream ends with a `result` event carrying its usage, its cost and its models (while
-it runs, each message carries its tokens so far, not yet a cost); Codex's `turn.completed` events carry its tokens (it
-gives no cost). A check's calls are of two kinds: the AI stages that ask
+Nothing is estimated. Claude Code's stream ends with a `result` event carrying its usage, its cost and its models
+(while it runs, each message carries its tokens so far, not yet a cost); Codex's `turn.completed` events carry its
+tokens (it gives no cost). A check's calls are of two kinds: the AI stages that ask
 through the Studio's adapters keep their stream under nodes/<node>/runs/ (eaos/ai/assistant/headless.py ask), and
 the ones that go through a provider (the semantic reading, the translation) append a row to <report>/usage.jsonl
-(eaos/ai/assistant/claude_adapter.py record). A run of the Studio (a fix batch, a verify) keeps its stream in its folder.
+(eaos/ai/assistant/claude_adapter.py record). A run of the Studio (a fix batch, a verify) keeps its stream in its
+folder.
 
 `cache_read` is the conversation read again on every turn: on EAOS's batch 5, 138 million of 140 million tokens. The
 person's plan is a subscription, so the cost is the API's price for the same tokens: a measure to compare, not a bill.
@@ -33,8 +34,8 @@ def row(usage, cost=None, models=(), duration_ms=None, turns=None, **labels):
 
 
 def from_stream(lines):
-    """One call's use from the stream it left (Claude Code's result event, Codex's completed turns, or a Claude run still
-    going); None without any."""
+    """One call's use from the stream it left (Claude Code's result event, Codex's completed turns, or a Claude run
+    still going); None without any."""
     events = [event for event in map(_json, lines) if isinstance(event, dict)]
     return _result(events) or total([row(u) for u in _turns(events)]) or total(_messages(events))
 

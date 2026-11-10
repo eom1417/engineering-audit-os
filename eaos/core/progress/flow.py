@@ -40,7 +40,8 @@ class Stage:
     absent_when: str = ''
     necessity: str = REQUIRED
     produces: tuple = ()
-    title: dict = None          # {ar, en}: the name of a stage declared at run time, which no word of the Studio holds
+    # {ar, en}: the name of a stage declared at run time, which no word of the Studio holds
+    title: dict = None
 
 
 def errors(stages):
@@ -78,8 +79,8 @@ def incomplete(row):
 
 
 def partial(row):
-    """Whether a stage's row makes its run PARTIAL: required and skipped, the assistant lost midway, or files it could not
-    read for their names."""
+    """Whether a stage's row makes its run PARTIAL: required and skipped, the assistant lost midway, or files it
+    could not read for their names."""
     detail = row.get('detail') or {}
     return (row['necessity'] == REQUIRED and row['status'] == SKIPPED) or detail.get('assistant_lost') or detail.get('unread_names')
 
@@ -135,7 +136,8 @@ class Flow:
     # the stages
 
     def begin(self, name):
-        """`name` starts now; the stage still open before it ends ok. A stage not declared, or already ended, is left."""
+        """`name` starts now; the stage still open before it ends ok. A stage not declared, or already ended, is
+        left."""
         if name not in self.declared or name in self.results or name == self.current: return
         if self.current: self.end(self.current)
         self.log.stage_started(name)

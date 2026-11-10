@@ -6,8 +6,9 @@ VERSION = 1
 
 
 def identity(claim):
-    # Location and probe semantics distinguish similarly worded observations; what a probe expects and the finish line it
-    # judges (eaos/analysis/repair/finish_line.py, which shrinks as the code is fixed) do not: the card stays one card from check to check.
+    # Location and probe semantics distinguish similarly worded observations; what a probe expects and the finish
+    # line it judges (eaos/analysis/repair/finish_line.py, which shrinks as the code is fixed) do not: the card
+    # stays one card from check to check.
     probe = claim.get('probe_spec') or {}
     specification = {key: value for key, value in probe.get('specification', {}).items() if key not in ('expected', 'targets')}
     payload = {'claim_type': claim.get('claim_type'), 'probe_type': probe.get('probe_type'),
@@ -106,7 +107,8 @@ def _kind_and_reason(claim, assessment, disposition, triage, resolution):
 def _repair_blockers(checks, resolution, assessment):
     reasons = [] if checks else ['No acceptance check attached.']
     for check in checks: reasons.extend(check_errors(check))
-    reasons += assessment.get('blockers') or []  # what no triage lifts: a change no tool of EAOS can make (a lock file it cannot rewrite)
+    # What no triage lifts: a change no tool of EAOS can make (a lock file it cannot rewrite).
+    reasons += assessment.get('blockers') or []
     # The assistant's triage is the review of a change it decided, and its change is the "after".
     if resolution == 'fix': return reasons
     if not assessment.get('reviewed_by'): reasons.append('The engineering decision has not been reviewed.')
@@ -121,9 +123,9 @@ def _readiness(kind, doubted, reasons):
 
 
 def decide(claim):
-    """The claim's decision. The assistant's triage (claim `triage`, eaos/analysis/repair/review.py apply_verdicts), when it confirmed the
-    card, settles it: `keep` retains it with its reason, `fix` makes it a repair checked by the claim's own checks or the
-    triage's (`triage.checks`), `owner` leaves it an investigation for the person."""
+    """The claim's decision. The assistant's triage (claim `triage`, eaos/analysis/repair/review.py apply_verdicts),
+    when it confirmed the card, settles it: `keep` retains it with its reason, `fix` makes it a repair checked by
+    the claim's own checks or the triage's (`triage.checks`), `owner` leaves it an investigation for the person."""
     disposition = claim.get('disposition') or {}
     assessment, checks = _validated_inputs(claim)
     triage = claim.get('triage') or {}
@@ -140,13 +142,14 @@ def decide(claim):
 
 
 def ready(card):
-    """Whether a batch may take the card without a person's decision: a fix, or a planned part to build (eaos/journeys/extend.py)."""
+    """Whether a batch may take the card without a person's decision: a fix, or a planned part to build
+    (eaos/journeys/extend.py)."""
     return card.get('kind') in ('remediate', 'build') and (card.get('decision') or {}).get('readiness') == 'ready'
 
 
 def own_batch(card):
-    """Whether the card is repository craft (moves, the context, the extension guide): fixed by a batch of its own on its
-    own branch, never with fixes (DECISIONS "Repository craft"). A plan's card says it by its pattern, the Studio's by its kind."""
+    """Whether the card is repository craft (moves, the context, the extension guide): fixed by a batch of its own
+    on its own branch, never with fixes. A plan's card says it by its pattern, the Studio's by its kind."""
     return (card.get('pattern') or card.get('kind')) == 'repository_craft'
 
 
@@ -159,8 +162,8 @@ def unattended(card):
 
 
 def waiting(card, done):
-    """The cards `card` waits for: its prerequisites not in `done` yet. A module is split only once its complex functions
-    are simplified (eaos/analysis/planning/cards.py _split_last); taken before them, the split failed in batch after batch (EAOS, 2026-10-15)."""
+    """The cards `card` waits for: its prerequisites not in `done` yet. A module is split only once its complex
+    functions are simplified (eaos/analysis/planning/cards.py _split_last); split earlier, the split fails on them."""
     return [p['task_id'] for p in card.get('prerequisites') or [] if p.get('task_id') not in done]
 
 

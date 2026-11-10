@@ -1,6 +1,6 @@
-"""The packages a change moved several major versions at once, said at the hand-over: an automatic upgrade moved a
-stranger's icon tool's minimatch from 3 to 11 to reach the fixed version, and nothing told the person to try the tool
-(2026-11-04). npm's lock files, before and after the change, compared package by package."""
+"""The packages a change moved several major versions at once, said at the hand-over: an automatic upgrade may move
+a package from major 3 to 11 to reach the fixed version, and a person should then try the tool that uses it. npm's
+lock files, before and after the change, compared package by package."""
 import json
 import re
 from pathlib import PurePosixPath

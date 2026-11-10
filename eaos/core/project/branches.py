@@ -10,7 +10,7 @@ Each branch keeps its own check, run, safety net, batches and ledger. The first 
 folder's top (REPORT.html, technical/, fixes/); every other one has branches/<name>/ with the same parts.
 
 Which branches are protected from a merge is decided here for the Studio, MCP and the CLI alike (`policy`,
-`blocked_target`, M3.3): the remote's default branch, main and master, and the project's own policy (the Studio's
+`blocked_target`): the remote's default branch, main and master, and the project's own policy (the Studio's
 Branches page writes it). This module reads git, the state and that policy only; it writes none of them.
 """
 import re
@@ -24,7 +24,8 @@ ARCHIVED = ('archive/', 'archived/')
 # What each branch keeps of its own in state.json; the others are the project's (consent, language, questions).
 KEYS = ('scanned', 'scanned_commit', 'scanned_with', 'scanned_branch', 'scanned_detached', 'scanned_dirty', 'setup', 'safety',
         'waves', 'open_wave', 'tried', 'applied')
-# EAOS's own commits (eaos/journeys/fix/waves.commit, guided.merge): code the person did not write, so a scan still holds after them.
+# EAOS's own commits (eaos/journeys/fix/waves.commit, guided.merge): code the person did not write, so a scan still
+# holds after them.
 EAOS_EMAIL = 'eaos@localhost'
 FILES_SHOWN = 50
 MAIN_NAMES = ('main', 'master')
@@ -64,7 +65,8 @@ def checked_out(project):
 
 
 def default_branch(project):
-    """The branch the project treats as its main one: origin's HEAD, else main, else master, else the one checked out."""
+    """The branch the project treats as its main one: origin's HEAD, else main, else master, else the one checked
+    out."""
     done = _git(project, 'symbolic-ref', '--quiet', '--short', 'refs/remotes/origin/HEAD')
     if done.returncode == 0: return done.stdout.strip().split('/', 1)[-1]
     local = set(_git(project, 'for-each-ref', '--format=%(refname:short)', 'refs/heads').stdout.split())
@@ -123,8 +125,8 @@ def recommend(rows):
 
 
 def _a_choice(row):
-    """A branch worth asking about: the main one, the one checked out, or one with code of its own that is not kept only
-    for the record (archive/); a branch merged into main (nothing ahead of it) is main's code."""
+    """A branch worth asking about: the main one, the one checked out, or one with code of its own that is not kept
+    only for the record (archive/); a branch merged into main (nothing ahead of it) is main's code."""
     if row['main'] or row['checked_out']: return True
     return not row['name'].startswith(ARCHIVED) and row.get('ahead_of_main') != 0
 
@@ -278,8 +280,8 @@ def is_eaos_itself(project):
 
 
 def policy(project, default=None):
-    """{protected: {name: reason}, saved: {...}}: the remote's default branch, main and master, every branch the project's
-    policy protects, minus the ones the owner explicitly unprotected; EAOS's own main always."""
+    """{protected: {name: reason}, saved: {...}}: the remote's default branch, main and master, every branch the
+    project's policy protects, minus the ones the person explicitly unprotected; EAOS's own main always."""
     from .places import workspace
 
     default = default or remote_default(project)
@@ -298,9 +300,9 @@ def policy(project, default=None):
 
 
 def blocked_target(project, name, protected=None, open_branch=None):
-    """Why nothing is merged into (or built on, or landed on) `name`, or None: a protected branch, except the branch open in
-    the project folder (`open_branch`) when only its name protects it (a project with main alone): accept merges there,
-    as it always did."""
+    """Why nothing is merged into (or built on, or landed on) `name`, or None: a protected branch, except the branch
+    open in the project folder (`open_branch`) when only its name protects it (a project with main alone): accept
+    merges there."""
     protected = policy(project)['protected'] if protected is None else protected
     reason = protected.get(name)
     open_branch = checked_out(project) if open_branch is None else open_branch

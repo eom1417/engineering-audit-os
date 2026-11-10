@@ -29,7 +29,7 @@ GAP = {'ar': ('فجوة كبيرة', 'لم يُغطَّ'), 'en': ('Big gap', 'no
 def absences(manifest):
     """[{stage, status, reason: {ar, en}}] of every stage that did not end ok: the catalog's words for its reason_code
     (eaos/data/errors.json reasons), else EAOS's own sentence in both. The one list the report for people, RUN.md and
-    the Studio's head read (a real check: ten stages stood still and nobody said why in the person's language)."""
+    the Studio's head read, so a stage that stood still is always explained in the person's language."""
     rows = []
     for name, row in (manifest.get('stages') or {}).items():
         if row.get('status') == 'ok': continue
@@ -40,8 +40,8 @@ def absences(manifest):
 
 
 def big_gaps(record, language='ar'):
-    """The red lines at the top of a report: each loop of the check (its `coverage`, eaos/pipeline/coverage.py) whose goal
-    was not reached for a reason the person did not choose, with the stages behind it and why."""
+    """The red lines at the top of a report: each loop of the check (its `coverage`, eaos/pipeline/coverage.py)
+    whose goal was not reached for a reason the person did not choose, with the stages behind it and why."""
     lang = 'en' if language == 'en' else 'ar'
     gap, missing = GAP[lang]
     lines = []
@@ -73,7 +73,8 @@ def _reason(row):
     """{ar, en} of why a stage did not end ok: the catalog's words for its reason_code, else EAOS's own sentence."""
     from ...core.progress.reasons import reasons
     said = reasons().get(str(row.get('reason_code') or '')) or {}
-    named = f" {row['reason']}" if row.get('reason_code') in ('unread_names', 'no_source_unread') else ''    # the words say what; these say which
+    # the words say what; these say which
+    named = f" {row['reason']}" if row.get('reason_code') in ('unread_names', 'no_source_unread') else ''
     return {lang: (said.get(lang) or row.get('reason') or '') + named for lang in ('ar', 'en')}
 
 

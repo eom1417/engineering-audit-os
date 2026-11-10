@@ -110,7 +110,7 @@ def _feature_items(features, ar):
 
 
 def _unexamined(page, out, coverage, external, ar):
-    alike = [row['ar' if ar else 'en'] for row in _read(out, 'dossier.json', 'likenesses', [])[:10]]   # said, no card (M15)
+    alike = [row['ar' if ar else 'en'] for row in _read(out, 'dossier.json', 'likenesses', [])[:10]]   # said, no card
     if alike:
         page.para('متشابهات في الشكل بس، ما صارت بطاقات (ما استوفت الشروط الثلاثة):' if ar else 'Alike in shape only, not cards (they miss one of the three conditions):')
         page.items(alike)

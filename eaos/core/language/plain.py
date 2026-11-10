@@ -1,8 +1,8 @@
 """Plain words for a person who did not write the code: what each kind of problem is, and what each stage does, read
-from the one words catalog (eaos/data/words.json, M3.5) the Studio is built with too.
+from the one words catalog (eaos/data/words.json) the Studio is built with too.
 
-The report's own files keep their precise, technical wording; these are for the first page a user reads (START-HERE.md),
-REPORT.html and the guided commands.
+The report's own files keep their precise, technical wording; these are for the first page a user reads
+(START-HERE.md), REPORT.html and the guided commands.
 """
 from .words import catalog
 

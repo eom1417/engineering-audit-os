@@ -11,8 +11,9 @@ and writes what it has done to the project's own ~/.eaos/projects/<workspace>/jo
 batch, eaos/journeys/fix/lanes.py, take turns at EAOS's checks). `read` and `wait` follow a job, for the project
 they name only: another project's job is not found.
 A project keeps its last KEEP jobs. The analyzers a job runs keep their caches in the project's own cache folder
-(EAOS_ENGINE_CACHE, eaos/engines/process.py), removed when the job ends: no project reads what another's left. The work itself is JOBS[kind] of the module the record names (`runner`,
-eaos.journeys.agent_tools by default), found by name so that it and this module do not import each other.
+(EAOS_ENGINE_CACHE, eaos/engines/process.py), removed when the job ends: no project reads what another's left.
+The work itself is JOBS[kind] of the module the record names (`runner`, eaos.journeys.agent_tools by default),
+found by name so that it and this module do not import each other.
 """
 import fcntl
 import json
@@ -30,7 +31,7 @@ from ...core.system.clock import now, stamp
 
 
 KEEP = 30           # the jobs a project keeps; older ended ones go with their logs
-LEGACY_DAYS = 1     # the one folder older EAOS versions shared between projects goes once none of it is this recent
+LEGACY_DAYS = 1     # the one legacy folder shared between projects goes once none of it is this recent
 
 
 def folder(project):
@@ -50,8 +51,8 @@ def _path(job, project):
 def _write(record):
     path = _path(record['id'], record['project'])
     path.parent.mkdir(parents=True, exist_ok=True)
-    # a temporary file of its own per writer (as core/project/runs.py): the job and its progress write the same record at
-    # once, and a shared name was renamed away under the other (the golden trial's clean twin, 2026-10-27)
+    # a temporary file of its own per writer (as core/project/runs.py): the job and its progress write the same record
+    # at once, and a shared name would be renamed away under the other
     temporary = path.with_name(path.name + f'.{os.getpid()}.{threading.get_ident()}.tmp')
     temporary.write_text(json.dumps(record, ensure_ascii=False, indent=1) + '\n', encoding='utf-8')
     temporary.replace(path)
@@ -96,7 +97,7 @@ def fixing(project):
 
 
 def _prune(project):
-    """Keep the project's last KEEP jobs (a running one always), and drop the shared folder of older versions."""
+    """Keep the project's last KEEP jobs (a running one always), and drop the legacy shared folder."""
     for path in sorted(folder(project).glob('*.json'), key=lambda found: found.stat().st_mtime)[:-KEEP]:
         running = read_json(path, {}).get('status') == 'running'
         if not running:
@@ -118,9 +119,9 @@ class Busy(Exception):
 
 @contextmanager
 def alone(project, wait=0):
-    """The project's jobs held, on a lock never waited on: none starts while this holds it, and it holds it only once none is
-    running, tried for up to `wait` seconds (Busy after it). A launch it finds cut short is failed first. Never taken twice
-    at once, nor inside a job, whose own record is running, nor inside lanes.changing."""
+    """The project's jobs held, on a lock never waited on: none starts while this holds it, and it holds it only once
+    none is running, tried for up to `wait` seconds (Busy after it). A launch it finds cut short is failed first.
+    Never taken twice at once, nor inside a job, whose own record is running, nor inside lanes.changing."""
     folder(project).mkdir(parents=True, exist_ok=True)
     until = time.monotonic() + wait
     with open(folder(project) / '.turn.lock', 'a') as turn:
@@ -141,8 +142,8 @@ def _busy_or_none(project, turn):
 
 
 def _launches_that_failed(project):
-    """Under the lock a launcher holds until it wrote the pid, so none is at work: a record with no pid and no process of
-    its job never started. Age proves nothing: systemd can start a job and tell no pid in time."""
+    """Under the lock a launcher holds until it wrote the pid, so none is at work: a record with no pid and no
+    process of its job never started. Age proves nothing: systemd can start a job and tell no pid in time."""
     for path in folder(project).glob('*.json'):
         record = read_json(path, {})
         if not (isinstance(record, dict) and record.get('status') == 'running' and record.get('id') and not record.get('pid')): continue

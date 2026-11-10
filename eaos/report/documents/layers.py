@@ -1,4 +1,4 @@
-"""The system in layers for people (M6.11): read from layers.json (eaos/analysis/layers/), computed nowhere here.
+"""The system in layers for people: read from layers.json (eaos/analysis/layers/), computed nowhere here.
 
     critical(report, lang)   the broken critical boundaries (high), one red line each, for the top of START-HERE.md
     lines(report, lang)      each boundary with its state in plain words, and how the files sit in their layers
@@ -48,7 +48,8 @@ def _map_line(record, ar):
 
 
 def lines(report, lang):
-    """The layers section of START-HERE.md: one row per boundary, the questions EAOS could not decide, the map's size."""
+    """The layers section of START-HERE.md: one row per boundary, the questions EAOS could not decide, the map's
+    size."""
     record, ar = read(report), lang == 'ar'
     if not record: return []
     rows = [f"| {BOUNDARIES[b][1 if ar else 0]} | {state} | {first} |" for b in BOUNDARIES for state, first in [_state(record, b, ar)]]

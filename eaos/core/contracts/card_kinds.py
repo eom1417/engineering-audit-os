@@ -1,14 +1,16 @@
-"""What each kind of card is (a claim's `render.key`), said once; the ledger, the remediation, the debt register and the words
-read it, and a key not here is refused when a claim is built (eaos/analysis/claims/ledger.py errors).
+"""What each kind of card is (a claim's `render.key`), said once; the ledger, the remediation, the debt register and
+the words read it, and a key not here is refused when a claim is built (eaos/analysis/claims/ledger.py errors).
 
-A kind's subtypes (an engine cluster's kind, a layer finding's rule) are not kinds: they vary inside one, in the card's params.
-What a kind's detector, fix or words do with them stays with their owner; this says only which of them the kind has.
+A kind's subtypes (an engine cluster's kind, a layer finding's rule) are not kinds: they vary inside one, in the
+card's params. What a kind's detector, fix or words do with them stays with their owner; this says only which of
+them the kind has.
 """
 from typing import NamedTuple
 
 
 class CardKind(NamedTuple):
-    detector: tuple = None       # (the detector's prefix, the param that names it): judged per subtype, else by the key alone
+    # (the detector's prefix, the param that names it): judged per subtype, else by the key alone
+    detector: tuple = None
     own_pattern: bool = False    # its remediation pattern is its key, with or without a probe
     own_fix: bool = False        # the card carries its own fix, in its params
     own_text: bool = False       # the card carries its own words in both languages, in its params
@@ -36,5 +38,5 @@ _NOT_REGISTERED = CardKind()
 
 
 def card_kind(key):
-    """What a kind is. A key not registered reads as a plain card, so a project saved by an older EAOS still reads."""
+    """What a kind is. A key not registered reads as a plain card, so a saved card of an unknown kind still reads."""
     return KINDS.get(key, _NOT_REGISTERED)

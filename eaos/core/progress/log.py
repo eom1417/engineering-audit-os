@@ -1,8 +1,8 @@
 """The writer of a flow's progress: one JSON line per event, appended as the work happens.
 
-Every long piece of work EAOS does is a flow with declared stages: the check (`eaos/pipeline/stages.py`), and later
-setting up the app, recording the screens and fixing. Each flow writes `<folder>/progress/<flow>.jsonl`; the check
-keeps v1's `<report>/run-progress.jsonl`, so every reader written for v1 still finds it.
+Every long piece of work EAOS does is a flow with declared stages: the check (`eaos/pipeline/stages.py`), setting up
+the app, recording the screens and fixing. Each flow writes `<folder>/progress/<flow>.jsonl`; the check writes
+`<report>/run-progress.jsonl`.
 
     {"seq": 1, "event": "run.started", "flow": "check", "schema": 1, "stages": [...], "requested": [...], ...}
     {"seq": 2, "event": "stage.started", "stage": "facts"}
@@ -174,8 +174,10 @@ class ProgressLog:
         self.sampler = (sampler or None) if self.enabled else None
         self.declared = {}          # name -> necessity, in the declaration's order
         self.ended_stages = set()
-        self.current = None         # the stage started last of those running: a program of no known stage is shown on it
-        self.running = {}           # name -> clock when it started, of every stage running now (several in a parallel check)
+        # the stage started last of those running: a program of no known stage is shown on it
+        self.current = None
+        # name -> clock when it started, of every stage running now (several in a parallel check)
+        self.running = {}
         self.sampled_at = self.wrote_at = clock()
         self.programs = {}          # stage -> the programs written last for it
         self.sampler_said = False
@@ -223,9 +225,9 @@ class ProgressLog:
     def started(self, stages, requested, previous, steps=None, process=True, at=None, mode=None, assistants=None):  # limits: parameters -- the fields of the run.started line
         """`run.started` with the declared stages as data; the step seconds of the last run come from the file this
         run replaces unless `steps` gives them. Starts the background thread. `process` false: no process holds the run
-        (one drawn from a state, eaos/journeys/catalog.py), so none is named and a reader never judges it gone; `at`: when such a
-        run truly began, so drawing it again does not start its time over; `mode` and `assistants`: a check's (how many
-        stages and assistants run at once, eaos/pipeline/schedule.py)."""
+        (one drawn from a state, eaos/journeys/catalog.py), so none is named and a reader never judges it gone; `at`:
+        when such a run truly began, so drawing it again does not start its time over; `mode` and `assistants`: a
+        check's (how many stages and assistants run at once, eaos/pipeline/schedule.py)."""
         rows = stage_rows(stages)
         with self.lock:
             self.declared = {row['name']: row['necessity'] for row in rows}
@@ -260,7 +262,8 @@ class ProgressLog:
             if reason_code: fields['reason_code'] = str(reason_code)[:80]
             if artifact: fields['artifact'] = str(artifact)[:300]
             self._step(fields)
-        step.stage = stage          # the stage a program started under it belongs to (eaos/core/progress/sampler.py watch)
+        # the stage a program started under it belongs to (eaos/core/progress/sampler.py watch)
+        step.stage = stage
         return step
 
     def _step(self, fields):
