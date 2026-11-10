@@ -53,6 +53,8 @@ def screens(context):
                                     'unreachable': [{'page': page, 'why': why} for page, why in proven(context.out).items()],
                                     'pages': [{'path': paths[0], 'template': template, 'same_as': paths[1:]} for template, paths in groups.items()],
                                     'lighthouse': {k: v for k, v in speed.items() if k != 'report'}})
+    from .live_app import records
+    records(context)
     return {'pages': len(groups), 'screens': len(rows), 'failing': sum(bool(r.get('failures')) for r in rows),
             'lighthouse': (speed.get('scores') or {}).get('performance'),
             'kinds': covered and sum(k['reached'] for k in covered['kinds']), 'unmeasured': _not_found(rows)}

@@ -85,3 +85,8 @@ def _ran(context, name):
     """Whether stage `name` ended ok in this run: a record an earlier check left on disk is never read as this one's."""
     return ((context.get('manifest_so_far') or {}).get('stages') or {}).get(name, {}).get('status') == 'ok'
 
+
+def records(context):
+    """The check's records under studio/ so far (eaos/report/records/write.py), written once the screens are pictured."""
+    from ...report.records.write import write
+    return write(context.out, context.language, context.target)
