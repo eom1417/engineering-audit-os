@@ -1,9 +1,8 @@
-"""Every document of the report in both languages (report/i18n/ar/, report/i18n/en/), so the Studio shows each one
+"""Every document of the report in both languages (report/i18n/ar/, report/i18n/en/), so a report shows each one
 whole in the person's language and switches with it.
 
 The documents are written by many hands (EAOS's own sentences, the engines' messages, the assistant's words) and come
-out mixed. Translating what is written is small, and kept small this way (EAOS's own check, 2026-10-14: 2818 lines,
-24 calls, 54 minutes, $2.19, 77% of the output the model's thinking):
+out mixed. Translating what is written is kept small this way (a 2818-line report took 24 calls):
 - The unit is a whole piece: a heading, a list item, a paragraph with its wrapped lines joined (a line cut mid
   sentence translates badly), or one table cell. Only the pieces in the wrong language are sent; fenced code, rule
   lines, command lines, and a piece in the right language stay as written.
@@ -166,7 +165,7 @@ def _save_memory(memory_file, memory, wanted):
 
 def _write_translations(report, texts, memory):
     """Write report/i18n/<lang>/<name> for every document, afresh."""
-    shutil.rmtree(report / 'i18n', ignore_errors=True)     # the translations of documents gone (1,070 of 1,214 files)
+    shutil.rmtree(report / 'i18n', ignore_errors=True)     # the old translations go, so each is written afresh
     for name, text in texts:
         for lang in LANGS:
             target = report / 'i18n' / lang / name

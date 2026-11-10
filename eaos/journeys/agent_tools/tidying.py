@@ -1,8 +1,8 @@
 """The batches of their own an assistant runs, never mixed with fix cards (no batch of fixes may be open or waiting):
 
-    moves_propose, moves_make       the layout (M8.5, eaos/journeys/fix/move_batch.py): the tree "today → proposed"
+    moves_propose, moves_make       the layout (eaos/journeys/fix/move_batch.py): the tree "today → proposed"
                                     first, then the moves the person accepted, made and proved
-    context_propose, context_make   the assistants' context (M8.6, eaos/journeys/fix/context_batch.py): what the trim
+    context_propose, context_make   the assistants' context (eaos/journeys/fix/context_batch.py): what the trim
                                     would do first, then the trim, every instruction kept
 
 Each kept batch waits on a branch of its own for the person's accept or undo, like any batch."""
@@ -74,7 +74,8 @@ def _chosen(state, moves):
 
 
 def _not_chosen(named, drawn, chosen):
-    """Why the moves named cannot start: an id no longer proposed (an id names its two places, never another move),
+    """Why the moves named cannot start: an id that is not proposed now (an id names its two places,
+    never another move),
     none named, or one the tool cannot make; else None."""
     if (gone := [i for i in named if i not in drawn]):
         return {'status': 'error', 'error': f"no longer proposed: {', '.join(gone[:5])}; call moves_propose again"}

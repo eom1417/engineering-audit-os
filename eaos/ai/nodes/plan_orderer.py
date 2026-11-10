@@ -1,9 +1,10 @@
 """The plan orderer: the order and grouping of the plan's steps, planned by the assistant.
 
-It reads the rules' plan (eaos/analysis/planning/cards.py: milestones, waves and each card's prerequisites), what the card triage decided
-(a rejected card is set aside, a doubtful one waits for its probe), then decides "reorder" (with its steps), "keep" or "ask". A planning node: a
-critique pass reviews the draft. The check refuses an order that puts a card before one of its prerequisites, names a
-card twice or names one the plan does not hold; a card the order leaves out is placed after it, in the rules' order.
+It reads the rules' plan (eaos/analysis/planning/cards.py: milestones, waves and each card's prerequisites), what the
+card triage decided (a rejected card is set aside, a doubtful one waits for its probe), then decides "reorder" (with its
+steps), "keep" or "ask". A planning node: a critique pass reviews the draft. The check refuses an order that puts a card
+before one of its prerequisites, names a card twice or names one the plan does not hold; a card the order leaves out is
+placed after it, in the rules' order.
 The proposal is written to nodes/plan_orderer/order.json; the plan itself is never changed by it.
 """
 import json
@@ -55,7 +56,8 @@ def _open_tasks(report, plan):
 
 
 def _task_rows(plan, tasks, triage):
-    """Each task as the node reads it: what it is, what it waits for, where the rules placed it, the triage's verdict."""
+    """Each task as the node reads it: what it is, what it waits for, where the rules placed it, the triage's
+    verdict."""
     wave, milestone = _places(plan)
     return [{'id': t['id'], 'title': core.short(t.get('title'), 160), 'kind': t.get('kind'), 'paths': (t.get('paths') or [])[:2],
              'prerequisites': [p for p in t.get('prerequisites') or [] if isinstance(p, str)], 'milestone': milestone.get(t['id']),

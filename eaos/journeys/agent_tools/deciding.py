@@ -9,7 +9,7 @@ from .project import state_of
 
 def _merge_problem(state, wave, into):
     """Why the waiting batch cannot be merged into `into` (None: the branch the fix preview named), else None: the
-    Studio's rule too, a protected branch never."""
+    the same rule applies: a protected branch is never merged into."""
     if not into: return None
     if not commit_of(state['project'], into): return f'no branch named {into} to merge into'
     if into == wave['branch']: return 'a branch cannot be merged into itself'

@@ -1,9 +1,7 @@
 """Every artifact a run may produce: who owns it, why a reader opens it, and how long it may be.
 
-Before this declaration existed, sixteen of thirty documents were outside the output contract
-entirely — unbudgeted and unchecked — and four of them were written twice, the second writer
-replacing 574 lines of measured content with empty headings. A file with no declared owner is a
-file nobody is responsible for.
+A file with no declared owner is a file nobody is responsible for, so every artifact is declared
+here, and errors() checks the declaration itself.
 """
 from dataclasses import dataclass
 

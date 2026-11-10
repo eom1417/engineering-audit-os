@@ -95,7 +95,7 @@ def _answer(function):
         try: arguments = dict(signature.bind_partial(*args, **kwargs).arguments)
         except TypeError: arguments = dict(kwargs)
         record(function.__name__, arguments, result, _status)
-        # a long Studio run forgets its first words: every answer carries the person's language (a real build drifted to English)
+        # a long run may forget its first words, so every answer carries the person's language
         if isinstance(result, dict) and os.environ.get('EAOS_STUDIO_LANG') in SPOKEN:
             result['notes_language'] = f"{SPOKEN[os.environ['EAOS_STUDIO_LANG']]}: the person reads every note you write, live."
         return json.dumps(result, ensure_ascii=False, indent=1, default=str)
@@ -104,7 +104,7 @@ def _answer(function):
 
 def build(more=None):
     """The server; `more(server, reading, working, _answer)` adds tools to it (eaos/interfaces/mcp_server/govern.py: the governance tools,
-    which the Studio itself never calls: functions, reading)."""
+    which the run engine never calls: functions, reading)."""
     from mcp.server.mcpserver import MCPServer
     from mcp.types import ToolAnnotations
     from . import fix as mcp_fix, rules as mcp_rules

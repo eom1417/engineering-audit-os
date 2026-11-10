@@ -292,12 +292,12 @@ def _saved_note(state):
 
 def set_up(state, head=None):
     """The app's run is set up for the code at `head` (the branch's last commit): that commit, or it plus EAOS's own merged
-    fixes. One judgement for the CLI's steps and MCP's status (M3.3)."""
+    fixes. One judgement for the CLI's steps and MCP's status."""
     return same_code(state, (state.get('setup') or {}).get('commit'), _commit(state) if head is None else head)
 
 
 def safety_holds(state, head=None):
-    """The safety net was recorded on the code at `head`, so a batch may change it: one judgement for both (M3.3)."""
+    """The safety net was recorded on the code at `head`, so a batch may change it: one judgement for both."""
     return same_code(state, (state.get('safety') or {}).get('commit'), _commit(state) if head is None else head)
 
 

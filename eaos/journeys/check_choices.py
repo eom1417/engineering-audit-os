@@ -1,5 +1,5 @@
 """The person's choices for a check, and the options a check runs with: one place for the terminal (eaos start), the
-assistant (the MCP audit tool) and the Studio.
+assistant (the MCP audit tool) and the interface.
 
     keep(state, mode=None, sign_in=None)   the mode (normal or speed) and the way to sign in, kept for the next checks;
                                            True when they changed, and the caller saves the state
@@ -36,14 +36,15 @@ def kept(state):
 
 def agreed_to_run(state):
     """Whether the person agreed to run their app in an isolated copy: asked by `eaos next` (question `run_app`), or given
-    to the assistant, the Studio or the check's window (consent `run_and_fix`, agree_to_run)."""
+    to the assistant, the interface or the check's window (consent `run_and_fix`, agree_to_run)."""
     return any(q['id'] == 'run_app' and q.get('answer') for q in state.get('questions') or []) or \
         bool((state.get('consent') or {}).get('run_and_fix'))
 
 
 def agree_to_run(state, via):
     """The person's yes to running their app in an isolated copy, kept for the project in `state` (asked once, not once
-    a run; eaos/journeys/guided/ check_runtime reads it): the Studio's check window, `eaos check --run-app`, or the assistant."""
+    a run; eaos/journeys/guided/ check_runtime reads it): the interface's check window, 
+    `eaos check --run-app`, or the assistant."""
     state['consent'] = {**(state.get('consent') or {}), 'run_and_fix': True, 'at': now()}
     if not any(q.get('id') == 'run_and_fix' for q in state.setdefault('questions', [])):
         state['questions'].append({'id': 'run_and_fix', 'kind': 'yes_no', 'answer': True, 'via': via})
@@ -100,7 +101,8 @@ def without_ai_kept(report, without_ai, again_from, chosen):
 
 
 def offered(state, report=None):
-    """What the start of a check offers the person (the Studio's preview): each path with what it looks at, in both
+    """What the start of a check offers the person (the preview the interface shows): each path with what it looks at,
+    in both
     languages, the mode and the way to sign in kept for this project, the sign-in its code shows (`report`: the last
     check's, eaos/live/access/sign_in.py from_code), when the ways to sign in are offered, and whether the person already agreed
     to run their app (`run_app`): without it the pages, sign-in and speed are not checked, so the start asks it."""

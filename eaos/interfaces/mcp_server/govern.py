@@ -5,7 +5,7 @@ puts it on the server as every tool is answered, and the tests call it directly 
 
 What only the person decides needs their word and the preview: `waiting(op=answer)` takes `person_said`, their reply,
 given ANSWER_SECONDS or more after the question was listed; `branch_change` and `act(auto_accept=true)` take
-`person_agreed` and the confirm token of the preview the person saw. Inside a Studio run all of them are refused.
+`person_agreed` and the confirm token of the preview the person saw. Inside a run the server started, all are refused.
 """
 from .. import govern
 from .server import refuse_in_studio_run
@@ -81,7 +81,7 @@ def history(op: str = 'list', a: str | None = None, b: str | None = None, projec
     raise ValueError('op is one of list, compare, usage')
 
 
-# What the Studio's branch control does that is no one's decision alone: refresh a remote (name), propose how to resolve
+# What the branch control does that is no one's decision alone: refresh a remote (name), propose how to resolve
 # a merge's conflict (name into target, a review run that changes nothing).
 UNDECIDED = {'fetch': lambda project, name, target: govern.fetch(project, name),
              'conflict': lambda project, name, target: govern.propose_resolution(project, name, target)}

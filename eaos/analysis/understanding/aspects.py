@@ -8,8 +8,8 @@ assistant reads all of them, and gives each aspect a verdict:
     digest(out)        {aspect: {label, source, evidence..., rules: {verdict, why}}}, every list bounded by LIMIT
     rules_verdict(..)  the rules' own verdict from the evidence alone: `keep` (and why it is fine), `improve` (and what
                        the evidence shows) or `unmeasured` (the stage that measures it did not run, and why)
-    final(out)         the verdict per aspect the reports show: the assistant's where its ideal plan of this check
-                       judged the aspect (ideal/plan.json ideal.aspects), the rules' elsewhere, each saying who decided
+    final(out)         the verdict per aspect the reports show: the assistant's where its plan of this check judged
+                       the aspect (the plan's ideal.aspects), the rules' elsewhere, each saying who decided
 
 Nothing here runs or measures; it only reads the records the stages wrote.
 """
@@ -291,7 +291,8 @@ def _pictured(screens, visual):
 
 
 def _kinds(row, covered):
-    """The kinds of users of the code (eaos/live/access/roles.py): which the check saw, and who opened a page of another kind."""
+    """The kinds of users of the code (eaos/live/access/roles.py): which the check saw, and who opened a page of another
+    kind."""
     if not covered: return row
     said = [f"{b['kind']} opened {b['page']}, a page of {b['of']} only" for b in covered['breaches'][:3]] + \
            [f"{k['name']['en']} ({k['pages']} page(s)) was not seen: {UNSEEN[k['why']]}" for k in covered['kinds'] if not k['reached']]
@@ -323,7 +324,8 @@ OWN_RUN = ('architecture', 'journeys', 'record', 'screens', 'visual')
 
 def ran_here(out):
     """{stage: True} for the stages that ended ok in this check: the checkpoint of the run in progress, else the
-    manifest of the last run; None when the folder holds neither (every record on disk is then taken as this check's)."""
+    manifest of the last run; None when the folder holds neither (every record on disk is then taken as this
+    check's)."""
     for name in ('run-checkpoint.json', 'run-manifest.json'):
         record = _load(out, name, None)
         if isinstance(record, dict):
@@ -351,8 +353,7 @@ def rules_verdict(out, ran=None):
 
 def final(out, plan=None, ran=None):
     """[{aspect, label, verdict, why, plan, cards, decided_by, rules}] for every aspect: the assistant's verdict where
-    `plan`, the ideal it planned for this check (ideal/plan.json), judged the aspect,
-    the rules' elsewhere."""
+    `plan`, the plan it wrote for this check, judged the aspect, the rules' elsewhere."""
     said = {row['aspect']: row for row in ((plan or {}).get('ideal') or {}).get('aspects') or []}
     rows = []
     for name, rule in rules_verdict(out, ran).items():

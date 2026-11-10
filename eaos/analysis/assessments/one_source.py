@@ -1,4 +1,4 @@
-"""One source per pattern (M15), sorted into findings: near copies of code (jscpd's pairs joined into clusters) and the
+"""One source per pattern, sorted into findings: near copies of code (jscpd's pairs joined into clusters) and the
 ways of working written by hand (ast-grep's idiom records, eaos/rules/ast-grep/rules/idioms.yml).
 
 Each finding: {kind, place, line, severity, evidence: {...}}, its evidence naming every place,
@@ -85,7 +85,8 @@ def _apart(start, end, other):
 
 
 def _kept(fact):
-    """Whether a pair is worth a home: alike as the law says, NEAR_COPY's lines or more, two places, neither set aside."""
+    """Whether a pair is worth a home: alike as the law says, NEAR_COPY's lines or more, two places, neither set
+    aside."""
     value, path = fact['value'], fact['location']['path']
     other = value.get('other') or {}
     alike = value.get('lines', 0) >= NEAR_COPY['min_lines'] and (value.get('similarity') or 1.0) >= NEAR_COPY['similarity']

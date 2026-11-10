@@ -27,7 +27,7 @@ def digest():
 def commit():
     """The commit EAOS was installed from (pip's record of a git install), else the commit of the checkout it runs
     from; '' when neither says. Only EAOS's own checkout counts: installed inside a person's repository (a .venv in their
-    project), git answered with their commit (2026-10-30)."""
+    project), git answered with their commit."""
     try:
         from importlib.metadata import distribution
         url = json.loads(distribution('engineering-audit-os').read_text('direct_url.json') or '{}')

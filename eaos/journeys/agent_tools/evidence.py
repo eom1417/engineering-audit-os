@@ -26,7 +26,7 @@ def findings(project=None, kind=None, path=None, text=None, fixable_only=False, 
     state = state_of(project)
     report, lang = _report(state), state.get('lang') or 'en'
     claims, rows = _claims(report), []
-    from ..fix.selection import cards_in      # area and severity as the Studio's filter reads them
+    from ..fix.selection import cards_in      # area and severity as the record filter reads them
     only = [cards_in(report / 'studio', by, value) for by, value in (('area', area), ('severity', severity)) if value]
     for task in _read(report / 'plan.json').get('tasks') or []:
         if not _wanted(task, kind, path, text, fixable_only) or any(task['id'] not in ids for ids in only): continue

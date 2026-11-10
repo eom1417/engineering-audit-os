@@ -184,7 +184,7 @@ class LiveRun:
 
     def freeze(self):
         """Keep a copy of every folder outside the project the app reads, for this recording and every run after it:
-        a live folder changes under the runs (EAOS's Studio reads the report a batch rewrites), and a screen compared
+        a live folder changes under the runs (the interface reads the report a batch rewrites), and a screen compared
         on other data differs whatever the change."""
         for name, value in (self.profile.get('env') or {}).items():
             if not self._outside(value): continue

@@ -121,7 +121,7 @@ class Run:
     def _judged(self):
         """(the decisions kept, the data left to ask, None when nothing is): a subject of the node's list (spec.LIST)
         judged before on the very same input keeps its decision, so a check gone on from a stage asks only what is new
-        or changed. A fresh check clears them with the other caches (eaos/pipeline/run.py BULKY)."""
+        or changed. A fresh check judges every subject again."""
         field = getattr(self.spec, 'LIST', None)
         if not field or self.settings['fresh']: return [], self.data
         self.frame = digest(_prompt(self.spec, {**self.data, field: []}))     # the task itself: new words ask every subject again

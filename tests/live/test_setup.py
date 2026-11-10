@@ -191,7 +191,7 @@ class VerifyTests(unittest.TestCase):
         self.assertEqual(live_setup.routes(report), ['/notes', '/settings'])
 
     def test_an_empty_no_data_page_is_no_working_app_and_eaos_own_studio_runs_on_its_report_in_its_own_theme(self):
-        # a Studio started without STUDIO_DATA shows "no report here yet" and is not taken as working
+        # a front end started without STUDIO_DATA shows "no report here yet" and is not taken as working
         studio = {'studio/package.json': {'scripts': {'dev': 'vite'}, 'devDependencies': {'vite': '8'}},
                   'studio/vite.config.ts': '// In development: STUDIO_DATA=/path/to/report/studio npm run dev\n'
                                            'const folder = process.env.STUDIO_DATA\n',

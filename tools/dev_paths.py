@@ -4,7 +4,7 @@ Nothing here is part of EAOS the product; it is what measuring and developing it
 sample corpus, the source checkouts of the engines EAOS runs, and the measurement reports. They share
 one root, $EAOS_DEV_HOME (default ~/.eaos/dev), and each part can still be moved with its own variable.
 None of them is ever committed: the corpus and the engines are fetched at their pinned commits, the
-reports are rebuilt by the measurements and trials.
+reports are rebuilt by the measurements and the proof runs.
 
     python tools/dev_paths.py            # print where each part is
     python tools/dev_paths.py upstreams  # clone every engine source eaos/data/toolchain.json pins (source_commit)

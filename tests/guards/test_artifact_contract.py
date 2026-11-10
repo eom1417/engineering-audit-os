@@ -1,4 +1,4 @@
-"""Every artifact has one owner, one purpose and one budget — and the contract checks all of them.
+"""Every artifact has one writer, one purpose and one budget — and the contract checks all of them.
 
 Every document is inside the output contract, budgeted and checked, and written by one module: a second writer could
 replace measured content with empty headings and nothing would fail. These tests keep that from happening quietly.
@@ -60,7 +60,7 @@ class RuleThirteenTests(unittest.TestCase):
 
 
 class SingleWriterTests(unittest.TestCase):
-    """One artifact, one module. Two writers could silently empty a document such as the system map."""
+    """One artifact, one module. Two writers could silently empty a document such as the architecture map."""
 
     def _writers(self, kind=contract.DOCUMENT, source=Path('eaos')):
         """Compare report-relative paths, including local directory aliases, rather than basenames."""

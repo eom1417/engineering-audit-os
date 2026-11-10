@@ -163,7 +163,7 @@ def refresh_views(out, language='ar'):
     """Re-render the view the ledger owns: the index.
 
     Rebuilding the plan or the product report belongs to eaos.report.views, one layer up. Doing it here
-    made dossier, plan and product_review import each other in a cycle.
+    would make the dossier and the report views import each other in a cycle.
     """
     out = Path(out)
     dossier_path = out / 'dossier.json'
@@ -296,9 +296,9 @@ def _claims(request, inputs):
     progress.count('claim steps', 2, CLAIM_STEPS)
     coverage_set = _more_sets(request.out, inputs.sets)
     runtime = runtime_claims(inputs.verification, len(rows), (coverage_set or {}).get('facts'), excluded=_excluded(request.exclude))
-    runtime += from_runs.run_claims(request.out, inputs.sets, request.target, len(rows) + len(runtime))   # they read what ran (M13, M14)
-    runtime += from_rules.rule_claims(request.out, rows + runtime, fact_index, len(rows) + len(runtime))  # the person's own rules, last: a detector's guard reads the others (M16)
-    runtime, held = ledger.withhold(runtime)        # a detector under its measured bar is kept aside here too (M15)
+    runtime += from_runs.run_claims(request.out, inputs.sets, request.target, len(rows) + len(runtime))   # they read what ran
+    runtime += from_rules.rule_claims(request.out, rows + runtime, fact_index, len(rows) + len(runtime))  # the person's own rules, last: a detector's guard reads the others
+    runtime, held = ledger.withhold(runtime)        # a detector under its measured bar is kept aside here too
     for number, row in enumerate(held, start=len(withheld) + 1): row['id'] = 'WHD-%03d' % number
     withheld = withheld + held
     for fact in (coverage_set or {}).get('facts', []): fact_index.setdefault(fact['id'], fact['location'].get('path'))
@@ -306,7 +306,7 @@ def _claims(request, inputs):
         row['origin'] = origin_of(row, fact_index)
         row.setdefault('artifacts', [REGISTER])
         row.setdefault('disposition', {'kind': 'investigate', 'reason': 'Ranked for review; no owner assigned yet in this run.'})
-    if request.target is not None: assess_mechanically(runtime, inputs.sets, request.target)   # one source per pattern's (M15.7)
+    if request.target is not None: assess_mechanically(runtime, inputs.sets, request.target)   # one source per pattern's repair
     from ..planning.ranking import rank
     return rank(rows + runtime, inputs.sets, fact_index), withheld
 
@@ -326,8 +326,8 @@ def _dossier(request, inputs, rows, withheld):
         'description': describe(sets, records),
         'claim_counts': ledger.claim_counts(rows),
         'claims': rows,
-        'likenesses': from_one_source.notes(request.out, sets),     # alike in shape only: said, never cards (M15)
-        'person_rules': from_rules.said(request.out),                # the rules held, and those EAOS cannot guard, with why (M16)
+        'likenesses': from_one_source.notes(request.out, sets),     # alike in shape only: said, never cards
+        'person_rules': from_rules.said(request.out),                # the rules held, and those EAOS cannot guard, with why
         'withheld_claims': withheld,
         'questions': questions_of(records, sets),
         'tasks': tasks,
@@ -358,8 +358,7 @@ VERDICT = 'report-result.json'
 def write_verdict(out, dossier, violations, target=None, facts=None):
     """The one place report-result.json is written.
 
-    The validate stage used to write a thinner copy of this record over the dossier's, dropping the
-    claim and fact counts a reader needs beside the verdict.
+    A second writer would drop the claim and fact counts a reader needs beside the verdict.
     """
     out = Path(out)
     provenance = dossier.get('provenance') or {}

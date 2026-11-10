@@ -1,4 +1,4 @@
-"""The check (audit): the person's choices for its AI, kept; the assistant's readiness; the check as a job; its
+"""The check (audit): the person's choices for its AI, kept; which assistants are ready; the check as a job; its
 overview."""
 from .. import check_choices, guided
 from ..fix import lanes
@@ -18,7 +18,7 @@ from .where import _branch, _older_check
 # ---------------------------------------------------------------- diagnosis
 
 def _not_yet(state):
-    """Why no check starts: a check closes a batch that no longer fits, not a helper's to do; or the branch question."""
+    """Why no check starts: a check closes a batch that does not fit, not a helper's to do; or the branch question."""
     return lanes.not_yours(state) or _branch(state)
 
 
@@ -67,7 +67,7 @@ def _assistant_not_ready(state, fixed=False):
 
 
 def assistant_check(project=None, fresh=False, assistant=None):
-    """Before a check: each AI assistant's readiness on this computer (installed, version, signed in and answering a
+    """Before a check: whether each AI assistant is ready on this computer (installed, version, signed in, answering a
     one-word question, else the exact reason and its fix), the person's choice for this project, and what the
     assistant may do in the check. `fresh` asks again instead of the answer of the last few minutes; `assistant`
     asks only that one."""

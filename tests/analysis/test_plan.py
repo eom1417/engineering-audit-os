@@ -55,7 +55,7 @@ class TaskCardTests(TemporaryWorkspace):
         self.assertEqual((task['verify_command'], task['kind']), ([], 'investigate'))
 
     def test_design_cards_merge_one_page_and_title_rank_on_the_code_scale_and_read_in_their_own_words(self):
-        # 64 design cards for 53 titles (`/` and `/#/` are two pages) must merge by page, and rank on the code scale
+        # Design cards of one title reached by two routes (`/` and `/#/`) must merge by page, and rank on the code scale
         # rather than at a fixed 0.4 above every code claim; private mutable state reads as "changed by several parts".
         from eaos.core.language import plain
         from eaos.core.contracts.card_areas import classify
@@ -130,8 +130,8 @@ class AddedClaimTests(unittest.TestCase):
 
 class ResolutionTests(unittest.TestCase):
     def test_the_assistant_resolves_its_cards_and_asks_the_owner_on_at_most_one_in_ten(self):
-        # Of 867 cards, 653 are one design card per picture, and a card the triage confirmed is still an investigation
-        # only a person could close; the assistant resolves its cards and asks the owner on at most one in ten.
+        # A picture yields one design card, and a card the triage confirmed is still an investigation only a person
+        # could close; the assistant resolves its cards and asks the person on at most one in ten.
         import shutil
         with tempfile.TemporaryDirectory() as tmp:
             target, out = Path(tmp) / 'shop', Path(tmp) / 'out'
@@ -173,7 +173,8 @@ class ResolutionTests(unittest.TestCase):
         self.assertEqual(sorted((c['design']['page'], c['design']['kind'], len(c['design']['findings'])) for c in design),
                          [('/', 'clarity', 1), ('/tasks/$taskId', 'crowding', 1), ('/tasks/*', 'clarity', 1), ('/tasks/*', 'crowding', 1)])
         self.assertEqual(next(c for c in design if c['design']['page'] == '/tasks/$taskId')['evidence']['evidence_ids'], ['IMG-001', 'IMG-005'])
-        # keep closes with its reason; fix makes an investigation ready work; owner is asked on at most one card in ten
+        # keep closes with its reason; fix makes an investigation ready work;
+        # the person is asked on at most one card in ten
         self.assertNotIn(keep, tasks)
         self.assertEqual(record['closed'][0]['why'], f'{keep}: the evidence shows it')
         fixed = tasks[fix]

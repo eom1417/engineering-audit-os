@@ -125,7 +125,7 @@ def _job_answer(job, seconds, project):
 
 
 def busy_answer(record):
-    """What a tool answers when something holds the project and it did nothing: `error` makes a Studio run say so,
+    """What a tool answers when something holds the project and it did nothing: `error` makes a run say so,
     not `done`."""
     job = record['id']
     return {'job': job, 'status': 'busy', 'kind': record['kind'], 'progress': record.get('progress'),

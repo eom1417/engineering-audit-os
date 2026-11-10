@@ -26,7 +26,7 @@ def _boundaries(root, out, specification):
 
 def _rule(root, out, specification):
     from ..rules import guards
-    return {'rule': guards.run(specification['guard'], Path(root).resolve())}     # the person's rule's own guard (M16)
+    return {'rule': guards.run(specification['guard'], Path(root).resolve())}     # the person's rule's own guard
 
 
 # What a probe reads beside the collected facts, made again on the copy: {query: (root, out, specification) -> sets}.

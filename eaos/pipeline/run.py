@@ -198,17 +198,17 @@ def _previous(out):
 
 # A new complete check replaces these of the previous one: its pictures and crawl, the engines' working folders and
 # the assistant's raw runs and cached decisions (the cache keys on the prompt, which names a picture, not what it
-# shows). The ledger, the history and the state stay. These are the bulkiest parts of a report; the ideal plan's
-# record of its raw runs (ideal/runs.json) stays. START-HERE.md is cleared too: a check that never reached its reports
+# shows). The ledger, the history and the state stay. These are the bulkiest parts of a report.
+# START-HERE.md is cleared too: a check that never reached its reports
 # would otherwise show the counts of the one before.
 BULKY = ('live/screens', 'live/screens.json', 'live/crawl', 'live/crawl.json', 'nodes/*/runs', 'nodes/*/cache', 'ideal/run-*',
-         'START-HERE.md', 'logic-flaws.json', 'facts/logic_flaws.json',     # the optional deep check's hunt, of older code
+         'START-HERE.md', 'logic-flaws.json', 'facts/logic_flaws.json',     # older checks' files, no check writes them
          # the simulated users' records, pictures and difficulties, of older code; the saved journeys
-         # (experience/journeys/<name>.json) and the scenario that orders them stay: every full check replays them
+         # and the scenario that orders them stay: every full check replays them
          *(f'experience/{name}.json' for name in ('run', 'data', 'tickets', 'difficulties', 'replays', 'story')),
          'experience/replays', 'experience/journeys/*/', 'facts/experience.json', 'EXPERIENCE.md')
 # The documents and records a check does not write: any run removes a previous check's, or the output contract finds
-# them undeclared and the Studio's Library lists them as if current.
+# them undeclared and the report's library lists them as if current.
 RETIRED = ('CONTRACTS.md', 'COUPLING-ATLAS.md', 'DECISION-BRIEF.md', 'DOMAIN-AND-DATA.md', 'ENGINES.md', 'EVOLUTION.md',
            'FEATURES.md', 'FLOWS.md', 'LOAD-MODEL.md', 'MEASUREMENTS.md', 'ONBOARDING.md', 'POLICY.md', 'PROVENANCE.md',
            'RISK-REGISTER.md', 'ROADMAP.md', 'SEMANTIC.md', 'SUSTAINABILITY.md', 'SYSTEM-MAP.md', 'transform-plan.md',
@@ -224,7 +224,7 @@ def bulky(out, patterns=None):
     from ..facts.engine_findings import SCRATCH
     out = Path(out)
     patterns = patterns or (*BULKY, *(f'engines/{part}' for part in SCRATCH))
-    # a pattern ending in / names folders only: before Python 3.11 glob ignored the /, and experience/journeys/*/ took
+    # a pattern ending in / names folders only: before Python 3.11 glob ignored the /, and nodes/*/runs/ took
     # the saved journeys beside their picture folders
     return sorted({path for pattern in patterns for path in out.glob(pattern) if not pattern.endswith('/') or path.is_dir()})
 

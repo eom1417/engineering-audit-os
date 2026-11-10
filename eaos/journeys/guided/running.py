@@ -91,8 +91,7 @@ def _safety_run(state, step):
 
 def _screens(state, runtime):
     """The run_lock answer of the original's screens. A project with no interface has no screen to record and nothing
-    to start: its own checks are its safety net (a stranger's library was started as `true` here, and no batch could
-    open, 2026-11-04)."""
+    to start: its own checks are its safety net."""
     from ...live.behavior.lock import run_lock
     if (state.get('setup') or {}).get('no_interface'):
         return {'results': [], 'limitations': ['the project has no interface: its own checks keep it safe']}
@@ -154,7 +153,7 @@ def fix_done(state):
 
 def fix(state, args):
     """Step 4: the fixes are made by the person's AI assistant through EAOS's tools (fix_start, fix_edit, fix_finish),
-    from the assistant or the Studio; this command never calls a model itself. It says where to go."""
+    from the assistant or the interface; this command never calls a model itself. It says where to go."""
     from ..fix.waves import next_batch
     lang = state['lang']
     if wave := state.get('open_wave'): return _open_batch(lang, wave)

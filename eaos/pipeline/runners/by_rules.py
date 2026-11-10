@@ -35,7 +35,7 @@ def facts(context):
     context['collected'] = collect(context.target, context.out, None, source=context['source'], exclude=context['exclude'],
                                    cache=Path(context.runtime) / 'syntax-cache.json' if context.get('runtime') else None)
     # A tree with no source file to read is not an audited project, whatever its history says:
-    # an empty checkout used to be reported COMPLETE, with claims drawn from git history alone.
+    # an empty checkout must not be reported COMPLETE: its claims would come from git history alone.
     # A site of pages alone (its script inside its .html) is a project too: it was refused, its app never run.
     from ...core.contracts.vocabulary import classify
     unread = [row['path'] for row in context['collected']['unread_names']]
@@ -55,7 +55,7 @@ def engines(context):
         context['source'] = Source(context.target, exclude=context.exclude, max_files=context.max_files, max_bytes=context.max_bytes)
     # Run again within the same check (eaos/pipeline/run.py again), the engines named join the others' results.
     from ...analysis.layers import depcruise_rules
-    depcruise_rules(context.target, context.out)          # the layer map's rules, for dependency-cruiser (M6.2)
+    depcruise_rules(context.target, context.out)          # the layer map's rules, for dependency-cruiser
     entries = collect_external(context.target, context.out, context['source'], only=context.engines or None,
                                keep=bool(context.get('again')))
     external_entry = _index_engines(context, entries if isinstance(entries, list) else [entries], add_to_index)

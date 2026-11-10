@@ -23,7 +23,7 @@ from ...core.system.clock import now
 
 CONFIDENCE = ['CONFIRMED', 'LIKELY', 'HYPOTHESIS', 'REFUTED']
 PROVING_METHODS = {'runtime_probe', 'test_evidence', 'static_fact', 'history_fact'}
-# The builders of the claims facts earn (eaos/analysis/claims/from_facts.py), in ledger order: the claims are numbered in it.
+# The builders of the claims facts earn (from_facts.py), in the order the claims are numbered.
 BUILDERS = (cycles, cochanges, duplicated_rules, hotspots, large_modules, mutable_globals, external_writes,
             redundant_work, policy_violations, trace_gaps, dead_code, broken_code,
             vulnerable_dependencies, weaknesses, layer_findings, repository_findings, real_data)
@@ -45,8 +45,8 @@ def claim_counts(claims):
 
 STATEMENT_LIMIT = 600
 
-# What the precision set (tools/precision.py) measured for each detector: shown or hidden. A detector whose
-# measured precision or recall is under its declared bar is hidden, not shown with a caveat (NS38.T1).
+# What was measured for each detector: shown or hidden. A detector whose measured precision or recall is under its
+# declared bar is hidden, not shown with a caveat.
 VERDICTS = DATA / 'detector-verdicts.json'
 
 
@@ -146,7 +146,8 @@ def _unowned_acceptance(claim):
 
 
 def _unknown_kind(claim):
-    """A card kind nobody registered: refused when built, since it would be shown generic, its detector and own fix lost."""
+    """A card kind nobody registered: refused when built, since it would be shown generic, its detector and own fix
+    lost."""
     key = (claim.get('render') or {}).get('key')
     return [f'unknown card kind {key!r}: register it in eaos/core/contracts/card_kinds.py'] if key and key not in KINDS else []
 
@@ -294,7 +295,7 @@ def from_engines(fact_sets, offset=0):
     Two independent engines agreeing is worth a LIKELY claim that a probe can raise. One engine
     contradicted by another that fully evaluated the same property is worth a HYPOTHESIS that a
     probe must settle. One engine speaking alone is left as a fact: promoting it would flood the
-    ledger with 586 findings and teach a reader to ignore it. Except a count it states exactly (M2.2): a function with
+    ledger with findings and teach a reader to ignore it. Except a count it states exactly: a function with
     eight parameters has eight whoever counts them, so that count alone is a claim, on those targets only.
     """
     from .correlate import clusters, CORROBORATED, CONTESTED, GRANULARITY_GAP, SINGLE
@@ -316,8 +317,8 @@ def from_engines(fact_sets, offset=0):
 
 def _earns_a_claim(kind, detail, said):
     """Whether a kind of finding at a place is a claim of the engines; `said`: its verdict is one a claim is made of."""
-    # Security findings are cards of their own, alone or agreed (eaos/analysis/assessments/weaknesses.py), a vulnerable dependency too;
-    # dead code EAOS's own detector also reports is its card (fact_claims.dead_code), not a second one.
+    # Security findings are cards of their own, alone or agreed (eaos/analysis/assessments/weaknesses.py), and so is a
+    # vulnerable dependency. Dead code that EAOS's own detector also reports is its card (from_facts.dead_code).
     return not (kind in SECURITY or (kind == 'dead_code' and 'eaos' in detail['asserted_by']) or not said)
 
 
@@ -328,8 +329,8 @@ def _complexity_rows(cluster, fact_sets):
 
 
 def _finish(kind, cluster, fact_sets, exact=False):
-    """(finish line, the engines that judge it) of a complexity claim (eaos/analysis/repair/finish_line.py), (None, None) for another kind.
-    `exact`: only the counts an engine states exactly."""
+    """(finish line, the engines that judge it) of a complexity claim (eaos/analysis/repair/finish_line.py), (None,
+    None) for another kind. `exact`: only the counts an engine states exactly."""
     if kind != 'complexity': return None, None
     from ..repair.finish_line import EXACT, judges, targets
     rows = _complexity_rows(cluster, fact_sets)

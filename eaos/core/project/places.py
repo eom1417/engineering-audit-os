@@ -1,7 +1,7 @@
 """Where EAOS keeps a project's things: ~/.eaos (EAOS_HOME) and one workspace per project folder.
 
-A leaf module, so the Studio's modules can find a project's records without importing guided (which imports the
-pipeline, which exports the Studio: a cycle).
+A leaf module, so the run engine's modules can find a project's records without importing guided (which imports the
+pipeline, which exports the run engine: a cycle).
 """
 import hashlib
 import os

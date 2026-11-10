@@ -1,9 +1,10 @@
-"""Who may call the run engine's action API, checked in one place (M3.3) (docs/studio-actions.json `security`):
+"""Who may call the run engine's action API, checked in one place (docs/studio-actions.json `security`):
 - the server listens on 127.0.0.1 only (`LOOPBACK`), or 0.0.0.0 behind one exact Remote origin;
 - every request names the server by its Host (127.0.0.1:<port>, localhost:<port>, the Remote one), which defeats DNS
   rebinding; a page outside /api/ is read only;
 - every /api/ call carries the launch token in X-EAOS-Token (a run's event stream on the actions' own server, which an
-  EventSource opens, may carry it as `token=`); every write also carries X-EAOS-CSRF and comes from the Studio's origin;
+  EventSource opens, may carry it as `token=`); every write also carries X-EAOS-CSRF
+  and comes from the origin the server serves;
 - irreversible actions and runs that change code need a confirm token from their preview: single-use, ten minutes,
   bound to the action, the selection and the project.
 Every compare is constant-time; a refusal says why, never with the token.
@@ -18,7 +19,7 @@ import time
 from urllib.parse import parse_qs, urlsplit
 
 LOOPBACK = '127.0.0.1'
-# Every network of this computer: the Studio binds it only for an exact, authenticated Remote origin (api/listening.py
+# Every network of this computer: the server binds it only for an exact, authenticated Remote origin (api/listening.py
 # bind refuses it otherwise).
 EVERY_NETWORK = '0.0.0.0'  # nosec B104
 # The names of this computer an address may give: compared, never bound.
@@ -59,7 +60,7 @@ def origins(keys, port):
 
 
 def hosts(keys, port):
-    """The Host values a Studio answers: this computer on its port, and the Remote address it was given."""
+    """The Host values the server answers: this computer on its port, and the Remote address it was given."""
     return {f'{name}:{port}' for name in HOSTS} | ({urlsplit(keys.remote_origin).netloc} if getattr(keys, 'remote_origin', None) else set())
 
 
@@ -90,7 +91,7 @@ def _origin_of(headers):
 
 
 class Locks:
-    """The keys of a Studio's actions, and their confirm tokens. `query_token`: the actions' own server, whose event
+    """The keys of the actions, and their confirm tokens. `query_token`: the actions' own server, whose event
     streams an EventSource opens with `token=`."""
     query_token = True
 
@@ -113,7 +114,6 @@ class Locks:
         refused = refusal(self, method, path, headers)
         return refused and (refused[0], refused[2])
 
-    # confirm tokens
     def _bound(self, action, selection, project):
         return json.dumps([action, selection, str(project)], sort_keys=True, ensure_ascii=False)
 

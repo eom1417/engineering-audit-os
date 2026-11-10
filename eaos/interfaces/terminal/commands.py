@@ -1,5 +1,5 @@
-"""The governance commands of the terminal (docs/GUIDE.md "Without the Studio"): what they print and ask, nothing
-more. Each one calls eaos/interfaces/govern.py, which calls the Studio's own core; every line the person reads comes from
+"""The governance commands of the terminal (docs/GUIDE.md): what they print and ask, nothing
+more. Each one calls eaos/interfaces/govern.py, which calls the run engine; every line the person reads comes from
 govern_words.WORDS, the contract (docs/studio-actions.json) or the core's own words, in Arabic and English.
 
     eaos check [--path …] [--mode …] [--assistant …] [--watch]     the estimate, then a new check in the background
@@ -68,7 +68,8 @@ def _project(args):
 
 
 def agreed(project, name, text, yes):
-    """The person's yes to `text`, asked now (each time, never kept from before); refused inside a Studio run."""
+    """The person's yes to `text`, asked now (each time, never kept from before);
+    refused inside a run the server started."""
     refuse_in_studio_run(name)
     state = project_state.load(project)
     state['questions'] = [q for q in state.get('questions') or [] if q['id'] != f'agree_{name}']
@@ -86,7 +87,7 @@ def _said(actions, record):
 @command
 def check(args, lang):
     project = _project(args)
-    inputs = govern.check_inputs(getattr(args, 'path', None), getattr(args, 'assistant', None), getattr(args, 'again_from', None),   # check, start
+    inputs = govern.check_inputs(getattr(args, 'path', None), getattr(args, 'assistant', None), getattr(args, 'again_from', None),
                                  **{name: getattr(args, name, None) for name in ('mode', 'sign_in', 'published', 'run_app')})
     shown = govern.estimate(project, inputs)['estimate']
     say(words('estimate', lang, low=shown['minutes_low'], high=shown['minutes_high'], basis=text_of(shown['basis'], lang)))

@@ -1,6 +1,6 @@
 """The pipeline, declared as data.
 
-The order used to live inside one function as a sequence of calls, which meant nothing could ask
+The order is declared here as data, so anything can ask
 what the pipeline does, skip a step, resume one, or report what never ran. Here each stage names
 what it needs, what it produces, and whether the run may continue without it.
 """
@@ -19,7 +19,7 @@ IN_ORDER = ('app',)
 class SkipStage(Exception):
     """Raised by a runner that cannot apply here — no provider, no policy, no engine installed.
 
-    `code` names the reason in a stable word (`no_provider`): the Studio shows the person the text for that code in
+    `code` names the reason in a stable word (`no_provider`): the interface shows the person the text for that code in
     their language (the `reasons` of eaos/data/errors.json), and EAOS's own sentence when the code is unknown."""
 
     def __init__(self, reason='', code='', lost=None):
@@ -40,7 +40,7 @@ class Stage:
     # Artifacts of an earlier stage it rewrites: every stage built on that one sees them as in the declared order, the
     # ones declared before it unchanged and the ones after it rewritten (waits).
     amends: tuple = ()
-    # It reads what every stage before it made (the Studio's whole export, the final target): it waits for them all.
+    # It reads what every stage before it made (the whole export, the final target): it waits for them all.
     gathers: bool = False
     # What it holds while it runs, which no other stage holds at the same time (RESOURCES).
     uses: tuple = ()
@@ -162,7 +162,8 @@ STAGES = tuple(sorted(_DECLARED, key=lambda stage: _POSITION.get(stage.name, len
 
 BY_NAME = {stage.name: stage for stage in STAGES}
 ORDER = tuple(stage.name for stage in STAGES)
-# The five parts a person follows a check by (the Studio's board), each stage in one; within a part, the declared order.
+# The five parts a person follows a check by (the board of the interface), each stage in one;
+# within a part, the declared order.
 PHASES = {phase: tuple(sorted(names, key=ORDER.index)) for phase, names in {
           'read': ('facts', 'features', 'roles', 'intake', 'measure', 'architecture', 'policy', 'rules'),
           'tools': ('engines', 'layers', 'claims', 'probe'),

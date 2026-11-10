@@ -4,8 +4,8 @@ The assistant reads each card with its evidence (the facts it stands on, and a s
 each fact's line, marked as untrusted data) and decides: confirm (the evidence holds: on to the plan), doubt (it does
 not settle it: a probe does) or reject (the evidence contradicts the card: set aside, and its rule is told). A decision
 must cite the card or one of its own facts. Nothing here changes a card: the verdicts, the probe requests and the
-library's feedback are written beside the report (nodes/card_triage/), and `precision(report)` gives the triage's own
-column of the precision measure, per kind of card, never mixed with the hand-written labels (tools/precision.py).
+library's feedback are written beside the report (nodes/card_triage/). `by_kind` gives the triage's own estimate of
+the precision of each kind of card, kept apart from any measured precision.
 """
 import json
 import sys
@@ -81,7 +81,7 @@ reviews it.'''
 
 
 def _facts(report):
-    """{fact id: {summary, path, line}} from the Studio's evidence, then from the facts the report kept."""
+    """{fact id: {summary, path, line}} from the report's evidence file (studio/evidence.json)."""
     report = Path(report)
     out = {}
     for row in (core.load(report / 'studio/evidence.json', {}) or {}).get('facts') or []:
@@ -139,7 +139,8 @@ def _weight(measured):
 def inputs(report, **options):
     """The open cards (or those of options['cards'], at most options['limit']), most severe first, each with its facts
     and their code in options['project'], those carrying the measurement first. options['rejudge'] ({card: why it was
-    doubted}): only those cards, each with all its facts and its doubt. options['lang']: the person's language ('en')."""
+    doubted}): only those cards, each with all its facts and its doubt. options['lang']: the person's language
+    ('en')."""
     report, project, lang, rejudge, limit = Path(report), options.get('project'), options.get('lang', 'en'), options.get('rejudge'), options.get('limit')
     rows = _open_cards(report, options.get('cards'), rejudge)
     out = _bundled(report, rows[:limit] if limit else rows, project, rejudge)
@@ -188,7 +189,7 @@ def _card_evidence(cited, measured, facts, project, most):
 
 
 BATCH = 40
-LIST = 'cards'          # each card's verdict kept under its own evidence (core._judged): only new or changed ones are asked
+LIST = 'cards'          # each verdict kept under its own evidence (runner.Run._judged): only new or changed cards are asked
 
 
 def batches(data):
@@ -203,7 +204,8 @@ def subjects(data):
 
 
 def narrowed(data, asked):
-    """The bundle with only the cards of `asked` (a cheaper tier would set them aside: the deep tier judges them alone)."""
+    """The bundle with only the cards of `asked` (a cheaper tier would set them aside: the deep tier judges them
+    alone)."""
     return {**data, 'cards': [card for card in data['cards'] if card['id'] in asked]}
 
 
@@ -222,8 +224,8 @@ def prompt(data):
 
 
 def check(data, decision):
-    """A verdict must stand on the card's own evidence: the card itself or one of its facts. A confirm is strict (M7.4):
-    one that names no one harmed is kept as a doubt."""
+    """A verdict must stand on the card's own evidence: the card itself or one of its facts. A confirm is strict: one
+    that names no one harmed is kept as a doubt."""
     card = next(c for c in data['cards'] if c['id'] == decision['subject'])
     if not ({card['id']} | {e['id'] for e in card['evidence']}) & set(decision['evidence']): return "none of its evidence is this card's"
     if decision['decision'] == 'confirm' and not str((decision.get('detail') or {}).get('harmed') or '').strip():
@@ -271,7 +273,7 @@ def _probe_requests(record, verdicts, claims, probe):
 def resolution(decision, detail):
     """{resolution, change, question, options, recommendation} of a confirmed card when its detail settles it: a fix
     names its change, a question to the person has its question and the assistant's recommendation; else {} (the rules'
-    readiness stays)."""
+    the rules' decision stands)."""
     kind = detail.get('resolution')
     if decision != 'confirm' or kind not in RESOLUTIONS: return {}
     return _fix(detail) if kind == 'fix' else _owners(detail) if kind == 'owner' else {'resolution': kind}
@@ -289,8 +291,8 @@ def _owners(detail):
 
 
 def by_kind(verdicts):
-    """{kind of card: {confirm, doubt, reject, rules only, precision}}: the triage's own estimate of how much of each kind
-    is true (confirmed ÷ confirmed and rejected), a model's opinion beside the labelled precision, never instead of it."""
+    """{kind of card: {confirm, doubt, reject, rules only, precision}}: the triage's own estimate of how much of each
+    kind is true (confirmed ÷ confirmed and rejected). It is a model's opinion, not a measured precision."""
     out = {}
     for v in verdicts:
         row = out.setdefault(v['kind'] or '?', {'confirm': 0, 'doubt': 0, 'reject': 0, 'rules only': 0})
@@ -302,7 +304,8 @@ def by_kind(verdicts):
 
 
 def _merge_second(node, first, second):
-    """The first run with each card judged again by the assistant taking its second verdict (the doubt kept in its detail)."""
+    """The first run with each card judged again by the assistant taking its second verdict (the doubt kept in its
+    detail)."""
     again = _rejudged(second)
     decisions = [{**again[d['subject']], 'detail': {**(again[d['subject']].get('detail') or {}), 'first_doubt': d['why']}}
                  if d['subject'] in again else d for d in first['decisions']]
@@ -323,7 +326,7 @@ def _both(first, second):
 
 def run(node, report, **options):
     """The triage, then a second look at the cards it doubted, each with every fact it stands on: the second verdict
-    replaces the doubt (its detail keeps `first_doubt`), and a card doubted again stays doubted. Without a second answer
+    settles the doubt (its detail keeps `first_doubt`), and a card doubted again stays doubted. Without a second answer
     the first verdicts stand."""
     spec = sys.modules[__name__]
     first = runner.run_node(node, spec, report, **options, logged=False)

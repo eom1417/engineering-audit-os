@@ -95,7 +95,7 @@ class ServerTests(Home):
 
 class ToolTests(Home):
     def test_every_answer_in_a_studio_run_carries_the_persons_language(self):
-        # Every answer in a Studio run carries the person's language, so all notes are written in it.
+        # Every answer in a run of the run engine carries the person's language, so all notes are written in it.
         from eaos.interfaces.mcp_server import server as mcp_server
         def status(project=None): return {'next': 'audit'}
         with mock.patch.dict(os.environ, {'EAOS_STUDIO_LANG': 'ar'}):
@@ -463,7 +463,7 @@ if __name__ == '__main__':
 
 class PersonOnly(Home):
     """What only the person decides, from a terminal and from the governance tools: refused without their word, and
-    refused inside a Studio run even with it (eaos/interfaces/govern.py, eaos/interfaces/terminal/commands.py,
+    refused inside a run even with it (eaos/interfaces/govern.py, eaos/interfaces/terminal/commands.py,
     eaos/interfaces/mcp_server/govern.py)."""
 
     def setUp(self):

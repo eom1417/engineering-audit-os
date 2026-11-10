@@ -148,7 +148,7 @@ def ready(card):
 
 def own_batch(card):
     """Whether the card is repository craft (moves, the context, the extension guide): fixed by a batch of its own
-    on its own branch, never with fixes. A plan's card says it by its pattern, the Studio's by its kind."""
+    on its own branch, never with fixes. A plan's card says it by its pattern, any other card by its kind."""
     return (card.get('pattern') or card.get('kind')) == 'repository_craft'
 
 

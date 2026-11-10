@@ -1,5 +1,5 @@
-"""The claims deterministic facts earn (eaos/analysis/claims/ledger.py from_facts), one builder per kind of fact; the ledger
-numbers them in the order of claims.BUILDERS, which also takes the builders of code written twice
+"""The claims deterministic facts earn (eaos/analysis/claims/ledger.py from_facts), one builder per kind of fact; the
+ledger numbers them in the order of ledger.BUILDERS, which also takes the builders of code written twice
 (eaos/analysis/claims/duplicates.py) and of security weaknesses (eaos/analysis/assessments/weaknesses.py).
 
 Each builder is `build(fact_sets, add, target)`: `add(statement, claim_type, confidence, method, falsifier, **extra)`
@@ -10,9 +10,8 @@ from pathlib import PurePosixPath
 
 from ..assessments.dependencies import build_assessment as dependency_assessment, measured as _measured
 
-# A claim statement is one decidable sentence, and the schema caps it at 600 characters. An
-# eighty-module cycle listed every member and the whole dossier failed to assemble; the members
-# live in the fact, so the sentence names enough of them to recognise and says how many more.
+# A claim statement is one decidable sentence, and the schema caps it at 600 characters. A cycle of many modules
+# listed in full would overflow it, so the sentence names some members and says how many more; the fact keeps all.
 NAMED_IN_A_STATEMENT = 6
 # The order of a vulnerability's severity, lowest first.
 VULNERABILITY_SEVERITIES = ('low', 'medium', 'high', 'critical')
@@ -85,9 +84,9 @@ def cochanges(fact_sets, add, target):
 
 
 def hotspots(fact_sets, add, target):
-    """Every production function or method past the complexity limit of the code laws (eaos/core/contracts/code_laws.py), each a
-    claim; those of one file become one card (eaos/analysis/planning/cards.py GROUPED). It held to 60 branches and the three worst before,
-    so a project's check named 3 of its 105 functions past the limit and scored its structure as sound."""
+    """Every production function or method past the complexity limit of the code laws
+    (eaos/core/contracts/code_laws.py),
+    each a claim; those of one file become one card (eaos/analysis/planning/cards.py GROUPED)."""
     from ...core.contracts.code_laws import MAX_COMPLEXITY
     from ..maps.system_paths import is_test
     nodes = {fact['location']['path']: fact['value'] for fact in facts_of(fact_sets, 'graph', 'graph_node')}
@@ -98,7 +97,7 @@ def hotspots(fact_sets, add, target):
 
 
 def _complexity(fact):
-    """A function's complexity, the code laws' count (eaos/facts/code/metrics.py); its branches in facts from before it."""
+    """A function's complexity, the code laws' count (eaos/facts/code/metrics.py); a fact may carry it as `branches`."""
     value = fact['value']
     return value.get('complexity') or value.get('branches') or 0
 
@@ -278,8 +277,8 @@ def _advisory(fact):
 
 
 def vulnerable_dependencies(fact_sets, add, target):
-    # A locked version the advisory database lists as affected is a deterministic finding: one engine suffices. A package
-    # the project names itself is a card of its own; those it does not, with a fix, are one card per lock file.
+    # A locked version the advisory database lists as affected is a deterministic finding: one engine suffices. A
+    # package the project names itself is a card of its own; those it does not, with a fix, are one card per lock file.
     pulled = {}
     for fact in filter(_advisory, (fact_sets.get('external') or {}).get('facts', [])):
         named, scope = _place(fact, target)

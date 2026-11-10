@@ -2,7 +2,7 @@
 
 A Fix run is the EAOS fix prompt limited to the selected cards; Verify, Explain and Plan only read. Every prompt says
 the same three things: change code only through the EAOS tools, never take the person's decisions (accept, undo,
-the branch, the run consent), and ask the person with one `eaos-question` block, which the Studio shows in its inbox.
+the branch, the run consent), and ask the person with one `eaos-question` block, which EAOS shows in the person's inbox.
 """
 import json
 import re
@@ -25,7 +25,7 @@ ASK = ('When you need the person (their agreement to run the app, a choice only 
        'and end your turn.')
 # Where the person gave an answer, in both languages: the words that resume the assistant and the run's own event.
 WHERE = {'studio': {'en': 'in the Studio', 'ar': 'في الاستوديو'}, 'terminal': {'en': 'in the terminal', 'ar': 'في الطرفية'}}
-ACTS = ('fix_abandon',)                    # what an answer may make the Studio do itself (eaos/journeys/runs/runs.py)
+ACTS = ('fix_abandon',)                    # what an answer may make EAOS do itself (eaos/journeys/runs/runs.py)
 
 # How a card is changed, in a Fix and in a lane beside it.
 EDIT = ('fix_edit, keeping the code laws of the EAOS instructions (least code, one home for every rule, nothing dead), to the '

@@ -76,8 +76,8 @@ def _unanswered(asked, person_said):
     return (f'the question was put {None if since is None else int(since)} seconds ago: nobody answers that fast, so the '
             'person has not answered yet')
 
-# status' open batch; `retired_batch` stays in the answer, null: status closes none, and says in `next` why one no
-# longer fits
+# status' open batch; `retired_batch` stays in the answer, null: status closes none, and says in `next` why one
+# does not fit
 def _batches(wave):
     return {'open_batch': {k: wave.get(k) for k in ('number', 'cards', 'kept', 'failed', 'last_error', 'deliver_as', 'merge_into', 'direct', 'continues')} if wave else None, 'retired_batch': None}
 
@@ -131,7 +131,7 @@ def _next_step(state, head, checked, busy, waiting):
 
 
 def _stale_step(state, head):
-    """The step past an open batch that no longer fits: never to go on with it, and it is still there; None without
+    """The step past an open batch that does not fit: never to go on with it, and it is still there; None without
     one."""
     if not (why := guided.why_stale(state)): return None
     tool, step = _setup_step(state, head)

@@ -47,8 +47,8 @@ def one_source_counts(workdir, sets):
 
 def dead_counts(workdir):
     """{'deadcode:rule': findings} of EAOS's own dead-code detector (eaos/facts/dead_code/detect.py) over the Python code, the one
-    every check runs (vulture's were all names called by dispatch, M2.3). tools/ is EAOS's
-    code too: what only it reads is read (the code laws' limits were said never read)."""
+    every check runs. A name called only through dispatch is read as used. tools/ is EAOS's code too: what only
+    it reads still counts as read."""
     from eaos.facts.run import collect
     collect(ROOT, workdir, ['syntax', 'resolve', 'entrypoints', 'deadcode'], exclude=tuple(e for e in EXCLUDE if e != 'tools'))
     facts = json.loads((Path(workdir) / 'facts' / 'deadcode.json').read_text(encoding='utf-8'))['facts']

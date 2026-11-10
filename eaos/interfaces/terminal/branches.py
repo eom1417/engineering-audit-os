@@ -1,5 +1,5 @@
 """The terminal's accept, undo, branch and branches commands, and the box that ends a run it followed (eaos/interfaces/terminal/commands.py holds the others and
-the way each one runs): what will happen said first, the person's yes, then the Studio's own core does it."""
+the way each one runs): what will happen said first, the person's yes, then the governance core does it."""
 import subprocess
 
 from .. import govern
@@ -16,7 +16,7 @@ def _files(project, base, branch):
 
 
 def decide(args, lang, operation):
-    """Accept or undo the batch waiting: what will happen said first, the person's yes (or --yes), then the Studio's own
+    """Accept or undo the batch waiting: what will happen said first, the person's yes (or --yes), then the core's
     way when a run handed it over (the run records it), else the assistant's tool."""
     from ...journeys import agent_tools
     from ...core.project.state import waiting_batch

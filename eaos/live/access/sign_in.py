@@ -124,7 +124,7 @@ def tell(workspace, **said):
 
 
 def asked(workspace):
-    """What the check asks the person now, or None (nothing asked, answered, or no longer waited for)."""
+    """What the check asks the person now, or None (nothing asked, answered, or not waited for)."""
     record = read_json(Path(workspace) / ASKED)
     if not record or record.get('state') != 'waiting' or record['until'] < now(): return None
     return record

@@ -9,9 +9,9 @@ branch checked out is the one, without a question.
 Each branch keeps its own check, run, safety net, batches and ledger. The first branch worked on keeps the outputs
 folder's top (technical/, fixes/); every other one has branches/<name>/ with the same parts.
 
-Which branches are protected from a merge is decided here for the Studio, MCP and the CLI alike (`policy`,
-`blocked_target`): the remote's default branch, main and master, and the project's own policy (the Studio's
-Branches page writes it). This module reads git, the state and that policy only; it writes none of them.
+Which branches are protected from a merge is decided here for MCP and the CLI alike (`policy`,
+`blocked_target`): the remote's default branch, main and master, and the project's own policy (BranchControl
+writes it). This module reads git, the state and that policy only; it writes none of them.
 """
 import re
 import subprocess
@@ -29,7 +29,7 @@ KEYS = ('scanned', 'scanned_commit', 'scanned_with', 'scanned_branch', 'scanned_
 EAOS_EMAIL = 'eaos@localhost'
 FILES_SHOWN = 50
 MAIN_NAMES = ('main', 'master')
-POLICY = 'branch-policy.json'       # in the project's runs folder (eaos/core/project/runs.py), as the Studio saves it
+POLICY = 'branch-policy.json'       # in the runs folder (eaos/core/project/runs.py), as the run engine saves it
 
 
 def _git(project, *args):
@@ -74,8 +74,8 @@ def default_branch(project):
 
 
 def protected(project, name):
-    """Why `name` takes no fix directly ('' when it may): main and master, and the remote's default branch. The Studio
-    adds the project's own policy (eaos/journeys/branches/ BranchControl.policy)."""
+    """Why `name` takes no fix directly ('' when it may): main and master, and the remote's default branch.
+    The project's own policy joins them (eaos/journeys/branches/ BranchControl.policy)."""
     if name in ('main', 'master'): return 'the main branch'
     done = _git(project, 'symbolic-ref', '--quiet', '--short', 'refs/remotes/origin/HEAD')
     return "the remote's default branch" if done.returncode == 0 and done.stdout.strip().split('/', 1)[-1] == name else ''
@@ -169,7 +169,7 @@ def freshness(state, tip=None):
     """Whether the scan of the branch EAOS works on still holds, from git now: {state, reason, ...}.
 
     state: fresh (the branch is at the scanned commit, or only EAOS's own accepted fixes came after it); behind (N
-    commits and M files came after it, the files listed); rewritten (the scanned commit is no longer in the branch's
+    commits and M files came after it, the files listed); rewritten (the scanned commit is missing from the branch's
     history: a reset, a rebase or a force-push); dirty (at the scanned commit, with unsaved changes in the checkout);
     other_branch (the report is of another branch than the one EAOS works on now); unknown, with the reason
     (not_scanned, legacy_report, not_git, branch_missing). `tip` is the branch's commit now (guided.tip)."""

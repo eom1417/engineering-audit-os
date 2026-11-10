@@ -1,6 +1,6 @@
 """What the person selected, as cards, and what running it would do (docs/studio-actions.json `selection`, `preview`).
 
-The cards come from the Studio data of the latest check (`studio/cards.json`, and `gaps.json` and `operations.json` for
+The cards come from the records of the latest check (`studio/cards.json`, and `gaps.json` and `operations.json` for
 those groups): the same data the page showed, so the preview names what the person saw. Only open cards run.
 """
 from pathlib import Path
@@ -29,7 +29,7 @@ STATE_AR = {'done': 'انحلّت', 'on_branch': 'على فرع ينتظر قر�
 
 
 class SelectionError(ValueError):
-    """A selection that cannot run, said in both languages: the Studio shows it in the person's."""
+    """A selection that cannot run, said in both languages: it is shown to the person in their own language."""
     def __init__(self, en, ar):
         super().__init__(en)
         self.reason = {'en': en, 'ar': ar}
@@ -40,7 +40,7 @@ def _load(folder, name):
 
 
 def studio_folder(project):
-    """The Studio data of the project's latest check, or None before the first check."""
+    """The records of the project's latest check, or None before the first check."""
     from .. import guided
     state = project_state.load(Path(project).resolve())
     if not state: return None
@@ -91,7 +91,7 @@ def cards_in(folder, by, value):
 
 
 def _grouped(group, cards, folder):
-    """The ids of a group: by a card field (area, severity), or by a gap, component or operation of the Studio data."""
+    """The ids of a group: by a card field (area, severity), or by a gap, component or operation of the records."""
     by, value = group.get('by'), str(group.get('value') or '')
     if by in GROUPS:
         return {card['id'] for card in cards if str(card.get(GROUPS[by]) or '') == value}
@@ -100,7 +100,7 @@ def _grouped(group, cards, folder):
 
 
 def _listed(by, value, folder):
-    """The ids of the cards of a gap, component or operation (LISTED) of the Studio data."""
+    """The ids of the cards of a gap, component or operation (LISTED) of the records."""
     name, field, words = LISTED[by]
     rows = (_load(folder, name) or {}).get(name)
     if rows is None: raise SelectionError(f'this check did not write {words} ({name}.json) yet', f'هذا الفحص ما كتب {name}.json بعد')

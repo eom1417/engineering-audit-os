@@ -3,7 +3,7 @@
 Most of a card's time is its assistant's thinking (a minute and a half a card, against seconds for EAOS to check the
 change), so a batch's cards are dealt into lanes (deal), each fixed by its own assistant at the same time, in the
 batch's one copy and on its one branch. The cards that share a file, or that one waits for, go in one lane: no two
-assistants change one file. Lane 0 is the assistant that opened the batch; the Studio starts one beside it for each
+assistants change one file. Lane 0 is the assistant that opened the batch; the interface starts one beside it for each
 other lane (eaos/journeys/runs/lane_assistants.py). EAOS checks their changes one at a time
 (eaos/journeys/agent_tools/ _start), so each change is checked, kept or taken back alone, as it is with one assistant.
 
@@ -58,8 +58,8 @@ def _together(cards):
 
 def open_lanes(wave, cards, assistants):
     """Deal the cards of `wave` left to an assistant (`cards`: {id: plan task}) into lanes when more than one assistant
-    fixes it (`assistants`, as the Studio's speed mode asks: one anywhere else, where nobody starts the others); the
-    lanes past the first, which the Studio gives to the assistants it starts."""
+    fixes it (`assistants`, as the speed mode asks: one anywhere else, where nobody starts the others); the
+    lanes past the first, which the interface gives to the assistants it starts."""
     most = int(assistants or 1) if os.environ.get('EAOS_STUDIO_RUN') else 1
     lanes = deal([cards[card] for card in untried(wave, wave['cards'])], most) if most > 1 else []
     if len(lanes) < 2: return []
@@ -91,7 +91,7 @@ def lane_of(wave, card):
 
 
 def helper(wave):
-    """The lane of the assistant asking when the Studio started it beside the first one, else None."""
+    """The lane of the assistant asking when the interface started it beside the first one, else None."""
     return (wave.get('helpers') or {}).get(os.environ.get('EAOS_STUDIO_RUN') or '')
 
 
@@ -119,7 +119,7 @@ def take(project, card, edits):
 
 
 def not_yours(state):
-    """Why an assistant the Studio started for a lane may not hand the batch over or close it; None for the first
+    """Why an assistant started for a lane may not hand the batch over or close it; None for the first
     one."""
     if helper((state or {}).get('open_wave') or {}) is None: return None
     return {'status': 'not_yours', 'what_now': 'The first assistant of this batch hands it over. Once each of your cards is '

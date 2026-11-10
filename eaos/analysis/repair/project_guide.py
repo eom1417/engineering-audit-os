@@ -1,7 +1,7 @@
-"""A project's extension guide written (M18.3): docs/EXTENDING.md between EAOS's marker lines, from what
+"""A project's extension guide written: docs/EXTENDING.md between EAOS's marker lines, from what
 eaos/analysis/understanding/extending.py drew, and one pointer line in the assistants' context files, between its own
 markers; the guide is never copied into them. What the person wrote below the guide's end line stays. Written only in a
-copy, on a branch of its own (eaos/journeys/fix/context_batch.py), or in a build's copy at each milestone."""
+copy, on a branch of its own (eaos/journeys/fix/context_batch.py), or in a build's copy."""
 import subprocess
 from pathlib import Path
 
@@ -32,7 +32,7 @@ def tracked(root):
 
 
 def pinned_ids(project):
-    """The ids of the rules pinned on the project now; none when it has no registry."""
+    """The ids of the rules pinned on the project; none when it has no registry."""
     return [rule['id'] for rule in registry.load(project)['rules'] if rule['scope']['kind'] == 'pinned' and rule['state'] == 'active']
 
 
@@ -155,8 +155,8 @@ def _keep_below(old, new):
 
 
 def refresh(root, path, drawn, name):
-    """The guide of the project called `name` at `path`, written in `root` (a copy, whose folder is no name of the project)
-    from `drawn`, what the person wrote below its end line kept; whether its text changed."""
+    """The guide of the project called `name` at `path`, written in `root` (a copy, whose folder is no name of the
+    project) from `drawn`, what the person wrote below its end line kept; whether its text changed."""
     target = Path(root) / path
     old = target.read_text(encoding='utf-8') if target.is_file() else ''
     new = _keep_below(old, text(drawn, name))
@@ -167,7 +167,8 @@ def refresh(root, path, drawn, name):
 
 
 def write(root, drawn, name):
-    """The guide of the project called `name` and its pointer written in `root` (a copy); the files whose text changed."""
+    """The guide of the project called `name` and its pointer written in `root` (a copy); the files whose text
+    changed."""
     path = place(tracked(root))
     line = f'Adding anything to this project starts at `{path}`: the files to read and to touch, in order, per kind of addition.'
     written = [path] if refresh(root, path, drawn, name) else []
@@ -186,7 +187,8 @@ def _git(root, *argv):
 
 
 def drawn_from_report(root, report, project=None):
-    """What the guide says for the copy at `root`, from the check's folder `report`; None when no check has read its layers."""
+    """What the guide says for the copy at `root`, from the check's folder `report`; None when no check has read its
+    layers."""
     if not report or not (Path(report) / 'layers.json').is_file(): return None
     record = read_json(Path(report) / 'layers.json', {}) or {}
     tree = tracked(root) or {row['path'] for row in record.get('map') or []}

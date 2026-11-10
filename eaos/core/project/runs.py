@@ -1,10 +1,10 @@
-"""Where the command centre keeps its runs: on disk, so a run outlives the server, the tab and a restart.
+"""Where the runs of a project are kept: on disk, so a run outlives the server, the terminal and a restart.
 
     ~/.eaos/projects/<project>/runs/
         queue.json                  the order of the queued runs (the person may change it)
         dispatch.lock               held by the one server that starts runs for this project
         <run>/run.json              the run: action, verb, selection, state, attempt, session, result, question
-        <run>/events.jsonl          its events, append-only, hash-chained (the envelope of D-platform 2.5)
+        <run>/events.jsonl          its events, append-only, hash-chained
         <run>/stream.jsonl          the assistant's raw output, which a restarted server can go on reading
         <run>/stderr.log            the assistant's error output, shown only in part
 
@@ -26,7 +26,7 @@ from ...core.system.clock import now
 
 ZERO = '0' * 64
 # A run's fields only its assistant's brief reads (eaos/journeys/runs/runs.py prompt_of), never a page: the list of
-# runs leaves them out, half its size (1.1 MB on EAOS's Studio, polled every 3 s over 4G).
+# runs leaves them out, which halves its size: the list is polled every 3 s over a mobile link.
 BRIEF_ONLY = ('cards_detail', 'owner_decision', 'owner_answers', 'selection')
 CONTRACT = Path(__file__).resolve().parents[2] / 'data/studio-actions.json'
 
@@ -91,7 +91,6 @@ class Store:
         self.lock = threading.RLock()
         self.changed = threading.Condition(self.lock)
 
-    # runs
     def path(self, run):
         if not re.fullmatch(r'[A-Za-z0-9_-]{1,80}', str(run or '')): raise KeyError(run)
         return self.folder / run
@@ -111,8 +110,7 @@ class Store:
 
     def trim(self):
         """Every ended run past the newest KEEP (quick answers aside) keeps its record alone, with what it used
-        (eaos/core/system/usage.py) and when it was trimmed; its raw stream, events and error output go (57 runs had kept 64 MB,
-        most of it raw streams)."""
+        (eaos/core/system/usage.py) and when it was trimmed; its raw stream, events and error output go."""
         ended = [row for row in self.all() if row.get('state') in TERMINAL]
         # a quick answer (a reading tool, `read`) keeps its answer in its record and never pushes a run's details out
         kept = {row['id'] for row in [row for row in ended if not row.get('read')][:KEEP]}
@@ -139,7 +137,6 @@ class Store:
             if data: rows.append(data)
         return sorted(rows, key=lambda row: row.get('created') or '', reverse=True)
 
-    # the queue
     def queue(self):
         order = read_json(self.folder / 'queue.json', []) or []
         queued = {row['id']: row for row in self.all() if row.get('state') == 'queued' and not row.get('read')}
@@ -152,7 +149,6 @@ class Store:
             _write_json(self.folder / 'queue.json', list(order))     # the runs folder exists: the Store made it
             self.changed.notify_all()
 
-    # events
     def events(self, run, after=0):
         path = self.path(run) / 'events.jsonl'
         if not path.is_file(): return []
@@ -214,6 +210,6 @@ class Store:
 
 
 def decision_scope(folder, question):
-    """The key an owner's answer is kept under: the Studio folder, the question's id and its revision."""
+    """The key a person's answer is kept under: the project folder, the question's id and its revision."""
     identity = question.get('revision') or {k: question.get(k) for k in ('id', 'question', 'options', 'blocks', 'asked', 'tool')}
     return hashlib.sha256(canonical([str(Path(folder).resolve()), question['id'], identity]).encode()).hexdigest()

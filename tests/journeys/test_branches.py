@@ -237,7 +237,7 @@ class Branches(unittest.TestCase):
         self.ready_to_fix()
         git(self.project, 'branch', 'release', 'develop')
         self.batch('TASK-001')
-        # MCP's accept keeps the Studio's rule: never into a branch the project's policy protects
+        # MCP's accept never merges into a branch the project's policy protects
         git(self.project, 'branch', 'stable', 'develop')
         policy = places.workspace(self.project) / 'runs' / 'branch-policy.json'
         policy.parent.mkdir(parents=True, exist_ok=True)

@@ -33,7 +33,7 @@ def card(id, **extra):
 
 
 class Base(Workspace):
-    """A project, its Studio data, a home of its own, and the fake assistant as Claude Code."""
+    """A project, its cards data, a home of its own, and the fake assistant as Claude Code."""
 
     def setUp(self):
         super().setUp()
@@ -557,7 +557,7 @@ class Runs(Base):
         self.assertIsNone(resume.next_assistant({'claude': 'signed-out'}, 'claude', 'not_signed_in', ready))
 
     def test_a_run_waiting_for_an_answer_lets_the_next_start_and_its_answer_goes_on_when_the_slot_is_free(self):
-        """An extend_start run that waits on "build it?" does not keep the next run queued."""
+        """A run that waits on "build it?" does not keep the next run queued."""
         waiting = self.start('explain')
         self.assertEqual(self.app.wait(waiting, ('waiting_for_person', 'failed'), 30)['state'], 'waiting_for_person')
         os.environ.update(FAKE_MODE='slow', FAKE_SECONDS='2')
@@ -596,7 +596,7 @@ class Runs(Base):
         time.sleep(0.8)
         self.assertEqual(len(self.app.store.events(run)), count)
         resumed = self.post(f'/api/runs/{run}/resume')[1]['run']
-        # the Studio's clocks must not count through a pause: the pause is kept as a span they leave out
+        # the run's clocks must not count through a pause: the pause is kept as a span they leave out
         self.assertEqual((resumed['state'], len(resumed['paused']), resumed.get('paused_at')), ('running', 1, None))
         self.assertEqual(self.post(f'/api/runs/{run}/stop')[1]['run']['state'], 'stopped')
         pid = self.app.store.load(run).get('pid') or running.get('pid')
@@ -789,7 +789,7 @@ class Direct(Base):
 
 
     def test_a_branch_decided_outside_the_studio_waits_no_more(self):
-        """When EAOS merges a batch outside the Studio, its question does not stay waiting: accept answers "not waiting
+        """When EAOS merges a batch outside a run, its question does not stay waiting: accept answers "not waiting
         any more". Whether a branch waits is read from EAOS's state, the one truth."""
         self.app.store.save({'id': 'r-fix', 'action': 'fix', 'verb': 'fix', 'mode': 'assistant', 'state': 'done', 'label': {'en': 'x', 'ar': 'x'},
                              'created': '0', 'result': {'branch': 'eaos/develop/wave-10'}}, new=True)
@@ -880,7 +880,7 @@ class Handoff(Base):
 
 
 class ReportDecisions(Base):
-    """A decision the report asks, answered in the Studio: saved once, handed to the assistant as context, never as
+    """A decision the report asks, answered by the person: saved once, handed to the assistant as context, never as
     consent."""
 
     def setUp(self):
@@ -980,8 +980,8 @@ if __name__ == '__main__':
 
 
 class Headless(unittest.TestCase):
-    """Without the Studio (eaos/interfaces/govern.py): a command queues without starting anything, one host starts the
-    runs."""
+    """Outside the run engine (eaos/interfaces/govern.py): a command queues without starting anything, one host
+    starts the runs."""
 
     def setUp(self):
         tmp = tempfile.TemporaryDirectory()

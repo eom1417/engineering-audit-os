@@ -1,5 +1,5 @@
 """The extension guide stays true: docs/EXTENDING.md names only files that exist, every engine has what its recipe asks
-for, every stage its words, and every Studio action its MCP twin or the reason it has none."""
+for, every action of studio-actions.json its MCP twin or the reason it has none."""
 import json
 import re
 import unittest

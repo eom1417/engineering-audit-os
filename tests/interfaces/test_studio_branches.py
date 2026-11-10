@@ -1,5 +1,5 @@
 """Branch control and scan freshness (eaos/journeys/branches/, eaos/core/project/branches.py freshness)
-on real temporary git repositories through the command centre's own authenticated handler."""
+on real temporary git repositories through the server's own authenticated handler."""
 import json
 import os
 import subprocess

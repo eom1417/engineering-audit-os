@@ -27,11 +27,11 @@ PERSON_ONLY = ('accept', 'undo', 'choose_branch')
 
 
 def eaos_server(run, assistant):
-    """The EAOS MCP server's argv and environment for a run: this very EAOS (the Python and the package the Studio runs,
+    """The EAOS MCP server's argv and environment for a run: this very EAOS (the Python and the package running it,
     never another `eaos` on the PATH), the person's EAOS home, and the run's id, which makes the person-only tools
     refuse (eaos/interfaces/mcp_server/server.py)."""
     import sys
-    from ...core.system.launch import HEADLESS              # a run of the headless host opens no Studio either
+    from ...core.system.launch import HEADLESS              # a headless run opens no window either
     env = {'EAOS_STUDIO_RUN': run, 'EAOS_ASSISTANT': assistant, 'PYTHONPATH': str(Path(__file__).resolve().parents[3])}
     for name in ('EAOS_HOME', 'EAOS_OUTPUT', 'EAOS_ENGINE_TOOLS', HEADLESS):
         if os.environ.get(name): env[name] = os.environ[name]

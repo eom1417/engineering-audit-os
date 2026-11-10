@@ -1,5 +1,5 @@
 """The tools in the order they are needed: the check waits for the tools it needs on the project
-(eaos/core/toolchain/runs.py readiness), a tool that failed stops it unless the person starts without it, and the report
+(eaos/core/toolchain/runs.py), a tool that failed stops it unless the person starts without it, and the report
 records that it did."""
 import os
 import subprocess

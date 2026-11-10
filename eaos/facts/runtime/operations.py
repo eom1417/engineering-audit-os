@@ -276,8 +276,8 @@ def run(target, source, symbols=None, **options):
             facts.append(make(kind, NAME, VERSION, item['sha256'], location, value, limitations=LIMITATIONS))
     summary = {'files_observed': len(fingerprints), 'facts': len(facts),
                # Iterating a set orders by hash, which Python randomises per process: two runs over
-               # an unchanged tree wrote the same counts in a different order and the fact set was
-               # no longer byte-identical. A sorted tuple is the only honest order here.
+               # an unchanged tree could write the same counts in a different order, and the fact set
+               # would not be byte-identical. A sorted tuple gives one fixed order.
                'by_kind': {kind: sum(1 for f in facts if f['kind'] == kind) for kind in KINDS},
                'interpretation': 'Runtime facts describe the operational surface the static walk cannot see. '
                                   'None proves the system actually runs that way.'}

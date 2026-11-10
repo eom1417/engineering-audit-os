@@ -59,8 +59,8 @@ def run(command, project=None, **options):
                      request=options.get('request', ['where', 'are', 'we']), action='install', path=options.get('path'))
     printed = io.StringIO()
     steps = [(i, ar, en, done, _fake_scan if i == 'scan' else step) for i, ar, en, done, step in guided.STEPS]
-    # Never the person's real assistants (`eaos assistant install` writes into ~/.claude and ~/.codex), never the
-    # Studio, and no version check of every installed tool: the doctor's rows are tested on their own.
+    # Never the person's real assistants (`eaos assistant install` writes into ~/.claude and ~/.codex), and no version
+    # check of every installed tool: the doctor's rows are tested on their own.
     with redirect_stdout(printed), mock.patch.object(guided.commands, 'STEPS', steps), mock.patch.object(guided.commands, 'watch'), \
             mock.patch.dict(guided.TERMINAL, check=lambda args: _fake_scan(project_state.current(args.project), args)), \
             mock.patch.object(sys.stdin, 'isatty', return_value=False), \
@@ -253,7 +253,7 @@ if __name__ == '__main__':
 
 class RunConsent(unittest.TestCase):
     def test_a_yes_given_in_the_studio_or_to_the_assistant_lets_the_check_run_the_app(self):
-        """The check reads the person's agreement given in the Studio (run_setup, consent run_and_fix), not only the
+        """The check reads the person's agreement given in a run (run_setup, consent run_and_fix), not only the
         terminal's question run_app; otherwise it says the person had not agreed and nothing runs."""
         with mock.patch.object(guided.checking, 'runtime_of', return_value='runtime'):
             self.assertIsNone(guided.check_runtime({'questions': []}))

@@ -11,7 +11,7 @@ the work begins. The contract carries:
 
 Nothing here is a verdict on the code. The contract is the team's own statement
 about what they will pay attention to, and the engine reads it back as input
-to the transform plan and the dashboard.
+to the transform plan and the reports.
 """
 from pathlib import Path
 import json

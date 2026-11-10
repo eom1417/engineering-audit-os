@@ -81,7 +81,7 @@ def variants(lang_key=None, lang_param=None, theme_key=None, theme_param=None, l
     """The page variants to audit. A language is set through a localStorage key or a query parameter, when one is
     named; a theme the same way, and always through prefers-color-scheme. By default one theme only, the app's own:
     nothing is set and the browser asks for light (a dark pass would double the pictures and the review, for a theme the
-    person rarely changes). A key with a field keeps a JSON object (the EAOS Studio keeps {"lang", "theme"} under
+    person rarely changes). A key with a field keeps a JSON object (the report page keeps {"lang", "theme"} under
     "eaos.report.studio"): the variant's value is merged into that object, {key: {field: value}}, rather than set as the
     whole value."""
     languages = list(langs) if (lang_key or lang_param) else [None]

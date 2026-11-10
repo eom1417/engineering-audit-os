@@ -105,7 +105,7 @@ class Continuity(Base):
         self.assertEqual(sorted(ledger.keys(FIRST).values()), sorted(ledger.keys(again).values()))
         self.assertEqual(len(set(ledger.keys(FIRST).values())), 5, 'alike cards stay apart')
         # A hotspot's title names the tools that saw it, so it must not key the card: the observation's uid keys it,
-        # whatever the words. A problem no longer found is not progress.
+        # whatever the words. A problem the new check does not find again is not progress.
         hotspot = dict(FIRST[3], decision={'readiness': 'ready', 'observation_uid': 'OBS-1'}, title='3 tools (codegraph, complexipy, reforge)')
         self.assertEqual(ledger.key(hotspot), ledger.key(dict(hotspot, title='4 tools (codegraph, complexipy, lizard, reforge)')))
         totals = self.check(FIRST[1:])['totals']

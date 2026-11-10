@@ -137,7 +137,7 @@ def build_claims(sets, records, target=None):
     rows = _gathered_claims(sets, records, target)
     fact_index = fact_index_of(sets)
     # A claim from a detector under its measured precision bar is set aside before numbering: it is never
-    # shown, planned or counted, and the precision set (tools/precision.py) still reads it.
+    # shown, planned or counted (ledger.withhold).
     rows, withheld = ledger.withhold(ledger.merge(rows))
     rows = ledger.renumber(rows)
     for number, row in enumerate(withheld, start=1): row['id'] = 'WHD-%03d' % number

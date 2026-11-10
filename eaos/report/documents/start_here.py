@@ -151,7 +151,7 @@ def start_here(report, lang, name):
     lines = [f"# {_say(ar, 'ابدأ هنا', 'Start here')}: {name}", '']
     gaps = big_gaps(_this_run(report), lang)          # the coverage ledger's big gaps, in red before anything else
     if gaps: lines += [*gaps, '']
-    lines += layers.critical(report, lang)            # a broken critical boundary, in red at the top (M6.11)
+    lines += layers.critical(report, lang)            # a broken critical boundary, in red at the top
     if not tasks:
         lines += [_say(ar, 'لم أجد مشاكل تحتاج إصلاحًا.', 'I found no problems that need fixing.'), '']
     else:

@@ -1,5 +1,5 @@
-"""The graph queries a probe asks again (eaos/analysis/claims/probes.py decide_probe): each over the current snapshot's fact
-sets, inconclusive when the facts it reads, or the engines it names, are not there.
+"""The graph queries a probe asks again (eaos/analysis/claims/probes.py decide_probe): each over the current snapshot's
+fact sets, inconclusive when the facts it reads, or the engines it names, are not there.
 """
 from . import from_layers as layer_claims, from_repository as repository_claims
 from . import from_old_engines as old_engine_claims, from_real_data as real_data_claims
@@ -78,9 +78,8 @@ def _finish_line(targets, sets):
 def _engine_cluster(specification, sets):
     # Re-running the engines is the probe: the claim is about what they report, so it is settled
     # by asking them again, not by re-reading a graph we built ourselves. Only the claim's engines count, and of a
-    # measured kind only a finding past its threshold (correlate._standing): any engine's finding anywhere in the file,
-    # even one under its limit, refused every simplification of the functions the card names (EAOS, 2026-10-15). A claim
-    # made since carries its finish line (eaos/analysis/repair/finish_line.py) and is judged by it alone.
+    # measured kind only a finding past its threshold (correlate._standing). A claim carrying its finish line
+    # (eaos/analysis/repair/finish_line.py) is judged by that line alone.
     if specification.get('targets'): return _finish_line(specification['targets'], sets)
     from .correlate import clusters
     for cluster in (c for c in clusters(sets) if c['place'] == specification['place']):
@@ -96,7 +95,7 @@ def _metric(specification, sets):
             if fact['location'].get('symbol') == specification['symbol']
             and fact['location']['path'] == specification['path']]
     if not rows: return 'INCONCLUSIVE', 'the symbol is no longer present under that name'
-    value = rows[0]['value']          # the code laws' count (eaos/facts/code/metrics.py); its branches in older facts
+    value = rows[0]['value']          # the code laws' count (facts/code/metrics.py); a fact may carry it as branches
     measured = value.get('complexity') or value['branches']
     return _verdict(measured > specification['max_branches'], f"complexity {measured}, limit {specification['max_branches']}",
                     f"complexity {measured}, now within the limit of {specification['max_branches']}")

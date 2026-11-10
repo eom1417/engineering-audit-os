@@ -1,5 +1,5 @@
 """Plain words for a person who did not write the code: what each kind of problem is, and what each stage does, read
-from the one words catalog (eaos/data/words.json) the Studio is built with too.
+from the one words catalog (eaos/data/words.json) that the reports are built with too.
 
 The report's own files keep their precise, technical wording; these are for the first page a user reads
 (START-HERE.md) and the guided commands.

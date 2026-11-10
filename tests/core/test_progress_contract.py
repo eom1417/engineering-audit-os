@@ -1,4 +1,4 @@
-"""The progress contract (live scan map v2): eaos/core/progress/ and eaos/data/schemas/progress.json.
+"""The progress contract: eaos/core/progress/ and eaos/data/schemas/progress.json.
 
 What every flow's progress file promises its readers, each promise a test:
 - every event written validates against the versioned schema;

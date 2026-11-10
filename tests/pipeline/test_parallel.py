@@ -98,7 +98,7 @@ class ParallelCheckTests(unittest.TestCase):
         cls.directory.cleanup()
 
     def test_every_stage_is_in_one_part_of_the_check_and_a_part_keeps_the_declared_order(self):
-        # the Studio draws the stages in layers of their real waits, not of their `requires` alone
+        # the progress view draws the stages in layers of their real waits, not of their `requires` alone
         from eaos.pipeline.stages import PHASES, ORDER
         named = [name for names in PHASES.values() for name in names]
         self.assertEqual(sorted(named), sorted(ORDER), 'each stage in exactly one part')

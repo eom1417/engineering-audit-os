@@ -103,8 +103,8 @@ def observed(sets):
 
 
 def present(specification, sets):
-    """The probe of a weakness card (eaos/analysis/claims/probes.py, which first makes sure its engines ran): CONFIRMED while an engine
-    still reports its weakness at its files."""
+    """The probe of a weakness card (eaos/analysis/claims/probes.py, which first makes sure its engines ran): CONFIRMED
+    while an engine still reports its weakness at its files."""
     labels, paths = set(specification['labels']), set(specification['paths'])
     left = [f for f in _findings(sets) if _label(f) in labels and f['location']['path'] in paths]
     if left:
@@ -115,9 +115,9 @@ def present(specification, sets):
 
 def new(before, after, paths):
     """The security findings in `paths` that the facts in folder `after` have and those in `before` had not, from the
-    engines both ran: the gate that refuses a change bringing a weakness in (eaos/journeys/fix/execute.py new_debt). `before` None:
-    nothing was there before. A finding the
-    change justified on its line counts: a comment hides only a finding the project already had."""
+    engines both ran: the gate that refuses a change bringing a weakness in (eaos/journeys/fix/execute.py new_debt).
+    `before` None: nothing was there before. A finding the change justified on its line counts: a comment hides only a
+    finding the project already had."""
     from pathlib import Path
     from ...facts.store import read_set
     built = before is None
@@ -130,9 +130,8 @@ def new(before, after, paths):
     return sorted(found(after) - found(before))
 
 
-# A weak hash as HMAC's digest is not weak: HMAC-SHA1 and HMAC-MD5 are not broken by their hashes' collisions. Two engines
-# agreed on itsdangerous's SHA-1, the default digest of its HMAC signer, and both judges of M17.3 (2026-11-05) called it
-# false. The engines cannot see the HMAC around it, so where the file uses HMAC the card is a question for the triage.
+# A weak hash as HMAC's digest is not weak: HMAC-SHA1 and HMAC-MD5 are not broken by their hashes' collisions. The
+# engines cannot see the HMAC around the hash, so where the file uses HMAC the card is a question for the triage.
 WEAK_HASH = {'CWE-327', 'CWE-328'}
 KEYED = 'This file uses HMAC: a weak hash used only as its digest is not a weakness. '
 
@@ -148,8 +147,9 @@ def _keyed_hash(group, target):
 
 
 def claims(fact_sets, add, target):
-    """One claim per group (eaos/analysis/claims/ledger.py BUILDERS): LIKELY when engines agree, else a HYPOTHESIS the triage decides.
-    Its probe asking the engines again never raises it: one engine repeating itself is not corroboration."""
+    """One claim per group (eaos/analysis/claims/ledger.py BUILDERS): LIKELY when engines agree, else a HYPOTHESIS the
+    triage decides. Its probe asking the engines again never raises it: one engine repeating itself is not
+    corroboration."""
     for group in groups(fact_sets):
         keyed = _keyed_hash(group, target)
         confidence = 'LIKELY' if group['agreed'] and not keyed else 'HYPOTHESIS'

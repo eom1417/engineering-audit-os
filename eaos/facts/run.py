@@ -27,9 +27,7 @@ EXTRACTORS = {'history': history, 'syntax': syntax, 'structure': structure, 'res
 ORDER = ['syntax', 'resolve', 'structure', 'fingerprint', 'runtime', 'entrypoints', 'redundancy', 'config', 'metrics', 'domain', 'history', 'graph', 'flows', 'leftovers', 'deadcode', 'broken', 'secrets', 'repository']
 
 
-# Every fact set the tool can read, in one place. Three modules used to keep their own copy of
-# this list, and a set added to one of them was invisible to the others — the duplication this
-# product exists to find, in the product itself.
+# Every fact set the tool can read, in one place, so every reader sees the same list.
 # 'external' is produced here too, but only when a caller asks for engines: it shells out to
 # pinned binaries, so it never runs by default. 'boundaries' is the layers' (eaos/analysis/layers/).
 PRODUCED_ELSEWHERE = ['policy', 'verification', 'external', 'boundaries']
@@ -191,7 +189,7 @@ def collect(target, out, selected=None, max_commits=2000, source=None, exclude=(
     caller built it (with its own bounds); else one with the default bounds."""
     target, out = _checked_paths(target, out)
     # What the project declared out of scope applies to every caller, not only the ones that
-    # remembered to ask. Two commands honoured it and three did not.
+    # remembered to ask.
     from .scope import declared_exclusions
     from .scope import exclusion_reasons
     exclude = sorted({*(exclude or ()), *declared_exclusions(target)})

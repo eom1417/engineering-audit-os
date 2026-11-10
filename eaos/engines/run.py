@@ -115,7 +115,8 @@ def analyze(target, workdir, exclude=(), only=None, formats=None, keep=False):  
     """Run every requested engine and return one manifest. The target is proven unchanged afterwards.
 
     Each engine of the registry is reported as a step of the running stage (eaos/core/progress/context.py), from waiting
-    to its own status (observed, not applicable, unavailable, error): the live map shows each tool as it runs. `keep`:
+    to its own status (observed, not applicable, unavailable, error): the progress log shows each tool as it runs.
+    `keep`:
     the engines named in `only` are run again within the same check (one that failed), beside the others' results kept
     from it."""
     target, workdir = Path(target).resolve(), Path(workdir).resolve()

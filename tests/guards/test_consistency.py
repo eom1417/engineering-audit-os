@@ -1,4 +1,4 @@
-"""The details that break checks, held once for all: a stop code with no words for the person, a command the Studio
+"""The details that break checks, held once for all: a stop code with no words for the person, a command an action
 copies with flags `eaos` does not have, a node missing from the list the AI may run, a stage with no title, a
 threshold on the wrong scale."""
 import json
@@ -24,7 +24,7 @@ class Consistency(unittest.TestCase):
         self.assertEqual(set(enum), {n.name for n in NODES}, 'a node the AI cannot run')
 
     def test_a_projects_state_is_read_and_written_only_through_its_one_module(self):
-        """The CLI, MCP, the Studio and the sandbox read state.json through its one module."""
+        """The CLI, MCP and the sandbox read state.json through its one module."""
         readers = sorted(str(p.relative_to(ROOT)) for p in (ROOT / 'eaos').rglob('*.py')
                          if re.search(r"""['"]state\.json['"]""", p.read_text()) and p != ROOT / 'eaos/core/project/state.py')
         self.assertEqual(readers, [], 'state.json named outside eaos/core/project/state.py')

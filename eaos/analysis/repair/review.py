@@ -1,7 +1,7 @@
-"""How a card is judged and settled (eaos/analysis/planning/cards.py builds and orders the cards): its acceptance and verify command, what
-to do about its claim and what must still hold after, the assistant's triage verdicts applied to the ledger, the screen
-reviewer's findings as design cards, the resolution that settles each card, and cards.json, the record of who decided
-each card.
+"""How a card is judged and settled (eaos/analysis/planning/cards.py builds and orders the cards): its acceptance and
+verify command, what to do about its claim and what must still hold after, the assistant's triage verdicts applied to
+the ledger, the screen reviewer's findings as design cards, the resolution that settles each card, and cards.json, the
+record of who decided each card.
 """
 from pathlib import Path
 from ...core.language.words import falsifier_of
@@ -15,8 +15,8 @@ from ...core.system.files import read_json
 SEVERITY_SHARE = {'high': 1.0, 'medium': 0.5, 'low': 0.25}
 SEVERITY_ORDER = ('high', 'medium', 'low')
 RESOLUTIONS = ('fix', 'keep', 'owner')
-# The probes a changed copy can answer by reading its facts again (eaos/analysis/claims/probes.py decide_probe); one that runs the
-# program is not, and would fail every fix.
+# The probes a changed copy can answer by reading its facts again (eaos/analysis/claims/probes.py decide_probe);
+# one that runs the program is not, and would fail every fix.
 RECHECKED = ('graph_query', 'absence_search')
 RESOLUTION_FIELDS = ('resolution', 'change', 'question', 'options', 'recommendation', 'note', 'checks')
 
@@ -28,8 +28,8 @@ def acceptance_for(claim, target, out):
         import shlex
         return [{'command': shlex.join(check['argv']) if check.get('kind') == 'command' else 'human review',
                  'expect': check.get('expected', '')} for check in decision['checks']]
-    # An investigation changes no code: it is done when its decision is recorded (eaos decision-review), which
-    # `eaos decided` checks. The decision itself stays a person's; the command only shows it was made.
+    # An investigation changes no code: it is done when its decision is recorded (`eaos decided` checks it). The
+    # decision itself stays a person's; the command only shows it was made.
     import shlex, sys
     from ...core.contracts.decisions import identity
     uid = claim.get('uid') or identity(claim)
@@ -192,7 +192,8 @@ def decided(out, tasks, triaged, reviewed):
 
 
 def _security(out, tasks, verdicts):
-    """The doubted cards that are security cards: their area, as every report shows it (eaos/core/contracts/card_areas.py
+    """The doubted cards that are security cards: their area, as every report shows it
+    (eaos/core/contracts/card_areas.py
     classify, with the debt register's category: an access gap, an injection or other weakness, a secret, a vulnerable
     dependency)."""
     from ...core.contracts.card_areas import classify
@@ -210,10 +211,10 @@ def _categories(out):
 def apply_verdicts(out, tasks, verdicts, language='ar'):
     """The one place the assistant's triage reaches the ledger, before anything ranks, plans or reports: the claims of
     a card it rejected are refuted (confidence REFUTED, `refuted_by` the card, its why kept in `triage`), the claims of
-    a card it doubted carry the doubt (eaos/core/contracts/decisions.py: needs_review, never fixed automatically), those of a card it
-    confirmed carry its resolution (fix, keep or owner, eaos/core/contracts/decisions.py decide), and the ledger's ranking, decisions,
-    brief and debt register are drawn again (dossier.refresh_views), so the risks, the reports and the plan all read the
-    same verdicts. Returns {claim id: claim}."""
+    a card it doubted carry the doubt (eaos/core/contracts/decisions.py: needs_review, never fixed automatically),
+    those of a card it confirmed carry its resolution (fix, keep or owner, eaos/core/contracts/decisions.py decide), and
+    the ledger's ranking, decisions, brief and debt register are drawn again (dossier.refresh_views), so the risks, the
+    reports and the plan all read the same verdicts. Returns {claim id: claim}."""
     from ..understanding.dossier import refresh_views
     out = Path(out)
     dossier = read(out / 'dossier.json')
@@ -252,7 +253,8 @@ def _design_resolution(card):
 def _triaged(verdict, reach, security=False):
     """The resolution the triage gave a code card it confirmed or doubted; None otherwise. A doubted security card has
     none: it stays for the person to review (eaos/core/contracts/decisions.py DOUBTED), never closed unseen nor fixed
-    automatically, and outside the owner's share (cap_owner), which only counts the questions the assistant asks."""
+    automatically, and outside the share of questions the assistant asks (cap_owner in
+    eaos/core/contracts/owner_share.py)."""
     if verdict.get('decision') == 'confirm' and verdict.get('resolution') in RESOLUTIONS:
         return {**{k: verdict.get(k) for k in RESOLUTION_FIELDS if verdict.get(k) is not None}, 'why': verdict.get('why'),
                 'severity': verdict.get('severity'), 'reach': reach}
@@ -266,8 +268,7 @@ def resolutions(tasks, verdicts, design, security=()):
     """{card: resolution} the assistant gave: the triage's for the code cards it confirmed (nodes/card_triage), the
     screen reviewer's for the design cards (a design card is the change it named, unless its finding asked the
     person or kept it). A card the triage doubted is closed as not proven, never fixed blind: the next check judges it
-    again on its new evidence; one of the `security` cards stays for the person instead (a second trial on real
-    projects closed a write with no sign-in check and an XSS unseen)."""
+    again on its new evidence; one of the `security` cards stays for the person instead."""
     out = {}
     for task in tasks:
         row = _triaged(verdicts.get(task['id']) or {}, (task.get('blast_radius') or {}).get('total') or 0, task['id'] in security)
@@ -279,7 +280,8 @@ def resolutions(tasks, verdicts, design, security=()):
 def fix_check(card, change, revision, spec=None):
     """The check of a change the assistant decided: its claim's own probe asked again on the changed copy (`eaos
     recheck`, passing only when the problem is gone), when the claim has one; else the project's own checks gate it
-    (eaos/journeys/fix/waves/: a card with no command of its own is kept on the gates) and the next check tells whether it is gone."""
+    (eaos/journeys/fix/waves/: a card with no command of its own is kept on the gates) and the next check tells whether
+    it is gone."""
     if spec:
         import json, sys
         return {'id': 'TRIAGE-' + card, 'kind': 'command', 'invariant': 'The problem this card names is gone and nothing else changed.',

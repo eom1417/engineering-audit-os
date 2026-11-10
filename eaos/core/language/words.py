@@ -1,7 +1,7 @@
 """Labels for rendered artifacts. Content is language-neutral; only wording changes.
 
 `catalog()` is the one words catalog (eaos/data/words.json): every word that names a concept (a stage, a path of
-the check, a kind of problem), in Arabic then English, for the engine and the Studio alike.
+the check, a kind of problem), in Arabic then English, for the engines and the reports alike.
 """
 import functools
 import json

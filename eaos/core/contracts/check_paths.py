@@ -1,12 +1,12 @@
-"""The paths a check can follow, declared once as data: the stages, engine kinds and card patterns each keeps; their names
-and what each looks at are the words catalog's (eaos/data/words.json `paths`, the Studio's too). eaos/pipeline/path_choice.py
+"""The paths a check can follow, declared once as data: the stages, engine kinds and card patterns each keeps; their
+names and what each looks at are the words catalog's (eaos/data/words.json `paths`). eaos/pipeline/path_choice.py
 resolves a choice of them into what runs."""
 from ..language.words import catalog
 
 COMPLETE = 'complete'
 # The assistant's review every path keeps: the cards it found, judged, ordered and written in both languages.
 SPINE = ('triage', 'order', 'translate')
-# The person's own rules hold whatever is checked (M16): their stage and their cards are on every path.
+# The person's own rules hold whatever is checked: their stage and their cards are on every path.
 HELD = {'stages': ('rules',), 'patterns': ('person_rule',)}
 PATHS = {
     'complete': {},

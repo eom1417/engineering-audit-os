@@ -69,7 +69,8 @@ def _requirements(lines):
 
 
 def _joined(table):
-    """Every entry of a table of lists (extras, dependency groups), or of a table of tables' `dependencies` (Poetry's groups)."""
+    """Every entry of a table of lists (extras, dependency groups), or of a table of tables' `dependencies` (Poetry's
+    groups)."""
     return [entry for value in table.values() for entry in (value.get('dependencies') or {} if isinstance(value, dict) else value)]
 
 
