@@ -1,5 +1,5 @@
-"""Which commit EAOS says it is (2026-10-30): pip's record of the commit it was installed from, else EAOS's own checkout;
-never the commit of a repository EAOS only happens to sit in (a .venv inside a person's project)."""
+"""Which commit EAOS says it is: pip's record of the commit it was installed from, else EAOS's own checkout; never the
+commit of a repository EAOS only happens to sit in (a .venv inside a person's project)."""
 import shutil
 import subprocess
 import sys

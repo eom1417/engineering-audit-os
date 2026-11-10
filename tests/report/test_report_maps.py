@@ -1,5 +1,6 @@
-"""The report's maps: today's parts and their imports, files, functions and pages; the target; the gap closed; every card;
-the system map (pages, APIs, server handlers, parts, data), the work log, the version stamp and the error banner."""
+"""The report's maps: the current parts and their imports, files, functions and pages; the target; the gap closed; every
+card; the system map (pages, APIs, server handlers, parts, data), the work log, the version stamp and the error
+banner."""
 import json
 import re
 import shutil
@@ -67,7 +68,8 @@ def fact(kind, path, value, symbol=None):
 def system(out):
     """Two pages; /users calls its own APIs and, with /settings, the shared web/shared/api.ts; one API has no handler.
     GET and POST /api/users are file-routed (server/routes/users.ts exports GET and POST); GET /api/me is a declared
-    route; both reach server/data/users-db.ts (tables users, sessions), which imports pg. A test file's call is left out."""
+    route; both reach server/data/users-db.ts (tables users, sessions), which imports pg. A test file's call is left
+    out."""
     out = Path(out)
     (out / 'facts').mkdir(exist_ok=True)
     rows = {
@@ -158,7 +160,7 @@ class MapTests(unittest.TestCase):
         self.assertIn('class="edge cyc', section(page, 'structure'))
         page = human_report.write(self.out, 'en', progress={'waves': [], 'ledger': ledger()}).read_text(encoding='utf-8')
         plan = section(page, 'plan')
-        # M01: TASK-1 done of three cards; TASK-3 is only on a branch; a ledger-only row is no card
+        # TASK-1 done of three cards; TASK-3 is only on a branch; a ledger-only row is no card
         self.assertIn('aria-valuenow="33"', plan)
 
     def test_the_page_works_without_a_ledger_and_with_nothing(self):

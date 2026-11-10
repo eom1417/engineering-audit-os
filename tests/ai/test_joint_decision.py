@@ -109,16 +109,16 @@ class JointDecision(TemporaryWorkspace):
         self.assertTrue(core)
         self.assertFalse(core.keys() & {t['id'] for t in plan['tasks']})
         self.assertEqual({row['card']: row['claim_id'] for row in cards['set_aside']}, core)
-        # Self-audit: the verdicts reached only the plan; the claims the assistant rejected stayed open and ranked among
-        # the top risks, and a doubted card stayed "ready". Applied once, every later reader sees them.
+        # The verdicts reach the claims as well as the plan: claims the assistant rejected leave the open list and the
+        # top risks, and a doubted card is not "ready". Applied once, every later reader sees them.
         claims = {c['id']: c for c in self.read('joint', 'dossier.json')['claims']}
         self.assertEqual({(claims[c]['confidence'], claims[c]['triage']['decision'], claims[c]['priority']) for c in core.values()},
                          {('REFUTED', 'reject', 0.0)})
         self.assertFalse(set(core.values()) & {i['claim_id'] for i in self.read('joint', 'debt-register.json')['items']})
         self.assertEqual({d['kind'] for d in self.read('joint', 'plan.json')['decisions']
                           if d['observation_uid'] in {claims[c]['uid'] for c in core.values()}}, {'retain'})
-        # A doubted card is never fixed blind; a security one (a write with no sign-in check) is not closed unseen either:
-        # it stays for the person to review, outside the owner's share of questions.
+        # A doubted card is never fixed blind; a security one (a write with no sign-in check) is not closed unseen
+        # either: it stays for the person to review, outside the owner's share of questions.
         from eaos.core.contracts.decisions import DOUBTED
         doubted = next(t for t in plan['tasks'] if t['id'] == 'TASK-002')
         self.assertEqual((doubted['decision']['readiness'], doubted['triage']['decision']), ('needs_review', 'doubt'))
@@ -139,11 +139,11 @@ class JointDecision(TemporaryWorkspace):
         self.assertEqual((by_id['T-worker']['relation'], by_id['T-worker']['decided_by']['label']), ('retain', 'disagreement'))
         self.assertEqual(by_id['T-root']['decided_by']['label'], 'rule_only')
         gaps = {r['component']: r for r in target['gap_matrix']}
-        # its routes write with no sign-in check (M6): cards now close part of its gap
+        # its routes write with no sign-in check, so cards close part of its gap
         self.assertEqual((gaps['T-api']['gap'], gaps['T-api']['decided_by']), ('partial', 'ai_modified'))
         names = {t['name']: t['decided_by']['label'] for t in target['target_components']}
         self.assertEqual((names['domain'], names['TC-events']), ('disagreement', 'ai_added'))
-        # Self-audit: the ideal planner cited a claim the triage had rejected; standing only on it, the rule stays.
+        # The ideal planner never stands on a claim the triage rejected; standing only on it, the rule stays.
         self.assertEqual((by_id['T-core']['relation'], by_id['T-core']['decided_by']['label']), ('retain', 'disagreement'))
         self.assertEqual({d['element'] for d in target['disagreements']}, {'T-api', 'T-svc', 'T-worker', 'TC-domain', 'T-core'})
         self.assertEqual({k: target['decided'][k] for k in ('ai_modified', 'disagreement', 'ai_added')},
@@ -151,7 +151,7 @@ class JointDecision(TemporaryWorkspace):
         self.assertIn('Rebuild `api` as `interface`', (self.base / 'joint/TARGET-ARCHITECTURE.md').read_text(encoding='utf-8'))
 
     def test_the_assistant_saying_what_the_rules_say_is_never_a_disagreement(self):
-        # it was asked of the owner as "the rules say delete and your assistant said delete", on protected files
+        # The rules say delete and the assistant said delete, on protected files: that is not asked of the owner.
         from eaos.report.target_architecture.picture import _decide_current
         component = {'relation': 'delete', 'paths': ['console/src/core/main.js']}
         self.assertEqual(_decide_current(component, {'operation': 'delete', 'cites': []}, 'both', lambda path: True)[0], 'agreed')
@@ -180,7 +180,8 @@ class JointDecision(TemporaryWorkspace):
 
 class OwnerShareTests(unittest.TestCase):
     def test_every_source_shares_one_owner_cap_and_a_doubted_card_is_kept_not_proven(self):
-        # The self-check asked the owner 20 questions for 123 cards (14 from the planner) and left 16 doubted cards to them.
+        # Questions to the owner are few: the clear cards are decided by the assistant, and only the doubted ones are
+        # left to the person.
         from eaos.analysis.repair.review import resolutions
         from eaos.core.contracts.owner_share import capped as _capped
         rows = [{'id': 'target-architecture', 'state': 'waiting', 'recommended_option': 'review'},

@@ -78,7 +78,7 @@ def _fill(schema):
     kind = next((k for k in kind if k != 'null'), 'null') if isinstance(kind, list) else kind
     if 'enum' in schema: return schema['enum'][0]
     if 'oneOf' in schema: return _fill(next(s for s in schema['oneOf'] if s.get('type') != 'null'))
-    if kind == 'object':        # a confirm names who is harmed (the card triage, M7.4)
+    if kind == 'object':  # a confirm names who is harmed (the card triage)
         return {name: 'the app users' if name == 'harmed' else _fill(sub) for name, sub in (schema.get('properties') or {}).items()}
     if kind == 'array':
         items = schema.get('items') or {}
@@ -152,7 +152,7 @@ class Base(unittest.TestCase):
 
 class Language(Base):
     def test_texts_for_the_person_not_in_their_language_are_written_again_once_and_the_rest_kept(self):
-        # EAOS on itself (2026-10-13): two design titles in English in an Arabic Studio, though the prompt asked Arabic.
+        # A text not in the person's language is asked again, even when the prompt already asked for that language.
         english = 'The card is a false alarm because the file is generated'
         def make(name, schema):
             why = 'البطاقة إنذار كاذب لأن الملف مولّد' if name.endswith('-language') else english
@@ -232,7 +232,7 @@ class Framework(Base):
         with mock.patch.object(triage, 'TASK', triage.TASK + ' Be brief.'):
             self.assertFalse(self.triage(launcher)['cached'])
         self.assertEqual(len(launcher.calls), 4)
-        # A check gone on from a stage brings one new card (CodeQL's): only it is asked, every other verdict is kept.
+        # A check continued from a stage brings one new card: only it is asked, every other verdict is kept.
         cards['cards'].append(dict(cards['cards'][0], id='TASK-999', title='a new one'))
         (self.report / 'studio/cards.json').write_text(json.dumps(cards), encoding='utf-8')
         record = self.triage(launcher)
@@ -265,8 +265,8 @@ class Framework(Base):
         serial = self.triage(Answer(answer), assistants=Assistants(1), fresh=True)
         self.assertEqual(state['most'], 1)
         self.assertEqual(serial['decisions'], record['decisions'], 'parallel batches preserve the serial answers and order')
-        # the unanswered batch makes the stage and the check partial (a 429 midway once ended COMPLETE), and is the only
-        # one asked again: the answered cards keep their verdicts
+        # The unanswered batch makes the stage and the check partial, and is the only one asked again: the answered
+        # cards keep their verdicts.
         from types import SimpleNamespace
         from eaos.pipeline.runners import by_assistant as ai_runners
         from eaos.pipeline import run
@@ -301,7 +301,7 @@ class Triage(Base):
         self.assertEqual([r['card'] for r in json.loads((folder / 'library-feedback.json').read_text(encoding='utf-8'))['rejected']], ['TASK-003'])
 
     def test_a_confirm_that_names_no_one_harmed_is_kept_as_a_doubt_and_the_harmed_party_is_kept(self):
-        # M7.4, the strict judge: a confirm on the card's title alone ("plausible") reached the plan as a true problem
+        # The strict judge: a confirm on the card's title alone ("plausible") never reaches the plan as a true problem.
         record = self.triage(Answer(lambda n, s: {'summary': '', 'decisions': [
             decision('TASK-001', 'confirm', ['TASK-001'], detail={'harmed': '', 'falsifier': 'x'}, why='looks right'),
             decision('TASK-002', 'confirm', ['TASK-002'], detail={'harmed': 'the app users: any of them reads others\' orders',
@@ -312,7 +312,7 @@ class Triage(Base):
         self.assertIn('reads others', verdicts['TASK-002']['harmed'])
 
     def test_a_confirmed_card_carries_what_the_assistant_decided_for_it(self):
-        # The self-audit: the triage confirmed 203 cards and every one still waited for the owner's decision.
+        # A confirmed card carries the resolution the assistant decided, so it does not wait for a person's decision.
         detail = lambda **d: {'falsifier': 'x', 'harmed': 'the app users', 'resolution': None, 'change': None, 'question': None, 'options': [], 'recommendation': None, **d}
         launcher = Answer(lambda n, s: {'summary': '', 'decisions': [
             decision('TASK-001', 'confirm', ['TASK-001'], detail=detail(resolution='fix', change='Delete dead() and its export')),
@@ -330,7 +330,7 @@ class Triage(Base):
         self.assertEqual(body['resolutions'], {'fix': 1, 'keep': 0, 'owner': 1})
 
     def test_a_doubted_card_is_judged_again_on_all_its_measurements_largest_over_its_threshold_first(self):
-        """Self-audit: the triage saw 4 facts in id-hash order, so it doubted cards whose measurement it was never shown."""
+        """A doubted card is judged again on all its measurements, not only on the facts the triage was shown."""
         def measured(n, value, threshold=None):
             return {'id': f'FACT-1{n}', 'kind': 'engine_finding', 'location': {'path': 'src/a.ts'},
                     'value': {'kind': 'complexity', 'measurements': [{'name': 'ccn', 'value': value, 'threshold': threshold}] if value else []}}
@@ -414,7 +414,7 @@ class Planners(Base):
 
 
 class IdealNode(Base):
-    """The ideal planner on the framework: ideal.plan unchanged, one decision in the shared shape, the cache by inputs."""
+    """The ideal planner on the framework: ideal.plan unchanged, one decision in the shared shape, a cache by inputs."""
 
     def plan_answer(self, name, schema):
         element = {'id': 's1', 'kind': 'component', 'title': 'One client', 'operation': 'refactor', 'subject': 'T-src', 'detail': '',
@@ -429,7 +429,7 @@ class IdealNode(Base):
 
     def test_without_an_assistant_or_with_a_stuck_one_the_rules_target_stands_and_with_one_it_asks_once(self):
         record = nodes.run(self.report, names=['ideal_planner'], adapters={})['ideal_planner']
-        self.assertEqual((record['state'], record['decisions'][0]['decision']), ('rules_only', 'rules only'))   # the page: test_ideal_planner
+        self.assertEqual((record['state'], record['decisions'][0]['decision']), ('rules_only', 'rules only'))
         def stuck(name, schema): raise provider.Stuck('silent')
         record = nodes.run(self.report, names=['ideal_planner'], launcher=Answer(stuck), fresh=True)['ideal_planner']
         self.assertEqual((record['state'], record['why']), ('rules_only', core.WORDS['stuck']))
@@ -478,7 +478,7 @@ def go():
         labels = {s['id']: s['label'] for s in found['stages']}
         self.assertEqual([(b['condition'], labels[b['to']]) for b in router['branches']], [('good', 'two'), ('bad', 'review')])
         self.assertEqual(router['kind'], 'conditional_edges')
-        self.assertEqual([s['timeout'] for s in found['stages'] if s['label'] in ('one', 'two')], [True, False])   # a declared budget is its limit
+        self.assertEqual([s['timeout'] for s in found['stages'] if s['label'] in ('one', 'two')], [True, False])
 
 
 class Studio(Base):
@@ -507,7 +507,7 @@ class Studio(Base):
 
 
 class RunFromTheStudio(Base):
-    """The command centre's `run_nodes`: a run of the manager, the nodes' steps as its events, the summary as its result."""
+    """The command centre's `run_nodes`: a run of the manager, the nodes' steps as events, the summary as its result."""
 
     def setUp(self):
         super().setUp()
@@ -545,8 +545,7 @@ if __name__ == '__main__':
 
 class AnyNodeAnyTime(unittest.TestCase):
     def test_any_node_runs_as_a_job_an_assistant_starts_and_the_studio_lists_every_node(self):
-        # The owner (2026-10-22): the AI must re-run any node at any time; visual_reviewer was missing from the list and no
-        # assistant outside the Studio could run a node at all.
+        # Every node can be re-run at any time, also by an assistant outside the Studio, so every node is in the list.
         import json
         from pathlib import Path
         from eaos.interfaces.mcp_server import node_jobs

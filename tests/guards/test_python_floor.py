@@ -1,4 +1,5 @@
-"""EAOS keeps the oldest Python it declares (pyproject.toml, requires-python): no syntax or module newer than that in what it ships."""
+"""EAOS keeps the oldest Python it declares (pyproject.toml, requires-python): no syntax or module newer than that in
+what it ships."""
 import ast
 import io
 import sys

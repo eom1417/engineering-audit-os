@@ -1,4 +1,4 @@
-"""The progress contract (live scan map v2, phase 1): eaos/core/progress/ and eaos/data/schemas/progress.json.
+"""The progress contract (live scan map v2): eaos/core/progress/ and eaos/data/schemas/progress.json.
 
 What every flow's progress file promises its readers, each promise a test:
 - every event written validates against the versioned schema;
@@ -476,8 +476,8 @@ class GoldenFold(unittest.TestCase):
 
 class TimeLeft(unittest.TestCase):
     def test_a_stage_whose_work_changed_does_not_scale_the_others(self):
-        # EAOS on itself (2026-10-13): the live stages had stopped in seconds the check before and ran this time, and
-        # the time left read 104 to 141 minutes for about 45.
+        # The time left is estimated from the stages that really run: live stages that stopped within seconds in an
+        # earlier check must not make a check of about 45 minutes read 104 to 141.
         from eaos.pipeline.estimate import pace
         same = {'facts': 100, 'engines': 200, 'claims': 50}
         stages = [{'name': name, 'state': 'ok', 'seconds': seconds} for name, seconds in same.items()]

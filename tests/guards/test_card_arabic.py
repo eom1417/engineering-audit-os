@@ -1,6 +1,6 @@
 """Every card reads in Arabic for an Arabic reader: its why is never the English scenario when the card carries its fix
-in Arabic (a stranger's Rust tool showed "Split it by job..." under Arabic, 2026-11-04), and every rule of the
-repository's craft and of the layers says its sentence and its fix in both languages."""
+in Arabic, and every rule of the repository's craft and of the layers says its sentence and its fix in both
+languages."""
 import json
 import re
 import unittest

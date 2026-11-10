@@ -44,7 +44,7 @@ class OsvTests(Workspace):
             self.assertIn('fixed_in', numbers)
 
     def test_a_go_module_in_go_mod_and_the_sbom_is_one_finding(self):
-        # A Go API's five vulnerable modules were each two cards: OSV reads go.mod as `5.2.1`, the SBOM as `v5.2.1`.
+        # A vulnerable module is one card, not two: OSV reads go.mod as `5.2.1`, the SBOM as `v5.2.1`.
         def row(version):
             return {'package': {'ecosystem': 'Go', 'name': 'github.com/golang-jwt/jwt/v5', 'version': version},
                     'vulnerabilities': [{'id': 'GO-1', 'affected': [{'package': {'name': 'github.com/golang-jwt/jwt/v5'}, 'ranges': [
@@ -124,7 +124,7 @@ class ClaimTests(Workspace):
         self.assertNotIn('assessment', claim)
 
     def test_a_vulnerable_dependency_whose_lock_eaos_cannot_regenerate_is_blocked_naming_its_tool(self):
-        # A bun project's 42 dependency cards were all planned fixable, and none could pass: no tool of EAOS rewrites bun.lock.
+        # No tool of EAOS rewrites bun.lock, so a bun dependency card is not planned as fixable.
         from eaos.core.contracts.decisions import decide
         self.assertEqual(decide(self.claims()[0])['readiness'], 'ready')
         for path, tool in (('web/pnpm-lock.yaml', 'pnpm update picomatch'), ('sbom.cdx.json', 'no lock file')):
@@ -136,8 +136,7 @@ class ClaimTests(Workspace):
                 self.assertTrue(any(tool in blocker for blocker in decision['blockers']), decision['blockers'])
 
     def test_a_bun_or_uv_lock_is_ready_when_its_tool_is_here_and_names_the_tool_when_it_is_not(self):
-        # A first trial on real projects: every bun.lock and uv.lock card went to the person, though bun and uv rewrite a
-        # lock without installing anything.
+        # A bun.lock or uv.lock card is not left to the person: bun and uv rewrite a lock without installing anything.
         from unittest import mock
         from eaos.core.contracts.decisions import decide
         for path, tool in (('web/bun.lock', 'bun'), ('uv.lock', 'uv')):
@@ -149,7 +148,7 @@ class ClaimTests(Workspace):
             self.assertTrue(any(f'{tool} is not installed here' in blocker for blocker in blockers), blockers)
 
     def test_a_dependency_only_used_while_developing_is_said_so_with_its_severity_kept(self):
-        # On a real project 25 of 39 vulnerable dependencies were development tools, each card saying it shipped to every user.
+        # A vulnerable development tool does not ship to users, so its card must not say it does.
         from eaos.core.language.words import impact_of
         findings = osv_scanner.normalise(sample('osv-scanner')['osv.json'], Path('/project'), '2.6.0')
         groups = {f['subject']['key']: next((m['value'] for m in f['measurements'] if m['name'] == 'dependency_groups'), None)
@@ -170,7 +169,8 @@ class ClaimTests(Workspace):
             self.assertEqual(claim['render']['params']['severity'], 'high')
 
     def test_a_lock_files_transitive_advisories_are_one_card_and_a_direct_dependency_keeps_its_own(self):
-        # A bun project's 42 dependency cards were 5 direct dependencies and 37 packages they pull in, one card each.
+        # A bun project's dependency cards tell the direct dependencies from the packages they pull in, not one card
+        # each.
         from eaos.analysis.claims.ledger import from_facts
         from eaos.analysis.repair.codemods import _commands, card_for
         from eaos.core.contracts.decisions import decide, identity

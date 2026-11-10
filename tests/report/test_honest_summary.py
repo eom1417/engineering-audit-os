@@ -1,5 +1,5 @@
-"""What the first page says of a check is what is so (EAOS on itself, 2026-10-30): "78 problems, all fixed automatically"
-held 30 screen notes a person must look at, a red gap for a database the project does not have, a secret in a test's sample."""
+"""What the first page says of a check is what is so: "78 problems, all fixed automatically" must not hide 30 screen
+notes a person must look at, a red gap for a database the project does not have, or a secret in a test's sample."""
 import json
 import tempfile
 import unittest

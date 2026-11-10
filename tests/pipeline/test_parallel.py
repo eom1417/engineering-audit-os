@@ -98,7 +98,7 @@ class ParallelCheckTests(unittest.TestCase):
         cls.directory.cleanup()
 
     def test_every_stage_is_in_one_part_of_the_check_and_a_part_keeps_the_declared_order(self):
-        # the Studio drew the stages in layers of their `requires` alone, which their real waits contradicted
+        # the Studio draws the stages in layers of their real waits, not of their `requires` alone
         from eaos.pipeline.stages import PHASES, ORDER
         named = [name for names in PHASES.values() for name in names]
         self.assertEqual(sorted(named), sorted(ORDER), 'each stage in exactly one part')
@@ -131,7 +131,7 @@ class ParallelCheckTests(unittest.TestCase):
         self.assertEqual(self.parallel['mode'], 'normal')
 
     def test_each_stage_asks_of_the_run_only_what_it_waits_for(self):
-        """_ran(context, name) reads the run's results while other stages run: only a stage it waits for has surely ended."""
+        """_ran(context, name) reads the run's results while other stages run: only a stage it waits for has ended."""
         trees = [ast.parse(Path(module.__file__).read_text(encoding='utf-8')) for module in (stage_runners, ai_runners)]
         functions = {f.name: f for tree in trees for f in tree.body if isinstance(f, ast.FunctionDef)}
         def asked(function, seen):
@@ -150,8 +150,8 @@ class ParallelCheckTests(unittest.TestCase):
 
 class ProgressTests(unittest.TestCase):
     def test_the_progress_names_a_stage_still_running_never_one_that_ended(self):
-        # next-dashboard's check said "Measuring size and complexity (5 of 30)" for 14 minutes: measure, started beside the
-        # sign-in, ended in 0.03 s, and the sign-in that ran on was never named
+        # measure, started beside the sign-in, ends in 0.03 s, and the sign-in that runs on must be named, so the
+        # progress line never names a stage that ended.
         from eaos.pipeline import stage_run
         said, log, folder = [], mock.Mock(enabled=False), tempfile.TemporaryDirectory()
         self.addCleanup(folder.cleanup)
@@ -238,7 +238,7 @@ class ReadyStagesTests(unittest.TestCase):
         left = [n for n in ORDER if n not in ended]
         ready = ready_stages(left, ended, [], 'normal', 10)
         self.assertEqual(sum('app' in BY_NAME[n].uses for n in ready), 1, 'one stage at a time runs the app')
-        # the project's tests waited for the whole chain of page stages, seven minutes of a check of EAOS beside nothing
+        # the project's tests do not wait for the whole chain of page stages
         self.assertIn('verify', ready, 'its own copy and database: beside the stage running the app')
         self.assertNotIn('baseline', ready_stages(left, ended, ['engines'], 'normal', 10), 'the load test runs alone')
         self.assertEqual(ready_stages(['measure'], ended, ['baseline'], 'normal', 10), [], 'nothing runs beside it')

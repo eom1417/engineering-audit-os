@@ -14,7 +14,8 @@ CLAUDE_RESULT = {'type': 'result', 'total_cost_usd': 0.34, 'duration_ms': 60000,
 
 class UsageTests(unittest.TestCase):
     def test_a_check_is_counted_by_stage_and_a_run_still_going_by_its_messages(self):
-        # EAOS, 2026-10-14: batch 5 cost $48 at API prices, 138 of 140 million tokens the conversation read again; no page said so
+        # The cost is counted at API prices, and the tokens the conversation read again are shown, so a page says where
+        # the cost went.
         report = Path(scratch()) / 'technical'
         node = report / 'nodes/card_triage/runs/now/decide'
         node.mkdir(parents=True)

@@ -103,8 +103,8 @@ class Export(Workspace):
         self.assertEqual((plan['steps'][0]['state'], plan['steps'][0]['tasks'][0]['state']), ('active', 'done'))
         decision = self.load('decisions')['decisions'][0]
         self.assertEqual((decision['id'], set(decision['blocks'])), ('investigations', {'TASK-2', 'TASK-6'}))
-        # The incident (decisions inbox, 2026-10-12): one topic asked twice, a fact asked of the person, and the target
-        # approval offered as 51 ADR sentences
+        # The inbox tidies its questions: one topic is asked once, a fact is not asked of the person, and the target
+        # approval is one question, not many ADR sentences.
         ask = lambda id, question: {'id': id, 'question': question, 'options': [], 'state': 'waiting'}
         rows = inbox.tidy([ask('ideal-Q-search', 'هل خانتا البحث (في الشريط العلوي وفي القائمة الجانبية) تؤديان العمل نفسه؟'),
                                       ask('node-visual_reviewer:IMG-014:Q-014-1', 'هل خانتين البحث (فوق وفي القائمة الجانبية) لهم نفس الوظيفة؟'),
@@ -112,7 +112,8 @@ class Export(Workspace):
                                       ask('ideal-Q-cli-split', 'هل نقسّم eaos/interfaces/cli.py إلى وحدات حسب مجموعات الأوامر؟'),
                                       ask('node-card_triage:TASK-164:Q-164', 'هل في eaos/interfaces/studio_server/events.py دالة واحدة على الأقل تعقيدها فوق 15؟'),
                                       ask('ideal-Q-types', 'هل تُولَّد studio/src/data/types.ts من eaos/core/contracts/artifact_rules.py؟'),
-                                      # 2026-10-14: two of the planner's questions ending in one sentence were read as one
+                                      # Two of the planner's questions ending in one sentence are two questions, not
+                                      # one.
                                       ask('ideal-Q-reach', 'هل يُفتح الاستوديو لشخص واحد؟ جواب الاستلام كان القيمة الافتراضية.'),
                                       ask('ideal-Q-personal-data', 'هل يخزن EAOS بيانات شخصية؟ جواب الاستلام كان القيمة الافتراضية.'),
                                       ask('ideal-Q-read-first', 'قسم «اقرأ أولًا» في المكتبة يكرر وثائق المجموعات. ما الذي نبقيه؟'),
@@ -124,7 +125,7 @@ class Export(Workspace):
         self.assertEqual(([o['id'] for o in target['options']], target['decisions_count']), (['approve', 'changes', 'review'], 51))
 
     def test_the_inbox_asks_only_what_the_assistant_left_to_the_person_and_each_card_says_what_it_decided(self):
-        # The self-audit: 847 of 867 cards waited for the owner; the assistant decides the clear ones itself.
+        # The assistant decides the clear cards itself; only the rest wait for the person.
         plan = json.loads((self.out / 'plan.json').read_text(encoding='utf-8'))
         tasks = {t['id']: t for t in plan['tasks']}
         tasks['TASK-2']['resolution'] = {'resolution': 'owner', 'by': 'assistant', 'question': 'Show prices with tax?', 'options': ['Yes', 'No'],
@@ -270,7 +271,7 @@ class Contract(unittest.TestCase):
 
 class Localization(unittest.TestCase):
     def test_a_cards_title_reaches_the_other_language_from_the_translation_memory_with_no_model(self):
-        # Seen taking the README's pictures: a check run in Arabic showed Arabic titles in the English Studio.
+        # A check run in Arabic shows Arabic titles in the Arabic Studio only, not in the English one.
         with tempfile.TemporaryDirectory() as tmp:
             report_folder = Path(tmp) / 'technical'
             (report_folder / 'studio').mkdir(parents=True)
@@ -282,7 +283,7 @@ class Localization(unittest.TestCase):
             written = json.loads((report_folder / 'studio/locale.json').read_text())
             self.assertEqual((written['source_locale'], written['translations']), ('ar', translations))
             self.assertEqual((metadata['en']['file'], len(metadata['en']['sha256'])), ('locale.js', 64))
-            self.assertIsNone(localization.publish(report_folder / 'studio', 'ar', {}))     # nothing translated: no file
+            self.assertIsNone(localization.publish(report_folder / 'studio', 'ar', {}))  # nothing translated: no file
 
 
 if __name__ == '__main__':

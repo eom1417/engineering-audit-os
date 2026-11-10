@@ -1,4 +1,4 @@
-"""Every document whole in each language: only the pieces in the other language are sent, as templates, once, and kept."""
+"""Every document whole in each language: only the pieces in the other language are sent, as templates, once."""
 import json
 import unittest
 from pathlib import Path
@@ -20,7 +20,7 @@ class Dictionary:
 
 class BilingualTests(unittest.TestCase):
     def test_whole_pieces_are_sent_as_templates_once_and_the_rest_stay_as_written(self):
-        # EAOS's own check, 2026-10-14: 2818 lines cut mid sentence, sent one by one, 54 minutes and $2.19
+        # Whole pieces are sent, not lines cut mid-sentence one by one: this keeps the calls, the time and the cost low.
         report = Path(scratch()) / 'technical'
         report.mkdir()
         (report / 'START-HERE.md').write_text(

@@ -60,8 +60,8 @@ class SemanticTests(unittest.TestCase):
         self.assertEqual(added['artifacts'], ['semantic.json'])
 
     def test_a_claim_that_eaos_own_verdict_is_wrong_corrects_eaos_and_never_reaches_the_persons_plan(self):
-        # A FastAPI template: the model rightly said EAOS's "no health route" contradicted the facts, and that became a
-        # task in the person's plan. EAOS's own mistake is EAOS's to correct.
+        # When the model rightly says EAOS's "no health route" verdict contradicts the facts, EAOS corrects its own
+        # verdict; the claim does not become a task in the person's plan.
         def corrects(digest, call):
             answer = grounded(digest, call)
             answer['claims'].append({'statement': 'The verdict that there is no health route contradicts the route /utils/health-check/',
@@ -111,7 +111,7 @@ SEMANTIC_FIXTURES = Path(__file__).resolve().parents[1] / 'fixtures/semantic'
 
 
 def deep_evidence(root):
-    """A project whose rule, in settlement.py, lies past the summary: eighty modules in one ring of imports around it."""
+    """A project whose rule, in settlement.py, lies past the summary: eighty modules in one import ring around it."""
     project = Path(root) / 'deep-evidence'
     shutil.copytree(SEMANTIC_FIXTURES / 'deep-evidence', project)
     for index in range(80):

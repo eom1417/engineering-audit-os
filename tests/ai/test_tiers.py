@@ -1,4 +1,4 @@
-"""Model tiers (M9.1, eaos/ai/assistant/tiers.py): each stage asks on its tier, a cheaper tier that fails or would close
+"""Model tiers (eaos/ai/assistant/tiers.py): each stage asks on its tier, a cheaper tier that fails or would close
 something is asked again a tier up, and each assistant is told its tier's model or effort."""
 import os
 import tempfile
@@ -37,7 +37,8 @@ class Stages(unittest.TestCase):
         self.assertEqual([tiers.up(t) for t in tiers.TIERS], ['standard', 'deep', None])
 
     def test_the_experiences_calls_pass_the_flags_of_their_tiers(self):
-        # The provider reads no stage name (eaos/ai/assistant/command.py): each experience call's small/deep flags are its tier.
+        # The provider reads no stage name (eaos/ai/assistant/command.py): each experience call's small/deep flags are
+        # its tier.
         import re
         flags = {'light': 'small=True', 'deep': 'deep=True'}
         calls = [(m.group(0), m.group(1)) for path in Path('eaos').rglob('*.py')
@@ -60,7 +61,7 @@ class Stages(unittest.TestCase):
             self.assertIn('model_reasoning_effort="low"', argv)
 
     def test_the_ideal_critique_is_held_short_so_its_answer_parses_the_first_time(self):
-        # EAOS on itself (2026-10-22): an unbounded critique wrote 60 KB that broke as JSON twice, three minutes lost.
+        # An unbounded critique is cut: it must not write an answer too large to parse as JSON.
         missed = ideal_prompts.CRITIQUE_SCHEMA['properties']['critique']['properties']['missed']
         self.assertEqual(missed['maxItems'], ideal_prompts.NOTES)
         self.assertIn(f'under {ideal_prompts.NOTE_CHARS} characters', ideal_prompts.prompt_critique({'project': {'language': 'en'}}, {}))
@@ -87,7 +88,7 @@ class Escalation(unittest.TestCase):
                          'a cheaper model never closes a card alone')
 
     def test_the_deep_tier_is_asked_only_about_what_the_cheaper_one_would_close(self):
-        # EAOS on itself (2026-10-30): 28 rejects of 211 cards asked all 211 again on the deep tier, 4 of triage's 10 minutes
+        # Only the cards a cheaper tier rejected are asked again on the deep tier, not every card.
         asked = []
         confirm = lambda card: decision(card, 'confirm', [card], detail={'harmed': 'the app users'})
 
@@ -112,7 +113,8 @@ class Escalation(unittest.TestCase):
         self.assertEqual((record['method'], record['tier'], record['escalated']['from']), ('model', 'standard', 'light'))
 
     def test_a_tier_reached_after_a_failure_still_never_closes_alone(self):
-        # the review of M9.1: light failed, standard answered "reject", and the reject stood without the deep tier
+        # A reject from a cheaper tier does not stand without the deep tier: light failed, standard answered "reject",
+        # and the deep tier decides.
         def make(tier):
             if tier == 'light': raise ValueError('not the asked JSON')
             choice = 'confirm' if tier == 'deep' else 'reject'

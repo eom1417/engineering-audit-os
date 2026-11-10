@@ -1,6 +1,6 @@
-"""The experience in the check (M10.9): its own path (the whole simulation on the check's running app), its short option
-beside the complete check with its time and cost said before it starts, and the saved journeys replayed with the
-behaviour lock in every full check, each a row of it, without the assistant."""
+"""The experience in the check: its own path (the whole simulation on the check's running app), its short option beside
+the complete check with its time and cost said before it starts, and the saved journeys replayed with the behaviour
+lock in every full check, each a row of it, without the assistant."""
 import argparse
 import contextlib
 import io
@@ -98,8 +98,8 @@ class Stage(unittest.TestCase):
             return said, {name: call.called for name, call in calls.items()}, write.called
 
     def test_the_judged_set_joins_the_facts_stages_list_the_claims_read(self):
-        # the claims read the facts stage's list, made before the judging indexed `experience`: a confirmed difficulty
-        # of a real check (flask-microblog, M10.10) never became a card
+        # The claims read the facts stage's list, made before the judging indexed `experience`: a confirmed difficulty
+        # must still become a card.
         collected = {'sets': [{'set': 'syntax'}, {'set': 'experience', 'old': True}]}
         with tempfile.TemporaryDirectory() as out:
             (Path(out) / 'facts').mkdir()
@@ -198,7 +198,7 @@ if __name__ == '__main__':
 
 
 class Judged(unittest.TestCase):
-    """The review of M10 (2026-10-27): the confirmed difficulties were written as facts nobody read, no card came of them."""
+    """A confirmed difficulty becomes a card, not only a fact nobody reads."""
 
     def test_a_confirmed_difficulty_is_indexed_read_by_the_claims_and_becomes_a_card(self):
         from eaos.analysis.claims.ledger import from_facts

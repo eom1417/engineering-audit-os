@@ -25,8 +25,8 @@ UNSAMPLED = ('bandit', 'gitleaks', 'codeql')
 
 class SampleTests(unittest.TestCase):
     def test_every_adapter_of_the_registry_is_its_module_pinned_with_its_sample_and_maps_into_the_shared_kinds(self):
-        # The one contract every engine holds (it was asked in three files, each of a few engines). Without `analyze`
-        # the registry raised AttributeError on every run and a working engine contributed nothing.
+        # The one contract every engine holds. Without `analyze` the registry raises AttributeError on every run and a
+        # working engine contributes nothing.
         import importlib
         from eaos.engines import ADAPTERS, tool
         for name, adapter in ADAPTERS.items():

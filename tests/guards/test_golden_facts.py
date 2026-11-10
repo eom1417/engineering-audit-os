@@ -58,7 +58,8 @@ class IncrementalCacheTests(unittest.TestCase):
 
 class StoreTests(unittest.TestCase):
     def test_a_set_reads_back_as_made_and_a_kind_is_read_from_the_sets_holding_it_only(self):
-        # EAOS, 2026-10-23: the fields every fact repeated were half of each set, and every reader read all 280 MB
+        # The fields every fact repeats are held once per set, not in every fact, so a reader reads only the sets
+        # holding its kind.
         from eaos.facts import make, store
         with tempfile.TemporaryDirectory() as out:
             rows = [make('symbol', 'syntax', '3', 'sha', {'path': f'a{i}.py'}, {'n': i}, limitations=['syntax only'])

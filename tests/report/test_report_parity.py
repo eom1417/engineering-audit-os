@@ -23,7 +23,7 @@ class ParityTests(unittest.TestCase):
         cls.arabic = Path(cls.directory) / 'ar'
         cls.english = Path(cls.directory) / 'en'
         execute(FIXTURE, cls.arabic, skip=('engines',), language='ar')
-        # A document a check before M1.4 wrote and none writes now goes, or both languages would not list the same files.
+        # A document no check writes is removed, or both languages would not list the same files.
         cls.english.mkdir(parents=True)
         (cls.english / 'DECISION-BRIEF.md').write_text('# Decision brief\n', encoding='utf-8')
         execute(FIXTURE, cls.english, skip=('engines',), language='en')
@@ -76,8 +76,8 @@ class LabelCatalogueTests(unittest.TestCase):
             with self.subTest(catalogue=name):
                 self.assertEqual(arabic - english, set(),
                                  f'{name}: these keys fall back to Arabic in an English report')
-        # The ledger stores one English sentence per claim kind. Printing it under an Arabic
-        # heading gave the reader half a line in each language.
+        # The ledger stores one English sentence per claim kind. Printing it under an Arabic heading would give the
+        # reader half a line in each language.
         for key in FALSIFIERS['ar']:
             with self.subTest(key=key):
                 claim = {'falsifier': 'An English sentence.', 'render': {'key': key}}

@@ -1,4 +1,4 @@
-"""The experience report (M10.8): one story from the records, told in EXPERIENCE.md in both languages and by the MCP tool."""
+"""The experience report: one story from the records, told in EXPERIENCE.md in both languages and by the MCP tool."""
 import asyncio
 import json
 import tempfile
@@ -64,7 +64,7 @@ class ExperienceReport(unittest.TestCase):
         self.assertEqual((told['replays']['summary']['red'], told['missing']), (1, ['data.json']))
 
     def test_a_confirmed_difficulty_carries_its_fix_card_once_the_plan_made_it(self):
-        # story.json had no card, so the Studio's experience part never linked a difficulty to its fix (M10.10)
+        # story.json has a card, so the Studio's experience part links a difficulty to its fix.
         self.assertIsNone(story(self.report)['difficulties']['ranked'][0]['card'])
         _put(self.report / 'facts/experience.json', {'facts': [{'id': 'F-9', 'kind': 'experience_difficulty', 'value': {'id': 'D3'}}]})
         _put(self.report / 'plan.json', {'tasks': [{'id': 'TASK-001', 'evidence': {'fact_ids': ['F-1']}},

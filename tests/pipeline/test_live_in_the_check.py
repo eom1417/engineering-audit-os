@@ -113,8 +113,8 @@ class LiveInTheCheck(unittest.TestCase):
         self.assertLess(max(ORDER.index(stage) for stage in LIVE), ORDER.index('claims'))
 
     def test_an_app_whose_code_names_no_page_locks_walks_and_loads_the_pages_the_crawl_found(self):
-        # A real check (an SPA with no client router): the code named no page, so lock, record, journeys and
-        # baseline stood still while the crawl had found and pictured the pages; and the Studio showed 0 screens.
+        # An SPA with no client router: the code names no page, yet lock, record, journeys and baseline run on the pages
+        # the crawl found and pictured, and the Studio shows its screens.
         from eaos.live.behavior import specs as lock_specs
         speed = {'conditions': {'vus': 10}, 'scenarios': []}
         with mock.patch('eaos.live.app.setup.authorize'), mock.patch('eaos.live.app.setup.setup', side_effect=started), \
@@ -141,8 +141,8 @@ if __name__ == '__main__':
 
 class LoadTarget(unittest.TestCase):
     def test_a_load_on_a_server_of_the_pages_alone_is_refused_and_one_on_the_program_runs(self):
-        # EAOS on itself (2026-10-13): the baseline loaded `vite preview`, whose fallback answered /api/* with the page
-        # in 8 ms, and the Python server behind the Studio was never measured.
+        # A `vite preview` fallback answers /api/* with the page in 8 ms, so the baseline must measure the program
+        # behind it, such as the Python server behind the Studio, not the fallback.
         import threading
         from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
         from eaos.live.trials import load_baseline as runtime_baseline
@@ -166,14 +166,14 @@ class LoadTarget(unittest.TestCase):
         with mock.patch('eaos.live.trials.load_plans.server_routes', return_value=['/', '/api/session', '/api/runs', '/index.html']):
             with self.assertRaisesRegex(RuntimeError, 'serves only its pages'):
                 runtime_baseline.refuse_a_page_server('report', serve(api=False))
-            with self.assertRaisesRegex(RuntimeError, 'serves only its pages'):    # its routes not found: still the pages
+            with self.assertRaisesRegex(RuntimeError, 'serves only its pages'):  # its routes not found: still the pages
                 runtime_baseline.refuse_a_page_server('report', serve(api='missing'))
             runtime_baseline.refuse_a_page_server('report', serve(api=True))
-            runtime_baseline.refuse_a_page_server('report', serve(api='signin'))        # the program, behind its sign-in
+            runtime_baseline.refuse_a_page_server('report', serve(api='signin'))  # the program, behind its sign-in
 
     def test_the_load_sends_the_programs_token_and_leaves_out_what_a_plain_request_cannot_load(self):
-        # EAOS on itself (2026-10-14): its routes answered 401 without the Studio's token, /api/events streams forever,
-        # and four routes need a value: the load measured refusals and timeouts, never the program.
+        # Routes answer 401 without the Studio's token, /api/events streams forever, and four routes need a value: the
+        # load must measure the program, not refusals and timeouts.
         import threading
         from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
         from eaos.live.trials import load_baseline as runtime_baseline

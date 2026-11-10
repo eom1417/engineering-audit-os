@@ -83,7 +83,7 @@ class VisualReviewer(TemporaryWorkspace):
         self.assertEqual(adapters.ClaudeCode().ask_argv({}, self.out)[-4:-2], ['--tools', ''])
 
     def test_a_problem_is_one_finding_per_page_with_every_picture_it_shows_on_and_the_gallery_pins_it_to_each(self):
-        # The self-check made 1030 findings, one per picture: the same problem on a page's phone and desktop pictures twice
+        # One finding per problem: the same problem on a page's phone and desktop pictures is one card, not two.
         record = json.loads((self.out / 'nodes/visual_reviewer/last.json').read_text(encoding='utf-8'))
         self.assertEqual([row['why'] for row in record['dropped']], ['a finding names a picture of another page'])
         findings = json.loads((self.out / 'nodes/visual_reviewer/findings.json').read_text(encoding='utf-8'))['findings']
@@ -101,7 +101,7 @@ class VisualReviewer(TemporaryWorkspace):
         self.assertEqual([(shot['viewport'], [f['region'] for f in shot['findings']]) for shot in pages['/']['pictures']],
                          [('phone', [region(0, 0, 1, 0.2)]), ('desktop', [region(0, 0, 1, 0.1)])])
         self.assertEqual((pages['/#/tasks/TASK-001']['template'], pages['/#/tasks/TASK-001']['same_as']), ('/#/tasks/:id', ['/#/tasks/TASK-004']))
-        # The self-check's screens were "not captured" though 54 pictures were taken: they now belong to their screen.
+        # Screens are captured when their pictures were taken: the pictures belong to their screen.
         from eaos.report.studio import library, screens
         media = library.media(self.out)
         self.assertEqual({i['path']: i['route'] for i in media if i['kind'] == 'screen'}['live/screens/screenshots/00-phone.png'], '/')
@@ -111,7 +111,7 @@ class VisualReviewer(TemporaryWorkspace):
 
 class Crawl(unittest.TestCase):
     def test_every_page_is_found_and_lighthouse_measures_the_entry_and_each_distinct_template_ten_at_most(self):
-        # Lighthouse ran on all 76 crawled routes of the Studio: 28 minutes, most of them one template with other data
+        # Lighthouse runs on a sample of routes: routes sharing one template with other data are not all measured.
         found = [{'path': '/', 'depth': 0, 'status': 'observed'}, {'path': '/#/broken', 'depth': 1, 'status': 'error'}]
         found += [{'path': f'/#/tasks/TASK-{n:03d}', 'depth': 1, 'status': 'observed'} for n in range(1, 9)]
         found += [{'path': f'/#/page{chr(97 + n)}', 'depth': 1, 'status': 'observed'} for n in range(12)]

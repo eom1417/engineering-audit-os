@@ -1,5 +1,5 @@
 """EAOS's own code stays within its limits: no new complex, long or many-parameter function, no new long module, none
-of today's grows, logic written once, no unused import or variable."""
+of the existing ones grows, logic written once, no unused import or variable."""
 import ast
 import sys
 import unittest
@@ -19,7 +19,8 @@ class CodeLimits(unittest.TestCase):
                          'now under the limit: run python tools/code_limits.py --tighten')
 
     def test_a_listed_function_moved_by_a_split_keeps_its_allowance_and_may_not_grow(self):
-        # EAOS, 2026-10-15: its five largest modules could not be split, every moved complex function counted as new
+        # A function moved by a split keeps its allowance: a moved complex function does not count as new, so the
+        # largest modules can be split.
         baseline = {'functions': {'eaos/runs.py::Manager._answer': 41}, 'modules': {}}
         moved = {'functions': {'eaos/runs_answer.py::_answer': 41}, 'modules': {}}
         self.assertEqual(code_limits.breaches(moved, baseline), [])
@@ -49,7 +50,7 @@ class CodeLimits(unittest.TestCase):
         self.assertEqual(code_limits.leftovers(), [])
 
     def test_a_temporary_folder_is_removed_by_what_made_it(self):
-        # A folder from mkdtemp stays for ever unless its maker removes it: 24,000 had piled up (2026-10-17). A
+        # A folder from mkdtemp stays for ever unless its maker removes it, so a suite using it piles them up.
         # TemporaryDirectory removes its own; each of these removes its folders as said.
         owners = {'eaos/live/isolation/sandbox.py': 'the next run sweeps what no live run holds', 'eaos/analysis/repair/codemods.py': 'removed in finally',
                   'tests/shared_fixture.py': 'scratch() and Workspace: removed when the run or the test ends'}

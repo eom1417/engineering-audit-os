@@ -1,6 +1,6 @@
-"""What EAOS promises its outside users holds: the CLI and MCP tools as declared, how they answer, and saved projects still
-read. A break is refused unless the maintainers agreed to it; an addition is recorded; words and values are not held here.
-The comparison is proved here on every run; tools/public_contract/mutations.py proves it on the real code."""
+"""What EAOS promises its outside users holds: the CLI and MCP tools as declared, how they answer, and saved projects
+still read. A break is refused unless the maintainers agreed to it; an addition is recorded; words and values are not
+held here. The comparison is proved here on every run; tools/public_contract/mutations.py proves it on the real code."""
 import copy
 import sys
 import tempfile
@@ -164,7 +164,8 @@ class Recording(unittest.TestCase):
 
 
 class EveryToolAccountedFor(unittest.TestCase):
-    """A new tool cannot slip past the lock: it is called, or the reason it is not is written, and a named test is real."""
+    """A new tool cannot slip past the lock: it is called, or the reason it is not is written, and a named test is real.
+    """
 
     def setUp(self):
         self.lock = contract.load()

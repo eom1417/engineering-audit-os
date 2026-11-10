@@ -1,7 +1,7 @@
-"""The Studio shipped in the package (eaos/data/studio) is built from today's console source (console/), opens from a
-file as classic scripts, ships nothing that reaches the network, and keeps its weight budgets. Runs without Node: it
-recomputes the source fingerprint console/scripts/build.mjs recorded, so a change to console/ without a rebuild fails
-here."""
+"""The Studio shipped in the package (eaos/data/studio) is built from the current console source (console/), opens from
+a file as classic scripts, ships nothing that reaches the network, and keeps its weight budgets. Runs without Node:
+it recomputes the source fingerprint console/scripts/build.mjs recorded, so a change to console/ without a rebuild
+fails here."""
 import gzip
 import hashlib
 import json

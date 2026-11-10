@@ -24,7 +24,7 @@ class SarifTests(Workspace):
         self.assertEqual((severity('critical'), severity('low')), ('critical', 'high'))
 
     def test_a_result_without_a_level_takes_its_rules_and_carries_the_rules_cwe_and_confidence(self):
-        # Semgrep writes the level on the rule, not the result: every one of its findings on EAOS was read as low.
+        # Semgrep writes the level on the rule, not the result: its findings are read at the rule's level.
         rule = {'id': 'python.audit.subprocess', 'defaultConfiguration': {'level': 'error'},
                 'properties': {'precision': 'very-high', 'tags': ["CWE-78: OS Command Injection", 'LOW CONFIDENCE']}}
         bandit = {'id': 'B608', 'properties': {'tags': ['security', 'external/cwe/cwe-089']}}
@@ -38,7 +38,7 @@ class SarifTests(Workspace):
                          [('high', 'low', ['CWE-78']), ('medium', 'medium', ['CWE-89'])])
 
     def test_a_result_suppressed_with_a_reason_on_its_line_is_justified_and_without_one_stays_a_finding(self):
-        # `# nosemgrep` alone once dropped the finding: a comment could hide a weakness from every gate.
+        # `# nosemgrep` alone does not drop the finding: a comment cannot hide a weakness from every gate.
         (Path(self.tmp) / 'a.py').write_text('x\ny\nrun(x)  # nosemgrep: KNOWN-1 -- the argv is built here, no shell\nrun(y)  # nosemgrep\n')
         place = lambda line: [{'physicalLocation': {'artifactLocation': {'uri': 'a.py'}, 'region': {'startLine': line}}}]
         result = lambda line, **more: {**SARIF['runs'][0]['results'][0], 'locations': place(line), **more}

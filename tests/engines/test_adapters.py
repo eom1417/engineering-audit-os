@@ -162,7 +162,7 @@ class DependencyCruiserTests(Workspace):
 
 
 class ReportedRunTests(Workspace):
-    """What a run of a tool reports beyond its findings: what it examined, what passed, what is only style, every page."""
+    """What a run of a tool reports beyond its findings: what it examined, what passed, what is only style, pages."""
 
     def test_measurements_stay_metrics_style_is_not_a_finding_a_clean_run_counts_what_passed_and_an_empty_one_is_an_error(self):
         out = Path(self.tmp) / 'work/scc/scc.json'
@@ -246,7 +246,7 @@ class ReportedRunTests(Workspace):
             return gitnexus.analyze(Path(self.tmp) / 'p', Path(self.tmp) / 'work'), calls
 
     def test_its_misreadings_of_python_are_no_cycle_and_a_real_cycle_stays(self):
-        # EAOS, 2026-10-24: all six of GitNexus's cycles were `from . import core` and `import html` misread
+        # `from . import core` and `import html` are not read as import cycles.
         from eaos.engines.code import gitnexus
         copy = Path(self.tmp) / 'copy'
         (copy / 'core').mkdir(parents=True)

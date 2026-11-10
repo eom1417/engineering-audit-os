@@ -39,16 +39,16 @@ Path(os.environ['EAOS_STORAGE_STATE']).write_text(json.dumps({'cookies': [
 
 class SetupTests(unittest.TestCase):
     def test_the_apps_own_test_browsers_are_never_installed_to_run_it(self):
-        # A real build: the setup ran `npx playwright install chromium`, whose shared folder is read only in the isolated
-        # run, so the finished product's screens were never pictured.
+        # A setup that runs `npx playwright install chromium` writes to a shared folder that is read only in the
+        # isolated run: the finished product's screens must still be pictured.
         from eaos.live.app.run import _test_browsers
         self.assertTrue(_test_browsers(['npx', 'playwright', 'install', 'chromium']))
         self.assertTrue(_test_browsers(['pnpm', 'exec', 'playwright', 'install', '--with-deps']))
         self.assertFalse(_test_browsers(['npm', 'install']))
 
     def test_eaos_scripts_in_the_app_load_eaos_playwright_never_the_apps_own(self):
-        # A real build: the probe, written into the app's copy, loaded the app's own Playwright (another version, no
-        # browsers), so every page stage stopped. One variable names EAOS's own, for the probe and the seed alike.
+        # The probe, written into the app's copy, must not load the app's own Playwright (another version, no browsers),
+        # or every page stage stops. One variable names EAOS's own, for the probe and the seed alike.
         from eaos.live.app import assist as live_assist
         from eaos.live.app.setup import PROBE
         from eaos.core.toolchain import home
@@ -80,7 +80,7 @@ class SharedAppTests(unittest.TestCase):
         import os
         from unittest import mock
         from eaos.core.project.places import workspace
-        home = mock.patch.dict(os.environ, {'EAOS_HOME': str(self.root / 'eaos-home')})    # this machine's projects aside
+        home = mock.patch.dict(os.environ, {'EAOS_HOME': str(self.root / 'eaos-home')})  # this machine's projects aside
         home.start()
         self.addCleanup(home.stop)
         workspace(self.target).mkdir(parents=True)          # this fixture's folder is the run's own report

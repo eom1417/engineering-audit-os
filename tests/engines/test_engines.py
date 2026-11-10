@@ -156,8 +156,8 @@ class EngineClaimTests(unittest.TestCase):
                                             {'enola': evaluated_at(cycle=('observed', 'file')),
                                              'codegraph': evaluated_at(cycle=('observed', 'file'))}))
         self.assertEqual((contested['confidence'], contested['confidence_ceiling']), ('HYPOTHESIS', 'HYPOTHESIS'))
-        # A count one engine states exactly is a claim on that count alone, rechecked by that engine (M2.2); a branch
-        # count is EAOS's own, so a card on it runs no engine again.
+        # A count one engine states exactly is a claim on that count alone, rechecked by that engine; a branch count is
+        # EAOS's own, so a card on it runs no engine again.
         alone = engine_fact('F3', 'reforge', 'complexity', 'b.py', rule='reforge.codebase.many_parameters')
         alone['location']['symbol'] = 'b.py::send'
         reforge = {'reforge': evaluated_at(complexity=('observed', 'file'))}
@@ -197,7 +197,8 @@ class InstalledEngineTests(unittest.TestCase):
             manifest = analyze('eaos/core/progress', workdir, only=['jscpd'], formats=['python'])
         self.assertTrue(manifest['target_unchanged'])
         self.assertEqual((manifest['requested'], sorted(manifest['coverage'])), (['jscpd'], ['jscpd']))
-        # A fact id hashing modification times changed with every clone, and with it the measurement a claim shows.
+        # A fact id does not hash modification times: they change with every clone, and with them the measurement a
+        # claim shows.
         ids = []
         with tempfile.TemporaryDirectory() as tmp:
             for name, mtime in (('a', 1_000_000), ('b', 2_000_000)):

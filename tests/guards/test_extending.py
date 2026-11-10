@@ -1,5 +1,5 @@
-"""The extension guide stays true (M18.2): docs/EXTENDING.md names only files that exist, every engine has what its
-recipe asks for, every stage its words, and every Studio action its MCP twin or the reason it has none."""
+"""The extension guide stays true: docs/EXTENDING.md names only files that exist, every engine has what its recipe asks
+for, every stage its words, and every Studio action its MCP twin or the reason it has none."""
 import json
 import re
 import unittest
@@ -17,7 +17,7 @@ class Extending(unittest.TestCase):
         full = {path for path in named if '/' in path.rstrip('/') or (ROOT / path).exists()}
         self.assertGreater(len(full), 40, 'the guide names its files by path')
         self.assertEqual(sorted(path for path in full if not (ROOT / path).exists()), [], 'a path that is gone')
-        # a name repeated alone (`loops.py`) was named in full before
+        # a name repeated alone (`loops.py`) must have been named in full before
         self.assertEqual(sorted(name for name in named - full if not any(path.rstrip('/').endswith('/' + name.rstrip('/')) for path in full)), [])
 
     def test_every_engine_has_what_its_recipe_asks_for(self):

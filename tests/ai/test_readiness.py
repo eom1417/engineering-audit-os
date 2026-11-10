@@ -1,6 +1,6 @@
 """Which assistant EAOS uses (eaos/ai), and its readiness probe (eaos/ai/assistant/readiness.py) against fake `claude`
-and `codex` commands that behave like the real ones in each state: ready, signed out, the sign-in expired, a usage limit,
-silent, not installed."""
+and `codex` commands that behave like the real ones in each state: ready, signed out, the sign-in expired, a usage
+limit, silent, not installed."""
 import json
 import os
 import stat
@@ -98,7 +98,7 @@ class Probe(unittest.TestCase):
                 row = readiness.probe(name, fresh=True)
                 self.assertEqual((row['installed'], row['ready'], row['code']), (True, False, code))
         self.assertIn('codex login', row['reason']['en'], 'a used refresh token: not ready though its status says logged in')
-        self.mode('session_limit')     # Claude Code's own words on a spent session (2026-10-18), plain text, not JSON
+        self.mode('session_limit')  # Claude Code's own words on a spent session: plain text, not JSON
         row = readiness.probe('claude', fresh=True)
         self.assertEqual((row['code'], row.get('resets')), ('claude_limit', '7:10pm (UTC)'))
         self.assertIn('7:10pm (UTC)', row['reason']['ar'], 'the person reads when it comes back, not a vague error')
@@ -126,7 +126,7 @@ class Probe(unittest.TestCase):
         import fcntl
         import threading
         with open(readiness._cache_file().with_suffix('.lock'), 'a') as held:
-            fcntl.flock(held, fcntl.LOCK_EX)                    # another program (another project's check) writes now
+            fcntl.flock(held, fcntl.LOCK_EX)  # another program (another project's check) writes in the meantime
             answers = []
             asked = threading.Thread(target=lambda: answers.append(readiness.probe('claude')))
             asked.start()

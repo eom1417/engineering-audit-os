@@ -1,5 +1,5 @@
-"""A check can follow some paths only (eaos/pipeline/path_choice.py): it runs what they need, keeps or leaves the rest, and
-says so."""
+"""A check can follow some paths only (eaos/pipeline/path_choice.py): it runs what they need, keeps or leaves the rest,
+and says so."""
 import json
 import os
 import shutil

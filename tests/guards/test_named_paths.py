@@ -1,7 +1,7 @@
 """Every path of EAOS that its code, tools and living references name exists: a reader follows it and lands on the file.
 
-The code layout (2026-10-26) found about thirty such names left behind by earlier moves (`eaos/journeys/guided.py` after
-guided became a package), each sending a reader, or an assistant, to a file that was no longer there.
+A path left behind by a move (`eaos/journeys/guided.py` after guided became a package) would send a reader, or an
+assistant, to a file that does not exist.
 """
 import re
 import subprocess

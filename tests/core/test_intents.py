@@ -1,5 +1,5 @@
-"""The assistant understands plain requests (NS9.T5): the intent table, `eaos do`, the skill it installs, and the
-MCP tools. X6 is read from tests/fixtures/intents.json."""
+"""The assistant understands plain requests: the intent table, `eaos do`, the skill it installs, and the MCP tools. The
+accuracy of the table is read from tests/fixtures/intents.json."""
 import io
 import json
 import unittest
@@ -17,7 +17,7 @@ SETS = ('cases', 'held_out', 'untuned')
 
 
 def accuracy():
-    """{set: (right, total)} of the intent table on every set of requests in the fixture (X6)."""
+    """{set: (right, total)} of the intent table on every set of requests in the fixture."""
     data = json.loads(FIXTURE.read_text(encoding='utf-8'))
     found = {}
     for name in SETS:

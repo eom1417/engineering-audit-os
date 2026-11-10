@@ -1,4 +1,4 @@
-"""A verdict comes from judged labels (M18.5): the score moves only the detectors it judged, against the bar."""
+"""A verdict comes from judged labels: the score moves only the detectors it judged, against the bar."""
 import sys
 import unittest
 from pathlib import Path

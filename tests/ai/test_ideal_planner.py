@@ -98,7 +98,7 @@ class Launcher:
     def __call__(self, name, prompt, schema):
         self.calls.append((name, len(prompt), schema))
         if name.split('-')[0] == self.fail_on: raise self.error
-        if name.startswith('plan-'):         # one part of the plan pass: its views, the departures and questions of system
+        if name.startswith('plan-'):  # one part of the plan pass
             whole, views = an_ideal(), set(schema['properties']['views']['properties'])
             mine = lambda rows: [row for row in rows if row['view'] in views]
             return {**whole, 'views': {k: v for k, v in whole['views'].items() if k in views},
@@ -272,7 +272,7 @@ class Planning(unittest.TestCase):
         self.assertEqual(ideal.decisions(self.report, 'en'), [])
 
 class Ask(unittest.TestCase):
-    """`ask` with a fake Claude Code CLI: the prompt on standard input, the schema to the CLI, the answer and the model."""
+    """`ask` with a fake Claude Code CLI: the prompt on standard input, the schema to the CLI, the answer, the model."""
 
     def setUp(self):
         self.tmp = tempfile.TemporaryDirectory()
@@ -389,7 +389,7 @@ class Exported(unittest.TestCase):
 
 
 class ReplanFromTheStudio(unittest.TestCase):
-    """The command centre's `replan_ideal`: a run of the manager, its steps as events, its result; no assistant: plain."""
+    """The command centre's `replan_ideal`: a manager run, its steps as events, its result; no assistant: plain."""
 
     def setUp(self):
         self.tmp = tempfile.TemporaryDirectory()

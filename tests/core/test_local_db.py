@@ -1,4 +1,4 @@
-"""The run's own PostgreSQL: pgserver's binaries in a virtualenv under /root still run under root; a checks run's copy."""
+"""The run's own PostgreSQL: pgserver's binaries in a virtualenv under /root still run under root; a run's copy."""
 import os
 import subprocess
 import tempfile
@@ -27,7 +27,7 @@ class ReachableBinaries(unittest.TestCase):
                 found = local_db._reachable(bin_dir, owner)
                 self.assertEqual(found, local_db._reachable(bin_dir, owner))     # copied once
             self.assertTrue(str(found).startswith(shared))
-            self.assertTrue((found.parent.parent.parent / 'pgserver.libs' / 'libpq.so.5').is_file())   # $ORIGIN/../../../
+            self.assertTrue((found.parent.parent.parent / 'pgserver.libs' / 'libpq.so.5').is_file())  # $ORIGIN/../../..
             self.assertEqual(local_db.subprocess.run(['test', '-x', str(found / 'pg_ctl')], user=owner).returncode, 0)
 
     def test_reachable_binaries_are_used_where_they_are(self):
@@ -46,8 +46,8 @@ class ChecksCopy(unittest.TestCase):
         return subprocess.run([str(local_db.binaries() / 'psql'), url, '-tAc', text], capture_output=True, text=True, check=True).stdout.split()
 
     def test_each_checks_run_sees_what_setup_wrote_and_nothing_an_earlier_checks_run_wrote(self):
-        # Trial on real projects: a test whose mock was not applied wrote a real user into the checks' database; it passed
-        # on a fresh database and failed on every later run, so a sound edit was refused
+        # A test whose mock was not applied must not write a real user into the checks' database: that would pass on a
+        # fresh database and fail on every later run.
         with tempfile.TemporaryDirectory() as runtime:
             run = local_db.LocalPostgres(runtime)
             try:

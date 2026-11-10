@@ -1,8 +1,7 @@
 """Every artifact has one owner, one purpose and one budget — and the contract checks all of them.
 
-Sixteen of thirty documents were once outside the output contract, unbudgeted and unchecked, and
-four were written twice: the second writer replaced 574 lines of measured content with empty
-headings and nothing failed. These tests exist so that cannot happen quietly again.
+Every document is inside the output contract, budgeted and checked, and written by one module: a second writer could
+replace measured content with empty headings and nothing would fail. These tests keep that from happening quietly.
 """
 import ast
 import json
@@ -61,7 +60,7 @@ class RuleThirteenTests(unittest.TestCase):
 
 
 class SingleWriterTests(unittest.TestCase):
-    """One artifact, one module. Two writers is how the system map was silently emptied."""
+    """One artifact, one module. Two writers could silently empty a document such as the system map."""
 
     def _writers(self, kind=contract.DOCUMENT, source=Path('eaos')):
         """Compare report-relative paths, including local directory aliases, rather than basenames."""
@@ -203,8 +202,8 @@ class RecordTwinTests(unittest.TestCase):
 
 class SchemasMadeNotWritten(unittest.TestCase):
     def test_every_schema_on_disk_is_the_one_tools_make_contracts_makes(self):
-        # Two schemas edited by hand were silently undone by the next `make_contracts.py`, and the manifest of a check
-        # in English (its other language Arabic) would have failed its contract and not been written.
+        # A schema edited by hand would be silently undone by the next `make_contracts.py`, and the manifest of a check
+        # in English (its other language Arabic) must pass its contract and be written.
         import sys
         tools = Path(__file__).resolve().parents[2] / 'tools'
         sys.path.insert(0, str(tools))

@@ -95,7 +95,7 @@ class IdealStage(unittest.TestCase):
     def test_the_ideal_is_planned_after_the_check_and_a_failure_or_no_assistant_leaves_the_rules_target(self):
         with self.assertRaises(SkipStage) as failed:
             self.planned_with(Launcher('critique', TimeoutError('slow')))
-        self.assertEqual(failed.exception.code, 'ai_failed')      # without an assistant (no_provider): test_joint_decision
+        self.assertEqual(failed.exception.code, 'ai_failed')  # see test_joint_decision
         self.assertEqual(ideal.current(self.report), (None, 'failed'))
         detail = self.planned_with(Launcher())
         self.assertEqual((detail['dropped'], detail['calls'], detail['model']), (1, 2, 'fake-model'))
@@ -201,7 +201,7 @@ class Consent(unittest.TestCase):
         self.assertEqual(guided.check_provider(project_state.load(self.project)).code, 'ai_declined')
 
     def test_the_views_and_the_sign_in_read_the_code_themselves_and_every_other_call_is_as_it_was(self):
-        # a full-stack app, 2026-10-21: the assistant of the views and the sign-in saw excerpts only, with every tool off
+        # The assistant of the views and the sign-in sees excerpts only, with every tool off.
         from eaos.ai.assistant import claude_adapter, codex_adapter
         seen = []
         with mock.patch.object(claude_adapter, 'stream', side_effect=lambda argv, text, env: seen.append((argv, env)) or {'result': '{}'}):
@@ -220,8 +220,8 @@ class Consent(unittest.TestCase):
         self.assertIn('model_reasoning_effort="high"', argv)
 
     def test_an_answer_with_braces_in_its_prose_is_read_and_a_failed_adapter_says_its_own_reason(self):
-        # EAOS's own check: the sign-in's assistant answered, its use was recorded, and the step failed with only
-        # "Model adapter exited unsuccessfully": its reply had prose with braces after the object
+        # A reply with prose and braces after the object is still read, and a failed adapter step says its own reason,
+        # not only that the adapter exited unsuccessfully; the use of the assistant is recorded.
         from eaos.ai.assistant import claude_adapter
         from eaos.ai.assistant.command import Provider
         reply = 'Here is the answer:\n{"users": [{"role": "admin"}]}\nEach row has a {role} field, as {asked}.'

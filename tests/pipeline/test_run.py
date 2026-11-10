@@ -109,8 +109,8 @@ class ExecutionTests(unittest.TestCase):
                          (UNAVAILABLE, 'no provider'))
         self.assertEqual(manifest['status'], 'COMPLETE')
         self.assertIn('did not run', written['limits'])
-        # the assistant the check was given stopped midway (its limit, 2026-10-18): the stages after it still run, but
-        # the check is PARTIAL, never COMPLETE, and the lost stage says when the assistant comes back
+        # the assistant the check was given stopped midway (its limit): the stages after it still run, but the check is
+        # PARTIAL, never COMPLETE, and the lost stage says when the assistant comes back
         lost = SkipStage('during the check Claude Code stopped answering (claude_limit)', code='claude_limit',
                          lost={'assistant': 'claude', 'resets': '7:10pm (UTC)'})
         with tempfile.TemporaryDirectory() as directory:
@@ -136,8 +136,8 @@ class ExecutionTests(unittest.TestCase):
 
 class ResumeTests(unittest.TestCase):
     def test_a_tool_that_failed_is_said_and_run_again_alone_with_what_reads_it(self):
-        # CodeQL failed in a 1 h 46 min check while the engines stage said ok: the check is partial and says which,
-        # then the engines and the stages reading them run again, and the screens, the app and the rest are kept.
+        # CodeQL fails while the engines stage says ok: the check is partial and says which, then the engines and the
+        # stages reading them run again, and the screens, the app and the rest are kept.
         runners = fake_runners()
         engines = runners['engines']
         runners['engines'] = lambda context: {**engines(context), 'tools_failed': {'codeql': 'autobuild exit 1'}}
@@ -188,7 +188,7 @@ class ResumeTests(unittest.TestCase):
         self.assertEqual(ran[0], 'ideal')
         self.assertFalse({'semantic', 'triage'} & set(ran), 'a finished AI stage was asked again')
         self.assertEqual(second['counts'][OK], RUN)
-        # A new check after one stopped starts from nothing (a full-stack app, 2026-10-21: it went on at 31 of 37 stages).
+        # A new check after one stopped starts from nothing; it does not go on at the stage where the stopped one ended.
         with tempfile.TemporaryDirectory() as directory:
             with self.assertRaises(KeyboardInterrupt):
                 execute('.', directory, runners=fake_runners(ideal=KeyboardInterrupt()))
@@ -210,8 +210,8 @@ class ResumeTests(unittest.TestCase):
 
 
 class LoopTests(unittest.TestCase):
-    """The check runs as loops (eaos/pipeline/loops.py): a loop judges its exit when its stages ended, runs what it broke
-    again while its rounds last, and an optional loop runs only when the check switches it on."""
+    """The check runs as loops (eaos/pipeline/loops.py): a loop judges its exit when its stages ended, runs what it
+    broke again while its rounds last, and an optional loop runs only when the check switches it on."""
 
     def test_a_broken_app_stage_runs_again_and_no_other_loop_builds_on_the_broken_round(self):
         tries, runners = [], fake_runners()
@@ -236,12 +236,12 @@ class LoopTests(unittest.TestCase):
         self.assertEqual([entry['loop'] for entry in manifest['coverage'] if entry['big']], ['run_and_see'])
         self.assertIn('🔴', (Path(directory) / 'RUN.md').read_text(encoding='utf-8').split('##')[0])
         manifest = execute('.', scratch(), runners=fake_runners(setup=SkipStage('no consent', code='no_run_consent')))
-        self.assertEqual([entry['loop'] for entry in manifest['coverage'] if entry['big']], [])     # the person's choice
+        self.assertEqual([entry['loop'] for entry in manifest['coverage'] if entry['big']], [])  # the person's choice
         manifest = execute('.', scratch(), runners=fake_runners(facts=RuntimeError('boom')))
         self.assertEqual(manifest['loops']['understand'], {'state': 'not_met', 'stages': ['facts'], 'rounds': 1, 'on_fail': 'stop'})
 
     def test_what_a_stage_could_not_measure_is_a_gap_in_red_never_dropped(self):
-        # M15.0: the keeping stage said what it could not read (no database of the run's own) and the ledger dropped it
+        # the keeping stage says what it could not read (no database of the run's own) and the ledger keeps it
         runners = fake_runners()
         keeping = runners['keeping']
         runners['keeping'] = lambda context: {**keeping(context), 'unmeasured': ["the app runs on no database of the run's own"]}
@@ -261,7 +261,7 @@ class LoopTests(unittest.TestCase):
             self.assertEqual(manifest['stages']['visual']['reason_code'], 'loop_off')
             manifest = execute('.', scratch(), runners=fake_runners(), paths=['complete', 'look'])
             self.assertEqual(manifest['stages']['visual']['status'], OK)
-            # asked for by the person (`eaos check --path complete layers`): the option reached the run (M6, 2026-10-25)
+            # asked for by the person (`eaos check --path complete layers`): the option reaches the run
             from eaos.pipeline.run import check
             manifest = check('.', scratch(), runners=fake_runners(), paths=['complete', 'look'])
             self.assertEqual(manifest['stages']['visual']['status'], OK)

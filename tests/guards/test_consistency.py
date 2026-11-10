@@ -1,6 +1,6 @@
-"""The details that broke real checks this week, held once for all (the owner, 2026-10-22: "it must never miss these
-stupid details"): a stop code with no words for the person, a command the Studio copies with flags `eaos` does not
-have, a node missing from the list the AI may run, a stage with no title, a threshold on the wrong scale."""
+"""The details that break checks, held once for all: a stop code with no words for the person, a command the Studio
+copies with flags `eaos` does not have, a node missing from the list the AI may run, a stage with no title, a
+threshold on the wrong scale."""
 import json
 import re
 import subprocess
@@ -32,7 +32,7 @@ class Consistency(unittest.TestCase):
 
 
     def test_a_projects_state_is_read_and_written_only_through_its_one_module(self):
-        """M3.2: the CLI, MCP, the Studio and the sandbox each read state.json their own way; one module holds it now."""
+        """The CLI, MCP, the Studio and the sandbox read state.json through its one module."""
         readers = sorted(str(p.relative_to(ROOT)) for p in (ROOT / 'eaos').rglob('*.py')
                          if re.search(r"""['"]state\.json['"]""", p.read_text()) and p != ROOT / 'eaos/core/project/state.py')
         self.assertEqual(readers, [], 'state.json named outside eaos/core/project/state.py')

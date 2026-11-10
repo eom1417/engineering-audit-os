@@ -1,5 +1,5 @@
-"""One tool per job (M18.1): every pinned tool names the jobs it does, each job has one primary, and a second tool on a
-job says the part it alone gives (eaos/data/toolchain.json `jobs`)."""
+"""One tool per job: every pinned tool names the jobs it does, each job has one primary, and a second tool on a job says
+the part it alone gives (eaos/data/toolchain.json `jobs`)."""
 import unittest
 from pathlib import Path
 

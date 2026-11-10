@@ -1,4 +1,4 @@
-"""A package moved several major versions to reach its fix is said at the hand-over (minimatch 3 -> 11, 2026-11-04)."""
+"""A package moved several major versions to reach its fix is said at the hand-over (for example 3 -> 11)."""
 import json
 import subprocess
 import tempfile

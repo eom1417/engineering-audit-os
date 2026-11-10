@@ -158,7 +158,7 @@ class LiveRunTests(Workspace):
             self.assertEqual(rules_of(lizard.analyze(FIXTURE / 'py', work('lizard'))), {('ccn', 'billing.py', 'billing.py::tariff')})
         with self.subTest(engine='knip'):
             if not installed(knip): self.skipTest('knip is not installed at its pin')
-            # VehicleCard is imported only as `@/components/VehicleCard`: were the alias not resolved it would be unused.
+            # VehicleCard is imported only as `@/components/VehicleCard`: unless the alias is resolved it looks unused.
             report = knip.analyze(FIXTURE / 'web', work('knip'))
             self.assertEqual(report.status, OBSERVED, report.reason)
             self.assertEqual(rules_of(report), KNIP_EXPECTED)

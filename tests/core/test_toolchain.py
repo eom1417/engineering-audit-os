@@ -112,7 +112,7 @@ class InstallTests(ToolchainBase):
         self.assertEqual(sorted(p.name for p in (self.home / 'releases').iterdir()), ['fake-2.0.0'])
 
     def test_a_tool_no_longer_pinned_leaves_the_disk_at_the_next_install(self):
-        # M18.1 retired six tools (about 850 MB): nothing removed what the registry stopped listing.
+        # A tool the registry does not list is removed from the disk at the next install.
         self.write(tool('fake', '1.2.3', self.archive.as_uri(), self.sha))
         for folder in ('releases/trivy-0.74.0', 'npm/codecharta', 'npm/fake', 'venv-emerge', 'cache/trivy/policy', 'browsers'):
             (self.home / folder).mkdir(parents=True)
@@ -141,12 +141,13 @@ class InstallTests(ToolchainBase):
 
 class ToolEnvironment(unittest.TestCase):
     def test_a_python_tool_installs_with_its_companions_and_runs_without_the_pythonpath_of_eaos(self):
-        # pip took a dependency EAOS carries as installed, so a fresh tools folder missed it (Semgrep without attrs), and
-        # its version check then imported EAOS's own mcp 2 instead of Semgrep's mcp 1.
+        # A pip tool is installed with its companions even when EAOS carries them itself (Semgrep needs attrs), and its
+        # version check imports the tool's own modules, not EAOS's (Semgrep's mcp 1, not EAOS's mcp 2).
         from eaos.engines import process
         tool = {'name': 'semgrep', 'version': '1.0.0', 'binary': 'semgrep', 'install': {'method': 'pip', 'package': 'semgrep'}}
         done = mock.Mock(returncode=0, stdout='1.0.0', stderr='')
-        # PYTHONSAFEPATH, set where the Studio runs, kept CodeQL's Python extractor from importing its own modules.
+        # PYTHONSAFEPATH, set where the Studio runs, must not reach the tool: it would keep CodeQL's Python extractor
+        # from importing its own modules.
         with mock.patch.dict(os.environ, {'PYTHONPATH': '/eaos/site-packages', 'PYTHONSAFEPATH': '1'}), \
                 mock.patch.object(toolchain.installers, 'uv', return_value=None), mock.patch.object(toolchain.installers, '_link'), \
                 mock.patch.object(toolchain.versions, 'binary_path', return_value='/tools/bin/semgrep'), \
@@ -260,7 +261,7 @@ class PreparingTests(ToolchainBase):
 
 class AddedTools(ToolchainBase):
     def test_a_tool_the_person_adds_is_pinned_agreed_installed_and_runs_as_an_engine_with_no_python(self):
-        # The owner (2026-10-22): the assistant must find a tool it lacks (GitHub) and add it, safely.
+        # The assistant can find a tool it lacks (GitHub) and add it, safely.
         from unittest import mock
         from eaos.core.toolchain import catalog as tools_catalog
         from eaos.engines import sarif
