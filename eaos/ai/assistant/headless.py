@@ -21,6 +21,7 @@ import time
 from pathlib import Path
 
 from . import tiers
+from ...core.system.errors import noted
 from .events import READS, json_text, result_events, said, tool_events
 
 PERSON_ONLY = ('accept', 'undo', 'choose_branch')
@@ -375,8 +376,8 @@ def ask(adapter, prompt, schema, folder, cancel=None, started=None, images=(), t
         try:
             process.stdin.write(prompt.encode('utf-8'))
             process.stdin.close()
-        except OSError:
-            pass
+        except OSError as error:
+            noted('it ended before reading its prompt: its exit code says why', error)
         wait(process, (out, err), cancel)
     if cancel is not None and cancel.is_set(): raise AskFailed('stopped')
     lines = stream.read_text(encoding='utf-8', errors='replace').splitlines()

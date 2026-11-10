@@ -22,6 +22,7 @@ from contextlib import contextmanager
 from contextvars import ContextVar
 from dataclasses import dataclass
 
+from ..system.errors import noted
 from . import context
 from .fold import fold_file
 from .log import ProgressLog
@@ -202,5 +203,5 @@ def stage(name, code='stage_error'):
 
 def _safely(call, *args):
     try: call(*args)
-    except Exception:                                   # marking where a flow is must not change what it does
-        pass
+    except Exception as error:                          # marking where a flow is must not change what it does
+        noted('a progress mark that could not be written', error)

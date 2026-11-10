@@ -14,6 +14,7 @@ from ..app.assist import _excerpt
 from ..app.run import kinds_folder
 from .roles import NOWHERE, about_users, add, claim, nowhere_of, opened, pages_of, proven, prove, read, way_in
 from ..app.profile import apply, safe
+from ...core.system.errors import noted
 
 SECONDS = 300                 # one round of tries; ROUNDS of them at most: fifteen minutes
 ROUNDS = 3
@@ -151,7 +152,7 @@ def make(project, trial, provider):
         if not wrong: break
         if again:
             try: find(project, trial.report, provider, wrong)
-            except ValueError: pass                # an answer with no real line: the views stay as they were
+            except ValueError as error: noted('an answer with no real line leaves the views as they were', error)
         wrong = _round(project, trial, provider, wrong)
     return wrong
 

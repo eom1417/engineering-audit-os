@@ -27,6 +27,7 @@ import stat
 import subprocess
 import tempfile
 from pathlib import Path
+from .errors import noted
 
 
 def binaries():
@@ -34,8 +35,8 @@ def binaries():
     try:
         from pgserver._commands import POSTGRES_BIN_PATH
         if (Path(POSTGRES_BIN_PATH) / 'initdb').exists(): return Path(POSTGRES_BIN_PATH)
-    except ImportError:
-        pass
+    except ImportError as error:
+        noted('pgserver is not installed: the initdb on the path is used', error)
     found = shutil.which('initdb')
     if found: return Path(found).parent
     candidates = sorted(glob.glob('/usr/lib/postgresql/*/bin/initdb') + glob.glob('/opt/homebrew/opt/postgresql*/bin/initdb')
@@ -182,7 +183,9 @@ class LocalPostgres:
         """Stop and remove every database whose runtime is gone: none of them can be asked for again."""
         for note in self.data.parent.glob('*.from'):
             try: root = Path(note.read_text(encoding='utf-8'))
-            except FileNotFoundError: continue          # another run's sweep took it first
+            except FileNotFoundError as error:          # another run's sweep took it first
+                noted('the note is gone', error)
+                continue
             if root.exists(): continue
             data = note.with_suffix('')
             self._run(bin_dir, 'pg_ctl', '-D', str(data), '-m', 'immediate', 'stop', check=False)

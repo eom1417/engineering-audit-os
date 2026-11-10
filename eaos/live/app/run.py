@@ -29,6 +29,7 @@ import shutil
 import socket
 import time
 from pathlib import Path
+from ...core.system.errors import noted
 
 from ..isolation.sandbox import AuthorizationError, Sandbox, head
 
@@ -54,7 +55,9 @@ def _printed_fixtures(out):
     """The E2E_* values of the last JSON object a seed printed that holds any, wherever it is; {} when none."""
     for line in reversed(out.strip().splitlines()):
         try: printed = json.loads(line)
-        except ValueError: continue
+        except ValueError as error:
+            noted('a seed line that is not JSON prints no fixtures', error)
+            continue
         fixtures = {k: str(v) for k, v in printed.items() if re.fullmatch(r'E2E_[A-Z0-9_]+', str(k))} if isinstance(printed, dict) else {}
         if fixtures: return fixtures
     return {}

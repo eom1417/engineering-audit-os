@@ -29,6 +29,7 @@ from .run_turns import Turns
 from ...core.project.runs import RETRYABLE, TERMINAL, contract
 from ...core.project import state as project_state
 from ...core.system.clock import now
+from ...core.system.errors import noted
 
 STUDIO = 'EAOS Studio'                      # eaos/interfaces/mcp_server/server.py STUDIO
 
@@ -41,7 +42,7 @@ def _signal(pid, number):
     try: os.killpg(os.getpgid(int(pid)), number)
     except (ProcessLookupError, PermissionError, OSError):
         try: os.kill(int(pid), number)
-        except (ProcessLookupError, PermissionError, OSError): pass
+        except OSError as error: noted('the process is gone or is not ours to signal', error)
 
 
 def _end(pid, paused=False):
@@ -94,7 +95,7 @@ class Manager(Turns, Answers, Outcomes):
         self._closed.set()
         if self._lockfile:
             try: fcntl.flock(self._lockfile, fcntl.LOCK_UN); self._lockfile.close()
-            except OSError: pass
+            except OSError as error: noted('a lock that cannot be released is dropped with its file', error)
             self._lockfile = None
 
     # the dispatcher
@@ -105,7 +106,7 @@ class Manager(Turns, Answers, Outcomes):
             fcntl.flock(handle, fcntl.LOCK_EX | fcntl.LOCK_NB)
         except OSError:
             try: handle.close()
-            except NameError: pass
+            except NameError as error: noted('the lock file was never opened', error)
             return False
         self._lockfile = handle
         self.recover()
@@ -116,8 +117,8 @@ class Manager(Turns, Answers, Outcomes):
             if not self.store.folder.is_dir(): return
             try:
                 if self._hold(): self.dispatch()
-            except Exception:                           # a broken run must not stop the queue; it is marked on its own
-                pass
+            except Exception as error:
+                noted('a broken run must not stop the queue; it is marked on its own', error)
             self.store.wait_change(0.5)
 
     def dispatch(self):

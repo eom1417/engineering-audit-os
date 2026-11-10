@@ -4,6 +4,7 @@ from ...core.project.runs import _write_json
 from .common import Blocked, git, say, valid_name
 from ...core.system.files import read_json
 from ...core.system.clock import now
+from ...core.system.errors import noted
 
 
 class Remotes:
@@ -72,7 +73,7 @@ class Remotes:
         try:
             from ...journeys import guided
             stamp = guided.report_stamp(state)
-        except Exception:
-            pass
+        except Exception as error:
+            noted('the report stamp is extra: without it the report is shown as not built', error)
         return {**found, 'eaos_updated': bool(state.get('scanned_with')) and state.get('scanned_with') != digest(),
                 'report_built': stamp.get('built'), 'checked_at': now('milliseconds'), 'project': self.project.name, 'project_path': str(self.project)}

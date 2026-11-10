@@ -8,6 +8,7 @@ import json
 from pathlib import Path
 
 from ..contracts.card_kinds import KINDS
+from ..system.errors import noted
 
 CATALOG = Path(__file__).resolve().parents[2] / 'data/words.json'
 
@@ -247,7 +248,8 @@ def impact_of(claim, language):
     key = _impact_key(_render_key(render), params, language)
     if key == 'engine_cluster' and params.get('impact_key') in IMPACTS.get(language, {}):
         try: return IMPACTS[language][params['impact_key']].format(**params)
-        except (KeyError, IndexError, ValueError): pass
+        except (KeyError, IndexError, ValueError) as error:
+            noted('the fix text does not fit its parameters: the general one is used', error)
     translated = IMPACTS.get(language, {}).get(key)
     # a card that carries its fix in both languages says it in the reader's, never the English scenario under Arabic
     return translated or params.get(f'fix_{language}') or (claim.get('impact') or {}).get('scenario') or '—'

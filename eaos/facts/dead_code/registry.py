@@ -13,6 +13,7 @@ import json
 import re as _re
 
 from ..source import Source
+from ...core.system.errors import noted
 
 _MODULE_LIST = _re.compile(r"\[\s*[A-Za-z_]\w*(?:\s*,\s*[A-Za-z_]\w*)*\s*\]")
 _DICT_GET = _re.compile(r"\b[A-Za-z_][\w.]*\[[\'\"](?P<key>[A-Za-z_][\w]*)[\'\"]\s*[,:=]\s*[A-Za-z_][\w.]*")
@@ -52,7 +53,8 @@ def _recursive_callers(source):
         if text is None: continue
         try:
             tree = ast.parse(text)
-        except (SyntaxError, ValueError):
+        except (SyntaxError, ValueError) as error:
+            noted('a file that does not parse has no recursion to find', error)
             continue
         for node in ast.walk(tree):
             if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)) and _calls_itself(node):

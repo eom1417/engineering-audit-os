@@ -30,6 +30,7 @@ sys.path[:0] = [str(ROOT), str(ROOT / 'tools')]
 os.environ['EAOS_HEADLESS'] = '1'
 from dev_paths import CORPUS  # noqa: E402
 import corpus  # noqa: E402
+from eaos.core.system.errors import noted  # noqa: E402
 
 EAOS = Path(sys.executable).parent / 'eaos'
 
@@ -191,7 +192,7 @@ def _events(text):
     events = []
     for line in text.splitlines():
         try: events.append(json.loads(line))
-        except ValueError: continue
+        except ValueError as error: noted('a line that is not JSON is left out', error); continue
     return events
 
 

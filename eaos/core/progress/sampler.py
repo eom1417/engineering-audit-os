@@ -21,6 +21,7 @@ import os
 import subprocess
 from datetime import datetime, timedelta, timezone
 
+from ..system.errors import noted
 from . import context
 
 COMMAND = ('ps', '-A', '-o', 'pid=,ppid=,etime=,comm=')
@@ -61,7 +62,7 @@ def parse(text):
         parts = line.split(None, 3)
         if len(parts) < 4: continue
         try: pid, ppid = int(parts[0]), int(parts[1])
-        except ValueError: continue
+        except ValueError as error: noted('a line without numeric ids is not a process row', error); continue
         seconds = elapsed(parts[2])
         if seconds is None: continue
         name = parts[3].strip()

@@ -13,6 +13,7 @@ from pathlib import Path, PurePosixPath
 
 from ...core.contracts.artifact_rules import contracts, validate
 from ...core.system.clock import now
+from ...core.system.errors import noted
 
 def git(where, *args):
     return subprocess.run(['git', '-C', str(where), *args], capture_output=True, text=True)
@@ -273,7 +274,9 @@ def _stamps(copy, names):
     stamps = {}
     for name in names:
         try: found = (Path(copy) / name).lstat()
-        except OSError: continue
+        except OSError as error:
+            noted('a file that is not there has no stamp', error)
+            continue
         stamps[name] = (found.st_size, found.st_mtime_ns)
     return stamps
 

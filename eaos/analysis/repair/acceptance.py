@@ -10,6 +10,7 @@ import os
 import signal
 import sys
 from ...core.contracts.decisions import check_errors
+from ...core.system.errors import noted
 
 
 SKIPPED = {'.git', '.venv', '__pycache__', 'node_modules'}
@@ -48,7 +49,9 @@ def fingerprint(root, cached=True):
         stats = []
         for path in files:
             try: stat = path.lstat()
-            except OSError: continue
+            except OSError as error:
+                noted('a file that vanished or cannot be read is left out of the signature', error)
+                continue
             stats.append((path.relative_to(root).as_posix(), stat.st_size, stat.st_mtime_ns, path.is_symlink()))
         signature = hash(tuple(stats))
         known = _FINGERPRINTS.get(str(root))

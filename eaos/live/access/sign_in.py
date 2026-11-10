@@ -27,6 +27,7 @@ from pathlib import Path
 from ...core.system.studio_access import THIS_COMPUTER
 from ...core.system.files import read_json
 from ...core.system.clock import now
+from ...core.system.errors import noted
 
 SESSION = 'session.json'                     # in the run's folder: the session of the app in its isolated copy
 PUBLISHED = 'published-session.json'         # in the project's workspace: the published address's, for one check only
@@ -188,7 +189,7 @@ def codes(record, lines=40):
     run's mail catcher (Mailpit), newest first. Nothing typed on the sign-in page is ever kept."""
     said = []
     try: said = Path(record['log']).read_text(encoding='utf-8', errors='replace').splitlines()[-lines:] if record.get('log') else []
-    except OSError: pass
+    except OSError as error: noted('an app log that cannot be read shows no output', error)
     return {'output': [line for line in said if line.strip()], 'mail': _mail(record.get('mail'))}
 
 

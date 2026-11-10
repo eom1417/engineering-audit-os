@@ -18,6 +18,7 @@ import re
 from pathlib import Path
 
 from .audit import _node, lighthouse, missing, toolchain
+from ...core.system.errors import noted
 
 MEASURED = 10                   # pages Lighthouse measures in one crawl
 PUBLISHED_ROUTES, PUBLISHED_MEASURED = 40, 3    # a published site is read gently: a few pages opened, fewer measured
@@ -114,7 +115,9 @@ def _code_texts(root):
     for row in inventory(root)['files']:
         if not row['path'].endswith(CODE): continue
         try: yield (Path(root) / row['path']).read_text(encoding='utf-8', errors='replace')
-        except OSError: continue
+        except OSError as error:
+            noted('a file that cannot be read has no text', error)
+            continue
 
 
 def hash_routed(root):

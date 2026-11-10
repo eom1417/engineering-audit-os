@@ -19,6 +19,7 @@ FAKE = FIXTURES / 'fake_assistant.py'
 from eaos.interfaces import runs as actions  # noqa: E402
 from tests.shared_fixture import Workspace  # noqa: E402
 from eaos.ai.assistant import headless as adapters, prompts
+from eaos.core.system.errors import noted
 from eaos.journeys.runs import handoff, resume, runs
 from eaos.core.system import studio_access as security
 from eaos.core.project import runs as store
@@ -66,7 +67,7 @@ class Base(Workspace):
             for run in app.store.all():
                 if run.get('state') in ('running', 'paused') and run.get('pid'):
                     try: os.killpg(run['pid'], 9)
-                    except OSError: pass
+                    except OSError as error: noted('the process group is already gone', error)
             app.close()
         pids = [run['pid'] for app in self.apps for run in app.store.all() if run.get('pid')]
         until(lambda: not any(alive(pid) for pid in pids), 5)

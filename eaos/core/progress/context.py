@@ -14,6 +14,7 @@ started with `contextvars.copy_context().run`, which is the only way a worker th
 """
 from contextlib import contextmanager
 from contextvars import ContextVar
+from ..system.errors import noted
 
 RUNNING = 'running'
 _current = ContextVar('eaos_progress_stepper', default=None)
@@ -40,8 +41,8 @@ def step(name, done, total, status=RUNNING, seconds=None, reason='', reason_code
     stepper = _current.get()
     if stepper is None: return
     try: stepper(name, done, total, status, seconds, reason, reason_code=reason_code, **({'artifact': artifact} if artifact else {}))
-    except Exception:                                   # reporting where a stage is must not change what it does
-        pass
+    except Exception as error:                          # reporting where a stage is must not change what it does
+        noted('a step line that could not be written', error)
 
 
 def bounded(done, total):
@@ -59,5 +60,5 @@ def count(name, done, total):
     try:
         done, total = bounded(done, total)
         stepper(name, done, total, 'ok' if done >= total else RUNNING, kind='count')
-    except Exception:
-        pass
+    except Exception as error:
+        noted('a count line that could not be written: reporting must not change what the stage does', error)

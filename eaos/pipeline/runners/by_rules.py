@@ -6,6 +6,7 @@ assistant does are pipeline/runners/by_assistant.py's; RUNNERS, here, names ever
 """
 from pathlib import Path
 
+from ...core.system.errors import noted
 from .by_assistant import order, roles, translate, triage
 from .live_app import NO_RUN, _keep, _live, _ran
 from .pages import crawl, journeys, screens
@@ -233,7 +234,8 @@ def features(context):
         name = entry.get('set') if isinstance(entry, dict) else entry
         try:
             facts.extend(read_set(context.out, name).get('facts') or [])
-        except (OSError, ValueError):
+        except (OSError, ValueError) as error:
+            noted('a fact set that is missing or unreadable adds no facts', error)
             continue
     record = build(facts)
     write(context.out / 'features.json', record)

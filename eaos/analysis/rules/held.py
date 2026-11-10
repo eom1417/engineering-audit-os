@@ -12,6 +12,7 @@ from pathlib import Path
 from . import guards
 from ...core.project import rules as registry
 from ...core.system.files import read_json
+from ...core.system.errors import noted
 
 RECORD = 'rules.json'          # a check's rules, beside its report (the rules stage writes it)
 
@@ -158,8 +159,9 @@ def record(project, results, where):
         try:
             if item['status'] == 'broken': registry.broke(project, item['id'], where, item['places'])
             elif item['status'] == 'held': registry.held(project, item['id'], where)
-        except LookupError:
-            continue                     # a rule removed while the check ran
+        except LookupError as error:
+            noted('a rule removed while the check ran', error)
+            continue
 
 
 def gate(owner, rules, root, changed, laws):

@@ -13,6 +13,7 @@ from .documents import PLAN_DIR, publish, title_of  # noqa: F401  (title_of: the
 from .order import sequence  # noqa: F401  (the pipeline's order stage reads it here)
 from .ranking import claim_paths
 from ..repair.remediation import pattern_for
+from ...core.system.errors import noted
 from ...core.project.workspace import read, write
 
 ACTIONABLE = {'CONFIRMED', 'LIKELY', 'HYPOTHESIS'}
@@ -45,7 +46,7 @@ def _radius(out, paths, sets):
     """What a change to the paths reaches; nothing when there are no paths or the impact cannot be assessed."""
     if paths:
         try: return assess(out, paths, sets=sets)
-        except ValueError: pass
+        except ValueError as error: noted('the impact cannot be assessed, so nothing is reached', error)
     return {'direct_dependents': [], 'transitive_dependents': [], 'flows': [], 'covering_tests': [],
             'coverage': {}, 'entry_points': [], 'blast_radius': 0, 'change_partners': []}
 

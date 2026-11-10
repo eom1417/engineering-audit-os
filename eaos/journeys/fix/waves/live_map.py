@@ -5,6 +5,7 @@ from pathlib import Path
 
 from ....core import progress
 from ....core.progress.flow import OPTIONAL, Stage
+from ....core.system.errors import noted
 
 FLOW = (
     Stage('open', description='Make the separate copy the fixes are tried in, from the commit you allowed'),
@@ -44,7 +45,7 @@ def saved(state, runtime, before):
 def _bisection_logs_removed(runtime, number):
     for log in (Path(runtime) / 'runtime').glob(f'checks-wave-{number}-bisect-*-log.json'):
         try: log.unlink()
-        except OSError: pass      # as the copy's removal: the closing is written, and this does not undo it
+        except OSError as error: noted("the closing is written, and a log left behind does not undo it", error)
 
 
 def _closing(state, before):

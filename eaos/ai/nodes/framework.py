@@ -31,6 +31,7 @@ from ...core.contracts.code_laws import LAWS
 from ...core.contracts.untrusted import UNTRUSTED
 from pathlib import Path
 from ...core.system.files import read_json
+from ...core.system.errors import noted
 
 RULES_ONLY = 'rules only'
 LOG = 'runs.jsonl'
@@ -299,7 +300,7 @@ def log(report):
     out = []
     for line in lines:
         try: out.append(json.loads(line))
-        except ValueError: continue
+        except ValueError as error: noted('a log line that is not JSON is left out', error); continue
     return out
 
 

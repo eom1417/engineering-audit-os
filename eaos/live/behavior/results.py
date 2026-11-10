@@ -10,6 +10,7 @@ from pathlib import Path
 
 from ...core import progress
 from ...core.system.files import read_json
+from ...core.system.errors import noted
 
 SCREENSHOT = re.compile(r'toHaveScreenshot.*?Snapshot: ([\w.-]+)\.png', re.S)
 WORDS = re.compile(r'([\w.-]+)\.text\.txt')      # a screen's words differ (specs.py): a design card may change them too
@@ -142,13 +143,13 @@ class Screens:
             self.thread.join(timeout=5)
             self.thread = None
             try: self.read()
-            except Exception: pass
+            except Exception as error: noted('the last read is extra: what was read stays', error)
         return self
 
     def _follow(self):
         while not self.halt.wait(self.every):
             try: self.read()
-            except Exception: pass
+            except Exception as error: noted('one failed read must not stop the following', error)
 
     def read(self):
         """The lines written since the last read, each reported; a line still being written waits for its end."""
@@ -163,7 +164,9 @@ class Screens:
         *lines, self.buffer = self.buffer.split(b'\n')
         for line in lines:
             try: row = json.loads(line)
-            except ValueError: continue
+            except ValueError as error:
+                noted('a result line that is not JSON is left out', error)
+                continue
             if isinstance(row, dict): self.handle(row)
 
     def handle(self, row):
@@ -210,7 +213,8 @@ class Screens:
                 try:
                     kept.parent.mkdir(parents=True, exist_ok=True)
                     shutil.copyfile(source, kept)
-                except OSError:
+                except OSError as error:
+                    noted('a snapshot that cannot be kept is not linked', error)
                     continue
             return f'{self.snapshots.parent.name}/{self.snapshots.name}/{name}'
         return ''

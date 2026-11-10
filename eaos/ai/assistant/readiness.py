@@ -30,6 +30,7 @@ import threading
 import time
 
 from ...core.project.places import home
+from ...core.system.errors import noted
 from ...core.system.files import read_json
 from ...core.system.clock import now
 
@@ -220,8 +221,8 @@ def probe(name, fresh=False, timeout=TIMEOUT):
             temporary = path.with_suffix(f'.{os.getpid()}.tmp')
             temporary.write_text(json.dumps(saved, ensure_ascii=False, indent=1), encoding='utf-8')
             temporary.replace(path)
-    except OSError:
-        pass                                       # a read-only home: the answer still stands for this call
+    except OSError as error:                       # a read-only home: the answer still stands for this call
+        noted('the answer is not cached', error)
     return {**row, 'cached': False}
 
 

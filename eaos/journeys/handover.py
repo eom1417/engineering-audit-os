@@ -20,6 +20,7 @@ from . import guided
 from ..core.project import state as project_state
 from ..core.project.state import waiting_batch
 from ..core.system.clock import now
+from ..core.system.errors import noted
 
 KEEP = 2000                  # journal lines kept
 READING = {'status', 'wait', 'overview', 'findings', 'finding', 'structure', 'plan', 'report_file', 'fix_read', 'build_read',
@@ -55,7 +56,9 @@ def entries(state, limit=None):
     out = []
     for line in path.read_text(encoding='utf-8').splitlines()[-(limit or KEEP):]:
         try: out.append(json.loads(line))
-        except ValueError: continue
+        except ValueError as error:
+            noted('a journal line that is not JSON is left out', error)
+            continue
     return out
 
 
@@ -103,8 +106,8 @@ def record(tool, arguments, result, status=None):
         _append(state, {'at': now(), 'by': assistant(), 'tool': tool, 'card': card,
                         'arguments': _arguments(arguments), 'outcome': _outcome(result)})
         if tool not in READING or tool == 'wait': refresh(state, status)
-    except Exception:                       # the handover is extra: a failure here must not cost the tool its answer
-        pass
+    except Exception as error:
+        noted('the handover is extra: a failure here must not cost the tool its answer', error)
 
 
 def note(text, card=None, project=None, status=None):

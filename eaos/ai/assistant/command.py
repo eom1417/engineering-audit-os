@@ -8,6 +8,7 @@ import subprocess
 import tempfile
 
 from ...core.system.process import wait
+from ...core.system.errors import noted
 
 
 def _int_in(value,low,high):
@@ -59,7 +60,7 @@ class Provider:
                                  env={**os.environ,**counted})
                 try:
                     with p.stdin:p.stdin.write(_request(messages,small,reads,deep))
-                except BrokenPipeError:pass   # it ended before reading: its exit code says why
+                except BrokenPipeError as error:noted('it ended before reading: its exit code says why', error)
                 wait(p,(out,err))
             except OSError:raise ValueError('Model adapter could not start; no raw stderr exposed') from None
             if p.returncode:raise ValueError('Model adapter exited unsuccessfully'+_reason(err))

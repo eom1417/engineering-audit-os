@@ -23,6 +23,7 @@ from pathlib import PurePosixPath
 from .. import make
 from ..dead_code.reach import BUILD_OUTPUT
 from ..source import classify, language_of
+from ...core.system.errors import noted
 
 NAME = 'broken'
 VERSION = '1'
@@ -165,7 +166,7 @@ def _npm_scripts(source, known):
     for path in known:
         if PurePosixPath(path).name != 'package.json': continue
         try: scripts[str(PurePosixPath(path).parent)] = set((json.loads(source.text(path) or '{}').get('scripts') or {}))
-        except ValueError: pass
+        except ValueError as error: noted('a package.json that is not JSON lists no scripts', error)
     return scripts
 
 

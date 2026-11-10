@@ -6,6 +6,7 @@ import json
 from pathlib import Path
 import tempfile
 import unittest
+from eaos.core.system.errors import noted
 from eaos.interfaces import cli
 from eaos.interfaces.command_groups import GROUPS
 from eaos.pipeline import resume
@@ -23,8 +24,8 @@ def commands():
     try:
         with contextlib.redirect_stdout(io.StringIO()):
             cli.main(['--version'])
-    except SystemExit:
-        pass
+    except SystemExit as error:
+        noted('the spy ends the parse as argparse does', error)
     finally:
         argparse.ArgumentParser.parse_args = original
     return [a for a in captured['parser']._actions if isinstance(a, argparse._SubParsersAction)][0].choices

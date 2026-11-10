@@ -140,11 +140,11 @@ def _migration_files(name):
 # to keep one service's slowness from becoming your outage.
 _TIMEOUT_PATTERNS = [
     re.compile(r'timeout\s*[=:]\s*\d+', re.IGNORECASE),     # timeout=30, timeout: 30
-    re.compile(r'\bTimeout\s*\('),                            # Timeout(30)
-    re.compile(r'\btimeout\s*=\s*[^,\)]+'),                  # timeout=httpx_timeout()
-    re.compile(r'\.timeout\s*\(\s*\d+'),                     # httpx .timeout(30)
+    re.compile(r'\bTimeout\s*\('),                            # a Timeout object with a number
+    re.compile(r'\btimeout\s*=\s*[^,\)]+'),                  # a timeout set from a call
+    re.compile(r'\.timeout\s*\(\s*\d+'),                     # a .timeout method with a number
     re.compile(r'\bctx\s+with\s+timeout', re.IGNORECASE),     # context with timeout
-    re.compile(r'\.with_timeout\s*\('),                       # tokio .with_timeout()
+    re.compile(r'\.with_timeout\s*\('),                       # a .with_timeout method
     re.compile(r'context\s+with\s+timeout', re.IGNORECASE),    # asyncio ctx with timeout
     re.compile(r'\bhttp\.Client\s*\{[^}]*Timeout\s*:'),       # Go http.Client{Timeout: ...}
     re.compile(r'\bcontext\.With(?:Timeout|Deadline)\s*\('),  # Go bounded contexts

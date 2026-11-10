@@ -37,6 +37,7 @@ from ...core.system.web import opened
 from .disk import _launcher, _own, _view_refusal, _within, hidden, mounts, named
 from ...core.system.files import read_json
 from . import service_log
+from ...core.system.errors import noted
 
 # also what a run profile may start with
 PYTHON = ('python', 'python3', 'pip', 'pip3', 'uv', 'poetry', 'uvicorn', 'gunicorn')
@@ -162,7 +163,8 @@ def _listens(port, group):
         try:
             if os.getpgid(pid) == group and any(os.readlink(f'/proc/{pid}/fd/{fd}') in sockets for fd in os.listdir(f'/proc/{pid}/fd')):
                 return True
-        except OSError:
+        except OSError as error:
+            noted('a process that ended or is not ours holds no socket of the service', error)
             continue
     return False
 
@@ -389,7 +391,8 @@ def _sweep(workdir):
                 fcntl.flock(held, fcntl.LOCK_EX | fcntl.LOCK_NB)
                 freed += _size(folder)
                 shutil.rmtree(folder, ignore_errors=True)
-        except BlockingIOError:
+        except BlockingIOError as error:
+            noted('a folder still held by a run is not removed', error)
             continue
         except OSError:
             freed += _size(folder)

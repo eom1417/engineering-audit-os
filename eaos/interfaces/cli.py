@@ -8,6 +8,7 @@ import sys
 from .. import __version__
 from ..core.contracts.check_paths import PATHS
 from ..core.project.workspace import bounded_int, read
+from ..core.system.errors import noted
 
 
 def facts_command(args):
@@ -60,8 +61,8 @@ def handover_hook(args):
         context = hook_context(folder)
         if context:
             print(json.dumps({'hookSpecificOutput': {'hookEventName': 'SessionStart', 'additionalContext': context}}, ensure_ascii=False))
-    except Exception:                       # a broken hook would cost the person their session; say nothing instead
-        pass
+    except Exception as error:              # a broken hook would cost the person their session; say nothing instead
+        noted('the session hook failed', error)
     return 0
 
 

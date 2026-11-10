@@ -12,6 +12,7 @@ from pathlib import Path
 
 from ..core import toolchain
 from ..core.system.process import run_command
+from ..core.system.errors import noted
 
 DEFAULT_TIMEOUT = 600
 SKIP_DIRECTORIES = {'.git', '.venv', 'venv', 'node_modules', '__pycache__', 'dist', 'build', '.mypy_cache'}
@@ -50,7 +51,8 @@ def state_digest(target):
             path = Path(root) / name
             try:
                 stat = path.stat()
-            except OSError:
+            except OSError as error:
+                noted('a file that vanished or is unreadable is left out of the digest', error)
                 continue
             digest.update(f'{path.relative_to(target)}|{stat.st_size}|{stat.st_mtime_ns}\n'.encode('utf-8', 'surrogateescape'))
     return digest.hexdigest()

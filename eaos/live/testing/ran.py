@@ -23,6 +23,7 @@ import eaos
 from ...core.contracts.vocabulary import classify
 from ...core.project.workspace import write
 from ...core.system.files import read_json
+from ...core.system.errors import noted
 
 PRELOAD = Path(eaos.__path__[0]).resolve() / 'templates/coverage/exit-on-term.cjs'
 INTERPRETERS = {'python', 'python3', 'py'}
@@ -99,7 +100,9 @@ def python_data(files, root):
                 for file_id, blob in db.execute('select file_id, numbits from line_bits'):
                     path = own(names.get(file_id, ''), root)
                     if path: lines.setdefault(path, set()).update(_numbits(blob))
-        except sqlite3.Error: continue
+        except sqlite3.Error as error:
+            noted('a coverage file that does not read adds no lines', error)
+            continue
     return {path: {'lines': _ranges(found)} for path, found in lines.items()}
 
 

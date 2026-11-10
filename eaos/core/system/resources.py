@@ -2,6 +2,7 @@
 room for more work now: what decides how much of a check runs at once, so that no computer is ever choked."""
 import os
 from pathlib import Path
+from .errors import noted
 
 RESERVE_MB = 768             # always left free beyond current use, for the app, an analyzer and EAOS itself
 BUSY = 40                    # % of the last ten seconds work waited for a processor: the processors are saturated
@@ -18,7 +19,7 @@ def capacity():
     try:
         info = dict(line.split(':', 1) for line in Path('/proc/meminfo').read_text().splitlines())
         available = int(info['MemAvailable'].split()[0]) * 1024
-    except (OSError, ValueError, KeyError): pass
+    except (OSError, ValueError, KeyError) as error: noted('no meminfo: the page count stands', error)
     try:
         limit = int(Path('/sys/fs/cgroup/memory.max').read_text())
         memory = min(memory, limit) if memory is not None else limit
@@ -26,7 +27,7 @@ def capacity():
         stat = dict(line.split() for line in Path('/sys/fs/cgroup/memory.stat').read_text().splitlines())
         reclaimable = sum(int(stat.get(key, 0)) for key in ('inactive_file', 'slab_reclaimable'))
         available = min(available or limit, max(0, limit - current + reclaimable))
-    except (OSError, ValueError): pass
+    except (OSError, ValueError) as error: noted('no memory limit of a cgroup: the host numbers stand', error)
     return cpus, memory, available
 
 
@@ -36,7 +37,7 @@ def _cpus():
     try:
         quota, period = Path('/sys/fs/cgroup/cpu.max').read_text().split()
         if quota != 'max': cpus = min(cpus, max(1, (int(quota) + int(period) - 1) // int(period)))
-    except (OSError, ValueError): pass
+    except (OSError, ValueError) as error: noted('no CPU quota: the processor count stands', error)
     return cpus
 
 
@@ -47,7 +48,9 @@ def cpu_pressure():
         try:
             line = Path(path).read_text().splitlines()[0]
             return float(dict(field.split('=') for field in line.split()[1:])['avg10'])
-        except (OSError, ValueError, KeyError, IndexError): continue
+        except (OSError, ValueError, KeyError, IndexError) as error:
+            noted('this pressure file is unreadable: the next one is tried', error)
+            continue
     return None
 
 

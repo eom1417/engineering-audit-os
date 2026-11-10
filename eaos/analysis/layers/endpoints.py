@@ -12,6 +12,7 @@ from collections import defaultdict
 from fnmatch import fnmatch
 
 from . import guards
+from ...core.system.errors import noted
 
 WRITE_METHODS = {'POST', 'PUT', 'PATCH', 'DELETE'}
 PARAM = re.compile(r':\w+|\{\w+\}|\[\w+\]|<(?:\w+:)?\w+>|\(\?P<\w+>')
@@ -114,7 +115,8 @@ def _matched(route, patterns):
     for pattern in patterns:
         try:
             if re.fullmatch(pattern.replace('/:path*', '(/.*)?'), route) or fnmatch(route, pattern): return True
-        except re.error:
+        except re.error as error:
+            noted('a pattern that is no regular expression matches no route', error)
             continue
     return False
 

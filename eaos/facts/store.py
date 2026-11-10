@@ -11,6 +11,7 @@ from pathlib import Path
 from . import SCHEMA_VERSION, digest
 from ..core.system.files import read_json
 from ..core.system.clock import now
+from ..core.system.errors import noted
 
 SHARED = ('extractor', 'extractor_version', 'limitations')
 
@@ -89,7 +90,9 @@ def facts(out, *kinds):
     rows = []
     for name in (_holding(out, kinds) if kinds else Sets(out)):
         try: rows += [row for row in read_set(out, name).get('facts') or [] if isinstance(row, dict)]
-        except (OSError, ValueError): continue
+        except (OSError, ValueError) as error:
+            noted('a set that does not read is skipped', error)
+            continue
     return [row for row in rows if not kinds or row.get('kind') in kinds]
 
 
@@ -99,7 +102,9 @@ def by_id(out, ids):
     for name in sorted(Sets(out), key=lambda name: (Path(out) / 'facts' / f'{name}.json').stat().st_size):
         if wanted <= found.keys(): break
         try: rows = read_set(out, name).get('facts') or []
-        except (OSError, ValueError): continue
+        except (OSError, ValueError) as error:
+            noted('a set that does not read holds none of the ids', error)
+            continue
         found.update((row['id'], row) for row in rows if isinstance(row, dict) and row.get('id') in wanted)
     return found
 

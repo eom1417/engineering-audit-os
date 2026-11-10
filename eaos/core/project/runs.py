@@ -23,6 +23,7 @@ import threading
 from pathlib import Path
 from ...core.system.files import read_json
 from ...core.system.clock import now
+from ...core.system.errors import noted
 
 ZERO = '0' * 64
 # A run's fields only its assistant's brief reads (eaos/journeys/runs/runs.py prompt_of), never a page: the list of
@@ -155,7 +156,7 @@ class Store:
         out = []
         for line in path.read_text(encoding='utf-8').splitlines():
             try: event = json.loads(line)
-            except ValueError: continue
+            except ValueError as error: noted('an event line that is not JSON is left out', error); continue
             if event.get('seq', 0) > after: out.append(event)
         return out
 

@@ -11,7 +11,8 @@ from ...core.system.files import read_json
 BATCH = 10                                  # fix_start's default batch size
 OPEN = ('open',)
 GROUPS = {'area': 'category', 'severity': 'severity'}
-LISTED = {'gap': ('gaps', 'id', 'the gap register'), 'component': ('gaps', 'component', 'the gap register'),     # (file, field, words)
+# each entry: (file, field, words)
+LISTED = {'gap': ('gaps', 'id', 'the gap register'), 'component': ('gaps', 'component', 'the gap register'),
           'operation': ('operations', 'id', 'the operations')}
 
 

@@ -30,6 +30,7 @@ from ...core import progress
 from ...core.system.files import read_json
 from .actions_upgrade import action_card, bump
 from .lock_tools import LOCK_TOOLS
+from ...core.system.errors import noted
 
 RULES = Path(__file__).resolve().parents[2] / 'rules/codemods.json'
 TRANSFORM = Path(__file__).resolve().parents[2] / 'templates/codemods/remove-declaration.cjs'
@@ -47,7 +48,9 @@ def _stats(root):
         for name in names:
             path = Path(base) / name
             try: stat = path.stat()
-            except OSError: continue
+            except OSError as error:
+                noted('a file that vanished or cannot be read is left out of the listing', error)
+                continue
             found[path.relative_to(root).as_posix()] = (stat.st_size, stat.st_mtime_ns)
     return found
 

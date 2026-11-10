@@ -12,6 +12,7 @@ from pathlib import Path
 
 from ..core.progress import ProgressLog, previous_seconds
 from ..core.progress.flow import incomplete, partial
+from ..core.system.errors import noted
 from ..core.system.usage import FILE as USAGE
 from .runners.live_app import close_app
 from .path_choice import resolve
@@ -251,7 +252,7 @@ def check(target, out, again_from=None, checked=False, paths=None, go_on=False, 
     if again_from: return again(target, out, again_from, checked=checked, **options)
     if go_on and (Path(out) / CHECKPOINT).is_file():
         try: return resume(target, out, **options)
-        except ValueError: pass                         # the source or the options changed since: its evidence is stale
+        except ValueError as error: noted('the source or the options changed since: its evidence is stale', error)
     (Path(out) / CHECKPOINT).unlink(missing_ok=True)    # a run stopped midway is no part of a new check
     chosen = resolve(paths)
     if chosen['stages'] is not None: return focused(target, out, chosen, checked, **options)
@@ -267,7 +268,7 @@ def focused(target, out, chosen, checked=False, **options):
     options.update(paths=chosen['paths'], engines=chosen['engines'] if 'engines' in chosen['stages'] else None)
     if _previous(out) is not None:
         try: return resume(target, out, redo=chosen['stages'], checked=checked, only=chosen['stages'], **options)
-        except ValueError: pass                         # other code: none of the last check's evidence holds
+        except ValueError as error: noted("other code: none of the last check's evidence holds", error)
     (Path(out) / USAGE).unlink(missing_ok=True)
     return execute(target, out, only=chosen['stages'], patterns=chosen['patterns'], **options)
 

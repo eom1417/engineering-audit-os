@@ -9,6 +9,7 @@ run-manifest.json.
 """
 import json
 from pathlib import Path
+from ..system.errors import noted
 
 WAITING, RUNNING = 'waiting', 'running'
 ENDED = ('ok', 'skipped', 'unavailable', 'failed', 'not_reached')
@@ -118,6 +119,6 @@ def fold_file(path):
     except OSError: return empty()
     for line in text.splitlines():
         try: row = json.loads(line)
-        except ValueError: continue
+        except ValueError as error: noted('a progress line that is not JSON is left out', error); continue
         if isinstance(row, dict): rows.append(row)
     return fold(rows)

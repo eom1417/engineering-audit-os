@@ -8,6 +8,7 @@ from ...core.project.runs import _write_json
 from .lane_assistants import Refused
 from ...core.system.files import read_json
 from ...core.system.clock import now
+from ...core.system.errors import noted
 
 
 def _chosen_answer(question, option, text):
@@ -65,7 +66,7 @@ class Decisions:
             run = None
             if response and response.get('run'):
                 try: run = self.public(self.store.load(response['run']))
-                except KeyError: pass
+                except KeyError as error: noted('a run no longer stored is shown without its execution', error)
             result.append({'id': question['id'], 'scope': scope, 'question': question,
                            'response': response, 'execution': run})
         return result

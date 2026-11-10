@@ -19,6 +19,7 @@ import subprocess
 import sys
 
 from . import tiers
+from ...core.system.errors import noted
 
 ANSWER = 'Answer with exactly one JSON object and nothing else: no prose, no code fence.'
 
@@ -49,7 +50,7 @@ def _object_in(text):
     try:
         whole = json.loads(text[start:text.rfind('}') + 1]) if start >= 0 else None
         if isinstance(whole, dict): return whole
-    except ValueError: pass
+    except ValueError as error: noted('the text is not one object: its objects are looked for one by one', error)
     while start >= 0:
         try: value, end = decoder.raw_decode(text, start)
         except ValueError: start = text.find('{', start + 1); continue
