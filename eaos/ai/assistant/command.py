@@ -1,5 +1,6 @@
-"""Running the person's AI assistant: its adapter is a command (eaos/ai/assistant/claude_adapter.py, ai/assistant/codex_adapter.py)
-that reads JSON messages on stdin and answers JSON on stdout. No key, no endpoint, no shell."""
+"""Running the person's AI assistant: its adapter is a command (eaos/ai/assistant/claude_adapter.py,
+ai/assistant/codex_adapter.py) that reads JSON messages on stdin and answers JSON on stdout. No key, no endpoint, no
+shell."""
 import json
 import os
 import re
@@ -21,8 +22,8 @@ def _request(messages,small,reads,deep):
 
 
 def _reason(err):
-    """The adapter's own one-line reason (serve() in claude_adapter.py writes "<name> adapter: <why>"), never the rest of
-    its stderr (the assistant's stream); the cause stayed hidden behind "exited unsuccessfully" before."""
+    """The adapter's own one-line reason (serve() in claude_adapter.py writes "<name> adapter: <why>"), never the rest
+    of its stderr (the assistant's stream), so the cause is not hidden behind "exited unsuccessfully"."""
     err.seek(max(0,os.fstat(err.fileno()).st_size-4096))
     said=[line for line in err.read().decode('utf-8','replace').splitlines() if re.match(r'^\w+ adapter: ',line)]
     return f': {said[-1][:300]}' if said else '; no raw stderr exposed'
@@ -46,7 +47,8 @@ class Provider:
 
     def complete(self,messages,small=False,stage=None,reads=None,deep=False):
         # `reads`: a folder the assistant may read and search itself (read only); `deep`: it thinks as long as it needs
-        # `stage`: what asks, so its use is counted under it in config['usage'] (eaos/core/system/usage.py), when the check names a file
+        # `stage`: what asks, so its use is counted under it in config['usage'] (eaos/core/system/usage.py), when the
+        # check names a file.
         # A user-selected adapter receives JSON on stdin and emits JSON on stdout; it may work as long as it needs
         # while it writes anything (its progress on stderr counts): only silence for STUCK seconds ends it.
         # CWD is empty so repository code cannot be imported accidentally by the adapter.

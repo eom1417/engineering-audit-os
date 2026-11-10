@@ -1,9 +1,10 @@
-"""The tidy, proved (M9.5): on three corpus apps of different kinds, the move batch (M8.5) and the context batch (M8.6)
-made through their gates on an isolated copy, and an assistant asked the same ten questions about each app before and
-after, scored right or wrong, with the files it read and the tokens it spent.
+"""The tidy, proved: on three corpus apps of different kinds, the move batch and the context batch made
+through their gates on an isolated copy, and an assistant asked the same ten questions about each app before and after,
+scored right or wrong, with the files it read and the tokens it spent.
 
     python tools/tidy_proof.py [name ...] [--scratch DIR] [--model MODEL] [--no-ask] [--out FILE]
-    python tools/tidy_proof.py --unproven --scratch DIR    the moves no gate could prove, made on the export, asked again
+    python tools/tidy_proof.py --unproven --scratch DIR
+        the moves no gate could prove, made on the export, asked again
 
 Each app (tools/corpus.json) is fetched at its pinned commit into DIR (default $EAOS_CORPUS/tidy), checked
 (`eaos check --path look --run-app --assistant none`: its run set up, its screens recorded), then:

@@ -1,11 +1,11 @@
-"""Progress never changes a result (live scan map v2, guarantee I6): the same check with progress on and off.
+"""Progress never changes a result: the same check with progress on and off.
 
     python tools/progress_determinism.py <project> <workdir> [--engines] [--json out.json]
 
 Runs the whole check of <project> three times, each in its own process and its own fresh report folder under
 <workdir>: `on1` and `on2` with progress written as usual, `off` with EAOS_PROGRESS=off (the three names have one
-length: a report quotes its own folder, and a byte count of a document must not differ by the name) (no progress file, no
-count or step heard, no sampler, no heartbeat). Then compares every file the runs wrote:
+length: a report quotes its own folder, and a byte count of a document must not differ by the name): no progress
+file, no count or step heard, no sampler, no heartbeat. Then compares every file the runs wrote:
 
 - the progress files themselves (run-progress.jsonl and progress/) are left out: they are what is switched;
 - each run's own folder is replaced by <OUT>, and every timestamp, duration and run id is masked (TIME_PATTERNS):
@@ -45,7 +45,7 @@ TIME_PATTERNS = [
     (re.compile(rb'D:\d{14}(Z|[+-]\d{2}\'?\d{2}\'?)?'), b'D:<TIME>'),          # a PDF's creation and change dates
     (re.compile(rb'/ID ?\[ ?(<[0-9A-Fa-f]+>|\([^)]*\)) ?(<[0-9A-Fa-f]+>|\([^)]*\)) ?\]'), b'/ID[<ID>]'),  # a PDF's id, from its dates
     (re.compile(rb'"(hash|config_hash)": ?-?\d+'), rb'"\1": <HASH>'),
-    (re.compile(rb'<xmpMM:(InstanceID|DocumentID)>[^<]*<'), rb'<xmpMM:\1><ID><'),  # a PDF's XMP ids, from its dates          # mkdocs' cache keys, random per process
+    (re.compile(rb'<xmpMM:(InstanceID|DocumentID)>[^<]*<'), rb'<xmpMM:\1><ID><'),  # a PDF's XMP ids, from its dates
 ]
 
 

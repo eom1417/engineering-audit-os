@@ -3,7 +3,8 @@ interface every door shares). What they print comes from govern_words.WORDS, in 
 
     eaos rules                                   every rule: in scope, pinned, held or broken where
     eaos rules add "<words>" [--card ID] [--pin] a rule said (for a card, for the batch now, or pinned)
-    eaos rules pin|unpin ID                      pinned for every change, or no longer held (what it touches shown first)
+    eaos rules pin|unpin ID                      pinned for every change, or no longer held (what it touches
+                                                 shown first)
     eaos rules change ID "<words>" [--yes]       its words changed, what it touches shown first
     eaos rules guard ID (--write | --pattern JSON --language L --broken CODE --kept CODE | --test CMD | --detectors D…)
     eaos rules hook on|off [--yes]               the pinned rules on every commit (git's pre-commit hook)
@@ -98,7 +99,8 @@ def _guard(args, lang):
 
 
 def _approve(args, lang):
-    """A waiting guard approved by the person: its command (or the guard kept for new words) shown, their yes, then it runs."""
+    """A waiting guard approved by the person: its command (or the guard kept for new words) shown, their yes, then it
+    runs."""
     shown = rules.touches(args.project, args.id)
     agreed(rules._state(args.project)['project'], f'rule_approve_{args.id}', words('rule_approve', lang, guard=shown['guard']), args.yes)
     done = rules.approve(args.project, args.id, door='terminal')
@@ -114,7 +116,7 @@ def _hook(args, lang):
 
 
 def check_or_changed(args):
-    """`eaos check`: the diff-scoped check here and now with --changed (M16.7), else a check queued as always."""
+    """`eaos check`: the diff-scoped check here and now with --changed, else a check queued as always."""
     from .commands import check
     return command(changed)(args) if getattr(args, 'changed', False) else check(args)
 

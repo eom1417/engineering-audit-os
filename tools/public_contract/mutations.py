@@ -1,7 +1,8 @@
-"""The proof that the lock of tools/public_contract/lock.py catches real changes: each mutation edits a copy of the product's own
-code, the contract is read from that copy and compared with the lock. A break must be called one, an addition must not, and
-a change of words or values is outside the contract. Run by hand when the lock's design changes (about a minute);
-tests/guards/test_public_contract.py holds the comparison itself on every run. An anchor that no longer matches fails."""
+"""The proof that the lock of tools/public_contract/lock.py catches real changes: each mutation edits a copy of the
+product's own code, the contract is read from that copy and compared with the lock. A break must be called one, an
+addition must not, and a change of words or values is outside the contract. Run by hand when the lock's design changes
+(about a minute); tests/guards/test_public_contract.py holds the comparison itself on every run. An anchor that no
+longer matches fails."""
 import shutil
 import sys
 import tempfile
@@ -16,7 +17,8 @@ OUT = "q.add_argument('target');q.add_argument('--out',required=True)\n    q.add
 READING = "@server.tool(annotations=reading, description='The project\\'s branches"
 STATUS = "    result = status_of(project)\n"
 SKIP = "    @server.tool(annotations=working, description='Leave a card of the open batch out"
-# name, what the comparison must say (a break's or an addition's own words; None: neither), the file under eaos/, the text,
+# name, what the comparison must say (a break's or an addition's own words; None: neither), the file under eaos/, the
+# text,
 # what it becomes. A break found for another reason than the one named does not count.
 MUTATIONS = (
     ('MCP tool removed', ('break', 'MCP tool fix_skip removed'), FIX, f"{TOOL} -> str:\n        return tools.fix_skip(card, reason, project)\n", 'DELETE-TOOL'),

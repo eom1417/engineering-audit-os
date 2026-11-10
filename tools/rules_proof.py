@@ -1,4 +1,4 @@
-"""The rules proof (M16.6): the person's own rules on a project that keeps breaking them, end to end, no token spent.
+"""The rules proof: the person's own rules on a project that keeps breaking them, end to end, no token spent.
 
 On a copy of the golden app, people's records are written in three files (the requirement the person keeps repeating:
 "the people's data lives only in the database") and a total is kept to two decimals by a test of the project's own.
@@ -123,7 +123,8 @@ def committed_again(project):
 
 
 def kept_and_found(rules, card, told):
-    """What went wrong in steps 1-2: the rule said again made another, the card misses a place, the assistant was not told."""
+    """What went wrong in steps 1-2: the rule said again made another, the card misses a place, the assistant was not
+    told."""
     found = [] if rules['again'] == 1 else [f"the rule said again made another rule ({rules['again']})"]
     if not card or sorted(p.split(':')[0] for p in card.get('paths') or []) != sorted(RECORDS): found.append(f'the card does not name the three places: {card}')
     if sorted(told) != sorted([rules['pinned'], rules['batch']]): found.append(f'the assistant was not told both rules: {told}')
@@ -131,7 +132,8 @@ def kept_and_found(rules, card, told):
 
 
 def held_and_refused(edited, accepted, again):
-    """What went wrong in steps 3-4: a partial fix or one that broke the other rule kept, the sound one not, the hook silent."""
+    """What went wrong in steps 3-4: a partial fix or one that broke the other rule kept, the sound one not, the hook
+    silent."""
     found = [] if edited['one place'].get('kept') is False else [f"a fix of one place was kept: {edited['one place']}"]
     if 'Every total keeps two decimals' not in str(edited['every place, the totals broken'].get('why')):
         found.append(f"the fix that broke the totals was not refused by its rule: {edited['every place, the totals broken']}")

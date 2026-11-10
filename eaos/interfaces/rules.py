@@ -1,4 +1,4 @@
-"""The person's own rules through every door (M16): one interface the terminal (`eaos rules`), the MCP tools, the
+"""The person's own rules through every door: one interface the terminal (`eaos rules`), the MCP tools, the
 Studio's "Your rules" and its chat, and a card's comment share, over the one registry (eaos/core/project/rules.py).
 
     add       a rule said, in the person's words, for the card or batch it was said for, or pinned; the same
@@ -7,7 +7,8 @@ Studio's "Your rules" and its chat, and a card's comment share, over the one reg
               runs, the context files and the hook it is written into), and its history keeps what it was
     guard     the rule's machine guard, written by the person's assistant (given) or asked of it once (`write`)
     hook      with the person's consent, the project's pre-commit hook runs the pinned rules on every commit
-    changed   the diff-scoped check (eaos/analysis/rules/changed.py): the rules on what a change brought, before it lands
+    changed   the diff-scoped check (eaos/analysis/rules/changed.py): the rules on what a change brought, before it
+              lands
 
 A pinned rule is also written between EAOS's marker lines in the project's CLAUDE.md / AGENTS.md
 (eaos/analysis/rules/context.py), always from the registry: those lines are never a source of their own.
@@ -114,8 +115,8 @@ def pin(project=None, ident='', by='person', door='terminal', why=None):  # limi
 
 
 def unpin(project=None, ident='', by='person', door='terminal', why=None):  # limits: parameters -- the rule, who, the door and why, as every change of a rule
-    """The rule ends: its line leaves the context files and, with the last pinned rule, the hook its block; its own guard
-    goes with it (kept in its history); a test of the project's it ran stays."""
+    """The rule ends: its line leaves the context files and, with the last pinned rule, the hook its block; its own
+    guard goes with it (kept in its history); a test of the project's it ran stays."""
     state = _state(project)
     shown = touches(project, ident)
     rule = registry.end(state['project'], ident, by, door, why)
@@ -135,7 +136,8 @@ def change(project=None, ident='', words=None, by='person', door='terminal', why
 
 
 def guard(project=None, ident='', written_guard=None, write=False, by='person', door='terminal'):  # limits: parameters -- the rule, the guard given or to write, who and the door
-    """The rule's guard set: the one given (checked on its examples), or asked once of the person's assistant (`write`)."""
+    """The rule's guard set: the one given (checked on its examples), or asked once of the person's assistant
+    (`write`)."""
     state = _state(project)
     rule = registry.find(registry.load(state['project']), ident)
     cost = None

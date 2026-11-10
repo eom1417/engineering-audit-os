@@ -1,16 +1,19 @@
-"""The lock on what EAOS promises its outside users: the CLI and MCP tools as declared, how they answer, and saved projects
-still read. tests/guards/test_public_contract.py holds every change to it.
+"""The lock on what EAOS promises its outside users: the CLI and MCP tools as declared, how they answer, and saved
+projects still read. tests/guards/test_public_contract.py holds every change to it.
 
-    python tools/public_contract/lock.py                 what differs from the lock (tests/fixtures/contract/); 1 on a break
-    python tools/public_contract/lock.py --record        writes additions into the lock; refused while anything breaks
-    python tools/public_contract/lock.py --save-project  freezes a real check under tests/fixtures/saved-project/<this version>
+    python tools/public_contract/lock.py
+        what differs from the lock (tests/fixtures/contract/); exit 1 on a break
+    python tools/public_contract/lock.py --record
+        writes additions into the lock; refused while anything breaks
+    python tools/public_contract/lock.py --save-project
+        freezes a real check under tests/fixtures/saved-project/<this version>
     python tools/public_contract/lock.py --accept-break "<why>" --approved-by "<who, where>"
-                                                         a break the maintainers agreed to: kept with its reason, in CHANGELOG.md too
+        a break the maintainers agreed to: kept with its reason, in CHANGELOG.md too
 
-A break takes something from a caller who relies on it today: a command, tool, argument, choice or answer's key gone, a new
-requirement, a narrower kind, another default or exit code, a read-only tool that writes. An addition takes nothing: it is
-recorded so that it is held from then on. Words (descriptions, help, messages) and values are not the contract: the golden
-trial reads those. Nothing here runs in the product: tools/public_contract/capture.py reads it from outside.
+A break takes something from a caller who relies on it today: a command, tool, argument, choice or answer's key gone, a
+new requirement, a narrower kind, another default or exit code, a read-only tool that writes. An addition takes nothing:
+it is recorded so that it is held from then on. Words (descriptions, help, messages) and values are not the contract:
+the golden trial reads those. Nothing here runs in the product: tools/public_contract/capture.py reads it from outside.
 """
 import json
 import os
@@ -160,7 +163,8 @@ def compare(old, new):
 
 
 def hermetic(scratch, root):
-    """The environment of a capture: its own home and output, git alone on its PATH, nothing of this machine's or account's."""
+    """The environment of a capture: its own home and output, git alone on its PATH, nothing of this machine's or
+    account's."""
     (scratch / 'bin').mkdir(parents=True)
     (scratch / 'home').mkdir()
     (scratch / 'work').mkdir()

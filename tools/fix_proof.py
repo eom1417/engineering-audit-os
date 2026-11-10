@@ -1,7 +1,7 @@
-"""The fix proof (M7.0): a real batch on the checked baseline app, through every gate, as an assistant would send it.
+"""The fix proof: a real batch on the checked baseline app, through every gate, as an assistant would send it.
 
 Five cards are fixed in one batch. Two soundly: a dead module (legacy.js, the batch's own codemod deletes it) and one
-source per pattern (M15.7: the reports screen's lines, copied into the export and the invoice, written once in
+source per pattern (the reports screen's lines, copied into the export and the invoice, written once in
 report.js and called from both, what differed a parameter; the behaviour lock green). Three dead-module cards each
 delete their module and break something besides, one way each:
   web/Checkout.jsx  a screen: the home screen says something else (the behaviour lock)

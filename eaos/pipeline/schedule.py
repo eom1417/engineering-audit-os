@@ -4,8 +4,8 @@ A stage starts once every stage it waits for has ended (stages.WAITS: what it re
 the declared order of an amended artifact), never beside a stage holding what it uses (stages.RESOURCES: the running
 app, the memory, the whole machine), never beside more AI stages than the mode allows, and never while this computer
 has no room left for it (room(): free memory, processors not saturated); one stage always runs, so a small computer
-is slower, never stuck. Every edge of WAITS points
-to an earlier stage, so one stage at a time is the declared order itself: there is no second way to run a check.
+is slower, never stuck. Every edge of WAITS points to an earlier stage, so one stage at a time is the declared order
+itself: there is no second way to run a check.
 
     normal   every stage that may runs at once, the AI stages one after the other, one assistant at a time
     speed    the AI stages too, and each AI stage's batches on several assistants at once (assistants())
@@ -95,8 +95,8 @@ class LimitedProvider:
 
 
 def _clashes(stage, taken, mode):
-    """Whether `stage` may not start beside the stages `taken`: one holds what it uses or the whole machine, it needs the
-    whole machine and one runs, or it would be a second AI stage outside speed mode."""
+    """Whether `stage` may not start beside the stages `taken`: one holds what it uses or the whole machine, it needs
+    the whole machine and one runs, or it would be a second AI stage outside speed mode."""
     held = {resource for other in taken for resource in other.uses}
     return bool(set(stage.uses) & held or 'machine' in held or ('machine' in stage.uses and taken)
                 or (stage.ai and mode != 'speed' and any(other.ai for other in taken)))

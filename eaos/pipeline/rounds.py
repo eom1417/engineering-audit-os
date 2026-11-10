@@ -35,9 +35,9 @@ class Rounds:
         return []
 
     def _again(self, loop, failed):
-        """The broken stages of `loop`, their rows and what they blocked cleared, when one of them failed itself (`failed`:
-        a stage only not reached behind another loop's would not reach it again); the shared app closed when a page
-        stage is among them, so the next round starts it afresh."""
+        """The broken stages of `loop`, their rows and what they blocked cleared, when one of them failed itself
+        (`failed`: a stage only not reached behind another loop's would not reach it again); the shared app closed when
+        a page stage is among them, so the next round starts it afresh."""
         results, blocked = self.run['results'], self.run['blocked']
         if not any(results[name]['status'] == 'failed' for name in failed): return []
         broken = [name for name in loop.stages if results[name]['status'] in BROKEN]

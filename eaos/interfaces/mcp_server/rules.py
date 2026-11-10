@@ -1,6 +1,7 @@
-"""The person's own rules as MCP tools (M16): `rules` (read them: answered at once), `rule` (every change to them, by
-`op`) and `check_changed` (the diff-scoped check), thin callers of eaos/interfaces/rules.py like `eaos rules`; on the server the Studio's actions call
-too (server.build), so its "Your rules", its chat and a card's comment use the same ones.
+"""The person's own rules as MCP tools: `rules` (read them: answered at once), `rule` (every change to them, by
+`op`) and `check_changed` (the diff-scoped check), thin callers of eaos/interfaces/rules.py like `eaos rules`; on the
+server the Studio's actions call too (server.build), so its "Your rules", its chat and a card's comment use the same
+ones.
 
 What only the person decides: pinning, unpinning, changing a rule and the commit hook take `person_agreed`, given
 only after their yes; inside a Studio run each is refused (person.PERSON_ONLY). Saying a rule is the person's words:

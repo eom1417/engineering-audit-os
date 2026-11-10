@@ -117,7 +117,8 @@ def _codex_status(path):
 
 
 def _claude_call(path, timeout):
-    """(answered, problem, what it said): the check's way of asking (no tool, no MCP server, nothing kept), on one word."""
+    """(answered, problem, what it said): the check's way of asking (no tool, no MCP server, nothing kept), on one
+    word."""
     with tempfile.TemporaryDirectory(prefix='eaos-probe-') as empty:
         code, out, err = _run([*path, '-p', '--tools', '', '--strict-mcp-config', '--no-session-persistence', '--output-format', 'json',
                                '--system-prompt', 'Answer in one word.', QUESTION], timeout, cwd=empty)
@@ -135,7 +136,8 @@ def _answered(envelope):
 
 
 def _codex_call(path, timeout):
-    """(answered, problem, what it said): `codex exec` as the check's adapter runs it (read-only, in an empty folder, nothing kept)."""
+    """(answered, problem, what it said): `codex exec` as the check's adapter runs it (read-only, in an empty folder,
+    nothing kept)."""
     with tempfile.TemporaryDirectory(prefix='eaos-probe-') as empty:
         answer = os.path.join(empty, 'answer.txt')
         code, out, err = _run([*path, 'exec', '--skip-git-repo-check', '--ephemeral', '--ignore-rules', '--ignore-user-config',

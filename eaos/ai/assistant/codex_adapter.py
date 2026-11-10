@@ -1,10 +1,10 @@
 """A command-kind model adapter over the Codex CLI already signed in on this machine.
 
 The same contract as eaos/ai/assistant/claude_adapter.py: {"messages": [...]} on stdin, one JSON object on stdout.
-Codex runs `exec` in a read-only sandbox, in an empty folder (or the one it is given to read), without keeping the session (--ephemeral), and
-without the user's own rules or config (--ignore-rules --ignore-user-config), so it reads only what EAOS sends
-and changes nothing itself; its progress goes to stderr, so the provider sees the work go on. No key is read or
-written: the CLI uses the sign-in it has. $EAOS_CODEX_MODEL picks the model; each call is appended to
+Codex runs `exec` in a read-only sandbox, in an empty folder (or the one it is given to read), without keeping the
+session (--ephemeral), and without the user's own rules or config (--ignore-rules --ignore-user-config), so it reads
+only what EAOS sends and changes nothing itself; its progress goes to stderr, so the provider sees the work go on. No
+key is read or written: the CLI uses the sign-in it has. $EAOS_CODEX_MODEL picks the model; each call is appended to
 $EAOS_MODEL_USAGE when that names a file.
 """
 import os

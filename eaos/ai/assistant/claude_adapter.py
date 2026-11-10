@@ -32,7 +32,7 @@ def render(messages):
 
 def parse(text):
     """The JSON object in the model's reply; a fence or sentences around it are tolerated, even sentences with braces
-    (a reply after reading files ended "... the {id} field" after its object, and the whole call failed). The longest
+    (a reply may end with a sentence like "... the {id} field" after its object). The longest
     object found wins: an example inside the prose is shorter than the answer."""
     text = re.sub(r'^```(?:json)?\s*|\s*```$', '', text.strip())
     try: value = json.loads(text)
@@ -75,9 +75,8 @@ def stream(argv, conversation, env=None):
 
 def call(messages, small=False, reads=None, deep=False):
     """`small`: the work is plain (a translation): the smallest model does it as well for less, and without thinking,
-    which was 77% of a translation's output (EAOS's own check, 2026-10-14) and 20 times its time. `reads`: a folder it
-    reads and searches itself, nothing else (the views and the sign-in once saw only excerpts, and missed the program
-    chooser); `deep`: the longest thinking."""
+    which is most of a translation's output and time. `reads`: a folder it reads and searches itself, nothing else,
+    so it sees whole files rather than excerpts; `deep`: the longest thinking."""
     system, conversation = render(messages)
     tools = ['--tools', 'Read,Grep,Glob', '--add-dir', reads, '--permission-mode', 'dontAsk'] if reads else ['--tools', '']
     argv = ['claude', '-p', *tools, '--no-session-persistence', '--output-format', 'stream-json', '--verbose',
@@ -93,7 +92,8 @@ def call(messages, small=False, reads=None, deep=False):
 
 
 def record(row):
-    """One call's use (eaos/core/system/usage.py) appended to $EAOS_MODEL_USAGE when that names a file, under $EAOS_MODEL_STAGE."""
+    """One call's use (eaos/core/system/usage.py) appended to $EAOS_MODEL_USAGE when that names a file, under
+    $EAOS_MODEL_STAGE."""
     usage = os.environ.get('EAOS_MODEL_USAGE')
     if usage and row:
         with open(usage, 'a', encoding='utf-8') as log: log.write(json.dumps({**row, 'stage': os.environ.get('EAOS_MODEL_STAGE')}) + '\n')

@@ -2,7 +2,8 @@
 
 An adapter knows one assistant: whether it is installed and logged in, the command that starts it on a prompt (and
 resumes its session with the person's answer) with the EAOS MCP server and nothing else that writes, and how to read
-its output, one JSON object per line, as the contract's events (eaos/ai/assistant/events.py). The run manager does the rest.
+its output, one JSON object per line, as the contract's events (eaos/ai/assistant/events.py). The run manager does the
+rest.
 
 Claude Code: `claude -p --output-format stream-json --verbose`, the EAOS server by `--mcp-config --strict-mcp-config`,
 EAOS tools plus Read, Grep and Glob allowed, and Bash, Edit, Write and the person-only EAOS tools refused.
@@ -27,8 +28,8 @@ PERSON_ONLY = ('accept', 'undo', 'choose_branch')
 
 def eaos_server(run, assistant):
     """The EAOS MCP server's argv and environment for a run: this very EAOS (the Python and the package the Studio runs,
-    never another `eaos` on the PATH), the person's EAOS home, and the run's id, which makes the person-only tools refuse
-    (eaos/interfaces/mcp_server/server.py)."""
+    never another `eaos` on the PATH), the person's EAOS home, and the run's id, which makes the person-only tools
+    refuse (eaos/interfaces/mcp_server/server.py)."""
     import sys
     from ...core.system.launch import HEADLESS              # a run of the headless host opens no Studio either
     env = {'EAOS_STUDIO_RUN': run, 'EAOS_ASSISTANT': assistant, 'PYTHONPATH': str(Path(__file__).resolve().parents[3])}

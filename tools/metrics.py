@@ -1,4 +1,4 @@
-"""The numbers of docs/METRICS.md, measured from the repository and from a real check of EAOS (M0.4).
+"""The numbers of docs/METRICS.md, measured from the repository and from a real check of EAOS.
 
     python tools/metrics.py <check output> <project home> [--write "<title>"]
 
@@ -86,7 +86,7 @@ def _cards_on_itself(technical):
 
 
 def _layers(technical, stages):
-    """What the layers read of EAOS (M6): its files placed, its findings by boundary, the stage's time."""
+    """What the layers read of EAOS: its files placed, its findings by boundary, the stage's time."""
     record = read(technical / 'layers.json')
     if not record: return 'not read in this check'
     by = Counter(finding['boundary'] for finding in record['findings']).most_common()
@@ -100,7 +100,7 @@ def trials():
 
 
 def _judged():
-    """The layer findings judged by hand on the corpus apps the layers matter for (M6.12): how many were false."""
+    """The layer findings judged by hand on the corpus apps the layers matter for: how many were false."""
     judged = [app['layers_judged'] for app in (read(CORPUS, {}) or {}).get('apps') or [] if app.get('layers_judged')]
     if not judged: return 'not judged yet'
     true, false = sum(j['true'] for j in judged), sum(j['false'] for j in judged)

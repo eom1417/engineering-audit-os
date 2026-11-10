@@ -76,7 +76,8 @@ def _unremedied(manifest):
 
 
 def _answer(provider, unknown):
-    """The assistant's answer about the failed stages `unknown` ({stage: reason}), or None when it could not be asked."""
+    """The assistant's answer about the failed stages `unknown` ({stage: reason}), or None when it could not be
+    asked."""
     ask = ('These stages of an EAOS check failed, each with its reason: ' + json.dumps(unknown, ensure_ascii=False)[:4000] + '. Answer one '
            'JSON object: {"action": "again_from" or "none", "stage": "<one of them, for again_from>", "advice": "<what the person should do, '
            'one sentence>"}. again_from only when running it again may pass (a timeout, a passing hiccup); otherwise none.')
@@ -103,7 +104,8 @@ def pending(report):
 
 
 def _unattended(row):
-    """Whether a stage row's reason has a remedy EAOS applies alone: one that needs neither the person nor their consent."""
+    """Whether a stage row's reason has a remedy EAOS applies alone: one that needs neither the person nor their
+    consent."""
     remedy = remedy_of(row)
     return bool(remedy) and not (remedy.get('needs') or remedy.get('consent'))
 

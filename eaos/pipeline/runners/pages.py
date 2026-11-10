@@ -1,5 +1,5 @@
-"""The page stages: the app opened in a browser, once as each kind of user of its code (eaos/live/access/roles.py, live_app
-sessions), its pages walked, crawled and pictured. The published address the person named is read only."""
+"""The page stages: the app opened in a browser, once as each kind of user of its code (eaos/live/access/roles.py,
+live_app sessions), its pages walked, crawled and pictured. The published address the person named is read only."""
 import json
 import re
 from pathlib import Path
@@ -12,7 +12,7 @@ VISITOR = re.compile(r'/(login|log-in|signin|sign-in|sign_in|register|signup|sig
 
 
 def _published(context):
-    """The published address the person named for this check, read by the stages that only read pages (S9)."""
+    """The published address the person named for this check, read by the stages that only read pages."""
     return (context.get('sign_in') or {}).get('published')
 
 
@@ -38,9 +38,9 @@ def journeys(context):
 def screens(context):
     """Each distinct page of the running app (one picture per template: /items/1 stands for /items/2) at phone and
     desktop width, in the app's own theme, with axe; Lighthouse on the entry, unless the crawl measured it already
-    (eaos/live/screens/audit.py, eaos/live/screens/crawl.py distinct). Each kind of user of the code pictures its own pages, the
-    first one the shared pages too (eaos/live/access/roles.py share); the published address the person named, read only.
-    An API has no page to picture: its GET routes are the behaviour lock's request tests."""
+    (eaos/live/screens/audit.py, eaos/live/screens/crawl.py distinct). Each kind of user of the code pictures its own
+    pages, the first one the shared pages too (eaos/live/access/roles.py share); the published address the person named,
+    read only. An API has no page to picture: its GET routes are the behaviour lock's request tests."""
     _no_api(context)
     if not _published(context): _live(context)
     from .live_app import sessions
@@ -93,7 +93,7 @@ def _pictured(context, app, groups, measured):
 
 def _visitor(context, app, groups, measured):
     """The sign-in and sign-up pages as a visitor sees them, kind `visitor`: a signed-in session is sent away from them
-    (microblog's /auth/login opened its home page), so they are pictured with no session; [] when no session signed in."""
+    (to the app's home page), so they are pictured with no session; [] when no session signed in."""
     made = app[2]
     own = {template: paths for template, paths in groups.items() if VISITOR.search(paths[0])}
     if not own or not any(Path(state).is_file() for _, state in made): return []
@@ -102,7 +102,8 @@ def _visitor(context, app, groups, measured):
 
 
 def _as_visitor(row):
-    """A visitor's picture of a sign-in page: its password field is the page itself, seen when it stayed where it was."""
+    """A visitor's picture of a sign-in page: its password field is the page itself, seen when it stayed where it
+    was."""
     from urllib.parse import urlsplit
     if (urlsplit(row.get('landed') or row['url']).path.rstrip('/') or '/') == (urlsplit(row['url']).path.rstrip('/') or '/'): row.pop('unseen', None)
     return row
@@ -110,8 +111,8 @@ def _as_visitor(row):
 
 def _seen(context, row, kind, nowhere):
     """A picture's row, with the view that saw it, its file within the report, and `unseen` when the page did not open
-    as itself (eaos/live/access/roles.py opened): a sign-in, a refusal or the app's page for an address it does not have is the
-    page not seen with that session, never the page itself."""
+    as itself (eaos/live/access/roles.py opened): a sign-in, a refusal or the app's page for an address it does not have
+    is the page not seen with that session, never the page itself."""
     from urllib.parse import urlsplit
     from ...live.access.test_users import _reached
     path = urlsplit(row['url']).path or '/'
@@ -122,16 +123,17 @@ def _seen(context, row, kind, nowhere):
 
 
 def _nowhere(live, base, state):
-    """The lines of the app's page for an address it does not have, opened with session `state` (eaos/live/access/roles.py
-    nowhere_of); None read only."""
+    """The lines of the app's page for an address it does not have, opened with session `state`
+    (eaos/live/access/roles.py nowhere_of); None read only."""
     from ...live.app.setup import probe
     from ...live.access.roles import NOWHERE, nowhere_of
     return nowhere_of(probe(live, base, state, None, [NOWHERE])) if live else None
 
 
 def _coverage(context, live, base, made, rows):
-    """{kinds, breaches} (eaos/live/access/roles.py), None when the kinds of users are not known: which kinds the pictures saw and
-    why not the others, and each page of one kind another kind's session opened (a session per kind is local only)."""
+    """{kinds, breaches} (eaos/live/access/roles.py), None when the kinds of users are not known: which kinds the
+    pictures saw and why not the others, and each page of one kind another kind's session opened (a session per kind is
+    local only)."""
     from urllib.parse import urlsplit
     from ...live.app.setup import probe
     from ...live.access.roles import breaches, coverage, read
@@ -158,7 +160,8 @@ def _screen_pages(context):
 
 
 def _kept(context, pages):
-    """The pages but those the code proves no person reaches, and those that sign out or delete: the session is shared."""
+    """The pages but those the code proves no person reaches, and those that sign out or delete: the session is
+    shared."""
     from ...live.behavior.specs import LEAVES
     from ...live.access.roles import proven
     gone = proven(context.out)
@@ -167,7 +170,7 @@ def _kept(context, pages):
 
 def _named_pages(context):
     """The page routes the code names and each kind of user's own pages, at the address that shows each: '/#/x' in an
-    app that routes by the hash (CoreUI's were opened at /x, its dashboard each time)."""
+    app that routes by the hash (opened at /x, such an app shows its dashboard each time)."""
     from ...live.access.roles import pages_of, read
     from ...live.screens.crawl import as_screen, hash_routed
     hashed = hash_routed(context.target)
@@ -175,9 +178,9 @@ def _named_pages(context):
 
 
 def _audit_pages(context, app, session, pages, speed):
-    """(the page audit, the entry's speed) of `pages` ({template: its pages}, the crawl's measured entry) opened on `app`
-    (live run, address, sessions) with `session` (kind of user, its browser state): Lighthouse only with `speed`, and
-    only when the crawl did not measure the entry already."""
+    """(the page audit, the entry's speed) of `pages` ({template: its pages}, the crawl's measured entry) opened on
+    `app` (live run, address, sessions) with `session` (kind of user, its browser state): Lighthouse only with `speed`,
+    and only when the crawl did not measure the entry already."""
     from ...live.screens.audit import VIEWPORTS, page_audit, variants
     (live, base, _), (kind, state), (groups, measured) = app, session, pages
     state = state if state.is_file() else None
@@ -189,14 +192,15 @@ def _audit_pages(context, app, session, pages, speed):
 
 
 def _entry_speed(measured, base, folder, state, live):
-    """The entry's speed: what the crawl measured, else Lighthouse's, with session `state` (a published address as a visitor)."""
+    """The entry's speed: what the crawl measured, else Lighthouse's, with session `state` (a published address as a
+    visitor)."""
     from ...live.screens.audit import lighthouse
     if measured: return {'status': 'observed', 'source': 'live/crawl.json', **{k: measured.get(k) for k in ('scores', 'lcp_ms', 'cls')}}
     return lighthouse(base + '/', out=folder, storage_state=state if live else None)
 
 
 def _ran_file(context, kind, live):
-    """The file a crawl of the app EAOS runs writes the JavaScript its pages ran into (M13.2), one per kind of user;
+    """The file a crawl of the app EAOS runs writes the JavaScript its pages ran into, one per kind of user;
     None for a published address."""
     if not live: return None
     folder = Path(context.runtime) / 'ran-browser'
@@ -217,10 +221,10 @@ def _browser_ran(context):
 
 def crawl(context):
     """Every page of the running app found in layers: the pages its code and files name and a server's GET routes
-    (eaos/live/screens/crawl.py code_routes), its links followed once as each kind of user (eaos/live/access/roles.py), then the
-    screens behind its buttons by the browser agent (_explored); Lighthouse on the entry and the first page of each
-    distinct template, ten at most. Each route with the kinds that reached it. The published address the person named,
-    read only, a few, by its links alone."""
+    (eaos/live/screens/crawl.py code_routes), its links followed once as each kind of user (eaos/live/access/roles.py),
+    then the screens behind its buttons by the browser agent (_explored); Lighthouse on the entry and the first page of
+    each distinct template, ten at most. Each route with the kinds that reached it. The published address the person
+    named, read only, a few, by its links alone."""
     if not _published(context): _live(context)
     from .live_app import sessions
     from ...live.screens.crawl import MEASURED, crawl as find
@@ -272,9 +276,9 @@ def _merge_routes(routes, found, kind):
 
 
 def _explored(context, base, state):
-    """The screens behind buttons, tabs and welcomes no link reaches (eaos/live/agent.py): the steps saved in the runtime
-    replayed with no assistant; explored by the assistant and saved again when there are none or they broke. [] with
-    neither steps nor assistant. The steps and their pictures are one folder, replaced each time."""
+    """The screens behind buttons, tabs and welcomes no link reaches (eaos/live/agent.py): the steps saved in the
+    runtime replayed with no assistant; explored by the assistant and saved again when there are none or they broke. []
+    with neither steps nor assistant. The steps and their pictures are one folder, replaced each time."""
     from ...live.agent import SCREENS, Browser, explore, replay
     folder = Path(context.runtime) / 'explore'
     saved = folder / 'screens.json'

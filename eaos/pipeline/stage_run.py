@@ -86,8 +86,8 @@ def _run_stage(stage, run):
 
 
 def _report(run):
-    """The person's progress: the stages ended, and the newest stage still running, never one that ended (next-dashboard's
-    check said "Measuring size and complexity" for 14 minutes, a stage of 0.03 s started beside the sign-in that ran)."""
+    """The person's progress: the stages ended, and the newest stage still running, never one that ended (a very short
+    stage started beside a long one must not hide it)."""
     if run['progress'] and run['running']:
         run['progress'](sum(name in run['results'] for name in run['todo']), len(run['todo']), run['running'][-1])
 
@@ -115,8 +115,8 @@ def _satisfied(name, results, out):
     """A prerequisite is met when it ran here, when an earlier run already left its artifacts, or when it is optional
     and absent here with its reason.
 
-    Requiring it to run in this run made --only unusable: re-rendering one stage over a finished
-    report reported "prerequisites not completed" while every input sat on disk beside it.
+    It need not run in this run: --only re-renders one stage over a finished report, and requiring it to run would
+    report "prerequisites not completed" while every input sat on disk beside it.
     """
     if results.get(name, {}).get('status') == OK or _absent(name, results):
         return True
@@ -165,6 +165,6 @@ def _ended(stage, context, outcome, seconds):
         return _row(stage, OK, outcome['assistant_lost']['why'], seconds, present, outcome, code='ai_partial')
     if outcome.get('unread_names'):     # it read all but these: the check is PARTIAL, their names in red (core/progress/flow.py partial)
         return _row(stage, OK, ', '.join(outcome['unread_names']), seconds, present, outcome, code='unread_names')
-    if outcome.get('unmeasured'):       # it ran, and says what it could not read: never taken for clean (M15.0)
+    if outcome.get('unmeasured'):       # it ran, and says what it could not read: never taken for clean
         return _row(stage, OK, 'not measured: ' + '; '.join(outcome['unmeasured']), seconds, present, outcome, code='unmeasured')
     return _row(stage, OK, '', seconds, present, outcome)

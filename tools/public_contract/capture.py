@@ -1,5 +1,5 @@
-"""What EAOS promises its outside users, read from the running code: every CLI command and MCP tool as declared, how they
-answer on an empty project and on a saved one, and that reading a saved project leaves its state as it was.
+"""What EAOS promises its outside users, read from the running code: every CLI command and MCP tool as declared, how
+they answer on an empty project and on a saved one, and that reading a saved project leaves its state as it was.
 
 tools/public_contract/lock.py runs this in a process of its own, with a home, a PATH and an environment of its own, so a
 machine's tools and accounts never change the answer; alone it means nothing. No product code is changed or called
@@ -86,7 +86,8 @@ class _Parsed(Exception):
 
 
 def cli_declared():
-    """Every command with its arguments, taken where main() parses, so nothing runs and nothing in the CLI had to change."""
+    """Every command with its arguments, taken where main() parses, so nothing runs and nothing in the CLI has to
+    change."""
     from eaos.interfaces import cli
 
     def taken(parser, *_, **__): raise _Parsed(parser)
@@ -111,7 +112,8 @@ def mcp_declared(mcp):
 
 
 def shape(value, depth=3):
-    """A value's form: keys and kinds to three levels, an array by its first item. The values themselves are not the contract."""
+    """A value's form: keys and kinds to three levels, an array by its first item. The values themselves are not the
+    contract."""
     if isinstance(value, dict) and depth: return {key: shape(item, depth - 1) for key, item in sorted(value.items())}
     if isinstance(value, list) and value and depth: return {'[]': shape(value[0], depth - 1)}
     if isinstance(value, list): return 'array'
@@ -156,14 +158,16 @@ def reading_tools(mcp):
 
 
 def _required(tool, known=None):
-    """The arguments a tool cannot go without, of the kinds it declares and naming nothing, so it answers rather than the schema."""
+    """The arguments a tool cannot go without, of the kinds it declares and naming nothing, so it answers rather than
+    the schema."""
     kinds = tool['input'].get('properties', {})
     made = {name: EMPTY_OF.get(kinds.get(name, {}).get('type'), 'nothing-such') for name in tool['input'].get('required', [])}
     return made | (known or {})
 
 
 def empty_behaviour(mcp, scratch):
-    """Every reading tool, and every writing tool that must refuse, on a project EAOS has never checked; the CLI's failures."""
+    """Every reading tool, and every writing tool that must refuse, on a project EAOS has never checked; the CLI's
+    failures."""
     project = new_project(scratch / 'empty' / 'shop')
     os.chdir(project)
     declared = mcp_declared(mcp)['tools']
@@ -185,7 +189,8 @@ def _copy_filled(source, target, values):
 
 
 def saved_behaviour(mcp, frozen, scratch):
-    """A project a past version saved, read by this one: every reading tool and CLI line, and its state left as it was."""
+    """A project a past version saved, read by this one: every reading tool and CLI line, and its state left as it
+    was."""
     from eaos.core.project.places import workspace
     project = new_project(scratch / frozen.name / 'shop')
     os.chdir(project)
@@ -203,7 +208,8 @@ def saved_behaviour(mcp, frozen, scratch):
 
 
 def accounting(tools):
-    """How each tool is held: called here, or by the test that drives it, or why nothing holds it yet; a new one must say."""
+    """How each tool is held: called here, or by the test that drives it, or why nothing holds it yet; a new one must
+    say."""
     def how(name, tool):
         if name in NOT_CALLED: return f'not called: {NOT_CALLED[name]}'
         if tool['annotations'].get('read_only_hint') or name in ANSWERED: return 'called on an empty and on a saved project'
@@ -245,8 +251,9 @@ def save_project(scratch):
 
 
 def _freeze(source, target, values, left_out, made_by):  # limits: parameters -- a private step of save_project, called twice
-    """A folder of the check kept with its places as tokens and the fingerprint of the code that made it worn off, so that
-    every EAOS reads it as an older one's: it is, from the next change on, and the answer must not turn on that change."""
+    """A folder of the check kept with its places as tokens and the fingerprint of the code that made it worn off, so
+    that every EAOS reads it as an older one's: it is, from the next change on, and the answer must not turn on that
+    change."""
     for path in sorted(source.rglob('*')):
         relative = path.relative_to(source).as_posix()
         if path.is_dir() or any(relative == skip or relative.startswith(skip + '/') for skip in left_out): continue

@@ -40,11 +40,12 @@ def execute(target, out, *, only=(), skip=(), language='ar', exclude=(), engines
             runtime=None, mode='normal', paths=None, patterns=None, sign_in=None):  # limits: parameters -- the run's keyword-only options, passed through as **options by check, again and resume
     """`progress(done, total, stage)` is called before each stage that will run, so a person waiting sees where
     the run is; it never changes what runs. `without_tools`: the tools whose install failed and the person started
-    without; the manifest records them (`options`). `runtime`: the folder the app is run in, an isolated copy, given only
-    once the person agreed to run it; without it every live stage says so. `mode`: how many stages and assistants run at
-    once (eaos/pipeline/schedule.py: normal, speed, one). `paths`: the check's paths (eaos/pipeline/path_choice.py), recorded;
-    `patterns`: the card patterns the plan keeps, None for all. `sign_in`: how the page stages sign in to the app
-    (eaos/journeys/check_choices.py options: how, the published address named for this check, the project's folder).
+    without; the manifest records them (`options`). `runtime`: the folder the app is run in, an isolated copy, given
+    only once the person agreed to run it; without it every live stage says so. `mode`: how many stages and assistants
+    run at once (eaos/pipeline/schedule.py: normal, speed, one). `paths`: the check's paths
+    (eaos/pipeline/path_choice.py), recorded; `patterns`: the card patterns the plan keeps, None for all. `sign_in`: how
+    the page stages sign in to the app (eaos/journeys/check_choices.py options: how, the published address named for
+    this check, the project's folder).
 
     Every event of the run is also appended to `<out>/run-progress.jsonl` (eaos/core/progress/log.py): the run's start
     with the declared stages, each stage's start, its steps, its end with its status, reason, seconds and artifacts,
@@ -108,7 +109,7 @@ def _go(run, mode):
 
 
 def _outside(target, out):
-    """(target, out) resolved, `out` outside the target and made, without the documents a check no longer writes."""
+    """(target, out) resolved, `out` outside the target and made, without the documents a check does not write."""
     target, out = Path(target).resolve(), Path(out).resolve()
     if out == target or target in out.parents:
         raise ValueError('Pipeline output must live outside the target; the target stays read-only')
@@ -145,7 +146,8 @@ def _head(context, started_at, requested):
 
 
 def _manifest(head, began, results, loops):
-    """The run's record: its stages' rows and each loop's outcome (`loops`, eaos/pipeline/rounds.py), written with RUN.md."""
+    """The run's record: its stages' rows and each loop's outcome (`loops`, eaos/pipeline/rounds.py), written with
+    RUN.md."""
     manifest = {
         **{key: head[key] for key in ('contract_version', 'target', 'out', 'started_at', 'mode', 'paths') if key in head},
         'seconds': round(time.monotonic() - began, 2), 'requested': head['requested'],
@@ -195,19 +197,18 @@ def _previous(out):
 
 
 # A new complete check replaces these of the previous one: its pictures and crawl, the engines' working folders and
-# the assistant's raw runs and cached decisions (the cache keys on the prompt, which names a picture, not what it shows).
-# The ledger, the history and the state stay. 230 MB of pictures and 130 MB of runs piled up on EAOS's own report, and
-# the ideal plan's raw runs another 40 MB (its record of them, ideal/runs.json, stays).
-# START-HERE.md too: kept, a check that never reached its reports showed the counts of the one before.
+# the assistant's raw runs and cached decisions (the cache keys on the prompt, which names a picture, not what it
+# shows). The ledger, the history and the state stay. These are the bulkiest parts of a report; the ideal plan's
+# record of its raw runs (ideal/runs.json) stays. START-HERE.md is cleared too: a check that never reached its reports
+# would otherwise show the counts of the one before.
 BULKY = ('live/screens', 'live/screens.json', 'live/crawl', 'live/crawl.json', 'nodes/*/runs', 'nodes/*/cache', 'ideal/run-*',
          'START-HERE.md', 'logic-flaws.json', 'facts/logic_flaws.json',     # the optional deep check's hunt, of older code
          # the simulated users' records, pictures and difficulties, of older code; the saved journeys
          # (experience/journeys/<name>.json) and the scenario that orders them stay: every full check replays them
          *(f'experience/{name}.json' for name in ('run', 'data', 'tickets', 'difficulties', 'replays', 'story')),
          'experience/replays', 'experience/journeys/*/', 'facts/experience.json', 'EXPERIENCE.md')
-# The documents and records a check no longer writes (M1.4: 27 documents down to 8, their records kept; M1.5:
-# reports.json, which nothing read): any run removes a previous check's,
-# or the output contract (R13) finds them undeclared and the Studio's Library lists them as if current.
+# The documents and records a check does not write: any run removes a previous check's, or the output contract finds
+# them undeclared and the Studio's Library lists them as if current.
 RETIRED = ('CONTRACTS.md', 'COUPLING-ATLAS.md', 'DECISION-BRIEF.md', 'DOMAIN-AND-DATA.md', 'ENGINES.md', 'EVOLUTION.md',
            'FEATURES.md', 'FLOWS.md', 'LOAD-MODEL.md', 'MEASUREMENTS.md', 'ONBOARDING.md', 'POLICY.md', 'PROVENANCE.md',
            'RISK-REGISTER.md', 'ROADMAP.md', 'SEMANTIC.md', 'SUSTAINABILITY.md', 'SYSTEM-MAP.md', 'transform-plan.md',
@@ -244,10 +245,9 @@ def clear(out, patterns=None):
 
 def check(target, out, again_from=None, checked=False, paths=None, go_on=False, **options):  # limits: parameters -- the check's own choices (again, go on, focus); the run's options pass on as **options
     """A check the person asked for: a fresh full run, which first clears the previous check's bulky data (clear) unless
-    it runs some stages only. `go_on`: a run that did not end (stopped, broken or killed midway: its checkpoint is there)
-    goes on from that checkpoint instead, unless the source changed since; a new check never does (one stopped and
-    started again went on at 31 of 37 stages). `again_from`: the last check goes on from that stage (again). `paths`:
-    the check follows those paths only (focused)."""
+    it runs some stages only. `go_on`: a run that did not end (stopped, broken or killed midway: its checkpoint is
+    there) goes on from that checkpoint instead, unless the source changed since; a new check never does. `again_from`:
+    the last check goes on from that stage (again). `paths`: the check follows those paths only (focused)."""
     if again_from: return again(target, out, again_from, checked=checked, **options)
     if go_on and (Path(out) / CHECKPOINT).is_file():
         try: return resume(target, out, **options)
@@ -275,8 +275,8 @@ def focused(target, out, chosen, checked=False, **options):
 def again(target, out, stage, checked=False, **options):
     """The last check with `stage` and every stage that reads what it makes run again (a tool that failed, a step to
     redo), the rest kept as it was: never a whole new check for one stage. `engines` names the tools to run again.
-    `checked`: `target` is the very commit the check read clean (eaos/journeys/guided/ source), so the same code whatever
-    caches lay beside it then (.cache, egg-info), and the files' fingerprint is not asked."""
+    `checked`: `target` is the very commit the check read clean (eaos/journeys/guided/ source), so the same code
+    whatever caches lay beside it then (.cache, egg-info), and the files' fingerprint is not asked."""
     stages = (stage,) if isinstance(stage, str) else tuple(stage)
     for name in stages:
         if name not in BY_NAME: raise ValueError(f'there is no stage named {name}')
@@ -308,7 +308,8 @@ def resume(target, out, redo=(), checked=False, **options):
 
 
 def same_source(target, out):
-    """The last check's options when `target` is the code it read; ValueError when there is no check or the code changed."""
+    """The last check's options when `target` is the code it read; ValueError when there is no check or the code
+    changed."""
     previous = _previous(out)
     if previous is None: raise ValueError('there is no check to go on from: run a check first')
     return _resumable(target, previous)

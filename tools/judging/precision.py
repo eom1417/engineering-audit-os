@@ -1,15 +1,17 @@
 """How much of what each detector shows is true: judged labels in, eaos/data/detector-verdicts.json out.
 
 The labels stay out of the published tree, in $EAOS_LABELS (default ../eaos-private/labels), one file per detector,
-`<detector>.jsonl` (`:` written `__`), one judged output a line: {"project", "place", "true": bool, "why"}, and for what was
-planted {"project", "place", "planted": true, "found": bool}. A judge reads the code and the output, blind to the detector's
-score: another kind of model than the one that wrote the detector, and the owner samples five of each.
+`<detector>.jsonl` (`:` written `__`), one judged output a line: {"project", "place", "true": bool, "why"}, and for what
+was planted {"project", "place", "planted": true, "found": bool}. A judge reads the code and the output, blind to the
+detector's score: another kind of model than the one that wrote the detector, and a person samples five of each.
 
-    python tools/judging/precision.py sample <report> <detector>   # the outputs of a check to judge, as label lines without a verdict
-    python tools/judging/precision.py score [--write]              # precision, recall and how many were judged, per detector
+    python tools/judging/precision.py sample <report> <detector>
+        the outputs of a check to judge, as label lines without a verdict
+    python tools/judging/precision.py score [--write]
+        precision, recall and how many were judged, per detector
 
-A detector with labels is shown only above the bar (a detector of the look, `DESIGN`, needs more judged than an older one); one
-without labels keeps the verdict it has. A verdict without labels behind it is never written.
+A detector with labels is shown only above the bar (a detector of the look, `DESIGN`, needs more judged than an older
+one); one without labels keeps the verdict it has. A verdict without labels behind it is never written.
 """
 import json
 import os

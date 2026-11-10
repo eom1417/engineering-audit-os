@@ -1,4 +1,4 @@
-"""The coverage ledger (M4.3): for each loop of the check (eaos/pipeline/loops.py), what it covered, what it could not,
+"""The coverage ledger: for each loop of the check (eaos/pipeline/loops.py), what it covered, what it could not,
 and why. The checkpoint and the manifest keep it (`coverage`); START-HERE.md and RUN.md show its big gaps in red at the
 top (eaos/report/documents/start_here.py, eaos/report/documents/run.py).
 
@@ -31,13 +31,14 @@ def _entry(loop, rows, settled):
 
 
 def _state(loop, rows):
-    """(the loop's state, the stages behind it: those its outcome names, then those that could not measure their ground)."""
+    """(the loop's state, the stages behind it: those its outcome names, then those that could not measure their
+    ground)."""
     state, behind = outcome(loop, rows) if all(name in rows for name in loop.stages) else ('running', [])
     return state, behind + [name for name in _unmeasured(loop, rows) if name not in behind]
 
 
 def _unmeasured(loop, rows):
-    """The stages of `loop` that ran and said what they could not read (M15.0): a gap, never taken for clean."""
+    """The stages of `loop` that ran and said what they could not read: a gap, never taken for clean."""
     return [name for name in loop.stages if (rows.get(name) or {}).get('reason_code') in ('unmeasured', 'unread_names')]
 
 

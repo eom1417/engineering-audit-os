@@ -22,7 +22,8 @@ RUN_OPTIONS = {'launcher': None, 'adapters': None, 'project': None, 'lang': 'en'
 
 
 def settings_of(options):
-    """A node's settings out of its options, each at its default when not given (RUN_OPTIONS); `options` is left as it is."""
+    """A node's settings out of its options, each at its default when not given (RUN_OPTIONS); `options` is left as it
+    is."""
     return {name: options.get(name, default) for name, default in RUN_OPTIONS.items()}
 
 
@@ -41,9 +42,10 @@ def run_node(node, spec, report, **options):
     """Run one decision node with its guards and return its record (contract ai-node), or None when it has nothing
     to read. `launcher(pass, prompt, schema) -> dict` asks the assistant; without one, the first available adapter of
     `adapters`; with none, the rules decide alone. The settings come by name (RUN_OPTIONS: launcher, adapters, project,
-    lang, fresh, say, cancel, started; `assistants`, the check's eaos/pipeline/schedule.py Assistants, how many batches are
-    asked at once; `logged` false leaves the run out of the run log, for a node that logs its passes as one; `mode`, the
-    check's, which may lower the node's model tier, eaos/ai/assistant/tiers.py); the other options are the node's inputs."""
+    lang, fresh, say, cancel, started; `assistants`, the check's eaos/pipeline/schedule.py Assistants, how many batches
+    are asked at once; `logged` false leaves the run out of the run log, for a node that logs its passes as one; `mode`,
+    the check's, which may lower the node's model tier, eaos/ai/assistant/tiers.py); the other options are the node's
+    inputs."""
     settings = {name: options.pop(name, default) for name, default in RUN_OPTIONS.items()}
     report = Path(report)
     data = spec.inputs(report, project=settings['project'], lang=settings['lang'], **options)
@@ -163,8 +165,8 @@ class Run:
     def _tiered(self, launcher, asks, asked, detail):
         """The answer on the stage's tier, asked again higher until it stands: a tier that failed, or left some batches
         unanswered, one tier up; one that would close something (tiers.CLOSING) on the deep tier, about those subjects
-        alone where the node can ask them apart (spec.narrowed). So a cheaper model never drops or closes anything alone,
-        and what it did not close is not paid for twice."""
+        alone where the node can ask them apart (spec.narrowed). So a cheaper model never drops or closes anything
+        alone, and what it did not close is not paid for twice."""
         held = []
         while True:
             tier = getattr(launcher, 'tier', None)
@@ -179,7 +181,8 @@ class Run:
             asks = self._again(launcher, (answer, asks, asked, closing, held), detail)
 
     def _again(self, launcher, job, detail):
-        """The asks of the next tier, its reason told: batches left unanswered go one tier up, what would close to the deep one."""
+        """The asks of the next tier, its reason told: batches left unanswered go one tier up, what would close to the
+        deep one."""
         answer, asks, asked, closing, held = job
         tier = launcher.tier
         if self.unanswered:
@@ -265,7 +268,8 @@ class Run:
         return reviewed, reviewed.get('critique')
 
     def _in_language(self, launcher, answer, schema, name):
-        """The answer, its texts for the person in their language: sent back once when some are not (eaos/core/language/check.py)."""
+        """The answer, its texts for the person in their language: sent back once when some are not
+        (eaos/core/language/check.py)."""
         lang = self.settings['lang']
         texts = foreign_texts(answer, lang)
         if not texts: return answer

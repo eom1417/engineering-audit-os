@@ -4,10 +4,10 @@ For Claude Code: the skill in ~/.claude/skills/eaos/SKILL.md, and the EAOS MCP s
 (`claude mcp add --scope user eaos -- <eaos> mcp`). For Codex: the same guide between two marker lines in
 ~/.codex/AGENTS.md (the rest of that file is left as it is), the same guide as the skill ~/.codex/skills/eaos/SKILL.md
 (`$eaos` in Codex; typed alone, it shows the menu), and the MCP server in ~/.codex/config.toml.
-For both, a session-start hook (~/.claude/settings.json, ~/.codex/hooks.json) that runs `eaos handover --hook`: when EAOS
-has work open in the folder, a new session is told at once where it stopped (eaos/journeys/handover.hook_context), so the
-other assistant goes on after a usage limit. Codex asks the person once to trust a new hook; Claude Code does not.
-Running it again replaces EAOS's own part and nothing else. Both assistants read eaos/templates/assistants/.
+For both, a session-start hook (~/.claude/settings.json, ~/.codex/hooks.json) that runs `eaos handover --hook`: when
+EAOS has work open in the folder, a new session is told at once where it stopped (eaos/journeys/handover.hook_context),
+so the other assistant goes on after a usage limit. Codex asks the person once to trust a new hook; Claude Code does
+not. Running it again replaces EAOS's own part and nothing else. Both assistants read eaos/templates/assistants/.
 """
 import json
 import os
@@ -34,8 +34,8 @@ def _hook():
 
 
 def add_session_hook(path):
-    """EAOS's SessionStart hook in a hooks file of Claude Code's shape ({"hooks": {"SessionStart": [{"hooks": [...]}]}}),
-    replacing an older EAOS hook and keeping everything else in the file as it is."""
+    """EAOS's SessionStart hook in a hooks file of Claude Code's shape ({"hooks": {"SessionStart": [{"hooks":
+    [...]}]}}), replacing an older EAOS hook and keeping everything else in the file as it is."""
     path = Path(path)
     data = read_json(path, BROKEN) if path.is_file() else {}
     if data is BROKEN: return None                       # a file the person broke is theirs to fix: never overwritten
@@ -86,8 +86,8 @@ def codex(home):
 
 
 def codex_skill():
-    """The guide as a Codex skill: the frontmatter of the Claude Code skill (name and description only, all Codex reads),
-    then the guide."""
+    """The guide as a Codex skill: the frontmatter of the Claude Code skill (name and description only, all Codex
+    reads), then the guide."""
     claude_skill = (TEMPLATES / 'claude-skill.md').read_text(encoding='utf-8')
     front = [line for line in claude_skill.split('---')[1].strip().splitlines() if line.startswith(('name:', 'description:'))]
     return '---\n' + '\n'.join(front).replace('Type /eaos alone', 'Type $eaos alone') + '\n---\n\n' + (TEMPLATES / 'guide.md').read_text(encoding='utf-8')

@@ -31,7 +31,8 @@ def resolve(paths):
     paths = sorted(set(paths or [COMPLETE]))
     unknown = [p for p in paths if p not in PATHS]
     if unknown: raise ValueError(f"unknown check path: {', '.join(unknown)} (one of {', '.join(PATHS)})")
-    # beside `complete`, a path that switches an optional loop on (eaos/pipeline/loops.py) is an option of the full check
+    # beside `complete`, a path that switches an optional loop on (eaos/pipeline/loops.py) is an option of the full
+    # check
     if COMPLETE in paths: return {'paths': [COMPLETE, *_switching(paths)], 'stages': None, 'engines': None, 'patterns': None}
     chosen = [PATHS[p] for p in paths]
     joined = lambda key: sorted({value for path in [*chosen, HELD] for value in path.get(key, ())})

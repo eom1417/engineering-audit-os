@@ -55,7 +55,8 @@ VERBS = {
              'Change nothing.'),
 }
 
-# A Fix run started beside the first one in speed mode (eaos/interfaces/studio_actions/lane_assistants.py): its lane of the batch only.
+# A Fix run started beside the first one in speed mode (eaos/interfaces/studio_actions/lane_assistants.py): its lane of
+# the batch only.
 LANE = ('Use the eaos tools to fix these cards of the batch another assistant of the EAOS Studio opened: you are one of several '
         'assistants fixing it at the same time, each its own cards and files. For each card: finding and fix_read, then '
         + EDIT + '. A card you cannot fix (its change keeps failing the checks, or no safe change exists) gets fix_skip with its reason; when '
@@ -102,7 +103,8 @@ def _written_in(lang):
 
 
 def _over_cards(verb, cards, where, lane):
-    """A verb's task over its cards; a Fix's says where its batch opens, a lane's (beside the first assistant) opens none."""
+    """A verb's task over its cards; a Fix's says where its batch opens, a lane's (beside the first assistant) opens
+    none."""
     listed = '\n'.join(f"- {card['id']}: {card.get('title') or ''} ({', '.join(card.get('paths') or [])})".rstrip(' ()') for card in cards)
     task = f"{LANE if lane else VERBS[verb]}\n\nThe cards ({len(cards)}):\n{listed}\nCard ids for the tools: {json.dumps([c['id'] for c in cards])}"
     return task + _opened(where) if verb == 'fix' and where and not lane else task
@@ -149,7 +151,7 @@ def binding(record, question):
 def picked(record, question, option, text):
     """The option an answer takes: the one pressed; for a direct step's question answered in words, the option they name
     (its id or a label), else the recommended one: those words act, never handed to an assistant that may be the very
-    thing not answering (the check's "your assistant is not answering" came back after every answer)."""
+    thing not answering."""
     if option is not None or record.get('mode') != 'direct' or question.get('why') == 'run consent': return option   # an explicit yes only
     said = (text or '').casefold()
     for option in question.get('options') or []:
@@ -185,7 +187,8 @@ def _both(words):
 
 
 def _option(index, option):
-    """One option normalised: its id, its label in both languages, and the EAOS action it means; None when unreadable."""
+    """One option normalised: its id, its label in both languages, and the EAOS action it means; None when
+    unreadable."""
     if isinstance(option, str): option = {'id': f'o{index + 1}', 'label': option}
     if not isinstance(option, dict): return None
     return {'id': str(option.get('id') or f'o{index + 1}'), 'label': _both(option.get('label') or option.get('id')),

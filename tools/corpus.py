@@ -1,4 +1,4 @@
-"""The compatibility corpus (docs/STANDARDS.md §5, M0.3): real open-source apps pinned in tools/corpus.json, each
+"""The compatibility corpus (docs/STANDARDS.md §5): real open-source apps pinned in tools/corpus.json, each
 checked as a person would (`eaos check --path look --run-app`, no assistant), recording whether the app ran and which of
 its expected screens EAOS pictured. A change to running apps or finding screens never lowers the pass rate.
 
@@ -38,7 +38,7 @@ def fetch(app, folder):
     source.mkdir()
     git('init', '-q', cwd=source)
     git('remote', 'add', 'origin', app['repository'], cwd=source)
-    # Only the commit, and only the subfolder's files: an app inside a large repository (Next.js) costs its own size.
+    # Only the commit, and only the subfolder's files: an app inside a large repository costs its own size.
     git('fetch', '-q', '--depth', '1', '--filter=blob:none', 'origin', app['commit'], cwd=source)
     if app.get('subdir'): git('sparse-checkout', 'set', app['subdir'], cwd=source)
     git('checkout', '-q', 'FETCH_HEAD', cwd=source)
@@ -69,8 +69,8 @@ def _why(technical, setup, ran, missing):
 
 
 def layered(technical):
-    """What the layers read of one app (M6): its files placed, endpoints and tables, and every finding, for the hand
-    judgement of M6.12."""
+    """What the layers read of one app: its files placed, endpoints and tables, and every finding, for judging them
+    by hand."""
     record = _read(technical / 'layers.json')
     if not record: return None
     return {'files': len(record['map']), 'placed': len(record['map']) - len(record['gaps']), 'endpoints': len(record['endpoints']),
@@ -118,7 +118,8 @@ def _line(app, now):
 
 
 def _recheck(catalog, names, record):
-    """Check each named app (all by default), its result recorded when asked; the apps that passed before and fail now."""
+    """Check each named app (all by default), its result recorded when asked; the apps that passed before and fail
+    now."""
     worse = []
     for app in catalog['apps']:
         if names and app['name'] not in names: continue

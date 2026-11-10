@@ -13,7 +13,8 @@ then sends each subject on by its decision.
                           every subject takes the route "rules only"; a subject the model left out keeps the rules'
                           decision, marked `source: rules`. The assistant takes the time the work needs: its time and
                           cost are recorded, never cut.
-    the run log           <report>/nodes/runs.jsonl: the prompt's and inputs' digests, the model, the cost and the routes
+    the run log           <report>/nodes/runs.jsonl: the prompt's and inputs' digests, the model, the cost and the
+                          routes
     the cache             <report>/nodes/<node>/cache/<key>.json: the same inputs give the same result, no new call
                           (also when no assistant is here: a decision already made stands); `fresh` asks again
 
@@ -66,8 +67,8 @@ DECISION = contract()['properties']['decisions']['items']
 
 class AdapterLauncher:
     """The person's assistant as a node's launcher: each pass is one `ask` in its own folder, on `tier` (the runner sets
-    the node's, eaos/ai/assistant/tiers.py); `cost_usd` adds up what the passes cost when the stream says, several passes
-    at once included."""
+    the node's, eaos/ai/assistant/tiers.py); `cost_usd` adds up what the passes cost when the stream says, several
+    passes at once included."""
 
     def __init__(self, adapter, folder, cancel=None, started=None, images=()):
         self.adapter, self.folder, self.cancel, self.started, self.images = adapter, Path(folder), cancel, started, tuple(images)
@@ -315,7 +316,8 @@ def record(node, base, decisions, dropped, **fields):
 
 
 def keep(report, node, row, key=None, logged=True):
-    """Write the node's last record (validated), its cache entry and, when `logged`, its run-log line; return the record."""
+    """Write the node's last record (validated), its cache entry and, when `logged`, its run-log line; return the
+    record."""
     from ...core.contracts import artifact_rules as artifact_contracts
     problems = artifact_contracts.validate(row, contract())
     if problems: raise ValueError(f'{node.name}: the record is not an ai-node: ' + '; '.join(problems[:3]))
@@ -331,7 +333,7 @@ def keep(report, node, row, key=None, logged=True):
 
 def log_run(report, node, row):
     """The run log's line of one run of the node: its time, what it cost and how it routed; its decisions are in its
-    last record and cache, not copied here (99 lines had grown to 6 MB)."""
+    last record and cache, not copied here, so the log stays small."""
     _append(report, {'node': node.name, 'at': row['at'], 'state': row['state'], 'method': row['method'], 'assistant': row['assistant'],
                      'model': row['model'], 'tier': row.get('tier'), 'prompt': row['prompt'], 'inputs': row['inputs'], 'schema': row.get('schema'),
                      'cached': row['cached'], 'seconds': row['seconds'], 'cost_usd': row['cost_usd'], 'why': row['why'],

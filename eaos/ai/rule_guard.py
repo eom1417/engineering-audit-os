@@ -1,4 +1,4 @@
-"""A rule's guard written once by the person's assistant (M16.2): asked one question with the rule's words and the
+"""A rule's guard written once by the person's assistant: asked one question with the rule's words and the
 project's languages, its answer proved on its own examples (eaos/analysis/rules/guards.py checked) before it is kept;
 one answer that fails its proof is asked again with the reason, and a rule no answer could guard is said so, never
 pretended. After this one ask, the guard runs free: no token is spent on it again."""

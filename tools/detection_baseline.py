@@ -1,4 +1,4 @@
-"""The detection baseline (docs/STANDARDS.md §5, M0.2): how far a check of tests/fixtures/baseline-app found each problem
+"""The detection baseline (docs/STANDARDS.md §5): how far a check of tests/fixtures/baseline-app found each problem
 planted in it (tests/fixtures/baseline-problems.json). Refuses a check that found any of them less than recorded, or
 found any example planted to stay (`must_stay`: a placeholder, the program's own configuration).
 

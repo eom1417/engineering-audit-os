@@ -1,10 +1,10 @@
 """The stage `session`, right after the app is set up: whether its pages need a sign-in, and the sessions every page
-stage opens them with (eaos/live/access/sign_in.py). Unless the person chose to sign in themselves, a test account is made by
-rules on the app's own sign-up and sign-in pages (eaos/live/access/test_account.py), then the assistant makes the test
-users on the running app, one of each kind of user (eaos/live/access/test_users.py), for five minutes at most; a session still
-missing then, the person is asked (the Studio's Waiting for you, the assistant's status, `eaos watch` and `eaos
-sign-in`) and waited for while every stage that opens no page goes on. Nobody signing in within the wait ends it with
-that reason, and the page stages see the app signed out, which the report says.
+stage opens them with (eaos/live/access/sign_in.py). Unless the person chose to sign in themselves, a test account is
+made by rules on the app's own sign-up and sign-in pages (eaos/live/access/test_account.py), then the assistant makes
+the test users on the running app, one of each kind of user (eaos/live/access/test_users.py), for five minutes at most;
+a session still missing then, the person is asked (the Studio's Waiting for you, the assistant's status, `eaos watch`
+and `eaos sign-in`) and waited for while every stage that opens no page goes on. Nobody signing in within the wait ends
+it with that reason, and the page stages see the app signed out, which the report says.
 """
 from pathlib import Path
 
@@ -38,8 +38,8 @@ def session(context):
 
 
 def _by_rules(context, live, base, state):
-    """A test account by rules (eaos/live/access/test_account.py) when the run's session does not open the pages: no assistant
-    needed; what it tried is kept for the question the person may be asked."""
+    """A test account by rules (eaos/live/access/test_account.py) when the run's session does not open the pages: no
+    assistant needed; what it tried is kept for the question the person may be asked."""
     if sign_in.works(live, base, state, context.out): return
     from ...live.access.test_account import by_rules
     try: context['sign_in']['tried'] = by_rules(live, base, state, sign_in.page_of(_setup_page(context), base))
@@ -48,8 +48,8 @@ def _by_rules(context, live, base, state):
 
 def _views_alone(context):
     """No sign-in asked for (an app that opens signed in by itself, a development sign-in): the views are still made
-    when the code has some, or when pages of the code open as none of themselves (a full-stack app opened as support alone,
-    its program's pages a "not found", and no view was ever looked for). Never asks the person to sign in."""
+    when the code has some, or when pages of the code open as none of themselves (a full-stack app opened as support
+    alone, its program's pages a "not found", and no view was ever looked for). Never asks the person to sign in."""
     from ...live.access.roles import read
     from ...live.access.test_users import unreached
     live, base, state = shared_app(context)              # the page stages start it anyway: no cost of its own
@@ -61,8 +61,8 @@ def _views_alone(context):
 
 
 def _test_users(context, live, base, state, hand=False):
-    """The assistant's test users on the running app (eaos/live/access/test_users.py), or with the person's own session (`hand`) its
-    switches into each view a switch enters; what is still lacking, '' when nothing."""
+    """The assistant's test users on the running app (eaos/live/access/test_users.py), or with the person's own session
+    (`hand`) its switches into each view a switch enters; what is still lacking, '' when nothing."""
     from ...live.access.test_users import Trial, lacking, make, views
     if hand and not views(context.out, True): return ''
     if not hand: _by_rules(context, live, base, state)
@@ -74,7 +74,7 @@ def _test_users(context, live, base, state, hand=False):
 
 def _ask(context, chosen, live, base, state):
     """The person asked to sign in, once a check, and waited for: on the sign-in page their pages are sent to, and asked
-    again when they said they signed in but the pages still are not open (it once gave up as if nobody had come);
+    again when they said they signed in but the pages still are not open;
     SkipStage when the pages are seen signed out."""
     outcome, why = 'timeout', 'needed'
     while not chosen.get('gave_up'):

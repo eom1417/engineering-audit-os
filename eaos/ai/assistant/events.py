@@ -1,5 +1,5 @@
-"""The contract's events a headless assistant's run gives (eaos/ai/assistant/headless.py reads its stream): what each EAOS (or
-read-only built-in) tool call shows as it starts, what its answer shows, and the assistant's own words."""
+"""The contract's events a headless assistant's run gives (eaos/ai/assistant/headless.py reads its stream): what each
+EAOS (or read-only built-in) tool call shows as it starts, what its answer shows, and the assistant's own words."""
 import difflib
 import json
 import re
@@ -111,7 +111,8 @@ def said(text):
 
 
 def json_text(content):
-    """The JSON an MCP tool answered, from a tool_result's content (text, or a list of text parts; maybe wrapped in {"result"})."""
+    """The JSON an MCP tool answered, from a tool_result's content (text, or a list of text parts; maybe wrapped in
+    {"result"})."""
     if isinstance(content, list): content = ''.join(part.get('text', '') for part in content if isinstance(part, dict))
     if isinstance(content, dict): content = json.dumps(content)
     try: value = json.loads(content)
