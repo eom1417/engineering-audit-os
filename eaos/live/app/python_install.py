@@ -24,7 +24,7 @@ def install(app):
 
 def test_extra(app):
     """The pyproject.toml extra that brings pytest (`[project.optional-dependencies] test = ["pytest"]`), or None: its
-    tests need it installed (flaskr of the corpus: every gate said its tests passed, and none had run, M9.3)."""
+    tests need it installed, or every gate would say its tests passed while none had run."""
     try: extras = tomllib.loads(_read(app / 'pyproject.toml')).get('project', {}).get('optional-dependencies') or {}
     except (tomllib.TOMLDecodeError, AttributeError): return None
     if not isinstance(extras, dict): return None
@@ -34,7 +34,7 @@ def test_extra(app):
 def test_group(app):
     """The requirements of the pyproject.toml dependency group that brings pytest (`[dependency-groups] tests =
     ["pytest", ...]`, its included groups read in), or []: pip 24, the one a run's environment has, installs no group
-    by name (a stranger's library ran its tests without pytest, and no batch could open, 2026-11-04)."""
+    by name, so a library's tests would run without pytest."""
     try: groups = tomllib.loads(_read(app / 'pyproject.toml')).get('dependency-groups') or {}
     except (tomllib.TOMLDecodeError, AttributeError): return []
     if not isinstance(groups, dict): return []

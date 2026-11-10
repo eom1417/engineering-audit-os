@@ -1,11 +1,10 @@
 """The test users of a check, made by the person's assistant on the app as it runs in its isolated copy (the stage
-`session`, eaos/pipeline/runners/sign_in.py): the assistant writes the seed script that signs a user in, and a session in
-each view of the code (eaos/live/access/roles.py): a user of that kind, switched into it when the view is entered by a switch within
-one sign-in. EAOS runs it on the running app and tells what is still lacking, until every session opens its view's own
-pages (never the app's page for an address it does not have) or SECONDS pass. Then the person is asked to sign in by
-hand; when they did, the script only switches their session into each view a switch enters. Each try takes seconds:
-the app is never installed or started again for it.
-"""
+`session`, eaos/pipeline/runners/sign_in.py): the assistant writes the seed script that signs a user in, and a session
+in each view of the code (eaos/live/access/roles.py): a user of that kind, switched into it when the view is entered by
+a switch within one sign-in. EAOS runs it on the running app and tells what is still lacking, until every session opens
+its view's own pages (never the app's page for an address it does not have) or SECONDS pass. Then the person is asked to
+sign in by hand; when they did, the script only switches their session into each view a switch enters. Each try takes
+seconds: the app is never installed or started again for it. """
 import json
 import re
 import time
@@ -16,7 +15,7 @@ from ..app.run import kinds_folder
 from .roles import NOWHERE, about_users, add, claim, nowhere_of, opened, pages_of, proven, prove, read, way_in
 from ..app.profile import apply, safe
 
-SECONDS = 300                 # one round of tries; ROUNDS of them at most: fifteen minutes, as before
+SECONDS = 300                 # one round of tries; ROUNDS of them at most: fifteen minutes
 ROUNDS = 3
 PAGES = 150                   # the pages of the code each session is tried on, the views' own first
 
@@ -144,8 +143,8 @@ def _opens(live, base, session, pages):
 def make(project, trial, provider):
     """The assistant's seed script, run on the running app and told what is still lacking, round by round (ROUNDS at
     most): a round that ends with something lacking goes back to the node that owns the views and the way in, the
-    reading of the code (eaos/live/access/roles.py find), with what lacks, and the next round goes on with its answer. What is still
-    lacking ('' when every session works). `trial`: what the script is tried on (Trial)."""
+    reading of the code (eaos/live/access/roles.py find), with what lacks, and the next round goes on with its
+    answer. What is still lacking ('' when every session works). `trial`: what the script is tried on (Trial)."""
     from .roles import find
     wrong = lacking(*trial)
     for again in range(ROUNDS):
@@ -168,12 +167,14 @@ class Trial(NamedTuple):
 
 
 def _round(project, trial, provider, wrong):
-    """One round of make: the assistant told what lacks until nothing does, SECONDS pass or the same lack comes twice."""
+    """One round of make: the assistant told what lacks until nothing does, SECONDS pass or the same lack comes
+    twice."""
     live, report = trial.live, trial.report
     end = time.monotonic() + SECONDS
     messages = _told(project, live, report, trial.hand)
     tried = []
-    while wrong and time.monotonic() < end and tried[-2:] != [wrong, wrong]:    # twice the same lack: nothing more comes
+    # twice the same lack: nothing more comes
+    while wrong and time.monotonic() < end and tried[-2:] != [wrong, wrong]:
         tried.append(wrong)
         messages.append({'role': 'user', 'content': 'What is still lacking: ' + wrong})
         answer, _ = provider.complete(messages, stage='session', reads=live.sandbox.copy, deep=True)

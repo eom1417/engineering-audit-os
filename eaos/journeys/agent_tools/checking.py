@@ -1,4 +1,5 @@
-"""The check (audit): the person's choices for its AI, kept; the assistant's readiness; the check as a job; its overview."""
+"""The check (audit): the person's choices for its AI, kept; the assistant's readiness; the check as a job; its
+overview."""
 from .. import check_choices, guided
 from ..fix import lanes
 from ...core.project import branches
@@ -23,17 +24,18 @@ def _not_yet(state):
 
 def audit(project=None, fresh=False, use_assistant=None, without_tools=False, assistant=None, without_ai=False, again_from=None, engines=None,
           paths=None, mode=None, sign_in=None, published=None, run_app=False, go_on=False, fixed=False, person_agreed=False):  # limits: parameters -- the audit tool's arguments, one for one (MCP server and CLI)
-    """`use_assistant`, `assistant`: the person's choice for the check's AI, kept (one not ready stops it, with why);
-    `without_ai`: the rules alone; `again_from`: the last check goes on from that stage (`engines`: only those tools);
-    `paths`, `mode`, `sign_in`, `published`, `run_app` (kept: eaos/journeys/check_choices.py); `go_on`: Retry; `fixed`: the assistant
-    is fixed; `person_agreed`: their yes to a remedy's question (eaos/pipeline/remedies.py): the app runs, from setup."""
+    """`use_assistant`, `assistant`: the person's choice for the check's AI, kept (one not ready stops it, with
+    why); `without_ai`: the rules alone; `again_from`: the last check goes on from that stage (`engines`: only those
+    tools); `paths`, `mode`, `sign_in`, `published`, `run_app` (kept: eaos/journeys/check_choices.py); `go_on`:
+    Retry; `fixed`: the assistant is fixed; `person_agreed`: their yes to a remedy's question
+    (eaos/pipeline/remedies.py): the app runs, from setup."""
     run_app, again_from = remedies.agreed(run_app, again_from, person_agreed)
     state = state_of(project)
     stop = _not_yet(state)
     if stop: return stop
     state = _keep_ai_choice(state, use_assistant, assistant)
     if check_choices.keep(state, mode, sign_in, run_app): guided.save(state)
-    # A check on record stands until asked for anew (fresh): one started because the code moved on stopped fixes (2026-10-10).
+    # A check on record stands until asked for anew (fresh), so code that moved on does not start one by itself.
     if guided.scan_done(state) and not any((fresh, again_from, go_on)):
         return {'status': 'done', 'already_checked': True, **overview(project), **_older_check(state)}
     without_ai = check_choices.without_ai_kept(guided.report_of(state), without_ai, again_from, use_assistant is not None or assistant)
@@ -50,7 +52,8 @@ def _keep_ai_choice(state, use_assistant, assistant):
 
 
 def _assistant_not_ready(state, fixed=False):
-    """{status: assistant_not_ready, ...} when the person's assistant does not answer now, unless they said it is `fixed`."""
+    """{status: assistant_not_ready, ...} when the person's assistant does not answer now, unless they said it is
+    `fixed`."""
     if fixed or guided.answered(state, 'use_assistant') is False: return None      # on unless the person said no
     name = guided.chosen_assistant(state)
     if not name: return None
@@ -119,7 +122,8 @@ def overview(project=None):
 
 
 def _unchecked():
-    """What this version of EAOS does not check yet, in plain words: never tell the person the project is clean there."""
+    """What this version of EAOS does not check yet, in plain words: never tell the person the project is clean
+    there."""
     from ...core.language.words import catalog
     return [{'kind': kind, 'area': row['area'], 'what': row['one'][1], 'why': row['why'][1],
              'say': 'not checked by this version of EAOS: do not call this ground good or clean'} for kind, row in catalog()['unchecked'].items()]

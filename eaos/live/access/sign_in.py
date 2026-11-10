@@ -3,13 +3,17 @@ with, and the check waiting for the person to sign in by hand (docs/GUIDE.md "Si
 
     session(runtime)           <runtime>/session.json: the run's one browser session (Playwright storage state), made by
                                the seed script (a test user) or by the person on the sign-in page (by_hand); only its
-                               owner reads it, and nothing copies it into the report, a branch or what the assistant reads
-    from_code(report)          the sign-in the code shows (the surfaces of its `auth` feature, eaos/analysis/understanding/features.py)
-    from_pages(page)           the pages a probe (eaos/live/app/setup.py probe) saw sent to a sign-in, with where they went
+                               owner reads it, and nothing copies it into the report, a branch or what the assistant
+                               reads
+    from_code(report)          the sign-in the code shows (the surfaces of its `auth` feature,
+                               eaos/analysis/understanding/features.py)
+    from_pages(page)           the pages a probe (eaos/live/app/setup.py probe) saw sent to a sign-in, with where they
+                               went
     works(live, base, state)   whether `state` opens those pages signed in
     ask / asked / wait         the check asks the person to sign in (<workspace>/sign-in.json) and waits for them while
-                               the stages that open no page go on; the sign-in page (eaos/interfaces/studio_server/sign_in.py, the Studio's
-                               Waiting for you, `eaos sign-in`) answers it
+                               the stages that open no page go on; the sign-in page
+                               (eaos/interfaces/studio_server/sign_in.py, the Studio's Waiting for you, `eaos
+                               sign-in`) answers it
     renew(live, base, state)   a session made by hand checked before use; the person asked again only when it expired
     forget(workspace)          the project's sessions removed (Forget my sign-in, eaos clean)
 """
@@ -28,7 +32,8 @@ from ...core.system.clock import now
 SESSION = 'session.json'                     # in the run's folder: the session of the app in its isolated copy
 PUBLISHED = 'published-session.json'         # in the project's workspace: the published address's, for one check only
 ASKED = 'sign-in.json'                       # in the project's workspace: the check waits for the person to sign in
-WAIT = int(os.environ.get('EAOS_SIGN_IN_WAIT') or 900)   # seconds the check waits for the person before going on signed out
+# seconds the check waits for the person before going on signed out
+WAIT = int(os.environ.get('EAOS_SIGN_IN_WAIT') or 900)
 SIGNED_IN, SIGNED_OUT = 'signed_in', 'signed_out'
 
 
@@ -52,8 +57,9 @@ def by_hand(state):
 
 
 def seeding(state):
-    """The file a seed script signs in to: the run's session itself, or, the person's being theirs, a copy of it that
-    the script switches into each view (eaos/live/access/test_users.py BY_HAND); the caller removes the copy after the seed."""
+    """The file a seed script signs in to: the run's session itself, or, the person's being theirs, a copy of it
+    that the script switches into each view (eaos/live/access/test_users.py BY_HAND); the caller removes the copy
+    after the seed."""
     if not by_hand(state): return state
     copy = state.with_name('.seeded.json')
     shutil.copyfile(state, copy)
@@ -68,8 +74,9 @@ def mark(state):
 
 
 def from_code(report):
-    """The routes of the code's sign-in feature (eaos/analysis/understanding/features.py groups login, signin, auth... as `auth`),
-    and any route of another feature that is a sign-in itself (the detection baseline's /api/login, grouped as `api`)."""
+    """The routes of the code's sign-in feature (eaos/analysis/understanding/features.py groups login, signin,
+    auth... as `auth`), and any route of another feature that is a sign-in itself (the detection baseline's
+    /api/login, grouped as `api`)."""
     from ..app.setup import SIGN_IN_PAGE
     features = (read_json(Path(report) / 'features.json') or {}).get('features') or []
     routes = [s for f in features for s in f.get('surfaces') or [] if f.get('name') == 'auth' or SIGN_IN_PAGE.search(s)]

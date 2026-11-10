@@ -53,7 +53,8 @@ def _apply(root, edits):
 
 
 def _edited(edit, path, staged):
-    """What one edit leaves of its file: None (deleted), its new content, or its text so far with `find` replaced once."""
+    """What one edit leaves of its file: None (deleted), its new content, or its text so far with `find` replaced
+    once."""
     relative = edit['path']
     if edit.get('delete'): return None
     if 'content' in edit:
@@ -75,8 +76,8 @@ def _replaced(relative, text, find, replace):
 
 def _committed(root, card, arguments, repair):
     """((the files changed, those beyond the card's own paths), None), the change committed in the copy; else (None, why
-    nothing was kept), the copy as it was. A change beyond the card is kept only with the assistant's `beyond_why`, said in
-    its commit body (trial on real projects: a dialog's card changed 13 files, adding what nobody asked for)."""
+    nothing was kept), the copy as it was. A change beyond the card is kept only with the assistant's `beyond_why`, said
+    in its commit body, since it adds what nobody asked for."""
     from ..fix.waves import commit
     summary, why = arguments.get('summary') or '', (arguments.get('beyond_why') or '').strip()
     try:

@@ -1,7 +1,7 @@
-"""The first pass of a run's setup (eaos/live/app/setup.py): `detect()`, the draft run.json from the project's files alone:
-the app's folder, its package manager, how it installs, starts, builds and is checked, the environment names it reads
-(from .env.example files and the code; never from a real .env) and a value the run chooses for each, and the database
-it needs. Deterministic."""
+"""The first pass of a run's setup (eaos/live/app/setup.py): `detect()`, the draft run.json from the project's files
+alone: the app's folder, its package manager, how it installs, starts, builds and is checked, the environment names it
+reads (from .env.example files and the code; never from a real .env) and a value the run chooses for each, and the
+database it needs. Deterministic."""
 import re
 import secrets
 import socket
@@ -24,13 +24,15 @@ DATABASES = {
 ENV_IN_CODE = re.compile(r'(?:process\.env|import\.meta\.env)\.([A-Z][A-Z0-9_]{2,})|process\.env\[[\'"]([A-Z][A-Z0-9_]{2,})[\'"]\]')
 SECRETISH = re.compile(r'(SECRET|TOKEN|KEY|PASSWORD|PASS|SALT|PRIVATE|CREDENTIAL)', re.I)
 URLISH = re.compile(r'(URL|URI|HOST|ENDPOINT|DSN|ORIGIN|DOMAIN)$', re.I)
-MAIL_NAMES = re.compile(r'^(SMTP|MAIL|EMAIL)_?(HOST|SERVER|URL|PORT)$')     # where the app sends its mail: the run's Mailpit
+# where the app sends its mail: the run's Mailpit
+MAIL_NAMES = re.compile(r'^(SMTP|MAIL|EMAIL)_?(HOST|SERVER|URL|PORT)$')
 # Each framework's dev server on the run's port ({port}), with what it needs in its environment.
 VITE = ('npx vite --port {port} --host 127.0.0.1 --strictPort', {})
 DEV_SERVERS = {'expo': ('npx expo start --web --port {port} --host localhost', {'CI': '1'}),    # Expo ignores PORT
                'next': ('npx next dev -p {port} -H 127.0.0.1', {}), 'vite': VITE, '@sveltejs/kit': VITE, '@remix-run/dev': VITE,
                'astro': ('npx astro dev --port {port} --host 127.0.0.1', {}), 'nuxt': ('npx nuxt dev --port {port} --host 127.0.0.1', {})}
-SCHEMES = (('REDIS', 'redis'), ('MONGO', 'mongodb'), ('AMQP', 'amqp'), ('RABBIT', 'amqp'))   # an address a client parses by scheme
+# an address a client parses by scheme
+SCHEMES = (('REDIS', 'redis'), ('MONGO', 'mongodb'), ('AMQP', 'amqp'), ('RABBIT', 'amqp'))
 STATIC_SERVERS = ('browser-sync', 'live-server', 'http-server', 'lite-server', 'serve', 'five-server')
 SERVERS = ('express', 'fastify', 'koa', '@hapi/hapi', 'hono', '@nestjs/core', 'polka')
 SITE_FOLDERS = ('dist', 'build', '_site', 'public', 'docs', 'site', 'www', '.')
@@ -90,8 +92,8 @@ def runner(manager):
 
 def install_argv(manager, lockfile):
     if manager == 'npm': return ['npm', 'ci', '--no-audit', '--no-fund'] if lockfile else ['npm', 'install', '--no-audit', '--no-fund']
-    # pnpm 10 and later refuse an install whose packages have build scripts nobody approved (esbuild, sharp): the run's own
-    # copy installs them as a person's first `pnpm install` does, their scripts left unrun
+    # pnpm 10 and later refuse an install whose packages have build scripts nobody approved (esbuild, sharp): the run's
+    # own copy installs them as a person's first `pnpm install` does, their scripts left unrun
     return runner(manager) + ['install', '--frozen-lockfile'] + (['--config.strict-dep-builds=false'] if manager == 'pnpm' else [])
 
 
@@ -129,14 +131,14 @@ def dev_command(manager, package, port):
     port = str(port)
     if kind in DEV_SERVERS: return [word.format(port=port) for word in DEV_SERVERS[kind][0].split()], dict(DEV_SERVERS[kind][1])
     if kind == 'react-scripts': return run_script(manager, 'start'), {'BROWSER': 'none', 'HOST': '127.0.0.1', 'PORT': port}
-    for name in ('dev', 'start'):      # PORT: what a plain server reads, named in no .env (the golden trial's app never answered)
+    for name in ('dev', 'start'):      # PORT: what a plain server reads, named in no .env
         if name in scripts and script_is_safe(scripts, name): return run_script(manager, name), {'PORT': port}
     return None, {}
 
 
 def production_commands(manager, package, port):
-    """(build, start) for the load baseline: the built app, never the dev server; an app with no build step (a plain Node
-    server) is its own production, started as it starts ([] to build); (None, None) if unclear."""
+    """(build, start) for the load baseline: the built app, never the dev server; an app with no build step (a plain
+    Node server) is its own production, started as it starts ([] to build); (None, None) if unclear."""
     scripts, kind = package.get('scripts') or {}, framework(package)
     if kind == 'expo': return None, None       # its start script is the dev server
     build = [run_script(manager, 'build')] if 'build' in scripts and script_is_safe(scripts, 'build') else []
@@ -238,8 +240,9 @@ def database_kind(project, folder, package):
 
 
 def environment_values(names, port, database):
-    """A value the run chooses for each name: the local database, the run's mail catcher, an address nobody answers, or
-    a fresh random secret. Example values that are plainly not secrets (true, 3000, info) are kept; nothing is the owner's."""
+    """A value the run chooses for each name: the local database, the run's mail catcher, an address nobody answers,
+    or a fresh random secret. Example values that are plainly not secrets (true, 3000, info) are kept; no real
+    secret is used."""
     values, unset = {}, []
     for name, example in sorted(names.items()):
         if name in ('NODE_ENV',): continue
@@ -288,7 +291,8 @@ def prepare_commands(manager, package, project, folder, database):
 
 
 def _migrations(manager, scripts, app):
-    """How the run's empty database gets the app's tables: Prisma's migrations (or its push), else the app's migrate script."""
+    """How the run's empty database gets the app's tables: Prisma's migrations (or its push), else the app's migrate
+    script."""
     if (app / 'prisma/schema.prisma').is_file():
         return [['npx', 'prisma', 'migrate', 'deploy'] if (app / 'prisma/migrations').is_dir() else ['npx', 'prisma', 'db', 'push', '--skip-generate']]
     name = _first_safe(scripts, ('db:migrate', 'migrate:latest', 'migrate', 'db:push'))
@@ -300,13 +304,15 @@ def detect(project, report=None):
     project documents as a folder of a report points at `report` (report_values)."""
     project = Path(project)
     folder = app_folder(project)
-    if folder is None: return static_site(project, None, {}) or _unknown_app(project)     # a Python app: setup.py detect
+    # a Python app: setup.py detect
+    if folder is None: return static_site(project, None, {}) or _unknown_app(project)
     package = read_json(project / folder / 'package.json', {})
     return static_site(project, folder, package) or _javascript(project, folder, package, report)
 
 
 def _start(manager, package, port, app):
-    """(argv, its environment, the port) the app starts with: its framework's or script's dev server, else a plain server."""
+    """(argv, its environment, the port) the app starts with: its framework's or script's dev server, else a plain
+    server."""
     start, env = dev_command(manager, package, port)
     if start is not None: return start, env, port
     start, port = plain_server(app, package, port)
@@ -361,8 +367,8 @@ def _production_profile(manager, lockfile, build, production, profile):
 
 def static_site(project, folder, package):
     """detect()'s answer for a static site, served from its folder by Python's own server: pages with no package.json,
-    or a package that only builds them and previews them with a static server (browser-sync: it ignores PORT, and the
-    corpus' static site never answered); None for anything else."""
+    or a package that only builds them and previews them with a static server (browser-sync ignores PORT); None for
+    anything else."""
     if folder is not None and not _only_pages(package): return None
     manager, build, served = _site(project, folder, package)
     if served is None: return None
@@ -384,6 +390,7 @@ def _site(project, folder, package):
 
 
 def _only_pages(package):
-    """Whether a package only builds pages and previews them with a static server: no framework, no server of its own."""
+    """Whether a package only builds pages and previews them with a static server: no framework, no server of its
+    own."""
     deps = dependencies(package)
     return not framework(package) and not any(n in deps for n in SERVERS) and any(n in deps for n in STATIC_SERVERS)

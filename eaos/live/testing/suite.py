@@ -1,5 +1,5 @@
-"""A test suite's health (eaos/live/testing/verify.py run_profile measures it): each test's time, from the runner's own report
-switched on for the run, and the tests that run no line another test does not run too, from Coverage.py's dynamic
+"""A test suite's health (eaos/live/testing/verify.py run_profile measures it): each test's time, from the runner's own
+report switched on for the run, and the tests that run no line another test does not run too, from Coverage.py's dynamic
 contexts."""
 import json
 import os
@@ -31,7 +31,8 @@ def _npm_test_runner(app):
 
 
 def test_times(app):
-    """[(test, file, seconds)] from a JUnit XML (pytest) or a Jest-format JSON (vitest, jest) report, if one was written."""
+    """[(test, file, seconds)] from a JUnit XML (pytest) or a Jest-format JSON (vitest, jest) report, if one was
+    written."""
     app = Path(app)
     return _junit_times(app / '.eaos-junit.xml') + _jest_times(app / '.eaos-tests.json', app)
 

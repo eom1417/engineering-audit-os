@@ -23,7 +23,8 @@ from ...analysis.rules.held import brief
 # ---------------------------------------------------------------- fixing
 
 def _brief(card, rules=()):
-    """A card as the assistant reads it, with the person's rules that hold for it (M16.4): keep each, or the change is refused."""
+    """A card as the assistant reads it, with the person's rules that hold for it: keep each, or the change is
+    refused."""
     return {'id': card['id'], 'title': card.get('title'), 'kind': card.get('pattern'), 'paths': card.get('paths'),
             'before': card.get('before'), 'after': card.get('after'), 'impact': card.get('impact'),
             **({'your_rules': list(rules)} if rules else {})}
@@ -63,12 +64,13 @@ def delivery(state, deliver_as=None, merge_into=None):
 
 
 def fix_start(project=None, cards=None, size=10, base=None, deliver_as=None, merge_into=None, base_commit=None, assistants=1):  # limits: parameters -- the fix_start tool's arguments, one for one (MCP server and CLI)
-    """Open the next batch. As the fix preview set it: `base`, the branch to build on (by default the branch EAOS works
-    on; another one becomes the branch EAOS works on, as choose_branch does); `deliver_as`, the new branch the fixes
-    arrive on (default `eaos/<branch>/wave-N`), or an EAOS work branch waiting for a decision (the batch continues on
-    it), or the base branch itself (direct: the batch lands on it once it passes, no branch is left); `merge_into`, the branch accept merges them into (default the branch
-    open in the project folder); `base_commit`, the commit the preview showed for `base`: when the branch moved since,
-    nothing opens (status base_moved) and the preview is made again. `assistants`: how many fix it at once (eaos/journeys/fix/lanes.py)."""
+    """Open the next batch. As the fix preview set it: `base`, the branch to build on (by default the branch EAOS
+    works on; another one becomes the branch EAOS works on, as choose_branch does); `deliver_as`, the new branch the
+    fixes arrive on (default `eaos/<branch>/wave-N`), or an EAOS work branch waiting for a decision (the batch
+    continues on it), or the base branch itself (direct: the batch lands on it once it passes, no branch is left);
+    `merge_into`, the branch accept merges them into (default the branch open in the project folder); `base_commit`,
+    the commit the preview showed for `base`: when the branch moved since, nothing opens (status base_moved) and the
+    preview is made again. `assistants`: how many fix it at once (eaos/journeys/fix/lanes.py)."""
     stop, state = _settled(project)
     if stop: return stop
     if state.get('open_wave'): return _still_open(state['open_wave'])
@@ -136,7 +138,8 @@ def _chosen(state, cards, size):
 
 
 def _not_opening(state, chosen, known):
-    """Why a batch of `chosen` does not open: none, some need a decision, are repository craft or wait for others; else None."""
+    """Why a batch of `chosen` does not open: none, some need a decision, are repository craft or wait for others;
+    else None."""
     from ..fix.waves import kept_apart, too_early
     if not chosen: return {'status': 'nothing_to_fix', 'what_now': 'No fixable card is left; the rest need the person\'s decision (see plan).'}
     taken = [known[c] for c in chosen]
@@ -154,7 +157,8 @@ def _undecided(chosen, known):
 
 
 def _no_safety_net(state):
-    """Why no batch may open (the safety net is missing or recorded nothing: fix_finish would refuse every change); None."""
+    """Why no batch may open (the safety net is missing or recorded nothing: fix_finish would refuse every change);
+    None."""
     safety = state.get('safety') or {}
     if not guided.safety_holds(state, _head(state)):
         return {'status': 'no_safety_net', 'what_now': 'Call safety_net first: it records what the program does today.'}
@@ -198,8 +202,8 @@ def _fix_start_job(project, arguments, progress):
 
 
 def _no_longer_so(state, arguments):
-    """What changed between the asking and this job's turn, so that it opens nothing: a batch open, a decision or an agreement
-    now missing, or a new check that may have numbered the cards again."""
+    """What changed between the asking and this job's turn, so that it opens nothing: a batch open, a decision or an
+    agreement now missing, or a new check that may have numbered the cards again."""
     if state.get('open_wave'): return _still_open(state['open_wave'])
     if state.get('scanned') != arguments.get('scanned', state.get('scanned')):
         return {'status': 'plan_changed', 'what_now': 'A new check came since this batch was asked for: call fix_start again.'}
@@ -216,14 +220,16 @@ def _agreement_kept(state, source, runtime):
 
 
 def _settle_delivery(state, wave, root):
-    """Where a new batch goes: its own branch, direct onto its base, or on top of a work branch waiting for a decision."""
+    """Where a new batch goes: its own branch, direct onto its base, or on top of a work branch waiting for a
+    decision."""
     if not wave['deliver_as']: wave['deliver_as'], wave['merge_into'] = delivery(state, None, wave['merge_into'])
     if wave['deliver_as'] == wave['base_branch']:
         # direct: the batch is still built and checked here, handed over on a branch of its own and merged into the base
         # branch at once by fix_finish, which deletes that branch
         wave.update(direct=True, merge_into=wave['base_branch'], deliver_as=delivery(state, None, wave['base_branch'])[0])
     elif waiting_on(state, wave['deliver_as']):
-        # continue on an EAOS work branch waiting for a decision: the copy starts from its tip, the kept commits go on top
+        # continue on an EAOS work branch waiting for a decision: the copy starts from its tip, the kept commits go on
+        # top
         tip = commit_of(state['project'], wave['deliver_as'])
         fetched = guided._git(root, 'fetch', '--quiet', str(state['project']), f"+refs/heads/{wave['deliver_as']}:refs/eaos/continued")
         if fetched.returncode or guided._git(root, 'reset', '--hard', '--quiet', tip).returncode:
@@ -292,9 +298,10 @@ def _fix_edit_job(project, arguments, progress):
 
 
 def _back_to_what_is_recorded(root, wave):
-    """The copy as its record says: a job stopped or killed may have left a change no record holds, which the next edit
-    would be checked over. What the project ignores stays. When a recorded commit is not there, a hand-over killed midway
-    rewrote them: nothing says what may go, so nothing goes, and the batch's end rebuilds from what is kept."""
+    """The copy as its record says: a job stopped or killed may have left a change no record holds, which the next
+    edit would be checked over. What the project ignores stays. When a recorded commit is not there, a hand-over
+    killed midway rewrote them: nothing says what may go, so nothing goes, and the batch's end rebuilds from what is
+    kept."""
     recorded = {*wave['kept'].values(), *(wave.get('repairs') or [])}
     made = guided._git(root, 'rev-list', f"{wave['base']}..HEAD").stdout.split()
     if not recorded <= set(made): return
@@ -303,8 +310,9 @@ def _back_to_what_is_recorded(root, wave):
 
 
 def _record_kept(project, root, card_id, summary, outside):
-    """The change recorded on the batch, unless the code moved on during its checks (one kept change would let the batch go on);
-    `outside`: the files it changed beyond its card's own (eaos/journeys/fix/finish.py beyond) and why, said at the hand-over."""
+    """The change recorded on the batch, unless the code moved on during its checks (one kept change would let the
+    batch go on); `outside`: the files it changed beyond its card's own (eaos/journeys/fix/finish.py beyond) and
+    why, said at the hand-over."""
     with lanes.changing(project) as state:
         guided.refuse_if_stale(state)
         wave = state['open_wave']
@@ -333,7 +341,8 @@ def fix_skip(card, reason, project=None):
     if stop := guided.stale_refusal(state): return stop     # at once, not after its turn
     project = state['project']
     try:
-        with jobs.alone(project, WAIT), lanes.changing(project) as state:      # no change is checked while its copy is rebuilt
+        # no change is checked while its copy is rebuilt
+        with jobs.alone(project, WAIT), lanes.changing(project) as state:
             wave = _open(state)
             guided.refuse_if_stale(state)
             if card not in wave['cards']: raise ValueError(f"{card} is not in batch {wave['number']}")

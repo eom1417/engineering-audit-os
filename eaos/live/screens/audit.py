@@ -4,17 +4,14 @@ Two runners, each returning a plain dict with a `status` ('observed', 'unavailab
 when it did not observe; a missing tool is reported as unavailable, it is not raised:
 
     page_audit(urls, viewports, variants, out)   Playwright + axe (eaos/templates/screens/audit.mjs): per page,
-                                                 variant (by default the app's own theme alone) and viewport, the WCAG 2.2 A/AA violations, horizontal
-                                                 overflow, the scroll position after load, interactive targets
-                                                 under 44x44 CSS px at phone width, clipped text, letter-spaced
-                                                 Arabic, the page's script errors, the page height and a
-                                                 full-page screenshot.
+                                                 variant (by default the app's own theme alone) and viewport, the
+                                                 WCAG 2.2 A/AA violations, horizontal overflow, the scroll position
+                                                 after load, interactive targets under 44x44 CSS px at phone width,
+                                                 clipped text, letter-spaced Arabic, the page's script errors, the
+                                                 page height and a full-page screenshot.
     lighthouse(url, out)                         Lighthouse, mobile profile: category scores, LCP and CLS.
-The audit's wide pictures also count the look the page shows (its style census, M15.4), read by
+The audit's wide pictures also count the look the page shows (its style census), read by
 eaos/analysis/assessments/one_source_look.py.
-
-`failures(row)` names what fails the gate in one audited row. The browser is allowed the tested URL's origin
-only (file:// pages: file:// only); every other request is aborted and listed in the row.
 """
 import gzip
 import io
@@ -84,7 +81,7 @@ def variants(lang_key=None, lang_param=None, theme_key=None, theme_param=None, l
              lang_field=None, theme_field=None):  # limits: parameters -- the keys of an app profile's `screens` settings, passed as **settings
     """The page variants to audit. A language is set through a localStorage key or a query parameter, when one is
     named; a theme the same way, and always through prefers-color-scheme. By default one theme only, the app's own:
-    nothing is set and the browser asks for light (a dark pass doubled the pictures and the review, for a theme the
+    nothing is set and the browser asks for light (a dark pass would double the pictures and the review, for a theme the
     person rarely changes). A key with a field keeps a JSON object (the EAOS Studio keeps {"lang", "theme"} under
     "eaos.report.studio"): the variant's value is merged into that object, {key: {field: value}}, rather than set as the
     whole value."""
@@ -102,7 +99,8 @@ def _variant(lang, theme, keys, params):
 
 
 def _storage(keys, values):
-    """The localStorage values of a variant: each value under its key, merged into a JSON object when the key has a field."""
+    """The localStorage values of a variant: each value under its key, merged into a JSON object when the key has a
+    field."""
     storage = {}
     for (key, field), value in zip(keys, values):
         if not (key and value): continue

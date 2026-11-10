@@ -14,14 +14,14 @@ LISTING = re.compile(r'^\s*(Directory listing for /|Index of /|Files within /)',
 
 def listing(page):
     """Why the first page is no app: it is a plain listing of the project's files that a static server made, not a
-    page of the project (a Python library and a Flutter app were pictured and judged as such, 2026-11-04); '' otherwise."""
+    page of the project; '' otherwise."""
     if not LISTING.search(page.get('text') or ''): return ''
     raise NoInterface('the page is a listing of the project\'s files made by a static file server, not a page of the project')
 
 
 def declined(proposal):
     """The assistant answered that nothing in the project opens in a browser (`no_interface`, and why): asked again it
-    made one up (Python's file server on the project folder), so its answer is taken."""
+    would make one up (Python's file server on the project folder), so its answer is taken."""
     if str(proposal.get('no_interface') or '').strip(): raise NoInterface(str(proposal['no_interface']).strip()[:400])
 
 
@@ -34,9 +34,9 @@ EMPTY = re.compile(r'\b(no (data|reports?|results?|items?|records?|content|entri
 def empty_state(page, unset):
     """Why the first page is no working app although it answered: it shows an empty, "no data" state while the run
     has no value for a name the app reads, so every screen would be pictured empty. '' otherwise: a page of more than
-    SHORT words is the app, whatever "no ... yet" it shows (the full-stack app's command center, "No new cases", was refused)."""
+    SHORT words is the app, whatever "no ... yet" it shows."""
     text = ' '.join((page.get('text') or '').split())
-    if text.startswith(('{', '[')): return ''          # an API's answer (the corpus's task-api), not an empty screen
+    if text.startswith(('{', '[')): return ''          # an API's answer, not an empty screen
     if not unset or len(text.split()) > SHORT or not (EMPTY.search(text) or len(text.split()) < 3): return ''
     return ('the first page shows an empty, no-data state while the app runs without a value for: ' + ', '.join(unset[:12])
             + '. Give it one (often a folder or address the app reads its data from); the page says: ' + (text[:400] or '(nothing)'))

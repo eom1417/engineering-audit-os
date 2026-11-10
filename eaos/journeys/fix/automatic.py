@@ -1,6 +1,6 @@
-"""The cards of a batch that have a codemod, fixed by it in the batch's copy as the batch opens (fix_start): each kept, or
-taken back when it fails or breaks something; a lock file card that fails whole, kept for the packages that pass one at
-a time."""
+"""The cards of a batch that have a codemod, fixed by it in the batch's copy as the batch opens (fix_start): each kept,
+or taken back when it fails or breaks something; a lock file card that fails whole, kept for the packages that pass one
+at a time."""
 import subprocess
 
 from ...analysis.assessments.dependencies import check_of
@@ -17,7 +17,7 @@ def automatic_fixes(wave, cards, root, report, progress):
         why = _automatic_fix(wave, card, root, report)
         if why and not _in_part(wave, card, root, report): wave['failed'][card['id']] = why
     # A lock card whose dry run failed whole is tried one package at a time too; when none passes it stays the
-    # assistant's (a uv.lock card of ten packages: one needed a newer Python than the project's, 2026-11-04).
+    # assistant's (one package may need a newer Python than the project's).
     for card in [c for c in cards if c not in automatic and _dry(c).get('exit') not in (0, None)]:
         _in_part(wave, card, root, report)
 

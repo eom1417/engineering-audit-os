@@ -6,8 +6,7 @@ commits (rebuilt as leaving a card out rebuilds the copy, waves.rebuild), and ke
 and that kind's cards still pass their acceptance there. A kind that does not stand alone is named, not made. Accept and
 undo of the batch delete these branches with its own (drop): what EAOS makes, EAOS removes.
 
-Why: on the first trial on real projects a reviewer rejected every branch, one of which mixed dependency upgrades,
-refactors and visual fixes in 30 files, so nothing could be merged in pieces.
+Why: a branch mixing dependency upgrades, refactors and visual fixes in many files cannot be merged in pieces.
 """
 from pathlib import Path
 
@@ -31,8 +30,9 @@ def kind_of(card):
 
 def split(where, wave, summary):
     """{'split': [{kind, cards, branch}], 'not_split': [{kind, cards, why}]} of the batch `wave` handed over as
-    summary['branch'] in the project; `where`: (report, runtime, project). {} when it kept cards of one kind only, lands on
-    its base directly, or continues an earlier batch's branch (its base is then that batch, not the person's code)."""
+    summary['branch'] in the project; `where`: (report, runtime, project). {} when it kept cards of one kind only,
+    lands on its base directly, or continues an earlier batch's branch (its base is then that batch, not the
+    person's code)."""
     report, runtime, project = where
     cards = {card['id']: card for card in plan(Path(report))['tasks'] if card['id'] in summary['kept']}
     kinds = {}

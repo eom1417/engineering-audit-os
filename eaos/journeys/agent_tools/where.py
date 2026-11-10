@@ -20,7 +20,8 @@ def _branch(state):
     if state.get('branch'): return None
     current = branches.checked_out(state['project'])
     unfinished = state.get('open_wave') or waiting_batch(state) is not None
-    options = None if unfinished else branches.choice(state['project'])     # work begun before: it is the checked out branch's
+    # work begun before: it is the checked out branch's
+    options = None if unfinished else branches.choice(state['project'])
     if options is None:
         if current: guided.choose(state, current)
         return None
@@ -75,7 +76,9 @@ def _unanswered(asked, person_said):
     return (f'the question was put {None if since is None else int(since)} seconds ago: nobody answers that fast, so the '
             'person has not answered yet')
 
-def _batches(wave):     # status' open batch; `retired_batch` stays in the answer, null: status closes none, and says in `next` why one no longer fits
+# status' open batch; `retired_batch` stays in the answer, null: status closes none, and says in `next` why one no
+# longer fits
+def _batches(wave):
     return {'open_batch': {k: wave.get(k) for k in ('number', 'cards', 'kept', 'failed', 'last_error', 'deliver_as', 'merge_into', 'direct', 'continues')} if wave else None, 'retired_batch': None}
 
 
@@ -128,7 +131,8 @@ def _next_step(state, head, checked, busy, waiting):
 
 
 def _stale_step(state, head):
-    """The step past an open batch that no longer fits: never to go on with it, and it is still there; None without one."""
+    """The step past an open batch that no longer fits: never to go on with it, and it is still there; None without
+    one."""
     if not (why := guided.why_stale(state)): return None
     tool, step = _setup_step(state, head)
     return tool, f"{step} (batch {state['open_wave']['number']} no longer fits: {why}; it is still open, fix_start or fix_abandon closes it)"
@@ -155,8 +159,9 @@ def _setup_step(state, head):
 
 
 def _fresh_report(state):
-    """REPORT.html as it stands, rebuilt first when an older EAOS made it (after an update the person sees the new page at
-    once, from the check on record, before any new check): {page, built, version, commit, rebuilt, errors}."""
+    """REPORT.html as it stands, rebuilt first when an older EAOS made it (after an update the person sees the new
+    page at once, from the check on record, before any new check): {page, built, version, commit, rebuilt,
+    errors}."""
     made = guided.report_stamp(state)
     rebuilt = made.get('digest') != tool_digest()
     if rebuilt:

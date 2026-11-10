@@ -1,15 +1,16 @@
-"""A batch of moves (M8.5): the repository's layout put right by moving files, on a branch of its own, never mixed with
+"""A batch of moves: the repository's layout put right by moving files, on a branch of its own, never mixed with
 fix cards, and refused whole on any difference.
 
-    proposal(report, target)   one tree "today → proposed": each move with its reason (the repository's findings of
-                               M7.8: a family of files that wants its folder, tests that do not follow the code; the
-                               target shape's placements), and whether the project's tests can prove a move changed nothing
+    proposal(report, target)   one tree "today → proposed": each move with its reason (the repository's findings: a
+                               family of files that wants its folder, tests that do not follow the code; the target
+                               shape's placements), and whether the project's tests can prove a move changed nothing
     make(batch)                the moves the person accepted, made in a clone of the authorised commit by the move tool
                                (analysis/repair/moves.py), then the move gate: the public surface (entry points, the
-                               commands a package declares, every name each file exposes), every test back with its name
-                               and result, every check of the run profile (the build among them) with its exit, nothing
-                               newly broken (execute.new_breakage), and the behaviour lock on every screen. Any difference
-                               refuses the batch whole; a project whose tests cannot prove it gets the proposal only.
+                               commands a package declares, every name each file exposes), every test back with its
+                               name and result, every check of the run profile (the build among them) with its exit,
+                               nothing newly broken (execute.new_breakage), and the behaviour lock on every screen.
+                               Any difference refuses the batch whole; a project whose tests cannot prove it gets the
+                               proposal only.
 
 The handed-over branch is fetched into the person's project like a wave's (waves.apply); accept and undo decide it.
 """
@@ -23,8 +24,8 @@ from ...core.project.ledger import TRAILER
 from .execute import commit_all, git, new_breakage, own_batch, record_batch
 
 FAMILY, TESTS = 'prefix-family', 'tests-flat'
-# Moves drawn but never proposed, with what measured them: the target shape's, made on three corpus apps, gave a reader
-# the same answers to ten questions for 9 to 16% more tokens, in folders named after routes and files (M9.5).
+# Moves drawn but never proposed: the target shape's gave a reader the same answers to ten questions for 9 to 16% more
+# tokens, in folders named after routes and files.
 MEASURED_WORSE = {'target-shape': "not proposed: the target shape's moves cost a reader more (the same answers, 9 to 16% "
                                   "more tokens, M9.5); drawn for the picture only"}
 SOURCE = ('.py', '.js', '.jsx', '.mjs', '.cjs', '.ts', '.tsx', '.vue', '.svelte')
@@ -33,8 +34,9 @@ SOURCE = ('.py', '.js', '.jsx', '.mjs', '.cjs', '.ts', '.tsx', '.vue', '.svelte'
 # ---------------------------------------------------------------- the proposal
 
 def proposal(report, target):
-    """{moves: [{id, from, to, reason, rule, refused}], tree: [lines]}: the moves the repository's findings and the target
-    shape draw, each checked alone by the move tool (`refused`: why it cannot be made or is not proposed, else '')."""
+    """{moves: [{id, from, to, reason, rule, refused}], tree: [lines]}: the moves the repository's findings and the
+    target shape draw, each checked alone by the move tool (`refused`: why it cannot be made or is not proposed,
+    else '')."""
     target = Path(target)
     known = moves.files(target)
     drawn = _from_findings(report, known) + _from_target_shape(report, target, known)
@@ -49,7 +51,8 @@ def proposal(report, target):
 
 
 def _not_a_package(move):
-    """Why a Python file cannot live where it is sent: a folder whose name no import can spell (services/cli-tests-py/)."""
+    """Why a Python file cannot live where it is sent: a folder whose name no import can spell
+    (services/cli-tests-py/)."""
     folders = PurePosixPath(move['to']).parts[:-1]
     bad = [f for f in folders if move['to'].endswith('.py') and not f.isidentifier()]
     return [f'{move["to"]}: no import can name the folder {bad[0]}'] if bad else []
@@ -57,8 +60,8 @@ def _not_a_package(move):
 
 def _cannot(target, move, known):
     """Why the move tool cannot make the move alone: its plan, then the imports it would write (nothing written). The
-    plan alone let flaskr/auth.py be proposed into services/auth/, and the batch was refused whole at make: the package's
-    `from . import auth` cannot reach a module outside the package."""
+    plan alone would let a module such as pkg/auth.py be proposed into services/auth/, and the batch would be refused
+    whole at make: the package's `from . import auth` cannot reach a module outside the package."""
     drawn = moves.plan(target, [move], known)
     if drawn['refused']: return drawn['refused']
     try: moves.edits(target, drawn, known)
@@ -68,13 +71,13 @@ def _cannot(target, move, known):
 
 def _shared_place(move, drawn):
     """Another drawn move sends a different file to the same place: each looks makeable alone, never both together, and
-    a batch holding both is refused whole (two email.py files of a Flask app drawn into one feature folder)."""
+    a batch holding both is refused whole (two files of one name drawn into one folder)."""
     others = sorted({m['from'] for m in drawn if m['to'] == move['to'] and m['from'] != move['from']})
     return [f"{', '.join(others)} would become {move['to']} too"] if others else []
 
 
 def _set(report, name):
-    """The facts of one set of the report; [] when the check did not make it (a report older than M7.8)."""
+    """The facts of one set of the report; [] when the check did not make it (an older report)."""
     from ...facts.store import read_set
     try: return read_set(report, name).get('facts') or []
     except (OSError, ValueError): return []
@@ -193,7 +196,8 @@ def make(batch):
     say('moves')
     try: made = moves.apply(root, batch['moves'])
     except Unmovable as problem: return record_batch(batch, root, base, [], [f'the move tool refused: {problem}'])
-    touched = [*before['mapping'], *made['rewritten'], *made['created'], *before['mapping'].values()]   # never what a run left
+    # never what a run left
+    touched = [*before['mapping'], *made['rewritten'], *made['created'], *before['mapping'].values()]
     commit_all(root, f"Move {made['moved']} file(s) to their place\n\n" + '\n'.join(f"  {m['from']} -> {m['to']}" for m in batch['moves'])
                + f'\n\n{TRAILER}: moves', touched)
     say('gate')
@@ -222,9 +226,10 @@ def _lock(batch, root):
 
 
 def named_checks(root, runtime, name, checks=None):
-    """[{argv, at_root, exit, output}] of the run profile's checks and the Python tests on `root`, the tests told to name
-    each test they run (unittest -v, pytest -rA), so the gate finds every test back by its name. `checks` [(argv,
-    at_root)]: the same commands as before the moves (after them, a tests/ folder emptied by the moves builds none)."""
+    """[{argv, at_root, exit, output}] of the run profile's checks and the Python tests on `root`, the tests told to
+    name each test they run (unittest -v, pytest -rA), so the gate finds every test back by its name. `checks`
+    [(argv, at_root)]: the same commands as before the moves (after them, a tests/ folder emptied by the moves
+    builds none)."""
     from ...live.app.run import LiveRun
     from ...live.testing.verify import python_tests
     live = LiveRun(root, runtime, 'S09')

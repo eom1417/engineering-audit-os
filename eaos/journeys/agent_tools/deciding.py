@@ -9,7 +9,7 @@ from .project import state_of
 
 def _merge_problem(state, wave, into):
     """Why the waiting batch cannot be merged into `into` (None: the branch the fix preview named), else None: the
-    Studio's rule too (M3.3), a protected branch never."""
+    Studio's rule too, a protected branch never."""
     if not into: return None
     if not commit_of(state['project'], into): return f'no branch named {into} to merge into'
     if into == wave['branch']: return 'a branch cannot be merged into itself'
@@ -70,7 +70,8 @@ def undo(project=None, person_agreed=False):
     if outcome == 'merged': return {'status': 'merged', 'what_now': 'It is merged already; undoing it is a git revert, the person\'s decision.'}
     from ..fix.split import drop as drop_split
     for each in [w for w in state.get('waves') or [] if w.get('status') == 'applied' and w.get('branch') == wave['branch']]:
-        each['status'] = 'undone'                                       # every batch on it, and the branches of each kind
+        # every batch on it, and the branches of each kind
+        each['status'] = 'undone'
         drop_split(state['project'], each)
     guided.save(state)
     guided.publish(state)

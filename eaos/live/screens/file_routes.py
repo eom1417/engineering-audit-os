@@ -1,7 +1,7 @@
-"""The page routes a project's files make (the first layer of screen discovery, M5.2: rules): the folders a framework
+"""The page routes a project's files make (the first layer of screen discovery, by rules): the folders a framework
 turns into pages by their names (Next.js, Nuxt, SvelteKit, Astro, vite-plugin-pages, Expo Router, Streamlit's pages/),
-so a page no link reaches is still opened (Vitesse's /README, Streamlit's pages, Expo's onboarding steps were never
-pictured). A page with a parameter in its name ([id], :id, $id) is left to the links that fill it."""
+so a page no link reaches is still opened. A page with a parameter in its name ([id], :id, $id) is left to the links
+that fill it."""
 import re
 from pathlib import Path
 from ...core.system.files import read_json
@@ -42,7 +42,7 @@ def _web_routes(root):
     package = read_json(app / 'package.json')
     deps = dependencies(package) if package is not None else {}
     if any(FILE_ROUTER.search(c.read_text(encoding='utf-8', errors='replace')) for c in app.glob('vite.config.*')):
-        deps['vite-plugin-pages'] = ''      # Vue Router's own file routes (vue-router/vite): Vitesse
+        deps['vite-plugin-pages'] = ''      # Vue Router's own file routes (vue-router/vite)
     return [route for dependency, folder, kind in LAYOUTS if dependency in deps for route in _routes(app / folder, kind)]
 
 
@@ -61,14 +61,15 @@ def _route(relative, kind):
     """A page file's route, None for what is no page of its own: a layout, an API, a "not found", a parameter."""
     parts = list(relative.parent.parts) + ([] if kind != 'any' else [relative.stem])
     if any(map(_hidden, parts)): return None
-    parts = [p for p in parts if not (p.startswith('(') and p.endswith(')'))]      # a route group adds nothing to the address
+    # a route group adds nothing to the address
+    parts = [p for p in parts if not (p.startswith('(') and p.endswith(')'))]
     if parts and parts[-1] == 'index': parts.pop()
     return '/' + '/'.join(parts)
 
 
 def _django(app):
-    """The pages of a Django project's URL configuration, each include's prefix joined (LocalLibrary's /catalog/books/:
-    its catalog/urls.py says only books/)."""
+    """The pages of a Django project's URL configuration, each include's prefix joined (/catalog/books/ when
+    catalog/urls.py says only books/)."""
     settings = next((p for p in sorted(app.glob('*/settings.py'))), None)
     root = re.search(r'''ROOT_URLCONF\s*=\s*['"]([\w.]+)''', settings.read_text(encoding='utf-8', errors='replace')) if settings else None
     return _urlconf(app, root[1], '/', 0) if root else []

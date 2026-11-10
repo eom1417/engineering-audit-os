@@ -1,19 +1,18 @@
-"""The behaviour lock knows an intended change (M9.7): a card that changes screens on purpose declares them, and the
+"""The behaviour lock knows an intended change: a card that changes screens on purpose declares them, and the
 lock judges those screens against its declaration instead of refusing them.
 
 A card's `changes_screens` is {screens: [a route, or 'all' for a part every page shows], adds: [the words it adds]}
-(a link in the shared navigation shows on every page: flaskr's nav link was refused on every screen, M9.3). On a
+(a link in the shared navigation shows on every page). On a
 declared screen only, a difference that is ONLY the declared addition passes (judged): every recorded word still there
 and in its order, every new word one the card declared, the picture changed in at most PICTURE of its pixels and not
 in its size. Anything else still fails: a word removed or changed, a layout broken, a screen nobody declared, a page's
-errors. A card without the declaration is judged exactly as before.
+errors. A card without the declaration is judged by the plain rules.
 
 The words a pass saw are written by the page specs (eaos/live/behavior/specs.py) to EAOS_LOCK_WORDS, the pass's
 `words-<name>` folder, removed once judged. Once a batch with such a change is kept (eaos/journeys/fix/waves/batch.py),
-its declared screens are recorded again on its code (rerecord.py record_intended) into behavior-lock/intended/<commit>/, and every
-later run on code that holds that commit compares with them (restore_intended): the next card meets the new truth.
-At most KEPT such recordings are kept, the oldest removed.
-"""
+its declared screens are recorded again on its code (rerecord.py record_intended) into behavior-lock/intended/<commit>/,
+and every later run on code that holds that commit compares with them (restore_intended): the next card meets the new
+truth. At most KEPT such recordings are kept, the oldest removed. """
 import difflib
 import json
 import re
@@ -64,7 +63,8 @@ def for_pass(screens, lock, words, kind):
 
 
 def judged(where, name, message, intended):
-    """Whether a failed test of spec file `where` on screen `name` (its failure `message`) is only the declared addition."""
+    """Whether a failed test of spec file `where` on screen `name` (its failure `message`) is only the declared
+    addition."""
     allowed = _allowed(intended, name)
     if allowed is None or RESIZED.search(message): return False
     ratio = RATIO.search(message)

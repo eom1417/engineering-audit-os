@@ -1,7 +1,6 @@
-"""The first pass of a run's setup for a Python web app (live/app/detect.py does JavaScript ones): Django, Flask, FastAPI
-and Streamlit, found from the project's files alone; how it installs, prepares its database, starts and is checked,
-and the environment names its code reads. Deterministic: a Python app runs without an assistant (the corpus' four
-Python apps never started without one, M5.1)."""
+"""The first pass of a run's setup for a Python web app (live/app/detect.py does JavaScript ones): Django, Flask,
+FastAPI and Streamlit, found from the project's files alone; how it installs, prepares its database, starts and is
+checked, and the environment names its code reads. Deterministic: a Python app runs without an assistant."""
 import re
 from pathlib import Path
 
@@ -10,9 +9,10 @@ from .python_install import MANIFESTS, _read, install, test_extra, test_group
 PY_ENV = re.compile(r'''os\.(?:environ\.get|getenv)\(\s*['"]([A-Z][A-Z0-9_]{2,})['"]|os\.environ\[\s*['"]([A-Z][A-Z0-9_]{2,})['"]\s*\]''')
 SKIP = {'.venv', 'venv', 'env', 'node_modules', '.git', 'tests', 'test', 'site-packages', '__pycache__', 'migrations'}
 MARKERS = ('manage.py', *MANIFESTS)
-FIRST = ('streamlit_app.py', 'app.py', 'main.py', 'wsgi.py', 'run.py', 'server.py', 'Home.py')    # tried before the others
-# The run's test account in a Django app's own users (eaos/live/access/test_account.py signs in with it); an app whose user
-# model needs more is left to the sign-up page or the assistant, never a failed setup.
+# tried before the others
+FIRST = ('streamlit_app.py', 'app.py', 'main.py', 'wsgi.py', 'run.py', 'server.py', 'Home.py')
+# The run's test account in a Django app's own users (eaos/live/access/test_account.py signs in with it); an app whose
+# user model needs more is left to the sign-up page or the assistant, never a failed setup.
 DJANGO_ACCOUNT = '''import os
 from django.contrib.auth import get_user_model
 User, name = get_user_model(), os.environ['EAOS_TEST_USER']
@@ -50,7 +50,8 @@ def _modules(app):
 
 
 def _flask_app(app, modules):
-    """What `flask --app` names: FLASK_APP of .flaskenv or an example env file, else the first module that makes the app."""
+    """What `flask --app` names: FLASK_APP of .flaskenv or an example env file, else the first module that makes the
+    app."""
     for name in ('.flaskenv', '.env.example', '.env.sample'):
         declared = re.search(r'^\s*FLASK_APP\s*=\s*["\']?([\w.:()]+)', _read(app / name), re.M)
         if declared: return declared[1].removesuffix('.py')
@@ -97,7 +98,7 @@ def start(kind, target, port):
 
 def served_pages(live):
     """The GET routes without parameters a running Flask app serves, as Flask itself lists them (`flask routes`): the
-    blueprints' prefixes included, which the code read file by file misses (microblog's /login is /auth/login)."""
+    blueprints' prefixes included, which the code read file by file misses (a blueprint's /login is /auth/login)."""
     start = [str(word) for word in live.profile.get('start') or []]
     if start[1:4] != ['-m', 'flask', '--app']: return []
     code, out, _ = live.run(['python', '-m', 'flask', '--app', start[4], 'routes'], timeout=300)

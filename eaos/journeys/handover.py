@@ -119,7 +119,8 @@ def note(text, card=None, project=None, status=None):
 
 def _open_work(state):
     wave, build = state.get('open_wave'), state.get('open_build')
-    if wave: return None if guided.why_stale(state) else _open_batch(wave)     # no work to go on with: `status` says why
+    # no work to go on with: `status` says why
+    if wave: return None if guided.why_stale(state) else _open_batch(wave)
     if build: return _open_milestone(build)
     return None
 

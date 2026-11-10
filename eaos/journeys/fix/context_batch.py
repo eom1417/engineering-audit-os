@@ -1,4 +1,4 @@
-"""A batch of the assistants' context (M8.6): the files an assistant reads every session trimmed (analysis/repair/
+"""A batch of the assistants' context: the files an assistant reads every session trimmed (analysis/repair/
 context_trim.py) on a branch of their own, never mixed with fix cards or moves.
 
     proposal(target, private_to=None)   what the trim would do, nothing written: the done items it archives, the lines
@@ -21,7 +21,8 @@ ASSISTANT_FOLDERS = ('.claude', '.codex', '.cursor', '.gemini', '.github/copilot
 
 
 def private_problem(private_to):
-    """Why `private_to` cannot hold the person's own lines (outside the repository, or an assistant's folder), else ''."""
+    """Why `private_to` cannot hold the person's own lines (outside the repository, or an assistant's folder), else
+    ''."""
     if not private_to: return ''
     clean = posixpath.normpath(private_to)
     if posixpath.isabs(private_to) or clean.startswith('..'): return f'{private_to} is outside the repository'
@@ -31,7 +32,7 @@ def private_problem(private_to):
 
 
 def _guide(target, report):
-    """What the batch would write of the extension guide (M18.3), or None without a check that read the layers."""
+    """What the batch would write of the extension guide, or None without a check that read the layers."""
     drawn = project_guide.drawn_from_report(target, report)
     if not drawn: return None
     return {'path': project_guide.place(project_guide.tracked(target)), 'recipes': [r['title'] for r in drawn['recipes']],

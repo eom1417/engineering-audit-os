@@ -1,10 +1,11 @@
-"""What `eaos clean` may remove of the isolated copies under each project's runtimes: only a copy proved to hold nothing of
-anyone's. No work is open or waiting on it (the state and the runs say, never its name), nothing in it is uncommitted or
-ignored, and each commit made in it is held by the person's project (those it came with, as its origin refs said when it was
-cloned, are not its own, whatever the project did with them since). An ignored file stays whatever its name: that git ignores
-it says nothing of what is in it, and nothing here can tell a rebuilt node_modules from a patched one or a .env. Inside its .git
-only refs count: a reflog (every change a check took back is in it), a dropped stash, an object no ref holds or a loose file there
-do not. Whatever cannot be proved stays, and is said: a copy may hold the only trace of a change."""
+"""What `eaos clean` may remove of the isolated copies under each project's runtimes: only a copy proved to hold nothing
+of anyone's. No work is open or waiting on it (the state and the runs say, never its name), nothing in it is uncommitted
+or ignored, and each commit made in it is held by the person's project (those it came with, as its origin refs said when
+it was cloned, are not its own, whatever the project did with them since). An ignored file stays whatever its name: that
+git ignores it says nothing of what is in it, and nothing here can tell a rebuilt node_modules from a patched one or a
+.env. Inside its .git only refs count: a reflog (every change a check took back is in it), a dropped stash, an object no
+ref holds or a loose file there do not. Whatever cannot be proved stays, and is said: a copy may hold the only trace of
+a change."""
 import shutil
 from pathlib import Path
 
@@ -15,10 +16,12 @@ from ...core.project.state import of_workspace
 from ...core.system.files import read_json
 from .project import _git
 
-# A proved copy moved aside, and the file saying that what is missing from it went by a clean: a stop leaves both, and the next
-# clean proves what is left again, under the same lock, so nothing added since goes. Its .git goes last: it is the proof.
+# A proved copy moved aside, and the file saying that what is missing from it went by a clean: a stop leaves both, and
+# the next clean proves what is left again, under the same lock, so nothing added since goes. Its .git goes last: it is
+# the proof.
 REMOVING, PROVED = '.removing-', '.proved'
-# What a copy's or this computer's settings could hide or run while it is looked at; its filters are its own, EAOS made it.
+# What a copy's or this computer's settings could hide or run while it is looked at; its filters are its own, EAOS made
+# it.
 QUIET = ('-c', 'core.fsmonitor=false', '-c', 'core.excludesFile=', '-c', 'core.ignoreCase=false', '-c', 'core.hooksPath=/dev/null')
 UNREADABLE = (OSError, ValueError, KeyError, IndexError, TypeError, AttributeError)
 WHY = {'unknown': ('حالة المشروع مفقودة أو لا تُقرأ', "the project's state is missing or does not read"),
@@ -49,8 +52,8 @@ def cleared():
 
 
 def when_idle(folder, remove):
-    """`remove()` under the jobs' lock, once the state read there names this folder's project and no job or run may still need
-    its files; whether it ran. A job asking to start meanwhile waits for it."""
+    """`remove()` under the jobs' lock, once the state read there names this folder's project and no job or run may
+    still need its files; whether it ran. A job asking to start meanwhile waits for it."""
     try:
         with jobs.alone(of_workspace(folder)['project']):
             if _cannot_tell(of_workspace(folder), folder) == 'unknown' or _waiting(folder): return False
@@ -70,7 +73,8 @@ def _project_cleared(folder):
     copies = _listed(folder)
     if not copies: return 0, []
     try:
-        with jobs.alone(of_workspace(folder)['project']): return _judged(folder, copies)     # no job starts while copies go
+        # no job starts while copies go
+        with jobs.alone(of_workspace(folder)['project']): return _judged(folder, copies)
     except jobs.Busy:
         return 0, [(copy, 'working') for copy in copies]
     except UNREADABLE:
@@ -78,7 +82,8 @@ def _project_cleared(folder):
 
 
 def _listed(folder):
-    """The copies to judge, of every runtime of this project; a mark whose copy went goes. Nothing else goes before the lock."""
+    """The copies to judge, of every runtime of this project; a mark whose copy went goes. Nothing else goes before
+    the lock."""
     copies = []
     for candidates in (*folder.glob('runtime/candidates'), *folder.glob('runtime-*/candidates')):
         for marker in candidates.glob(f'{REMOVING}*{PROVED}'):
@@ -138,7 +143,8 @@ def _removed(proved):
 
 
 def _moved_aside(copy):
-    """The copy's new place; None when it stayed. Stopped before the mark is written, it is intact and only judged again."""
+    """The copy's new place; None when it stayed. Stopped before the mark is written, it is intact and only judged
+    again."""
     aside = copy.with_name(REMOVING + copy.name)
     try:
         copy.rename(aside)
@@ -172,7 +178,8 @@ def _cannot_tell(state, folder):
 
 
 def _waiting(folder):
-    """Whether a job is alive, a record of a job or a run does not read, a run has not ended (queued, or going on), or the queue names one."""
+    """Whether a job is alive, a record of a job or a run does not read, a run has not ended (queued, or going on),
+    or the queue names one."""
     if any(_job_holds(path) for path in (folder / 'jobs').glob('*.json')): return True
     runs = folder / 'runs'
     queue = read_json(runs / 'queue.json') if (runs / 'queue.json').exists() else []
@@ -209,7 +216,8 @@ def _why_kept(copy, project, opened):
 
 
 def _open_folders(state):
-    """The folders of the batches and the build the state holds open, on any branch; None when one does not say where."""
+    """The folders of the batches and the build the state holds open, on any branch; None when one does not say
+    where."""
     try:
         opened = [state.get('open_wave'), state.get('open_build'), *[branch.get('open_wave') for branch in (state.get('by_branch') or {}).values()]]
         roots = [str(batch.get('root') or '') for batch in opened if batch]
@@ -233,8 +241,9 @@ def _has_repositories(copy):
 
 
 def _why_its_files_stay(copy):
-    """Why what is in the copy's files is not all in its commits, or None: a file git was told not to look at, a change, an
-    untracked file, or an ignored one. A copy a stopped clean had proved may miss files: that clean took them."""
+    """Why what is in the copy's files is not all in its commits, or None: a file git was told not to look at, a
+    change, an untracked file, or an ignored one. A copy a stopped clean had proved may miss files: that clean took
+    them."""
     status = _git(copy, *QUIET, 'status', '--porcelain', '-z', '--untracked-files=all', '--ignored=matching', '--ignore-submodules=none')
     looked_at = _git(copy, *QUIET, 'ls-files', '-v')
     if status.returncode or looked_at.returncode: return 'unreadable'
@@ -259,9 +268,11 @@ def _commits_only_here(copy, project):
 
 
 def _as_cloned(copy):
-    """What its origin refs said when it was cloned. A ref with no reflog has not moved since, and the first line of one that
-    has says what it held before; one the copy made itself held nothing. A push or a fetch of its own moves them."""
-    if _git(copy, 'config', '--bool', 'core.logAllRefUpdates').stdout.strip() == 'false': return []      # no reflog says anything then
+    """What its origin refs said when it was cloned. A ref with no reflog has not moved since, and the first line of
+    one that has says what it held before; one the copy made itself held nothing. A push or a fetch of its own moves
+    them."""
+    # no reflog says anything then
+    if _git(copy, 'config', '--bool', 'core.logAllRefUpdates').stdout.strip() == 'false': return []
     refs = _git(copy, 'for-each-ref', '--format=%(objectname) %(refname)', 'refs/remotes/origin').stdout.splitlines()
     return [sha for sha in (_cloned_value(copy, *row.split()) for row in refs) if sha]
 

@@ -25,16 +25,17 @@ HANDED = ('applied', 'accepted', 'empty')
 
 
 def saved(state, runtime, before):
-    """What a save removes for the batches (guided.save), once the state is written: only what this save closes, told by
-    `before`, what it found on disk. A read saves too, and what an older EAOS or a failed removal left may be the only
-    trace of a change: it stays. A closed batch's or build's commits are in the person's project by then (its branch), its
-    patches beside the run (_write_wave), and nothing opens its copy again (six had kept 690 MB). Its bisection's logs go
-    too (104 had piled up): the batch's own gates log stays, the summary of what failed. And the patches this closing puts
-    past the ones kept."""
+    """What a save removes for the batches (guided.save), once the state is written: only what this save closes,
+    told by `before`, what it found on disk. A read saves too, and what an older EAOS or a failed removal left may
+    be the only trace of a change: it stays. A closed batch's or build's commits are in the person's project by then
+    (its branch), its patches beside the run (_write_wave), and nothing opens its copy again. Its bisection's logs
+    go too: the batch's own gates log stays, the summary of what failed. And the patches this closing puts past the
+    ones kept."""
     closing = _closing(state, before)
     for closed in closing:
         shutil.rmtree(Path(runtime) / 'candidates' / _copy_name(closed), ignore_errors=True)
-        if closed.get('via') == 'build': continue      # a build's number may be a fix batch's too, and it has no bisection
+        # a build's number may be a fix batch's too, and it has no bisection
+        if closed.get('via') == 'build': continue
         _bisection_logs_removed(runtime, closed['number'])
     if closing:
         for number in set(older(state)) - set(older(before)): shutil.rmtree(Path(runtime) / 'waves' / f'wave-{number}', ignore_errors=True)
@@ -47,8 +48,8 @@ def _bisection_logs_removed(runtime, number):
 
 
 def _closing(state, before):
-    """The records this save adds for a batch `before` held open. A state that does not read, is another branch's, or holds
-    no such batch closes nothing, whatever an older state in memory says."""
+    """The records this save adds for a batch `before` held open. A state that does not read, is another branch's,
+    or holds no such batch closes nothing, whatever an older state in memory says."""
     if not isinstance(before, dict) or before.get('branch') not in (None, state.get('branch')): return []
     opened, known = _held_open(before), {_copy_name(wave) for wave in before.get('waves') or []}
     return [wave for wave in state.get('waves') or [] if _copy_name(wave) in opened - known]
@@ -67,9 +68,9 @@ KEPT_BATCHES = 2     # the batches whose patches stay beside the run and in the 
 
 
 def older(state):
-    """The numbers of the closed batches past the last KEPT_BATCHES: their patches go (eight batches had kept 18 MB
-    twice, beside the run and in the outputs); their branches and the state's record of them stay. A batch of moves or
-    context has none here, so it takes no batch's place."""
+    """The numbers of the closed batches past the last KEPT_BATCHES: their patches go (each is kept twice, beside
+    the run and in the outputs); their branches and the state's record of them stay. A batch of moves or context has
+    none here, so it takes no batch's place."""
     numbers = sorted({wave['number'] for wave in state.get('waves') or [] if not wave.get('kind')})
     return numbers[:-KEPT_BATCHES]
 
@@ -85,9 +86,10 @@ def publish(state, runtime, fixes, number):
 
 
 def draw(state, runtime):
-    """The open batch as the flow `fix` (waves.FLOW), drawn again from the state at each of its saves, and once more when it
-    closes. No process holds a batch, the assistant's tool calls work it card by card, so nothing drew it and the live map
-    read "waiting" through every batch (owner, 2026-10-15). Called by guided.save; None when there is nothing to draw."""
+    """The open batch as the flow `fix` (waves.FLOW), drawn again from the state at each of its saves, and once more
+    when it closes. No process holds a batch, the assistant's tool calls work it card by card, so nothing else draws
+    it: without this the live map would read "waiting" through every batch. Called by guided.save; None when there
+    is nothing to draw."""
     wave = _to_draw(state)
     if not wave: return None
     progress.path_for(runtime, FIX).unlink(missing_ok=True)       # a drawing, not a run

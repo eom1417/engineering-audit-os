@@ -5,7 +5,7 @@ own tool's format, written under behavior-lock/ in the report:
 
   pages          Playwright (behavior-lock/playwright/<feature>.spec.ts): every route is opened, its console
                  errors and page errors are compared with a text snapshot, and the page with a screenshot.
-                 The first run on the original code (NS26) records both; that recording is the lock.
+                 The first run on the original code records both; that recording is the lock.
   http routes    Playwright request tests: a GET's status is recorded the same way. A route that writes is
                  not called blindly: it is skipped and marked needs_fixture.
   Python code    ApprovalTests (behavior-lock/approvals/test_<feature>.py): the public interface of the
@@ -13,17 +13,16 @@ own tool's format, written under behavior-lock/ in the report:
                  whose top level runs code (a Streamlit page, a script) is never imported.
 
 A route with a parameter ($id, :id) reads it from E2E_<PARAM>; without it the test is skipped and the
-surface is marked needs_fixture in plan.json, never dropped. Sign-in, when the owner grants E2E_USER and
+surface is marked needs_fixture in plan.json, never dropped. Sign-in, when authorization grants E2E_USER and
 E2E_PASSWORD (authorization.json -> env_allow), happens once in auth.setup.ts; no value is written here.
 Every spec describes today's behaviour, not the intended one: a console error today is recorded, not fixed.
 
-run_lock() is the screens part of the flow `safety` of the live map (FLOW, written by eaos/journeys/guided/:safety_run to
-<runtime>/progress/safety.jsonl): each pass runs with EAOS's stream reporter (eaos/templates/screens/
-stream-reporter.mjs), which writes a line per test to behavior-lock/stream.jsonl as it begins and ends; Screens
-follows that file and reports one step per spec file, with its shot once written. The approval tests run in the same
-passes with EAOS's pinned pytest (_approvals), each spec file a step too; their approved files are the recording of
-the code's interfaces, as the snapshots are of the screens.
-"""
+run_lock() is the screens part of the flow `safety` of the live map (FLOW, written by eaos/journeys/guided/:safety_run
+to <runtime>/progress/safety.jsonl): each pass runs with EAOS's stream reporter (eaos/templates/screens/
+stream-reporter.mjs), which writes a line per test to behavior-lock/stream.jsonl as it begins and ends; Screens follows
+that file and reports one step per spec file, with its shot once written. The approval tests run in the same passes with
+EAOS's pinned pytest (_approvals), each spec file a step too; their approved files are the recording of the code's
+interfaces, as the snapshots are of the screens. """
 import json
 import shutil
 from pathlib import Path
@@ -35,8 +34,8 @@ from .folder import LOCK_CONFIG, _keep, _prepare, lend_kinds, passes  # noqa: F4
 from .results import Screens, _declared, approval_statuses, failing_tests, spec_statuses  # noqa: F401  (the names others read here)
 from ...core.system.files import read_json
 
-# The specs this runs are written by eaos/live/behavior/specs.py, its folder made by live/behavior/folder.py, its passes read by
-# live/behavior/results.py.
+# The specs this runs are written by eaos/live/behavior/specs.py, its folder made by live/behavior/folder.py, its passes
+# read by live/behavior/results.py.
 
 # ApprovalTests reads its reporter from APPROVAL_TESTS_USE_REPORTER: the first pass approves what it receives (the
 # recording), every later one prints the difference.
@@ -45,9 +44,10 @@ COMPARE = 'approvaltests.reporters.PythonNativeReporter'
 
 
 def _pages_from_app(report, target, base, runtime):
-    """When the lock has no page (the code names none, no check crawled the app yet), the running app is crawled once
-    and its pages written to live/crawl.json, where the lock reads its stand-in pages (eaos/live/behavior/specs.py crawled_pages);
-    True when the lock was built again with them. A real incident: a fix batch refused for "0 screens recorded"."""
+    """When the lock has no page (the code names none, no check crawled the app yet), the running app is crawled
+    once and its pages written to live/crawl.json, where the lock reads its stand-in pages
+    (eaos/live/behavior/specs.py crawled_pages); True when the lock was built again with them. Without it a fix
+    batch is refused for "0 screens recorded"."""
     from . import specs as lock_specs
     from ..screens.crawl import crawl, distinct
     report = Path(report)
@@ -144,8 +144,8 @@ class LockPass(NamedTuple):
 
 def _run_specs(live, lock, base, recorded, how):
     """{spec file: (status, reason)} of one pass `how` (LockPass) of every spec the lock holds: the screens with
-    Playwright, the interfaces of the code with pytest; their reports are playwright-<name>.json and approvals-<name>.xml
-    in `recorded`."""
+    Playwright, the interfaces of the code with pytest; their reports are playwright-<name>.json and
+    approvals-<name>.xml in `recorded`."""
     from .intended import for_pass
     statuses, words = {}, (recorded / f'words-{how.name}') if how.intended else None     # removed once judged
     for kind, files in passes(lock) if (lock / 'playwright.config.ts').is_file() else []:
@@ -183,7 +183,8 @@ def key(result):
 
 
 def refused(lock):
-    """[{path, status, reason}] of each screen a run_lock answer could not lock; with none recorded, why (its limitations)."""
+    """[{path, status, reason}] of each screen a run_lock answer could not lock; with none recorded, why (its
+    limitations)."""
     results = lock['results']
     return [{k: r.get(k) for k in ('path', 'status', 'reason') if r.get(k)} for r in results if r['status'] != 'passed'] \
         or ([] if results else [{'reason': '; '.join(lock.get('limitations') or ['no screen could be opened'])}])
@@ -220,12 +221,14 @@ def run_lock(report, target, runtime, app=None):
     The first pass records each screen as it is today and approves each interface of the code (kept in
     behavior-lock/snapshots and behavior-lock/approved for every later run); the second must match them. A spec that
     passes the second pass locks today's behaviour; one that differs between two runs of the same code is not
-    deterministic and fails. Needs <runtime>/authorization.json granting S05 and <runtime>/run.json. `app`: the check's
-    running app (eaos/pipeline/runners/live_app.py shared_app), recorded on as it is, with the person's session; else its own."""
+    deterministic and fails. Needs <runtime>/authorization.json granting S05 and <runtime>/run.json. `app`: the
+    check's running app (eaos/pipeline/runners/live_app.py shared_app), recorded on as it is, with the person's
+    session; else its own."""
     from ..app.run import LiveRun
     report, runtime = Path(report), Path(runtime)
     recorded = runtime / 'behavior-lock'
-    if not (report / 'behavior-lock').is_dir() and not (runtime / 'run.json').is_file():     # nothing to lock, no app to crawl
+    # nothing to lock, no app to crawl
+    if not (report / 'behavior-lock').is_dir() and not (runtime / 'run.json').is_file():
         return {'results': [], 'limitations': ['the program has no feature to lock']}
     progress.begin('prepare')
     live = app[0] if app else LiveRun(target, runtime, 'S05')
@@ -325,8 +328,8 @@ def run_journeys(report, target, runtime, folder, app=None):
 
 
 def _walk(live, base, folder, kind, recorder):
-    """One walk of the journeys: with the run's one session over every spec, rrweb recording each page, or as kind of user
-    `kind` ((id, spec files)) over its own pages' specs, its report report@<kind>.json."""
+    """One walk of the journeys: with the run's one session over every spec, rrweb recording each page, or as kind
+    of user `kind` ((id, spec files)) over its own pages' specs, its report report@<kind>.json."""
     kind, files = kind
     mark = f'@{kind}' if kind else ''
     argv = ['playwright', 'test', '--config', 'lock.config.ts', '--project=lock', '--no-deps', '--workers=1',

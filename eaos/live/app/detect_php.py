@@ -1,13 +1,12 @@
 """The first pass of a run's setup for a PHP web app (live/app/detect.py does JavaScript ones, detect_python.py Python
 ones): its folder served by PHP's own server, its Composer packages installed, its PHPUnit suite as its check, from the
-project's files alone. A stranger's PHP app was served as a listing of its files, then could not run at all (2026-11-05)."""
+project's files alone."""
 import json
 from pathlib import Path
 
-# The folders a PHP app serves from, the commonest first (Laravel and Symfony's public/, web/, FreshRSS's p/).
+# The folders a PHP app serves from, the commonest first (public/ of Laravel and Symfony, web/, p/).
 SERVED = ('public', 'web', 'p', 'htdocs', '.')
-# PHP's own server answers one request at a time unless told to fork workers: a stranger's PHP app was crawled one page
-# at a time, its check's crawl the longest stage (2026-11-05).
+# PHP's own server answers one request at a time unless told to fork workers, so a crawl would go one page at a time.
 WORKERS = '4'
 
 

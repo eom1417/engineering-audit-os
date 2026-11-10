@@ -1,6 +1,6 @@
-"""What a sandboxed command sees of the disk (eaos/live/isolation/sandbox.py runs it, eaos/live/isolation/view.py applies the view):
-the real folders hidden from it, the ones its run owns, and the mounts that hide the first and show again what it is
-given inside the second; and whether this kernel gives a command a view of its own at all."""
+"""What a sandboxed command sees of the disk (eaos/live/isolation/sandbox.py runs it, eaos/live/isolation/view.py
+applies the view): the real folders hidden from it, the ones its run owns, and the mounts that hide the first and show
+again what it is given inside the second; and whether this kernel gives a command a view of its own at all."""
 import functools
 import json
 import os

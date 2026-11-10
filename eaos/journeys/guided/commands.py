@@ -16,7 +16,7 @@ from ...core.system.clock import now
 
 
 
-# The commands a user types, each ending with the next-step box (X4 in docs/north-star.json).
+# The commands a user types, each ending with the next-step box.
 USER_COMMANDS = ('start', 'next', 'status', 'doctor', 'clean', 'accept', 'undo', 'show', 'do', 'assistant', 'handover')
 
 
@@ -106,7 +106,8 @@ def _keep_assistant(state, named):
 
 
 def _missing_first(project, lang):
-    """Whether the computer misses something the check needs now that `eaos doctor --fix` cannot install; said, with its fix."""
+    """Whether the computer misses something the check needs now that `eaos doctor --fix` cannot install; said, with
+    its fix."""
     blocking = [row for row in doctor_rows(project) if not row['ok'] and row['when'] == 'now']
     if not blocking or all(row['fix'] == 'eaos doctor --fix' for row in blocking): return False
     for row in blocking: say(f"❌ {row[lang]}\n     → {row['fix']}")
@@ -116,9 +117,9 @@ def _missing_first(project, lang):
 
 
 def watch(state, args):
-    """Interface first: the install of the tools starts in the background (eaos/core/toolchain/runs.py), and the project's Studio,
-    started when it is not running, is printed and opened in the browser, unless `eaos start --no-watch`: on
-    "Preparing the tools" while a tool the check needs here is not ready, else on the live map."""
+    """Interface first: the install of the tools starts in the background (eaos/core/toolchain/runs.py), and the
+    project's Studio, started when it is not running, is printed and opened in the browser, unless `eaos start
+    --no-watch`: on "Preparing the tools" while a tool the check needs here is not ready, else on the live map."""
     if getattr(args, 'no_watch', False): return
     from ...core.system import launch
     from ...core import toolchain
@@ -162,13 +163,14 @@ def status(args):
 
 
 def clean(args):
-    """Remove the isolated copies proved to hold nothing (guided/copies.py), caches and app sessions EAOS made; reports and state stay. With --pictures, the screen
-    pictures, the crawl and the assistant's raw runs of every report (eaos/pipeline/run.py PICTURES): a new check
-    takes them again."""
+    """Remove the isolated copies proved to hold nothing (guided/copies.py), caches and app sessions EAOS made;
+    reports and state stay. With --pictures, the screen pictures, the crawl and the assistant's raw runs of every
+    report (eaos/pipeline/run.py PICTURES): a new check takes them again."""
     lang = language(args.lang)
     pictures = getattr(args, 'pictures', False)
     freed, kept = _pictures_cleared() if pictures else (0, [])
-    from ...live.isolation.sandbox import sweep                     # a live run's folder (held) stays: another project's check runs on
+    # a live run's folder (held) stays: another project's check runs on
+    from ...live.isolation.sandbox import sweep
     freed += sum(sweep(folder) for folder in (home() / 'projects').glob('*/runtime*/sandbox'))
     kept += _sessions_forgotten()
     gone, left = copies.cleared()
@@ -177,8 +179,8 @@ def clean(args):
 
 
 def _sessions_forgotten():
-    """The sessions of the apps removed: a check asks to sign in again. A project with work going on, or that cannot be told,
-    keeps its own: what stayed."""
+    """The sessions of the apps removed: a check asks to sign in again. A project with work going on, or that cannot
+    be told, keeps its own: what stayed."""
     from ...live.access.sign_in import forget
     return [(folder, 'held') for folder in (home() / 'projects').glob('*') if not copies.when_idle(folder, lambda place=folder: forget(place))]
 
@@ -194,8 +196,8 @@ def _say_cleaned(lang, pictures, freed, kept):
 
 
 def _pictures_cleared():
-    """The screen pictures, crawl and raw assistant runs of every report removed (PICTURES), but those of a project with work
-    going on, or whose folder does not say which project it is: (the bytes freed, what stayed)."""
+    """The screen pictures, crawl and raw assistant runs of every report removed (PICTURES), but those of a project
+    with work going on, or whose folder does not say which project it is: (the bytes freed, what stayed)."""
     from ...pipeline.run import PICTURES, clear
     freed, kept = [], []
     for report in (*outputs_root().glob('*/technical'), *outputs_root().glob('*/branches/*/technical')):
@@ -205,7 +207,8 @@ def _pictures_cleared():
 
 
 def _project_of(report):
-    """The project's EAOS folder for this report, only when its outputs folder's mark and that project's state agree; else None."""
+    """The project's EAOS folder for this report, only when its outputs folder's mark and that project's state
+    agree; else None."""
     outputs = report.parent if report.parent.parent == outputs_root() else report.parents[2]
     try:
         project = (outputs / '.eaos-project').read_text(encoding='utf-8').strip()
@@ -234,8 +237,9 @@ def resume(args):
     return 0
 
 
-# accept, undo and the check `start` asks for are the terminal's (eaos/interfaces/terminal/commands.py: what will happen, the person's yes),
-# registered by that module itself (TERMINAL['check'] and COMMANDS), so that this one does not import it.
+# accept, undo and the check `start` asks for are the terminal's (eaos/interfaces/terminal/commands.py: what will
+# happen, the person's yes), registered by that module itself (TERMINAL['check'] and COMMANDS), so that this one does
+# not import it.
 TERMINAL = {}
 COMMANDS = {'start': start, 'next': next_command, 'status': status, 'doctor': doctor, 'clean': clean,
             'show': show, 'do': do, 'assistant': assistant, 'handover': resume}

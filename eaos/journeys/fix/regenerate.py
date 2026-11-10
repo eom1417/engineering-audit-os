@@ -2,10 +2,10 @@
 
 A project may commit what its build makes (EAOS ships its built Studio in eaos/data/studio, and a test checks it is
 built from today's source). A batch that changes that source then fails the project's checks together, though every
-change is right, and the assistant cannot run the build from its edits (EAOS on itself, 2026-10-13: four sound Studio
-fixes were about to be left out for it). So when the batch's changes touch the app the run profile builds, its
-build runs in a sandbox copy of the batch, and every file it changed that git keeps comes back as one commit on top.
-A build that fails changes nothing here: the project's own checks then say why.
+change is right, and the assistant cannot run the build from its edits: sound fixes would be left out for it. So when
+the batch's changes touch the app the run profile builds, its build runs in a sandbox copy of the batch, and every
+file it changed that git keeps comes back as one commit on top. A build that fails changes nothing here: the
+project's own checks then say why.
 """
 import subprocess
 from pathlib import Path
@@ -40,11 +40,10 @@ def regenerate(root, runtime, base, number):
 
 
 def keep_guide(root, report, project, number, base):
-    """The project's extension guide (M18.3) brought up to date as one commit on top of the batch, from the check's own
-    read, only when the project held one at `base` and the batch moved or removed a path it names; else None. A fix batch
-    never writes a guide or a context file the project did not have: a guide is made by the context batch, on a branch of
-    its own (DECISIONS "Repository craft"; on five real projects every fix branch carried three files the person never
-    asked for). A batch never fails for its guide."""
+    """The project's extension guide brought up to date as one commit on top of the batch, from the check's own read,
+    only when the project held one at `base` and the batch moved or removed a path it names; else None. A fix batch
+    never writes a guide or a context file the project did not have: a guide is made by the context batch, on a branch
+    of its own, so a fix branch never carries files the person never asked for. A batch never fails for its guide."""
     from .waves import commit
     from ...analysis.repair import project_guide
     path = project_guide.existing(root, base)
@@ -65,7 +64,8 @@ def _moved_named(root, base, path):
 
 def _bring_back(root, copy):
     """Every file the build changed in `copy` that git keeps in `root`, written there; tracked files it removed,
-    removed. The copy started as exactly the tracked files of `root`'s commit (eaos/live/isolation/sandbox.py committed_copy)."""
+    removed. The copy started as exactly the tracked files of `root`'s commit (eaos/live/isolation/sandbox.py
+    committed_copy)."""
     tracked = set(git(root, 'ls-files').stdout.splitlines())
     made = _files(copy)
     ignored = set(subprocess.run(['git', '-C', str(root), 'check-ignore', '--stdin'], input='\n'.join(made),

@@ -1,4 +1,4 @@
-"""What ran of the project while EAOS ran it (M13.2): its own functions and lines run by its tests, by its server while
+"""What ran of the project while EAOS ran it: its own functions and lines run by its tests, by its server while
 the pages were opened, and in the browser, so code reached but never run can be told from code that runs.
 
 Each run leaves one record, <out>/live/ran-<kind>.json (`tests`, `server`, `browser`):
@@ -32,7 +32,7 @@ RC = '.eaos-ran-coveragerc'
 def own(path, root):
     """`path` relative to the project root when it is one of its own source files, else None. A file the run made
     and removed is not one (Vite bundles its config into a `vite.config.*.timestamp-*.mjs` beside it, runs it and
-    deletes it: a server's record named it as the project's)."""
+    deletes it: a server's record would name it as the project's)."""
     name = str(path)
     if name.startswith('file://'): name = name[len('file://'):]
     root = Path(root).resolve().as_posix().rstrip('/') + '/'
@@ -146,7 +146,8 @@ def server(argv, env, folder, copy, python=False):
     env = {**env, 'NODE_V8_COVERAGE': str(folder / 'v8'), 'NODE_OPTIONS': options}
     if python:
         (Path(copy) / RC).write_text(f'[run]\ndata_file = {folder / ".coverage"}\nparallel = true\nsigterm = true\n', encoding='utf-8')
-        # the interpreter's own options (-u, -X dev) stay the interpreter's, before `-m coverage`: Coverage.py takes none
+        # the interpreter's own options (-u, -X dev) stay the interpreter's, before `-m coverage`: Coverage.py takes
+        # none
         flags = list(takewhile(lambda part: str(part).startswith('-') and str(part) != '-m', argv[1:]))
         argv = [argv[0], *flags, '-m', 'coverage', 'run', f'--rcfile={Path(copy) / RC}', *argv[1 + len(flags):]]
     return argv, env

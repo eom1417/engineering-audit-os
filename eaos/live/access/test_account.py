@@ -1,9 +1,9 @@
-"""A test account made by rules, before any assistant and without one (M5.3): the app's own sign-in page filled the way
+"""A test account made by rules, before any assistant and without one: the app's own sign-in page filled the way
 a person fills it, after its own sign-up page when the account is not there yet (eaos/templates/setup/sign-up.cjs); a
-Django app gets the account from its own command first (live/app/detect_python.py). So an app that signs in with a name or an
-e-mail and a password is checked signed in on any computer: the corpus' sign-in app was seen signed out without an
-assistant. The account is the run's own (EAOS_TEST_USER, a password the run chose, both in run.json -> env), made again
-in each run's database; the script becomes the run's seed, so every later start signs in the same way."""
+Django app gets the account from its own command first (live/app/detect_python.py). So an app that signs in with a name
+or an e-mail and a password is checked signed in on any computer, without an assistant. The account is the run's own
+(EAOS_TEST_USER, a password the run chose, both in run.json -> env), made again in each run's database; the script
+becomes the run's seed, so every later start signs in the same way."""
 import json
 import secrets
 from pathlib import Path
@@ -23,9 +23,9 @@ def account(profile):
 
 
 def by_rules(live, base, state, sign_in_page):
-    """Sign in by rules on the running app, the session saved to `state`, the run's seed from now on: [] once in, else
-    what was tried ([{did: signed_up | signed_in | no_form, at: its page}]), run.json as it was, for the question the person
-    is asked (the Studio's words ac.si.did.*)."""
+    """Sign in by rules on the running app, the session saved to `state`, the run's seed from now on: [] once in,
+    else what was tried ([{did: signed_up | signed_in | no_form, at: its page}]), run.json as it was, for the
+    question the person is asked (the Studio's words ac.si.did.*)."""
     seed = live.runtime / 'setup' / SCRIPT.name
     seed.parent.mkdir(parents=True, exist_ok=True)
     seed.write_text(SCRIPT.read_text(encoding='utf-8'), encoding='utf-8')

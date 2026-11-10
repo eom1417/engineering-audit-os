@@ -10,8 +10,8 @@ DEADCODE = re.compile(r"== \('([^']+)', '([^']*)', '([\w-]+)'\)")
 
 
 def engines_for(cards):
-    """The engines a collection of facts on a changed copy runs: the security gate's (eaos/journeys/fix/execute.py GATE_ENGINES),
-    and those a card's own recheck asks again (a security card names the engines that found it)."""
+    """The engines a collection of facts on a changed copy runs: the security gate's (eaos/journeys/fix/execute.py
+    GATE_ENGINES), and those a card's own recheck asks again (a security card names the engines that found it)."""
     from ..execute import GATE_ENGINES
     named = set()
     for card in cards:
@@ -41,9 +41,9 @@ def batch_acceptance(report, cards, root, collected=None, runtime=None):
         return {card['id']: _acceptance_exit(card, sets, dead, where) for card in cards}
 
 
-# What a probe reads beside the collection, made again on the copy as eaos recheck makes it (eaos/analysis/claims/recheck.py
-# MORE): the load model, the layers (never in the collection, eaos/facts/run.py), and a person's rule's own guard (M16),
-# whose stored finding is the check's, never the copy's.
+# What a probe reads beside the collection, made again on the copy as eaos recheck makes it
+# (eaos/analysis/claims/recheck.py MORE): the load model, the layers (never in the collection, eaos/facts/run.py), and
+# a person's rule's own guard, whose stored finding is the check's, never the copy's.
 AGAIN = ('load_blocker_present', 'boundary_finding_present', 'rule_broken')
 
 
@@ -70,7 +70,8 @@ def _still(card, out, root):
 
 
 def _tests_command(spec):
-    """The command of a failing-tests card (eaos/analysis/layers/operations.py _failing), or None for any other probe."""
+    """The command of a failing-tests card (eaos/analysis/layers/operations.py _failing), or None for any other
+    probe."""
     specification = (spec or {}).get('specification') or {}
     return (specification.get('params') or {}).get('command') if specification.get('rule') == 'tests-failing' else None
 

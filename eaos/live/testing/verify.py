@@ -191,7 +191,8 @@ TEST_WORDS = re.compile(r'(^|[^a-z])(test|tests|pytest|unittest|vitest|jest|moch
 def python_tests(target, profile=None):
     """[the command that runs a Python project's own tests from its root] (python_suite.py), as the coverage stage and
     the batch gates (eaos/journeys/fix/execute.py) run them; [] without any, or when the run profile runs a suite."""
-    if any(Path(str(argv[0])).name in INTERPRETER_NAMES for argv in test_commands(profile)): return []   # the profile runs them
+    # the profile runs them
+    if any(Path(str(argv[0])).name in INTERPRETER_NAMES for argv in test_commands(profile)): return []
     found = _python_suite(target)
     return [found] if found else []
 
@@ -237,10 +238,11 @@ def _count_functions(row, script):
 
 
 def run_profile(target, out, runtime, timeout=1800):
-    """The run profile's test commands in the sandbox copy (eaos/live/app/run.py), with coverage: verification.json and the
-    `verification` facts. Raises LookupError when the profile names no test command. The project's own interpreter
-    and test runner are used as the profile declares them; Python commands run under `-m coverage` when the project
-    has coverage installed, and every command runs with NODE_V8_COVERAGE, which Node fills on its own."""
+    """The run profile's test commands in the sandbox copy (eaos/live/app/run.py), with coverage: verification.json
+    and the `verification` facts. Raises LookupError when the profile names no test command. The project's own
+    interpreter and test runner are used as the profile declares them; Python commands run under `-m coverage` when
+    the project has coverage installed, and every command runs with NODE_V8_COVERAGE, which Node fills on its
+    own."""
     from ..app.run import LiveRun, load_profile
     target, out, runtime = Path(target).resolve(), Path(out).resolve(), Path(runtime)
     out.mkdir(parents=True, exist_ok=True)
@@ -267,7 +269,7 @@ def run_profile(target, out, runtime, timeout=1800):
         for path, row in v8_coverage(v8, live.sandbox.copy).items():
             files.setdefault(path, {'covered_lines': row['functions_hit'], 'statements': row['functions'], 'percent': row['percent'],
                                     'unit': 'functions'})
-        record(out, 'tests', merged(v8_functions(v8, live.sandbox.copy), *lines))     # what the tests ran, by function (M13.2)
+        record(out, 'tests', merged(v8_functions(v8, live.sandbox.copy), *lines))     # what the tests ran, by function
     finally:
         live.stop()
         live.record('verify-log.json')
@@ -285,13 +287,16 @@ def run_profile(target, out, runtime, timeout=1800):
 
 
 def _suites(target, profile):
-    """[(test commands, run from the root)] of the project's suites: the profile's tests, and a Python suite beside it."""
-    # The profile's tests run in the app's folder; a Python suite beside it (eaos/journeys/fix/execute.py python_tests) from the root.
+    """[(test commands, run from the root)] of the project's suites: the profile's tests, and a Python suite beside
+    it."""
+    # The profile's tests run in the app's folder; a Python suite beside it (eaos/journeys/fix/execute.py python_tests)
+    # from the root.
     return [(group, at_root) for group, at_root in ((test_commands(profile), False), (python_tests(target, profile), True)) if group]
 
 
 def _one_suite(suites):
-    """The health of every suite the project has, as one: their tests and time added, the slowest and redundant of all."""
+    """The health of every suite the project has, as one: their tests and time added, the slowest and redundant of
+    all."""
     if len(suites) == 1: return suites[0]
     slowest = sorted((row for s in suites for row in s['slowest']), key=lambda row: -row['seconds'])[:10]
     redundant = [row for s in suites for row in s['redundant']]
@@ -329,7 +334,8 @@ def _run_tests(live, suite, app, v8, timeout):
 
 
 def _python_coverage(live, python, app, at_root=False):
-    """({path: coverage row}, {test: lines it ran}) from Coverage.py's report with its contexts; empty when none was made."""
+    """({path: coverage row}, {test: lines it ran}) from Coverage.py's report with its contexts; empty when none was
+    made."""
     files, contexts = {}, {}
     code, _, _ = live.run([python, '-m', 'coverage', 'json', '--rcfile=.eaos-coveragerc', '--show-contexts', '-o', '.eaos-coverage.json'],
                           timeout=300, at_root=at_root)

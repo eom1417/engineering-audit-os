@@ -37,7 +37,7 @@ def findings(project=None, kind=None, path=None, text=None, fixable_only=False, 
 
 
 def _finding_row(task, claim, lang):
-    """One card as findings lists it, its title in the person's language (an engine's card was said in Arabic only)."""
+    """One card as findings lists it, its title in the person's language."""
     return {'id': task['id'], 'title': title_of(task, lang), 'kind': task.get('pattern'), 'paths': (task.get('paths') or [])[:5],
             'fixable_automatically': _ready(task), 'decision': (task.get('decision') or {}).get('kind'),
             'confidence': claim.get('confidence'), 'priority': task.get('priority')}
@@ -79,7 +79,7 @@ def _card_of(report, id):
 
 
 def _evidence(state, report, card, claim):
-    """The facts behind a card and its claim (up to EVIDENCE; shown six, an assistant missed the rest), with their code."""
+    """The facts behind a card and its claim (up to EVIDENCE), with their code."""
     from ...facts.store import by_id
     fact_ids = list(dict.fromkeys((claim.get('fact_ids') or []) + ((card.get('evidence') or {}).get('fact_ids') or [])))
     facts = by_id(report, fact_ids[:EVIDENCE])
@@ -137,7 +137,8 @@ def structure(project=None):
 
 
 def design(project=None):
-    """What the project's screens are made of (design/inventory.json), pictures aside: how many looks per part, values per kind."""
+    """What the project's screens are made of (design/inventory.json), pictures aside: how many looks per part,
+    values per kind."""
     state = state_of(project)
     drawn = _read(_report(state) / 'design' / 'inventory.json') if (_report(state) / 'design' / 'inventory.json').is_file() else None
     if not drawn: return {'status': 'not_read', 'what_now': 'The screens were not read: the app must run in a check (run_setup, then audit).'}
@@ -147,7 +148,8 @@ def design(project=None):
 
 
 def _milestone_row(m, tasks, whole, tried_card, where):
-    """One milestone with its cards (of `tasks`, by id): all of them when `whole`, else the first 25 and how many more."""
+    """One milestone with its cards (of `tasks`, by id): all of them when `whole`, else the first 25 and how many
+    more."""
     cards = [tasks[i] for i in m['tasks'] if i in tasks]
     shown = cards if whole else cards[:25]
     return {'id': m['id'], 'name': m.get('name'), 'goal': m.get('goal'), 'exit': m.get('exit'),
@@ -180,8 +182,8 @@ def _card_states(record):
 
 
 def impact(target, project=None, depth=3):
-    """What changing a file or a symbol touches, from the check's facts: who imports it, the flows and entry points through
-    it, the tests that cover it, and the files that change with it in the history."""
+    """What changing a file or a symbol touches, from the check's facts: who imports it, the flows and entry points
+    through it, the tests that cover it, and the files that change with it in the history."""
     from ...analysis.maps.impact import LIMITS, assess
     result = assess(_report(state_of(project)), target, depth)
     return {**result, 'limits': LIMITS}
@@ -224,7 +226,8 @@ def _tool_rows(files):
 
 
 def _missing(rows):
-    """(the tools not installed that could be and the project may need, the names of those the check does not wait for)."""
+    """(the tools not installed that could be and the project may need, the names of those the check does not wait
+    for)."""
     wanted = [r for r in rows if not r['ok'] and not r['unavailable'] and r['needed_here'] is not False]
     return wanted, [r['name'] for r in wanted if not r['for_the_check']]
 

@@ -1,14 +1,15 @@
 """The views of an app, read from its code by the person's assistant: each set of pages one kind of user sees (a
 clinic's reception, doctor, nurse, pharmacy, administration...), with the line of code that makes it a view, how a
 person enters it (an account of its own, or a switch of profile, workspace or organization within one sign-in, and the
-line of that switch) and the pages that are its own. One reading serves every check: the stage `session` makes a
-session per view on the running app (eaos/live/access/test_users.py), the page stages open each view's pages with its own session
-(share), and a page that did not open as itself (opened: a sign-in, a refusal, the app's page for an address it does
-not have) is not seen, never a missing page; the coverage says which views the check saw and why not the others.
+line of that switch) and the pages that are its own. One reading serves every check: the stage `session` makes a session
+per view on the running app (eaos/live/access/test_users.py), the page stages open each view's pages with its own
+session (share), and a page that did not open as itself (opened: a sign-in, a refusal, the app's page for an address it
+does not have) is not seen, never a missing page; the coverage says which views the check saw and why not the others.
 
     <out>/roles.json   {"roles": [{"id", "name", "evidence": "file:line", "enter": "account" | "switch",
                                    "switch": "file:line", "pages": ["/admin", ...]}],
-                        "unreachable": [{"page", "why", "evidence": "file:line"}],   the pages the code proves no one reaches
+                        "unreachable": [{"page", "why", "evidence": "file:line"}],   the pages the code proves no
+                                        one reaches
                         "strategy": "one_account" | "account_per_view", "sign_in": "..."}   the way in (WAY_IN)
 """
 import json
@@ -74,8 +75,8 @@ def _record(out):
 
 
 def pages_of(out, served=True):
-    """The app's static page routes (eaos/live/behavior/specs.py surfaces): its pages, and with `served` a server's GET routes,
-    which draw the pages of an app rendered on the server (the only routes a kind of user may name)."""
+    """The app's static page routes (eaos/live/behavior/specs.py surfaces): its pages, and with `served` a server's
+    GET routes, which draw the pages of an app rendered on the server (the only routes a kind of user may name)."""
     from ..behavior.specs import surfaces
     return sorted(route for route, (kind, method, _) in surfaces(out).items()
                   if (kind == 'page' or (served and kind == 'http' and method == 'GET')) and route.startswith('/')
@@ -150,9 +151,10 @@ def _line(target, cited):
 
 
 def find(target, out, provider, lacking=None):
-    """Ask the assistant for the kinds of users, its answer sent back with what is wrong with it, ROUNDS times at most;
-    <out>/roles.json. The kinds. `lacking`: what the running app still lacks with the sessions made (eaos/live/access/test_users.py
-    make), the reading asked again with it and the views so far, its answer added to them (add), never in their place."""
+    """Ask the assistant for the kinds of users, its answer sent back with what is wrong with it, ROUNDS times at
+    most; <out>/roles.json. The kinds. `lacking`: what the running app still lacks with the sessions made
+    (eaos/live/access/test_users.py make), the reading asked again with it and the views so far, its answer added to
+    them (add), never in their place."""
     pages = pages_of(out)
     told = f'\n\nThe views so far:\n{json.dumps(read(out), ensure_ascii=False)}\n\nOn the running app, still lacking:\n{lacking}' if lacking else ''
     messages = [{'role': 'system', 'content': SYSTEM},
@@ -171,15 +173,17 @@ def find(target, out, provider, lacking=None):
 
 
 def add(out, target, found):
-    """The views the assistant found missing on the running app (eaos/live/access/test_users.py) added to <out>/roles.json, each
-    checked as the reading's are (_wrong), one of the same id replaced; why each other one was refused."""
+    """The views the assistant found missing on the running app (eaos/live/access/test_users.py) added to
+    <out>/roles.json, each checked as the reading's are (_wrong), one of the same id replaced; why each other one
+    was refused."""
     kinds, refused, pages = read(out), [], pages_of(out)
     for view in found if isinstance(found, list) else []:
         wrong = _wrong(view, target, pages) if isinstance(view, dict) else [f'{view}: a view is an object']
         if wrong or _full(kinds, view):
             refused += wrong[:2] or [f'at most {MOST} views']
             continue
-        kinds = [kind for kind in kinds if kind['id'] != view['id']] + [_kept(view) | {'found': 'app'}]   # by the running app
+        # by the running app
+        kinds = [kind for kind in kinds if kind['id'] != view['id']] + [_kept(view) | {'found': 'app'}]
     if found: _write(out, kinds)
     return refused
 
@@ -208,8 +212,8 @@ def _proved(row, pages, target):
 
 
 def claim(out, owned):
-    """Each page a view's session opened and no session before it (eaos/live/access/test_users.py unreached) made that view's own,
-    so the pictures open it with that session: {view: [pages]}."""
+    """Each page a view's session opened and no session before it (eaos/live/access/test_users.py unreached) made
+    that view's own, so the pictures open it with that session: {view: [pages]}."""
     kinds = read(out)
     grown = [{**kind, 'pages': list(dict.fromkeys(kind['pages'] + owned.get(kind['id'], [])))} for kind in kinds]
     if grown != kinds: _write(out, grown)
@@ -288,13 +292,14 @@ def coverage(kinds, sessions, seen):
 
 
 def _why_unseen(kind, sessions):
-    """Why no session saw a kind of user: no session at all (signed in by hand), no test user of its own, or not opened."""
+    """Why no session saw a kind of user: no session at all (signed in by hand), no test user of its own, or not
+    opened."""
     return 'no_access' if sessions is None else 'no_test_user' if kind['id'] not in sessions else 'not_opened'
 
 
 def unseen(screens):
-    """The pages a check did not see as themselves, [{page, view}] (the screens record `screens`, eaos/pipeline/runners/pages.py):
-    what they show is unknown, never a page missing or to build."""
+    """The pages a check did not see as themselves, [{page, view}] (the screens record `screens`,
+    eaos/pipeline/runners/pages.py): what they show is unknown, never a page missing or to build."""
     rows = (screens or {}).get('rows') or []
     seen = {row.get('url') for row in rows if not row.get('unseen')}
     missed = sorted({(row.get('url'), row.get('kind')) for row in rows if row.get('unseen') and row.get('url') not in seen}, key=str)
@@ -317,11 +322,13 @@ def _not_held(groups, own, held):
 
 
 def breaches(kinds, made, look):
-    """Each page of one view only that another account's session opened as itself: [{kind, page, of}]. `made`: [(kind,
-    session)]; `look(session, paths)`: the probe of `paths` with it (read only), NOWHERE last, so that the app's page for
-    an address it does not have, which another view's page often shows, is never taken for that page opened."""
+    """Each page of one view only that another account's session opened as itself: [{kind, page, of}]. `made`:
+    [(kind, session)]; `look(session, paths)`: the probe of `paths` with it (read only), NOWHERE last, so that the
+    app's page for an address it does not have, which another view's page often shows, is never taken for that page
+    opened."""
     owner = {page: k['id'] for k in kinds for page in k['pages']}
-    switched = {k['id'] for k in kinds if k.get('enter') == 'switch'}     # the same account in another view: its pages too
+    # the same account in another view: its pages too
+    switched = {k['id'] for k in kinds if k.get('enter') == 'switch'}
     found = []
     for kind, state in [(kind, state) for kind, state in made if kind not in switched]:
         page = look(state, sorted(page for page, of in owner.items() if of != kind)[:8] + [NOWHERE])

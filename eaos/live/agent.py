@@ -1,7 +1,7 @@
-"""The browser agent (M5.2): one layer that drives a running app's browser towards a goal with the person's assistant,
-records each step with its picture, and replays the recorded steps with no assistant at all. Screen discovery uses it
-after the rules and the links (pipeline/runners/pages.py crawl): the screens behind buttons, tabs and welcomes are reached once
-by the assistant, then every later check reaches them again for free. M10's simulated users stand on the same layer.
+"""The browser agent: one layer that drives a running app's browser towards a goal with the person's assistant, records
+each step with its picture, and replays the recorded steps with no assistant at all. Screen discovery uses it after the
+rules and the links (pipeline/runners/pages.py crawl): the screens behind buttons, tabs and welcomes are reached once by
+the assistant, then every later check reaches them again for free.
 
     Browser(base, out, storage_state)   the browser (eaos/templates/screens/agent.mjs), a step at a time: .do(command)
     explore(browser, goal, provider)    steps chosen by the assistant until it is done or LIMITS end it: the record
@@ -10,8 +10,7 @@ by the assistant, then every later check reaches them again for free. M10's simu
 The steps name controls by role and name ({"role": "tab", "name": "Reports", "nth": 0}), never by a reference that
 lives one page only, so a replay finds them again; a step that deletes, pays, sends or signs out is refused in the
 browser itself. Open-source agents (browser-use, Stagehand) need a model key of their own, which EAOS never holds (it
-works through the person's assistant), and the Playwright MCP's steps are not replayable: this layer is EAOS's own
-(2026-10-25, CHANGELOG.md 0.0.77).
+works through the person's assistant), and the Playwright MCP's steps are not replayable: this layer is EAOS's own.
 """
 import json
 import select
@@ -55,7 +54,8 @@ class Browser:
                                         env={**os.environ, 'PLAYWRIGHT_BROWSERS_PATH': str(browsers())})
 
     def do(self, command):
-        """The page after one step ({ok, error?, path, title, text, controls, picture}); {ok: False} when it gave no answer."""
+        """The page after one step ({ok, error?, path, title, text, controls, picture}); {ok: False} when it
+        gave no answer."""
         try:
             self.process.stdin.write(json.dumps(command) + '\n')
             self.process.stdin.flush()
@@ -99,8 +99,9 @@ def _brief(page, steps, goal):
 
 
 def explore(browser, goal, provider, start='/'):
-    """{goal, steps: [{action, target, value, why, at, landed, picture, error?}], screens}: the steps the assistant chose
-    towards `goal` from `start`, until it said done, a step failed three times running, or STEPS or SECONDS ended it."""
+    """{goal, steps: [{action, target, value, why, at, landed, picture, error?}], screens}: the steps the assistant
+    chose towards `goal` from `start`, until it said done, a step failed three times running, or STEPS or SECONDS
+    ended it."""
     page, steps, failed, began = browser.do({'op': 'open', 'path': start}), [], 0, time.monotonic()
     screens = [page.get('path')] if page.get('ok') else []
     while len(steps) < STEPS and time.monotonic() - began < SECONDS and failed < 3:

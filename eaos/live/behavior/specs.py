@@ -100,9 +100,9 @@ def api_only(out):
 
 def crawled_pages(out):
     """The distinct pages the crawl opened (live/crawl.json, the first address of each template), standing in for the
-    app's pages only when its code names none: an SPA with no client router (one Workspace.tsx, what EAOS's own
-    blueprint builds) has no page in its entry-point facts, yet its running pages were found and pictured; a real
-    check then locked, walked and loaded nothing. [] otherwise, or before the crawl ran."""
+    app's pages only when its code names none: an SPA with no client router (one Workspace.tsx) has no page in its
+    entry-point facts, yet its running pages are found and pictured; without them the lock, the walks and the load
+    would cover nothing. [] otherwise, or before the crawl ran."""
     if PAGE in {row[0] for row in surfaces(out).values()}: return []
     return list((read_json(Path(out) / 'live/crawl.json') or {}).get('pages') or [])
 
@@ -110,7 +110,7 @@ def crawled_pages(out):
 def features_of(out):
     """features.json's features, plus one per crawled page standing in for the code's (crawled_pages): what the lock,
     the journeys and the load read as the program's surfaces. One each, so a page that differs between two recordings
-    (a clock, a random tip) is refused alone: in one shared spec it failed every page, and the safety net locked none."""
+    (a clock, a random tip) is refused alone: in one shared spec it would fail every page."""
     features = (read_json(Path(out) / 'features.json') or {}).get('features') or []
     return features + [{'name': f'page {page}', 'description': 'A page of the running app, found by the crawl', 'critical': False,
                         'surfaces': [page], 'tables': [], 'files': []} for page in crawled_pages(out)]
@@ -186,7 +186,7 @@ def playwright_spec(feature, rows):
 
 def _route_test(route, kind, method):
     """(the plan's entry of one route, its test lines): a layout gets none, a route that writes or signs out is skipped
-    (a GET /logout run with the session ended it for every page stage after the lock: they saw the sign-in page)."""
+    (a GET /logout run with the session would end it for every page stage after the lock)."""
     skipped = _not_called(route, kind, method)
     if skipped: return skipped
     target, params = url(route)
@@ -204,7 +204,8 @@ def _not_called(route, kind, method):
     if re.search(LEAVES, route, re.I):
         return f'{route} (ends the session or changes data: not called)', [
             f"  test({json.dumps(f'{route} is not called')}, async () => {{", "    test.skip(true, 'it would sign out or change data');", '  });']
-    if kind == HTTP and method not in ('GET', 'ANY'):           # a route of any method answers a GET as a browser sends it
+    # a route of any method answers a GET as a browser sends it
+    if kind == HTTP and method not in ('GET', 'ANY'):
         return f'{method} {route} (needs_fixture: writes)', [
             f"  test({json.dumps(f'{method} {route} is not called blindly')}, async () => {{",
             f"    test.skip(true, 'needs_fixture: {method} writes; lock it against a fixture');", '  });']
@@ -224,16 +225,17 @@ def _page_test(route, target, name, guard):
             "    page.on('console', (message) => { if (message.type() === 'error') messages.push(`console: ${message.text()}`); });",
             # The clock held still: a screen showing the time differs between two recordings (the SPA's "now").
             "    await page.clock.setFixedTime(new Date('2026-01-01T09:00:00Z'));",
-            # And its random numbers: a game's first tiles drawn with Math.random made every load's words differ.
+            # And its random numbers: a game's tiles drawn with Math.random make every load's words differ.
             "    await page.addInitScript(() => { let seed = 42; Math.random = () => (seed = (seed * 16807) % 2147483647) / 2147483647; });",
             f'    await page.goto({target});',
             "    await page.waitForLoadState('networkidle');",
             "    await page.waitForFunction(() => document.body.innerText.trim().length > 0, null, { timeout: 60000 }).catch(() => {});",
             f"    expect(messages.join('\\n')).toMatchSnapshot('{name}.console.txt');",
-            # Soft: a picture that differs still lets its words be read, so a declared addition is judged by them (intended.py).
+            # Soft: a picture that differs still lets its words be read, so a declared addition is judged by them
+            # (intended.py).
             f"    await expect.soft(page).toHaveScreenshot('{name}.png', {{ fullPage: true, maxDiffPixelRatio: 0.01 }});",
-            # Its words too: a sentence changed is under 1% of a page's pixels (the fix proof, M7.0). Checked once recorded
-            # (EAOS_LOCK_UPDATE, or a lock recorded before held no words); written where EAOS_LOCK_WORDS asks.
+            # Its words too: a sentence changed is under 1% of a page's pixels. Checked once recorded
+            # (EAOS_LOCK_UPDATE, or a lock recorded without words); written where EAOS_LOCK_WORDS asks.
             "    const words = (await page.locator('body').innerText()).replace(/\\s+/g, ' ').trim();",
             f"    if (process.env.EAOS_LOCK_WORDS) {{ const seen = path.join(process.env.EAOS_LOCK_WORDS, path.relative(path.join(__dirname, '..', '__screenshots__'), test.info().snapshotPath('{name}.text.txt')));",
             "      fs.mkdirSync(path.dirname(seen), { recursive: true }); fs.writeFileSync(seen, words); }",

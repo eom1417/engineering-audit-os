@@ -7,7 +7,7 @@ import shutil
 from pathlib import Path
 from ...core.system.files import read_json
 
-# ── NS26: the lock, run on the original code ────────────────────────────────────────────────────────────
+# ── the lock, run on the original code ────────────────────────────────────────────────────────────
 # The browser reaches loopback only: Chromium sends every other host to a proxy nobody answers on, so a
 # page's call to production or a third party fails inside the run instead of leaving the machine.
 LOCK_CONFIG = """import base from './playwright.config';
@@ -59,9 +59,10 @@ def _prepare(live, report, recorded=None):
 
 
 def lend_kinds(report, lock, state):
-    """Each kind of user's session (eaos/live/access/roles.py, made by the seed beside session file `state`) lent to the lock as
-    .auth/@<kind>.json, and .auth/kinds.json: [[kind, [spec files of its own pages]]], the passes the lock runs as each
-    kind beside its pass with the run's one session (passes). A kind with no page of its own is seen in that pass."""
+    """Each kind of user's session (eaos/live/access/roles.py, made by the seed beside session file `state`) lent to
+    the lock as .auth/@<kind>.json, and .auth/kinds.json: [[kind, [spec files of its own pages]]], the passes the
+    lock runs as each kind beside its pass with the run's one session (passes). A kind with no page of its own is
+    seen in that pass."""
     from ..access.roles import read
     from ..app.run import kinds_folder
     specs, passes = _page_specs(report), []
@@ -79,7 +80,8 @@ def _page_specs(report):
     """[(spec file, {the pages it opens})] of the lock's Playwright specs."""
     plan = Path(report) / 'behavior-lock/plan.json'
     specs = json.loads(plan.read_text(encoding='utf-8')).get('specs') or [] if plan.is_file() else []
-    return [(s['path'], {str(x).split(' (')[0].removeprefix('GET ') for x in s.get('surfaces') or []})      # a server's page: GET /admin
+    # a server's page: GET /admin
+    return [(s['path'], {str(x).split(' (')[0].removeprefix('GET ') for x in s.get('surfaces') or []})
             for s in specs if s.get('tool') == 'playwright' and s.get('path')]
 
 

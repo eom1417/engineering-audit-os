@@ -1,11 +1,10 @@
 """Handing a batch of fixes over (the job behind the MCP fix_finish), and the repair on top of it.
 
-Every kept change goes together through the project's checks (eaos/journeys/fix/waves finish_batch). When the changes pass one
-by one but fail together, no sound card is left out at first: the answer asks the assistant for a repair on top of
-them, a fix_edit on the card REPAIR, and fix_finish runs again; only after REPAIRS repairs, or when asked to leave
-them out, halving finds the cards responsible. A batch that passes becomes a branch waiting for the person, or lands
-on its base branch when the person chose so.
-"""
+Every kept change goes together through the project's checks (eaos/journeys/fix/waves finish_batch). When the changes
+pass one by one but fail together, no sound card is left out at first: the answer asks the assistant for a repair on top
+of them, a fix_edit on the card REPAIR, and fix_finish runs again; only after REPAIRS repairs, or when asked to leave
+them out, halving finds the cards responsible. A batch that passes becomes a branch waiting for the person, or lands on
+its base branch when the person chose so. """
 
 from pathlib import Path
 
@@ -56,13 +55,15 @@ def finish_job(project, arguments, progress):
     repairs = wave.get('repairs') or []
     try:
         summary = finish_batch(guided.report_of(state), guided.source(state), project_state.runtime_of(state), wave,
-                               lock=not (state.get('setup') or {}).get('no_interface'),   # no screen recorded: its own checks hold it
+                               # no screen recorded: its own checks hold it
+                               lock=not (state.get('setup') or {}).get('no_interface'),
                                say=lambda kind, *_: _phase(project, kind, progress), repairs=repairs,
                                bisect=bool(arguments.get('leave_out')) or len(repairs) >= REPAIRS,
                                before_writing=lambda: guided.refuse_if_stale(project_state.load(project)),
                                regenerate=lambda root: (regenerate(root, project_state.runtime_of(state), wave['base'], wave['number']),
                                                         keep_guide(root, guided.report_of(state), state['project'], wave['number'], wave['base'])))
-    except BaseException as problem:   # the batch stays as it was, even stopped mid-way: its copy back to its kept changes
+    # the batch stays as it was, even stopped mid-way: its copy back to its kept changes
+    except BaseException as problem:
         guided._git(wave['root'], 'cherry-pick', '--abort')
         guided._git(wave['root'], 'reset', '--hard', '--quiet', was or wave['base'])
         guided._git(wave['root'], 'clean', '-fdq')
@@ -103,8 +104,8 @@ def _repair_asked(state, failure, repaired_already):
 
 
 def _score(state, wave, summary):
-    """How the batch did on the first try, and the cards it failed that an earlier batch failed too: a card failing twice
-    is EAOS's defect, not the person's project (its card or its check is wrong), and is said so."""
+    """How the batch did on the first try, and the cards it failed that an earlier batch failed too: a card failing
+    twice is EAOS's defect, not the person's project (its card or its check is wrong), and is said so."""
     from ...core.project.ledger import load
     book, keys = (load(state) or {}).get('cards') or {}, wave.get('keys') or {}
     again = [c for c in summary['failed'] if (book.get(keys.get(c)) or {}).get('attempts', 0) >= 1]
@@ -177,8 +178,7 @@ def _checks_words(unrun, writing, wider):
 
 
 def _put_off_words(count):
-    """What the assistant tells of the cards it left out: how many and why, grouped, in the person's language (a stranger's
-    batch put off 219 of 263, its reasons in English for an Arabic reader, 2026-11-05)."""
+    """What the assistant tells of the cards it left out: how many and why, grouped, in the person's language."""
     return (f" Tell them plainly that {count} cards were left out, grouped by why, in their language, and that they can be "
             "picked again in another batch." if count else '')
 
@@ -191,9 +191,9 @@ def _moved_words(go, jumps):
 
 
 def beyond(card, changed):
-    """The files a card's change touched outside its own paths (each a file or a folder; '*', or none named: every file is
-    its own). Kept only with the assistant's why (agent_tools/edits.py), named with it at the hand-over: the one-source gate
-    may rightly make a fix reach the copies of what it changes (trial on real projects: a dialog's card changed 13 files)."""
+    """The files a card's change touched outside its own paths (each a file or a folder; '*', or none named: every
+    file is its own). Kept only with the assistant's why (agent_tools/edits.py), named with it at the hand-over: the
+    one-source gate may rightly make a fix reach the copies of what it changes."""
     paths = [path.rstrip('/') for path in card.get('paths') or []]
     if not paths or '*' in paths: return []
     return [path for path in changed if not any(path == own or path.startswith(own + '/') for own in paths)]

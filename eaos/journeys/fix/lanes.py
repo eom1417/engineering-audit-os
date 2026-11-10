@@ -1,11 +1,11 @@
 """A batch fixed by several assistants at once: the speed mode of a fix.
 
 Most of a card's time is its assistant's thinking (a minute and a half a card, against seconds for EAOS to check the
-change), so a batch's cards are dealt into lanes (deal), each fixed by its own assistant at the same time, in the batch's
-one copy and on its one branch. The cards that share a file, or that one waits for, go in one lane: no two assistants
-change one file. Lane 0 is the assistant that opened the batch; the Studio starts one beside it for each other lane
-(eaos/interfaces/studio_actions/lane_assistants.py). EAOS checks their changes one at a time (eaos/journeys/agent_tools/ _start), so each change
-is checked, kept or taken back alone, as it is with one assistant.
+change), so a batch's cards are dealt into lanes (deal), each fixed by its own assistant at the same time, in the
+batch's one copy and on its one branch. The cards that share a file, or that one waits for, go in one lane: no two
+assistants change one file. Lane 0 is the assistant that opened the batch; the Studio starts one beside it for each
+other lane (eaos/interfaces/studio_actions/lane_assistants.py). EAOS checks their changes one at a time
+(eaos/journeys/agent_tools/ _start), so each change is checked, kept or taken back alone, as it is with one assistant.
 
 A lane holds the files its cards name, and every file it changes. A change to a file another lane holds is not tried:
 its card waits for the end (`later`), when the first assistant fixes it, every other lane done. A lane is done when
@@ -39,7 +39,8 @@ def deal(cards, most):
 
 
 def _together(cards):
-    """{a group's first card: its card ids}: the cards that name a file in common, or that one waits for, in one group."""
+    """{a group's first card: its card ids}: the cards that name a file in common, or that one waits for, in one
+    group."""
     group = {card['id']: card['id'] for card in cards}
 
     def root(card):
@@ -77,7 +78,8 @@ def told(helpers):
 
 
 def mine(wave, cards):
-    """Of `cards`, those of the assistant asking: its lane's (the first assistant's: lane 0's and those left for the end)."""
+    """Of `cards`, those of the assistant asking: its lane's (the first assistant's: lane 0's and those left for the
+    end)."""
     lane = helper(wave)
     return [card for card in cards if lane_of(wave, card) == (lane or 0)]
 
@@ -117,7 +119,8 @@ def take(project, card, edits):
 
 
 def not_yours(state):
-    """Why an assistant the Studio started for a lane may not hand the batch over or close it; None for the first one."""
+    """Why an assistant the Studio started for a lane may not hand the batch over or close it; None for the first
+    one."""
     if helper((state or {}).get('open_wave') or {}) is None: return None
     return {'status': 'not_yours', 'what_now': 'The first assistant of this batch hands it over. Once each of your cards is '
                                                'kept, skipped or left for the end, tell the person what you fixed and end your turn.'}

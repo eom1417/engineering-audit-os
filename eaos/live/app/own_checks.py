@@ -1,7 +1,7 @@
 """The checks a project with no interface is kept safe by, from its own manifest: a Rust crate's tests (`cargo test`,
 its build with them), a Go module's (`go vet`, `go test`), a PHP library's PHPUnit, a Python project's own tests in
-the run's environment. Each fetches what it needs at install, with the network; Rust and Go run their checks from the lock alone (`--locked`,
-`--offline`): a stranger's Rust command-line tool could not be fixed at all (2026-11-04)."""
+the run's environment. Each fetches what it needs at install, with the network; Rust and Go run their checks from the
+lock alone (`--locked`, `--offline`)."""
 import json
 from pathlib import Path
 
@@ -35,8 +35,7 @@ def _python(root):
 
 def refreshed(runtime, project):
     """True when the run profile of a project with no interface had no checks and now has those of its manifest (and
-    their installs): a profile an older EAOS drafted keeps the checks it knew, and a library updated EAOS on was still
-    found unprotected (2026-11-05)."""
+    their installs): a profile drafted earlier keeps the checks it knew, so a library would stay unprotected."""
     path = Path(runtime) / 'run.json'
     profile = json.loads(path.read_text(encoding='utf-8'))
     install, checks = found(project)
@@ -48,9 +47,10 @@ def refreshed(runtime, project):
 
 
 def unknown_app(project=None):
-    """An app EAOS does not know how to start by itself (no JavaScript or Python web app, no static site): a draft starting nothing
-    (no earlier app's profile kept) with its own manifest's checks (eaos/live/app/own_checks.py, its safety when it has no interface);
-    the assistant works out how to start it from the project's own documentation (_attempts), safe() judging every command."""
+    """An app EAOS does not know how to start by itself (no JavaScript or Python web app, no static site): a draft
+    starting nothing (no earlier app's profile kept) with its own manifest's checks (eaos/live/app/own_checks.py,
+    its safety when it has no interface); the assistant works out how to start it from the project's own
+    documentation (_attempts), safe() judging every command."""
     from ...core.system.local_db import free_port
     install, checks = found(project) if project else ([['true']], [])
     profile = {'schema_version': 1, 'app': '.', 'install': install, 'start': ['true'], 'port': free_port(), 'health': '/',

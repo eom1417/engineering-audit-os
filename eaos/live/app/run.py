@@ -1,6 +1,6 @@
 """A project run for the execution stages, from a declared run profile, inside eaos.live.isolation.sandbox.Sandbox.
 
-The profile (<runtime>/run.json, contract schemas/artifacts/run-profile.schema.json) is data the owner can read
+The profile (<runtime>/run.json, contract schemas/artifacts/run-profile.schema.json) is data a person can read
 and correct: how the project installs, builds, starts and signs a user in. Nothing here guesses a command.
 
     {"schema_version": 1, "app": "app",
@@ -16,7 +16,7 @@ and correct: how the project installs, builds, starts and signs a user in. Nothi
 original, is not done (eaos/journeys/fix/execute.py).
 
 `env` holds only values the run itself chooses (a local database address, a key generated for the run); the
-owner's secrets never appear in it, and the sandbox passes on nothing else but the names the authorization
+the person's secrets never appear in it, and the sandbox passes on nothing else but the names the authorization
 lists. Commands that need the local database or the registry run with the network; every other one without.
 The browser the lock drives reaches loopback only: every other host is refused, so a run never touches
 production or a third party.
@@ -34,8 +34,8 @@ from ..isolation.sandbox import AuthorizationError, Sandbox, head
 
 
 # A project's own checks run as on a CI machine: once, never watching for changes (vitest watches unless CI is set: a
-# stranger's suite never ended, and every check of its batch waited out its 30 minutes, 2026-11-05). Its install,
-# build and start keep their environment (a build may treat warnings as errors under CI).
+# suite would never end). Its install, build and start keep their environment (a build may treat warnings as errors
+# under CI).
 CHECKS_ENV = {'CI': 'true'}
 
 
@@ -61,13 +61,14 @@ def _printed_fixtures(out):
 
 
 def kinds_folder(state):
-    """Where the seed beside session file `state` saves a session per kind of user (eaos/live/access/roles.py): <kind>.json."""
+    """Where the seed beside session file `state` saves a session per kind of user (eaos/live/access/roles.py):
+    <kind>.json."""
     return Path(state).parent / 'sessions'
 
 
 def _unfrozen(argv):
     """The same install without holding to the lockfile, when it held to it: `npm ci` and `--frozen-lockfile` refuse a
-    lockfile older than its package.json (the corpus' Supabase and Next.js apps), where `npm install` brings it up to
+    lockfile older than its package.json, where `npm install` brings it up to
     date in the run's own copy."""
     argv = [str(part) for part in argv]
     if argv[:2] == ['npm', 'ci']: return ['npm', 'install', *argv[2:]]
@@ -111,7 +112,8 @@ class LiveRun:
         self.ran = None          # a folder: the server runs with coverage on, its data there (eaos/live/testing/ran.py)
 
     def database_url(self):
-        """The run's own PostgreSQL (eaos/core/system/local_db.py), started on first use, when the profile declares one."""
+        """The run's own PostgreSQL (eaos/core/system/local_db.py), started on first use, when the profile
+        declares one."""
         database = self.profile.get('database') or {}
         # A value naming {database_url} needs a database, declared or not.
         if database.get('kind') != 'postgres' and any('{database_url}' in str(v) for v in (self.profile.get('env') or {}).values()):
@@ -125,7 +127,7 @@ class LiveRun:
         return self._database_url
 
     def run_env(self):
-        """The run's own values and the tools' locations; never an owner secret (those pass by name only).
+        """The run's own values and the tools' locations; never a person's secret (those pass by name only).
         `{database_url}` in a value is the run's own database."""
         from ...core.toolchain import browsers, home
         if not hasattr(self, '_extra'):
@@ -141,17 +143,19 @@ class LiveRun:
             self._extra = {**{k: self._frozen(k, fill(v)) for k, v in (self.profile.get('env') or {}).items()},
                            'PATH': f"{home() / 'bin'}{os.pathsep}{os.environ.get('PATH', '/usr/bin:/bin')}",
                            'NODE_PATH': str(home() / 'node/node_modules'), 'PLAYWRIGHT_BROWSERS_PATH': str(browsers()),
-                           # the one copy of the tools, for an app that is EAOS itself: it installed 611 MB of its own
+                           # the one copy of the tools, for an app that is EAOS itself: it must not install a copy of
+                           # its own
                            'EAOS_ENGINE_TOOLS': str(home()),
-                           # EAOS's own Playwright, by its path: Node finds the app's own first (another version, no browsers)
+                           # EAOS's own Playwright, by its path: Node finds the app's own first (another version, no
+                           # browsers)
                            'EAOS_PLAYWRIGHT': str(home() / 'node/node_modules/playwright')}
             self._extra.setdefault('AUTH_SECRET', getattr(self, 'auth_secret', None) or secrets.token_urlsafe(48))
         return self._extra
 
     def _mail_port(self):
-        """The port the app sends its mail to ({mail_port}, eaos/live/app/setup.py MAIL_NAMES): the run's Mailpit, started on
-        first use, so a code or a link the app e-mails is shown beside the sign-in page and never leaves this computer;
-        9 (nobody answers) when the app sends none or Mailpit is not installed."""
+        """The port the app sends its mail to ({mail_port}, eaos/live/app/setup.py MAIL_NAMES): the run's
+        Mailpit, started on first use, so a code or a link the app e-mails is shown beside the sign-in page and
+        never leaves this computer; 9 (nobody answers) when the app sends none or Mailpit is not installed."""
         from ...core.toolchain import home
         binary = home() / 'bin/mailpit'
         if not hasattr(self, '_mailpit') and binary.exists() and any('{mail_port}' in str(v) for v in (self.profile.get('env') or {}).values()):
@@ -181,7 +185,7 @@ class LiveRun:
     def freeze(self):
         """Keep a copy of every folder outside the project the app reads, for this recording and every run after it:
         a live folder changes under the runs (EAOS's Studio reads the report a batch rewrites), and a screen compared
-        on other data differs whatever the change (EAOS on itself, 2026-10-13: every card of a batch failed so)."""
+        on other data differs whatever the change."""
         for name, value in (self.profile.get('env') or {}).items():
             if not self._outside(value): continue
             copy = self.runtime / 'frozen' / name
@@ -190,7 +194,8 @@ class LiveRun:
         self.__dict__.pop('_extra', None)
 
     def run(self, argv, timeout=900, network=True, env=None, at_root=False):
-        """(exit, stdout, stderr) of argv in the app folder of the copy (its root with `at_root`), with the run's environment."""
+        """(exit, stdout, stderr) of argv in the app folder of the copy (its root with `at_root`), with the
+        run's environment."""
         result = self.sandbox.run(argv, timeout=timeout, network=network, cwd=None if at_root else self.profile.get('app') or None,
                                   env={**self.run_env(), **(env or {})})
         self.log.append({'argv': [str(a) for a in argv], 'exit': result[0], 'tail': (result[1] + result[2])[-6000:]})
@@ -199,8 +204,9 @@ class LiveRun:
     def seed(self, base, storage_state=None):
         """Run the profile's seed commands against the started app. A seed may print, as its last line, a JSON
         object of fixture values it created ({"E2E_PROFILEID": "..."}): they join the run's environment, so the
-        lock opens the screens that need them. A session per kind of user (eaos/live/access/roles.py) goes in EAOS_SESSIONS_DIR,
-        <kind>.json, made again at each seed. Stops at the first seed that fails, with its output."""
+        lock opens the screens that need them. A session per kind of user (eaos/live/access/roles.py) goes in
+        EAOS_SESSIONS_DIR, <kind>.json, made again at each seed. Stops at the first seed that fails, with its
+        output."""
         env = {'BASE_URL': base}
         if storage_state:
             folder = kinds_folder(storage_state)
@@ -225,7 +231,8 @@ class LiveRun:
                 if _test_browsers(argv): continue
                 code, out, err = self.run(argv)
                 if code != 0 and phase == 'install' and _unfrozen(argv):
-                    code, out, err = self.run(_unfrozen(argv))        # a lockfile behind its package.json: install as a person would
+                    # a lockfile behind its package.json: install as a person would
+                    code, out, err = self.run(_unfrozen(argv))
                 if code != 0:
                     raise RuntimeError(f"{phase} failed ({' '.join(map(str, argv))}): {(out + err)[-1500:]}")
 
@@ -246,7 +253,8 @@ class LiveRun:
             self.__dict__.pop('_extra', None)
         base = f"http://127.0.0.1:{self.profile['port']}"
         argv, env = self._measured(self.profile['start'], self.run_env())
-        self.started_at = time.time()                  # what the app writes from now on is its own (eaos/live/keeping/files.py)
+        # what the app writes from now on is its own (eaos/live/keeping/files.py)
+        self.started_at = time.time()
         self.sandbox.start(argv, base + self.profile.get('health', '/'),
                            timeout=self.profile.get('start_timeout', 90), cwd=self.profile.get('app') or None, env=env)
         return base
@@ -260,9 +268,10 @@ class LiveRun:
         return ran.server(argv, env, self.ran, self.sandbox.copy, python)
 
     def stop(self, out=None):
-        """Stop the project and remove its copy, leave the run's database (a throwaway one dropped; the server stopped
-        once no other run is on it, its data kept for the next step) and stop its Mailpit (its mail with it); the run's records stay in the runtime folder.
-        `out`: a check's folder, where what the server ran is recorded when it ran measured (eaos/live/testing/ran.py)."""
+        """Stop the project and remove its copy, leave the run's database (a throwaway one dropped; the server
+        stopped once no other run is on it, its data kept for the next step) and stop its Mailpit (its mail with
+        it); the run's records stay in the runtime folder. `out`: a check's folder, where what the server ran is
+        recorded when it ran measured (eaos/live/testing/ran.py)."""
         if self.ran and out:
             from ..testing.ran import server_record
             self.sandbox.stop()                       # the server ends, writing what it ran, before its copy goes
@@ -281,6 +290,6 @@ class LiveRun:
 
 def _test_browsers(argv):
     """`playwright install` (the app's own test browsers): never needed to run the app, which EAOS pictures with its own
-    browsers, and their shared folder is read only in the isolated run (a real build: the setup stopped on it)."""
+    browsers, and their shared folder is read only in the isolated run."""
     words = [str(word) for word in argv]
     return any(word.endswith('playwright') for word in words) and 'install' in words

@@ -18,8 +18,8 @@ FAILED_STATUSES = ('failed', 'timedOut', 'interrupted')
 
 
 def failing_tests(runtime, name):
-    """The titles of the screen tests that failed in the lock run `name` (behavior-lock/playwright-<name>.json), and in its
-    passes as each kind of user (playwright-<name>@<kind>.json)."""
+    """The titles of the screen tests that failed in the lock run `name` (behavior-lock/playwright-<name>.json), and
+    in its passes as each kind of user (playwright-<name>@<kind>.json)."""
     found = set()
     for path in sorted((Path(runtime) / 'behavior-lock').glob(f'playwright-{name}*.json')):
         if path.stem == f'playwright-{name}' or path.stem.startswith(f'playwright-{name}@'): found |= _failed_titles(path)
@@ -68,9 +68,9 @@ def spec_statuses(report, declared=(), known=(), intended=None):
 
 
 def _outcomes(spec, declared, known=False):
-    """[(status, message)] of one spec's tests; a test that never ran, skipped with its reason. `declared`: (the declared
-    screens, the pass's Intended or None, the spec file). `known`: it fails on the code before the batch too
-    (eaos/journeys/fix/waves/ _against_control), so it says nothing of the batch."""
+    """[(status, message)] of one spec's tests; a test that never ran, skipped with its reason. `declared`: (the
+    declared screens, the pass's Intended or None, the spec file). `known`: it fails on the code before the batch
+    too (eaos/journeys/fix/waves/ _against_control), so it says nothing of the batch."""
     tests = spec.get('tests') or []
     ran = _ran(tests)
     screens, intended, file = declared

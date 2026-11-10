@@ -32,17 +32,19 @@ def kept_in_part(wave):
 
 
 def left_in_part(wave, card_id):
-    """The words naming the packages a lock file card kept in part left as they were, with why; '' for any other card."""
+    """The words naming the packages a lock file card kept in part left as they were, with why; '' for any other
+    card."""
     left = kept_in_part(wave).get(card_id)
     return '; left as they were: ' + '; '.join(f'{name} ({why})' for name, why in left.items()) if left else ''
 
 
 def ready_cards(report, state=None):
-    """The ready cards in the plan's order: milestone by milestone, and inside one, as the plan lists them; without a card
-    the ledger holds other than open, nor one tried before (the state's `tried`, by key: a new check numbers the cards
-    again) unless the ledger opened it again (ledger._reopen_waited), nor repository craft (decisions.own_batch), nor one
-    waiting for a card not done yet (decisions.waiting) unless that card is taken before it: the split goes in the same
-    batch, after its simplifications (a full-stack app: ten splits left for "the next batch" while their simplifications were open)."""
+    """The ready cards in the plan's order: milestone by milestone, and inside one, as the plan lists them; without
+    a card the ledger holds other than open, nor one tried before (the state's `tried`, by key: a new check numbers
+    the cards again) unless the ledger opened it again (ledger._reopen_waited), nor repository craft
+    (decisions.own_batch), nor one waiting for a card not done yet (decisions.waiting) unless that card is taken
+    before it: a split goes in the same batch, after its simplifications, so it is not left for the next batch while
+    they are open."""
     if not (Path(report) / 'plan.json').is_file(): return []
     book, tried = _book(state), set((state or {}).get('tried') or ())
     cards = [card for card in _in_order(plan(report)) if ready(card) and not own_batch(card) and _free(card['key'], book, tried)]
@@ -52,7 +54,8 @@ def ready_cards(report, state=None):
 def _after_their_waits(cards, done):
     """`cards` in the plan's order, each once the cards it waits for are `done` or taken before it; the others left."""
     taken, ids = [], set()
-    # each time the first card in the plan's order whose waits are done or taken: a split comes right after the last of them
+    # each time the first card in the plan's order whose waits are done or taken: a split comes right after the last of
+    # them
     while card := next((c for c in cards if c['id'] not in ids and set(waiting(c, done)) <= ids), None):
         taken.append(card)
         ids.add(card['id'])
@@ -104,7 +107,8 @@ def too_early(state, cards):
 
 
 def kept_apart(cards):
-    """Why the cards asked for cannot open a batch: some are repository craft, which goes in a batch of its own; else None."""
+    """Why the cards asked for cannot open a batch: some are repository craft, which goes in a batch of its own;
+    else None."""
     craft = [card['id'] for card in cards if own_batch(card)]
     if not craft: return None
     return {'error': f'{", ".join(craft[:5])}: repository craft goes in a batch of its own, never with fixes: no batch was opened',
