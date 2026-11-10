@@ -6,6 +6,7 @@ import unittest
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 
+from needs import needs
 from eaos.live import agent
 from eaos.live.screens.audit import missing
 
@@ -40,7 +41,7 @@ class Scripted:
         return (self.steps.pop(0) if self.steps else {'action': 'done'}), {}     # as Claude's adapter answers: the object itself
 
 
-@unittest.skipIf(missing('playwright'), 'EAOS Playwright is not installed')
+@needs(missing('playwright') and 'EAOS Playwright is not installed')
 class AgentTests(unittest.TestCase):
     def test_the_assistant_reaches_a_screen_behind_a_button_and_the_replay_reaches_it_with_none(self):
         server = ThreadingHTTPServer(('127.0.0.1', 0), App)

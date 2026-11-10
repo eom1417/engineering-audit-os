@@ -8,6 +8,7 @@ import unittest
 from pathlib import Path
 from unittest import mock
 
+from needs import need
 from eaos.journeys.fix import waves
 from eaos.journeys.fix.waves import batch as wave_batch
 from shared_fixture import scratch
@@ -327,7 +328,7 @@ class RebuildTests(unittest.TestCase):
         # must see it, not only the card's own gate
         from eaos.engines.process import which
         from eaos.journeys.fix.execute import _dependencies_broken
-        if not which('npm'): self.skipTest('npm is not installed')
+        need(self, '' if which('npm') else 'npm is not installed')
         lock = lambda b: json.dumps({'name': 'shop', 'version': '1.0.0', 'lockfileVersion': 3, 'requires': True, 'packages': {
             '': {'name': 'shop', 'version': '1.0.0', 'dependencies': {'a': '1.0.0'}},
             'node_modules/a': {'version': '1.0.0', 'dependencies': {'b': '^1.0.0'}}, 'node_modules/b': {'version': b}}})
@@ -354,7 +355,7 @@ class RebuildTests(unittest.TestCase):
         from eaos.engines.process import which
         from eaos.journeys.fix.automatic import automatic_fixes
         from eaos.journeys.fix.execute import _dependencies_broken
-        if not which('npm'): self.skipTest('npm is not installed')
+        need(self, '' if which('npm') else 'npm is not installed')
         root = repository()
         commit_file(root, 'package.json', '{"name": "shop", "version": "1.0.0", "dependencies": {"a": "1.0.0"}}')
         commit_file(root, 'package-lock.json', json.dumps({'name': 'shop', 'version': '1.0.0', 'lockfileVersion': 3, 'requires': True, 'packages': {

@@ -3,6 +3,7 @@ import json
 from pathlib import Path
 import tempfile
 import unittest
+from needs import need
 from eaos.facts.code import syntax
 from eaos.facts.run import collect
 
@@ -38,7 +39,7 @@ class SyntaxFactTests(unittest.TestCase):
             'const R = [["/h", () => import("./routes/health.ts")], { load: () => import(`./routes/up.ts`) }];\n'
             'await import(new URL(spec, new URL("../server/", import.meta.url)).href);\n'
             'await import(`./pages/${name}.ts`);\nconst c = require("./c.cjs");\n'))[0]
-        if units is None: self.skipTest('tree-sitter is not installed')
+        need(self, 'tree-sitter is not installed' if units is None else '')
         self.assertEqual([entry['module'] for entry in units[1]], ['./routes/health.ts', './routes/up.ts', './c.cjs'])
 
     def test_an_unparsable_file_is_blocked_not_silently_dropped(self):

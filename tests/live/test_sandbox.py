@@ -14,6 +14,7 @@ from unittest import mock
 
 from shared_fixture import Workspace
 
+from needs import need
 from eaos.live.isolation import sandbox
 
 
@@ -186,7 +187,7 @@ class SandboxTests(Workspace):
         draft = setup.detect(self.project)['profile']
         self.assertEqual((draft['start'][:2], draft['start'][-1], draft['checks']), (['php', '-S'], 'public', [['php', 'vendor/bin/phpunit']]))
         self.assertEqual(profile.safe(draft), [])
-        if not shutil.which('php'): self.skipTest('php is not installed')
+        need(self, '' if shutil.which('php') else 'php is not installed')
         (Path(self.tmp) / 'run.json').write_text(json.dumps({**draft, 'install': [['true']]}))
         live = LiveRun(self.project, self.tmp, 'S05')
         try:
@@ -262,7 +263,7 @@ class TwoProjectsTests(Workspace):
 
     def setUp(self):
         super().setUp()
-        if sandbox._view_refusal(): self.skipTest(f'no own view here: {sandbox._view_refusal()}')
+        need(self, f'no own view here: {sandbox._view_refusal()}' if sandbox._view_refusal() else '')
         real = tempfile.TemporaryDirectory(dir='/var/tmp')        # outside the temporary folder, which is hidden anyway
         self.addCleanup(real.cleanup)
         self.real = Path(real.name)

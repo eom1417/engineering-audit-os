@@ -7,6 +7,7 @@ import unittest
 import urllib.request
 from pathlib import Path
 
+from needs import needs
 from eaos.live.app.run import LiveRun
 from eaos.live.app.setup import authorize, free_port
 from eaos.pipeline.runners.live_app import shared_app
@@ -133,7 +134,7 @@ class SharedAppTests(unittest.TestCase):
                              'a later run accepts the session made by this profile')
         finally: live.stop()
 
-    @unittest.skipIf(missing('playwright'), 'the pinned Playwright is not installed')
+    @needs(missing('playwright') and 'the pinned Playwright is not installed')
     def test_a_session_signed_in_by_hand_outlives_the_seed_and_is_asked_again_only_once_it_expired(self):
         from eaos.live.access import sign_in
         from eaos.pipeline.runners.live_app import close_app

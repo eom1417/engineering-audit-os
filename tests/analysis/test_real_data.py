@@ -4,6 +4,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
+from needs import need
 from eaos.analysis.assessments import real_data
 from eaos.analysis.claims import from_real_data
 from eaos.engines.code import ast_grep
@@ -99,7 +100,7 @@ class TheBaselineApp(unittest.TestCase):
 
 
     def test_presidio_and_ast_grep_find_what_was_planted_and_leave_what_must_stay(self):
-        if not (_installed(presidio) and _installed(ast_grep)): self.skipTest('Presidio or ast-grep is not installed at its pin')
+        need(self, '' if _installed(presidio) and _installed(ast_grep) else 'Presidio or ast-grep is not installed')
         with tempfile.TemporaryDirectory(prefix='eaos-real-data-') as work:
             metrics = [m for engine in (presidio, ast_grep) for m in engine.analyze(BASELINE, Path(work)).metrics]
         facts = [metric(m['path'], m['line'], **m['measurements']) for m in metrics]

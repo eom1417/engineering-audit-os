@@ -7,6 +7,7 @@ import tempfile
 
 from shared_fixture import Workspace
 
+from needs import need
 from eaos.analysis.repair.codemods import TRANSFORM, _commands, _run_steps, attach, binary, card_for, dry_run, remove_python
 from eaos.engines.process import state_digest, which
 
@@ -35,7 +36,7 @@ class CodemodTests(Workspace):
         self.assertFalse(remove_python(root / 'm.py', 'absent'))
 
     def test_a_dead_typescript_symbol_is_removed_by_jscodeshift_on_a_copy(self):
-        if not which('jscodeshift'): self.skipTest('jscodeshift is not installed')
+        need(self, '' if which('jscodeshift') else 'jscodeshift is not installed')
         root = self.project({'src/a.ts': 'export function keep() { return 1; }\nexport function unused() { return 2; }\n',
                              'src/b.tsx': "import 'side-effect'\nimport { createContext, useContext } from 'react'\n"
                                           "import { already } from 'x'\n"
@@ -73,7 +74,7 @@ class CodemodTests(Workspace):
         argv = [step[0] for step in _commands(card, root)]
         self.assertEqual((argv[-1][1:3], argv[-1][-2:]), (['install', 'nanoid@3.3.18'], ['--prefix', 'server']))
         # The npm upgrade changes only the manifest and lock of the copy.
-        if not which('npm'): self.skipTest('npm is not installed')
+        need(self, '' if which('npm') else 'npm is not installed')
         # A lock holding picomatch 2.3.1 (an override's, then the override gone); the card moves that copy to 2.3.2.
         manifest = {'name': 'f', 'version': '1.0.0', 'dependencies': {'micromatch': '4.0.5'}}
         root = self.project({'package.json': json.dumps({**manifest, 'overrides': {'picomatch': '2.3.1'}})})
@@ -81,7 +82,7 @@ class CodemodTests(Workspace):
         (root / 'package.json').write_text(json.dumps(manifest))
         before = state_digest(root)
         result, command = dry_run({'kind': 'npm', 'package': 'picomatch', 'version': '2.3.1', 'fixed': '2.3.2', 'direct': False}, root)
-        if result['exit'] != 0: self.skipTest('the npm registry is unreachable')
+        need(self, 'the npm registry is unreachable' if result['exit'] != 0 else '', tool=False)
         self.assertEqual(result['files_changed'], 2)
         self.assertIn('override picomatch@>=2.3.1 <=2.3.2 with 2.3.2 in package.json', command)
         self.assertEqual(state_digest(root), before)
@@ -94,11 +95,12 @@ class CodemodTests(Workspace):
         steps = _commands(card_for(*upgrade('bun.lock', 'npm:nanoid@3.3.12', '3.3.18'), root), root)
         self.assertEqual([callable(step) or step[1:] for step, _ in steps], [True, ['install', '--lockfile-only', '--ignore-scripts']])
         # The real bun, on a lock holding the vulnerable version: only the lock and its manifest change.
-        if not binary('bun'): self.skipTest('bun is not installed')
+        need(self, '' if binary('bun') else 'bun is not installed')
         (root / 'bun.lock').unlink()
         root = self.project({'package.json': json.dumps({'name': 'f', 'dependencies': {'micromatch': '4.0.5'}, 'overrides': {'picomatch': '2.3.1'}})})
-        if subprocess.run([binary('bun'), 'install', '--lockfile-only', '--ignore-scripts'], cwd=root, capture_output=True).returncode:
-            self.skipTest('the npm registry is unreachable')
+        command = [binary('bun'), 'install', '--lockfile-only', '--ignore-scripts']
+        refused = subprocess.run(command, cwd=root, capture_output=True).returncode
+        need(self, 'the npm registry is unreachable' if refused else '', tool=False)
         (root / 'package.json').write_text(json.dumps({'name': 'f', 'dependencies': {'micromatch': '4.0.5'}}))
         card = card_for(*upgrade('bun.lock', 'npm:picomatch@2.3.1', '2.3.2'), root)
         self.assertEqual(_run_steps(_commands(card, root), root)[0], 0)
@@ -111,11 +113,12 @@ class CodemodTests(Workspace):
         members = [card_for(*upgrade('uv.lock', f'PyPI:{name}@1', fixed), root) for name, fixed in (('idna', '3.7'), ('dnspython', '2.9.0'))]
         steps = _commands({'kind': 'uv', 'group': members}, root)
         self.assertEqual([step[1:] for step, _ in steps], [['lock', '--upgrade-package', 'idna==3.7', '--upgrade-package', 'dnspython==2.9.0']])
-        if not binary('uv'): self.skipTest('uv is not installed')
+        need(self, '' if binary('uv') else 'uv is not installed')
         (root / 'uv.lock').unlink()
         root = self.project({'pyproject.toml': '[project]\nname = "f"\nversion = "0"\nrequires-python = ">=3.9"\ndependencies = ["requests==2.32.3"]\n'})
-        if subprocess.run([binary('uv'), 'lock', '--upgrade-package', 'idna==3.6'], cwd=root, capture_output=True).returncode:
-            self.skipTest('the Python package index is unreachable')
+        command = [binary('uv'), 'lock', '--upgrade-package', 'idna==3.6']
+        refused = subprocess.run(command, cwd=root, capture_output=True).returncode
+        need(self, 'the Python package index is unreachable' if refused else '', tool=False)
         card = card_for(*upgrade('uv.lock', 'PyPI:idna@3.6', '3.7'), root)
         self.assertEqual(_run_steps(_commands(card, root), root)[0], 0)
         self.assertIn('name = "idna"\nversion = "3.7"', (root / 'uv.lock').read_text())
@@ -128,12 +131,12 @@ class CodemodTests(Workspace):
                    for name, version, fixed in (('golang.org/x/text', '0.21.0', '0.22.0'), ('github.com/golang-jwt/jwt/v5', 'v5.2.1', '5.2.2'))]
         self.assertEqual(_commands({'kind': 'go', 'group': members}, root)[0][1],
                          'go get golang.org/x/text@v0.22.0 github.com/golang-jwt/jwt/v5@v5.2.2 && go mod tidy')
-        if not binary('go'): self.skipTest('go is not installed')
+        need(self, '' if binary('go') else 'go is not installed')
         root = self.project({'go.mod': 'module m\n\ngo 1.21\n\nrequire golang.org/x/text v0.21.0\n',
                              'main.go': 'package main\n\nimport _ "golang.org/x/text/language"\n\nfunc main() {}\n'})
         card = card_for(*upgrade('go.mod', 'Go:golang.org/x/text@0.21.0', '0.22.0'), root)
         code, shown = _run_steps(_commands(card, root), root)
-        if code and 'dial tcp' in ' '.join(shown): self.skipTest('the Go module proxy is unreachable')
+        need(self, 'the Go module proxy is unreachable' if code and 'dial tcp' in ' '.join(shown) else '', tool=False)
         self.assertEqual(code, 0, shown)
         self.assertIn('golang.org/x/text v0.22.0', (root / 'go.mod').read_text())
         self.assertTrue((root / 'go.sum').is_file())
@@ -144,11 +147,12 @@ class CodemodTests(Workspace):
                              'src/main.rs': 'fn main() {}\n', 'Cargo.lock': ''})
         card = card_for(*upgrade('Cargo.lock', 'crates.io:itoa@1.0.10', '1.0.11'), root)
         self.assertEqual(_commands(card, root)[0][1], 'cargo update -p itoa@1.0.10 --precise 1.0.11')
-        if not binary('cargo'): self.skipTest('cargo is not installed')
+        need(self, '' if binary('cargo') else 'cargo is not installed')
         (root / 'Cargo.toml').write_text((root / 'Cargo.toml').read_text().replace('=1.0.10', '1'))
         (root / 'Cargo.lock').unlink()
-        if subprocess.run([binary('cargo'), 'update', '-p', 'itoa', '--precise', '1.0.10'], cwd=root, capture_output=True).returncode:
-            self.skipTest('the crates registry is unreachable')
+        command = [binary('cargo'), 'update', '-p', 'itoa', '--precise', '1.0.10']
+        refused = subprocess.run(command, cwd=root, capture_output=True).returncode
+        need(self, 'the crates registry is unreachable' if refused else '', tool=False)
         code, shown = _run_steps(_commands(card, root), root)
         self.assertEqual(code, 0, shown)
         self.assertIn('name = "itoa"\nversion = "1.0.11"', (root / 'Cargo.lock').read_text())
@@ -157,13 +161,13 @@ class CodemodTests(Workspace):
     def test_a_go_module_another_fix_already_moved_past_its_own_is_left_where_it_is(self):
         # One go get of a lock file card's modules must not ask x/sys at its fix while the fixed x/net needs a newer
         # x/sys, or Go refuses the whole card.
-        if not binary('go'): self.skipTest('go is not installed')
+        need(self, '' if binary('go') else 'go is not installed')
         root = self.project({'go.mod': 'module m\n\ngo 1.23\n\nrequire (\n\tgolang.org/x/net v0.34.0\n\tgolang.org/x/sys v0.29.0\n)\n',
                              'main.go': 'package main\n\nimport (\n\t_ "golang.org/x/net/html"\n\t_ "golang.org/x/sys/unix"\n)\n\nfunc main() {}\n'})
         members = [card_for(*upgrade('go.mod', f'Go:golang.org/x/{name}@{version}', fixed), root)
                    for name, version, fixed in (('sys', '0.29.0', '0.30.0'), ('net', '0.34.0', '0.38.0'))]
         code, shown = _run_steps(_commands({'kind': 'go', 'group': members}, root), root)
-        if code and 'dial tcp' in ' '.join(shown): self.skipTest('the Go module proxy is unreachable')
+        need(self, 'the Go module proxy is unreachable' if code and 'dial tcp' in ' '.join(shown) else '', tool=False)
         self.assertEqual(code, 0, shown)
         text = (root / 'go.mod').read_text()
         self.assertIn('golang.org/x/net v0.38.0', text)

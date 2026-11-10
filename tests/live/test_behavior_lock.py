@@ -6,6 +6,7 @@ from pathlib import Path
 
 from shared_fixture import Workspace
 
+from needs import need
 from eaos.core.contracts.artifact_rules import contracts, validate
 from eaos.live.behavior.lock import LOCK_CONFIG, spec_statuses
 from eaos.live.behavior.specs import build, import_safe, path_of, url
@@ -279,8 +280,8 @@ class ApprovalRunTests(Workspace):
     def setUp(self):
         super().setUp()
         from eaos.core import toolchain
-        if not (toolchain.home() / 'bin/pytest').exists() or toolchain.pip_version('approvaltests') is None:
-            self.skipTest('pytest is not installed: python -m eaos tools install --only pytest')
+        missing = not (toolchain.home() / 'bin/pytest').exists() or toolchain.pip_version('approvaltests') is None
+        need(self, 'pytest is not installed: python -m eaos tools install --only pytest' if missing else '')
         import os
         from unittest import mock
         home = mock.patch.dict(os.environ, {'EAOS_HOME': str(Path(self.tmp) / 'eaos-home')})

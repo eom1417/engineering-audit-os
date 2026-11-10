@@ -8,6 +8,7 @@ import unittest
 from pathlib import Path
 from unittest import mock
 
+from needs import need
 from eaos.live.app import assist as live_assist, setup as live_setup, profile as run_profile
 from eaos.live.app.run import LiveRun, load_profile
 from eaos.live.isolation.sandbox import AuthorizationError
@@ -306,7 +307,7 @@ class RunEnvironmentTests(unittest.TestCase):
 
     def test_a_database_of_the_runs_own_on_loopback_even_deep_in_a_home_and_gone_once_its_runtime_is(self):
         from eaos.core.system.local_db import LocalPostgres, binaries
-        if binaries() is None: self.skipTest('no PostgreSQL binaries')
+        need(self, 'no PostgreSQL binaries' if binaries() is None else '')
         holder = tempfile.TemporaryDirectory()
         deep = Path(holder.name) / ('.eaos/projects/chief-fellow-ops-spec-2b5adcc3/' + 'runtime/' * 6)
         db = LocalPostgres(deep)
@@ -329,7 +330,7 @@ class RunEnvironmentTests(unittest.TestCase):
     def test_a_run_leaving_the_database_never_stops_it_under_another_run(self):
         # the project's tests must not stop the server when they end, under the app the page stages are opening
         from eaos.core.system.local_db import LocalPostgres, binaries
-        if binaries() is None: self.skipTest('no PostgreSQL binaries')
+        need(self, 'no PostgreSQL binaries' if binaries() is None else '')
         with tempfile.TemporaryDirectory() as runtime:
             pages, tests = LocalPostgres(runtime), LocalPostgres(runtime)
             try:
@@ -354,7 +355,7 @@ class HashRouteProbeTests(unittest.TestCase):
         import http.server, subprocess, threading, functools
         from eaos.live.screens import audit
         from eaos.core.toolchain import browsers, home
-        if audit.missing('playwright'): self.skipTest(audit.missing('playwright'))
+        need(self, audit.missing('playwright'))
         with tempfile.TemporaryDirectory() as folder:
             Path(folder, 'index.html').write_text(
                 '<body><p id="o"></p><script>const draw = () => { document.getElementById("o").textContent = '

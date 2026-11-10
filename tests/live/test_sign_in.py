@@ -14,6 +14,7 @@ from pathlib import Path
 from types import SimpleNamespace
 from unittest import mock
 
+from needs import needs
 from eaos.live.access import sign_in
 from eaos.pipeline.runners import sign_in as sign_in_stage
 from eaos.pipeline.run import execute
@@ -157,7 +158,7 @@ class SignInTests(unittest.TestCase):
                     self.assertNotIn('cookies', record, 'the report never holds the session')
                     self.assertEqual(os.stat(sign_in.session(live.runtime)).st_mode & 0o777, 0o600)
 
-    @unittest.skipIf(missing('playwright'), 'the pinned Playwright is not installed')
+    @needs(missing('playwright') and 'the pinned Playwright is not installed')
     def test_the_person_signs_in_by_hand_with_the_code_the_app_prints_and_mails_and_the_browser_saves_and_ends(self):
         from eaos.journeys.sign_in_window import Browser
         from eaos.live.app.setup import free_port
@@ -196,7 +197,7 @@ class SignInTests(unittest.TestCase):
         request = urllib.request.Request(f'http://127.0.0.1:{port}/reports/1', headers={'Cookie': f"session={cookie['value']}"})
         with urllib.request.urlopen(request) as response: self.assertIn(b'Only me@example.test', response.read())
 
-    @unittest.skipIf(missing('playwright'), 'the pinned Playwright is not installed')
+    @needs(missing('playwright') and 'the pinned Playwright is not installed')
     def test_a_published_site_is_read_with_get_only_and_never_through_a_link_that_signs_out(self):
         from eaos.live.screens.crawl import discover
         asked = []

@@ -5,6 +5,7 @@ from unittest import mock
 
 from shared_fixture import Workspace
 
+from needs import need
 from eaos.engines.tool import version_of
 
 CONTRACTS = Path(__file__).resolve().parents[1] / 'contracts'
@@ -68,7 +69,7 @@ class SemgrepTests(Workspace):
 
     def test_the_rules_catch_their_examples_and_spare_the_correct_code(self):
         from eaos.engines.security import semgrep
-        if version_of(semgrep) is None: self.skipTest('semgrep is not installed')
+        need(self, 'semgrep is not installed' if version_of(semgrep) is None else '')
         import subprocess
         done = subprocess.run([semgrep.which('semgrep'), '--test', '--disable-version-check', str(self.RULES)],
                               capture_output=True, text=True, timeout=600)
@@ -122,7 +123,7 @@ class DependencyCruiserTests(Workspace):
 
     def test_a_cycle_closed_only_by_import_type_is_coupling_not_a_runtime_cycle(self):
         from eaos.engines.code import dependency_cruiser
-        if version_of(dependency_cruiser) is None: self.skipTest('dependency-cruiser is not installed')
+        need(self, 'dependency-cruiser is not installed' if version_of(dependency_cruiser) is None else '')
         root = Path(self.tmp) / 'project'
         (root / 'src').mkdir(parents=True)
         (root / 'src/a.ts').write_text('import { b } from "./b";\nexport const a = () => b();\n')

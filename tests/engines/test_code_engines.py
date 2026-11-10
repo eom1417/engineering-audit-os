@@ -12,6 +12,7 @@ from unittest import mock
 
 from shared_fixture import Workspace
 
+from needs import need
 from eaos.engines.code import ast_grep, knip, lizard
 from eaos.engines import tool
 from eaos.engines.contract import OBSERVED, UNAVAILABLE
@@ -119,7 +120,7 @@ class LiveRunTests(Workspace):
     def test_each_installed_engine_finds_what_was_planted(self):
         work = lambda name: Path(self.tmp) / name
         with self.subTest(engine='ast-grep'):
-            if not installed(ast_grep): self.skipTest('ast-grep is not installed at its pin')
+            need(self, '' if installed(ast_grep) else 'ast-grep is not installed at its pin')
             code, out, error, _ = run([which('ast-grep'), 'test', '--config', str(ast_grep.RULES / 'sgconfig.yml'),
                                        '--skip-snapshot-tests'], cwd=ast_grep.RULES)
             self.assertEqual(code, 0, out + error)
@@ -127,10 +128,10 @@ class LiveRunTests(Workspace):
             self.assertEqual(report.status, OBSERVED, report.reason)
             self.assertEqual(report.metrics, ast_grep.normalise(sample('ast-grep')['ast-grep.jsonl'], ast_grep.PINNED)[0])
         with self.subTest(engine='lizard'):
-            if not installed(lizard): self.skipTest('lizard is not installed at its pin')
+            need(self, '' if installed(lizard) else 'lizard is not installed at its pin')
             self.assertEqual(rules_of(lizard.analyze(FIXTURE / 'py', work('lizard'))), {('ccn', 'billing.py', 'billing.py::tariff')})
         with self.subTest(engine='knip'):
-            if not installed(knip): self.skipTest('knip is not installed at its pin')
+            need(self, '' if installed(knip) else 'knip is not installed at its pin')
             # VehicleCard is imported only as `@/components/VehicleCard`: unless the alias is resolved it looks unused.
             report = knip.analyze(FIXTURE / 'web', work('knip'))
             self.assertEqual(report.status, OBSERVED, report.reason)

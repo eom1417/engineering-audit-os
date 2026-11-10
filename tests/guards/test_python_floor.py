@@ -5,6 +5,7 @@ import io
 import sys
 import tokenize
 import unittest
+from needs import needs
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -27,7 +28,7 @@ def _reused_quotes(text):
 
 
 class TheOldestPythonDeclared(unittest.TestCase):
-    @unittest.skipUnless(sys.version_info >= (3, 12), 'only Python 3.12 reads such an f-string to find it')
+    @needs('' if sys.version_info >= (3, 12) else 'only Python 3.12 reads such an f-string to find it', tool=False)
     def test_no_f_string_reuses_its_own_quote(self):
         found = {str(path.relative_to(ROOT)): lines for path in SHIPPED if (lines := _reused_quotes(path.read_text(encoding='utf-8')))}
         self.assertEqual(found, {})

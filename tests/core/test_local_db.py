@@ -6,10 +6,11 @@ import unittest
 from pathlib import Path
 from unittest import mock
 
+from needs import needs
 from eaos.core.system import local_db
 
 
-@unittest.skipUnless(os.name == 'posix' and os.geteuid() == 0, 'the dedicated account exists under root only')
+@needs('' if os.name == 'posix' and os.geteuid() == 0 else 'the dedicated account exists under root only', tool=False)
 class ReachableBinaries(unittest.TestCase):
     def test_binaries_in_a_closed_folder_are_copied_with_their_libraries(self):
         owner = local_db._as_owner()
@@ -40,7 +41,7 @@ class ReachableBinaries(unittest.TestCase):
             self.assertEqual(local_db._reachable(bin_dir, local_db._as_owner()), bin_dir)
 
 
-@unittest.skipIf(local_db.binaries() is None, 'no PostgreSQL binaries')
+@needs('no PostgreSQL binaries' if local_db.binaries() is None else '')
 class ChecksCopy(unittest.TestCase):
     def sql(self, url, text):
         return subprocess.run([str(local_db.binaries() / 'psql'), url, '-tAc', text], capture_output=True, text=True, check=True).stdout.split()

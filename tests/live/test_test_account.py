@@ -12,6 +12,7 @@ from types import SimpleNamespace
 from unittest import mock
 from urllib.parse import parse_qs
 
+from needs import needs
 from eaos.live.access import test_account
 from eaos.live.screens.audit import missing
 
@@ -52,7 +53,7 @@ class App(BaseHTTPRequestHandler):
 
 
 class TestAccountTests(unittest.TestCase):
-    @unittest.skipIf(missing('playwright'), 'EAOS Playwright is not installed')
+    @needs(missing('playwright') and 'EAOS Playwright is not installed')
     def test_the_rules_sign_up_then_sign_in_and_a_wrong_password_says_what_it_tried(self):
         from eaos.core.toolchain import home
         server = ThreadingHTTPServer(('127.0.0.1', 0), App)

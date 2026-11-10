@@ -11,6 +11,7 @@ import unittest
 import unittest.mock
 from pathlib import Path
 
+from needs import need
 from eaos.core.system.process import run_command
 from eaos.engines.process import state_digest
 from eaos.facts.run import ORDER, collect
@@ -134,7 +135,7 @@ class NothingElseToRead(unittest.TestCase):
             project = Path(scratch) / 'app'
             project.mkdir()
             try: (project / BAD).write_bytes(b'def bad():\n    return 1\n')
-            except OSError as refused: self.skipTest(f'this file system refuses such a name: {refused}')
+            except OSError as refused: need(self, f'this file system refuses such a name: {refused}', tool=False)
             self._says_it_all(project, SHOWN)
 
 
@@ -143,7 +144,7 @@ class NothingElseToRead(unittest.TestCase):
             project = Path(scratch) / 'app'
             folder = project / os.fsdecode(b'old\xff')
             try: folder.mkdir(parents=True)
-            except OSError as refused: self.skipTest(f'this file system refuses such a name: {refused}')
+            except OSError as refused: need(self, f'this file system refuses such a name: {refused}', tool=False)
             (folder / 'inner.py').write_text('x = 1\n', encoding='utf-8')
             self._says_it_all(project, 'old\\xff')
 

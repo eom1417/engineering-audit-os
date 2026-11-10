@@ -7,6 +7,7 @@ import unittest
 from pathlib import Path
 from unittest import mock
 
+from needs import need
 from eaos.core import toolchain
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -115,7 +116,7 @@ class InstalledPackageTests(unittest.TestCase):
             subprocess.run([sys.executable, '-m', 'venv', '--without-pip', str(venv)], check=True)
             done = subprocess.run([sys.executable, '-m', 'pip', '--python', str(venv / 'bin/python'), 'install', '--quiet',
                                    '--no-deps', str(ROOT)], capture_output=True, text=True)
-            if done.returncode: self.skipTest('pip could not build the package here: ' + done.stderr[-200:])
+            need(self, 'pip could not build the package here: ' + done.stderr[-200:] if done.returncode else '', False)
             probe = ('import json, eaos.core.toolchain.pins as t, eaos.journeys.guided as g, eaos.core.contracts.artifact_rules as a;'
                      'assert "site-packages" in str(t.REGISTRY), t.REGISTRY; print(len(t.registry()["tools"]));'
                      'from pathlib import Path; import eaos;'

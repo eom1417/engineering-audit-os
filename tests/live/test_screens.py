@@ -9,6 +9,7 @@ import unittest
 from pathlib import Path
 from unittest import mock
 
+from needs import needs
 from eaos.core import toolchain
 from eaos.live.screens import audit
 from shared_fixture import TemporaryWorkspace
@@ -30,7 +31,7 @@ BROWSER_MISSING = audit.missing('playwright', 'axe-core')
 LIGHTHOUSE_MISSING = audit.missing('playwright', 'lighthouse')
 
 
-@unittest.skipIf(BROWSER_MISSING, f'screen tools not installed: {BROWSER_MISSING}')
+@needs(BROWSER_MISSING and f'screen tools not installed: {BROWSER_MISSING}')
 class PageAuditTests(TemporaryWorkspace):
     @classmethod
     def setUpClass(cls):
@@ -99,7 +100,7 @@ class PageAuditTests(TemporaryWorkspace):
             self.assertTrue(any(f.startswith('truncation: 2 ') for f in row['failures']), row['failures'])
 
 
-@unittest.skipIf(BROWSER_MISSING, f'screen tools not installed: {BROWSER_MISSING}')
+@needs(BROWSER_MISSING and f'screen tools not installed: {BROWSER_MISSING}')
 class PageStateTests(unittest.TestCase):
     """Language, theme, actions and the subset of a page: the page measured in the state a person reaches."""
 
@@ -156,7 +157,7 @@ class ServeAndLighthouseTests(unittest.TestCase):
                 self.assertEqual(answer.read(), body)
         self.assertEqual(body, (FIXTURES / 'clean.html').read_bytes())
 
-    @unittest.skipIf(LIGHTHOUSE_MISSING, f'lighthouse not installed: {LIGHTHOUSE_MISSING}')
+    @needs(LIGHTHOUSE_MISSING and f'lighthouse not installed: {LIGHTHOUSE_MISSING}')
     def test_mobile_scores_lcp_and_cls_of_a_local_page(self):
         with audit.serve(FIXTURES) as base:
             found = audit.lighthouse(base + 'unlabelled.html')

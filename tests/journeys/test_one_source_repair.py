@@ -10,6 +10,7 @@ import subprocess
 import sys
 import tempfile
 import unittest
+from needs import needs
 from pathlib import Path
 from unittest import mock
 
@@ -33,7 +34,7 @@ def outputs(app):
     return json.loads(subprocess.run(['node', '-e', PROBE, str(app), json.dumps(CASES)], capture_output=True, text=True, check=True).stdout)
 
 
-@unittest.skipUnless(shutil.which('node'), 'node runs the baseline app')
+@needs('' if shutil.which('node') else 'node runs the baseline app')
 class SoundRepair(unittest.TestCase):
     def test_the_one_source_repair_keeps_the_report_the_export_and_the_invoice_as_they_were(self):
         with tempfile.TemporaryDirectory() as tmp:
