@@ -1,4 +1,4 @@
-"""The Markdown of the four reports a client reads first (eaos/report/documents/four_reports.py): a page with a blank
+"""The Markdown of the reports a client reads first (eaos/report/documents/four_reports.py): a page with a blank
 line around every block, prose wrapped at 80 columns, and every text from the project escaped, so it stays literal."""
 import re
 import textwrap

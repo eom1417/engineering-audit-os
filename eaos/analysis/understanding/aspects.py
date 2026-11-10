@@ -72,7 +72,7 @@ def _structure(out, ran):
 def _large_modules(out):
     """The production modules past the code laws' line limit, largest first: each holds more than one responsibility."""
     from ...core.contracts.code_laws import MAX_LINES
-    from ..maps.system import is_test
+    from ..maps.system_paths import is_test
     metrics = (_load(out, 'facts/metrics.json', {}) or {}).get('facts') or []
     rows = sorted(({'path': f['location']['path'], 'lines': f['value'].get('lines'), 'definitions': f['value'].get('symbols')}
                    for f in metrics if f.get('kind') == 'metric' and f['value'].get('scope') == 'file'

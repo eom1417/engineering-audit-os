@@ -132,7 +132,7 @@ def structure(project=None):
             'forbidden_edges': trim(target.get('forbidden_edges')), 'target_edges': trim(target.get('target_edges')),
             'decisions': trim(target.get('decisions'), 20), 'gaps': trim(target.get('gap_matrix'), 40),
             'import_cycles': cycles[:30], 'import_cycle_count': len(cycles), 'limits': target.get('limits'),
-            'documents': [str(report / name) for name in ('CURRENT-STATE.md', 'TARGET-STATE.md')
+            'documents': [str(report / name) for name in ('CURRENT-STATE.md',)
                           if (report / name).is_file()]}
 
 
@@ -245,7 +245,7 @@ def report_file(name='', project=None, offset=0, limit=20000):
 
 
 def open_report(project=None, show=True):
-    """The four reports for people and START-HERE.md, rebuilt with the fixes so far."""
+    """The reports for people and START-HERE.md, rebuilt with the fixes so far."""
     state = state_of(project)
     _report(state)
     guided.reconcile(state)

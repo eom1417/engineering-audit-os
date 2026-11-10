@@ -55,7 +55,7 @@ def _report_tools(server, reading, working, _answer):
 
     # jscpd:ignore-start -- each MCP tool is its own decorated signature: the server reads its schema and words from it
     # Not read-only, for it rebuilds the report and saves the state; no destructive hint, for what it regenerates is overwritten.
-    @server.tool(annotations=reading.model_copy(update={'read_only_hint': False}), description='The report for people (START-HERE.md and the four reports: what was found, what EAOS '
+    @server.tool(annotations=reading.model_copy(update={'read_only_hint': False}), description='The report for people (START-HERE.md and the reports: what was found, what EAOS '
                  'fixes alone, the plan and progress, in plain words), rebuilt with the fixes so far. Offer it after '
                  'the check and after each batch of fixes. All outputs are in one folder (~/EAOS/<project>).')
     @_answer

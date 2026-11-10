@@ -15,7 +15,7 @@ from collections import defaultdict
 from pathlib import Path
 
 from ...core.system.files import read_json
-from .system import is_test
+from .system_paths import is_test
 
 HOTSPOTS, CLUSTERS, MEMBERS = 10, 8, 8
 

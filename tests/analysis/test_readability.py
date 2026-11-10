@@ -27,7 +27,7 @@ class DossierTests(TemporaryWorkspace):
 
     def test_the_dossier_opens_with_an_index_in_reading_order(self):
         text = (self.out / 'README.md').read_text()
-        for document in ['START-HERE.md', 'CURRENT-STATE.md', 'EXECUTION-PLAN.md', 'TARGET-STATE.md', 'RUN.md']:
+        for document in ['START-HERE.md', 'CURRENT-STATE.md', 'EXECUTION-PLAN.md', 'RUN.md']:
             self.assertIn(f']({document})', text)
         dossier = json.loads((self.out / 'dossier.json').read_text())
         self.assertEqual([p for p in validate(self.out, dossier) if p.startswith('R12')], [])

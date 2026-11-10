@@ -150,10 +150,10 @@ def report_stamp(state):
 
 
 def publish(state, lang=None, event=None):
-    """The report's parts rebuilt from the ledger (eaos/core/project/ledger.py) so that they show what is in the person's
-    branch now, stamped in .report.json in the branch's outputs folder with the EAOS that made them; returns the
-    report's START-HERE.md. Nothing here fails in silence: a part that cannot be built is named in .report.json and in
-    logs/. It is never a reason for a step to fail."""
+    """The report's parts and its records (studio/) rebuilt from the ledger (eaos/core/project/ledger.py) so that they
+    show what is in the person's branch now, stamped in .report.json in the branch's outputs folder with the EAOS that
+    made them; returns the report's START-HERE.md. Nothing here fails in silence: a part that cannot be built is named
+    in .report.json and in logs/. It is never a reason for a step to fail."""
     from ...core.system.version_info import stamp
     report, home_folder = report_of(state), branches.home(state)
     made = now()
@@ -170,10 +170,24 @@ def publish(state, lang=None, event=None):
     part('branch', lambda: branch_links(state))
     for name, build in REPORT_PARTS.items(): part(name, lambda build=build: build(state))
     progress.update(eaos=stamp(made), report_errors=errors)
+    _records(state, report, lang, progress, errors)
     home_folder.mkdir(parents=True, exist_ok=True)
     (home_folder / '.report.json').write_text(json.dumps({**stamp(made), 'scanned_commit': state.get('scanned_commit'),
                                                          'errors': errors}, ensure_ascii=False, indent=1) + '\n', encoding='utf-8')
     return report / 'START-HERE.md'
+
+
+def _records(state, report, lang, progress, errors):
+    """The check's records under studio/ (eaos/report/records/write.py), from the same ledger; what failed added to
+    `errors`."""
+    try:
+        from ...report.records.write import write
+        errors += [f"studio {e['section']}: {e['error']}"[:300]
+                   for e in write(report, lang or state.get('lang') or 'en', state['project'],
+                                  progress, state)['errors']]
+    except Exception as problem:
+        errors.append(f'studio: {type(problem).__name__}: {problem}'[:300])
+        log_failure(outputs(state), problem)
 
 
 def publish_fixes(state, wave):

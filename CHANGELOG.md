@@ -2,6 +2,17 @@
 
 ## Not yet versioned
 
+The frozen code removed from the package (P0, decision D2; kept whole in the tag `archive/before-p0`). The public
+contract lock accepted 54 breaks (`tests/fixtures/contract/accepted-breaks.json`), all of them removals:
+
+- CLI commands removed: `design`, `experience`, `logic-flaws`, `projects`, `studio`; `check --path` and `start --path`
+  accept fewer choices.
+- MCP prompt `build` removed, and 22 MCP tools: `blueprint_design`, `blueprint_spec`, `blueprint_start`,
+  `branch_view`, `build_edit`, `build_finish`, `build_read`, `build_skip`, `build_start`, `design`, `design_brief`,
+  `design_choose`, `design_make`, `design_propose`, `experience`, `extend_plan`, `extend_start`, `logic_flaws`,
+  `open_studio`, `project_map`, `projects`, `reorder`, `replan_ideal`, `sign_in_forget`.
+- The recorded answers of those tools no longer answer (24 entries for an empty home and a 0.0.90 home).
+
 After the second round's rerun (owner, 2026-11-05).
 
 - A Cargo.lock card moves its crates with `cargo update -p <name>@<version> --precise <fixed>`, the lock alone written.

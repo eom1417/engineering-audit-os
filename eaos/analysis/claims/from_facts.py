@@ -89,7 +89,7 @@ def hotspots(fact_sets, add, target):
     claim; those of one file become one card (eaos/analysis/planning/cards.py GROUPED). It held to 60 branches and the three worst before,
     so a project's check named 3 of its 105 functions past the limit and scored its structure as sound."""
     from ...core.contracts.code_laws import MAX_COMPLEXITY
-    from ..maps.system import is_test
+    from ..maps.system_paths import is_test
     nodes = {fact['location']['path']: fact['value'] for fact in facts_of(fact_sets, 'graph', 'graph_node')}
     for fact in sorted(facts_of(fact_sets, 'metrics', 'metric'), key=lambda fact: -_complexity(fact)):
         value, path = fact['value'], fact['location']['path']
@@ -125,7 +125,7 @@ def large_modules(fact_sets, add, target):
     """A production module past the line limit of the code laws: it holds more than one responsibility, so a change to
     one of them reads and risks the others. The card splits it along its responsibilities, its outside kept."""
     from ...core.contracts.code_laws import MAX_LINES
-    from ..maps.system import is_test
+    from ..maps.system_paths import is_test
     nodes = {fact['location']['path']: fact['value'] for fact in facts_of(fact_sets, 'graph', 'graph_node')}
     for fact in sorted(facts_of(fact_sets, 'metrics', 'metric'), key=lambda f: -(f['value'].get('lines') or 0)):
         value, path = fact['value'], fact['location']['path']

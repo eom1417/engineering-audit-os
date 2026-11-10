@@ -132,7 +132,7 @@ def _closing_lines(ar):
     return ['## ' + _say(ar, 'الخطوة التالية', 'Next step'), '', '```', 'eaos next', '```', '',
             '## ' + _say(ar, 'للتفاصيل التقنية', 'Technical detail'), '',
             _say(ar, 'للمطوّر أو لمساعدك الذكي: ', 'For a developer or your AI assistant: ')
-            + '`CURRENT-STATE.md` · `TARGET-STATE.md` · `GAP-AND-STRATEGY.md` · `EXECUTION-PLAN.md` · `plan.json`', '']
+            + '`CURRENT-STATE.md` · `EXECUTION-PLAN.md` · `plan.json`', '']
 
 
 def project_name(folder):

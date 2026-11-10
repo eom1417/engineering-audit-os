@@ -46,7 +46,7 @@ def build(root, stack='js'):
     write(report / 'features.json', {'features': [
         {'name': 'home', 'critical': True, 'surfaces': ['/', '/health']},
         {'name': 'admin', 'critical': False, 'surfaces': ['/admin']}]})
-    for name in ('CURRENT-STATE.md', 'TARGET-STATE.md', 'GAP-AND-STRATEGY.md', 'EXECUTION-PLAN.md'):
+    for name in ('CURRENT-STATE.md', 'EXECUTION-PLAN.md'):
         write(report / name, f'# {name[:-3]}\n\nSee [the run](RUN.md), [the first decision](adr/ADR-001.md) '
                              f'and [the guide](EXECUTION-GUIDE.md).\n')
     write(report / 'RUN.md', '# Run\n\nBack to [the plan](EXECUTION-PLAN.md).\n')

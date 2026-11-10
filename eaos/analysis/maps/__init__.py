@@ -1,1 +1,1 @@
-"""The maps people read: architecture, system, pipeline, C4, and what a change touches."""
+"""The maps of the code: its hotspots and import clusters, what a change touches, and which paths are tests."""

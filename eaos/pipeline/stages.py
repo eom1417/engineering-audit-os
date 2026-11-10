@@ -146,9 +146,9 @@ _DECLARED = (
                       'the pipeline steps, then reviews the order; every prerequisite is kept', ai=True),
     Stage('steps', produces=('PLAN/STEPS.md',), requires=('cards',), reads=('order',), amends=('plan.json',),
           description="The plan's order: the assistant's steps when they keep every prerequisite, else the rules' waves"),
-    Stage('reports', produces=('CURRENT-STATE.md', 'TARGET-STATE.md', 'GAP-AND-STRATEGY.md', 'EXECUTION-PLAN.md', 'START-HERE.md'),
+    Stage('reports', produces=('CURRENT-STATE.md', 'EXECUTION-PLAN.md', 'START-HERE.md'),
           requires=('steps',),
-          description='The four reports a client reads first, written from the final target and plan; every other '
+          description='The reports a client reads first, written from the records and the plan; every other '
                       'document is an appendix to them'),
     Stage('translate', produces=('i18n/ar/START-HERE.md', 'i18n/en/START-HERE.md'), requires=('reports',), necessity=OPTIONAL,
           absent_when='no assistant was installed or allowed: each document stays as it was written',

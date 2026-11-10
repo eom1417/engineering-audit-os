@@ -140,14 +140,11 @@ def index_document(target, dossier, language):
                      f"tasks {len(dossier.get('tasks', []))} · waves {len(dossier.get('waves', []))}"])
     document.section(tr('اقرأ بهذا الترتيب', 'Read in this order'))
     rows = [
-        [tr('تريد الصورة كاملة: التقارير الأربعة، وبقية الوثائق ملاحق لها',
-            'wanting the whole picture: the four reports; every other document is an appendix to them'),
-         '[CURRENT-STATE.md](CURRENT-STATE.md) → [TARGET-STATE.md](TARGET-STATE.md) → '
-         '[GAP-AND-STRATEGY.md](GAP-AND-STRATEGY.md) → [EXECUTION-PLAN.md](EXECUTION-PLAN.md)', '20 min'],
+        [tr('تريد الصورة كاملة: التقريران، وبقية الوثائق ملاحق لهما',
+            'wanting the whole picture: the two reports; every other document is an appendix to them'),
+         '[CURRENT-STATE.md](CURRENT-STATE.md) → [EXECUTION-PLAN.md](EXECUTION-PLAN.md)', '20 min'],
         [tr('تقرّر أين يذهب الجهد', 'deciding where effort goes'),
          '[START-HERE.md](START-HERE.md) → [PLAN/STEPS.md](PLAN/STEPS.md) → [PLAN/WAVES.md](PLAN/WAVES.md)', '5 min'],
-        [tr('تراجع البنية', 'reviewing the architecture'),
-         '[TARGET-STATE.md](TARGET-STATE.md) → [GAP-AND-STRATEGY.md](GAP-AND-STRATEGY.md)', '30 min'],
         [tr('تريد أن تعرف كيف جرى الفحص', 'checking how this check ran'), '[RUN.md](RUN.md)', '2 min'],
         [tr('ستغيّر ملفًا محددًا', 'about to change one file'), "the assistant's `impact` tool (/eaos)", '1 min'],
     ]

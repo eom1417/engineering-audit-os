@@ -32,8 +32,6 @@ ARTIFACTS = (
     Artifact('START-HERE.md', 'reports', DOCUMENT, 'The first page in plain words: what was found, what EAOS fixes alone', 1, 200,
              record='plan.json'),
     Artifact('CURRENT-STATE.md', 'reports', DOCUMENT, 'What the program is today: features, data, measured risk', 2, 200, record_absent_because=FOUR),
-    Artifact('TARGET-STATE.md', 'reports', DOCUMENT, 'The same features on the reference type, with its infrastructure', 2, 200, record_absent_because=FOUR),
-    Artifact('GAP-AND-STRATEGY.md', 'reports', DOCUMENT, 'The distance component by component, and the order to close it', 2, 200, record_absent_because=FOUR),
     Artifact('EXECUTION-PLAN.md', 'reports', DOCUMENT, 'Milestones, sections and the first cards a team starts with', 2, 200, record_absent_because=FOUR),
     Artifact('README.md', 'claims', DOCUMENT, 'What this report holds and in what order to read it', 1, 120,
              record='dossier.json'),

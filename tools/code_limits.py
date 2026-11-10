@@ -66,26 +66,9 @@ def justified(function, lines):
     return said & set(JUSTIFIABLE)
 
 
-def studio(over):
-    """The Studio's JavaScript (console/src) held to the same complexity and module length (M4.6), counted by EAOS's own
-    facts (eaos/facts/code/metrics.py: 1 + the lexical branches, each nested function alone), added to `over`."""
-    import tempfile
-    from eaos.facts.run import collect
-    with tempfile.TemporaryDirectory() as out:
-        collect(ROOT / 'console', Path(out), ['syntax', 'metrics'], exclude=('node_modules', 'dist', 'tools', 'scripts'))
-        facts = json.loads((Path(out) / 'facts' / 'metrics.json').read_text(encoding='utf-8'))['facts']
-    for fact in (f for f in facts if f['kind'] == 'metric'):
-        value, rel = fact['value'], 'console/' + fact['location']['path']
-        if value['scope'] == 'file' and value['lines'] > LIMITS['modules']: over['modules'][rel] = value['lines']
-        key = f"{rel}::{fact['location'].get('symbol')}"
-        if value['scope'] in ('function', 'method') and value['complexity'] > LIMITS['functions']:
-            over['functions'][key] = max(value['complexity'], over['functions'].get(key, 0))
-    return over
-
-
 def measure():
     """Everything over a limit today: {kind: {path::name or path: size}}, a kind per LIMITS."""
-    over = studio({kind: {} for kind in LIMITS})
+    over = {kind: {} for kind in LIMITS}
     for path in modules():
         text, rel = path.read_text(encoding='utf-8'), path.relative_to(ROOT).as_posix()
         if len(lines := text.splitlines()) > LIMITS['modules']: over['modules'][rel] = len(lines)
