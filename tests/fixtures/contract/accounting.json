@@ -4,7 +4,7 @@
  "ask": "not called: asks the assistant",
  "assistant_check": "called on an empty and on a saved project",
  "audit": "tests/guards/test_journey.py",
- "branch_change": "tests/interfaces/test_mcp.py",
+ "branch_change": "tests/interfaces/test_mcp_jobs.py",
  "branches": "called on an empty and on a saved project",
  "check_changed": "not locked: it reads a change the fixture does not have",
  "choose_branch": "tests/interfaces/test_mcp.py",

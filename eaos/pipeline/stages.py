@@ -202,7 +202,6 @@ PHASES = {phase: tuple(sorted(names, key=ORDER.index)) for phase, names in {
           'app': ('setup', 'verify', 'session', 'crawl', 'lock', 'record', 'journeys', 'screens'),
           'assistant': ('triage',),
           'plan': ('plan', 'cards', 'order', 'steps', 'reports', 'translate')}.items()}
-PHASE = {name: phase for phase, names in PHASES.items() for name in names}
 
 
 def graph():

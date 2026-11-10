@@ -77,11 +77,6 @@ class Context:
                     'reviewed'} for path in deferred]
         return _stream(self,paths,omissions),omissions
 
-    def verify_refs(self,value):
-        errors=[]
-        _walk_refs(value,self.evidence,errors)
-        return errors
-
 
 def _ordered(paths,order,files):
     """The declared attention order first, then every other file in inventory order."""
@@ -135,17 +130,3 @@ def _stream(context,paths,omissions):
             batch.append(block);size+=amount
     write(context.run/'evidence.json',list(context.evidence.values()))
     if batch:yield batch
-
-
-def _valid_ids(ids,evidence):
-    return isinstance(ids,list) and all(isinstance(e,str) and e in evidence for e in ids)
-
-
-def _walk_refs(obj,evidence,errors):
-    """An error for every `evidence_ids` in `obj`, at any depth, that names an id the context does not hold."""
-    if isinstance(obj,dict):
-        for k,v in obj.items():
-            if k=='evidence_ids' and not _valid_ids(v,evidence):errors.append('Unknown or invalid evidence_ids')
-            _walk_refs(v,evidence,errors)
-    elif isinstance(obj,list):
-        for item in obj:_walk_refs(item,evidence,errors)

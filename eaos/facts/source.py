@@ -76,11 +76,6 @@ class Source:
 
     def category(self, rel): return classify(rel)
 
-    def readable_including_sensitive(self):
-        """Every readable file plus sensitive-flagged files."""
-        return [item for item in self.inventory['files']
-                if item.get('capture') in ('hashed', 'sensitive_metadata_only')]
-
     def text(self, rel):
         """UTF-8 text of an in-target file, or None when it is binary, oversize or excluded."""
         if rel in self._text: return self._text[rel]

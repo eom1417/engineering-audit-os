@@ -355,7 +355,7 @@ def _lockfile(lock, members, add):
 def _vulnerable(fact, add, scope):
     value = fact.get('value') or {}
     numbers = {m['name']: m['value'] for m in value.get('measurements') or []}
-    ecosystem, _, rest = str(fact['location'].get('symbol')).partition(':')
+    _, _, rest = str(fact['location'].get('symbol')).partition(':')
     package, _, installed = rest.rpartition('@')
     ids = numbers.get('advisory_ids') or []
     return add(value['message'], 'risk', 'CONFIRMED', ['static_fact'],

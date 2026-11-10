@@ -183,13 +183,6 @@ def gate(owner, rules, root, changed, laws):
     return refusal(broken(results))
 
 
-def as_gate(state, card, root, changed, laws):
-    """The gate's problems ({gate, where, what}) of the person's rules that hold for this card (a build's)."""
-    rules = registry.holding(state['project'], state, card)
-    return ([{'gate': 'rules', 'where': card or '', 'what': said}
-             for said in gate(state['project'], rules, root, changed, laws)] if rules else [])
-
-
 def found_of(problems):
     """The gates' problems as a detector guard reads them."""
     return [{'detector': p['gate'],

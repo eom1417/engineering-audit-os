@@ -123,7 +123,7 @@ def results(analyzer, found, rules):
                 + ['PHONE_NUMBER']]
     out = [hit for recognizer in patterns for hit in recognizer.analyze(text, recognizer.supported_entities, None)
            or ()]
-    for start, end, line, key, value in offsets:
+    for start, _, _, key, value in offsets:
         if not any(word in key for word in rules['name_keys']): continue
         # one value alone, as a field holds it
         for hit in analyzer.analyze(text=value, language='en', entities=['PERSON']):

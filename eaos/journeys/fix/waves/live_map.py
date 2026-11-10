@@ -112,7 +112,7 @@ def _to_draw(state):
     """The batch to draw: the open one, else the last closed one once (kept in `fix_drawn`); None when there is none."""
     wave, last = state.get('open_wave'), (state.get('waves') or [None])[-1]
     if wave: return wave
-    if not (last or {}).get('cards') or state.get('fix_drawn') == last['number']: return None   # a build's: draw_build
+    if not (last or {}).get('cards') or state.get('fix_drawn') == last['number']: return None
     state['fix_drawn'] = last['number']
     return last
 

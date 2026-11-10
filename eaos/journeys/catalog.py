@@ -1,8 +1,7 @@
 """The journeys of one engine, declared as data (eaos/data/journeys.json): check and fix, build from a plan,
 extend the project. Each is the same machinery in another order. This module picks the person's journey from
-their state, judges each of its steps (done, and the state of the flow that draws it on the live map,
-eaos/core/progress), and draws a build's own flow from the state, so the journey strip, the live map and the
-stage panel show a build as they show a check.
+their state and judges each of its steps (done, and the state of the flow that draws it on the live map,
+eaos/core/progress).
 """
 import json
 import time
@@ -10,12 +9,10 @@ from datetime import datetime
 from pathlib import Path
 
 from ..core import progress
-from ..core.progress.flow import Stage
 from ..core.project import state as project_state
 from ..core.system.files import read_json
 
 DATA = Path(__file__).resolve().parents[1] / 'data' / 'journeys.json'
-BUILD = 'build'                 # the flow a build draws (draw_build)
 
 
 def declared():
@@ -117,53 +114,3 @@ DONE = {'check': {step: _check(step) for step in ('scan', 'ready', 'safety', 'fi
                   'build': _built, 'accept': _check('scan')},
         'extend': {'feature': lambda s: bool(s.get('extend')), 'ready': _check('ready'), 'safety': _check('safety'),
                    'build': _feature_built, 'recheck': _rechecked}}
-
-
-# ---------------------------------------------------------------- the build, on the live map
-
-def draw_build(state):
-    """The build's progress as the flow `build`, drawn again from the state after each of its steps: a stage per
-    milestone, a step per card (kept, or set aside with why). A build lives across many calls of the assistant, so no
-    process holds it: it reads as running until its last milestone is delivered, then it ends."""
-    plan = read_json(_blueprint(state) / 'plan.json')
-    if not plan: return None
-    runtime = project_state.runtime_of(state)
-    # a drawing, not a run: none of them goes to the history
-    progress.path_for(runtime, BUILD).unlink(missing_ok=True)
-    log = progress.ProgressLog(runtime, BUILD, pulse=False, sampler=None, alive_every=None)
-    stages = _stages(plan)
-    records = _records(state)
-    began = min((r['began'] for r in records.values() if r.get('began')), default=None)
-    log.started(stages, [s.name for s in stages], {}, steps={}, process=False, at=began)
-    for milestone in plan['milestones']:
-        if milestone['id'] in records: _draw_milestone(log, milestone, records[milestone['id']])
-    if _built(state): log.finish('COMPLETE')
-    else: log.close()
-    return progress.path_for(runtime, BUILD)
-
-
-def _stages(plan):
-    """A stage per milestone of the build plan, each after the one before."""
-    return [Stage(m['id'], requires=(previous['id'],) if previous else (),
-                  title={'ar': m.get('name_ar') or m['name'], 'en': m['name']})
-            for previous, m in zip([None] + plan['milestones'], plan['milestones'])]
-
-
-def _records(state):
-    """{milestone id: its record}: the milestones built, and the open one."""
-    records = {r['milestone']: r for r in state.get('built') or []}
-    if state.get('open_build'): records.setdefault(state['open_build']['milestone'], state['open_build'])
-    return records
-
-
-def _draw_milestone(log, milestone, record):
-    log.stage_started(milestone['id'], at=record.get('began'))
-    step, cards = log.stepper(milestone['id']), milestone['tasks']
-    for done, card in enumerate(cards, 1):
-        if card in record['kept']: step(card, done, len(cards), 'ok', seconds=0)
-        elif card in record['skipped']: step(card, done, len(cards), 'skipped', reason=record['skipped'][card])
-    if record.get('branch'):
-        log.ended({'stage': milestone['id'], 'status': 'ok', 'reason': f"delivered as {record['branch']}",
-                   'seconds': None, 'necessity': 'required', 'artifacts': [record['branch']]},
-                  **({'at': record['ended']} if record.get('ended') else {}))
-

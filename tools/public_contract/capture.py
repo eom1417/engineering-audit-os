@@ -43,7 +43,7 @@ WRITING_ELSEWHERE = {
     'open_report': 'tests/interfaces/test_read_only_tools.py', 'choose_branch': 'tests/interfaces/test_mcp.py',
     'note': 'tests/interfaces/test_mcp.py',
     'rule': 'tests/analysis/test_person_rules.py', 'runs': 'tests/interfaces/test_mcp.py',
-    'waiting': 'tests/interfaces/test_mcp.py', 'branch_change': 'tests/interfaces/test_mcp.py',
+    'waiting': 'tests/interfaces/test_mcp.py', 'branch_change': 'tests/interfaces/test_mcp_jobs.py',
     'check_changed': 'not locked: it reads a change the fixture does not have',
     'run_nodes': 'not locked: it asks the assistant', 'run_setup': 'not locked: it runs the app',
     'run_try': 'not locked: it runs the app',

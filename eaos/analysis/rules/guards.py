@@ -23,7 +23,6 @@ import time
 from pathlib import Path
 
 KINDS = ('pattern', 'test', 'detector', 'none')
-GATES = ('copy', 'complex', 'size', 'security', 'dead', 'tidy', 'layers', 'structure', 'vendor', 'cycle', 'broken')
 EXTENSIONS = {'python': '.py', 'javascript': '.js', 'typescript': '.ts', 'tsx': '.tsx', 'jsx': '.jsx', 'html': '.html',
               'css': '.css', 'go': '.go', 'rust': '.rs', 'java': '.java', 'kotlin': '.kt', 'ruby': '.rb', 'php': '.php',
               'c': '.c', 'cpp': '.cpp', 'csharp': '.cs', 'swift': '.swift', 'bash': '.sh', 'json': '.json',

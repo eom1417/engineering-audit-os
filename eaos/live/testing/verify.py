@@ -129,7 +129,7 @@ def run(target, out, command=None, timeout=900, execute=True):
             result['reason'] = 'No configured or default test command completed successfully in the isolated copy.'
             write(out / 'verification.json', result)
             return result
-        data, report = parse_coverage(project)
+        data, _ = parse_coverage(project)
         result['command'] = chosen['argv']
         if data is None:
             result['reason'] = 'The command ran but coverage data could not be produced; install the runtime extra.'
