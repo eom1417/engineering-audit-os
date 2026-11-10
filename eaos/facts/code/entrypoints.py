@@ -128,8 +128,8 @@ def _record_entry_points(module, context, file, tally):
 
 
 def _recorder(counted, field, fact):
-    """The recorder of a detector whose finds are (offset, line, found): each counted by `field` into `counted`, and its
-    fact made by `fact(module, file, line, found)`."""
+    """The recorder of a detector whose finds are (offset, line, found): each counted by `field` into `counted`, and
+    its fact made by `fact(module, file, line, found)`."""
     def record(module, context, file, tally):
         for _offset, line, found in module.detect(context):
             tally['fingerprints'].append(file['item']['sha256'])

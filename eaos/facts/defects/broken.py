@@ -262,7 +262,8 @@ def _missing_import_fact(fact, sha):
 
 
 def _missing_import_facts(resolved, sha, absent):
-    """A fact per resolved import that names a module the snapshot does not have (`absent`: submodules not checked out)."""
+    """A fact per resolved import that names a module the snapshot does not have (`absent`: submodules not checked
+    out)."""
     return [found for found in (_missing_import_fact(fact, sha) for fact in resolved) if found and not _in_submodule(found['location'], absent)]
 
 

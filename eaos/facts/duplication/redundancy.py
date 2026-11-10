@@ -1,4 +1,4 @@
-"""Redundant work in flows (the L5 detector).
+"""Redundant work in flows.
 
 Four classes of redundancy:
   repeated_call     the same call with the same arguments appears twice in one scope
@@ -32,10 +32,10 @@ LIMITATIONS = [
     '(repeated_call). Hoistable and pass-through work is not looked for there.',
 ]
 
-# Names that plausibly reach a store. 'get', 'all', 'first' and 'find' were here and matched
-# dict.get, the all() builtin and str.find, which is how 1,014 false N+1 claims were produced.
-# Only names that unambiguously reach a store. 'update', 'insert', 'delete' and 'save' were here
-# and matched hashlib.update and dict.update, which is not data access.
+# Names that plausibly reach a store. 'get', 'all', 'first' and 'find' are left out: they match
+# dict.get, the all() builtin and str.find, which would raise false N+1 claims.
+# Only names that unambiguously reach a store. 'update', 'insert', 'delete' and 'save' are left out:
+# they match hashlib.update and dict.update, which is not data access.
 _N1_NAMES = {'query', 'filter_by', 'execute', 'fetchone', 'fetchall', 'select',
              'get_or_404', 'find_one', 'aggregate', 'scalar', 'objects', 'fetch', 'download', 'request'}
 # Calls kept for their effect, never for their value: hoisting them changes behaviour.
@@ -142,7 +142,7 @@ def _python_loop_vars(loop_node):
     """Every name that can differ between iterations.
 
     The loop target alone is not enough: a value assigned inside the body changes on every pass,
-    so a call using it is not loop-invariant. Missing that produced most of the false hoists.
+    so a call using it is not loop-invariant. Missing that would report false hoists.
     """
     bound = _names_in(loop_node.target) if isinstance(loop_node, (ast.For, ast.AsyncFor)) else set()
     for statement in _python_loop_body(loop_node):
@@ -306,10 +306,8 @@ def _python_redundancies(text, rel):
 def _tree_sitter_redundancies(text, language):
     """Not implemented for tree-sitter languages, and it says so instead of returning nothing found.
 
-    This returned an empty list, which the caller reads as "analysed, nothing here". Every
-    non-Python file then counted as observed, so 1021 Go files produced zero redundancy facts and
-    the dashboard reported a perfect minimal path. Returning None puts those files in
-    `files_blocked`, which is the bucket for what we could not look at.
+    An empty list would read as "analysed, nothing here" and count every non-Python file as observed.
+    Returning None puts those files in `files_blocked`, which is the bucket for what we could not look at.
     """
     return None
 

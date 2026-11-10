@@ -15,7 +15,8 @@ LIMITATIONS = ['Read from the files alone, never run; a folder a framework fills
 
 
 def published(target, paths):
-    """The files of `paths` git tracks in `target` (what a push publishes; an ignored file is not), all of them outside git."""
+    """The files of `paths` git tracks in `target` (what a push publishes; an ignored file is not), all of them
+    outside git."""
     done = subprocess.run(['git', '-C', str(target), 'ls-files'], capture_output=True, text=True)
     return [p for p in paths if p in set(done.stdout.splitlines())] if done.returncode == 0 and done.stdout else paths
 

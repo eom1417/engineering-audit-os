@@ -22,7 +22,7 @@ def _strip_comments(text):
 
     Go has no block comments in the lexical sense (tree-sitter does, but the detector
     works on raw text); removing `// ...` lines is enough to drop every false positive
-    we have observed in real codebases.
+    that commented example code would give.
     """
     return '\n'.join('' if line.lstrip().startswith('//') else line for line in text.split('\n'))
 
@@ -48,7 +48,8 @@ def prepare(texts):
 
 
 def _handed(cleaned, groups):
-    """{function: the prefixes of the groups the app hands it}; a test's own router (a _test.go file) is not the app's."""
+    """{function: the prefixes of the groups the app hands it}; a test's own router (a _test.go file) is not the
+    app's."""
     handed = {}
     for rel, text in cleaned.items():
         for match in PASSED.finditer('' if rel.endswith('_test.go') else text):

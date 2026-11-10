@@ -1,11 +1,11 @@
 """Endpoints the framework detectors do not name: a Node server written on node:http alone, Next.js server actions and
-Supabase edge functions. Each is a way into the program a person's browser reaches (M6.4)."""
+Supabase edge functions. Each is a way into the program a person's browser reaches."""
 import re
 
 LANGUAGES = ('javascript', 'typescript', 'tsx')
 NODE_SERVER = re.compile(r'\b(?:http|https)\.createServer\s*\(|\bcreateServer\s*\(')
-# `if (url.pathname === '/api/x' && req.method === 'POST') return handler(req, res);`, or `.startsWith('/api/x/')`: a route
-# followed by the rest of its path, a parameter.
+# `if (url.pathname === '/api/x' && req.method === 'POST') return handler(req, res);`, or `.startsWith('/api/x/')`: a
+# route followed by the rest of its path, a parameter.
 PATHNAME = re.compile(r'''\b(?:url\.pathname|pathname|req\.url|request\.url)\s*(?:===?\s*(?P<q>['"`])(?P<route>/[^'"`]*)(?P=q)'''
                       r'''|\.startsWith\(\s*(?P<p>['"`])(?P<prefix>/[^'"`]*)(?P=p)\s*\))''')
 METHOD = re.compile(r'''\b(?:req|request)\.method\s*===?\s*['"`](?P<method>GET|POST|PUT|PATCH|DELETE)['"`]''')
@@ -31,7 +31,8 @@ def _node_routes(context):
 
 
 def directive(text):
-    """The file's 'use client' or 'use server' directive ('client', 'server'), read after its leading comments; or None."""
+    """The file's 'use client' or 'use server' directive ('client', 'server'), read after its leading comments; or
+    None."""
     rest = text.lstrip()
     while rest.startswith(('//', '/*')):
         end = rest.find('\n') if rest.startswith('//') else rest.find('*/') + 1

@@ -1,6 +1,6 @@
-"""Redundant work in JavaScript and TypeScript, judged from the recorded facts (eaos/facts/duplication/redundancy.py): a query or
-request inside a loop or an iterating call (n_plus_one), and the same query twice on one unconditional path of a
-function (repeated_call)."""
+"""Redundant work in JavaScript and TypeScript, judged from the recorded facts (eaos/facts/duplication/redundancy.py):
+a query or request inside a loop or an iterating call (n_plus_one), and the same query twice on one unconditional path
+of a function (repeated_call)."""
 import re
 from collections import defaultdict
 

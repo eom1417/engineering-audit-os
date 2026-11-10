@@ -1,5 +1,5 @@
-"""Framework detectors: entry points, routes, navigation and data access per framework. Adding one module here is how a
-new detector joins the pipeline.
+"""Framework detectors: entry points, routes, navigation and data access per framework. Adding one module here is how
+a new detector joins the pipeline.
 
 Each module exposes LANGUAGES / FILENAMES and detect(context). What the detector emits is one of
 the canonical fact kinds declared in this package (``entry_point``, ``data_access``, ``navigation``); the core
@@ -12,8 +12,7 @@ from . import (go_cli, go_command, go_web, js_navigation, js_routes, js_web, jvm
 
 # Order matters for matching: data-access detectors sit alongside invocation detectors so a
 # single read of the file text produces both fact kinds. A detector that has no
-# ``FACT_KIND`` attribute is treated as an ``entry_point`` detector to keep the original list
-# self-describing without changing every existing module.
+# ``FACT_KIND`` attribute is treated as an ``entry_point`` detector.
 MODULES = [python_web, python_cli, python_jobs, streamlit, js_web, js_routes, server_entries,
            go_cli, go_command, go_web, jvm_web, library_api, manifests, supabase_access, http_access, js_navigation]
 

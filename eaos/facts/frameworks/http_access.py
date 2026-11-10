@@ -102,7 +102,8 @@ class _ObjectKeys:
     def bracket(self, ch):
         """An opening or a closing bracket; the keys once the literal closes, else None."""
         if ch in '{([':
-            if self.depth == 1 and self.expect and ch == '[': self.partial = True  # a computed key: its name is known at run time
+            # A computed key: its name is known only at run time.
+            if self.depth == 1 and self.expect and ch == '[': self.partial = True
             self.depth += 1
             if self.depth == 1: self.expect = True
             return None

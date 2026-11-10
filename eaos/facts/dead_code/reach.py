@@ -1,7 +1,7 @@
-"""What the product reaches, for the dead-code detector (eaos/facts/dead_code/detect.py): its production entry points and the
-roots walked from them (tool configurations, the programs a CI step or a document runs, what a build script bundles),
-the resolved import graph, the loads it cannot see (a module named in text, a path literal) and the package data read
-whole.
+"""What the product reaches, for the dead-code detector (eaos/facts/dead_code/detect.py): its production entry points
+and the roots walked from them (tool configurations, the programs a CI step or a document runs, what a build script
+bundles), the resolved import graph, the loads it cannot see (a module named in text, a path literal) and the package
+data read whole.
 """
 import re
 from collections import defaultdict
@@ -27,8 +27,9 @@ RELATIVE_LITERAL = re.compile(r'''['"`](\.{1,2}/[^'"`\s${}]+)['"`]''')
 PATH_LITERAL = re.compile(r'''['"`]([\w-][\w.-]*(?:/[\w.-]+)+\.\w+)['"`]''')
 # Folders a package ships as data, loaded by path at run time: templates and rules.
 DATA_FOLDERS = {'templates', 'rules'}
-# Tools a script runs that load every file of a folder by convention, so no import names those files: (the command, the
-# folder it loads, the option that names another one). The react-email CLI renders every file in emails/, or `--dir <x>`.
+# Tools a script runs that load every file of a folder by convention, so no import names those files: (the command,
+# the folder it loads, the option that names another one). The react-email CLI renders every file in emails/, or
+# `--dir <x>`.
 CONVENTION_FOLDERS = ((re.compile(r'(?:^|[;&|]\s*)(?:npx\s+)?email\s+(?:build|export|dev)\b'), 'emails', '--dir'),)
 
 

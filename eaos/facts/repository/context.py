@@ -1,7 +1,8 @@
-"""The context an assistant reads at the start of every session (M7.9): the instruction files (AGENTS.md, CLAUDE.md and
-the files it imports with @, GEMINI.md, the Cursor and Copilot rules, the project's skills), measured in tokens: how
-heavy they are, the lines said in more than one, and the done items still in them. EAOS's own blocks between their marker
-lines (eaos/ai/assistant/setup.py, the pinned rules of eaos/analysis/rules/context.py) are never counted against the person."""
+"""The context an assistant reads at the start of every session: the instruction files (AGENTS.md, CLAUDE.md and the
+files it imports with @, GEMINI.md, the Cursor and Copilot rules, the project's skills), measured in tokens: how heavy
+they are, the lines said in more than one, and the done items still in them. EAOS's own blocks between their marker
+lines (eaos/ai/assistant/setup.py, the pinned rules of eaos/analysis/rules/context.py) are never counted against the
+person."""
 import posixpath
 import re
 from collections import defaultdict
@@ -18,14 +19,16 @@ def tokens(text):
 
 
 def files(everything, limits):
-    """The context files a session reads: the named ones, those CLAUDE.md files import, every file of the skill folders."""
+    """The context files a session reads: the named ones, those CLAUDE.md files import, every file of the skill
+    folders."""
     named = [p for p in sorted(everything) if p in limits['context_files']]
     named += [p for p in sorted(everything) if any(p.startswith(folder + '/') for folder in limits['context_folders'])]
     return named
 
 
 def followed(start, everything, read):
-    """{path: read(path)} of the context files from `start`, the files a CLAUDE.md imports followed, inside the repository."""
+    """{path: read(path)} of the context files from `start`, the files a CLAUDE.md imports followed, inside the
+    repository."""
     out, queue = {}, list(start)
     while queue:
         path = queue.pop(0)
@@ -53,7 +56,7 @@ def _preloaded(path, text, limits):
 
 
 def _without_eaos(text, limits):
-    """The text without EAOS's own blocks: its guide's and the person's pinned rules' (M16)."""
+    """The text without EAOS's own blocks: its guide's and the person's pinned rules'."""
     for begin, end in limits['eaos_block']:
         while begin in text and end in text.split(begin, 1)[1]:
             head, rest = text.split(begin, 1)

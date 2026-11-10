@@ -1,6 +1,7 @@
 """The files a build script hands a bundler to start from (esbuild's `entryPoints`, rollup's `input`, webpack's
-`entry`) or loads itself (`import(pathToFileURL(path.join(SRC, 'words', file)).href)`). The script computes each path (`path.join(SRC, 'places', place, 'index.js')`) and never imports it, so the
-import graph reached none of them, and on EAOS's own Studio 96 modules were said to be dead (2026-10-24).
+`entry`) or loads itself (`import(pathToFileURL(path.join(SRC, 'words', file)).href)`). The script computes each path
+(`path.join(SRC, 'places', place, 'index.js')`) and never imports it, so the import graph reaches none of them and
+they would be reported as dead code.
 
 A path is read from its `path.join`/`path.resolve` and the constants it is built from: a literal is itself, the
 script's own folder (`__dirname`, `import.meta.url`) its folder, and any other value one folder name (`*`).

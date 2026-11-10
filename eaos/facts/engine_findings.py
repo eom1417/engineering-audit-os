@@ -135,7 +135,7 @@ def run(target, source, out=None, only=None, keep=False):
 
 # The engines' working folders: their indexes, caches, copies of the project and raw outputs. Once their findings are
 # normalised above (engines.json keeps them, once, for an engine run again within the check) nothing reads them: the
-# code index alone is 130 MB on a five-file project, and reforge's and semgrep's raw reports were 10 MB on EAOS.
+# code index alone can be far larger than the project it describes.
 SCRATCH = ('*/',)
 
 

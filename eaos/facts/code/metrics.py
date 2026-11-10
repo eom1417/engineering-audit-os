@@ -38,7 +38,7 @@ def nesting_depth(lines, language):
             maximum = max(maximum, indent - base)
         return maximum
     # Only a brace that opens a block counts (after `)`, `else`, `try`, `=>`...): an object literal or a JSX expression
-    # is no level a reader must hold (excalidraw, 2026-11-05: 71 of its 90 complex functions read five deep by every brace).
+    # is no level a reader must hold, and counting every brace would read most functions as deeply nested.
     opened = []
     for line in lines:
         for match in BRACE.finditer(line):
@@ -83,8 +83,8 @@ def _symbol_metric(item, rel, lines, language, fact):
 
 
 def _counter(lines, language, mine):
-    """fact -> its complexity: the code laws' count of a Python function (its def line), else 1 + the lexical branches of
-    its lines but those of the symbols nested in it."""
+    """fact -> its complexity: the code laws' count of a Python function (its def line), else 1 + the lexical branches
+    of its lines but those of the symbols nested in it."""
     exact = {}
     if language == 'python':
         try: tree = ast.parse('\n'.join(lines))

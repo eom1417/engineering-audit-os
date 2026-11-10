@@ -1,7 +1,8 @@
-"""The repository's layout read as an engineer reads it (M7.8), from its files alone: a folder too crowded to look
+"""The repository's layout read as an engineer reads it, from its files alone: a folder too crowded to look
 through, a family of files that wants its own folder, a name that says nothing, two versions of one file, source in a
 folder tools skip as output, a document naming a path that is not there, tests that do not follow the code, no map for
-extending it, and what it publishes of the computer it was made on. A framework's own folders (catalog limits: exempt_folders) are never one."""
+extending it, and what it publishes of the computer it was made on. A framework's own folders (catalog limits:
+exempt_folders) are never one."""
 import re
 from collections import defaultdict
 from pathlib import PurePosixPath

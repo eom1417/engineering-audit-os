@@ -1,13 +1,12 @@
 """A dead-code candidate whose name is held in a distribution registry of the analysed project is
 not dead: the registry invokes it by name. The detector scans the project's source for the
-patterns the spec calls out: module lists ``MODULES = [a, b, c]``, dict lookups
+patterns that name code indirectly: module lists ``MODULES = [a, b, c]``, dict lookups
 ``REGISTRY['key']``, getattr-by-string, ``__all__``, importlib/import() with a literal argument,
 and JSON ``name``/``id`` fields in any directory under the snapshot.
 
 A registry-referenced candidate is kept on disk but tagged
-``value.referenced_by_registry = True``; the cluster pass (eaos/analysis/claims/correlate.py) skips it so no dead_code claim
-is raised for it, which is the contract the spec phrases as 'a candidate referenced by one of
-these sources stays as engine_finding and does not become a dead_code claim'.
+``value.referenced_by_registry = True``; the cluster pass (eaos/analysis/claims/correlate.py) skips it, so no
+dead_code claim is raised for it: a candidate referenced by one of these sources stays an engine_finding.
 """
 import ast
 import json
@@ -187,9 +186,9 @@ def filter_in_sets(facts, sets):
     """Annotate the dead_code facts whose name is held in a distribution registry.
 
     The function does not remove facts from disk; a registry-referenced candidate is still a
-    valid place the engine looked, and downstream stages that read the fact set (the S2 measure,
-    the dossier table) keep working. Marking the fact with ``value.referenced_by_registry = True``
-    lets the cluster pass skip it so no dead_code claim is raised for it — the NS4.T2 spec.
+    valid place the engine looked, and downstream stages that read the fact set keep working.
+    Marking the fact with ``value.referenced_by_registry = True`` lets the cluster pass skip it so no
+    dead_code claim is raised for it.
     """
     source = _source_from_sets(sets)
     if source is None:
@@ -207,8 +206,7 @@ def _source_from_sets(sets):
     return None
 
 
-# Backward-compatible public hook kept for facts/run.py:collect_external().
-# New behaviour: annotate facts in place; return (annotated_facts, count_marked).
+# Public hook for facts/run.py:collect_external(): annotates facts in place; returns (annotated_facts, count_marked).
 def filter_dead_code_references(facts, source):
     if source is None:
         return facts, 0

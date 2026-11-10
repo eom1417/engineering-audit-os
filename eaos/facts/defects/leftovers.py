@@ -81,8 +81,8 @@ def classify(rel):
 
 
 def _source_after_all(rel, imported):
-    """A build-output name that is source: a file of source code beside one the project imports, or under `src/` before
-    the folder that named it output (EAOS's own build_info.py beside the modules that import it was a leftover card)."""
+    """A build-output name that is source: a file of source code beside one the project imports, or under `src/`
+    before the folder that named it output (a build_info.py beside the modules that import it is source)."""
     path = PurePosixPath(rel)
     if path.suffix.lower() not in SOURCE_EXT: return False
     folder = path.parent.as_posix()

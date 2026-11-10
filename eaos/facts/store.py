@@ -2,9 +2,8 @@
 byte-identical.
 
 A field every fact of a set holds with one same value (its extractor, version and limitations) is written once beside
-them (`fact_fields`) and put back on read: it was half of each set's bytes. A reader asks for the facts it needs (of a
-kind, by id, or one set) and only the sets that can hold them are read: every caller used to read all of them, 280 MB
-on EAOS, often several times per stage.
+them (`fact_fields`) and put back on read, which halves each set's bytes. A reader asks for the facts it needs (of a
+kind, by id, or one set) and only the sets that can hold them are read, so no caller loads every set.
 """
 from collections.abc import Mapping
 import json

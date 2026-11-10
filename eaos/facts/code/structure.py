@@ -4,7 +4,7 @@ These facts are the substrate of every redundancy detector that follows:
 a duplicate call must sit inside a function, a hoistable call must sit inside
 a loop, a pass-through layer must have a body that is one call, and a call
 sequence must come from an ordered list of call sites. Without these facts,
-L3/L4/L5 detection cannot exist at all.
+those detectors have nothing to read.
 """
 import ast
 from .. import digest, make, tree_sitter_tree
@@ -174,7 +174,7 @@ def _ts_walk(node, walk):
     else:
         for child in node.children: _ts_walk(child, walk)
         return
-    # A loop, a branch or a call is descended into through its first child only, as the extractor always has;
+    # A loop, a branch or a call is descended into through its first child only, as the extractor does;
     # the golden facts (tests/fixtures/golden/structure.json) record that.
     if node.children: _ts_walk(node.children[0], walk)
 

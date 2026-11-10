@@ -1,6 +1,6 @@
 """ast-grep: EAOS's own structural rules over the project's syntax trees (eaos/rules/ast-grep).
 
-The first rules record facts rather than judge: every React component with the name it is bound to
+The rules record facts rather than judge: every React component with the name it is bound to
 (`const VehicleCard = (...) => <jsx/>`, `function Dashboard() { return <jsx/> }`), and every `useEffect`
 whose whole body is one state setter (derived state). A record becomes a measurement row (granularity
 `symbol`) that later stages read; a rule whose metadata names a kind of the shared vocabulary becomes a
@@ -70,8 +70,7 @@ def normalise(rows, found):
 
 
 def _spans(single):
-    """{'spans': {'BODY': [first line, last line]}}: the lines of a branch's body (M13.1); nothing for a rule without
-    one, so the records of the other rules stay as they were."""
+    """{'spans': {'BODY': [first line, last line]}}: the lines of a branch's body; nothing for a rule without one."""
     return {'spans': {'BODY': [single['BODY']['range']['start']['line'] + 1, single['BODY']['range']['end']['line'] + 1]}} if 'BODY' in single else {}
 
 

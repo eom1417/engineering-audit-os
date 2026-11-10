@@ -28,7 +28,8 @@ LIMITATIONS = [
 ]
 
 
-NO_COMMIT_YET = 'does not have any commits yet'     # git's words for it; a broken ref fails too, and says otherwise
+# git's words for it; a broken ref fails too, and says otherwise.
+NO_COMMIT_YET = 'does not have any commits yet'
 
 
 def git(target, args, timeout=120):
@@ -183,8 +184,9 @@ def _summary(commits, per_file, reference, settings):
 
 
 def additions(target, max_commits=500, bulk_limit=Settings().bulk_limit):
-    """Newest first, each commit's {sha, date, added, changed} (paths relative to `target`), for a project's extension
-    guide: what an addition touched. Merges and mass commits (over `bulk_limit` files) are left out; no git, none."""
+    """Newest first, each commit's {sha, date, added, changed} (paths relative to `target`), for a project's
+    extension guide: what an addition touched. Merges and mass commits (over `bulk_limit` files) are left out; no git,
+    none."""
     if not available(target): return []
     done = git(target, ['log', '--no-merges', '--no-renames', '--name-status', f'--max-count={max_commits}',
                         f'--pretty=format:{RECORD}%h{FIELD}%aI', '--', '.'])

@@ -169,7 +169,7 @@ def first_string(node, blob):
 def literal_argument(node, blob):
     """The specifier of `import("./x")` or `require("./x")`: the first argument when it is a literal, else None.
     `import(new URL("../server/", import.meta.url).href)` loads a computed path; the string inside it is a base
-    folder, not the module, and reading it as one reported a missing import."""
+    folder, not the module, so reading it as one would report a missing import."""
     arguments = node.child_by_field_name('arguments')
     first = arguments.named_children[0] if arguments is not None and arguments.named_children else None
     if first is None: return None
@@ -228,8 +228,8 @@ def _tree_import(node, blob):
 
 def _tree_reexport(node, blob):
     # A re-export (`export { Dialog } from "./Dialog"`, `export * from "./types"`) depends on its source
-    # exactly as an import does. A barrel index.ts made only of these was a file with no edges, and every
-    # module behind it looked unreachable.
+    # exactly as an import does. A barrel index.ts made only of these would be a file with no edges, and every
+    # module behind it would look unreachable.
     module = node_text(node.child_by_field_name('source'), blob).strip('\'"`')
     clause = re.search(r'\{([^}]*)\}', node_text(node, blob))
     names = [part.split(' as ')[0].strip() for part in clause.group(1).split(',') if part.strip()] if clause else ['*']
@@ -289,7 +289,7 @@ def parse_text(path, text):
 
 def run(target, source, cache=None, **options):
     """Per-file results are cached by content hash, so re-running after a small change is cheap. The cache keeps only
-    today's files: an edited or removed file's old entry goes, else every edit grew it for good (175 MB on EAOS)."""
+    today's files: an edited or removed file's old entry goes, else every edit would grow it for good."""
     facts, statuses, languages = [], {}, {}
     fingerprints, seen = [], set()
     cache = cache if cache is not None else {}

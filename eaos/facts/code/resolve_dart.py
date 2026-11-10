@@ -1,7 +1,6 @@
 """Dart's imports to files: `package:<name>/<path>` is `<path>` under the `lib/` of the package `pubspec.yaml` names
-`<name>`, any other URI is relative to the importing file (`'store.dart'`, `'../api/core.dart'`), and `dart:` is the SDK.
-Before it only a URI starting with a dot was read, so a Flutter app's graph had almost no edge: its files were
-"imported by 0 modules" while ten imported them (zulip-flutter, judged in M17.3, 2026-11-05)."""
+`<name>`, any other URI is relative to the importing file (`'store.dart'`, `'../api/core.dart'`), and `dart:` is the
+SDK. Reading only URIs that start with a dot would leave a Flutter app's graph with almost no edge."""
 import posixpath
 import re
 from pathlib import PurePosixPath
@@ -10,7 +9,8 @@ NAME = re.compile(r'^name:\s*["\']?([A-Za-z0-9_]+)', re.M)
 
 
 def packages(source, known):
-    """{package name: its folder ('' at the root)} of every pubspec.yaml in a folder holding a known Dart file or above it."""
+    """{package name: its folder ('' at the root)} of every pubspec.yaml in a folder holding a known Dart file or
+    above it."""
     folders = {''}
     for path in known:
         if path.endswith('.dart'): folders |= {parent.as_posix() for parent in PurePosixPath(path).parents if parent.as_posix() != '.'}

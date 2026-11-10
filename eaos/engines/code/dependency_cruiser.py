@@ -1,12 +1,11 @@
-"""dependency-cruiser: the JavaScript and TypeScript import graph, its cycles, and the owner's boundaries as rules.
+"""dependency-cruiser: the JavaScript and TypeScript import graph, its cycles, and the project's boundaries as rules.
 
 The rules are written into the work directory, never into the project: `no-circular` always, one `forbidden` rule per
-`deny` in the project's own eaos.policy.json when it declares layers, and the rules of the layer map EAOS drew (M6.2:
-each layer of the reference type barred from the layers it may not use, and browser code from reaching server code
-through any chain of files). Cycles and
-boundary breaches are findings, one per distinct cycle, on the runtime graph (a cycle through an
-`import type` is erased by the compiler, so it is not reported); they are a witness beside EAOS's own graph and
-GitNexus, so agreement between them is what raises a claim.
+`deny` in the project's own eaos.policy.json when it declares layers, and the rules of the layer map EAOS drew (each
+layer of the reference type barred from the layers it may not use, and browser code from reaching server code through
+any chain of files). Cycles and boundary breaches are findings, one per distinct cycle, on the runtime graph (a cycle
+through an `import type` is erased by the compiler, so it is not reported); they are a witness beside EAOS's own graph
+and GitNexus, so agreement between them is what raises a claim.
 
 Without a TypeScript compiler beside it, dependency-cruiser reads no .ts file and reports an empty,
 clean graph. `eaos tools install` puts one there; a run that examined no module in a project that has
@@ -44,8 +43,8 @@ def glob_regex(pattern):
 
 
 def configuration(target, workdir=None):
-    """The rule set: no-circular, one forbidden rule per deny in the project's eaos.policy.json, and the layer map's rules
-    (LAYERS, written by the layers stage beside the engines' folder: eaos/analysis/layers/boundaries.py)."""
+    """The rule set: no-circular, one forbidden rule per deny in the project's eaos.policy.json, and the layer map's
+    rules (LAYERS, written by the layers stage: eaos/analysis/layers/boundaries.py)."""
     denied = _policy_rules(Path(target) / 'eaos.policy.json') + _layer_rules(workdir)
     rules = [{'name': 'no-circular', 'severity': 'error', 'from': {}, 'to': {'circular': True}}] + denied
     declared = len(denied)
@@ -99,7 +98,8 @@ def type_only_cycles(source, runtime_keys):
 
 
 def _cruise(target, workdir, rules, graph, keep_types):
-    """(summary, seconds, failure) of one run on the runtime or the source graph; failure is '' when it wrote its output."""
+    """(summary, seconds, failure) of one run on the runtime or the source graph; failure is '' when it wrote
+    its output."""
     rules['options']['tsPreCompilationDeps'] = keep_types
     config = workdir / f'rules-{graph}.json'
     config.write_text(json.dumps(rules, indent=1), encoding='utf-8')

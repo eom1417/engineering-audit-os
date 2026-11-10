@@ -1,4 +1,4 @@
-"""Presidio: personal values written in the project's string literals (names, phones, national ids, IBANs, e-mails, M12.1).
+"""Presidio: personal values written in the project's string literals (names, phones, national ids, IBANs, e-mails).
 
 Presidio is a library, run in its own environment by EAOS's script (eaos/templates/presidio/scan.py) with the patterns
 and placeholders of eaos/rules/personal-data.json. Each value is a measurement, not a finding: whether it is real data

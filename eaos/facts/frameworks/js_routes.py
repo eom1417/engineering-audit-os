@@ -1,6 +1,6 @@
 """User-facing routes of single-page and file-routed web apps: React Router, TanStack Router, Next.js pages.
 
-These are the surfaces a person actually reaches, and the ones an app built with Lovable, Bolt or v0
+These are the surfaces a person actually reaches, and the ones a generated front-end app
 is made of. Server handlers declared on a TanStack file route are http surfaces; everything else here
 is a page. Only a route written in the source is reported; one assembled at runtime is not guessed.
 
