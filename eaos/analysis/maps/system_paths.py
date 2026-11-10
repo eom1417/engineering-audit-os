@@ -1,5 +1,5 @@
-"""How the system map reads a path (eaos/analysis/maps/system.py): a test file, a call's URL, two routes that are one, an
-API's resource, the route a file-routed handler answers, and the files a file reaches by imports.
+"""How the system map reads a path (eaos/analysis/maps/system.py): a test file, a call's URL, two routes that are one,
+an API's resource, the route a file-routed handler answers, and the files a file reaches by imports.
 """
 import re
 from pathlib import Path
@@ -25,7 +25,8 @@ def is_test(path):
 
 
 def clean_path(target):
-    """The URL path of a call as the code wrote it: a template or query cut off ('/api/audit${before' -> '/api/audit')."""
+    """The URL path of a call as the code wrote it: a template or query cut off ('/api/audit${before' ->
+    '/api/audit')."""
     text = str(target or '').strip()
     for stop in ('${', '?', '#', '`', ' ', "'", '"', '{'):
         if stop in text: text = text[:text.index(stop)]

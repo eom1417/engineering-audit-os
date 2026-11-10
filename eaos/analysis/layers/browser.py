@@ -1,8 +1,8 @@
-"""What ships to the browser (M6.3): it holds no secret, no privileged key, no server code and no database.
+"""What ships to the browser: it holds no secret, no privileged key, no server code and no database.
 
-The rules read the side of each file (placement.py): code the browser runs, and the built output a build wrote. They are
-EAOS's own rules rather than Semgrep's, because each needs to know where a file runs, which a pattern cannot. The built
-output is read when the project holds it (dist/, build/, .next/static ...) or a build in the isolated copy made it
+The rules read the side of each file (placement.py): code the browser runs, and the built output a build wrote. They
+are EAOS's own rules rather than Semgrep's, because each needs to know where a file runs, which a pattern cannot. The
+built output is read when the project holds it (dist/, build/, .next/static ...) or a build in the isolated copy made it
 (`built_root`); otherwise its absence is said, never taken for a clean result.
 """
 import re

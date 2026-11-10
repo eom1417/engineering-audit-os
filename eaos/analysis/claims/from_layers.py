@@ -1,15 +1,16 @@
-"""The claims the layers earn (M6): one per finding of the `boundaries` fact set (eaos/analysis/layers/), each naming the
+"""The claims the layers earn: one per finding of the `boundaries` fact set (eaos/analysis/layers/), each naming the
 boundary it breaks and the reference's fix, and the questions the layers could not decide.
 
-A finding of a rule read from the code is CONFIRMED; one that reads the code's intent (whose row it is, whether a rule is
-only in the browser) is LIKELY, for the assistant's triage to judge; a live finding carries the request that proved it.
+A finding of a rule read from the code is CONFIRMED; one that reads the code's intent (whose row it is, whether a rule
+is only in the browser) is LIKELY, for the assistant's triage to judge; a live finding carries the request that proved
+it.
 A chain of files from browser code to server code that only dependency-cruiser followed (the layer rules it is given,
 eaos/engines/code/dependency_cruiser.py) is a finding of its own.
 """
 from ..layers.catalog import fix, sentence
 
-# A missing piece of operations is the target's to plan (its infrastructure rows, eaos/analysis/target_state/projection.py):
-# shown in the layers, never a second card.
+# A missing piece of operations is the target's to plan (its infrastructure rows,
+# eaos/analysis/target_state/projection.py): shown in the layers, never a second card.
 PLANNED_ELSEWHERE = {'operations-missing'}
 INTENT = {'unowned-row', 'unguarded-private-read', 'browser-only-rule', 'ui-calculation', 'untested-write'}
 REACH = 'eaos-browser-reaches-server'

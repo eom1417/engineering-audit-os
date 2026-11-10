@@ -1,15 +1,15 @@
-"""The layer map (M6.1): every file of the project in a layer of its reference type, with the reason and a confidence.
+"""The layer map: every file of the project in a layer of its reference type, with the reason and a confidence.
 
-A file is placed by, in order: the project's own eaos.policy.json (its layers' path patterns), the reference type's path
-patterns (eaos/rules/reference-architectures.json, the most specific wins), or what the file is made of: an HTTP framework
-puts it in the layer whose role is `endpoint`, a database client in the `data` one, React or JSX in the `screen` one. A
-file none of them places is a listed gap, never a guess.
+A file is placed by, in order: the project's own eaos.policy.json (its layers' path patterns), the reference type's
+path patterns (eaos/rules/reference-architectures.json, the most specific wins), or what the file is made of: an HTTP
+framework puts it in the layer whose role is `endpoint`, a database client in the `data` one, React or JSX in the
+`screen` one. A file none of them places is a listed gap, never a guess.
 
 Beside the layer, each file has a side: where its code runs. `browser` (shipped to the person's browser: 'use client',
 React and JSX outside Next.js's server components, anything a browser file imports), `server` (an HTTP framework, a
 database driver, Node's own modules, 'use server', `server-only`, Python and Go, anything only server files import),
 `shared` (imported by both), `database` (migrations and schemas) or `test`. The sides are what the browser boundary
-(M6.3) and the rules split (M6.8) read; the layers are what the boundaries (M6.2) read.
+(browser.py) and the rules split (rules_split.py) read; the layers are what the boundaries (boundaries.py) read.
 """
 import re
 from collections import deque
@@ -150,7 +150,8 @@ def _by_graph(project, row, reference, placed):
 
 
 def _role_conflict(reference, layer, marks):
-    """A path pattern put the file in a layer whose role its own code contradicts (an HTTP handler in a screens folder)."""
+    """A path pattern put the file in a layer whose role its own code contradicts (an HTTP handler in a screens
+    folder)."""
     role = next((l.get('role') for l in reference['layers'] if l['name'] == layer), None)
     return ('endpoint' in marks and role == 'screen') or ('screen' in marks and role in ('endpoint', 'data'))
 

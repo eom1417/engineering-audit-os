@@ -1,14 +1,14 @@
-"""What the owner must protect and where they are going, asked once, with a declared default for every gap.
+"""What the person must protect and where they are going, asked once, with a declared default for every gap.
 
 What must not break, how many users are coming, whether personal data is held: none of it can be read from
-the code with certainty. The questions are fixed (eaos/rules/intake-questions.json). The owner answers
+the code with certainty. The questions are fixed (eaos/rules/intake-questions.json). The person answers
 them in a JSON file of {id: answer} (`eaos audit --intake FILE`); a question they did not answer takes its
 default, marked `default`, with the reason written next to it. Some defaults are read from the project
 itself (the critical features, personal data, hosting), each citing where.
 
 The answers become numbered quality scenarios (stimulus, response, measure) that k6, Toxiproxy and the
 SLOs are later held to. Every scenario names the question it came from and whether its number was the
-owner's answer or a default, so no threshold appears without a source. intake.json keeps the contract
+person's answer or a default, so no threshold appears without a source. intake.json keeps the contract
 schemas/artifacts/intake.schema.json; engagement.json reads its scenarios from there.
 """
 import json
@@ -120,7 +120,7 @@ def scenarios(rows):
 
 
 def build(target, out, answers=None):
-    """The intake record for one project: the owner's answers where given, declared defaults elsewhere."""
+    """The intake record for one project: the person's answers where given, declared defaults elsewhere."""
     answers = answers or {}
     derived = defaults(target, out)
     rows = []
@@ -139,7 +139,7 @@ def build(target, out, answers=None):
 
 
 def read_answers(path):
-    """The owner's answers file: a JSON object {question id: answer}."""
+    """The person's answers file: a JSON object {question id: answer}."""
     if not path: return {}
     data = json.loads(Path(path).read_text(encoding='utf-8'))
     if not isinstance(data, dict): raise ValueError(f'{path}: the answers file is a JSON object {{question id: answer}}')

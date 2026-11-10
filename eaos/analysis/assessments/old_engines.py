@@ -1,4 +1,4 @@
-"""Old engines still wired in (M13.1, M13.3): code another part replaced that is still called, or that sits behind a
+"""Old engines still wired in: code that another part supersedes but that is still called, or that sits behind a
 switch fixed to one value, so the dead-code check sees it reached and says nothing.
 
 Switches: ast-grep's records (eaos/rules/ast-grep/rules/flags.yml) of a name fixed to true or false at a module's top
@@ -19,8 +19,8 @@ from pathlib import Path, PurePosixPath
 from ...core.contracts.vocabulary import classify
 from ...facts.engine_findings import engine_records
 
-# A name says old only by these words; `new`, `next` or `previous` alone are a name's meaning (new_token, previous_seconds),
-# so a pair needs one of its names marked old, or both marked by a version (v1 and v2).
+# A name says old only by these words; `new`, `next` or `previous` alone are a name's meaning (new_token,
+# previous_seconds), so a pair needs one of its names marked old, or both marked by a version (v1 and v2).
 OLD = {'old', 'legacy', 'deprecated', 'obsolete', 'classic', 'bak', 'backup'}
 NEW = {'new', 'next', 'modern'}
 VERSION = re.compile(r'^v(\d+)$')
@@ -171,7 +171,8 @@ def switched_off(sets, root=None):
 
 
 def words(name):
-    """The lower-case words of a name: legacyGenerate, old_export, exportV2 -> [legacy, generate], [old, export], [export, v2]."""
+    """The lower-case words of a name: legacyGenerate, old_export, exportV2 ->
+    [legacy, generate], [old, export], [export, v2]."""
     found = [w.lower() for w in WORDS.findall(name)]
     merged = []
     for word in found:
@@ -221,14 +222,16 @@ def _row(kind, old, new, line, history, fact_ids):  # limits: parameters -- a fi
 
 
 def two_engines(sets):
-    """[{kind, old, new, path_old, path_new, line, stopped, began, fact_ids}]: two functions or modules doing one job."""
+    """[{kind, old, new, path_old, path_new, line, stopped, began, fact_ids}]: two functions or modules doing one
+    job."""
     by_stem, defined, history, calls = {}, _definitions(sets), _history(sets), _calls(sets)
     for name, definition in defined.items():
         stem, path = _stem(name)[0], PurePosixPath(definition['path'])
         if stem: by_stem.setdefault((stem, definition['parameters'], path.parent.as_posix(), path.suffix), []).append(name)
+    # a pair nobody calls is dead code, said elsewhere
     out = [_row('function', (old, defined[old]['path']), (new, defined[new]['path']), defined[old]['line'], history,
                 [defined[old]['fact_id'], defined[new]['fact_id']])
-           for old, new in _pairs(by_stem.values(), _older) if old in calls]      # nothing calls it: dead code, said elsewhere
+           for old, new in _pairs(by_stem.values(), _older) if old in calls]
     return out + two_modules(sets, history)
 
 

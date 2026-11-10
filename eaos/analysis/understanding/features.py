@@ -23,8 +23,7 @@ _PARAMETER_SEGMENT = re.compile(r'^\$|^:')    # TanStack `$id`, Next.js `[id]`, 
 _AUTH_KEYWORD = frozenset({'auth', 'login', 'signup', 'signin', 'signout', 'payment',
                            'checkout', 'billing'})
 # Pages a person reaches on the way in, or to read about the product, are one feature each, not one
-# feature per page: a vibe-coded app has login, reset, reset-password and confirm-email as four routes
-# of the same thing.
+# feature per page: an app often has login, reset, reset-password and confirm-email as four routes of the same thing.
 _GROUPS = {'auth': frozenset({'auth', 'login', 'logout', 'signin', 'signup', 'signout', 'register', 'reset',
                               'reset-password', 'forgot-password', 'confirm-email', 'verify', 'verify-email',
                               'callback', 'oauth', 'magic-link'}),
@@ -320,7 +319,8 @@ def _owned(feature, path):
 
 
 def _kept(feature, seeds, hops, nearest):
-    """The reached files whose data is the feature's: reached most directly by it, and no provider of another feature."""
+    """The reached files whose data is the feature's: reached most directly by it, and no provider of another
+    feature."""
     return {path for path, hop in hops.items() if path not in seeds and hop == nearest[path]
             and (not _PROVIDER.search(path.rsplit('/', 1)[-1]) or _owned(feature, path))}
 

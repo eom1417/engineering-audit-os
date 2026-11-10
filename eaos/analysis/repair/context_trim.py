@@ -1,16 +1,17 @@
-"""The assistants' context trimmed safely (M8.6): what an assistant reads at the start of every session (M7.9,
-eaos/facts/repository/context.py) made lighter without losing one instruction.
+"""The assistants' context trimmed safely: what an assistant reads at the start of every session
+(eaos/facts/repository/context.py) made lighter without losing one instruction.
 
-    plan(root, private_to=None)   {edits {file: new text}, archive, private, kept_twice, personal, renamed}; nothing written
+    plan(root, private_to=None)   {edits {file: new text}, archive, private, kept_twice, personal, renamed}; nothing
+                                  written
     apply(root, private_to=None)  the plan written in `root` (a copy: never the person's project); Untrimmable when an
                                   instruction of the files before is not found again in exactly one file after
 
-What it does: a done item (`- [x] ...`) moves to the archive file (rules: context_archive), never deleted; a line said in
-two files stays only in the one the other imports (CLAUDE.md's `@AGENTS.md`), so every assistant still reads it once (a
-line read by two different assistants is kept twice, and said so); a path a file names that is not there is pointed at
-the one file of that name. A person's own instructions (rules: context_personal, and the machine details of dev_details)
-are proposed to move to the private file the person names (`private_to`), the public file keeping the rest. Only the
-repository's own files are read and written, never an assistant's own folders (~/.claude, ~/.codex)."""
+What it does: a done item (`- [x] ...`) moves to the archive file (rules: context_archive), never deleted; a line
+said in two files stays only in the one the other imports (CLAUDE.md's `@AGENTS.md`), so every assistant still reads
+it once (a line read by two different assistants is kept twice, and said so); a path a file names that is not there is
+pointed at the one file of that name. A person's own instructions (rules: context_personal, and the machine details of
+dev_details) are proposed to move to the private file the person names (`private_to`), the public file keeping the
+rest. Only the repository's own files are read and written, never an assistant's own folders (~/.claude, ~/.codex)."""
 import posixpath
 import re
 from collections import Counter
@@ -76,11 +77,12 @@ def _done(lines):
 
 
 def _repeats(lines, reads, rules):
-    """A line said in two files removed from each one that imports another saying it; [(line, files)] of those kept twice:
-    files no assistant reads together."""
+    """A line said in two files removed from each one that imports another saying it; [(line, files)] of those kept
+    twice: files no assistant reads together."""
     kept = []
     for text, paths in _said_twice(lines, rules):
-        stays = sorted(p for p in paths if not reads.get(p, set()) & paths) or sorted(paths)[:1]   # read with nothing else saying it
+        # the files that no other file saying it is read with stay
+        stays = sorted(p for p in paths if not reads.get(p, set()) & paths) or sorted(paths)[:1]
         for other in paths - set(stays): lines[other][:] = [row for row in lines[other] if said(row) != text]
         if len(stays) > 1: kept.append((text, stays))
     return kept

@@ -3,8 +3,9 @@
 Nothing here decides that a finding is true. It decides how many independent engines said it, how
 many looked and did not, and therefore what a claim built on it may honestly assert.
 
-The candidates a distribution registry of the project holds by name are tagged by eaos/facts/dead_code/registry.py (NS4.T2): they
-stay on disk, but clusters() skips them so no dead_code claim is raised for them.
+The candidates a distribution registry of the project holds by name are tagged by
+eaos/facts/dead_code/registry.py: they stay on disk, but clusters() skips them so no dead_code claim is raised for
+them.
 """
 from hashlib import sha256
 
@@ -96,7 +97,7 @@ def _decision(kind, asserted_by, over, denied_fully, other_resolution):
 
 def is_wide(fact):
     """A finding about a group spread over more than WIDE files is evidence about the group, not about each file in it:
-    a word repeated across 17 files says nothing about the complexity of any one of them (NS30.T1)."""
+    a word repeated across 17 files says nothing about the complexity of any one of them."""
     return fact['value'].get('subject_kind') == 'group' and len(_places(fact)) > WIDE
 
 
@@ -177,8 +178,8 @@ def _measurements(facts):
 
 
 def _standing(facts):
-    """Per kind, what still stands: `engine: symbol` of each finding, of a MEASURED kind only one past its own threshold
-    (a card's probe judges by it, so a function brought under the limit no longer counts, 2026-10-15)."""
+    """Per kind, what still stands: `engine: symbol` of each finding, of a MEASURED kind only one past its own
+    threshold (a card's probe judges by it, so a function brought under the limit does not count)."""
     out = {}
     for fact in facts:
         kind = fact['value']['kind']

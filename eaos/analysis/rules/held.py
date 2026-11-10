@@ -1,4 +1,4 @@
-"""The person's rules held (M16.3, M16.4): on a whole check every place each rule is broken; on a change only what the
+"""The person's rules held: on a whole check every place each rule is broken; on a change only what the
 change brought (a match it added, a test it made fail), so a rule already broken elsewhere never refuses a sound
 change, and the card that names every place is what fixes the rest.
 """
@@ -57,7 +57,8 @@ def _tree(repo, where, commit, index=False):
 
 
 def _linked(repo, where):
-    """The project's installed dependency folders (DEPENDENCIES, as git ignores them) linked into the tree at `where`."""
+    """The project's installed dependency folders (DEPENDENCIES, as git ignores them) linked into the tree at
+    `where`."""
     ignored = _git(repo, 'ls-files', '--others', '--ignored', '--exclude-standard', '--directory', text=True).stdout.split('\n')
     for folder in (f.rstrip('/') for f in ignored if f.endswith('/') and Path(f.rstrip('/')).name in DEPENDENCIES):
         if (where / folder).parent.is_dir() and not (where / folder).exists(): (where / folder).symlink_to(Path(repo).resolve() / folder)
@@ -102,7 +103,8 @@ def _brought(rule, result, paths, before, found):
     earlier = (before() if callable(before) else before) if kind in ('pattern', 'test') else None
     if earlier is not None:
         was = guards.run(registry.in_force(rule), earlier, paths, found)
-        if kind == 'test' and was['status'] == 'broken': result['status'] = 'held'        # it failed before the change too
+        # it failed before the change too
+        if kind == 'test' and was['status'] == 'broken': result['status'] = 'held'
         if kind == 'pattern': result['places'] = _new_places(result['places'], was['places'])
     if not result['places'] and kind != 'test': result['status'] = 'held'
     return result
@@ -138,7 +140,7 @@ SAID = {'en': ('it breaks your rule {id}, said on {said_on}: "{words}" at {where
 
 def refusal(broken, lang='en'):
     """The sentence a refused change gives for each rule it breaks: the person's words, when they said them, where, how
-    often it came back (this change brought it back once more), and pinning offered when it is not pinned (M16.5)."""
+    often it came back (this change brought it back once more), and pinning offered when it is not pinned."""
     first, back, pin = SAID['ar' if lang == 'ar' else 'en']
     said = []
     for item in broken:
@@ -150,7 +152,8 @@ def refusal(broken, lang='en'):
 
 
 def record(project, results, where):
-    """Each result into the rule's record: a break with its places, a hold; the same break of the same check counted once."""
+    """Each result into the rule's record: a break with its places, a hold; the same break of the same check counted
+    once."""
     for item in results:
         try:
             if item['status'] == 'broken': registry.broke(project, item['id'], where, item['places'])
@@ -170,7 +173,7 @@ def gate(owner, rules, root, changed, laws):
 
 
 def as_gate(state, card, root, changed, laws):
-    """The gate's problems ({gate, where, what}) of the person's rules that hold for this card (a build's, M16.4)."""
+    """The gate's problems ({gate, where, what}) of the person's rules that hold for this card (a build's)."""
     rules = registry.holding(state['project'], state, card)
     return [{'gate': 'rules', 'where': card or '', 'what': said} for said in gate(state['project'], rules, root, changed, laws)] if rules else []
 

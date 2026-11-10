@@ -1,4 +1,4 @@
-"""Where a pinned rule is held beside its guard (M16.4, M16.3b), both written from the one registry and never sources of
+"""Where a pinned rule is held beside its guard, both written from the one registry and never sources of
 their own: the assistant's context of the project (its CLAUDE.md / AGENTS.md, between EAOS's rule markers) and, with the
 person's consent, the project's git pre-commit hook (between the same kind of markers). Unpinning writes them again
 from the registry: a rule's line and, with the last pinned rule, the hook's block go; a file EAOS made for them alone
@@ -63,7 +63,8 @@ def _written(path, text, pinned, where, lang):
 
 
 def _put(path, text, ours):
-    """The file written with `text`; one EAOS made (`ours`) left with nothing of the person's is removed. Whether written."""
+    """The file written with `text`; one EAOS made (`ours`) left with nothing of the person's is removed. Whether
+    written."""
     if ours and text.strip() in ('', '@AGENTS.md'):
         path.unlink(missing_ok=True)
         return False
@@ -105,7 +106,8 @@ def hold_block(project, begin, end, line):
 # ---------------------------------------------------------------- the hook
 
 def hook_path(project):
-    """The pre-commit hook git runs for the project (core.hooksPath respected; a linked hook is the file it links to)."""
+    """The pre-commit hook git runs for the project (core.hooksPath respected; a linked hook is the file it links
+    to)."""
     found = subprocess.run(['git', '-C', str(project), 'rev-parse', '--git-path', 'hooks/pre-commit'], capture_output=True, text=True)
     if found.returncode: raise ValueError('this project is not a git repository: a commit hook needs one')
     path = Path(found.stdout.strip())

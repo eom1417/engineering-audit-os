@@ -45,8 +45,8 @@ NO_TOOL = {'configuration': 'a code change: one typed settings module', 'secrets
 HOSTED = ('react-', 'nextjs', 'python-web')
 
 
-# An architectural component is a package, not a symbol. Building one per symbol produced 10,938
-# "components" on a 1,031-file repository, which is a symbol listing rather than an architecture.
+# An architectural component is a package, not a symbol: one per symbol would be a symbol listing rather than an
+# architecture.
 PACKAGE_ROOT = ''
 
 
@@ -132,7 +132,8 @@ def _deletes(stats, rule):
 
 def _rebuilds(stats, rule):
     # Rebuild needs a structural reason. Complexity alone, or a critical item, is changed in place (modify):
-    # one function past the threshold sent a whole package to rebuild. Moving one or two files is a modify too.
+    # so one function past the threshold does not send a whole package to rebuild. Moving one or two files is a modify
+    # too.
     return stats['moved_share'] > rule['moved_share_above'] and stats['moved'] >= rule.get('moved_files_at_least', 1)
 
 
@@ -202,8 +203,9 @@ def _observed_in_facts(facts):
 
 def _secrets_item(facts):
     """(present, evidence) of the secrets item: no secret-class credential is committed."""
+    # a sample in a test's data is no credential of the project's
     secrets = [f for f in facts['committed_credential'] if (f.get('value') or {}).get('severity') not in ('public', 'test')
-               and classify((f.get('location') or {}).get('path') or '') != 'test']      # a sample in a test's data is no credential of the project's
+               and classify((f.get('location') or {}).get('path') or '') != 'test']
     return not secrets, f"{len(secrets)} secret-class credential(s) committed"
 
 

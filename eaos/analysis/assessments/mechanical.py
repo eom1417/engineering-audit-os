@@ -3,7 +3,7 @@
 A structural duplicate, a hotspot over its threshold, a load blocker, broken code, a runtime-mutated
 module global, a rule defined twice, an import cycle, redundant work in a flow: each is a fact the audit
 decides by rule, and the same rule decides whether a changed copy still has it. Under the engagement rule
-for its family (a declared default the owner turns off in eaos.engagement.json), such a confirmed claim
+for its family (a declared default the project turns off in eaos.engagement.json), such a confirmed claim
 from product code carries the assessment a ready card needs. Its reviewer of record is that rule, never an
 invented person; its check is `eaos recheck` with the claim's own probe, which passes only when the probe
 refutes the observation on the candidate copy.
@@ -81,7 +81,7 @@ def _assessable(claim, name, fact_sets):
         return False
     if name == 'duplicated_rule': return same_value(claim, fact_sets)
     # An import of a file that is not there has two fixes: restore the file, or remove what uses it. Only a person
-    # knows which; removing it made a server compile by deleting two admin routes (endomap, 2026-09-27).
+    # knows which: removing the importer can delete working routes just to make the code compile.
     return not (name == 'broken_code' and (claim['probe_spec'].get('specification') or {}).get('rule') == 'missing-import')
 
 
@@ -103,7 +103,8 @@ def build_assessment(claim, fact_sets, target):
     return {'assessment': {
                 'violated_invariant': invariant,
                 'requirement_refs': [f'engagement.rules.{rule_name}'],
-                'evidence_refs': list(claim.get('fact_ids') or claim.get('evidence_ids') or []),     # a rule's: its record (M16)
+                # a rule's claim cites its record
+                'evidence_refs': list(claim.get('fact_ids') or claim.get('evidence_ids') or []),
                 'reviewed_by': (f"engagement rule {rule_name} ({rule['source']}): {rule['why']} "
                                 'The evidence is decided by rule; no human judgement is claimed.'),
                 'before': claim['statement'],

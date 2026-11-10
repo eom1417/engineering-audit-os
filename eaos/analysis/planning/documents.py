@@ -1,5 +1,6 @@
-"""The plan as documents (eaos/analysis/planning/cards.py builds it): PLAN/TASK-*.md, one card per task with its problem, evidence,
-blast radius, options, change, acceptance and rollback, and PLAN/WAVES.md, the waves it is done in.
+"""The plan as documents (eaos/analysis/planning/cards.py builds it): PLAN/TASK-*.md, one card per task with its
+problem, evidence, blast radius, options, change, acceptance and rollback, and PLAN/WAVES.md, the waves it is done
+in.
 """
 from functools import partial
 

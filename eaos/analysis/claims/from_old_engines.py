@@ -1,5 +1,6 @@
-"""The claims old engines earn (M13.4), made beside the runtime claims (eaos/analysis/understanding/dossier.py) because
-they read what ran (eaos/analysis/assessments/never_run.py) as well as the code (eaos/analysis/assessments/old_engines.py).
+"""The claims old engines earn, made beside the runtime claims (eaos/analysis/understanding/dossier.py) because they
+read what ran (eaos/analysis/assessments/never_run.py) as well as the code
+(eaos/analysis/assessments/old_engines.py).
 
 Each card says what replaced the old engine and the proof nothing runs it:
 - a switched-off branch: the switch, its fixed value, the functions only that branch calls, what runs in its place,
@@ -113,10 +114,11 @@ def _cards(sets, target, found):
               {'query': 'old_engine_present', 'kind': 'switched_off', 'path': row['path'], 'switch': row['switch'],
                'engines': ['ast-grep'], 'expected': 'The switch still closes the branch that alone calls the old engine.'})
              for row in switched]
+    # an engine behind a closing switch is already that switch's card
     cards += [(*_pair(row, found), row['fact_ids'],
                {'query': 'old_engine_present', 'kind': 'two_engines', 'old': row['old'], 'new': row['new'],
                 'expected': 'Both are still there and the old one still used.'})
-              for row in old_engines.two_engines(sets) if row['old'] not in behind]     # a switch closing it: one card
+              for row in old_engines.two_engines(sets) if row['old'] not in behind]
     for statement, params, fact_ids in _suspects(found, sets):
         params.update(fix_en=FIX_SUSPECT[0], fix_ar=FIX_SUSPECT[1], severity='low')
         cards.append((statement, params, 'HYPOTHESIS', fact_ids, None))

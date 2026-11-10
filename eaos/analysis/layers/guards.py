@@ -1,9 +1,10 @@
-"""How an endpoint is guarded, read from its handler's text (M6.4): who is signed in (authentication), whether the row is
+"""How an endpoint is guarded, read from its handler's text: who is signed in (authentication), whether the row is
 theirs or their role allows it (authorisation), and whether its input is checked (validation). Each answer names what
 was read; a guard EAOS cannot read (a middleware or wrapper it does not know) is a question, never a finding."""
 import re
 
-# Comments are not code: a guard written in a comment guards nothing (a handler whose body is commented out writes nothing).
+# Comments are not code: a guard written in a comment guards nothing (a handler whose body is commented out writes
+# nothing).
 COMMENTS = {'python': re.compile(r'#[^\n]*'), '': re.compile(r'/\*.*?\*/|(?<![:\'"\\])//[^\n]*', re.S)}
 
 AUTHENTICATION = re.compile(
@@ -28,7 +29,8 @@ VALIDATION = re.compile(
 # A webhook proves who calls it by a signature, not a session.
 SIGNATURE = re.compile(r'constructEvent|verifySignature|verify_signature|x-hub-signature|x-signature|svix|webhook_secret|'
                        r'WEBHOOK_SECRET|hmac|timingSafeEqual|compare_digest|x-api-key|X-API-Key|api_key\s*!?==|apiKey\s*!?==', re.I)
-# Endpoints that are public by what they are for: signing in or up, a password reset, a health check, the sign-in flow's own.
+# Endpoints that are public by what they are for: signing in or up, a password reset, a health check, the sign-in
+# flow's own.
 # A webhook or a callback is not among them: it proves its caller by a signature (SIGNATURE), or it is open.
 PUBLIC = re.compile(r'(^|[/_:-])(login|log-in|signin|sign-in|sign_in|signup|sign-up|sign_up|register|logout|sign-?out|auth|oauth|'
                     r'token|refresh|password|forgot|health|healthz|ping|ready|live|status|version|metrics|csrf|session)([/_.-]|$)', re.I)
@@ -51,14 +53,15 @@ def code(text, language):
 
 
 def unquoted(text):
-    """The text with its string literals emptied (a template literal keeps the code inside ${...}): what names a variable."""
+    """The text with its string literals emptied (a template literal keeps the code inside ${...}): what names a
+    variable."""
     text = TEMPLATE.sub(lambda m: ' '.join(re.findall(r'\$\{([^}]*)\}', m.group(0))), text)
     return QUOTED.sub("''", text)
 
 
 def read(text):
-    """{'authentication', 'authorisation', 'validation', 'signature', 'user_client', 'service_client'}: the first words that
-    say each, or None."""
+    """{'authentication', 'authorisation', 'validation', 'signature', 'user_client', 'service_client'}: the first
+    words that say each, or None."""
     found = {}
     for name, pattern in (('authentication', AUTHENTICATION), ('authorisation', AUTHORISATION), ('validation', VALIDATION),
                           ('signature', SIGNATURE), ('user_client', USER_CLIENT), ('service_client', SERVICE_CLIENT)):
@@ -72,7 +75,8 @@ def public(route):
 
 
 def unknown_middleware(route_line):
-    """The names an Express-like route passes before its handler that say nothing EAOS reads: a guard it cannot judge."""
+    """The names an Express-like route passes before its handler that say nothing EAOS reads: a guard it cannot
+    judge."""
     match = MIDDLEWARE_ARGS.search(route_line)
     if not match: return []
     names = [part.strip() for part in match.group('args').split(',') if re.fullmatch(r'[A-Za-z_$][\w$.]*(\(\))?', part.strip())]

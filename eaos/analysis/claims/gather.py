@@ -1,13 +1,14 @@
-"""The dossier's claims (eaos/analysis/understanding/dossier.py assembles the dossier around them): gathered from the facts, the load
-model and the legacy records, merged, withheld under a detector's measured bar, numbered, each with its origin
-(product, test or archived code) and a disposition when it asserts a problem; and the claims execution evidence makes.
+"""The dossier's claims (eaos/analysis/understanding/dossier.py assembles the dossier around them): gathered from the
+facts, the load model and the legacy records, merged, withheld under a detector's measured bar, numbered, each with
+its origin (product, test or archived code) and a disposition when it asserts a problem; and the claims execution
+evidence makes.
 """
 from pathlib import Path
 
 from . import ledger
 from .from_records import from_legacy, from_load_model
 
-# Every live claim is an item of the debt register, the one record that shows it in full (rule R4).
+# Every live claim is an item of the debt register, the one record that shows it in full.
 REGISTER = 'debt-register.json'
 
 
@@ -68,7 +69,8 @@ def _located(claim, fact_index):
 
 
 def origin_of(claim, fact_index):
-    """Whether a claim is about product code, test and fixture code, or archived code; a reader must not confuse them."""
+    """Whether a claim is about product code, test and fixture code, or archived code; a reader must not confuse
+    them."""
     from ...core.contracts.vocabulary import classify
     located = _located(claim, fact_index)
     if located and all(archived(path) for path in located): return 'archive'
@@ -94,8 +96,9 @@ def _paths_of(rows):
 
 
 def _covered(value):
-    """The several paths one fact covers (a rule's definitions, a cycle's or a UI pattern's members, a cluster's occurrences,
-    a near copy's other side), else None. A cluster spans several files; without them the claim looks like it names none."""
+    """The several paths one fact covers (a rule's definitions, a cycle's or a UI pattern's members, a cluster's
+    occurrences, a near copy's other side), else None. A cluster spans several files; without them the claim looks like
+    it names none."""
     other = value.get('other')
     occurrences = value.get('occurrences')
     found = {'definitions': _paths_of(value.get('definitions')), 'members': _paths_of(value.get('members')),

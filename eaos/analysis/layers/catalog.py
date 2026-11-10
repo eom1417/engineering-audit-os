@@ -1,4 +1,4 @@
-"""The layer rules (M6): each rule's boundary, its sentence for one finding, why it matters and the reference's fix, in
+"""The layer rules: each rule's boundary, its sentence for one finding, why it matters and the reference's fix, in
 English and Arabic. A sentence composed with values stays beside its code (docs/ARCHITECTURE.md §4)."""
 
 # The boundaries, in the order people read them: a breach of an earlier one is nearer the person's data.

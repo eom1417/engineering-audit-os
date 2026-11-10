@@ -1,5 +1,5 @@
-"""The claims real data in the code earns (M12.3): one per table or record eaos/analysis/assessments/real_data.py sorted
-as data, each saying what it holds, where it sits, where the data goes and the screens it feeds.
+"""The claims real data in the code earns: one per table or record eaos/analysis/assessments/real_data.py sorted as
+data, each saying what it holds, where it sits, where the data goes and the screens it feeds.
 
 Personal values in the product are CONFIRMED and high (they ship in every copy of the code; in a migration, into every
 database); records of a domain in the product are LIKELY and medium; real-looking personal values only in tests,
@@ -26,7 +26,7 @@ def _held(entities, language):
     """'4 names, 2 IBANs' / 'أسماء (4)، أرقام آيبان (2)': the values a finding holds, by kind."""
     counts = {}
     for entity, count in entities.items():
-        same = 'PERSON' if entity == 'AR_NAME' else entity                   # a name is a name, in either language
+        same = 'PERSON' if entity == 'AR_NAME' else entity       # a name is a name, in either language
         counts[same] = counts.get(same, 0) + count
     if language == 'ar': return '، '.join(f'{NOUNS[e][2]} ({n})' for e, n in counts.items())
     return ', '.join(f'{n} {NOUNS[e][0] if n == 1 else NOUNS[e][1]}' for e, n in counts.items())

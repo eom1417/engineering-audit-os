@@ -1,4 +1,5 @@
-"""The record of a project's layers (layers.json) and its `boundaries` fact set: written, summed up, amended by the live part."""
+"""The record of a project's layers (layers.json) and its `boundaries` fact set: written, summed up, amended by the
+live part."""
 import json
 from pathlib import Path
 
@@ -40,7 +41,8 @@ def _counted(drawn):
 
 
 def _declared(target, counts):
-    """The layers the project declares in eaos.policy.json, each with what its rules forbid it: rows are placed by them."""
+    """The layers the project declares in eaos.policy.json, each with what its rules forbid it: rows are placed by
+    them."""
     policy = read_json(Path(target) / 'eaos.policy.json') or {}
     names = list(policy.get('layers') or ())
     return [{'name': name, 'role': None, 'responsibility': None, 'files': counts.get(name, 0),

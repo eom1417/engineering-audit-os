@@ -1,5 +1,5 @@
-"""The claims the repository earns (M7.8, M7.9): one per finding of the `repository` fact set (eaos/facts/repository/), its
-craft or its assistants' context. Low severity and read from the files alone: CONFIRMED, never a risk; the card triage
+"""The claims the repository earns: one per finding of the `repository` fact set (eaos/facts/repository/), its craft or
+its assistants' context. Low severity and read from the files alone: CONFIRMED, never a risk; the card triage
 (eaos/ai/nodes/triage.py) still rules on each before it reaches the plan."""
 
 

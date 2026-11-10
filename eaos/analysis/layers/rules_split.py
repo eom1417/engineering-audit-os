@@ -1,10 +1,10 @@
-"""One source of business rules (M6.8): the rules of a write compared between the browser and the server.
+"""One source of business rules: the rules of a write compared between the browser and the server.
 
 A number's limits the browser checks before it sends a write (zod or yup: `quantity: z.number().int().min(1).max(10)`)
 must also hold where the write lands: the server's handler of that endpoint, or, when the browser writes to Supabase
 itself, a check constraint of the table. When neither checks it, anyone who sends the request without the screen sets
-any value: the server trusts the client. And a money value (a price, a total, a discount) the screen computes and sends to
-be saved is a business calculation inside the UI.
+any value: the server trusts the client. And a money value (a price, a total, a discount) the screen computes and sends
+to be saved is a business calculation inside the UI.
 """
 import re
 

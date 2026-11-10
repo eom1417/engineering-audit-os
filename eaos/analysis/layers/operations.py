@@ -1,12 +1,13 @@
-"""The operations layer and the tests layer, read from the facts (M6.9, M6.10).
+"""The operations layer and the tests layer, read from the facts.
 
-Operations: every item of the reference type's infrastructure baseline (the pipeline and what it checks, configuration
-kept apart from the code, where secrets live, error tracking and logs, health checks, migrations and backups, hosting),
-found present or absent by eaos/analysis/target_state/projection.py's reading of the facts; each missing one is a finding that
-names the item it fails (the infrastructure files' own findings are Checkov's, among the engines').
+Operations: every item of the reference type's infrastructure baseline (the pipeline and what it checks,
+configuration kept apart from the code, where secrets live, error tracking and logs, health checks, migrations and
+backups, hosting), found present or absent by eaos/analysis/target_state/projection.py's reading of the facts; each
+missing one is a finding that names the item it fails (the infrastructure files' own findings are Checkov's, among the
+engines').
 
-Tests: the project's own tests for every stack (Vitest, Jest, Mocha, Node's runner, Playwright, Cypress, pytest, Go), the
-pass rate when the check ran them in the isolated copy (verification.json), which layers no test reaches, and every
+Tests: the project's own tests for every stack (Vitest, Jest, Mocha, Node's runner, Playwright, Cypress, pytest, Go),
+the pass rate when the check ran them in the isolated copy (verification.json), which layers no test reaches, and every
 endpoint that writes which no test reaches: no test names its route or its handler.
 """
 import re

@@ -1,7 +1,7 @@
-"""Whether a cluster of near copies or a screen pattern earns a card (the owner, 2026-10-28: likeness alone is never a
-card). All three or it is a note, said in the report, never a card nor a breach of the law:
+"""Whether a cluster of near copies or a screen pattern earns a card (likeness alone is never a card). All three
+conditions must hold, or it is a note, said in the report, never a card nor a breach of the law:
 
-1. the copies carry one responsibility: the rules propose it (they sit in one part of the system, M6's layer and side
+1. the copies carry one responsibility: the rules propose it (they sit in one part of the system, their layer and side
    when the check read them, else their folder; or they changed together in the history, mass commits left out by the
    history extractor; or one of them was fixed and its twin was not), and the judge (the card triage) rules on it;
 2. the repetition costs upkeep or risks drift: the copies already differ, or their files keep changing;
@@ -9,7 +9,7 @@ card). All three or it is a note, said in the report, never a card nor a breach 
 
 These are signs to sort by, not proof of one contract: a card is a proposal, kept aside while its detector is under its
 measured bar, never a gate's refusal (eaos/analysis/repair/one_source_gate.py), and its repair proves itself by the
-behaviour lock and the project's tests. Known limit (M17): the third condition asks for one shared part, which the
+behaviour lock and the project's tests. Known limit: the third condition asks for one shared part, which the
 first already gives, so the history and a fix made apart decide no card today; they are said as reasons only.
 """
 from pathlib import Path, PurePosixPath
@@ -20,7 +20,7 @@ CHANGING = 2          # commits of a file past which a copy in it is upkeep, not
 
 
 def layers_of(out):
-    """{path: its layer and side} from the layers the check read (M6), {} when it read none."""
+    """{path: its layer and side} from the layers the check read, {} when it read none."""
     record = read_json(Path(out) / 'layers.json', {}) if out else {}
     return {row['path']: f"{row.get('layer')}/{row.get('side')}" for row in record.get('map') or [] if row.get('layer')}
 

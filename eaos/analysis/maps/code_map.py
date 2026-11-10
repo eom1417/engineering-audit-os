@@ -1,10 +1,12 @@
-"""The code map of the architecture stage, from EAOS's own facts: the files most worth a look and the groups the imports draw.
+"""The code map of the architecture stage, from EAOS's own facts: the files most worth a look and the groups the
+imports draw.
 
     hotspots    each production file's complexity (1 + its branches, facts/metrics.json) times how often it changed
                 (facts/history.json history_churn), its code lines breaking a tie
-    clusters    the production files grouped by their imports (facts/graph.json depends_on, read both ways) with Louvain's
-                method: a file moves to its neighbours' group while modularity rises, then each group becomes one node and
-                it starts again; nodes are visited in path order, so two runs on one tree draw the same groups
+    clusters    the production files grouped by their imports (facts/graph.json depends_on, read both ways) with
+                Louvain's method: a file moves to its neighbours' group while modularity rises, then each group
+                becomes one node and it starts again; nodes are visited in path order, so two runs on one tree draw
+                the same groups
     modularity  Newman's Q of those groups: the share of imports inside a group minus what chance would give
 
 Only records the check already wrote are read; a missing one gives an empty part.

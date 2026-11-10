@@ -9,8 +9,9 @@ from pathlib import Path
 
 def _go_steps(members, executable, copy):
     """Each module moved to its fixed version by its own `go get`, unless an earlier one already moved it past (a fixed
-    x/net needs a newer x/sys: asking x/sys at its own fix in the same go get is refused), then `go mod tidy`: go.mod and
-    go.sum alone are written, the modules fetched into a cache of its own, removed after; Go never downloads another toolchain."""
+    x/net needs a newer x/sys: asking x/sys at its own fix in the same go get is refused), then `go mod tidy`: go.mod
+    and go.sum alone are written, the modules fetched into a cache of its own, removed after; Go never downloads
+    another toolchain."""
     folder, wanted = Path(copy) / members[0]['folder'], [(m['package'], 'v' + str(m['fixed']).removeprefix('v')) for m in members]
     return [(lambda: _go(executable, folder, wanted), f"go get {' '.join(f'{p}@{v}' for p, v in wanted)} && go mod tidy")]
 
@@ -31,15 +32,15 @@ def _run(argv, folder, env):
 
 
 def _semver(version):
-    """A Go module version, comparable: v1.2.3 above its pre-releases and pseudo-versions (v1.2.4-0.2026... is below v1.2.4)."""
+    """A Go module version, comparable: v1.2.3 above its pre-releases and pseudo-versions (v1.2.4-0.2026... is below
+    v1.2.4)."""
     base, _, pre = version.removeprefix('v').partition('-')
     return (*(int(part) if part.isdigit() else 0 for part in (base.split('.') + ['0', '0'])[:3]), not pre)
 
 
 def _cargo_steps(members, executable, copy):
-    """Each crate moved to its fixed version by `cargo update -p <name>@<version> --precise <fixed>`: Cargo.lock alone is
-    written, nothing built (a stranger's Rust tool could not move a crate, though EAOS told the person this command,
-    2026-11-05)."""
+    """Each crate moved to its fixed version by `cargo update -p <name>@<version> --precise <fixed>`: Cargo.lock alone
+    is written, nothing built."""
     folder = Path(copy) / members[0]['folder']
     wanted = [(f"{m['package']}@{m['version']}", str(m['fixed']).removeprefix('v')) for m in members]
     return [(lambda: _cargo(executable, folder, wanted), ' && '.join(f'cargo update -p {p} --precise {v}' for p, v in wanted))]

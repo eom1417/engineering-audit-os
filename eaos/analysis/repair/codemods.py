@@ -13,8 +13,8 @@ The mechanical families (eaos/rules/codemods.json) and their tools:
                                     install once. uv: one `uv lock --upgrade-package pkg==fixed` per lock file,
                                     every package of the card in it; go and cargo: eaos/analysis/repair/lock_tools.py
 Each card gets codemod {tool, command, dry_run {exit, files_changed}}. The dry run is the real command on a
-copy made by eaos.live.testing.verify.isolated_copy; files_changed counts files added, removed or modified there. A tool
-that changes nothing did nothing, and says so with files_changed 0. The project is never written.
+copy made by eaos.live.testing.verify.isolated_copy; files_changed counts files added, removed or modified there. A
+tool that changes nothing did nothing, and says so with files_changed 0. The project is never written.
 """
 import ast
 import json
@@ -37,8 +37,8 @@ LANGUAGES = {'.py': 'python', '.js': 'javascript', '.jsx': 'javascript', '.ts': 
 
 
 def _stats(root):
-    """{path: (size, mtime_ns)} of every project file; tool caches (node_modules/.cache and the like) are not the project.
-    A stat is cheap where reading every file is not: a large project dry-runs hundreds of cards."""
+    """{path: (size, mtime_ns)} of every project file; tool caches (node_modules/.cache and the like) are not the
+    project. A stat is cheap where reading every file is not: a large project dry-runs hundreds of cards."""
     import os
     from ...core.project.workspace import SKIP_DIRS
     root, found = Path(root), {}
@@ -229,7 +229,8 @@ def card_for(task, facts_by_id, target):
 
 
 def _upgrades_card(facts, target):
-    """A lock file card's packages each get their own change, and the card passes or fails whole; one package: its own."""
+    """A lock file card's packages each get their own change, and the card passes or fails whole; one package: its
+    own."""
     members = [action_card(fact) or _upgrade_card(fact, target) for fact in facts]
     if not members or None in members: return None
     return members[0] if len(members) == 1 else {'kind': members[0]['kind'], 'group': _past_vulnerable(members)}
@@ -287,7 +288,8 @@ def _upgrade_tools():
 
 
 def _upgrade_folders(target, lock, package, version):
-    """The folder of the lock file the scanner read, then the others holding the same version, each with a package.json."""
+    """The folder of the lock file the scanner read, then the others holding the same version, each with a
+    package.json."""
     # The same vulnerable version in another lock file of the project (a server/ beside the app) is the same
     # problem: the card's acceptance scans the whole project, so every such lock file is upgraded with it (npm's).
     others = _lock_folders_with(target, package, version) if lock.name == 'package-lock.json' else []
@@ -318,8 +320,9 @@ MANAGERS = {'package-lock.json': ('npm', 'npm install {package}@{fixed}'), 'bun.
 
 
 def manual_upgrade(path, package, fixed):
-    """Why a batch cannot move `package` in the lock file at `path`, as {'why', 'tool', 'lock', 'command'}; None when it
-    can, or when the site is no lock file (a requirements.txt is a text edit). 'lock' is a component no lock file names."""
+    """Why a batch cannot move `package` in the lock file at `path`, as {'why', 'tool', 'lock', 'command'}; None when
+    it can, or when the site is no lock file (a requirements.txt is a text edit). 'lock' is a component no lock file
+    names."""
     lock = PurePosixPath(path).name
     if lock == 'sbom.cdx.json': return {'why': 'lock', 'tool': '', 'lock': lock, 'command': ''}
     if lock not in MANAGERS: return None
@@ -349,8 +352,8 @@ def attach(tasks, out, target):
     from ...live.testing.verify import isolated_copy
     holder = Path(tempfile.mkdtemp(prefix='eaos-codemod-'))
     try:
-        # One copy for the whole run, put back after every card: a copy per card on a large project was
-        # hundreds of full copies, and none of them was ever removed.
+        # One copy for the whole run, put back after every card: a copy per card on a large project would be
+        # hundreds of full copies.
         return _try_cards(cards, target, isolated_copy(Path(target), holder / 'project'))
     finally:
         shutil.rmtree(holder, ignore_errors=True)

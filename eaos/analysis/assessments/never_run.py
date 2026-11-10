@@ -1,11 +1,12 @@
-"""Code reached but never run (M13.2): what ran of the project while EAOS ran its tests, its server and its pages
+"""Code reached but never run: what ran of the project while EAOS ran its tests, its server and its pages
 (eaos/live/testing/ran.py, <out>/live/ran-*.json), read against its own functions (the `syntax` facts).
 
-A function is never run when its file was measured (some run read it: a function of it ran, or its lines did) and no run
-ran it: neither its name among the functions a run ran (Node, the browser) nor any line of its body (Coverage.py). A
-module is never run when an entry point reaches it (the graph), runs of its language were measured, and none read
-it. Each is a suspect, not a verdict: a screen no page opened, an error no test raised, run nowhere here. What ran around
-it is said: the functions of its file that ran, and for a module, the modules that import it that ran.
+A function is never run when its file was measured (some run read it: a function of it ran, or its lines did) and no
+run ran it: neither its name among the functions a run ran (Node, the browser) nor any line of its body
+(Coverage.py). A module is never run when an entry point reaches it (the graph), runs of its language were measured,
+and none read it. Each is a suspect, not a verdict: a screen no page opened, an error no test raised, run nowhere
+here. What ran around it is said: the functions of its file that ran, and for a module, the modules that import it
+that ran.
 """
 from pathlib import Path, PurePosixPath
 

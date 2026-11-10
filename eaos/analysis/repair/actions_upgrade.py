@@ -1,8 +1,7 @@
 """A GitHub Action with a published vulnerability, upgraded where the workflows use it: no lock file names an Action,
-so the inventory alone found it and no batch could move it (a stranger's Python library, its publishing Action,
-2026-11-04). A tag reference (`@v1.12.4`) takes the fixed tag; a commit pinned with its tag in a comment
-(`@<sha> # v1.12.4`) takes the fixed tag's commit, read from the Action's own repository, and the comment says the tag.
-A moving major tag (`@v1`) is left: it already follows its releases."""
+so the inventory alone found it and no lock-file batch can move it. A tag reference (`@v1.12.4`) takes the fixed tag;
+a commit pinned with its tag in a comment (`@<sha> # v1.12.4`) takes the fixed tag's commit, read from the Action's own
+repository, and the comment says the tag. A moving major tag (`@v1`) is left: it already follows its releases."""
 import re
 from pathlib import Path
 from ...core.system.process import run_command
@@ -27,8 +26,8 @@ def workflows(root):
 
 
 def bump(root, action, fixed):
-    """Upgrade every use of `action` to its tag `fixed`; the files changed. RuntimeError when a pinned commit's tag cannot
-    be read from the Action's repository (the batch's copy is put back then)."""
+    """Upgrade every use of `action` to its tag `fixed`; the files changed. RuntimeError when a pinned commit's tag
+    cannot be read from the Action's repository (the batch's copy is put back then)."""
     pattern, changed, known = re.compile(USES.format(action=re.escape(action))), [], {}
 
     def commit():
@@ -61,7 +60,8 @@ def _commit_of(action, fixed):
     """The commit of the fixed tag in the Action's repository (owner/repo, whatever path follows)."""
     repository = '/'.join(action.split('/')[:2])
     bare = str(fixed).removeprefix('v')
-    names = [f'{prefix}{bare}{peeled}' for peeled in ('^{}', '') for prefix in ('v', '')]     # an annotated tag's commit first
+    # an annotated tag's commit first
+    names = [f'{prefix}{bare}{peeled}' for peeled in ('^{}', '') for prefix in ('v', '')]
     shown = run_command(['git', 'ls-remote', '--tags', f'https://github.com/{repository}', *names], timeout=60)
     rows = dict(reversed(line.split('\t')) for line in shown.stdout.splitlines() if '\t' in line)
     commit = next((rows[f'refs/tags/{name}'] for name in names if f'refs/tags/{name}' in rows), None)

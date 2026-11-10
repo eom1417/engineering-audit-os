@@ -143,7 +143,8 @@ def decide_probe(row, sets, allow_execution=False):
 
 
 def _confirm(claim, row):
-    """A probe that confirmed its claim: CONFIRMED when the probe can establish the claim's type, else LIKELY at most."""
+    """A probe that confirmed its claim: CONFIRMED when the probe can establish the claim's type, else LIKELY at
+    most."""
     if claim.get('claim_type') in DECIDABLE.get(row['probe_type'], set()):
         claim['confidence'] = 'CONFIRMED'
     else:

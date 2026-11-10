@@ -1,8 +1,8 @@
-"""A project's extension guide (M18.3): for each kind of addition, the files to read and to touch, in order, and the
-checks to run, from what EAOS read of the project: its layer map (layers.json), which files changed together when one of
-that kind was added (facts/code/history.py additions, mass commits left out), GitNexus's areas, the rules the person
-pinned and the project's own scripts. Nothing is guessed: a kind the project does not have gets no recipe, and it is
-said so. eaos/rules/extending-recipes.json tells the kinds; eaos/analysis/repair/project_guide.py writes the text."""
+"""A project's extension guide: for each kind of addition, the files to read and to touch, in order, and the checks
+to run, from what EAOS read of the project: its layer map (layers.json), which files changed together when one of that
+kind was added (facts/code/history.py additions, mass commits left out), GitNexus's areas, the rules the person pinned
+and the project's own scripts. Nothing is guessed: a kind the project does not have gets no recipe, and it is said
+so. eaos/rules/extending-recipes.json tells the kinds; eaos/analysis/repair/project_guide.py writes the text."""
 import json
 import math
 import re
@@ -15,19 +15,22 @@ from ...facts.code.history import additions
 from .intake import RUNNERS
 
 RULES = Path(__file__).resolve().parents[2] / 'rules' / 'extending-recipes.json'
-READ, TOUCH, SHOWN = 5, 6, 8          # the files read and touched per recipe; the commits of a kind read, the newest first
+# the files read and touched per recipe; the commits of a kind read, the newest first
+READ, TOUCH, SHOWN = 5, 6, 8
 RANK_OF_TEST = 9
 FOLDERS, AREAS, AREA_FILES = 3, 12, 3
 SCRIPTS = ('typecheck', 'lint', 'test', 'build')
 LONE_TEST = re.compile(r'(^|/)tests?\.py$')
 WIRING = 2                # the files named for wiring a new one in
 CHECK_SCRIPT = re.compile(r'^(tools|scripts|bin)/(quality|check|checks|verify|lint|test|tests|ci)\.sh$')
-GUIDE_OWN = re.compile(r'(^|/)(EXTENDING|AGENTS|CLAUDE)\.md$')     # a commit of the guide alone says nothing of how the project grew
+# a commit of the guide alone says nothing of how the project grew
+GUIDE_OWN = re.compile(r'(^|/)(EXTENDING|AGENTS|CLAUDE)\.md$')
 DATA = re.compile(r'(^|/)(fixtures?|golden|snapshots?|__snapshots__|testdata|contracts|rule-tests)/')
 SCATTERED = 5             # a kind spread so thin that no folder holds a fifth of it
 MIN_USERS, SENSITIVE, FEATURES = 5, 5, 12
 HEAVY, HEAVY_BYTES = 6, 100_000
-LIFT = 1.25               # a file changes with a kind this many times more often than with any commit, or it is no sign
+# a file changes with a kind this many times more often than with any commit, or it is no sign
+LIFT = 1.25
 
 
 def _kinds():
@@ -71,8 +74,8 @@ def _kept(kind, path, context):
 
 
 def _sign(count, path, seen, history):
-    """Whether a file changes with this kind more than with any commit (LIFT), told only when the kind is a small part of
-    the history."""
+    """Whether a file changes with this kind more than with any commit (LIFT), told only when the kind is a small part
+    of the history."""
     every = sum(path in commit['changed'] for commit in history)
     return len(seen) * 2 > len(history) or count / len(seen) >= LIFT * every / len(history)
 
@@ -111,8 +114,8 @@ def _recipe(kind, tree, commits, context):
 
 
 def _home(own):
-    """The folder that holds most files of this kind, its data and snapshots aside; when they are scattered in one folder
-    each (a migration, a route), the folder above it."""
+    """The folder that holds most files of this kind, its data and snapshots aside; when they are scattered in one
+    folder each (a migration, a route), the folder above it."""
     real = [path for path in own if not _data(path)] or own
     folder, count = Counter(PurePosixPath(path).parent.as_posix() for path in real).most_common(1)[0]
     return PurePosixPath(folder).parent.as_posix() if count * SCATTERED < len(real) else folder

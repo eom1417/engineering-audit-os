@@ -1,4 +1,4 @@
-"""The diff-scoped check (M16.7): on a change, before it lands, the guards of the person's rules and EAOS's fast gates
+"""The diff-scoped check: on a change, before it lands, the guards of the person's rules and EAOS's fast gates
 over the files it touches and the files that depend on them (the import graph), each rule's smallest check that
 suffices: a pattern reads the changed files (only there can the change write a new match), a test bound to files runs
 only when the change or a file importing it reaches them (the graph is read for it alone), a detector reads only what
@@ -10,7 +10,8 @@ read; under one without it); a full check stays for the release.
     changed(project, base, staged)   the files a change touches: the staged ones (a commit), else those that differ
                                      from `base` (HEAD by default) in the working tree, new files included
     reached(project, paths)          those files and every file that imports them, further and further (bounded)
-    check(...)                       {changed, reached, rules: what each rule found, laws: what the gates found, refused}
+    check(...)                       {changed, reached, rules: what each rule found, laws: what the gates found,
+                                     refused}
 """
 import shutil
 import subprocess
@@ -21,8 +22,10 @@ from pathlib import Path
 from . import held
 from ...core.project import rules as registry
 
-REACH = 300                 # files followed through the import graph at most: past it, the change is wide and a full check reads it
-GATE_ENGINES = ('jscpd', 'ast-grep', 'bandit', 'gitleaks')      # the gates' engines that answer in seconds (eaos/journeys/fix/execute.py)
+# files followed through the import graph at most: past it, the change is wide and a full check reads it
+REACH = 300
+# the gates' engines that answer in seconds (eaos/journeys/fix/execute.py)
+GATE_ENGINES = ('jscpd', 'ast-grep', 'bandit', 'gitleaks')
 
 
 def _git(project, *args):
@@ -54,7 +57,8 @@ def _graph(project):
 
 
 def reached(project, paths, graph=None):
-    """`paths` and the files that import any of them, directly or not, up to REACH files: (files, whether it stopped)."""
+    """`paths` and the files that import any of them, directly or not, up to REACH files: (files, whether it
+    stopped)."""
     graph = _graph(project) if graph is None else graph
     importers = {}
     for source, targets in graph.items():
@@ -70,8 +74,8 @@ def reached(project, paths, graph=None):
 
 def snapshot(project, paths, folder, revision=None):
     """`paths` written into `folder` as they are in the index (revision ':'), at `revision`, or in the working tree
-    (None); a file not there (new, or deleted) is left out, the folder made all the same (a commit of new files alone has
-    an empty before)."""
+    (None); a file not there (new, or deleted) is left out, the folder made all the same (a commit of new files alone
+    has an empty before)."""
     Path(folder).mkdir(parents=True, exist_ok=True)
     for path in paths:
         target = Path(folder) / path

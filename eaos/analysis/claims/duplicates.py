@@ -1,7 +1,7 @@
-"""The claims of code written more than once (eaos/analysis/claims/ledger.py BUILDERS): a rule's value defined in several
-places, and work a path repeats for nothing. Each builder is `build(fact_sets, add, target)`, as in
-eaos/analysis/claims/from_facts.py. Code copied, near copies and every other repeated pattern are one source per
-pattern's (M15, eaos/analysis/claims/from_one_source.py).
+"""The claims of code written more than once (eaos/analysis/claims/ledger.py BUILDERS): a rule's value defined in
+several places, and work a path repeats for nothing. Each builder is `build(fact_sets, add, target)`, as in
+eaos/analysis/claims/from_facts.py. Code copied, near copies and every other repeated pattern are claimed per
+pattern in eaos/analysis/claims/from_one_source.py.
 """
 from .from_facts import facts_of, graph_query, naming
 

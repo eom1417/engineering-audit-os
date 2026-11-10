@@ -311,7 +311,7 @@ def pattern_for(claim):
     verdict = impact_of(claim, 'ar').rstrip('.') if name == 'layer_boundary' else cost_of_inaction(name)
     pattern['options'] = [*pattern['options'], dict(DO_NOTHING, verdict=verdict)]
     render = claim.get('render') or {}
-    if card_kind(render.get('key')).own_fix:   # the finding's own fix (M6.11, M7.8)
+    if card_kind(render.get('key')).own_fix:   # the finding's own fix
         pattern['change'] = (render.get('params') or {}).get('fix_ar') or pattern['change']
     if name == 'generic':
         reason = _generic_fallback_reason(claim)

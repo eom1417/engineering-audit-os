@@ -17,8 +17,9 @@ _FINGERPRINTS = {}
 
 
 def recheck(prefix, test, engines=()):
-    """The argv of a card's check, bound to `cwd='.'` (the changed copy): its facts collected into a private folder (with
-    `engines`), then `test`, Python lines that read them under `tmp` and exit 0 only when the candidate is gone."""
+    """The argv of a card's check, bound to `cwd='.'` (the changed copy): its facts collected into a private folder
+    (with `engines`), then `test`, Python lines that read them under `tmp` and exit 0 only when the candidate is
+    gone."""
     asked = ''.join(f', {word!r}' for word in ('--engines', *engines)) if engines else ''
     code = ("import json, subprocess, sys, tempfile\n"
             f"holder = tempfile.TemporaryDirectory(prefix={prefix!r}); tmp = holder.name\n"
@@ -33,7 +34,7 @@ def _files(root):
     for base, directories, names in os.walk(root):
         directories[:] = sorted(d for d in directories if d not in SKIPPED)
         found += [Path(base) / name for name in names]
-    return sorted(found, key=lambda path: path.relative_to(root).parts)  # the order Path sorting gave before
+    return sorted(found, key=lambda path: path.relative_to(root).parts)
 
 
 def fingerprint(root, cached=True):

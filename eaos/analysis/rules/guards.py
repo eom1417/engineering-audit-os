@@ -1,4 +1,4 @@
-"""A machine guard per rule (M16.2): what checks a rule without an AI remembering it. Written once (by the person's
+"""A machine guard per rule: what checks a rule without an AI remembering it. Written once (by the person's
 assistant through `rule_guard`, or by EAOS's own ask, eaos/ai/rule_guard.py), proved on its own examples before it is
 kept, then run free on every check, change and commit:
 
@@ -12,7 +12,7 @@ kept, then run free on every check, change and commit:
     none       EAOS cannot guard this rule (`why`): said so in every view, never pretended
 
 `files` (globs) bounds where a guard applies: a change touching none of them runs nothing of it (the smallest check
-that suffices, M16.7).
+that suffices).
 """
 import fnmatch
 import json
@@ -175,7 +175,8 @@ def _run_detectors(guard, found, paths):
     if found is None: return 'not_run', [], 'its detectors did not run here'
     mine = [row for row in found if _among(row['detector'], guard['detectors'])]
     if not mine: return 'held', [], 'nothing found'
-    places = sorted({place for row in mine for place in row['places']})       # on a change, the gates found what it added
+    # on a change, the gates found what it added
+    places = sorted({place for row in mine for place in row['places']})
     return 'broken', places, '; '.join(sorted({row.get('said') or row['detector'] for row in mine}))[:600]
 
 

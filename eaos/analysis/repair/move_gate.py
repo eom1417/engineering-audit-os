@@ -1,4 +1,4 @@
-"""What the move gate (M8.5) compares before and after a batch of moves, read from the copy alone:
+"""What the move gate compares before and after a batch of moves, read from the copy alone:
 
     surface(root)                 the public surface: every entry point the code declares (endpoints, pages, commands),
                                   the commands a package declares (pyproject scripts, package.json bin and scripts) with
@@ -108,8 +108,8 @@ def published(root, known):
 
 
 def exports(root, known):
-    """{file: the sorted names it exposes}: a Python module's public top-level names, a JavaScript or TypeScript module's
-    exports. A test file exposes nothing anyone imports."""
+    """{file: the sorted names it exposes}: a Python module's public top-level names, a JavaScript or TypeScript
+    module's exports. A test file exposes nothing anyone imports."""
     out = {}
     for path in sorted(known):
         suffix = PurePosixPath(path).suffix
@@ -186,7 +186,8 @@ def _export_differences(before, after, mapping):
 def test_results(output):
     """{name: Counter of results} of every test the output names, or {'(counts)': Counter} when it names none."""
     found = Counter()
-    for test, name, result in UNITTEST.findall(output):      # before Python 3.11 unittest names the class, since then the test
+    # before Python 3.11 unittest names the class, since then the test
+    for test, name, result in UNITTEST.findall(output):
         found[(name if name.endswith(f'.{test}') else f'{name}.{test}', RESULT[result.lower()])] += 1
     for result, name in PYTEST.findall(output): found[(name, RESULT[result.lower()])] += 1
     for result, name, directive in TAP.findall(output): found[(name.strip(), 'skipped' if directive else RESULT[result.lower()])] += 1
@@ -201,7 +202,8 @@ def test_results(output):
 
 def renamed_tests(mapping):
     """{old: new} of the module and file names a test's name carries, for every moved file: its path (pytest, jest),
-    and its dotted module read from each folder both places share (unittest discovers from tests/, or from the root)."""
+    and its dotted module read from each folder both places share (unittest discovers from tests/, or from the
+    root)."""
     names = {}
     for old, new in mapping.items():
         names[old] = new
@@ -222,7 +224,8 @@ def _translated(name, names):
 
 
 def _starts(name, old):
-    """Where `old` starts in `name` as a whole module or path name (after a start, a space, a parenthesis or a slash)."""
+    """Where `old` starts in `name` as a whole module or path name (after a start, a space, a parenthesis or a
+    slash)."""
     at = name.find(old)
     while at >= 0:
         before, after = name[at - 1] if at else ' ', name[at + len(old):at + len(old) + 1]

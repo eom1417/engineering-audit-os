@@ -1,5 +1,5 @@
-"""The plan's order (eaos/analysis/planning/cards.py builds the cards and their waves): the plan orderer's steps when it ran in this
-check and they hold, else the rules' waves; plan.json `order` and PLAN/STEPS.md.
+"""The plan's order (eaos/analysis/planning/cards.py builds the cards and their waves): the plan orderer's steps when
+it ran in this check and they hold, else the rules' waves; plan.json `order` and PLAN/STEPS.md.
 """
 from pathlib import Path
 

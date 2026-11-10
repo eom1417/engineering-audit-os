@@ -1,11 +1,11 @@
-"""Every endpoint and its guard (M6.4): one row per endpoint (method, route, handler, authentication, authorisation, input
-validation, the data it touches, whether it writes), from the entry-point facts, for Next.js (routes, pages API, server
-actions), Express, Fastify, Hono, Koa, a server on node:http, FastAPI, Flask, Django and Supabase edge functions.
+"""Every endpoint and its guard: one row per endpoint (method, route, handler, authentication, authorisation, input
+validation, the data it touches, whether it writes), from the entry-point facts, for Next.js (routes, pages API,
+server actions), Express, Fastify, Hono, Koa, a server on node:http, FastAPI, Flask, Django and Supabase edge functions.
 
-The handler is read where it is: its function (the symbol facts give its lines), the inline function of the route, or
-the whole file for an edge function; a guard the file applies to every route (`app.use(auth)`, Next.js's middleware,
-FastAPI's router dependencies, Flask's before_request) counts for each. The table feeds the findings below, the tests
-layer (M6.10), the API trial (M6.7) and the report.
+The handler is read where it is: its function (the symbol facts give its lines), the inline function of the route,
+or the whole file for an edge function; a guard the file applies to every route (`app.use(auth)`, Next.js's
+middleware, FastAPI's router dependencies, Flask's before_request) counts for each. The table feeds the findings
+below, the tests layer, the API trial and the report.
 """
 import re
 from collections import defaultdict
@@ -64,7 +64,8 @@ def _span(project, spans, fact):
     if framework == 'supabase_edge': return path, 1, len(project.lines(path))
     if framework == 'django' and handler: return _django_span(spans, handler) or (path, line, line)
     named = _named(spans, path, handler, None if framework == 'node_http' else line)
-    if named: return path, line if framework in DECORATED else named[0], named[1]      # a decorator's lines are the handler's
+    # a decorator's lines are the handler's
+    if named: return path, line if framework in DECORATED else named[0], named[1]
     return path, line, line if framework == 'node_http' else _inline_end(project.lines(path), line)
 
 
@@ -147,8 +148,8 @@ def _route_line(project, where):
 
 
 def _authentication(project, fact, said, route_line, middleware):
-    """Who is signed in, by what says it first: the route or the middleware, the file's guard, the handler's own text, or the
-    request's own token handed to the database."""
+    """Who is signed in, by what says it first: the route or the middleware, the file's guard, the handler's own text,
+    or the request's own token handed to the database."""
     where = fact['location']
     return (_route_guard(fact['value'], route_line, middleware) or _file_guard(project, where['path'], where.get('start_line') or 1)
             or said['authentication'] or (said['user_client'] and "the request's own token, to the database"))
@@ -232,8 +233,8 @@ def _judge(row, guarded_data):
 
 
 def judged(rows):
-    """(findings, questions) of the endpoint table: a write nobody signs in for, a row by its id with no owner check, and
-    a read that hands anyone data other endpoints guard. A handler with no code (commented out) is left alone."""
+    """(findings, questions) of the endpoint table: a write nobody signs in for, a row by its id with no owner check,
+    and a read that hands anyone data other endpoints guard. A handler with no code (commented out) is left alone."""
     guarded_data = {name for row in rows if _guarded(row) or row['authorisation'] for name in row['data']}
     findings, questions = [], []
     for row in rows:

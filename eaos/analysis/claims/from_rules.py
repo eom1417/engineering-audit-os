@@ -1,10 +1,11 @@
-"""The claims the person's own rules earn (M16.3, M16.5): one card per rule broken, with every place it is broken and
-the cause, in their words; when it was said and how many times it came back. A rule guarded by a code pattern or a
-test closes only when its guard, run again on the fixed copy, finds nothing (its probe, eaos/analysis/claims/recheck.py);
-one guarded by EAOS's detectors names their cards, and closes when the next check finds none of them.
+"""The claims the person's own rules earn: one card per rule broken, with every place it is broken and the cause, in
+their words; when it was said and how many times it came back. A rule guarded by a code pattern or a test closes only
+when its guard, run again on the fixed copy, finds nothing (its probe, eaos/analysis/claims/recheck.py); one guarded
+by EAOS's detectors names their cards, and closes when the next check finds none of them.
 
-The rules stage (eaos/pipeline/runners/rules.py) ran each pattern and test; a detector's guard is read here, from what
-the other detectors found in this same ledger. Each result goes into the rule's record (a break, a hold), once per check.
+The rules stage (eaos/pipeline/runners/rules.py) runs each pattern and test; a detector's guard is read here, from
+what the other detectors found in this same ledger. Each result goes into the rule's record (a break, a hold), once per
+check.
 """
 from . import ledger
 from .gather import _located
@@ -83,8 +84,8 @@ def rule_claims(out, claims, fact_index, offset):
 
 
 def present(specification, sets):
-    """A rule card's probe: CONFIRMED while its guard, run again on the copy (`sets['rule']`, made by recheck and a batch's
-    check), still finds the rule broken; never what an earlier check found."""
+    """A rule card's probe: CONFIRMED while its guard, run again on the copy (`sets['rule']`, made by recheck and a
+    batch's check), still finds the rule broken; never what an earlier check found."""
     result = sets['rule']
     if result['status'] not in ('broken', 'held'): return 'INCONCLUSIVE', 'the rule\'s guard did not run on this code'
     if result['status'] == 'broken': return 'CONFIRMED', f"the rule is still broken at {', '.join(result['places'][:4])}"

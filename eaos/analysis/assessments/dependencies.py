@@ -27,8 +27,8 @@ def _check_argv(wanted):
 
 
 def check_of(facts):
-    """The check of a card upgrading the packages of `facts`: none of their advisories is left (a lock file card kept in
-    part is held to the packages it moved, eaos/journeys/agent_tools/fixing.py)."""
+    """The check of a card upgrading the packages of `facts`: none of their advisories is left (a lock file card kept
+    in part is held to the packages it moved, eaos/journeys/agent_tools/fixing.py)."""
     return _check_argv({f'{ecosystem}:{name}@': ids for ecosystem, name, _, _, ids in map(_upgrade, facts)})
 
 
@@ -43,7 +43,8 @@ UNABLE = {'lock': ('no lock file names it, only the inventory found it; upgrade 
 
 def _unable(fact, upgrades):
     """(blockers, the words added to the change) when a batch cannot upgrade this lock file itself, else ([], '')."""
-    # an Action is moved in the workflows that use it (eaos/analysis/repair/actions_upgrade.py), never through a lock file
+    # an Action is moved in the workflows that use it (eaos/analysis/repair/actions_upgrade.py), never through a
+    # lock file
     manuals = [None if ecosystem == 'GitHub Actions' else manual_upgrade(fact['location'].get('path') or '', name, fixed)
                for ecosystem, name, _, fixed, _ in upgrades]
     if manuals[0] is None: return [], ''

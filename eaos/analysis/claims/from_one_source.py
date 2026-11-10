@@ -1,4 +1,4 @@
-"""The claims one source per pattern earns (M15), one per finding of eaos/analysis/assessments/one_source.py: a cluster
+"""The claims one source per pattern earns, one per finding of eaos/analysis/assessments/one_source.py: a cluster
 of near copies, a way of working written by hand three times or more, an element tree repeated across the screens, and
 the look written outside its tokens file. Each card names every place and its central home by the project's own
 layout; its acceptance is the detector finding none (its probe reads the code again). Near copies and the look are
@@ -83,7 +83,8 @@ def params(finding):
     return {'kind': finding['kind'] if finding['kind'] != 'idiom' else f"idiom:{finding['evidence']['form']}", 'severity': finding['severity'],
             'en': en, 'ar': ar, 'fix_en': fix_en, 'fix_ar': fix_ar, 'place': finding['place'], 'line': finding['line'],
             'home': values['home'], 'places': [f"{p['path']}:{p.get('line') or 1}" for p in finding['evidence'].get('places') or []][:40],
-            'evidence': finding['evidence'].get('why') or {},     # the three conditions a near copy or a screen pattern met
+            # the three conditions a near copy or a screen pattern met
+            'evidence': finding['evidence'].get('why') or {},
             'category': 'maintainability'}
 
 
@@ -91,14 +92,15 @@ def _probe(finding):
     """The probe that reads the code again: CONFIRMED while the detector still finds this pattern."""
     engines = {'near_copy': ['jscpd'], 'idiom': ['ast-grep']}.get(finding['kind'], [])
     key = finding['evidence'].get('form') or finding['evidence'].get('tag') or ''
-    if finding['kind'] in DESIGN_KINDS: return None         # read from the running app: only a new check can close it
+    # read from the running app: only a new check can close it
+    if finding['kind'] in DESIGN_KINDS: return None
     return {'probe_type': 'graph_query', 'specification': {'query': 'one_source_present', 'kind': finding['kind'], 'key': key,
                                                            'places': sorted({p['path'] for p in finding['evidence'].get('places') or []})[:40],
                                                            'engines': engines, 'expected': 'The detector still finds this pattern.'}}
 
 
 def one_source_claims(out, sets, target, offset):
-    """Every claim of M15, numbered after `offset`."""
+    """Every claim of one source per pattern, numbered after `offset`."""
     found, _ = findings(out, sets, target)
     rows = []
     for finding in found:
@@ -134,7 +136,8 @@ MISSING = {'belongs': ('nothing shows they carry one responsibility', 'ما في
 
 
 def notes(out, sets):
-    """The likenesses said in the report, never cards: each with its places and the condition it lacks, in both languages."""
+    """The likenesses said in the report, never cards: each with its places and the condition it lacks, in both
+    languages."""
     said = []
     for finding in likenesses(out, sets)[:30]:
         en, ar = (text.format(**_values(finding)) for text in WORDS[finding['kind']][:2])

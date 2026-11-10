@@ -1,5 +1,5 @@
-"""Real data written in the code (M12.2, M12.3): each table written as code and each record of personal values, sorted
-on its evidence before anything is said.
+"""Real data written in the code: each table written as code and each record of personal values, sorted on its
+evidence before anything is said.
 
 From the engines' records (the `external` fact set): Presidio's personal values in string literals
 (eaos/engines/security/presidio.py) and ast-grep's tables of records and maps keyed by dates (eaos/rules/ast-grep
@@ -43,7 +43,8 @@ def values(sets):
 
 
 def tables(sets):
-    """ast-grep's tables and dated maps: [{path, line, end_line, record}], an inner table inside an outer one dropped."""
+    """ast-grep's tables and dated maps: [{path, line, end_line, record}], an inner table inside an outer one
+    dropped."""
     rows = sorted(({'path': f['location']['path'], 'line': f['location'].get('line'), 'end_line': f['value'].get('end_line'),
                     'record': f['value']['record'], 'fact_id': f['id']} for record in TABLES for f in engine_records(sets, record)),
                   key=lambda t: (t['path'], t['line'], -(t['end_line'] or 0)))
@@ -135,7 +136,8 @@ def _from_tables(sets, root, hits):
     for table in tables(sets):
         inside, keys = _inside(table, hits), _keys(_read(root, table['path']), table)
         used |= {id(h) for h in inside}
-        if not keys & DOMAIN: inside = [h for h in inside if h['entity'] not in NAMES_ONLY]    # a menu's 'Button Groups'
+        # a menu's 'Button Groups' is no person
+        if not keys & DOMAIN: inside = [h for h in inside if h['entity'] not in NAMES_ONLY]
         kind = kind_of(table, inside, keys)
         if kind: out.append({**table, 'kind': kind, 'values': inside})
     return _one_per_file(out), used

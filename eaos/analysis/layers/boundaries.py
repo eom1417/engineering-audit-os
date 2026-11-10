@@ -1,4 +1,4 @@
-"""The boundaries between layers, enforced by default (M6.2): each layer of the reference type may use only the layers its
+"""The boundaries between layers, enforced by default: each layer of the reference type may use only the layers its
 `allowed_dependencies` name. Every resolved import between two placed files is checked (a type-only import is not one:
 the compiler erases it); a breach is a finding at the import's line naming the boundary it breaks, and a breach where
 either file's placement is a low-confidence guess is a question. When the project declares its own eaos.policy.json,
@@ -78,8 +78,9 @@ def _files_by_layer(rows, may):
 
 
 def rules(layer_map):
-    """dependency-cruiser's `forbidden` rules for the layer map: one per layer whose files may not reach another layer's,
-    type-only imports allowed, and browser code reaching server code. [] when no reference type placed the files."""
+    """dependency-cruiser's `forbidden` rules for the layer map: one per layer whose files may not reach another
+    layer's, type-only imports allowed, and browser code reaching server code. [] when no reference type placed the
+    files."""
     checked = _checked(layer_map)
     if checked is None: return []
     may = checked[0]
@@ -94,7 +95,8 @@ def rules(layer_map):
 
 
 def _server_own(row):
-    """A file whose own code is the server's (a 'use server' file excepted: the browser calls a server action by design)."""
+    """A file whose own code is the server's (a 'use server' file excepted: the browser calls a server action by
+    design)."""
     return row['side'] == 'server' and bool({'endpoint', 'data', 'node'} & set(row['marks'])) and 'server' not in row['marks']
 
 

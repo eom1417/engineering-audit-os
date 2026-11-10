@@ -36,7 +36,7 @@ DEFAULT_TARGETS = {
 
 
 # Rules the audit applies unless the project says otherwise in eaos.engagement.json at its root. Each is a
-# declared default, not a judgement about this project: the owner turns one off by writing it as false.
+# declared default, not a judgement about this project: the project turns one off by writing it as false.
 DEFAULT_RULES = {
     'remove_dead_code': {
         'value': True, 'source': 'default',
