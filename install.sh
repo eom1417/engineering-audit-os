@@ -14,7 +14,6 @@ stop() { line; say "❌ ما حدث: $1" "❌ What happened: $2"; say "   $3" " 
 
 SOURCE="${EAOS_SOURCE:-git+https://github.com/eom1417/engineering-audit-os@main}"
 APP="${EAOS_APP:-$HOME/.eaos/app}"
-STARTED_IN="$PWD"   # the folder the person ran the installer from: their project, when it is one
 BIN="$HOME/.local/bin"
 
 say "أثبّت EAOS على جهازك. يأخذ هذا بضع دقائق." "Installing EAOS on your computer. This takes a few minutes."
@@ -92,11 +91,6 @@ if [ -z "${EAOS_SKIP_TOOLS:-}" ]; then
     say "   ⚠️ بعض الأدوات لم تُثبّت. سيخبرك eaos doctor بما ينقص." "   ⚠️ Some tools did not install. eaos doctor will tell you what is missing."
 fi
 
-# A Studio kept as a service still runs the EAOS it started with: restarted, it runs this one (an update showed the old
-# version until then).
-SCOPE=$([ "$(id -u)" = 0 ] || echo --user)
-command -v systemctl >/dev/null 2>&1 && systemctl $SCOPE list-units 'eaos-studio-*' --plain --no-legend 2>/dev/null | awk '{print $1}' | xargs -r systemctl $SCOPE restart >>"$LOG" 2>&1 || true
-
 # EAOS inside the person's AI assistant: the MCP tools and the skill, for Claude Code and Codex when present.
 ASSISTANTS=""
 command -v claude >/dev/null 2>&1 && ASSISTANTS="Claude Code"
@@ -105,7 +99,7 @@ if [ -n "$ASSISTANTS" ]; then
   "$APP/venv/bin/eaos" assistant install >>"$LOG" 2>&1 || ASSISTANTS=""
 fi
 
-# On a server run by systemd, every Studio is a service of the computer: it outlives the assistant's session.
+# On a server run by systemd, EAOS's work runs as services of the computer: it outlives the assistant's session.
 if [ "$(uname -s)" = Linux ] && [ -d /run/systemd/system ] && command -v systemd-run >/dev/null 2>&1; then
   mkdir -p "${EAOS_HOME:-$HOME/.eaos}" && echo systemd >"${EAOS_HOME:-$HOME/.eaos}/studio-service"
 fi
@@ -127,10 +121,5 @@ if [ -n "$ASSISTANTS" ]; then
 else
   say "⏭️  الخطوة التالية: افتح مجلد مشروعك في الطرفية، ثم انسخ والصق:" "⏭️  Next step: open your project folder in the terminal, then copy and paste:"
   printf '   %s\n' "eaos start ."
-fi
-# Installed from inside a project: its Studio opens now, on "Preparing the tools", with an address that stays the same.
-if [ -z "${EAOS_NO_STUDIO:-}" ] && git -C "$STARTED_IN" rev-parse --git-dir >/dev/null 2>&1 && [ "$STARTED_IN" != "$HOME" ]; then
-  STUDIO="$("$APP/venv/bin/eaos" studio "$STARTED_IN" --background 2>>"$LOG" | sed -n 's/^EAOS Studio: //p')"
-  if [ -n "$STUDIO" ]; then say "🖥️  واجهة مشروعك مفتوحة الآن: $STUDIO" "🖥️  Your project's Studio is open now: $STUDIO"; fi
 fi
 line

@@ -40,3 +40,4 @@ _NOT_REGISTERED = CardKind()
 def card_kind(key):
     """What a kind is. A key not registered reads as a plain card, so a saved card of an unknown kind still reads."""
     return KINDS.get(key, _NOT_REGISTERED)
+

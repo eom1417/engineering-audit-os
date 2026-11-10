@@ -1,6 +1,6 @@
-"""Governance without the Studio: the terminal's commands (eaos check, watch, waiting, fix, branches...) and the
-assistant's governance tools (eaos/interfaces/mcp_server/govern.py), both thin callers of the Studio's own core, `Actions` and its
-`BranchControl` (eaos/interfaces/studio_actions), so no rule is written twice and every surface sees the same runs.
+"""Governance: the terminal's commands (eaos check, watch, waiting, fix, branches...) and the assistant's governance
+tools (eaos/interfaces/mcp_server/govern.py), both thin callers of the run engine (eaos/interfaces/runs.py), `Actions`
+and its `BranchControl`, so no rule is written twice and every surface sees the same runs.
 
 Who starts a run. The Studio's dispatcher is a thread of whatever builds `Actions` (runs.py, `dispatch.lock`). The
 callers here build it without that thread (`core`): a command never starts a run it would not live to follow. What
@@ -43,7 +43,7 @@ BRANCH_OPS = {'merge': ('preview_merge', 'merge'), 'delete': ('preview_delete', 
 
 @functools.lru_cache(maxsize=8)
 def _core(project):
-    from .studio_actions import Actions
+    from .runs import Actions
     return Actions(project, dispatch=False, lang=(project_state.load(project) or {}).get('lang') or 'ar')
 
 
@@ -63,17 +63,17 @@ def _held(path):
 
 
 def wake(project, answer=None):
-    """The host that starts the project's queued runs, unless the project's Studio or a host already runs; with `answer`
+    """The host that starts the project's queued runs, unless a host already runs; with `answer`
     (question, option, text), a host that gives it first, whatever runs. True when one was started."""
     from ..core.system import launch
     actions, state = core(project), project_state.load(core(project).project)
-    if not answer and (_held(actions.store.folder / 'host.lock') or launch.running(state)): return False
+    if not answer and _held(actions.store.folder / 'host.lock'): return False
     question, option, text = answer or (None, None, None)
     argv = [sys.executable, '-m', 'eaos', 'govern', str(actions.project), *(['--answer', question] if question else []),
             *(['--option', option] if option else []), *(['--text', text] if text else [])]
     env, log = launch.own_env(**{HEADLESS: '1'}), launch.log_path(state, 'govern.log')
     log.write_bytes(b'')        # one host's words, written again by the next
-    unit = f"{launch.service_name(state, 'govern')}-{time.time_ns()}"   # where Studios are services, so is the host: a session that ends cannot end it
+    unit = f"{launch.service_name(state, 'govern')}-{time.time_ns()}"   # where EAOS's work runs as services, so does the host: a session that ends cannot end it
     if not (launch.durable() and launch.as_unit(unit, argv, env, {'description': 'EAOS queue host', 'log': log, 'cwd': state['workspace']})):
         launch.detach(state, argv, env, 'govern.log')
     return True
@@ -88,7 +88,7 @@ def host(project, answer=None, idle=HOST_IDLE):
     """`eaos govern`: the project's runs started and followed without the Studio, by this process's dispatcher while it
     holds `dispatch.lock` (a Studio that holds it starts them instead), until nothing is queued, active or followed here
     for `idle` seconds. `answer` (question, option, text) is given first; a second host with no answer leaves at once."""
-    from .studio_actions import Actions
+    from .runs import Actions
     os.environ[HEADLESS] = '1'
     actions = Actions(project, lang=(project_state.load(Path(project).resolve()) or {}).get('lang') or 'ar')
     try:
@@ -309,7 +309,7 @@ def verb_preview(project, verb, selection, auto_accept=False, assistant=None):
 
 def verb_start(project, preview, confirm=None, assistant=None):
     """The run its preview showed, with that preview's confirm token (a Fix's), queued, and the host woken."""
-    from .studio_actions import _where_of
+    from .runs import _where_of
     actions = core(project)
     record = actions.create({'verb': preview['verb'], 'selection': preview['selection'], 'assistant': assistant, 'confirm': confirm,
                              'inputs': {'auto_accept': True} if preview.get('auto_accept') else {}, 'where': _where_of(preview.get('where'))})
@@ -368,7 +368,7 @@ def _section(project, name):
 
 
 def history(project):
-    """Every check on record, oldest first (studio/history.json: eaos/report/studio/history.py), and what changed between."""
+    """Every check on record, oldest first (studio/history.json of the latest check), and what changed between."""
     found = _section(project, 'history') or {}
     return {'scans': found.get('scans') or [], 'events': (found.get('events') or [])[-20:], 'missing': found.get('missing') or []}
 

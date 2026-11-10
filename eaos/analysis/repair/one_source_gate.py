@@ -3,15 +3,15 @@
 
 What refuses a change is code copied word for word (EAOS's own metrics, eaos/facts/code/metrics.py: six lines alike,
 a copy kept on purpose inside jscpd's ignore markers, its reason beside it, aside). M15's detectors (near copies, the
-look, screen patterns, ways of working) refuse only when named in REFUSES and shown (eaos/data/detector-verdicts.json):
+ways of working) refuse only when named in REFUSES and shown (eaos/data/detector-verdicts.json):
 one under its measured bar never refuses, and one over it refuses only once its refusals themselves are measured safe
 on independent samples (M17). None is yet: a likeness alone never refuses a sound change.
 
-Each row is keyed by what is written, not where: a copy by its code's digest, a way of working, a value of the look or
-a screen pattern by its form and its count over the changed files. Code moved between the changed files keeps its
+Each row is keyed by what is written, not where: a copy by its code's digest, a way of working by its form and its
+count over the changed files. Code moved between the changed files keeps its
 rows; one more of the same is a new row, and so is a different one where another left. What the check before the change
-did not measure (jscpd or ast-grep did not run, the patterns were not read, near copies without their digest: a check
-before M15's closure) holds nothing against it.
+did not measure (jscpd or ast-grep did not run, near copies without their digest: a check before M15's closure) holds
+nothing against it.
 """
 from ..assessments.one_source import findings
 from ..assessments.weaknesses import observed
@@ -37,7 +37,7 @@ def measured(record):
     external = record('external') or {}
     ran = observed({'external': external})
     near = [f for f in external.get('facts') or [] if f['value'].get('record') == 'near_copy']
-    kinds = {'clone'} | ({'idiom'} if 'ast-grep' in ran else set()) | ({'look', 'ui_pattern'} if record('patterns') is not None else set())
+    kinds = {'clone'} | ({'idiom'} if 'ast-grep' in ran else set())
     return kinds | ({'near_copy'} if 'jscpd' in ran and all(f['value'].get('digest') for f in near) else set())
 
 
@@ -48,16 +48,6 @@ def _counted(kind, key, places, paths, what):
     return {(kind, key, n): {'gate': 'copy', 'where': where, 'what': what.replace('{where}', where)} for n in range(1, len(mine) + 1)}
 
 
-def _look(record, paths):
-    rows = {}
-    for fact in (record('patterns') or {}).get('facts') or []:
-        if fact['kind'] != 'look_value': continue
-        value = fact['value']
-        rows.update(_counted('look', f"{value['kind']}:{value['value']}", value['places'], paths,
-                             f"{value['kind'].replace('_', ' ')} {value['value']} is written at {{where}}, outside the tokens file: name it there and use its name"))
-    return rows
-
-
 def _copy(finding, paths):
     """The rows of a cluster of near copies, one per copy in the changed files, keyed by the copied code."""
     evidence = finding['evidence']
@@ -66,12 +56,9 @@ def _copy(finding, paths):
 
 
 def _again(finding, paths):
-    """The rows of an idiom or a screen pattern written again in the changed files."""
+    """The rows of an idiom written again in the changed files."""
     evidence = finding['evidence']
-    if finding['kind'] == 'idiom':
-        key, what = evidence.get('form'), f"{evidence.get('form', '').replace('_', ' ')} is written by hand again at {{where}}"
-    else:
-        key, what = f"{evidence.get('tag')}:{evidence.get('elements')}", f"the <{evidence.get('tag')}> structure is written again at {{where}}"
+    key, what = evidence.get('form'), f"{evidence.get('form', '').replace('_', ' ')} is written by hand again at {{where}}"
     return _counted(finding['kind'], key, evidence['places'], paths, f"{what}: use the one in {evidence.get('home')}")
 
 
@@ -79,7 +66,7 @@ def _found(found, paths):
     rows = {}
     for finding in found:
         if finding['kind'] == 'near_copy': rows.update(_copy(finding, paths))
-        elif finding['kind'] != 'look': rows.update(_again(finding, paths))
+        else: rows.update(_again(finding, paths))
     return rows
 
 
@@ -118,7 +105,6 @@ def rows(record, paths, kinds=None):
     """The rows of the gate over one check (`record(name)`: its fact set, None when it has none) at the files `paths`;
     `kinds`: those the check before the change measured (None: every kind, nothing was there before)."""
     live, paths = refusing(), set(paths)
-    found = [f for f in findings(None, {name: record(name) or {} for name in ('external', 'patterns')})[0]
-             if detector(f) in live] if live else []
-    out = {**_found(found, paths), **(_look(record, paths) if 'one_source:look' in live else {}), **_clones(record, paths)}
+    found = [f for f in findings(None, {'external': record('external') or {}})[0] if detector(f) in live] if live else []
+    out = {**_found(found, paths), **_clones(record, paths)}
     return {key: row for key, row in out.items() if kinds is None or key[0] in kinds}

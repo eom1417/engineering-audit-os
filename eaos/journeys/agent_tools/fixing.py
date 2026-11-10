@@ -81,7 +81,7 @@ def fix_start(project=None, cards=None, size=10, base=None, deliver_as=None, mer
     stop = _not_ready(state, deliver_as)
     if stop: return stop
     stop, chosen = _chosen(state, cards, size)
-    return stop or _start('fix_start', state, {'cards': chosen, 'deliver_as': deliver_as, 'merge_into': merge_into, 'assistants': assistants, 'scanned': state.get('scanned')}, watch=True)
+    return stop or _start('fix_start', state, {'cards': chosen, 'deliver_as': deliver_as, 'merge_into': merge_into, 'assistants': assistants, 'scanned': state.get('scanned')})
 
 
 def _still_open(wave):

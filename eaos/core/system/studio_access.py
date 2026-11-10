@@ -1,5 +1,4 @@
-"""Who may talk to a Studio, checked in one place (M3.3) for its server (eaos/interfaces/studio_server/guard.py) and its actions
-(docs/studio-actions.json `security`):
+"""Who may call the run engine's action API, checked in one place (M3.3) (docs/studio-actions.json `security`):
 - the server listens on 127.0.0.1 only (`LOOPBACK`), or 0.0.0.0 behind one exact Remote origin;
 - every request names the server by its Host (127.0.0.1:<port>, localhost:<port>, the Remote one), which defeats DNS
   rebinding; a page outside /api/ is read only;

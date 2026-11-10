@@ -9,9 +9,7 @@ import os
 from pathlib import Path
 from .duplicates import duplicated_rules, redundant_work
 from .engine_measures import engine_measurement
-from .from_experience import experience
 from .from_layers import layer_findings
-from .from_logic_flaws import logic_flaws
 from .from_real_data import real_data
 from .from_repository import repository_findings
 from .from_facts import (broken_code, cochanges, cycles, dead_code, external_writes, hotspots, large_modules,
@@ -28,8 +26,7 @@ PROVING_METHODS = {'runtime_probe', 'test_evidence', 'static_fact', 'history_fac
 # The builders of the claims facts earn (eaos/analysis/claims/from_facts.py), in ledger order: the claims are numbered in it.
 BUILDERS = (cycles, cochanges, duplicated_rules, hotspots, large_modules, mutable_globals, external_writes,
             redundant_work, policy_violations, trace_gaps, dead_code, broken_code,
-            vulnerable_dependencies, weaknesses, layer_findings, logic_flaws, repository_findings,
-            experience, real_data)
+            vulnerable_dependencies, weaknesses, layer_findings, repository_findings, real_data)
 TYPES = ['structure', 'responsibility', 'contract', 'business_rule', 'flow_step', 'risk', 'cause', 'capability_gap', 'cost']
 
 

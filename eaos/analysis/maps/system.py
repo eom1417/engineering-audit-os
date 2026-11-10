@@ -1,5 +1,5 @@
-"""The system map of the report for people (eaos/report/human_report/): every page, every API it calls, the server code
-that answers it, what that code uses, and the data it reaches, end to end.
+"""The system map: every page, every API it calls, the server code that answers it, what that code uses, and the data
+it reaches, end to end.
 
 Reads only records the audit already wrote, and never raises for a missing or broken one (a missing piece is empty):
     facts/entrypoints.json  entry_point: a page (route, its component) or a server route; data_access: an HTTP call

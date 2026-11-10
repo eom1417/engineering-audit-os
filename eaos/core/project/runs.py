@@ -25,7 +25,7 @@ from ...core.system.files import read_json
 from ...core.system.clock import now
 
 ZERO = '0' * 64
-# A run's fields only its assistant's brief reads (eaos/interfaces/studio_actions/runs.py prompt_of), never a page: the list of
+# A run's fields only its assistant's brief reads (eaos/journeys/runs/runs.py prompt_of), never a page: the list of
 # runs leaves them out, half its size (1.1 MB on EAOS's Studio, polled every 3 s over 4G).
 BRIEF_ONLY = ('cards_detail', 'owner_decision', 'owner_answers', 'selection')
 CONTRACT = Path(__file__).resolve().parents[2] / 'data/studio-actions.json'

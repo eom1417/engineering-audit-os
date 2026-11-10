@@ -8,7 +8,6 @@ assistant (the MCP audit tool) and the Studio.
                                            the isolated copy, the tools started without, the paths, the kept mode and
                                            how the page stages sign in
     estimate(report, paths=None, mode=None) the minutes such a check takes here, from the last check's seconds
-    adds(paths)                            what the experience adds at most (minutes, assistant calls), when chosen
     offered(state, report)                 what the start of a check offers: the paths, the kept mode and sign-in, and
                                            the sign-in the code shows
 
@@ -18,7 +17,7 @@ state comes from its callers (eaos/journeys/guided/ loads and saves it), so this
 from pathlib import Path
 
 from ..live.access import sign_in
-from ..core.contracts.check_paths import COMPLETE, PATHS
+from ..core.contracts.check_paths import PATHS
 from ..pipeline.loops import switched_off
 from ..pipeline.path_choice import resolve
 from ..pipeline.schedule import MODES, forecast
@@ -73,19 +72,16 @@ def options(state, progress, failed, provider, runtime, paths=None, engines=None
 
 
 def estimate(report, paths=None, mode='normal', again_from=None):
-    """{'minutes_low', 'minutes_high', 'basis', 'experience'?} of a check of `paths` in `mode` on this project: its stages
-    as the schedule runs them, each taking what it took in the last check (15% either side), the experience at its most
-    when it never ran here (`experience`: what it costs, adds); None before a first check. `again_from`: only that stage
-    and the stages reading it run again (eaos/pipeline/run.py again)."""
+    """{'minutes_low', 'minutes_high', 'basis'} of a check of `paths` in `mode` on this project: its stages as the
+    schedule runs them, each taking what it took in the last check (15% either side); None before a first check.
+    `again_from`: only that stage and the stages reading it run again (eaos/pipeline/run.py again)."""
     seconds = previous_seconds(report)
     if not seconds: return None
     stages = _running(paths, again_from)
-    cost = adds(paths) if 'experience' in stages else {}
-    most = {'experience': cost['experience']['minutes'] * 60} if cost else {}
-    minutes = forecast({name: seconds.get(name) or most.get(name, 0.0) for name in stages}, mode or 'normal') / 60
+    minutes = forecast({name: seconds.get(name) or 0.0 for name in stages}, mode or 'normal') / 60
     return {'minutes_low': int(minutes * 0.85), 'minutes_high': int(minutes * 1.15) + 1,
             'basis': {'en': "this project's last check, each step as long as it took then",
-                      'ar': 'آخر فحص لهذا المشروع، كل خطوة بالوقت الذي أخذته فيه'}, **cost}
+                      'ar': 'آخر فحص لهذا المشروع، كل خطوة بالوقت الذي أخذته فيه'}}
 
 
 def _running(paths, again_from):
@@ -93,20 +89,6 @@ def _running(paths, again_from):
     if again_from in BY_NAME: return (again_from, *dependents(again_from, reading=True))
     chosen = resolve(paths)
     return [name for name in chosen['stages'] or ORDER if name not in switched_off(chosen['paths'])]
-
-
-def adds(paths):
-    """{'experience': {simulation, minutes, calls}} when a check of `paths` tries the experience, else {}: what it adds at
-    most, said before the check starts even on a first check. Beside `complete` the short option (eaos/analysis/
-    experience/simulation.py SHORT: its steps on the light tier, one ruling on the deep one), alone the whole run's budget."""
-    chosen = resolve(paths)['paths']
-    if 'experience' not in chosen: return {}
-    from ..analysis.experience import simulation
-    from ..live.experience import cast
-    if COMPLETE in chosen:
-        return {'experience': {'simulation': 'short', 'minutes': simulation.SHORT['seconds'] // 60,
-                               'calls': {'light': simulation.SHORT['steps'], 'deep': 1}}}
-    return {'experience': {'simulation': 'whole', 'minutes': cast.BUDGET['seconds'] // 60, 'calls': {'most': cast.BUDGET['calls']}}}
 
 
 def without_ai_kept(report, without_ai, again_from, chosen):

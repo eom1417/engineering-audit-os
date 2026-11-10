@@ -6,9 +6,8 @@ from concurrent.futures import FIRST_COMPLETED, ThreadPoolExecutor, wait
 from pathlib import Path
 from typing import NamedTuple
 
-from .code import ast_grep, dependency_cruiser, gitnexus, jscpd, knip, lizard, react_docgen, reforge, scc, sqlfluff, squawk
-from .security import bandit, checkov, codeql, gitleaks, osv_scanner, presidio, semgrep, syft
-from .api import oasdiff, spectral
+from .code import ast_grep, dependency_cruiser, jscpd, knip, lizard
+from .security import gitleaks, presidio, semgrep
 from . import sarif, tool
 from .contract import NOT_APPLICABLE, OBSERVED, UNAVAILABLE
 from .process import state_digest
@@ -21,12 +20,10 @@ from ..core.system.clock import now
 # The engines are the registry's (eaos/data/toolchain.json): every tool the engines stage runs (`check: engines`) with a
 # command of its own has its adapter here, by its NAME; an added tool that declares an `engine` runs through sarif.py.
 # Install, run and display read the one list; an entry without its adapter fails here, at import.
-_BY_NAME = {module.NAME: module for module in (ast_grep, bandit, checkov, codeql, dependency_cruiser, gitleaks,
-                                                gitnexus, jscpd, knip, lizard, oasdiff, osv_scanner, presidio, react_docgen, reforge, scc,
-                                                semgrep, spectral, sqlfluff, squawk, syft)}
+_BY_NAME = {module.NAME: module for module in (ast_grep, dependency_cruiser, gitleaks, jscpd, knip, lizard, presidio, semgrep)}
 ADAPTERS = {tool['name']: _BY_NAME[tool['name']] for tool in registry()['tools']
             if tool.get('check') == 'engines' and (tool.get('binary') or tool['install'].get('library')) and not tool.get('engine')} | sarif.declared()
-# What an engine may take while it runs; an adapter that takes more says so (CodeQL's database: codeql.MEMORY).
+# What an engine may take while it runs; an adapter that takes more says so (its MEMORY).
 ENGINE_MB = 1024
 
 

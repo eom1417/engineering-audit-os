@@ -1,8 +1,8 @@
 """The graph queries a probe asks again (eaos/analysis/claims/probes.py decide_probe): each over the current snapshot's fact
 sets, inconclusive when the facts it reads, or the engines it names, are not there.
 """
-from . import from_experience as experience_claims, from_layers as layer_claims, from_logic_flaws as logic_claims, from_repository as repository_claims
-from . import from_keeping as keeping_claims, from_old_engines as old_engine_claims, from_real_data as real_data_claims
+from . import from_layers as layer_claims, from_repository as repository_claims
+from . import from_old_engines as old_engine_claims, from_real_data as real_data_claims
 from . import from_one_source as one_source_claims, from_rules as rule_claims
 from ..assessments import weaknesses
 
@@ -13,12 +13,11 @@ QUERY_REQUIRES = {
     'cycle_present': 'graph', 'flow_has_unresolved_steps': 'flows', 'no_code_dependency': 'graph',
     'metric_threshold': 'metrics', 'module_size': 'metrics', 'mutable_global_present': 'domain', 'external_write_present': 'domain',
     'policy_violation_present': 'graph', 'redundancy_present': 'redundancy',
-    'engine_cluster_present': 'external', 'load_blocker_present': 'load_model',
+    'engine_cluster_present': 'external',
     'dead_code_present': 'deadcode', 'broken_code_present': 'broken', 'vulnerable_dependency_present': 'external',
     'weakness_present': 'external', 'boundary_finding_present': 'boundaries',
-    'repository_finding_present': 'repository', 'logic_flaw_present': 'logic_flaws',
-    'experience_difficulty_present': 'experience', 'real_data_present': 'external',
-    'old_engine_present': 'syntax', 'data_keeping_present': 'external', 'one_source_present': 'patterns', 'rule_broken': 'rule',
+    'repository_finding_present': 'repository', 'real_data_present': 'external',
+    'old_engine_present': 'syntax', 'one_source_present': 'syntax', 'rule_broken': 'rule',
 }
 
 
@@ -40,23 +39,6 @@ def _flow_unresolved(specification, sets):
     flow = next((fact['value'] for fact in sets['flows']['facts'] if fact['value']['flow_id'] == specification['flow_id']), None)
     if flow is None: return 'INCONCLUSIVE', 'flow not present in this snapshot'
     return _verdict(flow['unresolved_steps'], f"{flow['unresolved_steps']} unresolved steps", 'all steps resolve now')
-
-
-def _same_blocker(blocker, specification):
-    # A recheck of a changed copy names the entry by its path and route: an entry fact's id changes with its file.
-    if 'entry_path' in specification:
-        same = (blocker['path'], blocker['route']) == (specification['entry_path'], specification.get('entry_route'))
-    else:
-        same = blocker['entry_point'] == specification['entry_point']
-    return same and blocker['question'] == specification['question']
-
-
-def _load_blocker(specification, sets):
-    # Re-derive the blocker from the load model: the claim is about what the questions answer.
-    from ..readiness.load_projection import blockers
-    found = next((blocker for blocker in blockers(sets['load_model']) if _same_blocker(blocker, specification)), None)
-    if found: return 'CONFIRMED', f"{found['question']} still answers {found['value']!r}"
-    return 'REFUTED', 'the question no longer answers that way for this entry point'
 
 
 def _vulnerable(specification, sets):
@@ -172,15 +154,14 @@ def _no_dependency(specification, sets):
 
 # How each query decides, over the current snapshot's fact sets.
 QUERIES = {
-    'cycle_present': _cycle_present, 'flow_has_unresolved_steps': _flow_unresolved, 'load_blocker_present': _load_blocker,
+    'cycle_present': _cycle_present, 'flow_has_unresolved_steps': _flow_unresolved,
     'vulnerable_dependency_present': _vulnerable, 'broken_code_present': _broken, 'dead_code_present': _dead,
     'engine_cluster_present': _engine_cluster, 'weakness_present': weaknesses.present, 'metric_threshold': _metric, 'module_size': _module_size, 'mutable_global_present': _mutable,
     'external_write_present': _external_write, 'policy_violation_present': _policy,
     'redundancy_present': _redundancy,
     'no_code_dependency': _no_dependency, 'boundary_finding_present': layer_claims.present,
-    'repository_finding_present': repository_claims.present, 'logic_flaw_present': logic_claims.present,
-    'experience_difficulty_present': experience_claims.present, 'real_data_present': real_data_claims.present,
-    'old_engine_present': old_engine_claims.present, 'data_keeping_present': keeping_claims.present,
+    'repository_finding_present': repository_claims.present, 'real_data_present': real_data_claims.present,
+    'old_engine_present': old_engine_claims.present,
     'one_source_present': one_source_claims.present, 'rule_broken': rule_claims.present,
 }
 

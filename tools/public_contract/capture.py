@@ -27,27 +27,22 @@ UNSAVED = ('technical/human', 'technical/progress', 'technical/behavior-lock', '
 
 # Tools no contract run may call, with why; a new tool that reads or writes must be named here or called below.
 NOT_CALLED = {
-    'open_studio': 'starts a server',
     'ask': 'asks the assistant',
     'tools_find': 'searches the web',
 }
 # Not declared read-only, as they settle the state, but read like the rest: their answers stay held.
 ANSWERED = ('status', 'menu', 'plan')
 EMPTY_WRITING = (
-    'accept', 'act', 'build_edit', 'build_finish', 'build_skip', 'build_start', 'context_make', 'design_choose', 'design_make',
-    'extend_plan', 'fix_abandon', 'fix_edit', 'fix_finish', 'fix_skip', 'fix_start', 'reorder', 'safety_net', 'undo')
+    'accept', 'act', 'context_make', 'fix_abandon', 'fix_edit', 'fix_finish', 'fix_skip', 'fix_start', 'safety_net', 'undo')
 # A writing tool that succeeds on a real batch or job: the existing test that drives it, or why nothing locks it yet.
 WRITING_ELSEWHERE = {
-    'audit': 'tests/guards/test_journey.py', 'blueprint_start': 'tests/journeys/test_blueprint.py',
-    'blueprint_spec': 'tests/journeys/test_blueprint.py', 'blueprint_design': 'tests/journeys/test_blueprint.py',
+    'audit': 'tests/guards/test_journey.py',
     'open_report': 'tests/interfaces/test_read_only_tools.py', 'choose_branch': 'tests/interfaces/test_mcp.py', 'note': 'tests/interfaces/test_mcp.py',
-    'rule': 'tests/analysis/test_person_rules.py', 'runs': 'tests/interfaces/test_parity.py',
-    'waiting': 'tests/interfaces/test_parity.py', 'branch_change': 'tests/interfaces/test_mcp.py',
+    'rule': 'tests/analysis/test_person_rules.py', 'runs': 'tests/interfaces/test_mcp.py',
+    'waiting': 'tests/interfaces/test_mcp.py', 'branch_change': 'tests/interfaces/test_mcp.py',
     'check_changed': 'not locked: it reads a change the fixture does not have',
-    'extend_start': 'not locked: it starts a job', 'logic_flaws': 'not locked: it asks the assistant',
-    'project_map': 'not locked: it builds the map with a pinned tool', 'replan_ideal': 'not locked: it asks the assistant',
     'run_nodes': 'not locked: it asks the assistant', 'run_setup': 'not locked: it runs the app',
-    'run_try': 'not locked: it runs the app', 'sign_in_forget': 'not locked: it needs a saved sign-in',
+    'run_try': 'not locked: it runs the app',
     'tools_add': 'not locked: it installs a tool', 'tools_check': 'not locked: it reads the installed tools',
 }
 UNACCOUNTED = 'UNACCOUNTED: name it in NOT_CALLED, EMPTY_WRITING or WRITING_ELSEWHERE of tools/public_contract/capture.py'

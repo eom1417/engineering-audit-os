@@ -549,8 +549,6 @@
    "choices": [
     "code",
     "complete",
-    "experience",
-    "layers",
     "look",
     "security",
     "speed"
@@ -764,35 +762,6 @@
    "type": null
   }
  ],
- "design": [
-  {
-   "choices": [
-    "ar",
-    "en"
-   ],
-   "default": null,
-   "dest": "lang",
-   "flags": [
-    "--lang"
-   ],
-   "kind": "StoreAction",
-   "nargs": null,
-   "required": false,
-   "type": null
-  },
-  {
-   "choices": null,
-   "default": ".",
-   "dest": "project",
-   "flags": [
-    "--project"
-   ],
-   "kind": "StoreAction",
-   "nargs": null,
-   "required": false,
-   "type": null
-  }
- ],
  "do": [
   {
    "choices": [
@@ -880,160 +849,6 @@
    "kind": "StoreAction",
    "nargs": "?",
    "required": false,
-   "type": null
-  },
-  {
-   "choices": null,
-   "default": false,
-   "dest": "yes",
-   "flags": [
-    "--yes"
-   ],
-   "kind": "StoreTrueAction",
-   "nargs": 0,
-   "required": false,
-   "type": null
-  }
- ],
- "experience": [
-  {
-   "choices": null,
-   "default": "",
-   "dest": "apart",
-   "flags": [
-    "--apart"
-   ],
-   "kind": "StoreAction",
-   "nargs": null,
-   "required": false,
-   "type": null
-  },
-  {
-   "choices": [
-    "claude",
-    "codex"
-   ],
-   "default": null,
-   "dest": "assistant",
-   "flags": [
-    "--assistant"
-   ],
-   "kind": "StoreAction",
-   "nargs": null,
-   "required": false,
-   "type": null
-  },
-  {
-   "choices": null,
-   "default": null,
-   "dest": "base",
-   "flags": [
-    "--base"
-   ],
-   "kind": "StoreAction",
-   "nargs": null,
-   "required": false,
-   "type": null
-  },
-  {
-   "choices": null,
-   "default": null,
-   "dest": "database",
-   "flags": [
-    "--database"
-   ],
-   "kind": "StoreAction",
-   "nargs": null,
-   "required": false,
-   "type": null
-  },
-  {
-   "choices": [
-    "ar",
-    "en"
-   ],
-   "default": "ar",
-   "dest": "lang",
-   "flags": [
-    "--lang"
-   ],
-   "kind": "StoreAction",
-   "nargs": null,
-   "required": false,
-   "type": null
-  },
-  {
-   "choices": null,
-   "default": 400,
-   "dest": "max_calls",
-   "flags": [
-    "--max-calls"
-   ],
-   "kind": "StoreAction",
-   "nargs": null,
-   "required": false,
-   "type": "int"
-  },
-  {
-   "choices": null,
-   "default": null,
-   "dest": "out",
-   "flags": [
-    "--out"
-   ],
-   "kind": "StoreAction",
-   "nargs": null,
-   "required": true,
-   "type": null
-  },
-  {
-   "choices": null,
-   "default": null,
-   "dest": "runtime",
-   "flags": [
-    "--runtime"
-   ],
-   "kind": "StoreAction",
-   "nargs": null,
-   "required": false,
-   "type": null
-  },
-  {
-   "choices": null,
-   "default": null,
-   "dest": "sessions",
-   "flags": [
-    "--sessions"
-   ],
-   "kind": "StoreAction",
-   "nargs": null,
-   "required": false,
-   "type": null
-  },
-  {
-   "choices": [
-    "judge",
-    "plan",
-    "replay",
-    "report",
-    "run"
-   ],
-   "default": null,
-   "dest": "step",
-   "flags": [],
-   "kind": "StoreAction",
-   "nargs": null,
-   "required": true,
-   "type": null
-  },
-  {
-   "choices": null,
-   "default": null,
-   "dest": "target",
-   "flags": [],
-   "kind": "StoreAction",
-   "nargs": null,
-   "required": true,
    "type": null
   },
   {
@@ -1395,81 +1210,6 @@
    ],
    "kind": "StoreAction",
    "nargs": null,
-   "required": false,
-   "type": null
-  }
- ],
- "logic-flaws": [
-  {
-   "choices": [
-    "claude",
-    "codex"
-   ],
-   "default": null,
-   "dest": "assistant",
-   "flags": [
-    "--assistant"
-   ],
-   "kind": "StoreAction",
-   "nargs": null,
-   "required": false,
-   "type": null
-  },
-  {
-   "choices": null,
-   "default": 4,
-   "dest": "max_calls",
-   "flags": [
-    "--max-calls"
-   ],
-   "kind": "StoreAction",
-   "nargs": null,
-   "required": false,
-   "type": "int"
-  },
-  {
-   "choices": null,
-   "default": 40,
-   "dest": "minutes",
-   "flags": [
-    "--minutes"
-   ],
-   "kind": "StoreAction",
-   "nargs": null,
-   "required": false,
-   "type": "bounded_int"
-  },
-  {
-   "choices": null,
-   "default": null,
-   "dest": "out",
-   "flags": [
-    "--out"
-   ],
-   "kind": "StoreAction",
-   "nargs": null,
-   "required": true,
-   "type": null
-  },
-  {
-   "choices": null,
-   "default": null,
-   "dest": "target",
-   "flags": [],
-   "kind": "StoreAction",
-   "nargs": null,
-   "required": true,
-   "type": null
-  },
-  {
-   "choices": null,
-   "default": false,
-   "dest": "yes",
-   "flags": [
-    "--yes"
-   ],
-   "kind": "StoreTrueAction",
-   "nargs": 0,
    "required": false,
    "type": null
   }
@@ -1846,35 +1586,6 @@
    "dest": "where",
    "flags": [
     "--where"
-   ],
-   "kind": "StoreAction",
-   "nargs": null,
-   "required": false,
-   "type": null
-  }
- ],
- "projects": [
-  {
-   "choices": [
-    "ar",
-    "en"
-   ],
-   "default": null,
-   "dest": "lang",
-   "flags": [
-    "--lang"
-   ],
-   "kind": "StoreAction",
-   "nargs": null,
-   "required": false,
-   "type": null
-  },
-  {
-   "choices": null,
-   "default": ".",
-   "dest": "project",
-   "flags": [
-    "--project"
    ],
    "kind": "StoreAction",
    "nargs": null,
@@ -2404,8 +2115,6 @@
    "choices": [
     "code",
     "complete",
-    "experience",
-    "layers",
     "look",
     "security",
     "speed"
@@ -2517,66 +2226,6 @@
    "flags": [],
    "kind": "StoreAction",
    "nargs": "?",
-   "required": false,
-   "type": null
-  }
- ],
- "studio": [
-  {
-   "choices": null,
-   "default": false,
-   "dest": "background",
-   "flags": [
-    "--background"
-   ],
-   "kind": "StoreTrueAction",
-   "nargs": 0,
-   "required": false,
-   "type": null
-  },
-  {
-   "choices": null,
-   "default": false,
-   "dest": "no_open",
-   "flags": [
-    "--no-open"
-   ],
-   "kind": "StoreTrueAction",
-   "nargs": 0,
-   "required": false,
-   "type": null
-  },
-  {
-   "choices": null,
-   "default": 0,
-   "dest": "port",
-   "flags": [
-    "--port"
-   ],
-   "kind": "StoreAction",
-   "nargs": null,
-   "required": false,
-   "type": "int"
-  },
-  {
-   "choices": null,
-   "default": ".",
-   "dest": "project",
-   "flags": [],
-   "kind": "StoreAction",
-   "nargs": "?",
-   "required": false,
-   "type": null
-  },
-  {
-   "choices": null,
-   "default": null,
-   "dest": "remote_origin",
-   "flags": [
-    "--remote-origin"
-   ],
-   "kind": "StoreAction",
-   "nargs": null,
    "required": false,
    "type": null
   }

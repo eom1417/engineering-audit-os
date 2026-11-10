@@ -1,6 +1,5 @@
 """The kinds of users of an app (eaos/live/access/roles.py): read from its code with real evidence, each opened as
 itself, and the coverage saying which kinds a check saw and who opened another kind's page."""
-import json
 import tempfile
 import unittest
 from pathlib import Path
@@ -82,14 +81,6 @@ class Roles(unittest.TestCase):
         self.assertEqual(roles.breaches(views, [('programs', 'p')], opens), [], 'a switch is the same account: its pages are its own')
         rows = [{'url': base + '/programs/plans', 'kind': None, 'unseen': True}, {'url': base + '/admin', 'kind': None}]
         self.assertEqual(roles.unseen({'rows': rows}), [{'page': base + '/programs/plans', 'view': None}])
-        from eaos.ai.nodes import visual_reviewer
-        with tempfile.TemporaryDirectory() as report:
-            (Path(report) / 'live').mkdir()
-            for name in ('a.png', 'b.png'): (Path(report) / name).write_bytes(b'png')
-            pictured = [{**rows[0], 'screenshot': 'a.png'}, {**rows[1], 'screenshot': 'b.png'}]
-            (Path(report) / 'live/screens.json').write_text(json.dumps({'rows': pictured}))
-            self.assertEqual([page['page'] for page in visual_reviewer.inputs(report)['pages']], [base + '/admin'],
-                             'a page not seen is never judged')
 
 
     def test_a_view_the_running_app_shows_missing_is_added_as_checked_and_a_redirect_to_its_own_page_is_reached(self):

@@ -13,7 +13,6 @@ MAX_PARAMETERS = 5      # parameters of one function, self and cls aside
 # A near copy of code, as jscpd measures it.
 NEAR_COPY = {'similarity': 0.85, 'max_gap_lines': 2, 'min_tokens': 40, 'min_lines': 6}
 PATTERN_REPEATS = 3     # a UI pattern or an idiom written this many times is one component or helper
-UI_SIMILARITY = 0.8     # two element trees this alike are one UI pattern
 LOOK = ('color', 'font_size', 'spacing', 'radius', 'shadow', 'z_index')   # written only in the tokens file
 
 LAWS = '''THE CODE LAWS (the target of every plan and fix, the program still doing its job well):

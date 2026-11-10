@@ -5,11 +5,9 @@ adapter must fail here — loudly, offline, in milliseconds — rather than sile
 on somebody's repository.
 """
 import json
-import tempfile
 import unittest
 from pathlib import Path
 
-from eaos.engines.code import reforge
 from eaos.engines.contract import KINDS
 
 CONTRACTS = Path(__file__).resolve().parents[1] / 'contracts'
@@ -20,7 +18,7 @@ def sample(name):
 
 
 # The engines with no captured sample: each writes SARIF, read by sarif.py and its tests (test_sarif).
-UNSAMPLED = ('bandit', 'gitleaks', 'codeql')
+UNSAMPLED = ('gitleaks',)
 
 
 class SampleTests(unittest.TestCase):
@@ -40,27 +38,6 @@ class SampleTests(unittest.TestCase):
                 if name not in UNSAMPLED:
                     self.assertEqual(sample(name)['pinned_version'], adapter.PINNED, f'{name}: captured from another version')
                 for capability in adapter.capabilities(): self.assertIn(capability.kind, KINDS)
-        for kind in reforge.KIND_BY_FAMILY.values():
-            self.assertIn(kind, KINDS)
-
-
-class ReforgeContractTests(unittest.TestCase):
-    def test_every_family_is_mapped_with_its_rules_measurements_coverage_and_group_sites(self):
-        payload = sample('reforge')['report.json']
-        self.assertEqual(payload['schema_version'], reforge.SCHEMA)
-        unmapped = sorted({issue['family'].rsplit('.', 1)[-1] for issue in payload['issues']
-                           if issue['family'].rsplit('.', 1)[-1] not in reforge.KIND_BY_FAMILY})
-        self.assertEqual(unmapped, [], 'reforge reported a family the adapter would drop')
-        evidence = [item for issue in payload['issues'] for item in issue.get('evidence', [])]
-        self.assertTrue(evidence and all('rule' in item for item in evidence))
-        self.assertTrue(any(item.get('measurements') for item in evidence), 'thresholds would disappear from every finding')
-        rules = ((payload.get('coverage') or {}).get('codebase') or {}).get('rules')
-        self.assertTrue(rules, 'reforge stopped reporting per-rule coverage; partial would read as observed')
-        for issue in payload['issues']:
-            if (issue.get('subject') or {}).get('kind') == 'group':
-                members = issue['subject'].get('members') or []
-                locations = [spot for item in issue.get('evidence', []) for spot in item.get('locations', [])]
-                self.assertTrue(members or locations, 'a grouped issue with neither members nor locations would be dropped')
 
 
 class JscpdContractTests(unittest.TestCase):

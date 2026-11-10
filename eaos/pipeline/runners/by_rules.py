@@ -4,14 +4,10 @@ A runner may raise SkipStage when the stage does not apply to this project — n
 no provider configured, no engine installed. That is a recorded absence, not a failure. The runners of the stages an
 assistant does are pipeline/runners/by_assistant.py's; RUNNERS, here, names every stage's.
 """
-import json
 from pathlib import Path
 
-from .design import design_gallery, design_inventory, guide_draft, proposed_tokens
-from .by_assistant import ideal, order, pipeline_gaps, proposals, roles, semantic, translate, triage, visual
+from .by_assistant import order, roles, translate, triage
 from .live_app import NO_RUN, _keep, _live, _ran
-from .experience import experience, replayed
-from .layers_live import layers_trial
 from .pages import crawl, journeys, screens
 from ..stages import SkipStage
 
@@ -131,38 +127,9 @@ def record(context):
     from ...live.behavior.lock import run_lock
     from .live_app import shared_app
     result = run_lock(context.out, context.target, runtime, app=shared_app(context))     # on the app the person signed in to
-    result = replayed(context, result)                   # the saved journeys, replayed with no assistant, as its rows
     passed = sum(r['status'] == 'passed' for r in result['results'])
     _keep(context, 'lock.json', {**result, 'specs': len(result['results']), 'passed': passed})
     return {'specs': len(result['results']), 'passed': passed}
-
-
-def baseline(context):
-    """Today's speed under the intake's load scenarios (eaos/live/trials/load_baseline.py), on a production build that started."""
-    runtime = _live(context)
-    import json as _json
-    profile = _json.loads((runtime / 'run.json').read_text(encoding='utf-8'))
-    if not (profile.get('baseline') or {}).get('verified'):
-        raise SkipStage('the production build of the app did not start in the isolated copy, so its speed was not measured',
-                        code='no_production_run')
-    from ...live.trials.load_plans import write as scenarios
-    from ...live.trials.load_baseline import PagesOnly, run_baseline
-    scenarios(context.out)
-    if not list((context.out / 'nfr/k6').glob('*.js')):
-        raise SkipStage("the intake's load scenarios name no route of the app a load test can request", code='no_load_scenario')
-    try: record = run_baseline(context.out, context.target, runtime)
-    except PagesOnly as problem: raise SkipStage(str(problem), code='baseline_pages_only') from problem
-    _keep(context, 'baseline.json', record)
-    return {'scenarios': len(record['scenarios']),
-            'p95_ms': max((s['before']['p95_ms'] for s in record['scenarios'] if s.get('before')), default=None)}
-
-
-def readiness(context):
-    """Production readiness under pressure as findings with evidence (eaos/analysis/readiness/production.py); the k6 baseline is
-    read only when it ran in this check."""
-    from ...analysis.readiness.production import write
-    record = write(context.out, measured=_ran(context, 'baseline'))
-    return {aspect: counts for aspect, counts in record['summary'].items()}
 
 
 def architecture(context):
@@ -176,22 +143,6 @@ def architecture(context):
     (context.out / 'architecture').mkdir(parents=True, exist_ok=True)
     write(context.out / 'architecture' / 'map.json', {'schema_version': 2, 'digest': drawn})
     return {'hotspots': len(drawn['hotspots']), 'clusters': len(drawn['clusters'])}
-
-
-def sustainability(context):
-    """The six indicators against their targets (eaos/analysis/target_state/sustainability.py): sustainability.json."""
-    from ...analysis.target_state.sustainability import write
-    result = write(context.out)
-    return {'measured': sum(1 for row in result['rows'] if row['measured']), 'moves': len(result['moves'])}
-
-
-def transform(context):
-    """A canonical home for each repeated definition and the move that gets there (eaos/analysis/target_state/transform.py)."""
-    from ...analysis.target_state.transform import build, write
-    policy_path = Path(context.policy_path) if context.policy_path else Path(context.target) / POLICY_FILE
-    plan = build(context.out, policy_path=str(policy_path) if policy_path.is_file() else None)
-    write(context.out, plan)
-    return {'stages': plan['summary']['stages'], 'without_home': plan['summary']['moves_with_no_viable_candidate']}
 
 
 def policy(context):
@@ -215,7 +166,6 @@ def layers(context):
 
 def claims(context):
     from ...analysis.understanding.dossier import assemble
-    design_inventory(context)
     from ...core.project.workspace import read, write
     result = assemble(context.target, context.out, run=context.get('audit_run'), language=context.language,
                       exclude=context.exclude, collected=context.get('collected'))
@@ -230,21 +180,6 @@ def claims(context):
 def probe(context):
     from ...analysis.claims.probes import run_all
     return run_all(context.target, context.out)
-
-
-def load(context):
-    from ...analysis.readiness.load_model import compute, project
-    from ...core.project.workspace import write
-    record = compute(context.out)
-    record = project(record)
-    if _ran(context, 'baseline'):
-        measured = json.loads((context.out / 'live/baseline.json').read_text(encoding='utf-8'))
-        record['measured'] = {'source': 'live/baseline.json', 'conditions': measured['conditions'],
-                              'scenarios': [{'id': s['id'], 'threshold': s['threshold'], **(s.get('before') or {})}
-                                            for s in measured['scenarios']]}
-    write(context.out / 'load-model.json', record)
-    return {'entry_points': len(record.get('entry_points', [])),
-            'incomplete': sum(1 for e in record.get('entry_points', []) if (e.get('projection') or {}).get('incomplete'))}
 
 
 def plan(context):
@@ -262,14 +197,9 @@ def lock(context):
 
 
 def reports(context):
-    # The C4 diagrams first: CURRENT-STATE and TARGET-STATE embed them; START-HERE.md counts this check's plan.
-    from ...analysis.maps.c4 import write as diagrams
+    # START-HERE.md counts this check's plan.
     from ...report.documents.four_reports import write
     from ...report.documents.start_here import project_name, start_here
-    diagrams(context.out)
-    guide_draft(context)
-    proposed_tokens(context)
-    design_gallery(context)
     start_here(context.out, context.language, project_name(context.target))
     return write(context.out, context.language)
 
@@ -312,44 +242,17 @@ def features(context):
             'critical': sum(1 for f in record['features'] if f['critical'])}
 
 
-RUNNERS = {'setup': setup, 'crawl': crawl, 'record': record, 'screens': screens, 'baseline': baseline,
+RUNNERS = {'setup': setup, 'crawl': crawl, 'record': record, 'screens': screens,
            'facts': facts, 'features': features, 'intake': intake, 'measure': measure, 'lock': lock, 'reports': reports,
-           'engines': engines, 'policy': policy, 'layers': layers, 'layers_trial': layers_trial, 'experience': experience, 'claims': claims, 'probe': probe, 'load': load, 'semantic': semantic, 'roles': roles,
+           'engines': engines, 'policy': policy, 'layers': layers, 'claims': claims, 'probe': probe, 'roles': roles,
            'plan': plan}
 
 
-def target(context):
-    """The rules' proposal, kept as it was (target-proposal.json) and as the target until the reconcile decides it."""
-    from ...report.target_architecture.picture import build
-    from ...core.project.workspace import write
-    result = build(context.out, target=context.target)
-    write(context.out / 'target-proposal.json', result)
-    write(context.out / 'target-architecture.json', result)
-    return {'components': len(result['components']), 'status': result['status']}
-
-
 def cards(context):
-    from ...analysis.planning.extension import carry
     from ...analysis.planning.cards import confirm
-    record = confirm(context.target, context.out, context.language, triaged=_ran(context, 'triage'), reviewed=_ran(context, 'visual'))
-    _experience_cards(context)
-    return {'extension': carry(context.target, context.out), 'kept': len(record['kept']), 'set_aside': len(record['set_aside']), 'doubted': len(record['doubted']),
+    record = confirm(context.target, context.out, context.language, triaged=_ran(context, 'triage'), reviewed=False)
+    return {'kept': len(record['kept']), 'set_aside': len(record['set_aside']), 'doubted': len(record['doubted']),
             'design': len(record['design']), 'decided_by': record['decided_by']}
-
-
-def _experience_cards(context):
-    """The experience report told again once the plan's cards are final, each confirmed difficulty with its fix card."""
-    from ...report.experience.document import DATA, FOLDER, write
-    if (context.out / FOLDER / DATA).exists(): write(context.out, context.language)
-
-
-def reconcile(context):
-    from ...report.target_architecture.picture import reconcile as decide
-    from ...report.target_architecture.document import render
-    policy_path = Path(context.policy_path) if context.policy_path else Path(context.target) / POLICY_FILE
-    result = decide(context.out, planned=_ran(context, 'ideal'), policy_path=policy_path if policy_path.is_file() else None)
-    render(context.out, result, language=context.language)
-    return result['decided']
 
 
 def steps(context):
@@ -358,8 +261,7 @@ def steps(context):
     return {'steps': len(record['steps']), 'decided_by': record['source']}
 
 
-RUNNERS.update(target=target, proposals=proposals, cards=cards, pipeline_gaps=pipeline_gaps, reconcile=reconcile, steps=steps)
-RUNNERS.update(ideal=ideal, triage=triage, visual=visual, order=order)
+RUNNERS.update(cards=cards, steps=steps, triage=triage, order=order)
 
 
 def session(context):
@@ -371,12 +273,7 @@ def session(context):
 RUNNERS['session'] = session
 
 
-from .keeping import keeping  # noqa: E402  (the data's saving and keeping, M14)
-RUNNERS['keeping'] = keeping
-
-
-RUNNERS.update(translate=translate, verify=verify, journeys=journeys, readiness=readiness, architecture=architecture,
-               sustainability=sustainability, transform=transform)
+RUNNERS.update(translate=translate, verify=verify, journeys=journeys, architecture=architecture)
 
 
 from .rules import rules  # noqa: E402  (the person's own rules, M16)

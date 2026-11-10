@@ -77,9 +77,8 @@ class ServerTests(Home):
         self.assertIn('Work on your own until the job is done', started.instructions)
         names = {tool.name for tool in tools.tools}
         self.assertTrue({'status', 'audit', 'wait', 'finding', 'run_setup', 'run_try', 'safety_net', 'fix_start', 'fix_edit',
-                         'fix_finish', 'fix_abandon', 'accept', 'undo', 'open_report', 'blueprint_start', 'blueprint_spec',
-                         'blueprint_design', 'build_start', 'build_edit', 'build_finish'} <= names)
-        self.assertEqual({p.name for p in prompts.prompts}, {'audit', 'fix', 'status', 'build', 'continue', 'report', 'tasks', 'ask', 'tools'})
+                         'fix_finish', 'fix_abandon', 'accept', 'undo', 'open_report'} <= names)
+        self.assertEqual({p.name for p in prompts.prompts}, {'audit', 'fix', 'status', 'continue', 'report', 'tasks', 'ask', 'tools'})
         self.assertEqual(asked['project'], str(self.project.resolve()), 'the folder the assistant was opened in is the project')
         self.assertEqual((asked['next']['tool'], asked['recommended']), ('choose_branch', 'develop'))
         self.assertEqual({b['name'] for b in listed['branches']}, {'develop', 'master'})
@@ -299,7 +298,7 @@ class OutputsTests(Home):
         folder = guided.outputs(state)
         self.assertEqual(folder, guided.outputs_root() / 'shop')
         self.assertEqual(guided.report_of(state), folder / 'technical')
-        self.assertIn('REPORT.html', (folder / 'README.md').read_text())
+        self.assertIn('technical/START-HERE.md', (folder / 'README.md').read_text())
         other = git_project(Path(self.tmp.name) / 'elsewhere' / 'shop')
         self.assertEqual(guided.outputs(agent_tools.state_of(str(other))), guided.outputs_root() / 'shop-2',
                          'another project with the same name gets its own folder')
@@ -320,14 +319,14 @@ class OutputsTests(Home):
         answer = agent_tools.open_report(str(self.project), show=False)
         self.assertEqual(answer['outputs_folder'], str(guided.outputs(state)))
 
-    def test_a_page_that_cannot_be_built_never_stops_the_step_and_every_page_names_the_eaos_that_made_it(self):
+    def test_a_part_that_cannot_be_built_never_stops_the_step_and_every_report_names_the_eaos_that_made_it(self):
         state = agent_tools.state_of(str(self.project))
         guided.report_of(state).mkdir(parents=True)
-        with mock.patch('eaos.report.human_report.write', side_effect=RuntimeError('broken record')):
+        def broken(state): raise RuntimeError('broken record')
+        with mock.patch.dict(guided.REPORT_PARTS, {'broken': broken}):
             page = guided.publish(state)                           # the step goes on
-        self.assertEqual(page, guided.outputs(state) / 'REPORT.html')
-        self.assertIn('broken record', page.read_text(), 'the page says why, instead of an old page left in silence')
-        self.assertIn('page: RuntimeError: broken record', guided.report_stamp(state)['errors'])
+        self.assertEqual(page, guided.report_of(state) / 'START-HERE.md')
+        self.assertIn('broken: RuntimeError: broken record', guided.report_stamp(state)['errors'])
         self.assertTrue(list((guided.outputs(state) / 'logs').glob('*.log')))
         from eaos.core.system.version_info import digest
         guided.publish(state)
@@ -454,9 +453,6 @@ class QuestionTests(Home):
         checked = self.call('tools_check', {})
         self.assertEqual(checked['eaos']['version'], __version__)
         self.assertEqual(checked['total'], len(checked['tools']))
-        needed = {row['name']: row['needed_here'] for row in checked['tools']}
-        self.assertFalse(needed['sqlfluff'], 'a project without SQL does not need the SQL linter')
-        self.assertNotIn('sqlfluff', checked['for_the_check']['needed'])
         if checked['for_the_check']['failed']:
             self.assertEqual(checked['install'], 'eaos tools install')
 
@@ -543,29 +539,6 @@ class PersonOnly(Home):
         with mock.patch.object(govern, 'answer', return_value={'status': 'answered'}) as answered:
             self.assertEqual(mcp_govern.waiting('answer', 'q1', 'yes', person_said='نعم', project=str(self.project))['status'], 'answered')
         answered.assert_called_once()
-
-    def test_the_logic_flaw_hunt_says_its_spend_waits_for_a_yes_never_in_a_studio_run_and_runs_the_commands_hunt(self):
-        from eaos.interfaces import deep_checks
-        from eaos.interfaces.mcp_server import server as mcp_server
-        tool = mcp_server.functions()['logic_flaws']
-        with mock.patch.object(guided, 'scan_done', return_value=True), \
-             mock.patch.object(agent_tools, '_start', return_value={'job': 'j1'}) as started:
-            asked = json.loads(tool(project=str(self.project)))
-            self.assertEqual(asked['status'], 'needs_agreement')
-            self.assertIn('two long code reviews', asked['ask_the_person'])
-            with mock.patch.dict(os.environ, {'EAOS_STUDIO_RUN': 'r1'}):
-                self.assertIn("the person's decision", json.loads(tool(person_agreed=True, project=str(self.project)))['error'])
-            started.assert_not_called()
-            self.assertEqual(json.loads(tool(person_agreed=True, project=str(self.project)))['job'], 'j1')
-        self.assertEqual((started.call_args.args[0], started.call_args.kwargs['runner']), ('logic_flaws', 'eaos.interfaces.deep_checks'))
-        assistant = mock.Mock(config={})
-        with mock.patch.object(deep_checks, '_assistant', return_value=assistant), \
-             mock.patch('eaos.analysis.logic_flaws.record.run', return_value={'flaws': 1}) as hunted, \
-             mock.patch.dict(agent_tools.JOBS, {'audit': lambda project, arguments, progress: {'again_from': arguments['again_from']}}):
-            done = deep_checks.JOBS['logic_flaws'](str(self.project), {'minutes': 5}, None)
-        self.assertEqual(done, {'logic_flaws': {'flaws': 1}, 'again_from': 'claims'}, 'the hunt, then the check from its claims')
-        self.assertEqual(hunted.call_args.args[3], 5)
-        self.assertIn('usage', assistant.config, 'counted with the check\'s own use')
 
     def test_the_mcp_wait_follows_a_job_of_the_project_it_names(self):
         from eaos.interfaces.mcp_server import server as mcp_server

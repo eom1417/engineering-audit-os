@@ -183,34 +183,6 @@
     "Picturing your app's pages and checking their accessibility and speed"
    ]
   },
-  "baseline": {
-   "title": [
-    "يقيس تحت الضغط",
-    "Measure under load"
-   ],
-   "does": [
-    "يشغّل برنامجك تحت ضغط ويقيس سرعته. جزء من مسار «السرعة والتحمل».",
-    "Runs your app under load and measures its speed. Part of the \"Speed and scale\" path."
-   ],
-   "doing": [
-    "أقيس سرعة برنامجك تحت ضغط مستخدمين كثيرين",
-    "Measuring your app's speed under many users"
-   ]
-  },
-  "readiness": {
-   "title": [
-    "جاهزية التشغيل الفعلي",
-    "Production readiness"
-   ],
-   "does": [
-    "ينظر في فحوص الصحة والإعدادات والسجلات.",
-    "Looks at health checks, configuration and logs."
-   ],
-   "doing": [
-    "أقيس جاهزيته تحت الضغط",
-    "Measuring its readiness under pressure"
-   ]
-  },
   "measure": {
    "title": [
     "يقيس الكود",
@@ -281,48 +253,6 @@
     "Reading the layers"
    ]
   },
-  "keeping": {
-   "title": [
-    "يفحص حفظ البيانات وحمايتها",
-    "Check how the data is saved and kept"
-   ],
-   "does": [
-    "يقيس كل حفظ، ويملأ النسخة بحجم حقيقي، ويقرأ قاعدة البيانات، ويجرّب استرجاع النسخة الاحتياطية.",
-    "Measures each save, fills the copy to a real size, reads the database and tries restoring the backup."
-   ],
-   "doing": [
-    "أقيس طريقة حفظ بياناتك وأجرّب استرجاع نسختها الاحتياطية",
-    "Measuring how your data is saved and trying to restore its backup"
-   ]
-  },
-  "layers_trial": {
-   "title": [
-    "يجرّب حدود الطبقات",
-    "Try the layers' boundaries"
-   ],
-   "does": [
-    "يجرّب قواعد البيانات على نسخة معزولة كمستخدمين مختلفين، ويجرّب نقاط الطلب على التطبيق وهو يعمل.",
-    "Tries the data rules on an isolated copy as different users, and the endpoints on the running app."
-   ],
-   "doing": [
-    "أجرّب حدود الطبقات",
-    "Trying the layers' boundaries"
-   ]
-  },
-  "load": {
-   "title": [
-    "الكلفة لو زاد الاستخدام",
-    "Cost at 1000 times the use"
-   ],
-   "does": [
-    "يقدّر كلفة كل نقطة دخول لو زاد الاستخدام 1000 مرة.",
-    "Estimates the cost of each entry point at 1000 times the use."
-   ],
-   "doing": [
-    "أقدّر السلوك مع كثرة المستخدمين",
-    "Estimating behaviour under many users"
-   ]
-  },
   "claims": {
    "title": [
     "يجمع الملاحظات",
@@ -351,48 +281,6 @@
     "Double-checking every problem"
    ]
   },
-  "sustainability": {
-   "title": [
-    "سهولة التوسع",
-    "How easily it grows"
-   ],
-   "does": [
-    "ينظر في الاختبارات والتشابك وتاريخ التغييرات.",
-    "Looks at the tests, the coupling and the history of changes."
-   ],
-   "doing": [
-    "أقيس صحة البنية",
-    "Measuring structural health"
-   ]
-  },
-  "transform": {
-   "title": [
-    "يجهّز القراءة",
-    "Prepare the reading"
-   ],
-   "does": [
-    "يجمع الحقائق في نموذج واحد تقرؤه المراحل التالية.",
-    "Joins the facts into one model the next stages read."
-   ],
-   "doing": [
-    "أخطط للتحسينات",
-    "Planning the improvements"
-   ]
-  },
-  "semantic": {
-   "title": [
-    "يقرأ معنى الكود",
-    "Read what the code means"
-   ],
-   "does": [
-    "يقرأ مساعدك ما يفعله كل جزء، بكلام بسيط.",
-    "Your assistant reads what each part does, in plain words."
-   ],
-   "doing": [
-    "مساعدك الذكي يقرأ الحقائق ويفسّرها",
-    "Your AI assistant reads the facts and interprets them"
-   ]
-  },
   "plan": {
    "title": [
     "يكتب مسودة الخطة",
@@ -405,34 +293,6 @@
    "doing": [
     "أكتب مهام الإصلاح",
     "Writing the fix tasks"
-   ]
-  },
-  "target": {
-   "title": [
-    "يرسم الهدف",
-    "Draw the target"
-   ],
-   "does": [
-    "يرسم ما يجب أن يصيره المشروع، من القواعد.",
-    "Draws what the project should become, from the rules."
-   ],
-   "doing": [
-    "أرسم البنية المثالية",
-    "Drawing the ideal structure"
-   ]
-  },
-  "proposals": {
-   "title": [
-    "يقترح التغييرات",
-    "Propose the changes"
-   ],
-   "does": [
-    "لكل فجوة: التغيير الذي يغلقها.",
-    "For each gap: the change that closes it."
-   ],
-   "doing": [
-    "أجهّز اقتراحات الأدوات لمساعدك",
-    "Preparing the tools' proposals for your assistant"
    ]
   },
   "triage": {
@@ -449,20 +309,6 @@
     "Your AI assistant reviews every card against its evidence"
    ]
   },
-  "visual": {
-   "title": [
-    "يراجع الشاشات",
-    "Review the screens"
-   ],
-   "does": [
-    "يراجع مساعدك كل صفحة: الزحام والوضوح وسهولة الاستخدام.",
-    "Your assistant reviews each page: crowding, clarity and accessibility."
-   ],
-   "doing": [
-    "مساعدك الذكي يشوف صور شاشات برنامجك ويحكم على تصميمها",
-    "Your AI assistant looks at your app's screens and judges their design"
-   ]
-  },
   "cards": {
    "title": [
     "يكتب المشاكل",
@@ -475,48 +321,6 @@
    "doing": [
     "أبقي البطاقات المؤكدة في الخطة",
     "Keeping the confirmed cards in the plan"
-   ]
-  },
-  "ideal": {
-   "title": [
-    "يخطّط الهدف المثالي",
-    "Plan the ideal target"
-   ],
-   "does": [
-    "يخطّط مساعدك الهدف المثالي فوق هدف القواعد، وكل عنصر بدليله.",
-    "Your assistant plans the ideal on top of the rules' target, each element with its evidence."
-   ],
-   "doing": [
-    "مساعدك الذكي يحكم على البنية المقترحة",
-    "Your AI assistant judges the proposed structure"
-   ]
-  },
-  "pipeline_gaps": {
-   "title": [
-    "يجد فجوات خطوط المعالجة",
-    "Find the pipeline gaps"
-   ],
-   "does": [
-    "يقارن خطوط المعالجة بصورتها المثالية.",
-    "Compares the pipelines with their ideal form."
-   ],
-   "doing": [
-    "مساعدك الذكي يخطّط سد فجوات المسارات",
-    "Your AI assistant plans how to close the pipeline gaps"
-   ]
-  },
-  "reconcile": {
-   "title": [
-    "يوفّق بين القواعد ومساعدك",
-    "Reconcile the rules and your assistant"
-   ],
-   "does": [
-    "حين يختلفان يسجّل الرأيين، ويسألك إن لزم.",
-    "When they disagree it records both views, and asks you if needed."
-   ],
-   "doing": [
-    "أثبّت البنية المستهدفة النهائية ومن قرّر كل جزء",
-    "Settling the final target and who decided each part"
    ]
   },
   "order": {
@@ -574,20 +378,6 @@
     "أكتب كل وثيقة بالعربي والإنجليزي",
     "Writing every document in Arabic and in English"
    ]
-  },
-  "experience": {
-   "title": [
-    "يجرّب تجربة المستخدمين",
-    "Try the users' experience"
-   ],
-   "does": [
-    "مستخدمون محاكَون يستعملون التطبيق وهو يعمل، كل نوع من المستخدمين بحسابه، ويُحكم على ما تعثّروا فيه.",
-    "Simulated users use the running app, each kind of user signed in as itself, and what they stumbled on is judged."
-   ],
-   "doing": [
-    "أجرّب تجربة المستخدمين",
-    "Trying the users' experience"
-   ]
   }
  },
  "paths": {
@@ -639,26 +429,6 @@
    "looks_at": [
     "البرنامج تحت الضغط، وكلفة كل نقطة دخول لو زاد الاستخدام 1000 مرة، والمسارات الساخنة، وجاهزية التشغيل الفعلي",
     "The app under load, the cost of each entry at 1000 times the use, the hot paths, production readiness"
-   ]
-  },
-  "layers": {
-   "name": [
-    "تجربة حدود الطبقات",
-    "Try the layers"
-   ],
-   "looks_at": [
-    "يجرّب على نسخة معزولة: البناء النهائي (أسرار في الملفات المنشورة)، قواعد البيانات كمستخدمين مختلفين، ونقاط الطلب بحسابين تجريبيين. يضيف حتى 15 دقيقة.",
-    "On an isolated copy: the production build (secrets in what ships), the data rules as different users, and the endpoints with two test accounts. Adds up to 15 minutes."
-   ]
-  },
-  "experience": {
-   "name": [
-    "تجربة المستخدمين",
-    "Try the experience"
-   ],
-   "looks_at": [
-    "مستخدمون محاكَون يجرّبون التطبيق وهو يعمل. وحده: عدة أشخاص ببياناتهم وتسليماتهم ودعم فني، حتى ساعة. مع الفحص الشامل: شخص واحد يؤدي المهمة الرئيسية، حتى 5 دقائق و12 طلبًا خفيفًا من المساعد وحكم واحد. مطفأ إلا إذا اخترته.",
-    "Simulated users try the running app. Alone: several people with their data, hand-offs and a support desk, up to an hour. Beside the complete check: one person doing the main task, up to 5 minutes, 12 light assistant calls and one ruling. Off unless chosen."
    ]
   }
  },

@@ -189,7 +189,7 @@ def target_state(out, ar):
     page.heading(L['unexamined'])
     page.items([_target_unexamined(target, ar)])
     page.heading(L['appendices'])
-    page.items(['[TARGET-ARCHITECTURE.md](TARGET-ARCHITECTURE.md)', '[adr/](adr/)', '[architecture/](architecture/)'])
+    page.items(['[architecture/](architecture/)'])
     return page.text()
 
 
@@ -210,8 +210,7 @@ def _target_summary(page, L, numbers, absent, ar):
 def _target_evidence(page, out, components, infrastructure, ar):
     """The target's largest components, its C4 view and its infrastructure, present or not."""
     page.heading(_labels(ar)['evidence'])
-    page.para(('المكوّنات الأكبر (الأسماء والمسؤوليات كاملة في TARGET-ARCHITECTURE.md):' if ar else
-               'The largest components (names and responsibilities in TARGET-ARCHITECTURE.md):'))
+    page.para(('المكوّنات الأكبر:' if ar else 'The largest components:'))
     page.items([f"{c['name']} ({c['layer']}): {c.get('files', 0)} files, {c.get('moves_in', 0)} moving in"
                 for c in sorted(components, key=lambda c: -c.get('files', 0))[:8]])
     _diagram(page, out, 'target', ar)
@@ -302,7 +301,7 @@ def gap_and_strategy(out, ar):
     page.items([('الكلفة بالزمن غير مقيسة: الحجم S/M/L قاعدة على الملفات والتابعين.' if ar else
                  'Duration is not measured: S/M/L is a rule on files and dependents.')])
     page.heading(L['appendices'])
-    page.items(['[TARGET-ARCHITECTURE.md](TARGET-ARCHITECTURE.md)', '[EXECUTION-PLAN.md](EXECUTION-PLAN.md)'])
+    page.items(['[EXECUTION-PLAN.md](EXECUTION-PLAN.md)'])
     return page.text()
 
 

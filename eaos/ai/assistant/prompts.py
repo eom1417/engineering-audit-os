@@ -25,7 +25,7 @@ ASK = ('When you need the person (their agreement to run the app, a choice only 
        'and end your turn.')
 # Where the person gave an answer, in both languages: the words that resume the assistant and the run's own event.
 WHERE = {'studio': {'en': 'in the Studio', 'ar': 'في الاستوديو'}, 'terminal': {'en': 'in the terminal', 'ar': 'في الطرفية'}}
-ACTS = ('fix_abandon',)                    # what an answer may make the Studio do itself (eaos/interfaces/studio_actions/runs.py)
+ACTS = ('fix_abandon',)                    # what an answer may make the Studio do itself (eaos/journeys/runs/runs.py)
 
 # How a card is changed, in a Fix and in a lane beside it.
 EDIT = ('fix_edit, keeping the code laws of the EAOS instructions (least code, one home for every rule, nothing dead), to the '
@@ -55,7 +55,7 @@ VERBS = {
              'Change nothing.'),
 }
 
-# A Fix run started beside the first one in speed mode (eaos/interfaces/studio_actions/lane_assistants.py): its lane of
+# A Fix run started beside the first one in speed mode (eaos/journeys/runs/lane_assistants.py): its lane of
 # the batch only.
 LANE = ('Use the eaos tools to fix these cards of the batch another assistant of the EAOS Studio opened: you are one of several '
         'assistants fixing it at the same time, each its own cards and files. For each card: finding and fix_read, then '

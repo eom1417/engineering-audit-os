@@ -80,29 +80,7 @@ class InfrastructureTests(Workspace):
 
 
 class ProjectTests(Workspace):
-    def test_the_projection_keeps_its_contract_and_places_every_feature(self):
-        from eaos.core.contracts.artifact_rules import contracts, validate
-        from eaos.report.target_architecture.picture import build
-        out, target = Path(self.tmp) / 'out', Path(self.tmp) / 'project'
-        (out / 'facts').mkdir(parents=True)
-        target.mkdir()
-        (target / 'package.json').write_text(json.dumps({'dependencies': {'react': '1', '@tanstack/react-start': '1', '@supabase/supabase-js': '1'}}))
-        nodes = [('src/components/accounts/Card.tsx', ['src/services/accounts.ts']), ('src/services/accounts.ts', ['src/lib/money.ts']),
-                 ('src/lib/money.ts', [])]
-        (out / 'facts/graph.json').write_text(json.dumps({'facts': [
-            {'id': f'F{i}', 'kind': 'graph_node', 'location': {'path': p}, 'value': {'depends_on': d, 'fan_in': 0, 'fan_out': len(d)}}
-            for i, (p, d) in enumerate(nodes)]}))
-        (out / 'features.json').write_text(json.dumps({'features': [{'name': 'Contas', 'files': ['src/components/accounts/Card.tsx']}]}))
-        result = build(out, target=target)
-        self.assertEqual(result['reference'], 'react-tanstack-start-supabase')
-        self.assertEqual(validate(result, contracts()['target-fragment']), [])
-        self.assertEqual({c['name'] for c in result['target_components']}, {'feature:contas', 'data-access', 'lib'})
-        self.assertEqual(next(c for c in result['target_components'] if c['name'] == 'feature:contas')['feature'], 'Contas')
-        components = {c['origin']: c for c in result['current_components']}
-        # One file to move into its feature is an edit (modify), not a rebuild.
-        self.assertEqual(components['src/components/accounts']['relation'], 'modify')
-        self.assertTrue(all(row.get('target_component') for row in result['gap_matrix']))
-        # Without a recognisable type there is no projection.
+    def test_without_a_recognisable_type_there_is_no_projection(self):
         empty = Path(self.tmp) / 'empty'
         (empty / 'facts').mkdir(parents=True)
         self.assertIsNone(project(empty, empty))

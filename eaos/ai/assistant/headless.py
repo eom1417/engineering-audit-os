@@ -10,8 +10,8 @@ EAOS tools plus Read, Grep and Glob allowed, and Bash, Edit, Write and the perso
 Codex: `codex exec --json`, the EAOS server by `-c mcp_servers.eaos=...`, a read-only sandbox and no approvals.
 
 `ask(adapter, prompt, schema, folder)` is the other way to use an assistant: one question, no tool, an answer the
-assistant's own CLI holds to a JSON Schema (Claude Code `--json-schema`, Codex `--output-schema`). The planned ideal
-(eaos/ai/ideal/planner.py) asks this way, and so does any AI node after it.
+assistant's own CLI holds to a JSON Schema (Claude Code `--json-schema`, Codex `--output-schema`). Every AI node asks
+this way.
 """
 import json
 import os

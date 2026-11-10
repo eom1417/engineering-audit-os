@@ -1,12 +1,12 @@
 """The dossier's claims (eaos/analysis/understanding/dossier.py assembles the dossier around them): gathered from the
-facts, the load model and the legacy records, merged, withheld under a detector's measured bar, numbered, each with
+facts and the legacy records, merged, withheld under a detector's measured bar, numbered, each with
 its origin (product, test or archived code) and a disposition when it asserts a problem; and the claims execution
 evidence makes.
 """
 from pathlib import Path
 
 from . import ledger
-from .from_records import from_legacy, from_load_model
+from .from_records import from_legacy
 
 # Every live claim is an item of the debt register, the one record that shows it in full.
 REGISTER = 'debt-register.json'
@@ -108,11 +108,9 @@ def _covered(value):
     return next((found[name] for name in ('occurrences', 'other', 'members', 'definitions') if found[name]), None)
 
 
-def _gathered_claims(sets, records, load_record, target):
-    """Every claim before merging: from the facts, the load model and the legacy records."""
+def _gathered_claims(sets, records, target):
+    """Every claim before merging: from the facts and the legacy records."""
     rows = ledger.from_facts(sets, target=target)
-    if load_record:
-        rows += from_load_model({'load_model': load_record}, len(rows))
     if records['findings'] or records['architecture']:
         rows += from_legacy(records['findings'], records['architecture'] or {}, records['flows'],
                                    records['coverage'], (records['state'] or {}).get('revision'))
@@ -135,8 +133,8 @@ def assess_mechanically(rows, sets, target):
         if built: row['assessment'], row['checks'] = built['assessment'], built['checks']
 
 
-def build_claims(sets, records, load_record=None, target=None):
-    rows = _gathered_claims(sets, records, load_record, target)
+def build_claims(sets, records, target=None):
+    rows = _gathered_claims(sets, records, target)
     fact_index = fact_index_of(sets)
     # A claim from a detector under its measured precision bar is set aside before numbering: it is never
     # shown, planned or counted, and the precision set (tools/precision.py) still reads it.

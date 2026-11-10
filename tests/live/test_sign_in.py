@@ -159,7 +159,7 @@ class SignInTests(unittest.TestCase):
 
     @unittest.skipIf(missing('playwright'), 'the pinned Playwright is not installed')
     def test_the_person_signs_in_by_hand_with_the_code_the_app_prints_and_mails_and_the_browser_saves_and_ends(self):
-        from eaos.interfaces.studio_server.sign_in import Browser
+        from eaos.journeys.sign_in_window import Browser
         from eaos.live.app.setup import free_port
         from eaos.core.toolchain import home
         port, log, smtp, mail = free_port(), self.root / 'app.log', free_port(), free_port()
@@ -240,44 +240,6 @@ class SignInTests(unittest.TestCase):
                 mock.patch('eaos.live.screens.audit.page_audit', return_value={'status': 'observed', 'rows': [], 'tools': {}}):
             pages._audit_pages(context, (None, 'https://app.example.com', []), (None, session), ({'/': ['/']}, None), True)
         self.assertEqual(measured, [None, None], 'Lighthouse loads the live site as any visitor, never signed in')
-
-    def test_the_sign_in_page_alone_answers_behind_its_guard_and_ends_once_the_person_answers(self):
-        from eaos.interfaces import govern
-        from eaos.journeys import guided
-        from eaos.interfaces.studio_server import server
-        from eaos.ai.assistant import headless as adapters
-        project, apps = self.root / 'shop', []
-        project.mkdir()
-        (project / 'package.json').write_text('{}')
-        with mock.patch.dict(os.environ, {'EAOS_HOME': str(self.root / 'home'), 'EAOS_REMOTE_ORIGIN': 'https://shop--{port}.dev.example.com'}), \
-                mock.patch.object(adapters, 'installed', return_value={}), \
-                mock.patch.object(server, 'create_app', side_effect=lambda *a, made=server.create_app, **k: apps.append(made(*a, **k)) or apps[-1]):
-            guided.save({'project': str(project), 'workspace': str(guided.workspace(project))})
-            workspace = project_state.load(project)['workspace']
-            sign_in.ask(workspace, 'http://127.0.0.1:1', Path(workspace) / 'runtime/session.json', 'needed')
-            self.assertEqual([row['kind'] for row in govern.waiting(str(project))], ['sign_in'])
-            said = []
-            alone = threading.Thread(target=server.serve_sign_in, args=(str(project), said.append))
-            alone.start()
-            for _ in range(300):
-                if said or not alone.is_alive(): break
-                time.sleep(0.05)
-            address = said[0]
-            port = int(re.search(r'--(\d+)\.', address)[1])
-            self.assertEqual(address, f'https://shop--{port}.dev.example.com/#/sign-in', 'its routed address, the token read behind the Remote sign-in')
-            host = {'Host': f'shop--{port}.dev.example.com'}
-            with self.assertRaises(urllib.error.HTTPError) as refused:
-                urllib.request.urlopen(urllib.request.Request(f'http://127.0.0.1:{port}/api/sign-in', headers=host), timeout=5)
-            self.assertEqual(refused.exception.code, 401)
-            keys = apps[0].state.ctx.keys
-            request = urllib.request.Request(f'http://127.0.0.1:{port}/api/sign-in', headers={**host, 'X-EAOS-Token': keys.token})
-            with urllib.request.urlopen(request, timeout=5) as response: self.assertEqual(json.loads(response.read())['asked']['why'], 'needed')
-            session = urllib.request.Request(f'http://127.0.0.1:{port}/api/session', headers={**host, 'X-EAOS-Token': keys.token})
-            with urllib.request.urlopen(session, timeout=5) as response: self.assertFalse(json.loads(response.read()).get('actions'), 'no other action')
-            govern.answer(str(project), govern.SIGN_IN, sign_in.SIGNED_OUT)
-            alone.join(15)
-            self.assertFalse(alone.is_alive(), 'the page alone ends once the check no longer waits')
-            self.assertEqual(json.loads((Path(workspace) / sign_in.ASKED).read_text())['state'], sign_in.SIGNED_OUT)
 
     def test_the_session_is_its_owners_and_eaos_clean_forgets_it(self):
         from eaos.journeys import guided

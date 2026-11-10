@@ -1,15 +1,13 @@
-"""The governance tools of `eaos mcp` (docs/MCP.md "Governance"): the Studio's queue, inbox, verbs, history and branch
+"""The governance tools of `eaos mcp` (docs/MCP.md "Governance"): the run queue, inbox, verbs, history and branch
 control for an assistant, five tools each grouped by `op`, thin callers of eaos/interfaces/govern.py like the terminal's
-commands; with them, the Studio's remaining actions (mcp_server/studio_parity.py). Each tool's function is defined once, here, with the
-parameters the assistant passes (its schema); `register` puts it on the server as every tool is answered, and the tests call
-it directly for its dict.
+commands. Each tool's function is defined once, here, with the parameters the assistant passes (its schema); `register`
+puts it on the server as every tool is answered, and the tests call it directly for its dict.
 
 What only the person decides needs their word and the preview: `waiting(op=answer)` takes `person_said`, their reply,
 given ANSWER_SECONDS or more after the question was listed; `branch_change` and `act(auto_accept=true)` take
 `person_agreed` and the confirm token of the preview the person saw. Inside a Studio run all of them are refused.
 """
 from .. import govern
-from . import studio_parity
 from .server import refuse_in_studio_run
 
 RUN_FIELDS = ('id', 'label', 'state', 'action', 'verb', 'cards', 'created', 'started', 'ended', 'position', 'question', 'outcome')
@@ -138,9 +136,8 @@ def register(server, reading, working, answer):
 
 
 def every(server, reading, working, answer):
-    """What `eaos mcp` adds to the server: the governance tools and the Studio's remaining actions (studio_parity)."""
+    """What `eaos mcp` adds to the server: the governance tools."""
     register(server, reading, working, answer)
-    studio_parity.register(server, reading, working, answer)
 
 
 def main():

@@ -6,7 +6,7 @@
                               writes <out>/layers.json (what people and the Studio read) and the `boundaries` fact set
                               (what the claims make cards of: eaos/analysis/claims/from_layers.py)
     amend(out, live)          the live part's findings (the data rules tried, the API tried, the built output of the
-                              isolated copy: eaos/pipeline/runners/layers_live.py) joined to the same two
+                              isolated copy) joined to the same two
 
 The record and its fact set: layers/record.py. Nothing is written into the project; a placement EAOS is unsure of
 becomes a question, never a finding.

@@ -1,4 +1,4 @@
-"""Reading where a project stands deletes nothing of the person's: status, menu and plan, through MCP, the Studio and
+"""Reading where a project stands deletes nothing of the person's: status, menu and plan, through MCP, the run engine and
 the terminal, leave a merged batch's branch and an open batch's copy where they are, and say what they found. The
 cleaning stays with what writes (docs/MCP.md, Merging)."""
 import contextlib
@@ -7,15 +7,12 @@ import json
 import shutil
 import subprocess
 from pathlib import Path
-from unittest import mock
 
 from eaos.core.project import state as project_state
 from eaos.interfaces import cli
 from eaos.interfaces.mcp_server.server import functions
-from eaos.interfaces import studio_actions as actions
-from eaos.interfaces.studio_server import server as studio_server
+from eaos.interfaces import runs as actions
 from eaos.journeys import agent_tools, guided
-from eaos.journeys.build_from_plan import steps
 from tests.interfaces.test_read_only_tools import Home, _called, _files
 
 BATCH = 'eaos/main/wave-1'
@@ -99,21 +96,10 @@ class AManuallyMergedBatch(Settled):
         self.assertTrue(self.has_branch())
         self.assertEqual(self.state()['waves'][0]['status'], 'accepted')
 
-    def test_a_projects_status_while_it_is_built_leaves_it_too(self):
-        self.merged_by_hand()
-        state = self.state()
-        state['mode'] = 'build'
-        guided.save(state)
-        with mock.patch.object(steps.journeys, 'which', return_value='build'):
-            self.assertEqual(steps.status_of(str(self.project))['mode'], 'build from a plan')
-        self.assertTrue(self.has_branch())
-        self.assertEqual(self.state()['waves'][0]['status'], 'accepted')
-
     def test_each_writing_step_still_removes_it_after_a_read_recorded_it(self):
         where = str(self.project)
         for number, (name, step) in enumerate((('fix_start', lambda: agent_tools.fix_start(where)), ('accept', lambda: agent_tools.accept(where)),
-                                               ('undo', lambda: agent_tools.undo(where)), ('open_report', lambda: agent_tools.open_report(where, show=False)),
-                                               ('opening the Studio', lambda: studio_server.prepare(where)))):
+                                               ('undo', lambda: agent_tools.undo(where)), ('open_report', lambda: agent_tools.open_report(where, show=False)))):
             with self.subTest(step=name):
                 self.merged_by_hand(f'fixed{number}.py')
                 self.read('status')
@@ -231,8 +217,8 @@ class AStaleOpenBatch(Settled):
         self.assertEqual((state['waves'][-1]['status'], copy.exists()), ('superseded', False))
 
 
-class ThroughTheStudio(Settled):
-    """The Studio answers a reading action with the MCP tool itself."""
+class ThroughTheRunEngine(Settled):
+    """The run engine answers a reading action with the MCP tool itself."""
 
     def setUp(self):
         super().setUp()

@@ -1,18 +1,57 @@
-"""The report's maps: the current parts and their imports, files, functions and pages; the target; the gap closed; every
-card; the system map (pages, APIs, server handlers, parts, data), the work log, the version stamp and the error
-banner."""
+"""The report's maps: the current parts and their imports, files, functions and flows, and the system map (pages, APIs,
+server handlers, parts, data)."""
 import json
-import re
-import shutil
-from unittest import mock
 import tempfile
 import unittest
 from pathlib import Path
 
-from eaos.analysis.maps import architecture as arch_map, c4, system_drawing, system as system_map
-from eaos.report.blueprint import design as blueprint, view as blueprint_view
-from eaos.report import human_report
-from report.test_human_report import report, section
+from eaos.analysis.maps import architecture as arch_map, system as system_map
+
+def _task(number, pattern, claim, paths, ready=True):
+    return {'id': f'TASK-{number}', 'claim_id': claim, 'pattern': pattern, 'title': f'{pattern} in {paths[0]}',
+            'kind': 'remediate' if ready else 'investigate', 'paths': paths, 'effort': 'S', 'priority': 0.1 * number,
+            'decision': {'readiness': 'ready' if ready else 'needs_review',
+                         'allowed_outcomes': [] if ready else ['repair', 'retain', 'blocked_missing_requirement']},
+            'options': [{'option': 'Extract the shared part', 'cost': 'medium', 'verdict': 'chosen by default'}]}
+
+
+def report(root):
+    """A small report: six cards in four areas, one failed stage, a two-part target."""
+    out = Path(root)
+    tasks = [_task(1, 'upgrade_dependency', 'CLM-1', ['package-lock.json']),
+             _task(2, 'layer_boundary', 'CLM-2', ['src/api/users.ts'], ready=False),
+             _task(3, 'remove_dead', 'CLM-3', ['src/old.ts']),
+             _task(4, 'canonicalize', 'CLM-4', ['src/a.ts', 'src/b.ts']),
+             _task(5, 'import_cycle', 'CLM-5', ['src/a.ts', 'src/api/users.ts']),
+             _task(6, 'hotspot', 'CLM-6', ['src/api/users.ts'], ready=False)]
+    plan = {'tasks': tasks, 'milestones': [
+        {'id': 'M01', 'name': 'stabilize', 'goal': 'Nothing broken.', 'goal_ar': 'لا شيء مكسور.', 'exit': 'All pass.',
+         'exit_ar': 'كل شيء يمر.', 'tasks': ['TASK-1', 'TASK-2', 'TASK-3']},
+        {'id': 'M02', 'name': 'boundaries', 'goal': 'No cycle.', 'goal_ar': 'لا دورة.', 'exit': 'No cycle.',
+         'exit_ar': 'لا دورة.', 'tasks': ['TASK-4', 'TASK-5', 'TASK-6']}]}
+    confidence = {'CLM-2': 'LIKELY', 'CLM-4': 'LIKELY'}
+    claims = [{'id': f'CLM-{n}', 'statement': f'claim {n}', 'confidence': confidence.get(f'CLM-{n}', 'CONFIRMED'),
+               'assessment': {'before': f'before {n}', 'after': f'after {n}'}} for n in range(1, 7)]
+    dossier = {'claims': claims, 'coverage': {'source_files': 50, 'files_parsed': 50, 'executed_verification': False,
+                                              'runtime_confirmation': 0, 'semantic_review': False},
+               'provenance': {'generated_at': '2026-09-27T00:00:00'}}
+    register = {'items': [{'claim_id': 'CLM-1', 'severity': 'medium', 'category': 'supply_chain'},
+                          {'claim_id': 'CLM-2', 'severity': 'critical', 'category': 'security'}]}     # an open table (M6)
+    manifest = {'target': '/x/shop', 'stages': {'facts': {'status': 'ok'}, 'load': {'status': 'failed'},
+                                                 'measure': {'status': 'ok'}, 'verify': {'status': 'unavailable'}}}
+    target = {'root': '', 'forbidden_edges': 2,
+              'current_components': [{'id': 'T-src', 'name': 'src', 'relation': 'modify', 'files': 3, 'target_component': 'lib',
+                                      'paths': ['src/a.ts', 'src/b.ts', 'src/old.ts']},
+                                     {'id': 'T-api', 'name': 'src/api', 'relation': 'rebuild', 'files': 1, 'target_component': 'routes',
+                                      'paths': ['src/api/users.ts']}],
+              'target_components': [{'name': 'routes', 'layer': 'routes', 'files': 1}, {'name': 'lib', 'layer': 'lib', 'files': 3}],
+              'gap_matrix': [{'component': 'T-src', 'current_origin': 'src', 'current': {'relation': 'modify'}, 'gap': 'partial',
+                              'target_component': 'lib', 'files_to_move': 1, 'forbidden_imports': 0}]}
+    for name, record in (('plan.json', plan), ('dossier.json', dossier), ('debt-register.json', register),
+                         ('run-manifest.json', manifest), ('target-architecture.json', target)):
+        (out / name).write_text(json.dumps(record, ensure_ascii=False), encoding='utf-8')
+    return out
+
 
 def node(path, depends, group=None):
     return {'kind': 'graph_node', 'location': {'path': path},
@@ -39,21 +78,6 @@ def facts(out):
                                  'to_path': None, 'to_symbol': None, 'depth': 1}]}}
     for name, rows in (('graph', graph), ('structure', structure), ('flows', [flow])):
         (out / 'facts' / f'{name}.json').write_text(json.dumps({'facts': rows}), encoding='utf-8')
-
-
-def ledger():
-    cards = [{'key': 'k1', 'id': 'TASK-1', 'title': 't1', 'pattern': 'upgrade_dependency', 'milestone': 'M01', 'paths': ['package-lock.json'],
-              'state': 'done', 'new': False, 'batch': 1, 'at': '2026-09-28T10:00:00+00:00', 'why': '', 'commit': 'abc1234'},
-             {'key': 'k3', 'id': 'TASK-3', 'title': 't3', 'pattern': 'remove_dead', 'milestone': 'M01', 'paths': ['src/old.ts'],
-              'state': 'on_branch', 'new': False, 'batch': 2, 'at': None, 'why': '', 'commit': None},
-             {'key': 'k6', 'id': 'TASK-6', 'title': 't6', 'pattern': 'hotspot', 'milestone': 'M02', 'paths': ['src/api/users.ts'],
-              'state': 'skipped', 'new': False, 'batch': None, 'at': None, 'why': 'a public name changes', 'commit': None},
-             {'key': 'gone0001', 'id': None, 'title': 'Unused helper removed from src/gone.ts', 'pattern': 'remove_dead', 'milestone': 'M01',
-              'paths': ['src/gone.ts'], 'state': 'resolved', 'new': False, 'batch': None, 'at': '2026-09-27T09:00:00+00:00', 'why': '', 'commit': None}]
-    return {'schema_version': 1, 'updated': '2026-09-29T10:00:00+00:00', 'commit': 'abc',
-            'totals': {'total': 7, 'closed': 2, 'done': 1, 'resolved': 1, 'on_branch': 1, 'in_batch': 0, 'open': 4, 'skipped': 1, 'new': 0, 'percent': 28.6},
-            'cards': cards, 'history': [{'at': '2026-09-20T10:00:00+00:00', 'event': 'baseline', 'closed': 0, 'total': 6, 'percent': 0.0, 'batch': None},
-                                        {'at': '2026-09-29T10:00:00+00:00', 'event': 'merged', 'closed': 2, 'total': 7, 'percent': 28.6, 'batch': 1}]}
 
 
 def overlaps(nodes, width, height):
@@ -107,18 +131,6 @@ def system(out):
     return out
 
 
-HANDOVER = {'branch': 'main', 'last_assistant': 'Codex', 'last_activity': '2026-09-29T14:02:11+00:00', 'running_job': None,
-            'open_work': {'kind': 'fix batch', 'number': 3, 'kept': ['TASK-1'], 'not_kept': {'TASK-4': 'the tests failed'}, 'left': ['TASK-6'],
-                          'resume': 'batch 3 is open'},
-            'waiting_for_the_person': None, 'progress': {'total': 7, 'closed': 2}, 'person_already_answered': [],
-            'last_steps': [{'at': '2026-09-29T13:40:00+00:00', 'by': 'Claude Code', 'tool': 'audit', 'outcome': 'done'},
-                           {'at': '2026-09-29T14:02:11+00:00', 'by': 'Codex', 'tool': 'fix_edit', 'card': 'TASK-4', 'outcome': 'not kept: the tests failed'}],
-            'notes': [{'at': '2026-09-29T14:02:30+00:00', 'by': 'Codex', 'card': 'TASK-4', 'note': 'The export test needs fixture data.'}],
-            'in_progress': {'card': 'TASK-6', 'since': '2026-09-29T14:03:00+00:00', 'by': 'Codex', 'files_read': ['src/api/users.ts'], 'last_try': 'the check failed: 1 test'},
-            'how_to_continue': 'Continue exactly where this stopped.'}
-EAOS = {'version': '0.0.1', 'commit': 'c992b28abcdef99', 'digest': 'sha256-9f8e7d6c5b4a', 'built': '2026-09-29T14:05:00+00:00'}
-
-
 class MapTests(unittest.TestCase):
     def setUp(self):
         self.tmp = tempfile.TemporaryDirectory()
@@ -144,47 +156,6 @@ class MapTests(unittest.TestCase):
         kinds = [n['kind'] for n in flow['nodes']]
         self.assertEqual(kinds, ['entry', 'handler', 'fn', 'stop'])
         self.assertEqual(len({(n['x'], n['y']) for n in flow['nodes']}), 4)
-
-    def test_the_page_embeds_the_maps_and_every_card_and_only_closed_cards_close_a_milestone(self):
-        page = human_report.write(self.out, 'ar', progress={'waves': [], 'ledger': ledger()}).read_text(encoding='utf-8')
-        for part in ('cards', 'arch-map', 'arch-drill', 'flows', 'target-map', 'target-mapping', 'progress-history'):
-            self.assertIn(f'data-part="{part}"', page)
-        drill = json.loads(re.search(r'<script type="application/json" id="eaos-drill">(.*?)</script>', page, re.S).group(1))
-        self.assertEqual(len(drill['comps']), 2)
-        json.loads(re.search(r'<script type="application/json" id="eaos-flows">(.*?)</script>', page, re.S).group(1))
-        self.assertRegex(page, r'<details class="card allcards" id="allcards" data-part="cards">')
-        cards = section(page, 'plan')
-        self.assertNotIn('Unused helper removed from src/gone.ts', cards, 'a ledger row without a plan card is not a card')
-        self.assertIn('a public name changes', cards)
-        self.assertIn('>29%<', section(page, 'summary'), 'the ledger percent, in whole percents above ten')
-        self.assertIn('class="edge cyc', section(page, 'structure'))
-        page = human_report.write(self.out, 'en', progress={'waves': [], 'ledger': ledger()}).read_text(encoding='utf-8')
-        plan = section(page, 'plan')
-        # TASK-1 done of three cards; TASK-3 is only on a branch; a ledger-only row is no card
-        self.assertIn('aria-valuenow="33"', plan)
-
-    def test_the_page_works_without_a_ledger_and_with_nothing(self):
-        page = human_report.write(self.out, 'en').read_text(encoding='utf-8')
-        self.assertIn('data-part="cards"', page)
-        text = human_report.render(human_report.empty(), 'shop', 'en')
-        self.assertNotIn('<!-- ', text)
-        shutil.rmtree(self.out / 'facts')
-        page = human_report.write(self.out, 'en').read_text(encoding='utf-8')
-        self.assertIn('Not available in this report.', section(page, 'structure'))
-
-
-class BlueprintMapTests(unittest.TestCase):
-    def test_the_blueprint_draws_its_layers_and_lists_every_card_with_its_state(self):
-        from journeys.test_blueprint import spec
-        stack = blueprint.choose_stack(spec())
-        built = blueprint.design(spec(), stack)
-        ids = [c['id'] for c in built['plan']['tasks']]
-        text = blueprint_view.page(spec(), stack, built, [{'number': 1, 'milestone': 'M01', 'branch': 'eaos/build-1', 'kept': ids[:1], 'skipped': {ids[1]: 'refused'}}])
-        self.assertIn('data-part="target-map"', text)
-        self.assertEqual(text.count('class="tcard"'), len(ids))
-        self.assertEqual(text.count('data-state="done"'), 2, 'the built card, and its chip')
-        self.assertIn('refused', text)
-
 
 class SystemMapTests(unittest.TestCase):
     def setUp(self):
@@ -216,100 +187,6 @@ class SystemMapTests(unittest.TestCase):
         self.assertEqual(kinds[('P:/users UsersPage', 'C:web/shared/api.ts')], 'uses')
         self.assertEqual(kinds[('C:web/shared/api.ts', 'A:GET /api/me')], 'call')
         self.assertEqual(kinds[('M:T-data', 'T:users')], 'data')
-        # The layout keeps every column apart.
-        lay = system_drawing.layout(self.sm)
-        by_column = {}
-        for column, y in lay['place'].values(): by_column.setdefault(column, []).append(y)
-        for ys in by_column.values():
-            ys.sort()
-            self.assertTrue(all(b - a >= system_drawing.BOX_H for a, b in zip(ys, ys[1:])), ys)
-            self.assertLessEqual(ys[-1] + system_drawing.BOX_H, lay['height'])
-
-    def test_the_page_draws_the_system_map_or_says_why_there_is_none(self):
-        page = human_report.write(self.out, 'ar').read_text(encoding='utf-8')
-        part = section(page, 'system')
-        self.assertIn('data-part="system-map"', part)
-        self.assertEqual(part.count('class="chart smap'), 2, 'one drawing per reading direction')
-        self.assertIn('data-node="A:GET /api/nowhere"', part)
-        data = json.loads(re.search(r'<script type="application/json" id="eaos-system">(.*?)</script>', page, re.S).group(1))
-        self.assertIn('T:users', data['rel']['P:/users UsersPage'])
-        self.assertIn('unknown: no server route or file matches it', part)
-        self.assertEqual(json.loads((self.out / 'human' / 'errors.json').read_text(encoding='utf-8')), [])
-        # Missing or broken records leave the map out, not the page.
-        with tempfile.TemporaryDirectory() as empty:
-            self.assertIsNone(system_map.build(empty))
-        (self.out / 'facts' / 'entrypoints.json').write_text('{"facts": [7, {"kind": "data_access"}]', encoding='utf-8')
-        sm = system_map.build(self.out)
-        self.assertEqual({a['key'] for a in sm['apis']}, {'GET /api/users', 'POST /api/users', 'GET /api/me'}, 'the features still name them')
-        page = human_report.write(self.out, 'en').read_text(encoding='utf-8')
-        # A project with no page and no API (a command-line tool) says so instead of leaving a gap.
-        (Path(self.tmp.name) / 'library').mkdir()
-        bare = report(Path(self.tmp.name) / 'library')
-        for name in ('features.json', 'facts/entrypoints.json', 'facts/flows.json'):
-            (bare / name).unlink(missing_ok=True)
-        page = human_report.write(bare, 'ar', 'library').read_text(encoding='utf-8')
-        self.assertIn('data-part="system-map"', page)
-        self.assertIn('لم نجد في هذا المشروع صفحات ويب ولا نقاط API', page)
-
-
-class WorkLogStampErrorTests(unittest.TestCase):
-    def setUp(self):
-        self.tmp = tempfile.TemporaryDirectory()
-        self.addCleanup(self.tmp.cleanup)
-        self.out = report(self.tmp.name)
-
-    def test_the_work_log_stamp_and_errors_say_where_the_work_stopped_and_what_failed(self):
-        page = human_report.write(self.out, 'en', progress={'handover': HANDOVER, 'ledger': ledger()}).read_text(encoding='utf-8')
-        log = re.search(r'data-part="work-log".*?</section>', section(page, 'plan'), re.S).group(0)
-        for words in ('Codex', 'Claude Code', 'fixed a card and checked it', 'checked the whole project', 'TASK-6', 'the tests failed',
-                      'The export test needs fixture data.', 'Was working on card', 'src/api/users.ts', 'the check failed: 1 test', 'Finish card', '2026-09-29 14:02'):
-            self.assertIn(words, log)
-        self.assertLess(log.index('fixed a card and checked it'), log.index('checked the whole project'), 'newest first')
-        page = human_report.write(self.out, 'ar').read_text(encoding='utf-8')
-        self.assertIn('data-part="work-log"', page)
-        self.assertIn('لم يبدأ أي عمل بعد', page)
-        # The stamp and every error are shown, and a failing section costs only itself.
-        page = human_report.write(self.out, 'ar', progress={'eaos': EAOS, 'report_errors': ['the ledger could not be read: 3 lines broken']}).read_text(encoding='utf-8')
-        stamp = re.search(r'<div class="stamp[^"]*" data-part="stamp">.*?</div>', page).group(0)
-        for words in ('بنته نسخة EAOS', '0.0.1', 'c992b28abcde', 'sha256-9f8e7', '2026-09-29 14:05'):
-            self.assertIn(words, stamp)
-        self.assertIn('class="stamp-foot', page)
-        self.assertIn('data-part="report-errors"', page)
-        self.assertIn('the ledger could not be read: 3 lines broken', page)
-        clean = human_report.write(self.out, 'ar').read_text(encoding='utf-8')
-        self.assertNotIn('data-part="report-errors"', clean)
-        self.assertNotIn('data-part="stamp"', clean)
-        with mock.patch('eaos.report.human_report.page.section_target', side_effect=RuntimeError('a broken record')):
-            page = human_report.write(self.out, 'en').read_text(encoding='utf-8')
-        self.assertEqual(json.loads((self.out / 'human' / 'errors.json').read_text(encoding='utf-8')),
-                         [{'section': 'target', 'error': 'RuntimeError: a broken record'}])
-        self.assertIn('data-part="report-errors"', page)
-        self.assertIn('Not available in this report.', section(page, 'target'))
-        self.assertIn('data-report="plan"', page, 'the rest of the page is built')
-        with mock.patch('eaos.analysis.maps.system.build', side_effect=ValueError('bad facts')):
-            human_report.write(self.out, 'en')
-        self.assertEqual(json.loads((self.out / 'human' / 'errors.json').read_text(encoding='utf-8')),
-                         [{'section': 'system map', 'error': 'ValueError: bad facts'}])
-
-
-class MermaidTests(unittest.TestCase):
-    def test_the_diagrams_group_parts_label_links_and_draw_loops_red(self):
-        with tempfile.TemporaryDirectory() as tmp:
-            out = system(report(tmp))
-            facts(out)
-            graph = json.loads((out / 'facts' / 'graph.json').read_text(encoding='utf-8'))
-            c4.write(out)
-            current = (out / 'architecture/current/diagram.mmd').read_text(encoding='utf-8')
-            target = (out / 'architecture/target/diagram.mmd').read_text(encoding='utf-8')
-            text = (out / 'architecture/system.mmd').read_text(encoding='utf-8')
-        self.assertTrue(graph['facts'])
-        self.assertTrue(current.startswith('flowchart LR'))
-        self.assertRegex(current, r'subgraph g\d+\["lib"\]')
-        self.assertRegex(current, r'c\d+ -->\|1 imports\| c\d+')
-        self.assertRegex(current, r'linkStyle [\d,]+ stroke:#d03b3b', 'the loop between src and src/api is red')
-        self.assertIn('subgraph', target)
-        self.assertIn('subgraph apis["APIs"]', text)
-        self.assertRegex(text, r'-->\|answers\|')
 
 
 if __name__ == '__main__':

@@ -156,7 +156,7 @@ def verify(project, runtime, attempt, report=None, mode='lock'):
     try:
         live.setup()
         base = live.start()
-        from ..trials.load_baseline import refuse_a_page_server
+        from .page_server import refuse_a_page_server
         refuse_a_page_server(served, base)
         state = runtime / 'setup' / 'storage-state.json'
         if state.exists(): state.unlink()

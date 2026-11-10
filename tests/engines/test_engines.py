@@ -74,14 +74,14 @@ class DegradationTests(unittest.TestCase):
         from eaos.engines.contract import NOT_APPLICABLE
         with tempfile.TemporaryDirectory() as tmp:
             (Path(tmp) / 'app.py').write_text('print(1)\n')
-            with mock.patch.object(tool, 'version', return_value='4.3.0'):
-                self.assertEqual(tool.declined('sqlfluff', 'sqlfluff', tmp).status, NOT_APPLICABLE)
+            with mock.patch.object(tool, 'version', return_value='6.0.0'):
+                self.assertEqual(tool.declined('knip', 'knip', tmp).status, NOT_APPLICABLE)
             with mock.patch.object(tool, 'version', return_value=None):
-                self.assertEqual(tool.declined('sqlfluff', 'sqlfluff', tmp).status, 'unavailable')
+                self.assertEqual(tool.declined('knip', 'knip', tmp).status, 'unavailable')
         # A loaded host: the installed binary answers its version check too late, twice. It is installed, not absent.
-        late = (127, '', "Command '['sqlfluff', '--version']' timed out after 120 seconds", 120.0)
-        with mock.patch.object(tool, 'which', return_value='/bin/sqlfluff'), mock.patch.object(tool, 'run', return_value=late) as asked:
-            self.assertEqual(tool.version('sqlfluff'), 'unknown')
+        late = (127, '', "Command '['lizard', '--version']' timed out after 120 seconds", 120.0)
+        with mock.patch.object(tool, 'which', return_value='/bin/lizard'), mock.patch.object(tool, 'run', return_value=late) as asked:
+            self.assertEqual(tool.version('lizard'), 'unknown')
         self.assertEqual([call.kwargs['timeout'] for call in asked.call_args_list], list(tool.SLOW))
 
 

@@ -10,6 +10,7 @@ from pathlib import Path
 from unittest import mock
 
 from eaos.journeys import agent_tools, guided
+from eaos.journeys.guided.project import branch_links
 from eaos.journeys.fix import finish as batch_finish
 from eaos.core.project import branches, ledger
 from eaos.live.app import setup as live_setup
@@ -140,9 +141,6 @@ class Branches(unittest.TestCase):
         self.assertEqual((branches.checked_out(self.project), git(self.project, 'status', '--porcelain')), ('main', ''))
         self.assertNotIn('eaos/wave-1', git(self.project, 'branch', '--list', 'eaos/*'))
         self.assertEqual((answer['progress']['done'], answer['progress']['total']), (1, 5))
-        page = (guided.outputs(project_state.load(self.project)) / 'REPORT.html').read_text()
-        self.assertIn('data-part="branch"', page)
-        self.assertIn('develop', page)
 
     def test_the_fix_preview_sets_the_base_the_new_branch_and_where_it_merges_and_a_moved_base_opens_nothing(self):
         """Batches built on develop are named per branch, so a second branch's batch 1 does not overwrite the first's
@@ -262,8 +260,8 @@ class Branches(unittest.TestCase):
         self.assertEqual(guided.report_of(state), guided.outputs(state) / 'branches' / 'main' / 'technical')
         self.assertNotEqual(ledger.path(state).name, 'ledger.json')
         self.check(FIRST[:2])
-        main_page = guided.outputs(state) / 'branches' / 'main' / 'REPORT.html'
-        self.assertIn('href="../../REPORT.html"', main_page.read_text(), 'a link to the develop report')
+        self.assertEqual(branch_links(project_state.load(self.project))['others'], [{'name': 'develop', 'href': '../../technical/START-HERE.md'}],
+                         'a link to the develop report')
         back = self.choose('develop', self.project, 'develop please')
         self.assertTrue(back['checked_before'])
         self.assertEqual(ledger.load(project_state.load(self.project))['totals']['total'], 5, "develop's own ledger")

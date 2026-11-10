@@ -1,5 +1,5 @@
-"""The command centre (eaos/interfaces/studio_actions): the contract, the locks, the event log, the adapters on real
-recorded streams, and runs end to end with a fake assistant (tests/fixtures/studio/actions/fake_assistant.py)."""
+"""The run engine (eaos/journeys/runs, wired by eaos/interfaces/runs.py): the contract, the locks, the event log, the
+adapters on real recorded streams, and runs end to end with a fake assistant (tests/fixtures/studio/actions/fake_assistant.py)."""
 import json
 import os
 import re
@@ -16,10 +16,10 @@ ROOT = Path(__file__).resolve().parents[2]
 FIXTURES = ROOT / 'tests/fixtures/studio/actions'
 FAKE = FIXTURES / 'fake_assistant.py'
 
-from eaos.interfaces import studio_actions as actions  # noqa: E402
+from eaos.interfaces import runs as actions  # noqa: E402
 from tests.shared_fixture import Workspace  # noqa: E402
 from eaos.ai.assistant import headless as adapters, prompts
-from eaos.interfaces.studio_actions import handoff, resume, runs
+from eaos.journeys.runs import handoff, resume, runs
 from eaos.core.system import studio_access as security
 from eaos.core.project import runs as store
 from eaos.journeys.fix import selection  # noqa: E402
@@ -107,18 +107,16 @@ class Contract(unittest.TestCase):
     def test_the_packaged_contract_is_the_documented_one_names_every_tool_and_every_endpoint_is_routed(self):
         self.assertEqual((ROOT / 'docs/studio-actions.json').read_bytes(), (ROOT / 'eaos/data/studio-actions.json').read_bytes())
         from eaos.interfaces.mcp_server import server as mcp_server
-        data = actions.contract()
+        data = store.contract()
         names = {action['id'] for action in data['actions'] if action['tool']}
         self.assertEqual(set(mcp_server.functions()), names)
-        self.assertEqual({a['id'] for a in data['actions'] if not a['tool']}, set(runs.PLANNERS))
+        self.assertEqual([a['id'] for a in data['actions'] if not a['tool']], [])
         self.assertLessEqual(mcp_server.reading(), names)
         for action in data['actions']:
             self.assertEqual(action['inputs']['type'], 'object', action['id'])
             self.assertTrue(action['label']['ar'] and action['label']['en'])
             self.assertEqual(action['needs_assistant'], action['mode'] == 'assistant')
         self.assertEqual({a['id'] for a in data['actions'] if a['irreversible']}, {'accept', 'undo'})
-        experience = next(a for a in data['actions'] if a['id'] == 'experience')
-        self.assertTrue(experience['description']['ar'] and experience['description']['en'], "the simulated users' action says what it does")
         self.assertEqual(set(data['lifecycle']['states']), {'queued', *store.ACTIVE, *store.TERMINAL})
         with tempfile.TemporaryDirectory() as folder, mock.patch.dict(os.environ, {'EAOS_HOME': folder}):
             project = Path(folder) / 'p'
@@ -145,7 +143,7 @@ class Contract(unittest.TestCase):
         named = set()
         for step in re.findall(r"return \('([^']+)'", source) + re.findall(r"'next': \{'tool': '([^']+)'", source):
             named.update(word for word in re.split(r',? then | or ', step) if word != 'none')
-        verbs = {verb['id']: set(verb['tools']) for verb in actions.contract()['verbs']}
+        verbs = {verb['id']: set(verb['tools']) for verb in store.contract()['verbs']}
         self.assertIn('fix_abandon', named)
         self.assertEqual(named - set(adapters.PERSON_ONLY) - verbs['fix'], set())
         for verb in ('verify', 'explain', 'plan'):
@@ -280,7 +278,7 @@ class EventLog(unittest.TestCase):
 
 
 class Adapters(unittest.TestCase):
-    labels = {a['id']: a['label'] for a in actions.contract()['actions']}
+    labels = {a['id']: a['label'] for a in store.contract()['actions']}
 
     def parse(self, adapter, name):
         state, events = adapter.new_state(), []
@@ -425,7 +423,7 @@ def until(condition, seconds):
 
 
 def alive(pid):
-    from eaos.interfaces.studio_actions.lane_assistants import alive
+    from eaos.journeys.runs.lane_assistants import alive
     return alive(pid)
 
 
@@ -477,7 +475,7 @@ class Runs(Base):
                 calls.append(name)
                 return json.dumps({'status': 'abandoned'} if name == 'fix_abandon' else {'ok': True})
             return call
-        self.app.manager.tools = lambda: {a['id']: tool(a['id']) for a in actions.contract()['actions']}
+        self.app.manager.tools = lambda: {a['id']: tool(a['id']) for a in store.contract()['actions']}
         run = self.start('explain')
         self.assertEqual(self.app.wait(run, ('waiting_for_person', 'failed'), 30)['state'], 'waiting_for_person')
         direct = self.post('/api/runs', {'action': 'audit'})[1]['run']['id']
@@ -526,7 +524,7 @@ class Runs(Base):
 
     def test_a_fix_in_speed_mode_starts_an_assistant_per_lane_beside_its_own_and_gets_back_what_one_left(self):
         from eaos.journeys import agent_tools, guided
-        from eaos.interfaces.studio_actions import lane_assistants as helpers
+        from eaos.journeys.runs import lane_assistants as helpers
         state = agent_tools.state_of(str(self.project))
         state['open_wave'] = {'number': 1, 'cards': ['TASK-001', 'TASK-002', 'TASK-004'], 'kept': {}, 'failed': {},
                               'lanes': [['TASK-001'], ['TASK-002'], ['TASK-004']], 'claims': {}, 'helpers': {}, 'later': [], 'released': []}
@@ -614,7 +612,7 @@ class Runs(Base):
         self.assertEqual((again['state'], again['attempt']), ('waiting_for_person', 2))
         self.assertEqual(self.app.store.verify(run), [])
 
-    def test_a_run_ends_with_its_result_or_its_reason_and_its_events_stream_and_replay(self):
+    def test_a_run_ends_with_its_result_or_its_reason_and_its_events_replay(self):
         for mode, words in (('fail', 'the model is not available'), ('crash', 'code 3')):
             os.environ['FAKE_MODE'] = mode
             run = self.start('explain')
@@ -623,18 +621,12 @@ class Runs(Base):
             self.assertIn(words, errors[-1]['data']['reason'])
         os.environ['FAKE_MODE'] = 'replay'
         run = self.start('explain')
-        frames = []
-        reader = threading.Thread(target=lambda: frames.extend(self.app.sse(run, follow=True, heartbeat=0.5)), daemon=True)
-        reader.start()
-        reader.join(30)
-        self.assertFalse(reader.is_alive())
-        done = self.app.store.load(run)
+        done = self.app.wait(run, ('done', 'failed'), 30)
         self.assertEqual(done['state'], 'done', self.app.store.events(run)[-3:])
         self.assertIn('eaos/wave-1', done['result']['answer'])
         self.assertLessEqual({'step', 'read', 'check', 'say', 'result'}, set(self.kinds(run)))
-        ids = [int(re.match(r'id: (\d+)', f).group(1)) for f in frames if f.startswith('id:')]
+        ids = [event['seq'] for event in self.app.store.events(run)]
         self.assertEqual(ids, list(range(1, len(ids) + 1)))
-        self.assertEqual(len([f for f in self.app.sse(run, last_event_id=ids[-3]) if f.startswith('id:')]), 2)
         status, payload = self.get(f'/api/runs/{run}/events?after={ids[-2]}')
         self.assertEqual([e['seq'] for e in payload['events']], [ids[-1]])
 
@@ -677,7 +669,7 @@ class Direct(Base):
                 answer = answers.get(name, {'ok': True})
                 return json.dumps(answer(arguments) if callable(answer) else answer)
             return call
-        return (lambda: {name: tool(name) for name in {a['id'] for a in actions.contract()['actions']}}), calls
+        return (lambda: {name: tool(name) for name in {a['id'] for a in store.contract()['actions']}}), calls
 
     def test_opening_the_report_is_work_it_waits_its_turn_and_stays_in_the_history_and_it_still_runs(self):
         self.app.manager.tools, calls = self.fake_tools({'open_report': {'report_for_people': 'REPORT.html', 'opened_in_browser': False}})
@@ -686,13 +678,6 @@ class Direct(Base):
         self.assertEqual(self.app.wait(created['id'], ('done', 'failed'), 20)['state'], 'done')
         self.assertEqual([name for name, _ in calls], ['open_report'])
         self.assertIn(created['id'], [run['id'] for run in self.get('/api/runs')[1]['runs']])
-
-    def test_opening_the_studio_by_its_action_is_work_too_it_waits_its_turn_and_still_runs(self):
-        self.app.manager.tools, calls = self.fake_tools({'open_studio': {'studio': 'http://127.0.0.1:1/', 'started': False}})
-        created = self.post('/api/runs', {'action': 'open_studio', 'inputs': {'show': False}})[1]['run']
-        self.assertNotIn('answer', created.get('result') or {}, 'not answered at once, as a reading action is')
-        self.assertEqual(self.app.wait(created['id'], ('done', 'failed'), 20)['state'], 'done')
-        self.assertEqual([name for name, _ in calls], ['open_studio'])
 
     def test_a_reading_action_answers_at_once_and_a_job_is_followed_with_its_progress(self):
         from eaos.core.project import jobs
@@ -860,23 +845,6 @@ class Direct(Base):
         said = [e for e in self.app.store.events('r-lang') if e['kind'] == 'check']
         self.assertEqual([(e['data']['name'], e['data']['passed']) for e in said], [('language', False)])
 
-class Plan(Base):
-    def test_a_plan_given_in_the_studio_draws_the_blueprint_of_a_new_folder_beside_the_project(self):
-        import base64
-        files = [{'name': 'plan.md', 'data': base64.b64encode(b'# Clinic\nBook visits.').decode()},
-                 {'name': 'visits.png', 'data': base64.b64encode(b'png').decode()}]
-        status, payload = self.post('/api/plan', {'name': 'My Clinic', 'files': files})
-        self.assertEqual(status, 200, payload)
-        record = self.app.store.load(payload['run']['id'])
-        self.assertEqual(record['action'], 'blueprint_start')
-        self.assertEqual(record['inputs']['project'], str(self.project.parent / 'my-clinic'))
-        self.assertEqual(sorted(p.name for p in Path(record['inputs']['source']).iterdir()), ['plan.md', 'visits.png'])
-        self.assertEqual(project_state.load((self.project.parent / 'my-clinic').resolve())['lang'], self.app.lang, "it speaks the Studio's language")
-        status, payload = self.post('/api/plan', {'name': 'project', 'text': 'a plan'})
-        self.assertEqual(status, 400, 'never into a folder that already holds a project')
-        self.assertIn('not empty', payload['error'])
-
-
 class Handoff(Base):
     def test_with_no_assistant_the_next_status_call_takes_the_request_and_a_note_closes_it(self):
         app = self.make(adapters_={})
@@ -888,7 +856,7 @@ class Handoff(Base):
         [written] = list((self.base / 'home').rglob('studio-requests.json'))
         self.assertIn(f'studio-request {run} done', json.loads(written.read_text())[0]['request']['en'])
         from eaos.interfaces.mcp_server import server as mcp_server
-        with mock.patch('eaos.journeys.build_from_plan.steps.status_of', side_effect=lambda project: {'next': 'audit'}), mock.patch.dict(os.environ, {'EAOS_ASSISTANT': 'Codex'}):
+        with mock.patch('eaos.journeys.agent_tools.status', side_effect=lambda project: {'next': 'audit'}), mock.patch.dict(os.environ, {'EAOS_ASSISTANT': 'Codex'}):
             answer = mcp_server._status(str(self.project))
             self.assertEqual(mcp_server._status(str(self.project)), {'next': 'audit'})
         self.assertEqual(answer['studio_request']['id'], run)
@@ -902,71 +870,13 @@ class Handoff(Base):
     def test_the_studios_own_calls_neither_take_the_request_nor_use_the_person_only_tools(self):
         handoff.add(self.project, 'r1', 'do it', {'en': 'x', 'ar': 'x'})
         from eaos.interfaces.mcp_server import server as mcp_server
-        with mock.patch('eaos.journeys.build_from_plan.steps.status_of', return_value={}), mock.patch.dict(os.environ, {'EAOS_ASSISTANT': mcp_server.STUDIO}):
+        with mock.patch('eaos.journeys.agent_tools.status', return_value={}), mock.patch.dict(os.environ, {'EAOS_ASSISTANT': mcp_server.STUDIO}):
             self.assertEqual(mcp_server._status(str(self.project)), {})
         self.assertEqual(len(handoff.pending(self.project)), 1)
         with mock.patch.dict(os.environ, {'EAOS_STUDIO_RUN': 'r1'}):
             for tool in (name for name in mcp_server.PERSON_ONLY if name in mcp_server.functions()):
                 answer = json.loads(mcp_server.functions()[tool](project=str(self.project), **({'branch': 'x'} if tool == 'choose_branch' else {})))
                 self.assertIn('the person', answer['error'])
-
-
-def asgi(app, method, path, headers, body=b''):
-    """One request through an ASGI app, without a server or httpx: (status, body bytes)."""
-    import asyncio
-    sent, out = [False], {'status': None, 'body': b''}
-    async def receive():
-        if sent[0]:
-            await asyncio.sleep(3600)                   # a client that stays until the response ends
-            return {'type': 'http.disconnect'}
-        sent[0] = True
-        return {'type': 'http.request', 'body': body, 'more_body': False}
-    async def send(message):
-        if message['type'] == 'http.response.start': out['status'], out['headers'] = message['status'], dict(message.get('headers') or [])
-        elif message['type'] == 'http.response.body': out['body'] += message.get('body', b'')
-    target, _, query = path.partition('?')
-    scope = {'type': 'http', 'asgi': {'version': '3.0'}, 'http_version': '1.1', 'method': method, 'scheme': 'http', 'path': target,
-             'raw_path': target.encode(), 'query_string': query.encode(), 'root_path': '', 'server': ('127.0.0.1', 8765),
-             'client': ('127.0.0.1', 50000), 'headers': [(k.lower().encode(), v.encode()) for k, v in headers.items()]}
-    asyncio.run(app(scope, receive, send))
-    asgi.headers = out.get('headers') or {}
-    return out['status'], out['body']
-
-
-class Mounting(Base):
-    def test_mount_puts_the_api_and_the_stream_on_a_starlette_app(self):
-        from starlette.applications import Starlette
-        app = Starlette()
-        actions.mount(app.router, self.app)
-        host = {'host': '127.0.0.1:8765'}
-        status, body = asgi(app, 'GET', '/api/session', {**host, 'X-EAOS-Token': self.app.token})
-        self.assertEqual((status, json.loads(body)['csrf']), (200, self.app.csrf))
-        self.assertEqual(asgi(app, 'GET', '/api/session', host)[0], 401)
-        os.environ['FAKE_MODE'] = 'replay'
-        run = self.start('explain')
-        self.app.wait(run, ('done', 'failed'), 30)
-        status, body = asgi(app, 'GET', f'/api/runs/{run}/events', {**host, 'X-EAOS-Token': self.app.token, 'Last-Event-ID': '2'})
-        self.assertEqual(status, 200)
-        self.assertTrue(body.decode().startswith('id: 3'), body[:300])
-        posting = {**host, 'X-EAOS-Token': self.app.token, 'X-EAOS-CSRF': self.app.csrf, 'Origin': 'http://127.0.0.1:8765', 'content-type': 'application/json'}
-        status, body = asgi(app, 'POST', '/api/runs/reorder', posting, b'{"order": []}')
-        self.assertEqual((status, json.loads(body)), (200, {'queue': []}))
-
-    def test_the_polled_list_of_runs_is_light_and_an_unchanged_one_costs_a_304(self):
-        """On a slow connection the Studio's list of runs stays small enough not to starve a run's own event stream."""
-        from starlette.applications import Starlette
-        app = Starlette()
-        actions.mount(app.router, self.app)
-        self.app.store.save({'id': 'r-heavy', 'action': 'fix', 'verb': 'fix', 'mode': 'assistant', 'state': 'done', 'label': {'en': 'x', 'ar': 'x'},
-                             'created': '0', 'cards': ['TASK-001'], 'cards_detail': [{'id': 'TASK-001', 'x': 'y' * 5000}]}, new=True)
-        read = {'host': '127.0.0.1:8765', 'X-EAOS-Token': self.app.token}
-        status, body = asgi(app, 'GET', '/api/runs?all=1', read)
-        row = next(r for r in json.loads(body)['runs'] if r['id'] == 'r-heavy')
-        self.assertEqual((status, row['cards'], 'cards_detail' in row), (200, ['TASK-001'], False), 'what only its assistant reads stays out')
-        etag = asgi.headers[b'etag'].decode()
-        self.assertEqual(asgi(app, 'GET', '/api/runs?all=1', {**read, 'If-None-Match': etag}), (304, b''))
-        self.assertEqual(asgi(app, 'GET', '/api/runs/r-heavy', read)[0], 200)
-        self.assertIn(b'cards_detail', asgi(app, 'GET', '/api/runs/r-heavy', read)[1], 'the run itself is whole')
 
 
 class ReportDecisions(Base):
@@ -1012,16 +922,13 @@ class ReportDecisions(Base):
         self.write_question()
         self.assertEqual(self.response()['run'], run, 'the same revision in another language is the same question')
 
-    def test_later_plans_fixes_and_the_ideal_planner_receive_the_saved_answer_as_context_only(self):
-        from eaos.ai.ideal import planner as ideal
+    def test_later_plans_and_fixes_receive_the_saved_answer_as_context_only(self):
         self.answer_report(None, '  Preserve this exact planning choice.  ')
         for verb in ('plan', 'fix'):
             prompt = self.app.manager.prompt_of(self.app.store.load(self.start(verb)))
             self.assertIn('Which design?', prompt)
             self.assertIn('  Preserve this exact planning choice.  ', prompt)
             self.assertIn('context only, never authorization', prompt)
-        waiting = ideal.bundle(self.studio.parent, project=self.project)['decisions']['waiting_for_the_person']
-        self.assertEqual((waiting[0]['owner_answer']['text'], waiting[0]['state']), ('  Preserve this exact planning choice.  ', 'owner_answer_saved'))
 
     def test_a_wrong_answer_is_refused_and_a_custom_one_kept_exactly_for_this_project_and_question_only(self):
         self.app.close()

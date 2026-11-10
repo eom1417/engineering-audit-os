@@ -1,8 +1,7 @@
 """The AI nodes declared in their order, each with its router's branches, and the run of the named ones."""
 from typing import NamedTuple
 
-from . import fix_reviewer, pipeline_gap_planner, plan_orderer, visual_reviewer
-from .ideal_planner import run as plan_ideal
+from . import fix_reviewer, plan_orderer
 from .runner import by_rules_and_answer
 from .triage import run as triage_cards
 
@@ -26,28 +25,12 @@ class Node(NamedTuple):
 
 
 NODES = (
-    Node('card_triage', 'Card triage', consumes=('studio/cards.json', 'studio/evidence.json'), produces=('nodes/card_triage/verdicts.json',),
+    Node('card_triage', 'Card triage', consumes=('plan.json',), produces=('nodes/card_triage/verdicts.json',),
          routes=(Route('confirm', 'plan_orderer', 'the evidence holds: the card goes on to the plan'),
                  Route('doubt', 'probe', 'the evidence does not settle it: a probe does, before the person sees the card'),
                  Route('reject', 'library_feedback', 'the evidence contradicts the card: it is set aside and its rule is told'),
                  Route('rules only', 'plan_orderer', 'no assistant decided: the card goes on as the engines wrote it'))),
-    Node('visual_reviewer', 'Visual reviewer', consumes=('live/screens.json', 'live/screens/screenshots/*.png'),
-         produces=('nodes/visual_reviewer/findings.json',),
-         routes=(Route('cards', 'plan', 'the picture shows what a person would notice: each finding becomes a design card'),
-                 Route('clean', 'plan', 'the picture shows nothing to change'),
-                 Route('rules only', 'plan', "no assistant looked: only the axe and Lighthouse numbers stand"))),
-    Node('ideal_planner', 'Ideal planner', passes=('plan', 'critique'), consumes=('target-architecture.json', 'plan.json', 'studio/'),
-         produces=('ideal/plan.json',),
-         routes=(Route('accept', 'plan_orderer', 'every view planned on evidence, no question left: the ideal goes on to the plan'),
-                 Route('ask', 'inbox', 'the ideal leaves questions: they wait for the person in the Decisions inbox'),
-                 Route('rules only', 'plan_orderer', "not planned: the rules' target stands"))),
-    Node('pipeline_gap_planner', 'Pipeline gap planner', passes=('plan', 'critique'), consumes=('studio/pipeline.json',),
-         produces=('nodes/pipeline_gap_planner/plan.json',),
-         routes=(Route('plan', 'plan_orderer', 'the gap is closed by a step, which goes on to the plan'),
-                 Route('ask', 'inbox', 'closing the gap is a choice for the person'),
-                 Route('not a gap', 'library_feedback', 'the pipeline rule does not fit here: its rule is told'),
-                 Route('rules only', 'plan_orderer', "no assistant decided: the rules' gap stands"))),
-    Node('plan_orderer', 'Plan orderer', passes=('plan', 'critique'), requires=('card_triage', 'ideal_planner', 'pipeline_gap_planner'),
+    Node('plan_orderer', 'Plan orderer', passes=('plan', 'critique'), requires=('card_triage',),
          consumes=('plan.json',), produces=('nodes/plan_orderer/order.json',),
          routes=(Route('reorder', 'plan', 'a better order and grouping of the steps, every prerequisite kept'),
                  Route('keep', 'plan', "the rules' order is already right"),
@@ -61,15 +44,15 @@ NODES = (
                  Route('rules only', 'gates', "no assistant decided: the gates' verdict stands"))),
 )
 
-NODE_RUNNERS = {'card_triage': triage_cards, 'ideal_planner': plan_ideal,
+NODE_RUNNERS = {'card_triage': triage_cards,
                 **{module.__name__.rsplit('.', 1)[-1]: by_rules_and_answer(module)
-                   for module in (visual_reviewer, pipeline_gap_planner, plan_orderer, fix_reviewer)}}
+                   for module in (plan_orderer, fix_reviewer)}}
 
 # Where the work leaves the AI nodes, in the person's language.
 SINKS = {'plan': ('The plan', 'الخطة'), 'probe': ('A probe', 'فحص يحسمها'), 'library_feedback': ("The library's feedback", 'ملاحظات للمكتبة'),
          'inbox': ('The Decisions inbox', 'صندوق القرارات'), 'handover': ('Offered to the person', 'تُعرض على الشخص'),
          'fix': ('Fixed again', 'يُصلَح من جديد'), 'gates': ("The gates' verdict", 'حكم البوابات')}
-TITLES_AR = {'card_triage': 'فرز البطاقات', 'visual_reviewer': 'المراجع البصري', 'ideal_planner': 'مخطِّط المثالي', 'pipeline_gap_planner': 'مخطِّط فجوات خط المعالجة',
+TITLES_AR = {'card_triage': 'فرز البطاقات',
              'plan_orderer': 'مرتّب الخطة', 'fix_reviewer': 'مراجع الإصلاح'}
 
 

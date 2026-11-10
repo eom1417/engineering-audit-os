@@ -2,7 +2,7 @@
 overview."""
 from .. import check_choices, guided
 from ..fix import lanes
-from ...core.project import branches
+
 from ...core.language import plain
 from ...live.access import sign_in as signing
 from ...ai.assistant.readiness import NoAssistant
@@ -42,7 +42,7 @@ def audit(project=None, fresh=False, use_assistant=None, without_tools=False, as
     blocked = None if without_ai else _assistant_not_ready(state, fixed)
     if blocked: return blocked
     arguments = {k: v for k, v in dict(without_tools=without_tools, without_ai=without_ai, again_from=again_from, engines=engines, paths=paths, published=signing.published(published), go_on=go_on).items() if v}
-    return _start('audit', state, arguments, watch=True)
+    return _start('audit', state, arguments)
 
 
 def _keep_ai_choice(state, use_assistant, assistant):
@@ -116,7 +116,7 @@ def overview(project=None):
             'counts': summary_counts(report), 'claims_by_confidence': claims, 'problem_kinds': _problem_kinds(tasks),
             'not_checked_by_this_version': _unchecked(),
             'milestones': _milestones(plan, tasks),
-            'report_for_people': str(branches.home(state) / 'REPORT.html') if (branches.home(state) / 'REPORT.html').is_file() else None,
+            'report_for_people': str(report / 'START-HERE.md') if (report / 'START-HERE.md').is_file() else None,
             'outputs_folder': str(guided.outputs(state)), 'technical_report': str(report),
             'next': 'Use `findings` and `finding` for the evidence, `structure` for the architecture, `plan` for the order of work.'}
 

@@ -11,7 +11,7 @@ out mixed. Translating what is written is small, and kept small this way (EAOS's
   sending and is put back after, so it is never altered, and two pieces that differ only by them share one template:
   the 2818 lines became 633 templates.
 - A translation memory keeps every template once translated: EAOS's own (eaos/data/translation-memory.json: what the
-  reports of different projects share, translated once by a strong model and reviewed, tools/translation_seed.py),
+  reports of different projects share, translated once by a strong model and reviewed),
   then the report's (translation-memory.json beside it), so the next check sends only what is new.
 - The rest, the project's own words, goes in batches of BATCH characters to the smallest model of the assistant the
   person already uses (no other account or key), without thinking, keyed item by item, told the
@@ -156,12 +156,6 @@ def memory_of(report):
     """{lang: {template: translation}}: EAOS's own memory, then the report's, as the last translation left them."""
     seed, kept = _load(SEED), _load(Path(report).parent / MEMORY)
     return {lang: {**seed.get(lang, {}), **kept.get(lang, {})} for lang in LANGS}
-
-
-def in_language(piece, memory, lang):
-    """A piece in `lang` from the memory (`memory_of`), as the documents were translated; None when it is already in
-    `lang` or the memory has no translation of it. No model is asked."""
-    return _translated(piece, memory[lang], lang)
 
 
 def _save_memory(memory_file, memory, wanted):

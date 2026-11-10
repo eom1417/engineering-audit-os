@@ -1,4 +1,4 @@
-"""What a job is doing is not taken from under it: closing a batch, starting one, opening a build, cleaning, all under
+"""What a job is doing is not taken from under it: closing a batch, starting one, cleaning, all under
 the lock jobs start by, on real repositories with real threads and processes. A job that does not answer is not assumed
 dead."""
 import contextlib
@@ -15,12 +15,11 @@ from pathlib import Path
 from unittest import mock
 
 from eaos.core.project import jobs, state as project_state
-from eaos.interfaces import cli, studio_actions as actions
+from eaos.interfaces import cli, runs as actions
 from eaos.interfaces.mcp_server.server import functions
 from eaos.journeys import agent_tools, guided
 from eaos.journeys.agent_tools import fixing
-from eaos.journeys.build_from_plan import steps
-from eaos.journeys.fix import execute, finish as batch_finish, lanes
+from eaos.journeys.fix import finish as batch_finish, lanes
 from eaos.journeys.fix.waves import batch as batch_steps
 from eaos.live.access import sign_in
 from eaos.live.app import setup as live_setup
@@ -366,133 +365,6 @@ class NothingComesBack(Work):
         self.assertEqual((self.wave()['number'], self.copy.is_dir()), (1, True))
 
 
-class Building(Work):
-    MILESTONE = {'id': 'M01', 'name': 'x', 'tasks': []}
-
-    def setUp(self):
-        super().setUp()
-        state = project_state.load(self.project)
-        state.pop('open_wave')
-        project_state.write(state)
-        for patch in (mock.patch.object(steps, '_plan', return_value={'milestones': [self.MILESTONE]}), mock.patch.object(steps, '_next_milestone', return_value=self.MILESTONE),
-                      mock.patch.object(steps, '_cards', return_value={}), mock.patch.object(steps, 'publish'), mock.patch('eaos.journeys.build_from_plan.milestone_copy._commit_blueprint'),
-                      mock.patch.object(steps, '_ensure_git', return_value=False), mock.patch.object(steps, '_open_answer', side_effect=lambda build: {'status': 'open', 'milestone': build['milestone']}),
-                      mock.patch('eaos.live.app.setup.authorize')):
-            patch.start()
-            self.addCleanup(patch.stop)
-        self.runtime = project_state.runtime_of(state)
-
-    def start(self):
-        return steps.build_start(self.where, person_agreed=True)
-
-    def build_copy(self, name='BUILD-1'):
-        return self.runtime / 'candidates' / name
-
-    def asides(self, name='BUILD-1'):
-        return sorted((self.runtime / 'candidates').glob(f'{name}.left-*'))
-
-    def test_a_leftover_copy_is_kept_aside_and_the_build_opens_beside_it(self):
-        left = self.build_copy()
-        left.mkdir(parents=True)
-        (left / 'mine.py').write_text(UNIQUE)
-        self.assertEqual(self.start()['status'], 'opened')
-        aside = self.asides()
-        self.assertEqual([(path / 'mine.py').read_text() for path in aside], [UNIQUE])
-        self.assertTrue((self.build_copy() / '.git').is_dir())
-
-    def test_leftovers_set_aside_again_and_again_overwrite_none(self):
-        left = self.build_copy()
-        for number in range(3):
-            left.mkdir(parents=True)
-            (left / 'mine.py').write_text(f'{number}\n')
-            execute.set_aside(left)
-        self.assertEqual(sorted((path / 'mine.py').read_text() for path in self.asides()), ['0\n', '1\n', '2\n'])
-
-    def test_a_copy_of_a_batch_of_moves_left_behind_is_kept_too(self):
-        grant = self.runtime / 'authorization.json'
-        grant.write_text(json.dumps({'commit': git(self.project, 'rev-parse', 'HEAD')}))
-        left = self.build_copy('MOVES-1')
-        left.mkdir(parents=True)
-        (left / 'mine.py').write_text(UNIQUE)
-        execute.candidate(self.where, self.runtime, 'MOVES-1')
-        self.assertEqual([(path / 'mine.py').read_text() for path in self.asides('MOVES-1')], [UNIQUE])
-
-    def test_clean_judges_what_was_set_aside(self):
-        kept, gone = self.build_copy(), self.build_copy('BUILD-2')
-        for copy in (kept, gone):
-            copy.parent.mkdir(parents=True, exist_ok=True)
-            subprocess.run(['git', 'clone', '-q', self.where, str(copy)], check=True, capture_output=True)
-        (kept / 'mine.py').write_text(UNIQUE)
-        execute.set_aside(kept)
-        execute.set_aside(gone)
-        said = io.StringIO()
-        with contextlib.redirect_stdout(said): cli.main(['clean', '--lang', 'en'])
-        self.assertIn(str(self.asides()[0]), said.getvalue())
-        self.assertEqual(self.asides('BUILD-2'), [], 'it held nothing')
-
-    def test_a_clean_waits_for_the_copy_and_its_record(self):
-        real = steps._milestone_copy
-        worker = Paused(self.start)
-        def cloned(*args):
-            root = real(*args)
-            worker.at()()
-            return root
-        with mock.patch.object(steps, '_milestone_copy', cloned):
-            worker.start()
-            self.assertTrue(worker.reached.wait(SECONDS))
-            def clean():
-                with mock.patch('eaos.journeys.guided.commands.box'): cli.main(['clean', '--lang', 'en'])
-            cleaning = threading.Thread(target=clean, daemon=True)
-            cleaning.start()
-            cleaning.join(1)
-            self.assertTrue(self.build_copy().is_dir())
-            outcome = worker.end()
-            cleaning.join(SECONDS)
-        self.assertEqual(outcome['result']['status'], 'opened')
-        build = project_state.load(self.project)['open_build']
-        self.assertTrue(Path(build['root']).is_dir(), 'a clean ran between the copy and its record')
-        self.assertTrue(build['base'])
-
-    def test_two_at_once_open_one_build(self):
-        real = steps._milestone_copy
-        worker = Paused(self.start)
-        def cloned(*args):
-            root = real(*args)
-            worker.at()()
-            return root
-        with mock.patch.object(steps, '_milestone_copy', cloned):
-            worker.start()
-            self.assertTrue(worker.reached.wait(SECONDS))
-            (self.build_copy() / 'first.py').write_text(UNIQUE)
-            second = Paused(self.start).start()
-            second.thread.join(1)
-            first = worker.end()
-            second.go.set()
-            second.thread.join(SECONDS)
-        self.assertEqual(first['result']['status'], 'opened')
-        self.assertIn(second.outcome['result']['status'], ('open', 'busy'), second.outcome)
-        self.assertEqual((self.build_copy() / 'first.py').read_text(), UNIQUE)
-        self.assertEqual(self.asides(), [])
-
-    def test_a_job_holds_it_with_nothing_copied(self):
-        _job(self.project, 'audit')
-        self.assertBusy(self.start())
-        self.assertFalse(self.build_copy().exists())
-        self.assertIsNone(project_state.load(self.project).get('open_build'))
-
-    def test_the_report_is_published_after_the_lock_and_with_the_build_on_record(self):
-        seen = []
-        def published(state):
-            jobs.folder(self.project).mkdir(parents=True, exist_ok=True)
-            with open(jobs.folder(self.project) / '.turn.lock', 'a') as lock:
-                try: fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB); seen.append('free')
-                except OSError: seen.append('held')
-            seen.append(bool(project_state.load(self.project).get('open_build')))
-        with mock.patch.object(steps, 'publish', published):
-            self.start()
-        self.assertEqual(seen, ['free', True])
-
-
 class CleaningBesideAJob(Work):
     def setUp(self):
         super().setUp()
@@ -750,8 +622,8 @@ class SkippingDuringAJob(Work):
             self.assertEqual(agent_tools.fix_skip('TASK-002', 'x', self.where)['status'], 'stale_batch')
 
 
-class ThroughTheStudio(Work):
-    """A real Studio run of the real tool: its record says what happened."""
+class ThroughTheRunEngine(Work):
+    """A real run of the real tool: its record says what happened."""
 
     def setUp(self):
         super().setUp()

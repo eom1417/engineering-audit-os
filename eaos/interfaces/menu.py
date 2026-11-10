@@ -45,9 +45,6 @@ OPTIONS = {
             'Ask the person what they want to know (for example: what does changing this file touch, where is this API used, '
             'why is this a problem). Answer only from EAOS records: impact for a file or symbol, ask for a question, finding, '
             'structure and report_file for the rest; cite the files. Say plainly when the records do not answer it.'),
-    'build': ('ابنِ مشروعًا من خطة', 'Build a project from a plan',
-              'Ask for the plan (a file path or pasted text), then build it end to end: blueprint_start, the spec, '
-              'blueprint_design, build_start, every milestone with build_edit and build_finish.'),
     'tools': ('الأدوات والمحركات', 'Tools and engines',
               'tools_check, then say which EAOS version runs and how many tools are installed, and a short table of the '
               'tools this project needs (needed_here), those for the check first: what each is for, installed or not, at '
@@ -66,15 +63,14 @@ DESCRIBE = {   # the description when nothing more specific is known
     'report': ('التقرير التفاعلي في المتصفح: ملف واحد ترسله لمن تريد', 'The interactive report in the browser: one file to send to anyone'),
     'tasks': ('ما انتهى، وما ينتظر قرارك، وما التالي في الخطة', 'What is done, what waits for you, and what comes next in the plan'),
     'ask': ('مثل: ماذا يتأثر لو غيّرت هذا الملف؟ أين يُستخدم هذا الـ API؟', 'Like: what does changing this file touch? Where is this API used?'),
-    'build': ('أعطني ملف الخطة، وأبنيه ببنية احترافية خطوة بخطوة', 'Give me the plan, and I build it with a sound structure, step by step'),
     'tools': ('ما المثبّت ونسخته، وما الناقص وكيف يُثبَّت', 'What is installed and at which version, what is missing and how to install it'),
 }
 MORE_WORDS = (('خيارات أخرى…', 'More options…'), ('بقية ما يقدمه EAOS هنا', 'The rest of what EAOS offers here'))
 
 
 def _status(project):
-    from ..journeys.build_from_plan.steps import status_of
-    return status_of(project)
+    from ..journeys.agent_tools import status
+    return status(project)
 
 
 def _numbers(answer, lang):
@@ -116,14 +112,11 @@ def _progress_words(progress, ar):
 def _available(answer, folder):
     """The options that make sense now, the recommended one first."""
     if answer is None:                                      # not a project folder: only what needs none
-        return ['build', 'tools']
+        return ['tools']
     if answer.get('status') == 'needs_branch':
         return ['branch', 'status', 'tools']
     handover = answer.get('handover') or {}
     open_work = bool(handover.get('open_work') or handover.get('running_job'))
-    if answer.get('mode') == 'build from a plan':         # its plan is read already: the build goes on from status's next step
-        waiting = (answer.get('next') or {}).get('tool') == 'accept'
-        return ['decide' if waiting and not open_work else 'continue', 'status', 'tools']
     return _check_order(answer, open_work)
 
 
@@ -132,12 +125,12 @@ def _check_order(answer, open_work):
     step = (answer.get('next') or {}).get('tool')
     waiting = bool(answer.get('waiting_branch'))
     order = (['continue'] if open_work else []) + (['decide'] if waiting else [])
-    if not answer.get('checked'): return order + ['audit', 'status', 'build', 'tools']
+    if not answer.get('checked'): return order + ['audit', 'status', 'tools']
     if step == 'audit': order.append('audit')
     elif not open_work and not waiting and _left(answer) > 0: order.append('fix')
     order += ['report', 'tasks', 'ask', 'status']
     if 'audit' not in order: order.append('audit')
-    return order + ['build', 'tools']
+    return order + ['tools']
 
 
 def _left(answer):
@@ -199,7 +192,7 @@ def _progress_part(answer, ar):
     if progress.get('total'):
         return (f"المنجز {progress['closed']} من {progress['total']} ({progress['percent']}%)" if ar else
                 f"{progress['closed']} of {progress['total']} done ({progress['percent']}%)")
-    if answer.get('mode') != 'build from a plan' and answer.get('status') != 'needs_branch' and not answer.get('checked'):
+    if answer.get('status') != 'needs_branch' and not answer.get('checked'):
         return 'لم يُفحص بعد' if ar else 'not checked yet'
     return None
 

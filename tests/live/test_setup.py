@@ -33,13 +33,6 @@ VITE_APP = {
     'app/src/main.ts': 'const u = import.meta.env.VITE_API_URL; const m = process.env.MAIL_TOKEN;\n',
 }
 
-K6 = """export const options = {
-  scenarios: { load: { executor: 'ramping-vus', startVUs: 0, stages: [
-    { duration: '1m', target: 100 }, { duration: '3m', target: 100 }, { duration: '1m', target: 0 } ] } },
-  thresholds: { http_req_duration: ['p(95)<800'], http_req_failed: ['rate<0.01'] },
-};
-"""
-
 
 def bare_run(**fields):
     live = LiveRun.__new__(LiveRun)
@@ -89,17 +82,13 @@ class DetectTests(unittest.TestCase):
                                                                'dependencies': {'@supabase/supabase-js': '2'}}}))
         self.assertTrue(any('Supabase' in l for l in supabase['limitations']))
 
-    def test_the_load_baseline_never_runs_the_dev_server_and_reads_its_conditions_from_the_scenario(self):
+    def test_the_production_build_never_runs_the_dev_server(self):
         dev_start = {'scripts': {'build': 'vite build', 'start': 'vite', 'dev': 'vite'}, 'devDependencies': {'vite': '5'}}
         _, start = live_setup.production_commands('npm', dev_start, 4000)
         self.assertEqual(start[:3], ['npx', 'vite', 'preview'])
         self.assertEqual(live_setup.production_commands('npm', {'scripts': {'dev': 'node x'}}, 4000), (None, None))
         # a plain Node server has no build step: it is its own production
         self.assertEqual(live_setup.production_commands('npm', {'scripts': {'start': 'node server.js'}}, 4000), ([], ['npm', 'run', 'start']))
-        from eaos.live.trials.load_baseline import shape
-        script = Path(scratch()) / 'qs-001.js'
-        script.write_text(K6)
-        self.assertEqual(shape(script), ({'p95_ms': 800.0, 'error_rate': 0.01}, 100, 300, 60))
 
 
 class ProposalTests(unittest.TestCase):

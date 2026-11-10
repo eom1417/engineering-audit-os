@@ -1,5 +1,5 @@
-"""The eaos command: the guided journey (start, next, status...), the Studio, the MCP server, the tools, and the
-few commands a task card's acceptance check runs (facts, policy, decided, recheck)."""
+"""The eaos command: the guided journey (start, next, status...), the governance commands, the MCP server, the tools,
+and the few commands a task card's acceptance check runs (facts, policy, decided, recheck)."""
 from __future__ import annotations
 import argparse
 import json
@@ -8,7 +8,6 @@ import sys
 from .. import __version__
 from ..core.contracts.check_paths import PATHS
 from ..core.project.workspace import bounded_int, read
-from . import deep_checks
 
 
 def facts_command(args):
@@ -76,27 +75,6 @@ def guided_command(args):
     return done
 
 
-def studio_command(args):
-    if args.background: return studio_in_background(args)
-    from .studio_server.server import run_foreground
-    return run_foreground(args.project, port=args.port, show=not args.no_open, remote_origin=args.remote_origin)
-
-
-def studio_in_background(args):
-    """`eaos studio --background`: the project's Studio started (or found running), opened on "Preparing the tools"
-    while the tools the check needs are installing, its address printed, and back at once; the tools' install starts."""
-    from ..core import toolchain
-    from ..journeys.agent_tools import open_studio, state_of
-    project = state_of(args.project)['project']
-    toolchain.prepare(project)
-    opened = open_studio(project, show=not args.no_open, route='' if toolchain.ready(project) else '/tools')
-    if 'studio' not in opened:
-        print(opened.get('error'), opened.get('log'), sep='\n')
-        return 1
-    print(f"EAOS Studio: {opened['studio']}")
-    return 0
-
-
 def decided_command(args):
     from ..core.contracts.decided import main
     return main(args)
@@ -133,7 +111,7 @@ def terminal(name):
 
 
 def governance_commands(s):
-    """Full governance from a terminal, without the Studio (eaos/interfaces/terminal/commands.py over eaos/interfaces/govern.py, the Studio's own core)."""
+    """Full governance from a terminal (eaos/interfaces/terminal/commands.py over eaos/interfaces/govern.py and the run engine)."""
     def command(name, text, func=None):
         q = s.add_parser(name, help=text)
         q.add_argument('--project', default='.')
@@ -200,9 +178,8 @@ def _rule_commands(command):
 def _card_commands(command):
     """The problems and the verbs on them, the branches, and the history."""
     from ..core.project.runs import contract
-    command('design', "What the screens are really made of: each part's looks, each kind's values, formats, libraries")
     q = command('problems', 'What the check found, most important first')
-    from ..analysis.presentation.model import AREAS, SEVERITIES
+    from ..core.contracts.card_areas import AREAS, SEVERITIES
     q.add_argument('--area', choices=AREAS, help="only this area, as the Studio's filter")
     q.add_argument('--severity', choices=SEVERITIES, help="only this severity, as the Studio's filter")
     q.add_argument('--kind', help='only this kind of problem (its pattern: dead_code, security_weakness, …)')
@@ -223,7 +200,7 @@ def _card_commands(command):
     q.add_argument('--yes', action='store_true')
     q = command('compare', 'Two checks of the history side by side'); q.add_argument('first'); q.add_argument('second')
     for name, text in (('history', 'Every check on record: the score, the open problems, closed of total'), ('usage', 'What the assistant used: '
-                       'tokens and cost, per check stage and per run'), ('projects', 'Every project EAOS knows on this computer')): command(name, text)
+                       'tokens and cost, per check stage and per run')): command(name, text)
 
 
 def _guided_commands(s):
@@ -268,7 +245,6 @@ def main(argv=None):
     _session_commands(s)
     _pipeline_commands(s)
     governance_commands(s)
-    deep_checks.commands(s)
     args=p.parse_args(argv)
     args.words = list(sys.argv[1:] if argv is None else argv)
     try:
@@ -278,20 +254,13 @@ def main(argv=None):
 
 
 def _session_commands(s):
-    """The handover, the Studio and the MCP server."""
+    """The handover and the MCP server."""
     q=s.add_parser('handover',help='Where the work stopped, and what to tell another assistant to go on (after a usage limit)')
     q.add_argument('project',nargs='?',default='.')
     q.add_argument('--lang',choices=['ar','en'],default=None)
     q.add_argument('--hook',action='store_true',help='for an assistant\'s session-start hook (eaos assistant install sets it): '
                    'read its JSON on stdin and answer with the context to add')
     q.set_defaults(func=lambda args: handover_hook(args) if args.hook else guided_command(args))
-    q=s.add_parser('studio',help='Open the live EAOS Studio of this project in your browser (on this computer only)')
-    q.add_argument('project',nargs='?',default='.')
-    q.add_argument('--port',type=int,default=0,help='the port on 127.0.0.1 (default: a free one)')
-    q.add_argument('--no-open',action='store_true',help='print the address without opening the browser')
-    q.add_argument('--background',action='store_true',help='start it in the background, print its address and return')
-    q.add_argument('--remote-origin', help='one exact https://<project>--<port>.dev.example.com origin; keeps token and CSRF checks')
-    q.set_defaults(func=studio_command)
     q=s.add_parser('mcp',help='EAOS as MCP tools for an AI assistant (stdio); eaos assistant install registers it')
     q.set_defaults(func=lambda args: __import__('eaos.interfaces.mcp_server.govern', fromlist=['main']).main())
 

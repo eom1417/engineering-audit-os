@@ -2,8 +2,6 @@
 eaos/analysis/understanding/extending.py drew, and one pointer line in the assistants' context files, between its own
 markers; the guide is never copied into them. What the person wrote below the guide's end line stays. Written only in a
 copy, on a branch of its own (eaos/journeys/fix/context_batch.py), or in a build's copy at each milestone."""
-import shlex
-import shutil
 import subprocess
 from pathlib import Path
 
@@ -11,8 +9,6 @@ from ..rules import context as context_files
 from ..understanding import extending
 from ...core.project import rules as registry
 from ...core.system.files import read_json
-from ...engines.code import gitnexus
-from ...engines.process import run
 
 BEGIN = '<!-- EAOS guide: begin (written by EAOS from the project itself; what you write below the end line stays) -->'
 END = '<!-- EAOS guide: end -->'
@@ -20,7 +16,6 @@ POINTER_BEGIN = '<!-- EAOS guide pointer: begin (one line, written by EAOS) -->'
 POINTER_END = '<!-- EAOS guide pointer: end -->'
 FOLDERS = ('docs', 'doc', 'documentation')
 NAME = 'EXTENDING.md'
-SKILLS_IGNORED = '.claude/skills/gitnexus*'
 
 
 def place(tree):
@@ -196,19 +191,6 @@ def drawn_from_report(root, report, project=None):
     record = read_json(Path(report) / 'layers.json', {}) or {}
     tree = tracked(root) or {row['path'] for row in record.get('map') or []}
     return extending.draft(root, report, tree, record, pinned_ids(project) if project else ())
-
-
-def give_map(project, home):
-    """GitNexus's map of the person's project, with their yes: the index under `home`, the skills in its .claude/skills, kept
-    from git by its own .git/info/exclude, and its MCP registered for this project alone when Claude Code is there."""
-    project = Path(project)
-    made = gitnexus.make_map(project, home, project / '.claude' / 'skills')
-    excluded = project / '.git' / 'info' / 'exclude'
-    if excluded.parent.is_dir() and SKILLS_IGNORED not in (excluded.read_text(encoding='utf-8') if excluded.is_file() else ''):
-        with excluded.open('a', encoding='utf-8') as file: file.write(f'{SKILLS_IGNORED}\n')
-    command = ['claude', 'mcp', 'add', '--scope', 'local', '--env', f"GITNEXUS_HOME={made['registry']}", 'gitnexus', '--', 'gitnexus', 'mcp']
-    registered = bool(shutil.which('claude')) and run(command, cwd=project, timeout=60)[0] == 0
-    return {**made, 'registered': registered, 'register_yourself': None if registered else shlex.join(command)}
 
 
 def written_ignored(root, written):

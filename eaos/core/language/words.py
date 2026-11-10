@@ -315,8 +315,7 @@ def statement_of(claim, language):
 def labels(language): return LABELS.get(language, LABELS['ar'])
 
 
-# Who decided an element of the final target (eaos/report/target_architecture/picture.py reconcile), in the person's
-# two languages.
+# Who decided an element of the final target, in the person's two languages.
 DECIDED = {'agreed': ('اتفقت عليه الأدوات ومساعدك', 'agreed by the tools and your assistant'),
            'ai_modified': ('عدّله مساعدك بدليل', 'changed by your assistant, with evidence'),
            'rule_only': ('القواعد وحدها', 'the rules alone'),

@@ -29,7 +29,7 @@ from pathlib import Path
 from typing import NamedTuple
 
 from ...core import progress
-from ...core.progress.flow import OPTIONAL, Stage
+from ...core.progress.flow import Stage
 from .folder import LOCK_CONFIG, _keep, _prepare, lend_kinds, passes  # noqa: F401  (LOCK_CONFIG: read here by the tests)
 from .results import Screens, _declared, approval_statuses, failing_tests, spec_statuses  # noqa: F401  (the names others read here)
 from ...core.system.files import read_json
@@ -209,9 +209,6 @@ FLOW = (
     Stage('verify', requires=('record',),
           description='Open every screen and load every interface again and compare each with the recording: one that '
                       'differs between two runs of the same code is not steady and cannot guard a change'),
-    Stage('speed', requires=('start',), necessity=OPTIONAL,
-          absent_when='the app has no production build, or its production run did not work during the setup',
-          description='Measure how fast the production build answers under many users (k6)'),
 )
 
 

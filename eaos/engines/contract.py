@@ -11,7 +11,6 @@ HEURISTIC = 'heuristic'
 OBSERVED, UNAVAILABLE, ERROR, SCHEMA_MISMATCH = 'observed', 'unavailable', 'error', 'schema_mismatch'
 # The project has nothing this engine reads (no SQL for SQLFluff, no CI for Checkov): not absence, not a clean result.
 NOT_APPLICABLE = 'not_applicable'
-DETERMINISTIC = 'deterministic'
 
 # The vocabulary every engine is normalised into. Anything an engine reports outside it is dropped
 # and counted, so an unmapped rule shows up as reduced coverage instead of silently disappearing.

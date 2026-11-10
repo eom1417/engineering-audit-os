@@ -38,7 +38,7 @@ def moves_make(project=None, moves=None, person_agreed=False):
     if not person_agreed:
         return {'status': 'needs_agreement', 'ask_the_person': f'Move {len(chosen)} file(s) on a new branch, proved to change nothing?',
                 'what_now': 'Only if the person says yes, call moves_make again with person_agreed=true.'}
-    return _start('moves_make', state, {'moves': [{k: m[k] for k in ('id', 'from', 'to')} for m in chosen]}, watch=True)
+    return _start('moves_make', state, {'moves': [{k: m[k] for k in ('id', 'from', 'to')} for m in chosen]})
 
 
 def context_propose(project=None, private_to=None):
@@ -61,48 +61,7 @@ def context_make(project=None, private_to=None, person_agreed=False):
     if not person_agreed:
         return {'status': 'needs_agreement', 'ask_the_person': "Trim the assistants' context and write the project's extension guide on a new branch, every instruction kept?",
                 'what_now': 'Only if the person says yes, call context_make again with person_agreed=true.'}
-    return _start('context_make', state, {'private_to': private_to}, watch=True)
-
-
-def design_propose(project=None, agreed=None):
-    """What a batch of the look would do: raw values named as tokens, nothing written; `agreed`, values the person agreed to merge."""
-    from ..fix.tokens_batch import proposal
-    state = state_of(project)
-    drawn = proposal(guided.source(state), agreed, guided.report_of(state))
-    return {**drawn, 'what_now': ('Tell the person, plainly: how many values, in how many files, where the one tokens file goes; no assistant is asked and nothing '
-                                  'may look different, which EAOS proves element by element. `you_can_agree` are near colours and sizes off the scale: show each with how '
-                                  'often it is used; only those they accept go in `agreed`, and only those may change. Then design_make with person_agreed=true.')}
-
-
-def design_make(project=None, agreed=None, person_agreed=False):
-    """Name the look's values in an isolated copy, kept only when proved; a job."""
-    state = state_of(project)
-    stop = _not_now(state)
-    if stop: return stop[0]
-    if not person_agreed:
-        return {'status': 'needs_agreement', 'ask_the_person': "Name your look's values as tokens on a new branch? It is proved that nothing looks different" + (
-                ', but for the merges you agreed to.' if agreed else '.'),
-                'what_now': 'Only if the person says yes, call design_make again with person_agreed=true.'}
-    return _start('design_make', state, {'agreed': agreed or []}, watch=True)
-
-
-def _design_job(project, arguments, progress):
-    from ..fix.tokens_batch import make
-    progress(0, 1, "naming the look's values")
-    return _own_batch(project, 'design', lambda state, batch: make({**batch, 'agreed': arguments.get('agreed'), 'report': guided.report_of(state)}))
-
-
-def project_map(project=None, person_agreed=False):
-    """GitNexus's area skills and MCP for the project's assistant, only with the person's yes: its index in the project's
-    run folder, its skills in .claude/skills, which this repository alone stops git from taking (.git/info/exclude)."""
-    if not person_agreed:
-        return {'status': 'needs_agreement', 'ask_the_person': 'Build a map of this project for your assistant (about a minute, no tokens; '
-                'its index stays outside the project, its short skills in .claude/skills, which git will not take) and register its tools? The licence of GitNexus allows no commercial use: say no for a commercial project; its guide does not need the map.',
-                'what_now': 'Only if the person says yes, call project_map again with person_agreed=true.'}
-    from ...analysis.repair import project_guide
-    state = state_of(project)
-    made = project_guide.give_map(state['project'], project_state.runtime_of(state) / 'map')
-    return {**made, 'what_now': 'Tell the person the map is built and how to refresh it (this tool again); read a gitnexus-area skill before changing that area.'}
+    return _start('context_make', state, {'private_to': private_to})
 
 
 def _chosen(state, moves):

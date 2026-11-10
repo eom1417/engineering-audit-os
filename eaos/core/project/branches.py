@@ -7,7 +7,7 @@ the person's own (bots' branches such as dependabot/ and EAOS's own eaos/ are no
 branch checked out is the one, without a question.
 
 Each branch keeps its own check, run, safety net, batches and ledger. The first branch worked on keeps the outputs
-folder's top (REPORT.html, technical/, fixes/); every other one has branches/<name>/ with the same parts.
+folder's top (technical/, fixes/); every other one has branches/<name>/ with the same parts.
 
 Which branches are protected from a merge is decided here for the Studio, MCP and the CLI alike (`policy`,
 `blocked_target`): the remote's default branch, main and master, and the project's own policy (the Studio's
@@ -75,7 +75,7 @@ def default_branch(project):
 
 def protected(project, name):
     """Why `name` takes no fix directly ('' when it may): main and master, and the remote's default branch. The Studio
-    adds the project's own policy (eaos/interfaces/studio_actions/branches/ BranchControl.policy)."""
+    adds the project's own policy (eaos/journeys/branches/ BranchControl.policy)."""
     if name in ('main', 'master'): return 'the main branch'
     done = _git(project, 'symbolic-ref', '--quiet', '--short', 'refs/remotes/origin/HEAD')
     return "the remote's default branch" if done.returncode == 0 and done.stdout.strip().split('/', 1)[-1] == name else ''

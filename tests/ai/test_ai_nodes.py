@@ -1,6 +1,5 @@
 """The AI nodes of EAOS's pipeline (docs/AI-IN-THE-PIPELINE.md): the framework's guards, each node's own checks and
-outputs, the ideal planner on the framework, the detector reading declared routes, the Studio section and the inbox,
-the exporter and coverage, and the command centre's `run_nodes`."""
+outputs, and the run engine's `run_nodes`."""
 import json
 import os
 import sys
@@ -13,10 +12,9 @@ from unittest import mock
 from eaos.core.contracts import artifact_rules as artifact_contracts
 from eaos.core.language.check import foreign_texts
 from eaos.ai.assistant.command import Provider
-from eaos.ai.ideal import planner as ideal, base as ideal_base
 from eaos.ai import nodes
 from eaos.ai.assistant import headless as adapters
-from eaos.ai.nodes import framework as core, triage, view
+from eaos.ai.nodes import framework as core, triage
 ROOT = Path(__file__).resolve().parents[2]
 from eaos.core.system import process as provider
 
@@ -374,10 +372,10 @@ class Triage(Base):
 
 
 class Planners(Base):
-    """The plan orderer keeps every prerequisite and sets rejected cards aside; the gap planner cites its gap; the fix
-    reviewer never accepts what the gates failed."""
+    """The plan orderer keeps every prerequisite and sets rejected cards aside; the fix reviewer never accepts what the
+    gates failed."""
 
-    def test_the_orderer_keeps_prerequisites_the_gap_planner_cites_its_gap_and_the_gates_stay_the_judge_of_a_fix(self):
+    def test_the_orderer_keeps_prerequisites_and_the_gates_stay_the_judge_of_a_fix(self):
         bad = {'steps': [{'id': 's1', 'title': 'first', 'tasks': ['TASK-003'], 'why': ''}, {'id': 's2', 'title': '', 'tasks': ['TASK-001'], 'why': ''}]}
         launcher = Answer(lambda n, s: {'summary': '', 'decisions': [decision('plan', 'reorder', ['TASK-001'], detail=bad)]})
         record = nodes.run(self.report, names=['plan_orderer'], launcher=launcher)['plan_orderer']
@@ -394,16 +392,6 @@ class Planners(Base):
         self.assertEqual(order['set_aside'], ['TASK-003'])
         self.assertEqual(json.loads((self.report / 'plan.json').read_text(encoding='utf-8'))['waves'], [['TASK-001', 'TASK-002'], ['TASK-003']])
 
-        launcher = Answer(lambda n, s: {'summary': '', 'decisions': [
-            decision('gap:P2:x', 'plan', ['gap:P2:x'], detail={'operation': 'refactor', 'step': 'declare the output'}),
-            decision('gap:P7:x', 'not a gap', ['FACT-0001'], detail={'operation': 'retain', 'step': ''})]})
-        record = nodes.run(self.report, names=['pipeline_gap_planner'], launcher=launcher)['pipeline_gap_planner']
-        self.assertEqual(record['dropped'][0]['why'], 'it cites neither its gap nor its rule')
-        steps = json.loads((self.report / 'nodes/pipeline_gap_planner/plan.json').read_text(encoding='utf-8'))['steps']
-        self.assertEqual([(s['gap'], s['decision']) for s in steps], [('gap:P2:x', 'plan'), ('gap:P7:x', 'rules only')])
-        from eaos.ai.nodes import plan_orderer
-        self.assertEqual([s['gap'] for s in plan_orderer.inputs(self.report)['pipeline_steps']], ['gap:P2:x', 'gap:P7:x'])
-
         launcher = Answer(lambda n, s: {'summary': '', 'decisions': [decision('TASK-001', 'accept', ['TASK-001']),
                                                                     decision('TASK-002', 'accept', ['TASK-002'])]})
         record = nodes.run(self.report, names=['fix_reviewer'], launcher=launcher, wave=self.wave)['fix_reviewer']
@@ -413,101 +401,15 @@ class Planners(Base):
         self.assertNotIn('fix_reviewer', nodes.run(self.report, names=['fix_reviewer'], launcher=launcher), 'nothing to read without a batch')
 
 
-class IdealNode(Base):
-    """The ideal planner on the framework: ideal.plan unchanged, one decision in the shared shape, a cache by inputs."""
-
-    def plan_answer(self, name, schema):
-        element = {'id': 's1', 'kind': 'component', 'title': 'One client', 'operation': 'refactor', 'subject': 'T-src', 'detail': '',
-                   'cites': ['TASK-001']}
-        if name == 'critique':
-            return {'critique': {'missed': [], 'risks': [], 'order': []},
-                    'changes': {'put': [], 'remove': [], 'summaries': [], 'aspects': [], 'departures': [], 'open_questions': [],
-                                'drop_questions': [], 'confidence': None}}
-        views = {v: {'summary': '', 'confidence': 0.7, 'elements': [element] if v == 'system' else []} for v in schema['properties']['views']['properties']}
-        questions = [{'id': 'q1', 'view': 'system', 'question': 'Keep it?', 'options': ['yes', 'no'], 'recommendation': 'yes', 'why': ''}]
-        return {'views': views, 'departures': [], 'confidence': 0.7, 'open_questions': questions if 'system' in views else []}
-
-    def test_without_an_assistant_or_with_a_stuck_one_the_rules_target_stands_and_with_one_it_asks_once(self):
-        record = nodes.run(self.report, names=['ideal_planner'], adapters={})['ideal_planner']
-        self.assertEqual((record['state'], record['decisions'][0]['decision']), ('rules_only', 'rules only'))
+class Stuck(Base):
+    def test_with_a_stuck_assistant_the_rules_decide(self):
         def stuck(name, schema): raise provider.Stuck('silent')
-        record = nodes.run(self.report, names=['ideal_planner'], launcher=Answer(stuck), fresh=True)['ideal_planner']
-        self.assertEqual((record['state'], record['why']), ('rules_only', core.WORDS['stuck']))
         record = self.triage(Answer(stuck))
         self.assertEqual((record['state'], record['why']), ('rules_only', core.WORDS['stuck']))
-        launcher = Answer(self.plan_answer)
-        record = nodes.run(self.report, names=['ideal_planner'], launcher=launcher, fresh=True)['ideal_planner']
-        self.assertEqual(sorted(c[0] for c in launcher.calls), ['critique', 'plan-change', 'plan-infra', 'plan-system'])
-        only = record['decisions'][0]
-        self.assertEqual((only['subject'], only['decision'], only['evidence']), ('ideal', 'ask', ['TASK-001']))
-        self.assertEqual(only['open_questions'][0]['question'], 'Keep it?')
-        self.assertEqual(ideal.section(self.report, 'en')['state'], 'planned')
-        self.assertTrue(nodes.run(self.report, names=['ideal_planner'], launcher=launcher)['ideal_planner']['cached'])
-        self.assertEqual(len(launcher.calls), 4)
-        nodes.run(self.report, names=['ideal_planner'], launcher=launcher, fresh=True)
-        self.assertEqual(len(launcher.calls), 8)
 
 
-class Detector(unittest.TestCase):
-    """Any project's declared stage records with `routes` become routers with each branch's condition, and their
-    targets outside the list become sinks; `kind='ai'` marks an AI stage."""
-
-    def test_declared_routes_are_read(self):
-        from eaos.facts.declared_pipelines import detect as pipeline
-        code = '''
-def a(x): return x
-def b(x): return x
-def c(x): return x
-RUN = {'one': a, 'two': b, 'three': c}
-STAGES = (
-    Step('one', kind='ai', budget=60, routes=(('good', 'two'), ('bad', 'review'))),
-    Step('two', requires=('one',)),
-    Step('three', requires=('two',)),
-)
-def go():
-    for step in STAGES:
-        RUN.get(step.name)
-'''
-        with tempfile.TemporaryDirectory() as folder:
-            (Path(folder) / 'flow.py').write_text(code, encoding='utf-8')
-            record = pipeline.scan(Path(folder))
-        found = record['pipelines'][0]
-        kinds = {s['label']: s['kind'] for s in found['stages']}
-        self.assertEqual((kinds['one'], kinds['two'], kinds['review'], kinds['one router']), ('ai', 'stage', 'sink', 'router'))
-        router = next(r for r in found['routers'] if r['table'] == 'one')
-        labels = {s['id']: s['label'] for s in found['stages']}
-        self.assertEqual([(b['condition'], labels[b['to']]) for b in router['branches']], [('good', 'two'), ('bad', 'review')])
-        self.assertEqual(router['kind'], 'conditional_edges')
-        self.assertEqual([s['timeout'] for s in found['stages'] if s['label'] in ('one', 'two')], [True, False])
-
-
-class Studio(Base):
-    """studio/nodes.json and the inbox rows (the exporter: tests/ai/test_ideal_planner.py Exported)."""
-
-    def test_the_section_says_what_ran_and_how_and_the_studio_fixture_keeps_its_contract(self):
-        contract = artifact_contracts.contracts()['studio-nodes']
-        wrap = lambda body: {'schema_version': 1, 'contract': 1, 'revision': 2, **body}
-        body = view.section(self.report, 'ar')
-        self.assertEqual(artifact_contracts.validate(wrap(body), contract), [])
-        self.assertEqual({n['state'] for n in body['nodes']}, {'not_run'})
-        ask = Answer(lambda n, s: {'summary': '', 'decisions': [decision('TASK-001', 'confirm', ['TASK-001'], detail={'harmed': 'the app users'}, open_questions=[
-            {'id': 'q1', 'question': 'Is the file generated?', 'options': ['yes', 'no'], 'recommendation': None}])]})
-        nodes.run(self.report, names=['card_triage'], launcher=ask)
-        body = view.section(self.report, 'ar')
-        self.assertEqual(artifact_contracts.validate(wrap(body), contract), [])
-        triaged = next(n for n in body['nodes'] if n['id'] == 'card_triage')
-        self.assertEqual((triaged['method'], triaged['title']['ar'], triaged['routes'][0]['subjects']), ('model', 'فرز البطاقات', 1))
-        self.assertTrue(all(r['when']['ar'] != r['when']['en'] for r in triaged['routes']))
-        self.assertEqual(len(triaged['log']), 1)
-        rows = view.decisions(self.report, 'ar')
-        self.assertEqual([(r['id'], r['tool'], r['state']) for r in rows], [('node-card_triage:TASK-001:q1', 'run_nodes', 'waiting')])
-        data = json.loads((ROOT / 'tests/fixtures/studio/v2/nodes.json').read_text(encoding='utf-8'))
-        self.assertEqual(artifact_contracts.validate(data, artifact_contracts.contracts()['studio-nodes']), [])
-        self.assertTrue(any(n['method'] == 'model' for n in data['nodes']) and any(n['method'] == 'rules' for n in data['nodes']))
-
-
-class RunFromTheStudio(Base):
-    """The command centre's `run_nodes`: a run of the manager, the nodes' steps as events, the summary as its result."""
+class RunFromTheEngine(Base):
+    """The run engine's `run_nodes`: a run of the manager, the nodes' steps as events, the summary as its result."""
 
     def setUp(self):
         super().setUp()
@@ -518,7 +420,7 @@ class RunFromTheStudio(Base):
         self.project.mkdir()
 
     def test_the_nodes_run_and_end_with_their_summary(self):
-        from eaos.interfaces import studio_actions as actions
+        from eaos.interfaces import runs as actions
         from eaos.journeys.fix import selection
         patch = mock.patch.object(selection, 'studio_folder', return_value=self.report / 'studio')
         patch.start()
@@ -544,8 +446,8 @@ if __name__ == '__main__':
 
 
 class AnyNodeAnyTime(unittest.TestCase):
-    def test_any_node_runs_as_a_job_an_assistant_starts_and_the_studio_lists_every_node(self):
-        # Every node can be re-run at any time, also by an assistant outside the Studio, so every node is in the list.
+    def test_any_node_runs_as_a_job_an_assistant_starts_and_the_contract_lists_every_node(self):
+        # Every node can be re-run at any time, also by an assistant, so every node is in the list.
         import json
         from pathlib import Path
         from eaos.interfaces.mcp_server import node_jobs
@@ -555,6 +457,6 @@ class AnyNodeAnyTime(unittest.TestCase):
         self.assertEqual(set(action['inputs']['properties']['nodes']['items']['enum']), {n.name for n in nodes.NODES})
         with mock.patch('eaos.journeys.agent_tools._start', return_value={'job': 'j1', 'status': 'started'}) as started, \
                 mock.patch('eaos.journeys.agent_tools.state_of', return_value={'project': '/p'}):
-            self.assertEqual(node_jobs.start('/p', ['visual_reviewer'])['job'], 'j1')
+            self.assertEqual(node_jobs.start('/p', ['plan_orderer'])['job'], 'j1')
         self.assertEqual(started.call_args.kwargs['runner'], 'eaos.interfaces.mcp_server.node_jobs')
         self.assertIn('run_nodes', node_jobs.JOBS)

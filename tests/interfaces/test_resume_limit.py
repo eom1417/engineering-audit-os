@@ -5,7 +5,7 @@ import unittest
 from unittest import mock
 from datetime import datetime, timezone
 from eaos.ai.assistant import readiness
-from eaos.interfaces.studio_actions import resume
+from eaos.journeys.runs import resume
 
 SAID = "You've hit your session limit · resets 7:40am (UTC)"
 

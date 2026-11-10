@@ -48,12 +48,6 @@ class Extending(unittest.TestCase):
                 self.assertEqual(sorted(forms), ['does', 'doing', 'title'])
                 self.assertTrue(all(len(pair) == 2 and all(pair) for pair in forms.values()), 'Arabic and English')
 
-    def test_every_studio_action_has_its_mcp_twin_or_its_reason(self):
-        from eaos.core.project.runs import contract
-        from eaos.interfaces.mcp_server.studio_parity import NO_TOOL, PARITY
-        declared = {f"{row['method']} {row['path']}" for row in contract()['endpoints']}
-        self.assertEqual(sorted(declared - set(PARITY) - set(NO_TOOL)), [])
-
 
 if __name__ == '__main__':
     unittest.main()

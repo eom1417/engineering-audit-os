@@ -13,7 +13,6 @@ Fake runners and an injected clock stand in for the real stages and for time, so
 recorded runs in tests/fixtures/progress/ are real checks.
 """
 import json
-import os
 import subprocess
 import sys
 import time
@@ -31,7 +30,6 @@ from eaos.pipeline import STAGES, SkipStage, execute, resume  # noqa: E402
 from eaos.pipeline.stages import ORDER  # noqa: E402
 from eaos.core.progress import log as writer, sampler  # noqa: E402
 from pipeline.test_run import fake_runners  # noqa: E402
-from interfaces.test_progress_server import report_with_data  # noqa: E402
 from shared_fixture import scratch  # noqa: E402
 
 FIXTURES = ROOT / 'tests/fixtures/progress'
@@ -418,15 +416,6 @@ class Liveness(unittest.TestCase):
                          'a run that promised no heartbeat is not judged by its silence')
         self.assertEqual(progress.judge({**state, 'state': 'done'}, heard=1000.0, now=9999.0), 'done')
         self.assertEqual(progress.judge(state, heard=None, now=9999.0), 'running')
-        from eaos.interfaces.studio_server.read import scan_state
-        report = report_with_data(scratch())
-        log = progress.ProgressLog(report, pulse=False, sampler=None)
-        log.started(STAGES, list(ORDER), {})
-        log.stage_started('facts')
-        self.assertEqual(scan_state(report)['state'], 'running')
-        then = time.time() - progress.STALLED_AFTER - 5
-        os.utime(progress.path_for(report), (then, then))
-        self.assertEqual(scan_state(report)['state'], 'stalled')
 
 
 class Flows(unittest.TestCase):
@@ -472,19 +461,6 @@ class GoldenFold(unittest.TestCase):
         import progress_golden
         self.assertEqual(progress_golden.main(['check']), 0)
 
-
-
-class TimeLeft(unittest.TestCase):
-    def test_a_stage_whose_work_changed_does_not_scale_the_others(self):
-        # The time left is estimated from the stages that really run: live stages that stopped within seconds in an
-        # earlier check must not make a check of about 45 minutes read 104 to 141.
-        from eaos.pipeline.estimate import pace
-        same = {'facts': 100, 'engines': 200, 'claims': 50}
-        stages = [{'name': name, 'state': 'ok', 'seconds': seconds} for name, seconds in same.items()]
-        live = [{'name': 'crawl', 'state': 'ok', 'seconds': 350}, {'name': 'setup', 'state': 'ok', 'seconds': 80}]
-        self.assertEqual(pace({'previous': {**same, 'crawl': 3, 'setup': 2}, 'stages': stages + live}), 1.0)
-        slower = [{**stage, 'seconds': stage['seconds'] * 2} for stage in stages]
-        self.assertEqual(pace({'previous': same, 'stages': slower}), 2.0, 'a slower computer still scales them')
 
 
 if __name__ == '__main__':

@@ -12,7 +12,7 @@ from unittest import mock
 
 from shared_fixture import Workspace
 
-from eaos.engines.code import ast_grep, knip, lizard, react_docgen
+from eaos.engines.code import ast_grep, knip, lizard
 from eaos.engines import tool
 from eaos.engines.contract import OBSERVED, UNAVAILABLE
 from eaos.engines.process import run, which
@@ -20,7 +20,7 @@ from eaos.engines.tool import version_of
 
 CONTRACTS = Path(__file__).resolve().parents[1] / 'contracts'
 FIXTURE = Path(__file__).resolve().parents[1] / 'fixtures/code_engines'
-ENGINES = {'ast-grep': ast_grep, 'lizard': lizard, 'knip': knip, 'react-docgen': react_docgen}
+ENGINES = {'ast-grep': ast_grep, 'lizard': lizard, 'knip': knip}
 
 
 def sample(name):
@@ -47,21 +47,15 @@ class EveryEngineTests(Workspace):
                 self.assertEqual((report.findings, report.metrics), ([], []))
         # An adapter reads its own version when the binary prints none.
         with mock.patch.object(tool, 'version', return_value=None), \
-                mock.patch('eaos.core.toolchain.applies', return_value=(True, 'react')):
-            self.assertIsNone(tool.declined('react-docgen', 'react-docgen', self.tmp, probe=lambda: '3.0.7'))
-            self.assertEqual(tool.declined('react-docgen', 'react-docgen', self.tmp, probe=lambda: None).status, UNAVAILABLE)
+                mock.patch('eaos.core.toolchain.applies', return_value=(True, 'javascript')):
+            self.assertIsNone(tool.declined('knip', 'knip', self.tmp, probe=lambda: knip.PINNED))
+            self.assertEqual(tool.declined('knip', 'knip', self.tmp, probe=lambda: None).status, UNAVAILABLE)
 
     def test_an_exclusion_matches_whole_segments_below_the_target_never_the_folders_it_sits_in(self):
         self.assertTrue(tool.excluded('src/components/ui/button.tsx', ['components/ui']))
         self.assertTrue(tool.excluded('dist/app.js', ['dist']))
         self.assertFalse(tool.excluded('src/components/uikit/x.tsx', ['components/ui']))
         self.assertFalse(tool.excluded('build_trial.py', ['build']))
-        root = Path(self.tmp) / 'build' / 'proj[1]'
-        root.mkdir(parents=True)
-        for path in ('src/components/ui/Button.tsx', 'src/pages/Home.tsx'):
-            (root / path).parent.mkdir(parents=True, exist_ok=True)
-            (root / path).write_text('export const A = () => <div/>;\n')
-        self.assertEqual(react_docgen.sources(root, ('components/ui',)), (['src/pages/Home.tsx'], []))
 
 
 class OfflineAdapterTests(Workspace):
@@ -113,27 +107,6 @@ class OfflineAdapterTests(Workspace):
             self.assertEqual(knip.analyze(self.tmp, Path(self.tmp) / 'work').status, 'error')
         ran.assert_not_called()
 
-    def test_react_docgen_records_props_and_isolates_a_failing_file(self):
-        rows = {row['symbol']: row['measurements'] for row in react_docgen.records(sample('react-docgen')['react-docgen.json'])}
-        self.assertEqual(set(rows), {'App', 'VehicleCard', 'Orphan'})
-        self.assertEqual(rows['VehicleCard']['props'], [{'name': 'compact', 'type': 'boolean', 'required': False},
-                                                        {'name': 'vehicle', 'type': 'Vehicle', 'required': True}])
-        self.assertEqual(rows['VehicleCard']['referenced_types'], ['Vehicle'])
-        self.assertEqual(rows['App']['prop_count'], 0)
-        parsed = sample('react-docgen')['react-docgen.json']
-        def fake_run(command, **_):
-            files = command[command.index('find-all-exported-components') + 1:]
-            if 'src/main.tsx' in files: return 1, '', 'SyntaxError', 0.1
-            Path(command[command.index('--out') + 1]).write_text(json.dumps({f: parsed[f] for f in files}))
-            return 0, '', '', 0.1
-        with mock.patch.object(react_docgen.tool, 'declined', return_value=None), \
-                mock.patch.object(react_docgen, 'version', return_value=react_docgen.PINNED), \
-                mock.patch.object(react_docgen, 'which', return_value='react-docgen'), mock.patch.object(react_docgen, 'run', fake_run):
-            report = react_docgen.analyze(FIXTURE / 'web', Path(self.tmp) / 'work')
-        self.assertEqual((report.status, report.coverage['unparsed_files']), (OBSERVED, ['src/main.tsx']))
-        self.assertEqual({m['symbol'] for m in report.metrics}, {'VehicleCard', 'Orphan'})
-        self.assertEqual(react_docgen.GLOB_SPECIAL.sub(r'\\\1', 'app/(auth)/[id]/page.tsx'), r'app/\(auth\)/\[id\]/page.tsx')
-
 
 KNIP_EXPECTED = {('files', 'src/components/Orphan.tsx', 'src/components/Orphan.tsx'),
                  ('exports', 'src/lib/format.ts', 'src/lib/format.ts:unusedFormat'),
@@ -162,8 +135,3 @@ class LiveRunTests(Workspace):
             report = knip.analyze(FIXTURE / 'web', work('knip'))
             self.assertEqual(report.status, OBSERVED, report.reason)
             self.assertEqual(rules_of(report), KNIP_EXPECTED)
-        with self.subTest(engine='react-docgen'):
-            if not installed(react_docgen): self.skipTest('react-docgen is not installed at its pin')
-            report = react_docgen.analyze(FIXTURE / 'web', work('docgen'))
-            self.assertEqual(report.status, OBSERVED, report.reason)
-            self.assertEqual(report.metrics, react_docgen.records(sample('react-docgen')['react-docgen.json']))

@@ -10,7 +10,7 @@ import json
 from pathlib import Path
 
 from . import framework as core
-from ..ideal import planner as ideal
+from . import evidence
 
 VERSION = '1'
 LIMIT = {'diff': 60000, 'cards': 60}
@@ -26,7 +26,7 @@ TASK = ('You are the fix reviewer of EAOS, an engineering audit. Below is one ba
 
 def _cards(report, ids):
     tasks = {t['id']: t for t in (core.load(Path(report) / 'plan.json', {}) or {}).get('tasks') or [] if isinstance(t, dict) and t.get('id')}
-    cards = {c['id']: c for c in ideal._cards(report)}
+    cards = {c['id']: c for c in evidence.cards(report)}
     return [_card(card, tasks.get(card) or {}, cards.get(card) or {}) for card in ids]
 
 
@@ -67,7 +67,7 @@ def subjects(data):
 
 
 def known(report, data):
-    return ideal.known_ids(report) | set(subjects(data))
+    return evidence.known_ids(report) | set(subjects(data))
 
 
 def rules(data):

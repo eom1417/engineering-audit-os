@@ -123,21 +123,6 @@ class ProjectGuideTests(Workspace):
         self.assertEqual(craft.no_guide(many[:-1], set(many), rules), [])
         self.assertEqual(craft.no_guide(many, {*many, 'docs/EXTENDING.md'}, rules), [])
 
-    def test_a_build_is_born_with_it_and_its_milestone_proof_commits_it_only_when_nothing_holds_it_back(self):
-        from eaos.journeys.build_from_plan import checks
-        root = self.repo()
-        out = Path(self.tmp) / 'report'
-        state = {'project': str(root)}
-        with mock.patch('eaos.analysis.layers.check', return_value=LAYERS), mock.patch.object(checks, '_milestone_tidy', return_value=[]), \
-                mock.patch.object(project_guide, 'pinned_ids', return_value=[]):
-            checks._milestone_proof(state, root, out, ('CARD-1', False), [])
-            self.assertFalse((root / 'docs/EXTENDING.md').exists(), 'a card is no proof')
-            self.assertEqual(checks._milestone_proof(state, root, out, (None, False), [{'gate': 'x'}]), [{'gate': 'x'}])
-            self.assertFalse((root / 'docs/EXTENDING.md').exists(), 'held back')
-            checks._milestone_proof(state, root, out, (None, False), [])
-        self.assertIn('docs/EXTENDING.md', git(root, 'show', '--name-only', '--format=', 'HEAD'))
-        self.assertEqual(git(root, 'status', '--porcelain'), '')
-
     def test_a_project_that_declares_its_layers_is_mapped_by_them_and_says_what_each_must_not_use(self):
         from eaos.analysis.layers import record
         root = Path(self.tmp) / 'declared'

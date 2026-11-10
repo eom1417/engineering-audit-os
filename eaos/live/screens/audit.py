@@ -10,8 +10,7 @@ when it did not observe; a missing tool is reported as unavailable, it is not ra
                                                  clipped text, letter-spaced Arabic, the page's script errors, the
                                                  page height and a full-page screenshot.
     lighthouse(url, out)                         Lighthouse, mobile profile: category scores, LCP and CLS.
-The audit's wide pictures also count the look the page shows (its style census), read by
-eaos/analysis/assessments/one_source_look.py.
+The audit's wide pictures also count the look the page shows (its style census).
 """
 import gzip
 import io

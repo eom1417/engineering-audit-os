@@ -4,7 +4,7 @@ The assistant drives: it checks the project, reads the evidence and the code, ge
 isolated copy, writes the fixes, and hands them over as a branch. EAOS gives it the evidence, the copy and the
 gates (eaos/journeys/agent_tools/). Long work is a job the assistant follows with `wait`. Registered for Claude Code
 and Codex by `eaos assistant install`, which install.sh runs. The tools of the check are here; those of the fixes are in
-interfaces/mcp_server/fix.py, those that build from a plan in interfaces/mcp_server/build.py, the governance tools in interfaces/mcp_server/govern.py.
+interfaces/mcp_server/fix.py, the governance tools in interfaces/mcp_server/govern.py.
 """
 import functools
 import inspect
@@ -27,14 +27,6 @@ Work on your own until the job is done; do not come back to them between steps. 
   2. once, before running their app and preparing fixes (run_setup gives the exact question);
   3. at the end, whether to take the branch in (accept) or throw it away (undo), each with person_agreed after their yes.
 
-For a project that exists only as a plan (a PRD, notes, any file or pasted text), build it instead:
-  blueprint_start -> blueprint_spec (until complete; research, recommend, ask only real choices) -> blueprint_design
-  -> build_start (one agreement) -> build_edit per card -> build_finish, milestone after milestone -> accept.
-  Write each card in the folder it names, reusing what exists; the gates refuse copies, cycles, layer breaks and a
-  vendor outside its adapter.
-To add a feature, a page or a part to a project already checked: extend_start -> extend_plan (until it fits the
-  project) -> the person agrees -> fix_start with its cards, built and checked as any fix.
-
 The whole way for an existing project, in order (`status` always says the next tool):
   (when the project has several branches with different code, status first asks which one: ask the person, then
    choose_branch; everything after follows that branch)
@@ -46,7 +38,7 @@ The whole way for an existing project, in order (`status` always says the next t
   fix_start -> for each card: finding + fix_read, then fix_edit (fix_skip only with a real reason) -> fix_finish
   then tell the person what changed and ask: accept or undo. `accept` merges, deletes the branch and updates the
   report and the progress in one call: never merge or delete a branch with git yourself.
-Without the Studio, the same governance is yours through runs (the queue: estimate, check, show, stop...), waiting (what
+The same governance is yours through runs (the queue: estimate, check, show, stop...), waiting (what
 waits for the person), act (fix, verify, explain, plan on cards or a group, previewed first), history and branch_change:
 what is the person's there (an answer, a branch change, a Fix that accepts itself) takes their word and the preview's token.
 When the person states a requirement that must hold ("never...", "always...", "the data lives only in..."), keep it in
@@ -58,12 +50,8 @@ why with `note` after each card and before you stop.
 When the person types /eaos alone, or asks what EAOS can do here, call `menu` and show its options as one choice
 (the recommended one first); once they chose, do what that option says at once. For questions about their code,
 `impact` (what changing a file touches) and `ask` answer from the check's records; `tools_check` says what is installed.
-The Studio is the person's view of all of it: at the start of the work, and right after EAOS was installed or updated,
-call open_studio and send them its address without being asked (on a remote server whose ports your environment routes
-to https addresses, pass that address once: the Studio then stays there, on the server, whichever assistant comes next).
 Long steps return a job: call `wait` with it until it is done (a check takes 5-30 minutes). When a check waits for the
-person to sign in to their app (status: next tool sign_in), tell them to open Waiting for you in the Studio, or to run
-`eaos sign-in` in a terminal; never sign in for them, and never ask for their password. Keep every feature,
+person to sign in to their app (status: next tool sign_in), tell them to run `eaos sign-in` in a terminal; never sign in for them, and never ask for their password. Keep every feature,
 route and behaviour when fixing: a fix that deletes what users reach is refused, and so is one that changes a
 public function or class (its name, its parameters, the module it is defined in): split inside, keep the outside. Never invent results: report
 what the tools returned.
@@ -72,13 +60,13 @@ what the tools returned.
 
 
 def _status(project=None):
-    """The status tool of the project's way: fixing, or building from a plan; with the request the Studio handed to the
-    next assistant, when one waits (eaos/interfaces/studio_actions/handoff.py)."""
-    from ...journeys.build_from_plan.steps import status_of
-    result = status_of(project)
+    """The status tool of the project's way, with the request a run handed to the next assistant, when one waits
+    (eaos/journeys/runs/handoff.py)."""
+    from ...journeys import agent_tools
+    result = agent_tools.status(project)
     if isinstance(result, dict) and not os.environ.get('EAOS_STUDIO_RUN'):
         from ...journeys.handover import assistant
-        from ..studio_actions import handoff
+        from ...journeys.runs import handoff
         if assistant() != STUDIO: result.update(handoff.for_status(Path(project or os.getcwd()).expanduser().resolve(), assistant()))
     return result
 
@@ -119,14 +107,13 @@ def build(more=None):
     which the Studio itself never calls: functions, reading)."""
     from mcp.server.mcpserver import MCPServer
     from mcp.types import ToolAnnotations
-    from . import build as mcp_build, fix as mcp_fix, rules as mcp_rules
+    from . import fix as mcp_fix, rules as mcp_rules
 
     server = MCPServer(name='eaos', title='Engineering Audit OS', version=__version__, instructions=INSTRUCTIONS)
     reading = ToolAnnotations(readOnlyHint=True, openWorldHint=False)
     working = ToolAnnotations(readOnlyHint=False, destructiveHint=False, openWorldHint=False)
     _check_tools(server, reading, working)
     mcp_fix._fix_tools(server, reading, working, _answer, _status)
-    mcp_build._build_tools(server, reading, working, _answer)
     mcp_rules.register(server, reading, working, _answer)
     if more: more(server, reading, working, _answer)
     _prompts(server)
@@ -205,36 +192,15 @@ def _record_tools(server, reading, working):
         return tools.ask(question, project)
     # jscpd:ignore-end
 
-    @server.tool(annotations=reading, description='How the app\'s users fared in the last experience run: each persona\'s goals in '
-                 'order with their result, time and steps counted, the difficulties ranked (confirmed first, then by severity), '
-                 'the tickets, the replays that broke, the services not covered, and the records missing. The full story with '
-                 'pictures is EXPERIENCE.md in the report (report_file). ' + PROJECT_DOC)
-    @_answer
-    def experience(project: str | None = None) -> str:
-        from ...journeys import guided
-        from ...report.experience.story import story, summary
-        return summary(story(guided.report_of(tools.state_of(project))))
-
-    @server.tool(annotations=working, description='Hunt logic flaws after a check (skipped steps, races, wrong checks): the person\'s '
-                 'assistant reads the code twice on its deep tier, then the check goes on from its claims so the cards include them. '
-                 'It spends: without person_agreed it answers needs_agreement with what it costs; ask the person, and only after '
-                 'their yes call again with person_agreed=true. minutes: the most it may take (default 40). Returns a job. ' + PROJECT_DOC)
-    @_answer
-    def logic_flaws(person_agreed: bool = False, minutes: int | None = None, project: str | None = None) -> str:
-        from .. import deep_checks
-        return deep_checks.logic_flaws_tool(project, person_agreed, minutes)
-
 
 def _audit_tool(server, reading, working):
     """The check itself, with every choice the person makes for it."""
     from ...journeys import agent_tools as tools
 
-    @server.tool(annotations=working, description='Check the whole project (41 stages: files, features, your rules, tools, tests, structure, '
-                 'security, load, plan). Returns a job to follow with `wait`; when the project was already checked at this commit, '
+    @server.tool(annotations=working, description='Check the whole project (27 stages: files, features, your rules, tools, tests, structure, '
+                 'security, plan). Returns a job to follow with `wait`; when the project was already checked at this commit, '
                  'returns the overview at once, also when the code moved on since (it says so): fresh=true checks again from the '
-                 'start, only when the person asks for a new check. A started check answers with `watch`, '
-                 'its live map in the EAOS Studio, opened in the person\'s browser (first "Preparing the tools" while the tools the check '
-                 'needs are installing: the check starts by itself once they are ready). use_assistant: before their first check, ask the '
+                 'start, only when the person asks for a new check. The check starts by itself once the tools it needs are installed. use_assistant: before their first check, ask the '
                  'person once whether EAOS may use their AI assistant in it (it interprets the facts and plans the ideal; '
                  'everything it says stays a hypothesis tied to evidence) and pass their answer; it is kept. assistant: which one '
                  '(claude or codex), when they say; `assistant_check` shows which is ready. A chosen assistant that is not ready '
@@ -243,8 +209,7 @@ def _audit_tool(server, reading, working):
                  'the last check goes on from that stage (one whose tool failed, or one to redo): it and the stages reading it run '
                  'again on the checked commit, the rest is kept; engines=[names] with again_from=engines runs only those tools. '
                  'paths=[...] checks only those paths, when the person has a clear goal: security, look (the screens), code '
-                 '(structure, quality, dead code), speed (load and scale), experience (simulated users try the running app; beside complete '
-                 'its short option, off by default: say its time and calls from the estimate first); complete by default. mode=speed runs several '
+                 '(structure, quality, dead code), speed (redundant work); complete by default. mode=speed runs several '
                  'assistants at once: faster, more tokens; say so before choosing it (kept). sign_in: when the app has a sign-in, how '
                  'its pages are opened (kept): hand (the person signs in on the sign-in page when the check asks; status then says '
                  'so), test_user (a seed script signs a test user in), none (signed out). published=<https address>: only when the '
@@ -289,14 +254,6 @@ def _follow_tools(server, reading, working):
 
 def _prompts(server):
     """The prompts, and the /eaos:<option> shortcuts of Claude Code."""
-    @server.prompt(name='build', description='Build a new project from its plan, with the best structure · ابنِ مشروعًا من خطة')
-    def build_prompt() -> str:
-        return ('Use the eaos tools to build my project from its plan, end to end: blueprint_start with my plan file (or the text '
-                'I paste), write the product spec, research what the plan leaves thin and recommend, ask me only real choices '
-                '(including technology preferences), blueprint_design, then build_start and every milestone with build_edit and '
-                'build_finish, without coming back to me between steps. At the end, tell me simply what was built and ask whether '
-                'to take it in.')
-
     @server.prompt(name='audit', description='Check this project and explain its problems simply · افحص المشروع')
     def audit_prompt() -> str:
         return ('Use the eaos tools to check this project: call `status`, then `audit` and `wait` until it is done. Then explain, '
@@ -336,7 +293,7 @@ def _prompts(server):
 
 def functions():
     """{tool name: the function the MCP server calls}, each answering JSON text and recorded in the journal like an
-    assistant's call: what the Studio's command centre calls for a direct action (eaos/interfaces/studio_actions)."""
+    assistant's call: what a direct run calls (eaos/interfaces/runs.py)."""
     return {tool.name: tool.fn for tool in build()._tool_manager.list_tools()}
 
 

@@ -1,7 +1,7 @@
 """Security findings in the project's own code, read as a few cards and never dropped.
 
-Every engine that reads code for security (Semgrep's patterns, Bandit's syntax tree, CodeQL's data flow, and
-Gitleaks' secret scanner) reports weaknesses its own way, and a real one is often seen by only one of them. So:
+Every engine that reads code for security (Semgrep's patterns and Gitleaks' secret scanner) reports weaknesses its own
+way, and a real one is often seen by only one of them. So:
 - Two engines agree when they report a weakness of the same kind (a secret, or a vulnerability) in the same file
   within LINE_WINDOW lines of each other: the group is corroborated, a LIKELY card.
 - A finding no other engine confirms still becomes a card, a HYPOTHESIS the assistant's triage decides on the code
@@ -17,7 +17,7 @@ from pathlib import Path
 
 from ...core.contracts.vocabulary import classify
 SECURITY = ('secret', 'vulnerability')
-LINE_WINDOW = 5      # one statement: Bandit names its first line, CodeQL the expression inside it
+LINE_WINDOW = 5      # one statement: one engine names its first line, another the expression inside it
 SEVERITIES = ('low', 'medium', 'high', 'critical')
 PROJECT = '*'
 
@@ -116,7 +116,7 @@ def present(specification, sets):
 def new(before, after, paths):
     """The security findings in `paths` that the facts in folder `after` have and those in `before` had not, from the
     engines both ran: the gate that refuses a change bringing a weakness in (eaos/journeys/fix/execute.py new_debt). `before` None:
-    nothing was there before, a project built from its plan (eaos/journeys/build_from_plan/steps.py). A finding the
+    nothing was there before. A finding the
     change justified on its line counts: a comment hides only a finding the project already had."""
     from pathlib import Path
     from ...facts.store import read_set

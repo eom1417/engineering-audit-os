@@ -253,7 +253,7 @@ class LiveRun:
             self.__dict__.pop('_extra', None)
         base = f"http://127.0.0.1:{self.profile['port']}"
         argv, env = self._measured(self.profile['start'], self.run_env())
-        # what the app writes from now on is its own (eaos/live/keeping/files.py)
+        # what the app writes from now on is its own
         self.started_at = time.time()
         self.sandbox.start(argv, base + self.profile.get('health', '/'),
                            timeout=self.profile.get('start_timeout', 90), cwd=self.profile.get('app') or None, env=env)

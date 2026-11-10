@@ -91,7 +91,7 @@ class Trust(unittest.TestCase):
             self.assertEqual(added(BEFORE, AFTER, CHANGED), [], 'shown, its precision alone refuses nothing')
         with Verdicts(refuses=M15):
             found = added(BEFORE, AFTER, CHANGED)
-        for what in ('same code is written again at src/pages/C.jsx', 'request state', '<div>', '#123456'):
+        for what in ('same code is written again at src/pages/C.jsx', 'request state'):
             self.assertTrue(any(what in row for row in found), (what, found))
 
     def test_two_responsibilities_alike_in_one_folder_are_never_refused_on_likeness(self):
@@ -160,8 +160,6 @@ class BeforeAfter(unittest.TestCase):
         paths = {'src/b.js', 'src/c.js'}
         self.assertEqual(len(added(check([near(('src/a.js', 1), ('src/b.js', 1), 'd1')]),
                                    check([near(('src/a.js', 60), ('src/c.js', 1), 'd2')]), paths)), 1)
-        self.assertEqual(len(added(check(patterns=[look('#111111', 'src/x.css', 'src/b.js')]),
-                                   check(patterns=[look('#222222', 'src/x.css', 'src/c.js')]), paths)), 1)
         three = [idiom('src/x.js', 1), idiom('src/y.js', 1)]
         self.assertEqual(len(added(check([*three, idiom('src/b.js', 1), idiom('src/q.js', 1, 'json_read'), idiom('src/r.js', 1, 'json_read')]),
                                    check([*three, idiom('src/q.js', 1, 'json_read'), idiom('src/r.js', 1, 'json_read'),
@@ -169,7 +167,7 @@ class BeforeAfter(unittest.TestCase):
 
     def test_what_the_check_before_did_not_measure_holds_nothing_against_the_change(self):
         older = check([near(('src/x.js', 1), ('src/y.js', 1), None)])       # near copies without their digest
-        for before, kind in ((check(ran=()), 'near_copy'), (older, 'near_copy'), (check(ran=()), 'idiom'), (check(read_patterns=False), 'look')):
+        for before, kind in ((check(ran=()), 'near_copy'), (older, 'near_copy'), (check(ran=()), 'idiom'), (check(), 'look')):
             self.assertNotIn(kind, gate.measured(before))
         self.assertEqual(added(check(ran=(), read_patterns=False), AFTER, CHANGED), [])
         self.assertEqual(gate.measured(check(ran=(), read_patterns=False)), {'clone'}, 'EAOS\'s own metrics always run')

@@ -21,12 +21,6 @@ RUN_OPTIONS = {'launcher': None, 'adapters': None, 'project': None, 'lang': 'en'
                'cancel': None, 'started': None, 'assistants': None, 'logged': True, 'mode': 'normal'}
 
 
-def settings_of(options):
-    """A node's settings out of its options, each at its default when not given (RUN_OPTIONS); `options` is left as it
-    is."""
-    return {name: options.get(name, default) for name, default in RUN_OPTIONS.items()}
-
-
 def _prompt(spec, data):
     """A node's question: its own `prompt`, else its TASK with the rules every answer keeps (framework.prompt)."""
     own = getattr(spec, 'prompt', None)

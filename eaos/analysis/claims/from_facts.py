@@ -14,6 +14,8 @@ from ..assessments.dependencies import build_assessment as dependency_assessment
 # eighty-module cycle listed every member and the whole dossier failed to assemble; the members
 # live in the fact, so the sentence names enough of them to recognise and says how many more.
 NAMED_IN_A_STATEMENT = 6
+# The order of a vulnerability's severity, lowest first.
+VULNERABILITY_SEVERITIES = ('low', 'medium', 'high', 'critical')
 
 
 DEAD_REASONS = {'unreachable-module': ('لا تصله أي نقطة دخول إنتاجية', 'no production entry point reaches it'),
@@ -311,10 +313,9 @@ def _place(fact, target):
 
 def _lockfile(lock, members, add):
     """One card for the packages of a lock file the project does not name itself: it passes or fails whole."""
-    from ...engines.security.osv_scanner import SEVERITIES
     facts = [fact for fact, _ in members]
     named = [str(fact['location'].get('symbol')).partition(':')[2] for fact in facts]
-    worst = max((_measured(fact, 'severity') or 'medium' for fact in facts), key=SEVERITIES.index)
+    worst = max((_measured(fact, 'severity') or 'medium' for fact in facts), key=VULNERABILITY_SEVERITIES.index)
     shown = ', '.join(named[:5]) + (' …' if len(named) > 5 else '')
     return add(f'{lock}: {len(facts)} packages the project does not name itself have known vulnerabilities ({shown}), '
                f'highest {worst}', 'risk', 'CONFIRMED', ['static_fact'],

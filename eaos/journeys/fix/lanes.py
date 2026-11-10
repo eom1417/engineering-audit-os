@@ -4,7 +4,7 @@ Most of a card's time is its assistant's thinking (a minute and a half a card, a
 change), so a batch's cards are dealt into lanes (deal), each fixed by its own assistant at the same time, in the
 batch's one copy and on its one branch. The cards that share a file, or that one waits for, go in one lane: no two
 assistants change one file. Lane 0 is the assistant that opened the batch; the Studio starts one beside it for each
-other lane (eaos/interfaces/studio_actions/lane_assistants.py). EAOS checks their changes one at a time
+other lane (eaos/journeys/runs/lane_assistants.py). EAOS checks their changes one at a time
 (eaos/journeys/agent_tools/ _start), so each change is checked, kept or taken back alone, as it is with one assistant.
 
 A lane holds the files its cards name, and every file it changes. A change to a file another lane holds is not tried:

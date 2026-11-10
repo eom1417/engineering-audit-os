@@ -109,43 +109,10 @@ _DECLARED = (
           absent_when='the app is not running in an isolated copy, or it has no page to open',
           description='Each distinct page, from the code and from the crawl (one per template), in the app\'s own theme at '
                       'phone and desktop width: its picture and its accessibility (axe); the first page also by Lighthouse'),
-    Stage('baseline', produces=('live/baseline.json',), requires=('setup', 'intake'), necessity=OPTIONAL, uses=('app', 'machine'),
-          absent_when='the app is not running in an isolated copy, or it has no production build that starts',
-          description="Today's speed under the intake's load scenarios (k6, p95) on the app's production build"),
     Stage('layers', produces=('layers.json', 'facts/boundaries.json'), requires=('facts',), reads=('engines', 'verify'),
           description="The system as layers: every file in a layer of its reference type, the boundaries between them, what "
                       'ships to the browser, every endpoint and its guard, the data rules read from the migrations, where the '
                       "business rules live, operations and tests; each broken boundary a finding, each doubt a question"),
-    # the last page stage: it fills the copy's database, which the lock, the screens and the layers read before
-    Stage('keeping', produces=('live/keeping.json',), requires=('setup',), reads=('session', 'crawl', 'screens', 'record', 'journeys', 'layers'),
-          necessity=OPTIONAL, uses=('app',),
-          absent_when='the app is not running in an isolated copy',
-          description="How the data is saved, travels and is kept: the saves the pages send, read again once the copy's own "
-                      'database is filled to a real size; how that database stores its data (whole documents and pictures in '
-                      'columns, the same values in two tables); the project\'s backup restored into an empty database and '
-                      'compared table by table; the files the server wrote; two edits of one record through the API'),
-    Stage('layers_trial', produces=('live/api-trial',), requires=('layers', 'setup'), reads=('session',), apart=True,
-          amends=('layers.json', 'facts/boundaries.json'), necessity=OPTIONAL,
-          absent_when='the person did not choose to try the layers (the `layers` option, its time said before it starts), or '
-                      'the app is not running in an isolated copy',
-          description="The layers tried: the production build read for keys and source maps, the migrations applied to a "
-                      "database of the run's own and tried per table with pgTAP as no one, the owner and another user (and the "
-                      "Supabase advisors), the API tried by Schemathesis with two test accounts; each failure a finding with "
-                      'its evidence'),
-    # after the lock recorded its screens: the simulated users and their seeded history change the copy's data
-    Stage('experience', produces=('experience/run.json',), requires=('setup',), reads=('roles', 'session', 'screens', 'record', 'journeys'),
-          necessity=OPTIONAL, uses=('app',),
-          absent_when='the person did not choose to try the experience (the `experience` path, or its short option beside '
-                      'the complete check, its time and cost said before it starts), no assistant was installed or allowed, '
-                      'or the app is not running in an isolated copy',
-          description="Simulated users try the running app, signed in as each kind of user: alone, personas planned with "
-                      'their data, their hand-offs and a support desk, each difficulty met again by a fresh one and judged; '
-                      "beside the complete check, one persona doing the app's main task within a step budget. The confirmed "
-                      'difficulties become cards, the journeys reached are kept for every later check to replay', ai=True),
-    Stage('readiness', produces=('readiness.json',), requires=('intake',), reads=('baseline', 'layers'),
-          description='How the program holds up in production and under pressure, as findings with evidence: the external '
-                      'dependencies a fault would hit, the routes a security scan would request, a health route, telemetry '
-                      "and SLO-able scenarios, and the load baseline against the intake's thresholds"),
     Stage('measure', produces=('measurements.json',), requires=('facts',), reads=('engines', 'verify'),
           description='One row per analysed file: size, complexity, duplication, change and dependency, each with its source'),
     Stage('architecture', produces=('architecture/map.json',), requires=('measure',), necessity=OPTIONAL,
@@ -158,61 +125,29 @@ _DECLARED = (
     Stage('rules', produces=('rules.json',), requires=('facts',), necessity=OPTIONAL,
           absent_when='the person stated no rule that holds for this project now',
           description="The person's own rules, each by its machine guard: held, broken and where, or not guarded and why (M16)"),
-    Stage('load', produces=('load-model.json',), requires=('facts',), reads=('engines', 'baseline'),
-          description='A cost record per entry point, with a stated projection at 1000x'),
-    Stage('claims', produces=('dossier.json', 'README.md'), requires=('facts', 'features', 'measure', 'load'), reads=('layers', 'layers_trial', 'experience', 'policy', 'screens', 'record', 'rules'),
+    Stage('claims', produces=('dossier.json', 'README.md'), requires=('facts', 'features', 'measure'), reads=('layers', 'policy', 'screens', 'record', 'rules'),
           description='Facts interpreted into a ledger of falsifiable claims'),
     Stage('probe', produces=('probes.json',), requires=('claims',), amends=('dossier.json',),
           description='Settle every claim whose truth can be decided mechanically'),
-    Stage('sustainability', produces=('sustainability.json',), requires=('claims',),
-          description='The six sustainability indicators, measured or declared unmeasured, each against its target'),
-    Stage('transform', produces=('transform-plan.json',), requires=('sustainability',),
-          description='Canonical homes for repeated definitions, and the move that gets there'),
-    Stage('semantic', produces=('semantic.json',), requires=('claims',),
-          amends=('dossier.json', 'README.md'), necessity=OPTIONAL,
-          absent_when='no assistant was installed or allowed, or its answer could not be used',
-          description='Model interpretation over the facts; every output stays a hypothesis', ai=True),
     Stage('plan', produces=('plan.json', 'PLAN/WAVES.md'), requires=('probe',), amends=('dossier.json', 'README.md'),
           description="The candidate cards: every actionable claim becomes a task card; the triage decides which stay"),
-    Stage('target', produces=('target-architecture.json', 'target-proposal.json'), requires=('plan',),
-          description="The rules' target proposal: today's components with their disposition and the reference's target "
-                      'components; the assistant judges it before it is final'),
-    Stage('proposals', produces=('proposals.json',), requires=('plan', 'target'), gathers=True, necessity=OPTIONAL,
-          absent_when='no assistant was installed or allowed, so nobody reads the proposals before the reports',
-          description="The tools' proposals as the Studio draws them (cards with their evidence, system, journeys, "
-                      'paths, data, infrastructure, pipeline gaps), which the assistant reads'),
-    Stage('triage', produces=('nodes/card_triage/verdicts.json',), requires=('proposals',), necessity=OPTIONAL,
+    Stage('triage', produces=('nodes/card_triage/verdicts.json',), requires=('plan',), gathers=True, necessity=OPTIONAL,
           absent_when='no assistant was installed or allowed, or its verdicts could not be used',
           description='The assistant confirms, doubts or rejects every candidate card on its own evidence, those carrying '
                       'the measurement first, and judges each doubted card again on all its facts; it says why',
           ai=True),
-    Stage('visual', produces=('nodes/visual_reviewer/findings.json',), requires=('screens',), necessity=OPTIONAL,
-          absent_when='no assistant was installed or allowed, no screen was pictured, or its review could not be used',
-          description="The assistant looks at each picture of the app's screens and names what a person would notice, "
-                      'each finding with its picture and the region of it', ai=True),
-    Stage('cards', produces=('cards.json',), requires=('plan',), reads=('triage', 'visual'), amends=('plan.json', 'dossier.json'),
+    Stage('cards', produces=('cards.json',), requires=('plan',), reads=('triage',), amends=('plan.json', 'dossier.json'),
           description="The assistant's verdicts applied once, before anything ranks, plans or reports: a card the triage "
                       "rejected leaves the plan and the gaps and its claim is refuted, a doubted security card waits for a "
                       "person's review, any other doubted one closes as not proven, none fixed automatically; without the triage every card stands as the rules wrote it"),
-    Stage('ideal', produces=('ideal/plan.json',), requires=('proposals',), reads=('triage', 'visual'), necessity=OPTIONAL,
-          absent_when='no assistant was installed or allowed, or its plan could not be used',
-          description="The assistant accepts, modifies or rejects each of the tools' proposals for the target, reading "
-                      'the triage and the semantic reading, then reviews it; every element cites its evidence', ai=True),
-    Stage('pipeline_gaps', produces=('nodes/pipeline_gap_planner/plan.json',), requires=('proposals',), necessity=OPTIONAL,
-          absent_when='no assistant was installed or allowed, the project breaks no pipeline rule, or its plan could not be used',
-          description="The assistant decides how each gap of the pipeline rules is closed, then reviews it", ai=True),
-    Stage('reconcile', produces=('TARGET-ARCHITECTURE.md',), requires=('target', 'cards'), gathers=True, amends=('target-architecture.json',),
-          description="The final target: the assistant's decision where it cites evidence and passes the guards (known "
-                      "components, the owner's policy and protected features kept), the rules' elsewhere; every "
-                      'component says who decided it and the gap matrix is drawn from it'),
-    Stage('order', produces=('nodes/plan_orderer/order.json',), requires=('cards',), reads=('ideal', 'pipeline_gaps'), necessity=OPTIONAL,
+    Stage('order', produces=('nodes/plan_orderer/order.json',), requires=('cards',), necessity=OPTIONAL,
           absent_when='no assistant was installed or allowed, or its order could not be used',
           description="The assistant orders and groups the confirmed cards into steps, reading the triage, the ideal and "
                       'the pipeline steps, then reviews the order; every prerequisite is kept', ai=True),
     Stage('steps', produces=('PLAN/STEPS.md',), requires=('cards',), reads=('order',), amends=('plan.json',),
           description="The plan's order: the assistant's steps when they keep every prerequisite, else the rules' waves"),
     Stage('reports', produces=('CURRENT-STATE.md', 'TARGET-STATE.md', 'GAP-AND-STRATEGY.md', 'EXECUTION-PLAN.md', 'START-HERE.md'),
-          requires=('reconcile', 'steps'),
+          requires=('steps',),
           description='The four reports a client reads first, written from the final target and plan; every other '
                       'document is an appendix to them'),
     Stage('translate', produces=('i18n/ar/START-HERE.md', 'i18n/en/START-HERE.md'), requires=('reports',), necessity=OPTIONAL,
@@ -229,11 +164,11 @@ BY_NAME = {stage.name: stage for stage in STAGES}
 ORDER = tuple(stage.name for stage in STAGES)
 # The five parts a person follows a check by (the Studio's board), each stage in one; within a part, the declared order.
 PHASES = {phase: tuple(sorted(names, key=ORDER.index)) for phase, names in {
-          'read': ('facts', 'features', 'roles', 'intake', 'measure', 'architecture', 'policy', 'rules', 'load'),
-          'tools': ('engines', 'layers', 'layers_trial', 'claims', 'probe', 'sustainability', 'transform'),
-          'app': ('setup', 'verify', 'session', 'crawl', 'lock', 'record', 'journeys', 'screens', 'baseline', 'keeping', 'experience', 'readiness'),
-          'assistant': ('semantic', 'triage', 'visual', 'ideal', 'pipeline_gaps'),
-          'plan': ('plan', 'target', 'proposals', 'cards', 'reconcile', 'order', 'steps', 'reports', 'translate')}.items()}
+          'read': ('facts', 'features', 'roles', 'intake', 'measure', 'architecture', 'policy', 'rules'),
+          'tools': ('engines', 'layers', 'claims', 'probe'),
+          'app': ('setup', 'verify', 'session', 'crawl', 'lock', 'record', 'journeys', 'screens'),
+          'assistant': ('triage',),
+          'plan': ('plan', 'cards', 'order', 'steps', 'reports', 'translate')}.items()}
 PHASE = {name: phase for phase, names in PHASES.items() for name in names}
 
 

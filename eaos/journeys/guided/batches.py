@@ -91,7 +91,7 @@ def reconcile(state, tidy=True):
     """Bring the state up to what git says, however the person or their assistant merged: a batch whose branch (or
     whose last commit) is in the current branch is accepted; one whose branch is gone without that is undone. With
     `tidy`, an accepted batch's branch is deleted: what only reads where things stand passes False. When something
-    changed, the ledger and REPORT.html follow at once, with no lock held. `state` itself becomes what is on disk.
+    changed, the ledger and the report follow at once, with no lock held. `state` itself becomes what is on disk.
     The changed batches."""
     if not (tidy or _something_to_settle(state)): return []     # a read with nothing to settle writes nothing
     with fresh(state):

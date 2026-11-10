@@ -12,7 +12,7 @@ import sys
 from pathlib import Path
 
 from . import framework as core, runner
-from ..ideal import planner as ideal
+from . import evidence
 
 VERSION = '1'
 LIMIT = {'facts': 4, 'rejudge_facts': 12, 'measurements': 4, 'excerpt': 6, 'line': 200, 'summary': 300}
@@ -169,7 +169,7 @@ def _cites(card):
 
 def _open_cards(report, cards, rejudge):
     """The cards not done yet (only `cards`, only those to judge again, when given), most severe first."""
-    rows = [c for c in ideal._cards(report) if c.get('state', 'open') not in ('done', 'resolved')]
+    rows = [c for c in evidence.cards(report) if c.get('state', 'open') not in ('done', 'resolved')]
     if cards: rows = [c for c in rows if c['id'] in set(cards)]
     if rejudge: rows = [c for c in rows if c['id'] in rejudge]
     rows.sort(key=lambda c: (SEVERITY.get(c.get('severity'), 5), c['id']))
@@ -208,7 +208,7 @@ def narrowed(data, asked):
 
 
 def known(report, data):
-    return ideal.known_ids(report)
+    return evidence.known_ids(report)
 
 
 def rules(data):

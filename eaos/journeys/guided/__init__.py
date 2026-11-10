@@ -17,7 +17,7 @@ guided/commands.py; what they share: person (the words and the box), project (it
 batches, doctor.
 """
 # The names other modules call through the package (guided.publish, guided.report_of ...), each kept in one module here.
-from ...core.project.places import outputs_root, second_name, workspace  # noqa: F401
+from ...core.project.places import outputs_root, workspace  # noqa: F401
 from ...core.project.state import load, runtime_of  # noqa: F401
 from .batches import choose, close_batch, merge, reconcile, refuse_if_stale, retire_stale_batch, StaleBatch, stale_refusal, why_stale  # noqa: F401
 from .checking import (agree_to_assistant, check_provider, check_runtime, choose_assistant, later_steps,  # noqa: F401

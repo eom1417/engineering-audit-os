@@ -3,8 +3,7 @@
 The check's stages each carry information about one side of the project: its structure, its health indicators, its
 repeated definitions, its tests, its journeys, its speed under load, its resilience, security and observability, its
 screens and its problems. This module puts them side by side in one compact digest per aspect, so the person's
-assistant reads all of them when it plans the ideal (eaos/ai/ideal/planner.py `bundle`, eaos/ai/semantic.py), and gives each
-aspect a verdict:
+assistant reads all of them, and gives each aspect a verdict:
 
     digest(out)        {aspect: {label, source, evidence..., rules: {verdict, why}}}, every list bounded by LIMIT
     rules_verdict(..)  the rules' own verdict from the evidence alone: `keep` (and why it is fine), `improve` (and what
@@ -307,7 +306,7 @@ def _findings(out):
     plan = _load(out, 'plan.json', {}) or {}
     cards = _load(out, 'cards.json', {}) or {}
     tasks = [t for t in plan.get('tasks') or [] if t.get('state', 'open') not in ('done', 'resolved')]
-    from ..presentation.model import classify          # the card's severity, as the Studio shows it
+    from ...core.contracts.card_areas import classify          # the card's severity, as every report shows it
     severity = {}
     for t in tasks: severity[classify(t)[1]] = severity.get(classify(t)[1], 0) + 1
     row = {'source': 'plan.json, cards.json', 'open_cards': len(tasks), 'by_severity': severity,
@@ -352,7 +351,7 @@ def rules_verdict(out, ran=None):
 
 def final(out, plan=None, ran=None):
     """[{aspect, label, verdict, why, plan, cards, decided_by, rules}] for every aspect: the assistant's verdict where
-    `plan`, the ideal it planned for this check (ideal/plan.json, eaos/ai/ideal/planner.py current), judged the aspect,
+    `plan`, the ideal it planned for this check (ideal/plan.json), judged the aspect,
     the rules' elsewhere."""
     said = {row['aspect']: row for row in ((plan or {}).get('ideal') or {}).get('aspects') or []}
     rows = []

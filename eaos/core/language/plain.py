@@ -2,7 +2,7 @@
 from the one words catalog (eaos/data/words.json) the Studio is built with too.
 
 The report's own files keep their precise, technical wording; these are for the first page a user reads
-(START-HERE.md), REPORT.html and the guided commands.
+(START-HERE.md) and the guided commands.
 """
 from .words import catalog
 

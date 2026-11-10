@@ -129,16 +129,14 @@ class SingleWriterTests(unittest.TestCase):
             for name, code in {
                 'root': "(report / 'plan.json').write_text('root')",
                 'behavior': "folder = report / 'behavior-lock'\n(folder / 'plan.json').write_text('nested')",
-                'ideal': "folder = Path(report) / 'ideal'\nalias = folder\n(alias / 'plan.json').write_text('nested')",
+                'aliased': "folder = Path(report) / 'behavior-lock'\nalias = folder\n(alias / 'plan.json').write_text('nested')",
                 'node': "folder = core.folder_of(report, record['node'])\n(folder / 'plan.json').write_text('nested')",
                 'direct': "(report / 'nodes' / 'planner' / 'plan.json').write_text('nested')",
-                'joined': "(report / 'ideal/plan.json').write_text('nested')",
             }.items():
                 (source / (name + '.py')).write_text(code, encoding='utf-8')
             self.assertEqual(self._writers(contract.RECORD, source),
                              {'plan.json': {(source / 'root.py').as_posix()},
-                              'behavior-lock/plan.json': {(source / 'behavior.py').as_posix()},
-                              'ideal/plan.json': {(source / 'ideal.py').as_posix(), (source / 'joined.py').as_posix()}})
+                              'behavior-lock/plan.json': {(source / 'behavior.py').as_posix(), (source / 'aliased.py').as_posix()}})
         with tempfile.TemporaryDirectory() as directory:
             source = Path(directory)
             (source / 'first.py').write_text("(report / 'plan.json').write_text('one')", encoding='utf-8')

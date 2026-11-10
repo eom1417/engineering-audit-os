@@ -8,7 +8,6 @@ from unittest import mock
 
 from eaos.ai import nodes
 from eaos.ai.assistant import headless as adapters, tiers
-from eaos.ai.ideal import prompts as ideal_prompts
 from tests.ai.test_ai_nodes import Answer, _nodes_report, decision
 
 
@@ -27,26 +26,14 @@ class Tiered(Answer):
 
 class Stages(unittest.TestCase):
     def test_each_stage_has_its_tier_and_the_speed_mode_lowers_only_the_standard_ones(self):
-        self.assertEqual([tiers.tier_of(s) for s in ('card_triage', 'plan_orderer', 'ideal_planner', 'a_new_stage')],
+        self.assertEqual([tiers.tier_of(s) for s in ('card_triage', 'plan_orderer', 'fix_reviewer', 'a_new_stage')],
                          ['light', 'standard', 'deep', 'deep'])
-        self.assertEqual([tiers.tier_of(s, 'speed') for s in ('plan_orderer', 'ideal_planner')], ['light', 'deep'])
-        with mock.patch.dict(os.environ, {'EAOS_TIER_IDEAL_PLANNER': 'standard'}):
-            self.assertEqual(tiers.tier_of('ideal_planner'), 'standard')
-        with mock.patch.dict(os.environ, {'EAOS_TIER_IDEAL_PLANNER': 'cheap'}), self.assertRaises(ValueError):
-            tiers.tier_of('ideal_planner')
+        self.assertEqual([tiers.tier_of(s, 'speed') for s in ('plan_orderer', 'fix_reviewer')], ['light', 'deep'])
+        with mock.patch.dict(os.environ, {'EAOS_TIER_FIX_REVIEWER': 'standard'}):
+            self.assertEqual(tiers.tier_of('fix_reviewer'), 'standard')
+        with mock.patch.dict(os.environ, {'EAOS_TIER_FIX_REVIEWER': 'cheap'}), self.assertRaises(ValueError):
+            tiers.tier_of('fix_reviewer')
         self.assertEqual([tiers.up(t) for t in tiers.TIERS], ['standard', 'deep', None])
-
-    def test_the_experiences_calls_pass_the_flags_of_their_tiers(self):
-        # The provider reads no stage name (eaos/ai/assistant/command.py): each experience call's small/deep flags are
-        # its tier.
-        import re
-        flags = {'light': 'small=True', 'deep': 'deep=True'}
-        calls = [(m.group(0), m.group(1)) for path in Path('eaos').rglob('*.py')
-                 for m in re.finditer(r"provider\.complete\((?:[^\n]*\n)?[^\n]*?stage='(experience_\w+)'[^\n]*", path.read_text(encoding='utf-8'))]
-        self.assertEqual({stage for _, stage in calls}, {s for s in tiers.STAGES if s.startswith('experience_')})
-        for call, stage in calls:
-            with self.subTest(stage):
-                for tier, flag in flags.items(): self.assertEqual(flag in call, tiers.tier_of(stage) == tier, call)
 
     def test_each_assistant_is_told_its_tiers_model_or_effort(self):
         with mock.patch.dict(os.environ, {}, clear=False) as env:
@@ -59,12 +46,6 @@ class Stages(unittest.TestCase):
         with tempfile.TemporaryDirectory() as folder:
             argv = adapters.Codex(command=['codex']).ask_argv({}, Path(folder), (), 'light')
             self.assertIn('model_reasoning_effort="low"', argv)
-
-    def test_the_ideal_critique_is_held_short_so_its_answer_parses_the_first_time(self):
-        # An unbounded critique is cut: it must not write an answer too large to parse as JSON.
-        missed = ideal_prompts.CRITIQUE_SCHEMA['properties']['critique']['properties']['missed']
-        self.assertEqual(missed['maxItems'], ideal_prompts.NOTES)
-        self.assertIn(f'under {ideal_prompts.NOTE_CHARS} characters', ideal_prompts.prompt_critique({'project': {'language': 'en'}}, {}))
 
 
 class Escalation(unittest.TestCase):

@@ -21,15 +21,15 @@ class PlatformTests(unittest.TestCase):
                 self.assertIn(key, platforms, f"{tool['name']} has no {key} build")
                 self.assertRegex(platforms[key]['sha256'], r'^[0-9a-f]{64}$', f"{tool['name']} {key}")
         # The build is the one for this computer; none for it is a skip, not a broken install.
-        syft = next(t for t in toolchain.registry()['tools'] if t['name'] == 'syft')
+        gitleaks = next(t for t in toolchain.registry()['tools'] if t['name'] == 'gitleaks')
         with mock.patch.object(toolchain.pins, 'platform_key', return_value='darwin-arm64'):
-            self.assertIn('darwin_arm64', toolchain.release_spec(syft)['url'])
+            self.assertIn('darwin_arm64', toolchain.release_spec(gitleaks)['url'])
         with mock.patch.object(toolchain.pins, 'platform_key', return_value='windows-arm64'), tempfile.TemporaryDirectory() as tmp, \
                 mock.patch.dict('os.environ', {'EAOS_ENGINE_TOOLS': tmp}):
             with self.assertRaises(toolchain.Unavailable):
-                toolchain.release_spec(syft)
+                toolchain.release_spec(gitleaks)
             with mock.patch.object(toolchain.installers, 'found_version', return_value=(None, 'not installed')):
-                self.assertEqual(toolchain.install(names=['syft'], echo=lambda line: None), [], 'skipped, not failed')
+                self.assertEqual(toolchain.install(names=['gitleaks'], echo=lambda line: None), [], 'skipped, not failed')
 
     def test_tools_and_the_browser_live_in_the_persons_eaos_folder_where_the_engines_find_them(self):
         self.assertTrue(toolchain.registry()['home']['default'].startswith('~/'))

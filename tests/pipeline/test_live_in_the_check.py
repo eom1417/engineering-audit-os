@@ -1,6 +1,6 @@
-"""Running the app is part of the check once the person agreed (eaos/pipeline/stages.py setup, record, screens,
-baseline): without consent, or when the app does not start, each live stage says why and the check completes; with a
-running app its records are written before the claims, and the load model reads the measured speed."""
+"""Running the app is part of the check once the person agreed (eaos/pipeline/stages.py setup, record, screens):
+without consent, or when the app does not start, each live stage says why and the check completes; with a running app
+its records are written before the claims."""
 import json
 import shutil
 import tempfile
@@ -12,7 +12,7 @@ from eaos.pipeline.run import execute
 from eaos.pipeline.stages import ORDER
 
 ROOT = Path(__file__).resolve().parents[2]
-LIVE = ('setup', 'record', 'screens', 'baseline')
+LIVE = ('setup', 'record', 'screens')
 
 
 class FakeRun:
@@ -36,12 +36,6 @@ def started(target, runtime, report=None, provider=None, say=None):
     Path(runtime).mkdir(parents=True, exist_ok=True)
     (Path(runtime) / 'run.json').write_text(json.dumps({'baseline': {'verified': True}}), encoding='utf-8')
     return {'ok': True, 'attempts': 1, 'limitations': [], 'page': None}
-
-
-def scenario(report):
-    (Path(report) / 'nfr/k6').mkdir(parents=True, exist_ok=True)
-    (Path(report) / 'nfr/k6/qs-001.js').write_text('// k6', encoding='utf-8')
-    return []
 
 
 def audited(urls, viewports, variants, out=None, **options):
@@ -74,34 +68,19 @@ class LiveInTheCheck(unittest.TestCase):
             manifest, live = self.run_check('down', runtime=self.base / 'runtime', provider=NoAssistant('declined', 'without AI'))
         self.assertIsNone(setup.call_args.kwargs['provider'], 'without AI the app is set up without one, never asked of its stand-in')
         self.assertEqual(live, {'setup': ('unavailable', 'app_not_running'), 'record': ('unavailable', 'app_not_running'),
-                                'screens': ('unavailable', 'app_not_running'), 'baseline': ('unavailable', 'app_not_running')})
+                                'screens': ('unavailable', 'app_not_running')})
         self.assertIn('npm ci failed', manifest['stages']['record']['reason'])
         self.assertEqual(json.loads((self.base / 'down/live/setup.json').read_text())['limitations'], ['npm ci failed'])
         self.assertEqual(manifest['status'], 'COMPLETE')
 
-    def test_an_app_with_no_load_scenario_is_not_measured_and_says_why(self):
-        with mock.patch('eaos.live.app.setup.authorize'), mock.patch('eaos.live.app.setup.setup', side_effect=started), \
-                mock.patch('eaos.live.behavior.lock.run_lock', return_value={'results': []}), mock.patch('eaos.live.app.run.LiveRun', FakeRun), mock.patch('eaos.live.app.setup.probe', return_value=PROBED), \
-                mock.patch('eaos.live.behavior.lock.run_journeys', return_value=WALKED), \
-                mock.patch('eaos.live.screens.audit.page_audit', side_effect=audited), mock.patch('eaos.live.screens.audit.lighthouse', return_value={}), \
-                mock.patch('eaos.live.screens.crawl.crawl', return_value={'status': 'observed', 'routes': []}), \
-                mock.patch('eaos.live.trials.load_plans.write', return_value=[]), mock.patch('eaos.live.trials.load_baseline.run_baseline') as measured:
-            manifest, live = self.run_check('no-scenario', runtime=self.base / 'runtime')
-        self.assertEqual(live['baseline'], ('unavailable', 'no_load_scenario'))
-        measured.assert_not_called()
-        self.assertEqual(manifest['status'], 'COMPLETE')
-
-    def test_a_running_app_is_recorded_pictured_and_measured_before_the_claims(self):
+    def test_a_running_app_is_recorded_and_pictured_before_the_claims(self):
         lock = {'results': [{'path': 'a.spec.ts', 'status': 'passed'}, {'path': 'b.spec.ts', 'status': 'failed'}]}
-        speed = {'conditions': {'vus': 100}, 'scenarios': [{'id': 'QS-001', 'threshold': {'p95_ms': 800.0, 'error_rate': 0.01},
-                                                                  'before': {'p95_ms': 312.5, 'error_rate': 0}}]}
         with mock.patch('eaos.live.app.setup.authorize'), mock.patch('eaos.live.app.setup.setup', side_effect=started), \
                 mock.patch('eaos.live.behavior.lock.run_lock', return_value=lock), mock.patch('eaos.live.app.run.LiveRun', FakeRun), mock.patch('eaos.live.app.setup.probe', return_value=PROBED), \
                 mock.patch('eaos.live.behavior.lock.run_journeys', return_value=WALKED), \
                 mock.patch('eaos.live.screens.audit.page_audit', side_effect=audited), \
                 mock.patch('eaos.live.screens.audit.lighthouse', return_value={'status': 'observed', 'scores': {'performance': 91}}), \
-                mock.patch('eaos.live.screens.crawl.crawl', return_value={'status': 'observed', 'routes': [{'path': '/about'}]}), \
-                mock.patch('eaos.live.trials.load_plans.write', side_effect=scenario), mock.patch('eaos.live.trials.load_baseline.run_baseline', return_value=speed):
+                mock.patch('eaos.live.screens.crawl.crawl', return_value={'status': 'observed', 'routes': [{'path': '/about'}]}):
             manifest, live = self.run_check('up', runtime=self.base / 'runtime')
         self.assertEqual(manifest['status'], 'COMPLETE')
         self.assertEqual(manifest['stages']['crawl']['detail'], {'pages': 1})
@@ -109,91 +88,27 @@ class LiveInTheCheck(unittest.TestCase):
         self.assertEqual({k: manifest['stages']['record']['detail'][k] for k in ('specs', 'passed')}, {'specs': 2, 'passed': 1})
         screens = json.loads((self.base / 'up/live/screens.json').read_text())
         self.assertEqual([row['screenshot'] for row in screens['rows']][0], 'live/screens/screenshots/00-index-light-phone.png')
-        self.assertEqual(json.loads((self.base / 'up/load-model.json').read_text())['measured']['scenarios'][0]['p95_ms'], 312.5)
         self.assertLess(max(ORDER.index(stage) for stage in LIVE), ORDER.index('claims'))
 
-    def test_an_app_whose_code_names_no_page_locks_walks_and_loads_the_pages_the_crawl_found(self):
-        # An SPA with no client router: the code names no page, yet lock, record, journeys and baseline run on the pages
-        # the crawl found and pictured, and the Studio shows its screens.
+    def test_an_app_whose_code_names_no_page_locks_and_walks_the_pages_the_crawl_found(self):
+        # An SPA with no client router: the code names no page, yet lock, record and journeys run on the pages the
+        # crawl found and pictured.
         from eaos.live.behavior import specs as lock_specs
-        speed = {'conditions': {'vus': 10}, 'scenarios': []}
         with mock.patch('eaos.live.app.setup.authorize'), mock.patch('eaos.live.app.setup.setup', side_effect=started), \
                 mock.patch('eaos.live.behavior.lock.run_lock', return_value={'results': []}), mock.patch('eaos.live.app.run.LiveRun', FakeRun), \
                 mock.patch('eaos.live.app.setup.probe', return_value=PROBED), mock.patch('eaos.live.behavior.lock.run_journeys', return_value=WALKED), \
                 mock.patch('eaos.live.screens.audit.page_audit', side_effect=audited), mock.patch('eaos.live.behavior.specs.surfaces', return_value={}), \
                 mock.patch('eaos.live.screens.audit.lighthouse', return_value={'status': 'observed', 'scores': {'performance': 91}}), \
-                mock.patch('eaos.live.screens.crawl.crawl', return_value={'status': 'observed', 'routes': [{'path': '/'}, {'path': '/#/tasks/1'}, {'path': '/#/tasks/2'}]}), \
-                mock.patch('eaos.live.trials.load_plans.write', side_effect=scenario), mock.patch('eaos.live.trials.load_baseline.run_baseline', return_value=speed):
+                mock.patch('eaos.live.screens.crawl.crawl', return_value={'status': 'observed', 'routes': [{'path': '/'}, {'path': '/#/tasks/1'}, {'path': '/#/tasks/2'}]}):
             manifest, live = self.run_check('up', runtime=self.base / 'runtime')
         self.assertLess(ORDER.index('crawl'), ORDER.index('lock'), 'the lock reads the crawl')
-        self.assertEqual({stage: manifest['stages'][stage]['status'] for stage in ('lock', 'record', 'journeys', 'baseline')},
-                         {stage: 'ok' for stage in ('lock', 'record', 'journeys', 'baseline')})
+        self.assertEqual({stage: manifest['stages'][stage]['status'] for stage in ('lock', 'record', 'journeys')},
+                         {stage: 'ok' for stage in ('lock', 'record', 'journeys')})
         self.assertEqual(lock_specs.crawled_pages(self.base / 'up'), ['/', '/#/tasks/1'], 'one page per template')
         plan = json.loads((self.base / 'up/behavior-lock/plan.json').read_text())
         self.assertIn('page /#/tasks/1', [s['feature'] for s in plan['specs']], 'one spec per page: an unsteady page is refused alone')
-        self.assertTrue((self.base / 'up/studio/manifest.json').is_file(), 'the Studio is written once the screens are pictured')
-        self.assertEqual(json.loads((self.base / 'up/studio/head.json').read_text()).get('not_run'), [], 'nothing stood still')
 
 
 if __name__ == '__main__':
     unittest.main()
 
-
-class LoadTarget(unittest.TestCase):
-    def test_a_load_on_a_server_of_the_pages_alone_is_refused_and_one_on_the_program_runs(self):
-        # A `vite preview` fallback answers /api/* with the page in 8 ms, so the baseline must measure the program
-        # behind it, such as the Python server behind the Studio, not the fallback.
-        import threading
-        from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
-        from eaos.live.trials import load_baseline as runtime_baseline
-
-        def serve(api):
-            class Handler(BaseHTTPRequestHandler):
-                def do_GET(self):
-                    body = b'{"ok": true}' if api and self.path.startswith('/api/') else b'<html>the app</html>'
-                    if api == 'signin' and self.path.startswith('/api/'): return self.send_error(401)
-                    if api == 'missing' and self.path.startswith('/api/'): return self.send_error(404)
-                    self.send_response(200)
-                    self.end_headers()
-                    self.wfile.write(body)
-
-                def log_message(self, *_): pass
-            server = ThreadingHTTPServer(('127.0.0.1', 0), Handler)
-            threading.Thread(target=server.serve_forever, daemon=True).start()
-            self.addCleanup(server.shutdown)
-            return f'http://127.0.0.1:{server.server_address[1]}'
-
-        with mock.patch('eaos.live.trials.load_plans.server_routes', return_value=['/', '/api/session', '/api/runs', '/index.html']):
-            with self.assertRaisesRegex(RuntimeError, 'serves only its pages'):
-                runtime_baseline.refuse_a_page_server('report', serve(api=False))
-            with self.assertRaisesRegex(RuntimeError, 'serves only its pages'):  # its routes not found: still the pages
-                runtime_baseline.refuse_a_page_server('report', serve(api='missing'))
-            runtime_baseline.refuse_a_page_server('report', serve(api=True))
-            runtime_baseline.refuse_a_page_server('report', serve(api='signin'))  # the program, behind its sign-in
-
-    def test_the_load_sends_the_programs_token_and_leaves_out_what_a_plain_request_cannot_load(self):
-        # Routes answer 401 without the Studio's token, /api/events streams forever, and four routes need a value: the
-        # load must measure the program, not refusals and timeouts.
-        import threading
-        from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
-        from eaos.live.trials import load_baseline as runtime_baseline
-
-        class Handler(BaseHTTPRequestHandler):
-            def do_GET(self):
-                if self.path == '/api/events':
-                    self.send_response(200); self.send_header('Content-Type', 'text/event-stream'); self.end_headers()
-                    return
-                code = 400 if self.path == '/api/file' else 200 if self.headers.get('X-Token') == 'secret' or self.path == '/' else 401
-                self.send_response(code); self.end_headers()
-
-            def log_message(self, *_): pass
-        server = ThreadingHTTPServer(('127.0.0.1', 0), Handler)
-        threading.Thread(target=server.serve_forever, daemon=True).start()
-        self.addCleanup(server.server_close)
-        self.addCleanup(server.shutdown)
-        with tempfile.TemporaryDirectory() as copy:
-            Path(copy, 'token').write_text('secret\n')
-            live = mock.Mock(profile={'app': '.', 'baseline': {'headers': {'X-Token': {'file': 'token'}}}}, sandbox=mock.Mock(copy=Path(copy)))
-            sent = runtime_baseline.headers(live)
-        kept, left = runtime_baseline.loadable(f'http://127.0.0.1:{server.server_address[1]}', ['/', '/api/runs', '/api/events', '/api/file'], sent)
-        self.assertEqual((sent, kept, sorted(left)), ({'X-Token': 'secret'}, ['/', '/api/runs'], ['/api/events', '/api/file']))

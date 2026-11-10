@@ -85,9 +85,3 @@ def _ran(context, name):
     """Whether stage `name` ended ok in this run: a record an earlier check left on disk is never read as this one's."""
     return ((context.get('manifest_so_far') or {}).get('stages') or {}).get(name, {}).get('status') == 'ok'
 
-
-def studio(context):
-    """The Studio's data of this check so far (eaos/report/studio/export.py): after the screens are pictured, so the person sees
-    them while the check goes on (a real check showed 0 screens until the end); the proposals stage's record too."""
-    from ...report.studio.export import export
-    return export(context.out, context.language, Path(context.target).name, context.target)

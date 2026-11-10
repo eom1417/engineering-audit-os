@@ -2,7 +2,7 @@
  "schema_version": 1,
  "contract": "studio-actions",
  "revision": 1,
- "about": "The command centre: every EAOS action the Studio can run, the selections and verbs, the run lifecycle, the run events, the preview, the endpoints and their security, and the snapshot behaviour. Built by NS46.T9 (eaos/interfaces/studio_actions/); read by the Studio pages of NS46.T10 and mounted by the NS37.T2 server. A packaged byte-identical copy is eaos/data/studio-actions.json.",
+ "about": "The run engine's contract: every EAOS action a run can do, the selections and verbs, the run lifecycle, the run events, the preview, the endpoints of its action API and their security. Implemented by eaos/journeys/runs/ (wired to the MCP tools by eaos/interfaces/runs.py). A packaged byte-identical copy is eaos/data/studio-actions.json.",
  "actions": [
   {
    "id": "status",
@@ -318,82 +318,6 @@
    }
   },
   {
-   "id": "experience",
-   "tool": "experience",
-   "group": "understand",
-   "label": {
-    "en": "How the users fared",
-    "ar": "تجربة المستخدمين"
-   },
-   "description": {
-    "en": "How the simulated users fared on the app: each one's goals and results, the difficulties they met, ranked.",
-    "ar": "كيف جرّب المستخدمون المحاكَون البرنامج: أهداف كل واحد ونتيجتها، والصعوبات التي واجهوها مرتبة."
-   },
-   "mode": "direct",
-   "needs_assistant": false,
-   "irreversible": false,
-   "needs_consent": false,
-   "returns_job": false,
-   "changes_code": false,
-   "inputs": {
-    "type": "object",
-    "additionalProperties": false,
-    "properties": {
-     "project": {
-      "type": [
-       "string",
-       "null"
-      ],
-      "description": "The project folder; the Studio fills it with the project it serves."
-     }
-    },
-    "required": []
-   }
-  },
-  {
-   "id": "logic_flaws",
-   "tool": "logic_flaws",
-   "group": "understand",
-   "label": {
-    "en": "Hunt logic flaws",
-    "ar": "دوّر ثغرات المنطق"
-   },
-   "description": {
-    "en": "Your assistant reads the code twice on its deep tier for skipped steps, races and wrong checks, then the check goes on from what it found, so the cards include them. It spends your assistant's use: it asks your agreement first.",
-    "ar": "مساعدك يقرأ الكود مرتين بعمق يدوّر خطوات متخطاة وتسابق وتحققات غلط، وبعدها يكمل الفحص من اللي لقاه عشان تدخل في البطاقات. يصرف من استخدام مساعدك: يطلب موافقتك أول."
-   },
-   "mode": "direct",
-   "needs_assistant": false,
-   "irreversible": false,
-   "needs_consent": true,
-   "returns_job": true,
-   "changes_code": false,
-   "inputs": {
-    "type": "object",
-    "additionalProperties": false,
-    "properties": {
-     "person_agreed": {
-      "type": "boolean"
-     },
-     "minutes": {
-      "type": [
-       "integer",
-       "null"
-      ],
-      "description": "The most the hunt may take, wall clock (default 40)."
-     },
-     "project": {
-      "type": [
-       "string",
-       "null"
-      ],
-      "description": "The project folder; the Studio fills it with the project it serves."
-     }
-    },
-    "required": []
-   }
-  },
-  {
    "id": "audit",
    "tool": "audit",
    "group": "check",
@@ -478,9 +402,7 @@
         "security",
         "look",
         "code",
-        "speed",
-        "layers",
-        "experience"
+        "speed"
        ]
       },
       "description": "Only these paths of the check (eaos/pipeline/path_choice.py); the complete check when empty."
@@ -741,115 +663,6 @@
    }
   },
   {
-   "id": "design",
-   "tool": "design",
-   "group": "understand",
-   "label": {
-    "en": "Your design library",
-    "ar": "مكتبة التصميم"
-   },
-   "description": {
-    "en": "What your screens are really made of.",
-    "ar": "مما تتكون شاشاتك فعليًا."
-   },
-   "mode": "direct",
-   "needs_assistant": false,
-   "irreversible": false,
-   "needs_consent": false,
-   "returns_job": false,
-   "changes_code": false,
-   "inputs": {
-    "type": "object",
-    "additionalProperties": false,
-    "properties": {
-     "project": {
-      "type": [
-       "string",
-       "null"
-      ],
-      "description": "The project folder; the Studio fills it with the project it serves."
-     }
-    },
-    "required": []
-   }
-  },
-  {
-   "id": "design_brief",
-   "tool": "design_brief",
-   "group": "understand",
-   "label": {
-    "en": "The design sources",
-    "ar": "مصادر التصميم"
-   },
-   "description": {
-    "en": "The design standard, the Arabic fonts, the free design libraries, and a suggested design system for the product.",
-    "ar": "معيار التصميم، والخطوط العربية، ومكتبات التصميم المجانية، ونظام تصميم مقترح للمنتج."
-   },
-   "mode": "direct",
-   "needs_assistant": false,
-   "irreversible": false,
-   "needs_consent": false,
-   "returns_job": false,
-   "changes_code": false,
-   "inputs": {
-    "type": "object",
-    "additionalProperties": false,
-    "properties": {
-     "product": {
-      "type": "string",
-      "description": "What the product is, in a few words (for example \"clinic booking app\")."
-     },
-     "project": {
-      "type": [
-       "string",
-       "null"
-      ],
-      "description": "The project folder; the Studio fills it with the project it serves."
-     }
-    },
-    "required": []
-   }
-  },
-  {
-   "id": "design_choose",
-   "tool": "design_choose",
-   "group": "understand",
-   "label": {
-    "en": "Adopt this design",
-    "ar": "اعتمد هذا التصميم"
-   },
-   "description": {
-    "en": "Saves the chosen look (DESIGN.md) beside the report; the screen review then judges every page against it.",
-    "ar": "يحفظ الشكل المختار (DESIGN.md) بجانب التقرير، ثم تقارن مراجعة الشاشات كل صفحة به."
-   },
-   "mode": "direct",
-   "needs_assistant": false,
-   "irreversible": false,
-   "needs_consent": false,
-   "returns_job": false,
-   "changes_code": false,
-   "inputs": {
-    "type": "object",
-    "additionalProperties": false,
-    "properties": {
-     "content": {
-      "type": "string",
-      "description": "The whole DESIGN.md."
-     },
-     "project": {
-      "type": [
-       "string",
-       "null"
-      ],
-      "description": "The project folder; the Studio fills it with the project it serves."
-     }
-    },
-    "required": [
-     "content"
-    ]
-   }
-  },
-  {
    "id": "plan",
    "tool": "plan",
    "group": "understand",
@@ -970,42 +783,6 @@
    }
   },
   {
-   "id": "open_studio",
-   "tool": "open_studio",
-   "group": "understand",
-   "label": {
-    "en": "Open the live Studio",
-    "ar": "افتح الاستوديو الحي"
-   },
-   "description": {
-    "en": "",
-    "ar": ""
-   },
-   "mode": "direct",
-   "needs_assistant": false,
-   "irreversible": false,
-   "needs_consent": false,
-   "returns_job": false,
-   "changes_code": false,
-   "inputs": {
-    "type": "object",
-    "additionalProperties": false,
-    "properties": {
-     "show": {
-      "type": "boolean"
-     },
-     "project": {
-      "type": [
-       "string",
-       "null"
-      ],
-      "description": "The project folder; the Studio fills it with the project it serves."
-     }
-    },
-    "required": []
-   }
-  },
-  {
    "id": "run_setup",
    "tool": "run_setup",
    "group": "setup",
@@ -1029,95 +806,6 @@
     "properties": {
      "person_agreed": {
       "type": "boolean"
-     },
-     "project": {
-      "type": [
-       "string",
-       "null"
-      ],
-      "description": "The project folder; the Studio fills it with the project it serves."
-     }
-    },
-    "required": []
-   }
-  },
-  {
-   "id": "design_propose",
-   "tool": "design_propose",
-   "group": "setup",
-   "label": {
-    "en": "See what naming your look would do",
-    "ar": "شوف وش يسوي توحيد القيم"
-   },
-   "description": {
-    "en": "The raw values it would name as tokens, in which files; nothing is written.",
-    "ar": "القيم المكتوبة باليد اللي بيحولها لمتغيرات، وفي أي ملفات؛ وما ينكتب شي."
-   },
-   "mode": "direct",
-   "needs_assistant": false,
-   "irreversible": false,
-   "needs_consent": false,
-   "returns_job": false,
-   "changes_code": false,
-   "inputs": {
-    "type": "object",
-    "additionalProperties": false,
-    "properties": {
-     "agreed": {
-      "type": [
-       "array",
-       "null"
-      ],
-      "items": {
-       "type": "object"
-      },
-      "description": "Values the person agreed to merge: {from, to}."
-     },
-     "project": {
-      "type": [
-       "string",
-       "null"
-      ],
-      "description": "The project folder; the Studio fills it with the project it serves."
-     }
-    },
-    "required": []
-   }
-  },
-  {
-   "id": "design_make",
-   "tool": "design_make",
-   "group": "setup",
-   "label": {
-    "en": "Name your look's values",
-    "ar": "حوّل قيم الشكل لمتغيرات"
-   },
-   "description": {
-    "en": "On a branch of its own, no assistant asked; kept only when proved that nothing looks different but what you agreed.",
-    "ar": "في فرع لحاله، بدون مساعد؛ وما يبقى إلا إذا انثبت إن الشكل ما تغيّر إلا باللي وافقت عليه."
-   },
-   "mode": "direct",
-   "needs_assistant": false,
-   "irreversible": false,
-   "needs_consent": true,
-   "returns_job": true,
-   "changes_code": true,
-   "inputs": {
-    "type": "object",
-    "additionalProperties": false,
-    "properties": {
-     "person_agreed": {
-      "type": "boolean"
-     },
-     "agreed": {
-      "type": [
-       "array",
-       "null"
-      ],
-      "items": {
-       "type": "object"
-      },
-      "description": "Values the person agreed to merge: {from, to}."
      },
      "project": {
       "type": [
@@ -1199,42 +887,6 @@
        "string",
        "null"
       ]
-     },
-     "project": {
-      "type": [
-       "string",
-       "null"
-      ],
-      "description": "The project folder; the Studio fills it with the project it serves."
-     }
-    },
-    "required": []
-   }
-  },
-  {
-   "id": "project_map",
-   "tool": "project_map",
-   "group": "setup",
-   "label": {
-    "en": "Build the map for your assistant",
-    "ar": "ابنِ الخريطة لمساعدك"
-   },
-   "description": {
-    "en": "GitNexus's map of the project: its index outside the project, its short skills where git does not take them. Asks your agreement.",
-    "ar": "خريطة GitNexus للمشروع: فهرسها برا المشروع، ومهاراتها القصيرة في مكان git ما ياخذه. يطلب موافقتك."
-   },
-   "mode": "direct",
-   "needs_assistant": false,
-   "irreversible": false,
-   "needs_consent": true,
-   "returns_job": false,
-   "changes_code": false,
-   "inputs": {
-    "type": "object",
-    "additionalProperties": false,
-    "properties": {
-     "person_agreed": {
-      "type": "boolean"
      },
      "project": {
       "type": [
@@ -1748,449 +1400,6 @@
    }
   },
   {
-   "id": "blueprint_start",
-   "tool": "blueprint_start",
-   "group": "build",
-   "label": {
-    "en": "Read a plan to build",
-    "ar": "اقرأ خطة البناء"
-   },
-   "description": {
-    "en": "",
-    "ar": ""
-   },
-   "mode": "assistant",
-   "needs_assistant": true,
-   "irreversible": false,
-   "needs_consent": false,
-   "returns_job": false,
-   "changes_code": false,
-   "inputs": {
-    "type": "object",
-    "additionalProperties": false,
-    "properties": {
-     "source": {
-      "type": [
-       "string",
-       "null"
-      ]
-     },
-     "text": {
-      "type": [
-       "string",
-       "null"
-      ]
-     },
-     "project": {
-      "type": [
-       "string",
-       "null"
-      ],
-      "description": "The project folder; the Studio fills it with the project it serves."
-     }
-    },
-    "required": []
-   }
-  },
-  {
-   "id": "blueprint_spec",
-   "tool": "blueprint_spec",
-   "group": "build",
-   "label": {
-    "en": "Check the product spec",
-    "ar": "راجع مواصفات المنتج"
-   },
-   "description": {
-    "en": "",
-    "ar": ""
-   },
-   "mode": "assistant",
-   "needs_assistant": true,
-   "irreversible": false,
-   "needs_consent": false,
-   "returns_job": false,
-   "changes_code": false,
-   "inputs": {
-    "type": "object",
-    "additionalProperties": false,
-    "properties": {
-     "spec": {
-      "type": "object"
-     },
-     "project": {
-      "type": [
-       "string",
-       "null"
-      ],
-      "description": "The project folder; the Studio fills it with the project it serves."
-     }
-    },
-    "required": [
-     "spec"
-    ]
-   }
-  },
-  {
-   "id": "blueprint_design",
-   "tool": "blueprint_design",
-   "group": "build",
-   "label": {
-    "en": "Draw the target and the build plan",
-    "ar": "ارسم الهدف وخطة البناء"
-   },
-   "description": {
-    "en": "",
-    "ar": ""
-   },
-   "mode": "direct",
-   "needs_assistant": false,
-   "irreversible": false,
-   "needs_consent": false,
-   "returns_job": false,
-   "changes_code": false,
-   "inputs": {
-    "type": "object",
-    "additionalProperties": false,
-    "properties": {
-     "stack": {
-      "type": [
-       "object",
-       "null"
-      ]
-     },
-     "project": {
-      "type": [
-       "string",
-       "null"
-      ],
-      "description": "The project folder; the Studio fills it with the project it serves."
-     }
-    },
-    "required": []
-   }
-  },
-  {
-   "id": "extend_start",
-   "tool": "extend_start",
-   "group": "build",
-   "label": {
-    "en": "Read a feature's plan to add",
-    "ar": "اقرأ خطة ميزة تُضاف"
-   },
-   "description": {
-    "en": "",
-    "ar": ""
-   },
-   "mode": "assistant",
-   "needs_assistant": true,
-   "irreversible": false,
-   "needs_consent": false,
-   "returns_job": false,
-   "changes_code": false,
-   "inputs": {
-    "type": "object",
-    "additionalProperties": false,
-    "properties": {
-     "source": {
-      "type": [
-       "string",
-       "null"
-      ]
-     },
-     "text": {
-      "type": [
-       "string",
-       "null"
-      ]
-     },
-     "project": {
-      "type": [
-       "string",
-       "null"
-      ],
-      "description": "The project folder; the Studio fills it with the project it serves."
-     }
-    },
-    "required": []
-   }
-  },
-  {
-   "id": "extend_plan",
-   "tool": "extend_plan",
-   "group": "build",
-   "label": {
-    "en": "Plan the feature into the project",
-    "ar": "خطّط الميزة داخل المشروع"
-   },
-   "description": {
-    "en": "",
-    "ar": ""
-   },
-   "mode": "assistant",
-   "needs_assistant": true,
-   "irreversible": false,
-   "needs_consent": false,
-   "returns_job": false,
-   "changes_code": false,
-   "inputs": {
-    "type": "object",
-    "additionalProperties": false,
-    "properties": {
-     "spec": {
-      "type": "object"
-     },
-     "project": {
-      "type": [
-       "string",
-       "null"
-      ],
-      "description": "The project folder; the Studio fills it with the project it serves."
-     }
-    },
-    "required": [
-     "spec"
-    ]
-   }
-  },
-  {
-   "id": "build_start",
-   "tool": "build_start",
-   "group": "build",
-   "label": {
-    "en": "Build the whole product",
-    "ar": "ابنِ المنتج كامل"
-   },
-   "description": {
-    "en": "",
-    "ar": ""
-   },
-   "mode": "assistant",
-   "needs_assistant": true,
-   "irreversible": false,
-   "needs_consent": true,
-   "returns_job": false,
-   "changes_code": true,
-   "inputs": {
-    "type": "object",
-    "additionalProperties": false,
-    "properties": {
-     "person_agreed": {
-      "type": "boolean"
-     },
-     "project": {
-      "type": [
-       "string",
-       "null"
-      ],
-      "description": "The project folder; the Studio fills it with the project it serves."
-     }
-    },
-    "required": []
-   }
-  },
-  {
-   "id": "build_read",
-   "tool": "build_read",
-   "group": "build",
-   "label": {
-    "en": "Read a file of the build",
-    "ar": "اقرأ ملفًا من البناء"
-   },
-   "description": {
-    "en": "",
-    "ar": ""
-   },
-   "mode": "direct",
-   "needs_assistant": false,
-   "irreversible": false,
-   "needs_consent": false,
-   "returns_job": false,
-   "changes_code": false,
-   "inputs": {
-    "type": "object",
-    "additionalProperties": false,
-    "properties": {
-     "path": {
-      "type": "string"
-     },
-     "start": {
-      "type": "integer",
-      "minimum": 1
-     },
-     "end": {
-      "type": [
-       "integer",
-       "null"
-      ]
-     },
-     "project": {
-      "type": [
-       "string",
-       "null"
-      ],
-      "description": "The project folder; the Studio fills it with the project it serves."
-     }
-    },
-    "required": []
-   }
-  },
-  {
-   "id": "build_edit",
-   "tool": "build_edit",
-   "group": "build",
-   "label": {
-    "en": "Build a card",
-    "ar": "ابنِ بطاقة"
-   },
-   "description": {
-    "en": "",
-    "ar": ""
-   },
-   "mode": "assistant",
-   "needs_assistant": true,
-   "irreversible": false,
-   "needs_consent": false,
-   "returns_job": true,
-   "changes_code": true,
-   "inputs": {
-    "type": "object",
-    "additionalProperties": false,
-    "properties": {
-     "card": {
-      "type": "string"
-     },
-     "edits": {
-      "type": "array",
-      "items": {
-       "type": "object"
-      }
-     },
-     "summary": {
-      "type": "string"
-     },
-     "project": {
-      "type": [
-       "string",
-       "null"
-      ],
-      "description": "The project folder; the Studio fills it with the project it serves."
-     }
-    },
-    "required": [
-     "card",
-     "edits"
-    ]
-   }
-  },
-  {
-   "id": "build_skip",
-   "tool": "build_skip",
-   "group": "build",
-   "label": {
-    "en": "Leave a build card out",
-    "ar": "اترك بطاقة بناء"
-   },
-   "description": {
-    "en": "",
-    "ar": ""
-   },
-   "mode": "direct",
-   "needs_assistant": false,
-   "irreversible": false,
-   "needs_consent": false,
-   "returns_job": false,
-   "changes_code": false,
-   "inputs": {
-    "type": "object",
-    "additionalProperties": false,
-    "properties": {
-     "card": {
-      "type": "string"
-     },
-     "reason": {
-      "type": "string"
-     },
-     "project": {
-      "type": [
-       "string",
-       "null"
-      ],
-      "description": "The project folder; the Studio fills it with the project it serves."
-     }
-    },
-    "required": [
-     "card",
-     "reason"
-    ]
-   }
-  },
-  {
-   "id": "build_finish",
-   "tool": "build_finish",
-   "group": "build",
-   "label": {
-    "en": "Hand the milestone over",
-    "ar": "سلّم المرحلة"
-   },
-   "description": {
-    "en": "",
-    "ar": ""
-   },
-   "mode": "direct",
-   "needs_assistant": false,
-   "irreversible": false,
-   "needs_consent": false,
-   "returns_job": true,
-   "changes_code": true,
-   "inputs": {
-    "type": "object",
-    "additionalProperties": false,
-    "properties": {
-     "project": {
-      "type": [
-       "string",
-       "null"
-      ],
-      "description": "The project folder; the Studio fills it with the project it serves."
-     }
-    },
-    "required": []
-   }
-  },
-  {
-   "id": "replan_ideal",
-   "tool": null,
-   "group": "understand",
-   "label": {
-    "en": "Re-plan the ideal",
-    "ar": "أعد تخطيط المثالي"
-   },
-   "description": {
-    "en": "Your assistant plans the ideal of every view on top of the rules' target, a second pass reviews it, and every element without evidence is dropped. A few minutes. Nothing in the project changes.",
-    "ar": "مساعدك يخطّط المثالي لكل عرض فوق هدف القواعد، وتمرير ثانٍ يراجعه، وكل عنصر بلا دليل يُحذف. دقائق قليلة. لا يتغير شيء في المشروع."
-   },
-   "mode": "assistant",
-   "needs_assistant": true,
-   "irreversible": false,
-   "needs_consent": false,
-   "returns_job": false,
-   "changes_code": false,
-   "inputs": {
-    "type": "object",
-    "additionalProperties": false,
-    "properties": {
-     "project": {
-      "type": [
-       "string",
-       "null"
-      ],
-      "description": "The project folder; the Studio fills it with the project it serves."
-     }
-    },
-    "required": []
-   }
-  },
-  {
    "id": "run_nodes",
    "tool": "run_nodes",
    "group": "understand",
@@ -2199,8 +1408,8 @@
     "ar": "شغّل عُقد الذكاء"
    },
    "description": {
-    "en": "Your assistant triages the cards, plans the pipeline's gaps, orders the plan and reviews the last batch of fixes; each decision cites its evidence, and what needs you comes to the Decisions inbox. A node already decided on the same inputs is not asked again. Nothing in the project changes.",
-    "ar": "مساعدك يفرز البطاقات، ويخطط فجوات خط المعالجة، ويرتّب الخطة، ويراجع آخر دفعة إصلاحات؛ كل قرار يستشهد بدليله، وما يحتاجك يجيك في صندوق القرارات. العقدة اللي قرّرت على المدخلات نفسها ما تُسأل من جديد. لا يتغير شيء في المشروع."
+    "en": "Your assistant triages the cards, orders the plan and reviews the last batch of fixes; each decision cites its evidence, and what needs you comes to the Decisions inbox. A node already decided on the same inputs is not asked again. Nothing in the project changes.",
+    "ar": "مساعدك يفرز البطاقات، ويرتّب الخطة، ويراجع آخر دفعة إصلاحات؛ كل قرار يستشهد بدليله، وما يحتاجك يجيك في صندوق القرارات. العقدة اللي قرّرت على المدخلات نفسها ما تُسأل من جديد. لا يتغير شيء في المشروع."
    },
    "mode": "assistant",
    "needs_assistant": true,
@@ -2228,14 +1437,11 @@
        "type": "string",
        "enum": [
         "card_triage",
-        "visual_reviewer",
-        "ideal_planner",
-        "pipeline_gap_planner",
         "plan_orderer",
         "fix_reviewer"
        ]
       },
-      "description": "The nodes to run, in their order; all but the ideal planner (re-planned by replan_ideal) when left out."
+      "description": "The nodes to run, in their order; all when left out."
      },
      "fresh": {
       "type": [
@@ -3213,31 +2419,6 @@
   },
   {
    "method": "POST",
-   "path": "/api/chat",
-   "does": "Begin one turn of the conversation with the person's assistant (eaos/interfaces/studio_actions/chat.py): {message, session?, context?, model?: quick|balanced|deep} -> {turn}. It reads with EAOS's reading tools only; each proposal is a Studio action or a run control, which the person confirms, or which direct control runs at once."
-  },
-  {
-   "method": "POST",
-   "path": "/api/plan",
-   "does": "A new project from its plan: {name, text, files: [{name, data (base64)}]} (documents and screen pictures, up to 32 MB); the plan is kept beside the new folder and the person's assistant draws the blueprint (blueprint_start through blueprint_design)."
-  },
-  {
-   "method": "GET",
-   "path": "/api/chat/<id>",
-   "does": "A turn as it goes: {done, reading (the tools it calls now), partial (its answer so far), result, error}."
-  },
-  {
-   "method": "GET",
-   "path": "/api/chat/control",
-   "does": "Direct control: {on, until, actions}."
-  },
-  {
-   "method": "POST",
-   "path": "/api/chat/control",
-   "does": "Turn direct control on ({on: true}) or off; it is on unless the person turned it off: the Studio runs the assistant's proposals at once, every action and the runs' controls, through its own preview and queue; only accepting or throwing a branch away waits for the person's press."
-  },
-  {
-   "method": "POST",
    "path": "/api/actions/<id>/preview",
    "body": "{inputs?, selection?, verb?, assistant?, where?{base?, deliver_as?, merge_into?}}; a Fix may carry inputs.auto_accept",
    "does": "The preview payload; never changes anything. <id> is an action, or a verb (fix, verify, explain, plan) when the body has a selection."
@@ -3490,15 +2671,6 @@
    "The prompt names the verb, the cards and the EAOS way, in the person's language; the run is what the assistant would do in chat.",
    "The three EAOS questions (branch, run consent, accept or undo) come back as question events, never answered by the assistant."
   ]
- },
- "snapshot": {
-  "about": "Opened from a file (file://), with no server: every action button stays visible and, when pressed, shows how to start the live Studio instead of failing.",
-  "command": "eaos studio",
-  "text": {
-   "en": "Actions run from the live Studio. Open a terminal in the project and run: eaos studio",
-   "ar": "الأوامر تشتغل من الاستوديو الحي. افتح الطرفية في المشروع واكتب: eaos studio"
-  },
-  "copy_to_assistant": "The same preview text as the handoff request, so the person can also paste it to their assistant."
  },
  "questions": {
   "about": "How a question reaches the person.",

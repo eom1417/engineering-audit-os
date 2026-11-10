@@ -147,7 +147,7 @@ def index_document(target, dossier, language):
         [tr('تقرّر أين يذهب الجهد', 'deciding where effort goes'),
          '[START-HERE.md](START-HERE.md) → [PLAN/STEPS.md](PLAN/STEPS.md) → [PLAN/WAVES.md](PLAN/WAVES.md)', '5 min'],
         [tr('تراجع البنية', 'reviewing the architecture'),
-         '[TARGET-ARCHITECTURE.md](TARGET-ARCHITECTURE.md) → [GAP-AND-STRATEGY.md](GAP-AND-STRATEGY.md)', '30 min'],
+         '[TARGET-STATE.md](TARGET-STATE.md) → [GAP-AND-STRATEGY.md](GAP-AND-STRATEGY.md)', '30 min'],
         [tr('تريد أن تعرف كيف جرى الفحص', 'checking how this check ran'), '[RUN.md](RUN.md)', '2 min'],
         [tr('ستغيّر ملفًا محددًا', 'about to change one file'), "the assistant's `impact` tool (/eaos)", '1 min'],
     ]
@@ -162,14 +162,8 @@ def index_document(target, dossier, language):
     return document
 
 
-def write_register(out, dossier):
-    """debt-register.json: one register (eaos/analysis/assessments/debt_register.py)."""
-    from ..assessments.debt_register import build
-    write(Path(out) / REGISTER, build(out, dossier))
-
-
 def refresh_views(out, language='ar'):
-    """Re-render the views the ledger owns: the debt register and the index.
+    """Re-render the view the ledger owns: the index.
 
     Rebuilding the plan or the product report belongs to eaos.report.views, one layer up. Doing it here
     made dossier, plan and product_review import each other in a cycle.
@@ -207,8 +201,7 @@ def _decide(dossier):
 
 
 def _write_views(out, target, dossier, language):
-    """The views the ledger owns: the debt register and the index."""
-    write_register(out, dossier)
+    """The view the ledger owns: the index."""
     (out / 'README.md').write_text(index_document(target, dossier, language).render(), encoding='utf-8')
 
 
@@ -302,8 +295,7 @@ def _claims(request, inputs):
     """(ranked claims, withheld claims): the facts' claims and the runtime ones, outside the excluded paths."""
     # The load record lives beside the fact sets, not among them: it has a different shape, so it
     # is handed over separately rather than pushed into a map every consumer expects to be uniform.
-    load_record = read(request.out / 'load-model.json') if (request.out / 'load-model.json').is_file() else None
-    rows, fact_index, withheld = build_claims(inputs.sets, inputs.records, load_record=load_record, target=request.target)
+    rows, fact_index, withheld = build_claims(inputs.sets, inputs.records, target=request.target)
     progress.count('claim steps', 2, CLAIM_STEPS)
     coverage_set = _more_sets(request.out, inputs.sets)
     runtime = runtime_claims(inputs.verification, len(rows), (coverage_set or {}).get('facts'), excluded=_excluded(request.exclude))

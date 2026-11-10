@@ -1,1 +1,1 @@
-"""Tests of eaos/report: the documents, REPORT.html and the data the Studio reads."""
+"""Tests of eaos/report: the documents people read."""

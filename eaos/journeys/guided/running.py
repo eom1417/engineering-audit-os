@@ -1,9 +1,7 @@
 """Steps 2-4: the app run in its isolated copy, the safety net recorded on it, and where the fixes are made."""
-import json
-
 from ...core.project.state import runtime_of
-from .person import ask, box, explain, say
-from .project import _commit, _saved_note, log_failure, outputs, report_of, safety_holds, save, set_up, source
+from .person import ask, box, say
+from .project import _commit, _saved_note, report_of, safety_holds, save, set_up, source
 
 
 def ready_done(state):
@@ -66,10 +64,9 @@ def safety_done(state):
 
 
 def safety_run(state, step=lambda n: None):
-    """The safety net's work, without words: every screen recorded on the original, then its speed under load
-    when a production run works. {'screens', 'passed', 'skipped': [...], 'p95_ms', 'speed', 'speed_error'}; the
-    skipped are kept with the state, so "recorded nothing" says why (a real batch was refused with no reason).
-    Written as it happens as the flow `safety` of the live map (eaos/live/behavior/lock.py:FLOW)."""
+    """The safety net's work, without words: every screen recorded on the original. {'screens', 'passed',
+    'skipped': [...]}; the skipped are kept with the state, so "recorded nothing" says why (a real batch was refused
+    with no reason). Written as it happens as the flow `safety` of the live map (eaos/live/behavior/lock.py:FLOW)."""
     from ...core import progress
     from ...live.behavior.lock import FLOW
     with progress.Flow(runtime_of(state), 'safety', FLOW):
@@ -78,34 +75,15 @@ def safety_run(state, step=lambda n: None):
 
 def _safety_run(state, step):
     from ...live.behavior import specs as lock_specs
-    from ...core import progress
     from ...live.behavior.lock import refused
-    from ...live.trials.load_baseline import run_baseline
     runtime = runtime_of(state)
     step(1)
     # The specs written again by this EAOS, so a change in how they are written reaches the safety net with no new check.
     lock_specs.build(report_of(state), source(state))
     lock = _screens(state, runtime)
     results, skipped = lock['results'], refused(lock)
-    outcome = {'screens': len(results), 'passed': (passed := sum(r['status'] == 'passed' for r in results)), 'p95_ms': None, 'speed_error': None, 'skipped': skipped}
-    baseline = json.loads((runtime / 'run.json').read_text(encoding='utf-8')).get('baseline') or {}
-    if baseline.get('build') and baseline.get('verified') and list((report_of(state) / 'nfr/k6').glob('*.js')):
-        step(2)
-        progress.begin('speed')
-        try:
-            performance = run_baseline(report_of(state), source(state), runtime)
-            outcome['p95_ms'] = max((s['before']['p95_ms'] for s in performance['scenarios']), default=None)
-            outcome['speed'] = 'measured'
-            progress.end('speed', detail={'p95_ms': outcome['p95_ms']})
-        except Exception as problem:            # speed is measured when it can be; the screens are the safety net
-            outcome.update(speed='failed', speed_error=f'{type(problem).__name__}: {problem}'[:600],
-                           speed_log=str(log_failure(outputs(state), problem)))
-            progress.end('speed', 'failed', outcome['speed_error'][:300], 'speed_failed')
-    else:
-        outcome['speed'] = 'no_production_run' if baseline.get('build') else 'no_build'
-        progress.skip('speed', 'the production build of the app did not run during the setup' if baseline.get('build')
-                      else 'the app has no production build', outcome['speed'])
-    state['safety'] = {'commit': state['setup']['commit'], 'screens': len(results), 'passed': passed, 'p95_ms': outcome['p95_ms'], 'skipped': skipped[:5]}
+    outcome = {'screens': len(results), 'passed': (passed := sum(r['status'] == 'passed' for r in results)), 'skipped': skipped}
+    state['safety'] = {'commit': state['setup']['commit'], 'screens': len(results), 'passed': passed, 'skipped': skipped[:5]}
     outcome['own_checks'] = state['safety']['own_checks'] = _own_checks(state, passed)
     save(state)
     return outcome
@@ -138,31 +116,24 @@ def _own_checks(state, screens_passed):
 
 
 def safety(state, args):
-    """Step 3: the safety net: every screen recorded on the original, and its speed under load."""
+    """Step 3: the safety net: every screen recorded on the original."""
     lang, runtime = state['lang'], runtime_of(state)
-    say(('أصوّر كل شاشات برنامجك كما هي الآن، ثم أقيس سرعته. هذا ما سأقارن به بعد كل إصلاح (15 إلى 30 دقيقة).' if lang == 'ar'
-         else 'Recording every screen of your app as it is now, then measuring its speed. Every fix is compared with this (15 to 30 minutes).'))
+    say(('أصوّر كل شاشات برنامجك كما هي الآن. هذا ما سأقارن به بعد كل إصلاح (15 إلى 30 دقيقة).' if lang == 'ar'
+         else 'Recording every screen of your app as it is now. Every fix is compared with this (15 to 30 minutes).'))
     def step(n):
-        say(f'   [{n}/2] ' + (('أصوّر الشاشات…' if lang == 'ar' else 'Recording the screens…') if n == 1 else
-                              ('أقيس السرعة تحت ضغط مستخدمين كثيرين…' if lang == 'ar' else 'Measuring speed under many users…')))
+        say('   [1/1] ' + ('أصوّر الشاشات…' if lang == 'ar' else 'Recording the screens…'))
     outcome = safety_run(state, step)
-    passed, total, speed, ar = outcome['passed'], outcome['screens'], outcome['p95_ms'], lang == 'ar'
-    happened = (f"صوّرت {passed} من {total} شاشة" + (f"، وأبطأ الطلبات تأخذ {speed:.0f} ملي ثانية" if speed else '')
-                if ar else f"Recorded {passed} of {total} screens" + (f"; the slowest requests take {speed:.0f} ms" if speed else ''))
+    passed, total, ar = outcome['passed'], outcome['screens'], lang == 'ar'
+    happened = f"صوّرت {passed} من {total} شاشة" if ar else f"Recorded {passed} of {total} screens"
     box(lang, happened, where=runtime / 'behavior-lock/results.json', commands=['eaos next'],
         status='ok' if passed else 'warn', note=_safety_notes(outcome, lang) or None)
     return 0
 
 
 def _safety_notes(outcome, lang):
-    """What the safety net could not do: the speed not measured and why, the screens not recorded."""
+    """What the safety net could not do: the screens not recorded."""
     ar = lang == 'ar'
-    unmeasured = {'no_production_run': ('لم تعمل نسخة الإنتاج من برنامجك هنا، فلم أقس السرعة؛ السبب في run.json', 'The production build of your app did not run here, so speed was not measured; the reason is in run.json'),
-                  'no_build': ('لا يوجد أمر بناء للإنتاج، فلم أقس السرعة', 'No production build, so speed was not measured')}.get(outcome['speed'])
-    notes = [unmeasured[0 if ar else 1]] if unmeasured else []
-    if outcome['speed'] == 'failed':
-        notes.append(('لم أستطع قياس السرعة: ' if ar else 'Could not measure speed: ')
-                     + explain(RuntimeError(outcome['speed_error']))[lang]['message'] + f" ({outcome['speed_log']})")
+    notes = []
     if outcome['skipped']: notes.append((f"{len(outcome['skipped'])} شاشة لم تُصوَّر، وأسبابها في السجل" if ar
                                          else f"{len(outcome['skipped'])} screens were not recorded; the reasons are in the record"))
     return notes

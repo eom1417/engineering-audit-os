@@ -3,10 +3,8 @@ import json
 import tempfile
 import unittest
 from pathlib import Path
-from unittest import mock
 
 from eaos.analysis.assessments import weaknesses
-from eaos.engines.security import codeql
 from eaos.analysis.claims.probe_queries import run_graph_query
 
 
@@ -80,12 +78,3 @@ class WeaknessTests(unittest.TestCase):
         made = []
         weaknesses.claims(sets(justified), lambda *args, **extra: made.append(args), None)
         self.assertEqual(made, [])
-
-    def test_codeql_runs_only_on_open_source_code_public_on_github(self):
-        with tempfile.TemporaryDirectory() as tmp:
-            self.assertFalse(codeql.allowed(tmp)[0])
-            Path(tmp, 'LICENSE').write_text('MIT License\n\nPermission is hereby granted, free of charge, to any person')
-            with mock.patch.object(codeql, 'public_repository', return_value=None):
-                self.assertFalse(codeql.allowed(tmp)[0])
-            with mock.patch.object(codeql, 'public_repository', return_value='owner/app'):
-                self.assertEqual(codeql.allowed(tmp), (True, 'MIT license, public on GitHub.com as owner/app'))

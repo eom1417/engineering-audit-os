@@ -36,7 +36,7 @@ def run_setup(project=None, person_agreed=False):
     (runtime / 'setup/detected.json').write_text(json.dumps(detected, ensure_ascii=False, indent=1) + '\n', encoding='utf-8')
     # its secrets kept: a session holds
     run_profile.write_profile(runtime, live_setup.kept(runtime, detected['profile']))
-    return _start('run_try', state, {'proposal': None, 'mode': 'lock'}, watch=True)
+    return _start('run_try', state, {'proposal': None, 'mode': 'lock'})
 
 
 def run_try(proposal=None, mode='lock', project=None):
@@ -167,7 +167,7 @@ def _run_answer(answer, record, profile, source, mode):
 def safety_net(project=None):
     state = state_of(project)
     if not guided.set_up(state, _head(state)): return {'status': 'not_set_up', 'what_now': 'Call run_setup first.'}
-    return _start('safety_net', state, {}, watch=True)
+    return _start('safety_net', state, {})
 
 
 def _safety_job(project, arguments, progress):

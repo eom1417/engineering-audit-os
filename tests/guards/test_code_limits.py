@@ -62,14 +62,11 @@ class CodeLimits(unittest.TestCase):
 
     def test_every_assistant_works_to_the_code_laws(self):
         from eaos.interfaces.mcp_server import server as mcp_server
-        from eaos.ai import semantic
         from eaos.core.contracts.code_laws import LAWS
-        from eaos.ai.ideal import prompts as ideal_prompts
         from eaos.ai.nodes import framework as core
         data = {'lang': 'en', 'project': {'language': 'English'}}
-        carried = {'semantic reading': semantic.SYSTEM, 'fixing (MCP)': mcp_server.INSTRUCTIONS,
-                   'every node': core.prompt('task', data), 'node critique': core.critique_prompt('task', data, {}, 'en'),
-                   'ideal plan': ideal_prompts.prompt_plan(data), 'ideal critique': ideal_prompts.prompt_critique(data, {})}
+        carried = {'fixing (MCP)': mcp_server.INSTRUCTIONS,
+                   'every node': core.prompt('task', data), 'node critique': core.critique_prompt('task', data, {}, 'en')}
         self.assertEqual([name for name, text in carried.items() if LAWS not in text], [])
 
     def test_complexity_counts_decisions_and_skips_nested_functions(self):

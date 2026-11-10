@@ -23,10 +23,10 @@ def ids(result):
 
 
 class WhatIsOffered(unittest.TestCase):
-    def test_only_what_makes_sense_now_is_offered_the_most_pressing_first_also_while_building(self):
+    def test_only_what_makes_sense_now_is_offered_the_most_pressing_first(self):
         work = {'kind': 'fix batch', 'number': 4, 'cards': ['A', 'B', 'C'], 'kept': ['A'], 'left': ['B', 'C']}
         never = offer({**CHECKED, 'checked': False, 'progress': None, 'next': {'tool': 'audit'}})
-        self.assertEqual((ids(never), len(never['pages'])), (['audit', 'status', 'build', 'tools'], 1), 'no report before a check')
+        self.assertEqual((ids(never), len(never['pages'])), (['audit', 'status', 'tools'], 1), 'no report before a check')
         checked = offer(CHECKED)
         first = checked['pages'][0][0]
         self.assertEqual(first['id'], 'fix')
@@ -46,14 +46,6 @@ class WhatIsOffered(unittest.TestCase):
         self.assertEqual(ids(changed)[0], 'audit')
         self.assertNotIn('fix', ids(changed))
         self.assertEqual(ids(offer({'project': '/p', 'branch': None, 'status': 'needs_branch', 'handover': {}})), ['branch', 'status', 'tools'])
-        result = offer({'project': '/p', 'mode': 'build from a plan', 'next': {'tool': 'build_edit, then build_finish'},
-                        'handover': {'open_work': {'kind': 'build milestone', 'milestone': 'M2', 'kept': [], 'left': ['C1']}}})
-        self.assertEqual(ids(result)[0], 'continue')
-        self.assertIn('M2', result['pages'][0][0]['description'])
-        between = offer({'project': '/p', 'mode': 'build from a plan', 'next': {'tool': 'build_start'}, 'handover': {}})
-        self.assertEqual(ids(between), ['continue', 'status', 'tools'], 'its plan is read already: never "build from a plan" again')
-        built = offer({'project': '/p', 'mode': 'build from a plan', 'next': {'tool': 'accept'}, 'handover': {}})
-        self.assertEqual(ids(built)[0], 'decide')
 
 class Words(unittest.TestCase):
     def test_at_most_four_to_a_page_each_option_once_and_only_the_first_recommended_in_the_persons_language(self):
@@ -102,7 +94,7 @@ class OnDisk(unittest.TestCase):
         self.assertIn('not checked yet', result['state'])
         empty = Path(self.tmp.name) / 'empty'
         empty.mkdir()
-        self.assertEqual(ids(m.menu(str(empty), 'ar')), ['build', 'tools'])
+        self.assertEqual(ids(m.menu(str(empty), 'ar')), ['tools'])
         self.assertFalse((Path(self.tmp.name) / 'home').exists() and any((Path(self.tmp.name) / 'home').rglob('empty*')),
                          'a folder that is no project is left without any EAOS state')
 

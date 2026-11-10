@@ -7,7 +7,7 @@ from pathlib import Path
 import tempfile
 import unittest
 from eaos.interfaces import cli
-from eaos.interfaces.command_groups import GROUPS, group_of
+from eaos.interfaces.command_groups import GROUPS
 from eaos.pipeline import resume
 
 
@@ -33,7 +33,7 @@ def commands():
 class CommandSurfaceTests(unittest.TestCase):
     def test_every_command_is_on_the_map_and_the_map_names_only_real_commands(self):
         known = set(commands())
-        self.assertEqual(sorted(name for name in known if group_of(name) is None), [])
+        self.assertEqual(sorted(name for name in known if not any(name in members for *_, members in GROUPS)), [])
         for key, _, _, members in GROUPS:
             self.assertEqual(sorted(set(members) - known), [], f'group {key} lists commands that do not exist')
 

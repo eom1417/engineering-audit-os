@@ -100,7 +100,7 @@ def branches(args, lang):
     preview = govern.branch_preview(project, args.op, args.name, args.into)
     _preview_lines(preview, lang)
     if preview.get('blocked') or not preview.get('confirm'):
-        from ..studio_actions.branches import Blocked
+        from ...journeys.branches import Blocked
         raise Blocked(preview.get('blocked') or [WORDS['blocked']], needs='blocked')
     question = words(f'{args.op}_what', lang, name=args.name, target=preview.get('target'),
                      **{key: len(_listed(preview, key)) for key in ('commits', 'files', 'branches', 'worktrees')})

@@ -49,7 +49,7 @@ def _accepted(project, wave, into):
     """accept's answer once the batch is merged: where it went, whether its branch is gone, the progress now."""
     from ...core.project.ledger import load
     state = project_state.load(project)
-    page = branches.home(state) / 'REPORT.html'
+    page = guided.report_of(state) / 'START-HERE.md'
     deleted = not guided._branch_exists(state, wave['branch'])
     return {'status': 'accepted', 'branch': wave['branch'], 'merged_into': into or wave.get('merge_into') or state.get('branch'),
             'branch_deleted': deleted, 'progress': (load(state) or {}).get('totals'), 'report_for_people': str(page),

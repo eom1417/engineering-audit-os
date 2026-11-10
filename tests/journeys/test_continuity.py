@@ -182,8 +182,7 @@ class Continuity(Base):
         self.assertTrue(answer['branch_deleted'])
         self.assertEqual(self.branches(), [], 'the branch is deleted with the merge, without being asked')
         self.assertEqual((answer['progress']['closed'], answer['progress']['total'], answer['progress']['percent']), (2, 5, 40.0))
-        page = guided.outputs(project_state.load(self.project)) / 'REPORT.html'
-        self.assertTrue(page.is_file(), 'the report is rebuilt in the same call')
+        self.assertTrue(Path(answer['report_for_people']).is_file(), 'the report is rebuilt in the same call')
         self.assertEqual(agent_tools.status(str(self.project))['next']['tool'], 'run_setup',
                          'no new check is needed after EAOS merged its own fixes')
 

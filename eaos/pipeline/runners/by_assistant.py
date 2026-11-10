@@ -1,6 +1,5 @@
 """The runners of the stages an assistant does (eaos/pipeline/runners/by_rules.py has the others): the kinds of users, the
-semantic reading, the AI nodes (the ideal plan, the triage, the plan's order, the pictures' review, the pipeline's gaps),
-the Studio's proposals and the translation. Without its assistant, or with one lost midway, a stage is a recorded
+AI nodes (the triage and the plan's order) and the translation. Without its assistant, or with one lost midway, a stage is a recorded
 absence (SkipStage) and the rules' result stands."""
 from ..stages import SkipStage
 
@@ -41,22 +40,6 @@ def roles(context):
     return {'kinds': len(kinds)}
 
 
-def semantic(context):
-    if not context.provider:
-        raise _absent(context.provider)
-    from ...core.system.process import Stuck
-    from ...ai.semantic import run
-    from ...report.views import refresh
-    try: result = run(context.target, context.out, context.provider, language=context.language)
-    except Stuck as problem:
-        raise _lost(context, str(problem), 'ai_stuck') from None
-    except Exception as problem:                       # the assistant never decides the fate of the check
-        raise _lost(context, f'the assistant\'s reading could not be used ({type(problem).__name__}: {problem})'[:300],
-                    'ai_failed') from None
-    refresh(context.out, context.language)
-    return {'hypotheses': result['claims'], 'questions': result['questions'], 'calls': result['calls']}
-
-
 def _node(context, name):
     """Run one AI node of eaos/ai/nodes inside the check, with its cache and evidence check, as long as the assistant
     works; return its record and what the live map reports. Without an assistant, stuck or on a failure the rules'
@@ -94,13 +77,6 @@ def _adapters_of(context):
     return {key: adapter for key, adapter in installed().items() if key == chosen}
 
 
-def ideal(context):
-    """The ideal planner node (eaos/ai/nodes/ideal_planner.py) before the target is final: plan, critique and the
-    evidence check; the reconcile stage turns its decisions into the target, and the rules' target stands without it."""
-    record, detail = _node(context, 'ideal_planner')
-    return {'elements': record['decisions'][0]['detail']['elements'], **detail}
-
-
 def triage(context):
     """The card triage node (eaos/ai/nodes/triage.py): each open card confirmed, doubted or rejected on its own
     evidence, a doubted one judged again on all its facts, with why in the person's words; the cards stage then applies
@@ -114,31 +90,6 @@ def order(context):
     prerequisite kept; the steps stage writes it into the plan."""
     record, detail = _node(context, 'plan_orderer')
     return {'decision': record['decisions'][0]['decision'], **detail}
-
-
-def visual(context):
-    """The visual reviewer node (eaos/ai/nodes/visual_reviewer.py): the assistant opens each picture of the app's
-    screens, and only those, and names what a person would notice there; the cards stage makes each a design card."""
-    record, detail = _node(context, 'visual_reviewer')
-    return {**{row['decision']: len(row['subjects']) for row in record['routes']}, **detail}
-
-
-def pipeline_gaps(context):
-    """The pipeline-gap planner node (eaos/ai/nodes/pipeline_gap_planner.py): how each broken pipeline rule is
-    closed; the plan orderer reads its steps."""
-    record, detail = _node(context, 'pipeline_gap_planner')
-    return {**{row['decision']: len(row['subjects']) for row in record['routes']}, **detail}
-
-
-def proposals(context):
-    """The Studio's records of this check so far: what the triage, the ideal and the pipeline-gap planner read."""
-    if not context.provider:
-        raise _absent(context.provider)
-    from ...core.project.workspace import write
-    from .live_app import studio
-    result = studio(context)
-    write(context.out / 'proposals.json', result)
-    return {'sections': len(result['written']), 'errors': len(result['errors'])}
 
 
 def translate(context):

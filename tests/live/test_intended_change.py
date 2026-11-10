@@ -70,14 +70,6 @@ class IntendedChangeTests(Workspace):
         self.assertEqual(declared_screens([design]), {'*'})
         self.assertEqual(declared_screens([{**design, **NAV}]), set())
 
-    def test_the_extend_planner_declares_every_screen_when_the_feature_changes_the_shared_layout(self):
-        from eaos.journeys.extend import _card, _feature_fit
-        nav = {'id': 'F1', 'name': 'About page', 'paths': ['flaskr/templates/base.html', 'flaskr/about.py']}
-        self.assertIn('changes_screens.adds', ' '.join(_feature_fit(nav, None, [], ({'flaskr/templates', 'flaskr'}, {}))))
-        card = _card('EXT-001', 'X01', 'About', {**nav, 'changes_screens': {'adds': ['About']}}, False)
-        self.assertEqual(card['changes_screens'], {'screens': ['all'], 'adds': ['About']})
-        self.assertNotIn('changes_screens', _card('EXT-002', 'X01', 'About', {**nav, 'paths': ['flaskr/about.py']}, False))
-
     def test_a_kept_intended_change_is_the_new_truth_only_for_code_that_holds_its_commit(self):
         repo, recorded, lock = Path(self.tmp) / 'repo', Path(self.tmp) / 'recorded', Path(self.tmp) / 'lock'
         git = lambda *args: subprocess.run(['git', '-C', str(repo), *args], capture_output=True, text=True, check=True).stdout.strip()
@@ -96,10 +88,3 @@ class IntendedChangeTests(Workspace):
         git('checkout', '-q', base)
         restore_intended(recorded, lock, repo)
         self.assertFalse((lock / '__screenshots__/root.spec.ts/root.text.txt').exists(), 'code without the change keeps the original')
-
-
-class Declaration(Workspace):
-    def test_a_single_screen_or_word_given_as_text_is_one_not_its_letters(self):
-        # a string such as 'all' must not be read as the list ['a', 'l', 'l'], which would refuse every screen
-        from eaos.journeys.extend import changes_screens
-        self.assertEqual(changes_screens({'changes_screens': {'screens': 'all', 'adds': 'About'}}), {'screens': ['all'], 'adds': ['About']})

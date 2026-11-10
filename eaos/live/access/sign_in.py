@@ -11,9 +11,8 @@ with, and the check waiting for the person to sign in by hand (docs/GUIDE.md "Si
                                went
     works(live, base, state)   whether `state` opens those pages signed in
     ask / asked / wait         the check asks the person to sign in (<workspace>/sign-in.json) and waits for them while
-                               the stages that open no page go on; the sign-in page
-                               (eaos/interfaces/studio_server/sign_in.py, the Studio's Waiting for you, `eaos
-                               sign-in`) answers it
+                               the stages that open no page go on; `eaos sign-in` (eaos/journeys/sign_in_window.py)
+                               answers it
     renew(live, base, state)   a session made by hand checked before use; the person asked again only when it expired
     forget(workspace)          the project's sessions removed (Forget my sign-in, eaos clean)
 """

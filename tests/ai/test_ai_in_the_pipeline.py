@@ -1,6 +1,6 @@
 """The person's assistant inside the check (docs/AI-IN-THE-PIPELINE.md): asked about once, passed to the check so the
-semantic stage runs, the cards triaged, the ideal planned and the plan ordered right after the check, invented citations
-dropped, and the rules standing alone without an assistant or on a failure."""
+cards are triaged and the plan ordered right after the check, invented citations dropped, and the rules standing alone
+without an assistant or on a failure."""
 import json
 import os
 import subprocess
@@ -11,101 +11,14 @@ from pathlib import Path
 from unittest import mock
 
 from eaos.journeys import agent_tools, guided
-from eaos.analysis.understanding.dossier import assemble
 from eaos.pipeline.runners import by_rules as runners
 from eaos.pipeline.run import Context
 from eaos.pipeline.stage_run import _one
-from eaos.pipeline.stages import BY_NAME, STAGES, SkipStage
-from eaos.core.progress import stage_rows
+from eaos.pipeline.stages import BY_NAME
 from eaos.core.progress.log import _small
-from eaos.ai.ideal import planner as ideal
 from eaos.ai.nodes import framework as core
 from ai.test_ai_nodes import Answer, _nodes_report, decision
-from ai.test_ideal_planner import Launcher, make_report
 from eaos.core.project import state as project_state
-
-
-FIXTURE = Path(__file__).resolve().parents[1] / 'fixtures/polyglot'
-
-
-class ScriptedSemanticProvider:
-    """A scripted responder, not a live model: it exercises the contract, not the judgement."""
-
-    def __init__(self, builder): self.builder = builder; self.calls = 0
-
-    def identity(self): return {'kind': 'SCRIPTED_TEST_FIXTURE', 'stage': 'semantic'}
-
-    def complete(self, messages, **_):
-        self.calls += 1
-        payload = json.loads(messages[1]['content'])
-        return self.builder(payload['instructions']['digest'], self.calls)
-
-
-def grounded(digest, call):
-    fact = digest['components'][0]['fact_id']
-    return {'claims': [{'statement': 'The pricing module owns the discount rule for every entry path', 'claim_type': 'responsibility',
-                        'fact_ids': [fact], 'falsifier': 'A second module applying a different discount without importing this one',
-                        'basis': 'observed', 'reasoning': 'highest fan-in among pricing files'}],
-            'questions': ['Which component owns tax, if any?']}
-
-
-def invented(digest, call):
-    return {'claims': [{'statement': 'Something is wrong somewhere in the system', 'claim_type': 'cause',
-                        'fact_ids': ['FACT-doesnotexist'], 'falsifier': 'evidence to the contrary', 'basis': 'inferred'}],
-            'questions': []}
-
-
-def slow(digest, call):
-    raise ValueError('Model adapter timed out; no raw stderr exposed')
-
-
-class SemanticStage(unittest.TestCase):
-    def setUp(self):
-        self.tmp = tempfile.TemporaryDirectory()
-        self.addCleanup(self.tmp.cleanup)
-        self.out = Path(self.tmp.name) / 'out'
-        assemble(FIXTURE, self.out)
-
-    def context(self, provider):
-        return Context(target=FIXTURE, out=self.out, provider=provider, language='en')
-
-    def test_an_invented_citation_is_sent_back_and_without_an_assistant_or_on_a_failure_the_check_goes_on(self):
-        for provider, code in ((None, 'no_provider'), (ScriptedSemanticProvider(invented), 'ai_failed'),
-                               (ScriptedSemanticProvider(slow), 'ai_failed')):
-            row = _one(BY_NAME['semantic'], self.context(provider), runners.RUNNERS, {})
-            self.assertEqual((row['status'], row['reason_code']), ('unavailable', code))
-        self.assertFalse((self.out / 'semantic.json').exists())
-        answers = iter([invented, grounded])
-        provider = ScriptedSemanticProvider(lambda digest, call: next(answers)(digest, call))
-        detail = runners.semantic(self.context(provider))
-        self.assertEqual((detail['hypotheses'], detail['calls']), (1, 2))
-        self.assertNotIn('FACT-doesnotexist', (self.out / 'semantic.json').read_text(encoding='utf-8'))
-
-class IdealStage(unittest.TestCase):
-    def setUp(self):
-        self.tmp = tempfile.TemporaryDirectory()
-        self.addCleanup(self.tmp.cleanup)
-        self.report = make_report(self.tmp.name)
-        self.context = Context(target=Path(self.tmp.name), out=self.report, provider=object(), language='en')
-
-    def planned_with(self, launcher):
-        with mock.patch.object(core, 'pick', return_value=object()), mock.patch.object(core, 'AdapterLauncher', return_value=launcher):
-            return runners.ideal(self.context)
-
-    def test_the_ideal_is_planned_after_the_check_and_a_failure_or_no_assistant_leaves_the_rules_target(self):
-        with self.assertRaises(SkipStage) as failed:
-            self.planned_with(Launcher('critique', TimeoutError('slow')))
-        self.assertEqual(failed.exception.code, 'ai_failed')  # see test_joint_decision
-        self.assertEqual(ideal.current(self.report), (None, 'failed'))
-        detail = self.planned_with(Launcher())
-        self.assertEqual((detail['dropped'], detail['calls'], detail['model']), (1, 2, 'fake-model'))
-        record, state = ideal.current(self.report)
-        self.assertEqual(state, 'planned')
-        self.assertEqual([row['id'] for row in record['dropped']], ['s9'])
-        self.assertEqual(ideal.section(self.report, 'en')['views']['system']['provenance']['method'], 'planned')
-        self.assertEqual([row['name'] for row in stage_rows(STAGES) if row['ai']], ['roles', 'session', 'experience', 'semantic', 'triage', 'visual', 'ideal', 'pipeline_gaps', 'order', 'translate'])
-        self.assertEqual({BY_NAME[name].requires for name in ('triage', 'ideal', 'pipeline_gaps')}, {('proposals',)})
-        self.assertEqual(BY_NAME['order'].requires, ('cards',))
 
 
 def answers(name, schema):

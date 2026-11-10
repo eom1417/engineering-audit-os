@@ -1,4 +1,4 @@
-"""The architecture maps of the report for people (eaos/report/human_report/): what depends on what, drawn, and the target.
+"""The architecture maps: what depends on what, drawn, and the target.
 
 Reads only records the audit already wrote, and never raises for a missing or broken one (a missing piece is None):
     facts/graph.json       graph_node: a file, the files it imports (depends_on), its cycle group; graph_cycle: a loop

@@ -164,12 +164,11 @@ class ProgressTests(unittest.TestCase):
 
 class ReadyStagesTests(unittest.TestCase):
     def test_ai_readers_wait_for_the_same_inputs_in_speed_mode_as_in_serial_mode(self):
-        ended = set(ORDER) - {'triage', 'visual', 'ideal', 'pipeline_gaps', 'order'}
-        self.assertNotIn('ideal', ready_stages(['ideal'], ended, ['triage', 'visual'], 'speed', 5))
-        ended.update(('triage', 'visual'))
-        self.assertEqual(ready_stages(['ideal'], ended, [], 'speed', 5), ['ideal'])
-        self.assertNotIn('order', ready_stages(['order'], ended, ['ideal', 'pipeline_gaps'], 'speed', 5))
-        self.assertIn('probe', WAITS['semantic'], 'the semantic pass rewrites the probed ledger')
+        ended = set(ORDER) - {'triage', 'cards', 'order'}
+        self.assertNotIn('order', ready_stages(['order'], ended, ['triage'], 'speed', 5))
+        ended.update(('triage', 'cards'))
+        self.assertEqual(ready_stages(['order'], ended, [], 'speed', 5), ['order'])
+        self.assertIn('plan', WAITS['triage'], 'the triage reads the plan')
 
     def test_speed_uses_available_container_memory_and_leaves_room_for_the_app(self):
         from eaos.core.system.resources import capacity
@@ -240,11 +239,9 @@ class ReadyStagesTests(unittest.TestCase):
         self.assertEqual(sum('app' in BY_NAME[n].uses for n in ready), 1, 'one stage at a time runs the app')
         # the project's tests do not wait for the whole chain of page stages
         self.assertIn('verify', ready, 'its own copy and database: beside the stage running the app')
-        self.assertNotIn('baseline', ready_stages(left, ended, ['engines'], 'normal', 10), 'the load test runs alone')
-        self.assertEqual(ready_stages(['measure'], ended, ['baseline'], 'normal', 10), [], 'nothing runs beside it')
-        thinking = set(ORDER) - {'triage', 'visual', 'ideal'}
-        self.assertEqual(ready_stages(['visual'], thinking, ['triage'], 'normal', 10), [])
-        self.assertEqual(ready_stages(['visual'], thinking, ['triage'], 'speed', 10), ['visual'])
+        thinking = set(ORDER) - {'triage', 'order'}
+        self.assertEqual(ready_stages(['order'], thinking, ['triage'], 'normal', 10), [])
+        self.assertEqual(ready_stages(['order'], thinking, ['triage'], 'speed', 10), ['order'])
         self.assertEqual(ready_stages(left, ended, [], 'one', 1), [left[0]] if WAITS[left[0]] <= ended else [])
 
     def test_the_time_a_check_takes_is_its_longest_chain_not_its_sum(self):

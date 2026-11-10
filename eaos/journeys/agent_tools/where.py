@@ -63,7 +63,7 @@ def choose_branch(branch, project=None, person_said=''):
     state = guided.choose(state, branch, person_said, via='assistant')
     checked = guided.scan_done(state)
     return {'status': 'chosen', 'branch': branch, 'before': before, 'checked_before': checked,
-            'commit': _head(state), 'report_for_people': str(branches.home(state) / 'REPORT.html'),
+            'commit': _head(state), 'report_for_people': str(branches.home(state) / 'technical' / 'START-HERE.md'),
             'what_now': ('This branch was checked before: call status.' if checked else
                          'Call audit: the check runs on this branch (its own copy; the person\'s checkout is not switched).')}
 
@@ -115,7 +115,7 @@ def _facts(state, head, checked):
     return {'project': state['project'], 'branch': state.get('branch'), 'commit': head,
             'saved_in_git': not guided._git(state['project'], 'status', '--porcelain').stdout.strip(),
             'checked': checked, 'checked_commit': state.get('scanned_commit'),
-            'outputs_folder': str(guided.outputs(state)), 'report_for_people': str(branches.home(state) / 'REPORT.html') if checked else None,
+            'outputs_folder': str(guided.outputs(state)), 'report_for_people': str(branches.home(state) / 'technical' / 'START-HERE.md') if checked else None,
             'app_runs': setup.get('ok') if guided.set_up(state, head) else None,
             'safety_net': safety if guided.safety_holds(state, head) else None,
             'progress': ((ledger.load(state) or {}).get('totals') if checked else None)}
@@ -159,15 +159,15 @@ def _setup_step(state, head):
 
 
 def _fresh_report(state):
-    """REPORT.html as it stands, rebuilt first when an older EAOS made it (after an update the person sees the new
-    page at once, from the check on record, before any new check): {page, built, version, commit, rebuilt,
+    """The report as it stands, rebuilt first when an older EAOS made it (after an update the person sees the new
+    report at once, from the check on record, before any new check): {page, built, version, commit, rebuilt,
     errors}."""
     made = guided.report_stamp(state)
     rebuilt = made.get('digest') != tool_digest()
     if rebuilt:
         guided.publish(state)
         made = guided.report_stamp(state)
-    return {'page': str(branches.home(state) / 'REPORT.html'), 'rebuilt': rebuilt,
+    return {'page': str(guided.report_of(state) / 'START-HERE.md'), 'rebuilt': rebuilt,
             **{k: made.get(k) for k in ('built', 'version', 'commit', 'errors')}}
 
 

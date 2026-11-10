@@ -11,9 +11,10 @@ import re
 from pathlib import Path, PurePosixPath
 
 from ...core.system.files import read_json, tomllib
-from ...engines.security.syft import REQUIREMENT
 
 GO_REQUIRE = re.compile(r'^\s*(?:require\s+)?([\w.~/-]+\.[\w.~/-]+)\s+v\d\S*\s*(//\s*indirect)?', re.M)
+# A requirement line (requirements.txt): its name, extras and version specifier.
+REQUIREMENT = re.compile(r'^\s*([A-Za-z0-9][A-Za-z0-9._-]*)\s*(\[[^\]]*\])?\s*([^;#]*)')
 JSON_SCOPES = {'dependencies': 'prod', 'optionalDependencies': 'prod', 'peerDependencies': 'prod', 'devDependencies': 'dev'}
 
 

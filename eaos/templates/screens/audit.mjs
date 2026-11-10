@@ -148,8 +148,7 @@ function trackingOf() {
 
 // Runs inside the page: the style census (M15.4), what the screen really shows whatever wrote it (CSS, Tailwind,
 // CSS-in-JS, inline styles): every visible element's computed colours, font size and family, spacing, radius, shadow
-// and stacking, each value counted. eaos/analysis/assessments/one_source_look.py groups near colours and reads the
-// sizes against one scale.
+// and stacking, each value counted.
 function stylesOf() {
   const { visible, all, hasText } = window.__eaosAudit;
   const kinds = { color: {}, font_size: {}, font_family: {}, spacing: {}, radius: {}, shadow: {}, z_index: {} };

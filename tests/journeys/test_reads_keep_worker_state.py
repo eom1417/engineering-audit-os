@@ -1,12 +1,11 @@
-"""A read that rebuilds the report holds no old state over what a worker wrote meanwhile: open_report, opening the
-Studio, and status, menu and plan when reconciling changes something. Real repositories; the worker runs in its own
+"""A read that rebuilds the report holds no old state over what a worker wrote meanwhile: open_report, and status, menu
+and plan when reconciling changes something. Real repositories; the worker runs in its own
 thread while the read is rebuilding the report."""
 import threading
 from unittest import mock
 
 from eaos.core.project import state as project_state
 from eaos.interfaces.mcp_server.server import functions
-from eaos.interfaces.studio_server import server as studio_server
 from eaos.journeys import agent_tools, check as check_journey, guided
 from eaos.journeys.agent_tools import fixing
 from eaos.journeys.fix import finish as batch_finish, lanes
@@ -87,25 +86,17 @@ class Interleaved(Batch):
         self.assertIn('abandoned', [wave['status'] for wave in state['waves']])
 
 
-class OpenReportAndTheStudio(Interleaved):
+class OpenReport(Interleaved):
     def readers(self):
-        return (('open_report', lambda: agent_tools.open_report(self.where, show=False)), ('opening the Studio', lambda: studio_server.prepare(self.where)))
+        return (('open_report', lambda: agent_tools.open_report(self.where, show=False)),)
 
     def test_a_change_kept_meanwhile_stays_recorded(self):
         read = dict(self.readers())
         self.run_read(read['open_report'], self.keep)
         self.assertKept()
 
-    def test_a_change_kept_meanwhile_stays_recorded_opening_the_studio(self):
-        self.run_read(dict(self.readers())['opening the Studio'], self.keep)
-        self.assertKept()
-
     def test_a_hand_over_meanwhile_stays(self):
         self.run_read(dict(self.readers())['open_report'], self.hand_over)
-        self.assertHandedOver()
-
-    def test_a_hand_over_meanwhile_stays_opening_the_studio(self):
-        self.run_read(dict(self.readers())['opening the Studio'], self.hand_over)
         self.assertHandedOver()
 
     def test_an_abandonment_meanwhile_stays(self):

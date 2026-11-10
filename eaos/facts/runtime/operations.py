@@ -39,7 +39,8 @@ LIMITATIONS = [
 
 
 # Hosting platforms a repository declares by one manifest file: the file names the host. A Dockerfile is read for its
-# ports (_dockerfile_ports); these say where the code is deployed, which the infrastructure map draws (eaos/report/studio/infra.py).
+# ports (_dockerfile_ports); these say where the code is deployed, which the target projection reads
+# (eaos/analysis/target_state/projection.py).
 HOSTING_MANIFESTS = {'vercel.json': 'Vercel', 'netlify.toml': 'Netlify', 'fly.toml': 'Fly.io', 'railway.json': 'Railway',
                      'railway.toml': 'Railway', 'render.yaml': 'Render', 'Procfile': 'Procfile', 'nixpacks.toml': 'Nixpacks',
                      'wrangler.toml': 'Cloudflare Workers'}

@@ -142,8 +142,7 @@ def decide(claim):
 
 
 def ready(card):
-    """Whether a batch may take the card without a person's decision: a fix, or a planned part to build
-    (eaos/journeys/extend.py)."""
+    """Whether a batch may take the card without a person's decision: a fix, or a planned part to build."""
     return card.get('kind') in ('remediate', 'build') and (card.get('decision') or {}).get('readiness') == 'ready'
 
 

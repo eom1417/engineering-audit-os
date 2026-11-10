@@ -4,7 +4,6 @@ import os
 from pathlib import Path
 
 from . import node_jobs
-from ...core.project import state as project_state
 from ...core.toolchain import catalog as tools_catalog
 
 
@@ -37,12 +36,6 @@ def _finding_tools(server, reading, working, _answer):
     def structure(project: str | None = None) -> str:
         return tools.structure(project)
 
-    @server.tool(annotations=reading, description="What the project's screens are really made of: how many looks each part has (buttons, inputs, "
-                 "cards...), how many values each kind has (colours, sizes...), near colours, how dates and numbers show, two libraries for one job.")
-    @_answer
-    def design(project: str | None = None) -> str:
-        return tools.design(project)
-
     @server.tool(annotations=working, description='The plan of fixes: milestones in order and their cards (which EAOS can fix, which '
                  'were tried). Pass a milestone id for all of its cards.')
     @_answer
@@ -51,50 +44,23 @@ def _finding_tools(server, reading, working, _answer):
 
 
 def _report_tools(server, reading, working, _answer):
-    """The look, the report's files, the report for people and the Studio."""
-    from ...analysis.target_state import look as design
-    from ...journeys import agent_tools as tools, guided
+    """The report's files and the report for people."""
+    from ...journeys import agent_tools as tools
 
-    @server.tool(annotations=reading, description='The look, at almost no tokens: the EAOS design standard (phone first, both '
-                 'directions, one theme), the Arabic font catalogue, the free pinned design libraries on this computer, the '
-                 'design system UI UX Pro Max suggests for `product` (for example "clinic booking app"), and the project\'s '
-                 'look today. For a redesign, or the look of a build.')
-    @_answer
-    def design_brief(product: str = '', project: str | None = None) -> str:
-        return design.for_report(guided.report_of(tools.state_of(project)), product)
-
-    @server.tool(annotations=working, description='Save the look the person chose, one DESIGN.md (Google Stitch\'s format), beside the '
-                 'report: the screen review then judges every page against it (audit again_from="visual").')
-    @_answer
-    def design_choose(content: str, project: str | None = None) -> str:
-        return design.choose(guided.report_of(tools.state_of(project)), content)
-
-    @server.tool(annotations=reading, description='A file of the report (for example START-HERE.md, TARGET-ARCHITECTURE.md, '
-                 'CURRENT-STATE.md, load-model.json); with no name, the list of files.')
+    @server.tool(annotations=reading, description='A file of the report (for example START-HERE.md, '
+                 'CURRENT-STATE.md, dossier.json); with no name, the list of files.')
     @_answer
     def report_file(name: str = '', offset: int = 0, limit: int = 20000, project: str | None = None) -> str:
         return tools.report_file(name, project, offset, limit)
 
+    # jscpd:ignore-start -- each MCP tool is its own decorated signature: the server reads its schema and words from it
     # Not read-only, for it rebuilds the report and saves the state; no destructive hint, for what it regenerates is overwritten.
-    @server.tool(annotations=reading.model_copy(update={'read_only_hint': False}), description='Open the report for people (REPORT.html: project summary, gaps and risks, structure '
-                 'map, plan and progress, in plain words) in the person\'s browser, rebuilt with the fixes so far. Offer it after '
+    @server.tool(annotations=reading.model_copy(update={'read_only_hint': False}), description='The report for people (START-HERE.md and the four reports: what was found, what EAOS '
+                 'fixes alone, the plan and progress, in plain words), rebuilt with the fixes so far. Offer it after '
                  'the check and after each batch of fixes. All outputs are in one folder (~/EAOS/<project>).')
     @_answer
     def open_report(show: bool = True, project: str | None = None) -> str:
-        from ...journeys.build_from_plan import steps as build_tools
-        state = project_state.load(Path(project or os.getcwd()).expanduser().resolve())
-        if (state or {}).get('mode') == 'build' and not guided.scan_done(state): return build_tools.open_blueprint(project, show)
         return tools.open_report(project, show)
-
-    # Not read-only, for it starts a server or stops one to replace it; no destructive hint, for a running one can go.
-    @server.tool(annotations=reading.model_copy(update={'read_only_hint': False}), description='Open the live EAOS Studio of the project in the person\'s browser: every '
-                 'card, map, plan and decision of the last check, updating by itself after every check, batch, merge and decision. '
-                 'It runs on this computer and is reused while it runs. On a remote server whose ports your environment routes to '
-                 'an https address (for example https://<project>--<port>.dev.example.com), pass that address once as `address`: '
-                 'the Studio then answers there with a plain address and keeps running after your session ends.')
-    @_answer
-    def open_studio(show: bool = True, address: str | None = None, project: str | None = None) -> str:
-        return tools.open_studio(project, show, address=address)
 
 
 def _run_tools(server, reading, working, _answer):
@@ -102,7 +68,7 @@ def _run_tools(server, reading, working, _answer):
     from ...journeys import agent_tools as tools
 
     @server.tool(annotations=working, description='Run the AI nodes on the latest check, any of them at any time (card_triage, '
-                 'visual_reviewer, ideal_planner, pipeline_gap_planner, plan_orderer, fix_reviewer; all when none named). Returns a job.')
+                 'plan_orderer, fix_reviewer; all when none named). Returns a job.')
     @_answer
     def run_nodes(nodes: list[str] | None = None, fresh: bool = False, project: str | None = None) -> str:
         return node_jobs.start(project, nodes, fresh)
@@ -123,29 +89,12 @@ def _run_tools(server, reading, working, _answer):
     @_answer
     def run_setup(person_agreed: bool = False, project: str | None = None) -> str:
         return tools.run_setup(project, person_agreed)
+    # jscpd:ignore-end
 
 
 def _context_tools(server, reading, working, _answer):
-    """The assistants' context trimmed, the project's extension guide with it, and GitNexus's map for its assistant."""
+    """The assistants' context trimmed, and the project's extension guide with it."""
     from ...journeys import agent_tools as tools
-
-    @server.tool(annotations=working, description="GitNexus's map of the project for its assistant (area skills, its MCP): the index outside "
-                 "the project, the skills in a folder git does not take; needs person_agreed=true after the person says yes.")
-    @_answer
-    def project_map(project: str | None = None, person_agreed: bool = False) -> str:
-        return tools.project_map(project=project, person_agreed=person_agreed)
-
-    @server.tool(annotations=reading, description="What a batch of the look would do, nothing written: the raw values it names as tokens, in which files, where the one tokens "
-                 "file goes. agreed: [{from, to}], values the person agreed to merge.")
-    @_answer
-    def design_propose(agreed: list | None = None, project: str | None = None) -> str:
-        return tools.design_propose(project, agreed)
-
-    @server.tool(annotations=working, description="Make that batch in an isolated copy, no assistant asked, kept only when the style oracle proves nothing looks different but what "
-                 "was agreed; needs person_agreed=true after the person says yes. Returns a job.")
-    @_answer
-    def design_make(person_agreed: bool = False, agreed: list | None = None, project: str | None = None) -> str:
-        return tools.design_make(project=project, agreed=agreed, person_agreed=person_agreed)
 
     @server.tool(annotations=reading, description="What a batch of the assistants' context would do, nothing written: what the trim "
                  "archives and keeps once, the tokens saved, and the project's extension guide it writes (docs/EXTENDING.md and one "
@@ -267,7 +216,7 @@ def _decision_tools(server, working, _answer, _status):
     @_answer
     def note(text: str, card: str | None = None, project: str | None = None) -> str:
         from ...journeys import handover
-        from ..studio_actions import handoff
+        from ...journeys.runs import handoff
         handoff.close(Path(project or os.getcwd()).expanduser().resolve(), text)
         return handover.note(text, card, project, _status)
 

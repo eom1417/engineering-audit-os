@@ -1,6 +1,6 @@
 """What only the person decides, for every MCP tool (the server's, the governance tools, the rules tools) and the
 terminal: these tools, and these operations of the tools and commands that group them. In a run the Studio started
-(EAOS_STUDIO_RUN set by eaos/interfaces/studio_actions) the assistant asks instead, and the person answers in the
+(EAOS_STUDIO_RUN set by eaos/journeys/runs) the assistant asks instead, and the person answers in the
 Studio, which calls these itself."""
 import os
 

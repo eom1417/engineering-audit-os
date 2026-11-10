@@ -211,9 +211,9 @@ def answer(args, lang):
 
 @command
 def signing_in(args, lang):
-    """`eaos sign-in`: the person signs in to their app while a check asks: in a window where this computer shows one,
-    else on the sign-in page served on a port of its own; or goes on signed out; or forgets the sessions kept."""
-    from ..studio_server import sign_in as page
+    """`eaos sign-in`: the person signs in to their app while a check asks, in a window where this computer shows one;
+    or goes on signed out; or forgets the sessions kept."""
+    from ...journeys import sign_in_window as page
     project = _project(args)
     if args.forget:
         refuse_in_studio_run('sign_in_forget')      # the person's only, as the MCP tool is
@@ -223,11 +223,7 @@ def signing_in(args, lang):
     if args.signed_out:
         page.skip(project)
         return guided.box(lang, words('sign_in_skipped', lang), commands=['eaos watch'])
-    if not page.display():
-        say(words('sign_in_open', lang))
-        from ..studio_server.server import serve_sign_in
-        serve_sign_in(project, lambda address: say(f'   {address}'))
-        return guided.box(lang, words('sign_in_done' if page.status(project)['kept'] else 'sign_in_skipped', lang), commands=['eaos watch'])
+    if not page.display(): return guided.box(lang, words('sign_in_no_window', lang), commands=['eaos sign-in --signed-out'])
     page.open_browser(project, headed=True)
     _codes(page.status(project)['codes'], lang)
     input(words('sign_in_window', lang))
@@ -243,20 +239,6 @@ def _codes(codes, lang):
 
 
 # ---------------------------------------------------------------- what the check found, and the verbs
-
-@command
-def design(args, lang):
-    from ...analysis.design.inventory import CATALOG
-    from ...journeys.agent_tools import design as inventory
-    drawn = inventory(args.project)
-    if drawn.get('status') == 'not_read': return guided.box(lang, words('design_none', lang), commands=['eaos check --run-app'])
-    pick = 0 if lang == 'ar' else 1
-    for role, part in sorted(drawn['components'].items(), key=lambda item: -item[1]['looks']):
-        say(f"   {CATALOG['components'][role][pick]}: {words('design_looks', lang, looks=part['looks'], count=part['count'])}")
-    for kind, count in drawn['values'].items(): say(f"   {CATALOG['values'][kind]['words'][pick]}: {count}")
-    for job, names in drawn['libraries'].items(): say(f"   {job}: {', '.join(names)}")
-    return guided.box(lang, words('design_read', lang, pages=drawn['pages']), commands=['eaos problems'])
-
 
 @command
 def problems(args, lang):
@@ -326,17 +308,6 @@ def act(args, lang):
 
 def contract_verb(verb):
     return next(v for v in contract()['verbs'] if v['id'] == verb)
-
-
-@command
-def projects(args, lang):
-    """`eaos projects`: the Studio's project switcher in a terminal."""
-    from ..studio_server.projects import listing
-    rows = listing(args.project)['projects']
-    for row in rows:
-        say(f"{'✓' if row['current'] else ' '} {row['name']:<28} {row['score'] if row['score'] is not None else '-':<6} {(row['checked'] or '-')[:16]:<16} "
-            f"{'🟢' if row['studio'] else '  '} {row['path']}")
-    guided.box(lang, words('projects', lang, count=len(rows)), commands=['eaos studio <folder>'])
 
 
 # ---------------------------------------------------------------- history, comparison, use

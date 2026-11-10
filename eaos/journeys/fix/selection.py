@@ -6,7 +6,6 @@ those groups): the same data the page showed, so the preview names what the pers
 from pathlib import Path
 from ...core.contracts.decisions import own_batch
 from ...core.project import state as project_state
-from ...analysis.target_state.repair_or_rebuild import fix_minutes
 from ...core.system.files import read_json
 
 BATCH = 10                                  # fix_start's default batch size
@@ -14,6 +13,16 @@ OPEN = ('open',)
 GROUPS = {'area': 'category', 'severity': 'severity'}
 LISTED = {'gap': ('gaps', 'id', 'the gap register'), 'component': ('gaps', 'component', 'the gap register'),     # (file, field, words)
           'operation': ('operations', 'id', 'the operations')}
+
+
+# Minutes a card takes to fix behind every gate, low and high, and the safe copy prepared once (a rough rule until this
+# project's own fix runs measure it).
+FIX_MINUTES, PREPARE_MINUTES = (3, 8), (5, 15)
+
+
+def fix_minutes(count):
+    """(low, high) minutes of fixing `count` cards by the rough rule."""
+    return (PREPARE_MINUTES[0] + FIX_MINUTES[0] * count, PREPARE_MINUTES[1] + FIX_MINUTES[1] * count)
 
 
 STATE_AR = {'done': 'انحلّت', 'on_branch': 'على فرع ينتظر قرارك', 'in_batch': 'في الدفعة الحالية', 'skipped': 'انتركت'}

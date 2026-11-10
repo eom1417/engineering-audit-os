@@ -108,7 +108,7 @@ def _design_key(finding):
 
 def _also_shown(card, group, finding):
     """Every picture of the group as the card's evidence, and the other problems seen on the page in its change."""
-    # A finding of the page reviewer (eaos/ai/nodes/visual_reviewer.py) lists every picture it shows on.
+    # A finding of a page review lists every picture it shows on.
     shown = [show for f in group for show in f.get('pictures') or [f]]
     images = list(dict.fromkeys(show['image'] for show in shown))
     if len(images) <= 1: return
@@ -192,10 +192,10 @@ def decided(out, tasks, triaged, reviewed):
 
 
 def _security(out, tasks, verdicts):
-    """The doubted cards that are security cards: their area, as every report shows it (eaos/analysis/presentation/model.py
+    """The doubted cards that are security cards: their area, as every report shows it (eaos/core/contracts/card_areas.py
     classify, with the debt register's category: an access gap, an injection or other weakness, a secret, a vulnerable
     dependency)."""
-    from ..presentation.model import classify
+    from ...core.contracts.card_areas import classify
     doubted = [t for t in tasks if (verdicts.get(t['id']) or {}).get('decision') == 'doubt']
     category = _categories(out) if doubted else {}
     return {t['id'] for t in doubted if classify(t, None, category.get(t.get('claim_id')))[0] == 'security'}
@@ -383,7 +383,7 @@ def _set_aside(tasks, rejected, verdicts):
 
 def _doubted(tasks, verdicts, closed):
     """The cards the triage doubted, each with why and whether the assistant closed it as not proven (`closed`: shown
-    to the person apart, eaos/ai/ideal/studio.py) or it waits for the person's review (a security card)."""
+    to the person apart) or it waits for the person's review (a security card)."""
     return [{'card': t['id'], 'claim_id': t.get('claim_id'), 'title': t.get('title'), 'why': verdicts[t['id']].get('why'),
              'closed': t['id'] in closed} for t in sorted(tasks, key=lambda t: t['id'])
             if (verdicts.get(t['id']) or {}).get('decision') == 'doubt']

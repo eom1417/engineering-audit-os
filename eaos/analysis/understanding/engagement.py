@@ -29,12 +29,6 @@ LIMITATIONS = [
     '`analysis.exclude` in the policy also excludes it.',
 ]
 
-DEFAULT_TARGETS = {
-    'single_source': 0.0, 'minimal_path': 0.0, 'data_owners': 0,
-    'honest_boundaries': 0, 'verifiable_paths': 0.0, 'understandable_units': 0,
-}
-
-
 # Rules the audit applies unless the project says otherwise in eaos.engagement.json at its root. Each is a
 # declared default, not a judgement about this project: the project turns one off by writing it as false.
 DEFAULT_RULES = {

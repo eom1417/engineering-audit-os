@@ -6,7 +6,7 @@ from pathlib import Path
 from unittest import mock
 
 from eaos.analysis.claims import ledger
-from eaos.analysis.presentation.model import PATTERNS as AREAS
+from eaos.core.contracts.card_areas import PATTERNS as AREAS
 from eaos.analysis.repair import one_source_gate, remediation
 from eaos.core.contracts.card_kinds import KINDS
 from eaos.core.language.words import TEMPLATES, statement_of

@@ -117,18 +117,11 @@ def _missing_first(project, lang):
 
 
 def watch(state, args):
-    """Interface first: the install of the tools starts in the background (eaos/core/toolchain/runs.py), and the
-    project's Studio, started when it is not running, is printed and opened in the browser, unless `eaos start
-    --no-watch`: on "Preparing the tools" while a tool the check needs here is not ready, else on the live map."""
+    """The install of the tools the check needs starts in the background (eaos/core/toolchain/runs.py), unless
+    `eaos start --no-watch`."""
     if getattr(args, 'no_watch', False): return
-    from ...core.system import launch
     from ...core import toolchain
     toolchain.prepare(state['project'])
-    record, _ = launch.start(state)
-    if not record: return
-    url = launch.url_of(record, '/scan' if toolchain.ready(state['project']) else '/tools')
-    say(f"تابع العمل حيًّا: {url}" if state['lang'] == 'ar' else f"Watch the work live: {url}")
-    launch._open(url, True)
 
 
 def next_command(args):
