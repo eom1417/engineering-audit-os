@@ -25,18 +25,17 @@ before anything else; it binds over this file.
 
 - Least code, best result; one source of truth; clear and clean; nothing replaced is left behind; fix the cause, not
   the symptom, and never break what exists.
-- EAOS itself: modules ≤ 400 lines and function complexity ≤ 10, no exception, in Python and in the Studio's
-  JavaScript (`console/tools/same.cjs` proves a split left every screen as it was); functions ≤ 50 lines and ≤ 5
+- EAOS itself: modules ≤ 400 lines and function complexity ≤ 10, no exception; functions ≤ 50 lines and ≤ 5
   parameters, none listed: a function whose parameters cannot be grouped (a tool mirroring its command, a record's
   constructor) says why on its `def` line, `# limits: parameters -- <why>`. The laws EAOS holds every project to stay
   600 / 15 (`eaos/core/contracts/code_laws.py`). No dead code, no duplication, no security finding; layers per
   `docs/ARCHITECTURE.md`. **One source per pattern**: no near copy of one responsibility (alike shapes of two stay
-  apart), no value of the look outside the Studio's `tokens.css`, no screen pattern or way of working written three
-  times (`core/system/files.py` reads JSON, `core/system/clock.py` tells the time); a copy kept on purpose says why,
+  apart), no way of working written three times (`core/system/files.py` reads JSON, `core/system/clock.py` tells the
+  time); a copy kept on purpose says why,
   `# jscpd:ignore-start -- <why>` (a way of working: `// ast-grep-ignore: <rule> -- <why>`).
 - **`tools/quality.sh`** checks every law in about a minute and refuses any number worse than recorded
   (`tools/code_limits.json`, `tools/quality.json`, the layers contract in `pyproject.toml`, EAOS's own repository
-  rules, ESLint on the Studio); `--record` after a number went down, `python tools/code_limits.py --tighten` after a
+  rules); `--record` after a number went down, `python tools/code_limits.py --tighten` after a
   listed function or module shrank.
 - **The published tree holds only the product.** No machine detail (cores, memory, load, host names, internal
   addresses), no absolute path of a development machine, no personal e-mail, no name of a private project: a real
@@ -51,7 +50,6 @@ before anything else; it binds over this file.
 2. **Verify** there: the affected tests while working, then once before merging:
    ```bash
    tools/quality.sh && .venv/bin/python -m unittest discover -s tests -q && .venv/bin/python tools/validate.py
-   (cd console && npm run build)     # only when console/ or docs/studio-actions.json changed
    ```
    The full suite (several minutes) runs as a background job; one heavy job at a time.
 3. **Merge into `develop`** (`--no-ff`), push, delete the branch.
@@ -73,8 +71,8 @@ stay: every test of `tests/guards/` (`tests/guards/test_journey.py` is the fast 
 `tests/fixtures/baseline-app` and no layer finding on its clean twin `tests/fixtures/baseline-clean`). A change to running
 apps or finding screens also runs the compatibility corpus (`tools/corpus.py`, a background job of about an hour); a
 milestone end measures `docs/METRICS.md` with `tools/metrics.py`. The proofs with the real assistant, each spending money:
-`tools/fix_proof.py` (in the golden trial), `tools/journeys_proof.py` (the three journeys), `tools/tidy_proof.py`
-(moves and context, ten questions per app), `tools/experience_proof.py` (the simulated users). A tool's new pin:
+`tools/fix_proof.py` (in the golden trial), `tools/tidy_proof.py` (moves and context, ten questions per app),
+`tools/rules_proof.py` (the person's rules on the golden app). A tool's new pin:
 `tools/platform_assets.py` fills its asset for every computer EAOS supports.
 
 ## Setting up a computer

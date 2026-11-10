@@ -12,7 +12,6 @@ Thank you for helping. EAOS checks other people's code, so its own code is held 
 
 ```bash
 bash tools/dev_setup.sh          # .venv, every external tool at its pinned version, the development material
-(cd console && npm ci)           # the Studio's build and lint tools (esbuild, ESLint)
 ```
 
 `AGENTS.md` is the full manual for changing EAOS (the flow, the tests, the proofs); this page is the short version.
@@ -22,8 +21,6 @@ bash tools/dev_setup.sh          # .venv, every external tool at its pinned vers
 ```bash
 tools/quality.sh                 # every code law, about a minute; refuses any number worse than recorded
 .venv/bin/python -m unittest discover -s tests -q && .venv/bin/python tools/validate.py
-(cd console && npm run build)    # only when console/ or docs/studio-actions.json changed: the Studio built into
-                                 # eaos/data/studio, within its budgets
 ```
 
 ## The code laws

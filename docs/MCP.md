@@ -1,6 +1,6 @@
 # EAOS inside your AI assistant (MCP)
 
-EAOS runs as an MCP server, so Claude Code or Codex can check, fix, build and extend a project for a person who
+EAOS runs as an MCP server, so Claude Code or Codex can check and fix a project for a person who
 just asks in their own words: "check my project and fix the most important problems". The assistant calls EAOS's
 tools, reads the code itself and writes the changes; EAOS gives the evidence, keeps every change in an isolated copy,
 checks it, and hands it over as a git branch.
@@ -36,15 +36,15 @@ answer carries instructions that tell the assistant the whole way, in order, and
 **The menu.** Typing `/eaos` alone in Claude Code (or `$eaos` in Codex) shows the `menu` tool's options: only those that
 make sense for the project now, the recommended one first, in pages of four (`eaos/interfaces/menu.py`). Claude Code
 shows them as a choice like `/model`; Codex as a numbered list. The server also offers prompts, which Claude Code lists
-as `/mcp__eaos__<name>`: `build`, `audit`, `fix`, `status`, `continue`, `report`, `tasks`, `ask` (takes the question)
-and `tools`.
+as `/mcp__eaos__<name>`: `audit`, `fix`, `status`, `continue`, `report`, `tasks`, `ask` (takes the question) and
+`tools`.
 
 ## The tools
 
-`eaos mcp` exposes 66 tools. Every tool takes `project`, the project folder (by default, the folder the assistant was
-opened in). Long work returns a job, followed with `wait`. `status` always names the next tool to call.
+`eaos mcp` exposes 42 tools, the five of [Follow and govern runs](#follow-and-govern-runs) among them. Every tool takes
+`project`, the project folder (by default, the folder the assistant was opened in). Long work returns a job, followed with `wait`. `status` always names the next tool to call.
 
-**`status`, `menu` and `plan` are not declared read-only:** they bring the state up to what git says, and `status` and `menu` settle a first use (the state, the branch, the question asked), and they rebuild a report an older EAOS made. They remove nothing: no branch, no copy. On a settled project they write only their journal line. The Studio answers them at once, and its conversation may call them.
+**`status`, `menu` and `plan` are not declared read-only:** they bring the state up to what git says, and `status` and `menu` settle a first use (the state, the branch, the question asked), and they rebuild a report an older EAOS made. They remove nothing: no branch, no copy. On a settled project they write only their journal line.
 
 ### Orient and continue
 
@@ -53,7 +53,6 @@ opened in). Long work returns a job, followed with `wait`. `status` always names
 | `status` | Where the project is in the EAOS way, the next tool to call, the progress, and the hand-over (what the last assistant did and noted, and how to continue without asking the person again). Call it first, every session |
 | `menu` | What to offer a person who typed `/eaos` alone: the options that make sense now, the recommended one first, each described from the project's own numbers |
 | `note` | A note for whoever continues the work: what was found, decided, and about to be done. Every call is already recorded; the note adds the why |
-| `projects` | Every project EAOS knows on this computer: name, folder, score, when it was checked, whether its Studio runs |
 | `tools_check` | This EAOS (version, commit) and every external tool: installed or not, at which version, whether this project needs it, and the one command that installs what is missing |
 | `assistant_check` | Each AI assistant on the computer, really asked for one word: ready, or the exact reason (not installed, not signed in, sign-in expired, usage limit, no answer) and its fix |
 
@@ -63,17 +62,14 @@ opened in). Long work returns a job, followed with `wait`. `status` always names
 | --- | --- |
 | `branches` | The person's branches (bots' and EAOS's left out): when each last changed, how far ahead of and behind the main branch, and the recommendation |
 | `choose_branch` | Work on this branch from now on; the check, the run, the fixes and the progress follow it. Takes `person_said`, the person's own reply. Their checkout is not switched |
-| `branch_view` | The branches as the Studio's branch screens show them: `inventory`, `detail` (commits, files, diff, checks, runs), `freshness`, `context` |
-| `branch_change` | Merge, delete, protect, unprotect, clean up, restore, fetch, or propose a conflict's resolution. A preview and its confirm token first; then `person_agreed=true` with the token |
 
 ### Check
 
 | Tool | What it does |
 | --- | --- |
-| `audit` | Check the whole project (40 stages). Returns a job; a project already checked at this commit returns its overview at once. Options: `paths` (security, look, code, speed, experience; complete by default), `mode=speed`, `use_assistant` and `assistant`, `sign_in` (hand, test_user, none), `published` (a live address the person names, read only), `run_app`, `again_from=<stage>`, `fresh` |
+| `audit` | Check the whole project (27 stages). Returns a job; a project already checked at this commit returns its overview at once. Options: `paths` (security, look, code, speed; complete by default), `mode=speed`, `use_assistant` and `assistant`, `sign_in` (hand, test_user, none), `published` (a live address the person names, read only), `run_app`, `again_from=<stage>`, `fresh` |
 | `wait` | Follow a job for up to `seconds` (default 50): its progress, or its result once done |
-| `run_nodes` | Run the AI nodes again on the latest check: `card_triage`, `visual_reviewer`, `ideal_planner`, `pipeline_gap_planner`, `plan_orderer`, `fix_reviewer` |
-| `replan_ideal` | Re-plan the ideal structure of the latest check with the person's assistant, as the Studio does |
+| `run_nodes` | Run the AI nodes again on the latest check: `card_triage`, `plan_orderer`, `fix_reviewer` |
 
 ### Read the findings
 
@@ -86,23 +82,8 @@ opened in). Long work returns a job, followed with `wait`. `status` always names
 | `plan` | The plan of fixes: milestones in order and their cards; pass a milestone id for all of its cards |
 | `impact` | What changing a file or symbol touches: the files that import it, the flows and entry points through it, the tests that cover it, the files that change with it |
 | `ask` | Search the check's records for a question, each answer with its place; `NOT_IN_RECORDS` when none answers it |
-| `report_file` | A file of the technical report (for example `START-HERE.md`, `TARGET-ARCHITECTURE.md`); with no name, the list |
-| `open_report` | Open the report for people (`REPORT.html`) in the person's browser, rebuilt with the fixes so far |
-| `open_studio` | Open the project's live EAOS Studio in the person's browser |
-
-### Deep checks (optional)
-
-| Tool | What it does |
-| --- | --- |
-| `logic_flaws` | Hunt logic flaws after a check (skipped steps, races, wrong checks): the assistant reads the code twice on its deep tier, then the check goes on from its claims so the cards include them. It spends: without `person_agreed` it answers with what it costs. Returns a job |
-| `experience` | How the app's simulated users fared in the last experience run: each persona's goals and results, the difficulties ranked, the tickets, the replays that broke. The full story is `EXPERIENCE.md` |
-
-### The look
-
-| Tool | What it does |
-| --- | --- |
-| `design_brief` | The look at almost no tokens: the EAOS design standard, the Arabic font catalogue, the pinned design libraries, the design system UI UX Pro Max suggests for the product, and the project's look today |
-| `design_choose` | Save the look the person chose as one `DESIGN.md`; the screen review then judges every page against it |
+| `report_file` | A file of the technical report (for example `START-HERE.md`, `CURRENT-STATE.md`); with no name, the list |
+| `open_report` | The report for people (`START-HERE.md` and the four reports), rebuilt with the fixes so far; its place and what failed to build |
 
 ### External tools
 
@@ -117,18 +98,14 @@ opened in). Long work returns a job, followed with `wait`. `status` always names
 | --- | --- |
 | `run_setup` | Run the app in an isolated copy (a temporary local database, no secrets, nothing reaches the internet). Needs the person's agreement once. Returns a job |
 | `run_try` | Try the assistant's proposal to make the app run (environment, commands, a seed script that signs in); unsafe proposals are refused with the reason. Returns a job |
-| `safety_net` | Record every screen of the running app, and its speed under load on the production build: what every fix is compared with. Returns a job |
-| `sign_in_forget` | Forget the sign-ins to the app EAOS kept for this project. The person's decision |
+| `safety_net` | Record every screen of the running app: what every fix is compared with. Returns a job |
 
 ### Fix a batch
 
 | Tool | What it does |
 | --- | --- |
 | `context_propose`, `context_make` | The assistants' context trimmed on a branch of its own, every instruction kept, with the project's extension guide (`docs/EXTENDING.md`, drawn from its layers and how it grew) and one line in the context files pointing at it |
-| `project_map` | GitNexus's map of the project for its assistant, with the person's yes: the index outside the project, its area skills where git does not take them, its MCP registered |
-| `design` | What the project's screens are really made of: how many looks each part has, values per kind, near colours, formats, two libraries for one job |
-| `design_propose`, `design_make` | The look's raw values named as tokens on a branch of their own, no assistant asked, kept only when proved that nothing looks different but what the person agreed to merge |
-| `fix_start` | Open a batch in an isolated copy: the next cards EAOS can fix (or the ids passed), with their automatic fixes (codemods) applied and checked. Options set in the fix preview: `base`, `deliver_as`, `merge_into`, `base_commit`, `assistants`. A repository-craft card (moves, the context, the guide) is refused: it goes in its own batch (`moves_propose`, `context_propose`) |
+| `fix_start` | Open a batch in an isolated copy: the next cards EAOS can fix (or the ids passed), with their automatic fixes (codemods) applied and checked. Options set in the fix preview: `base`, `deliver_as`, `merge_into`, `base_commit`, `assistants`. A repository-craft card (moves, the context, the guide) is refused: it goes in its own batch (`context_propose`) |
 | `fix_read` | Read a file (or list a folder) in the batch's copy, with line numbers |
 | `fix_edit` | Make one card's change, then check it at once: the problem is gone, no new broken code, no endpoint gone. A change that fails is taken back with the reason; so is one that reaches files beyond the card's own paths without `beyond_why` (why each other file must change, one sentence per file or one for all), which is then said at the hand-over (`beyond_the_cards`) and in the commit. `summary` is the commit message: what changed, in the language of the project's own commits, then why when not obvious. Returns a job |
 | `fix_skip` | Leave a card out, with the reason |
@@ -137,89 +114,39 @@ opened in). Long work returns a job, followed with `wait`. `status` always names
 | `accept` | Merge the waiting branch, delete it, and bring the report and progress up to date in one call. Only after the person's yes (`person_agreed=true`) |
 | `undo` | Throw the waiting branch away. Only after the person's yes |
 
-### Your rules (M16)
+### Your rules
 
 | Tool | What it does |
 | --- | --- |
 | `rules` | The person's own rules (read, answered at once): op=list (each in scope, pinned, held or broken where, how often it came back; the commit hook), op=touches (what changing or unpinning one touches) |
-| `rule` | Keep or change one: op=add (the person's words, for the card or batch in hand; said again, it is counted), op=guard (a pattern with its examples, a test, EAOS's detectors, or none with why; `write=true` asks your assistant once), and the person's own decisions op=pin, unpin, change, hook, approve (a test command you propose never runs before the person approves it; new words wait for a guard written for them) (`person_agreed=true` after their yes; refused inside a Studio run) |
+| `rule` | Keep or change one: op=add (the person's words, for the card or batch in hand; said again, it is counted), op=guard (a pattern with its examples, a test, EAOS's detectors, or none with why; `write=true` asks your assistant once), and the person's own decisions op=pin, unpin, change, hook, approve (a test command you propose never runs before the person approves it; new words wait for a guard written for them) (`person_agreed=true` after their yes; refused inside a run) |
 | `check_changed` | Only what changed, now: each rule on what the change brought and the code laws over the changed files and those importing them, in seconds and without AI (`base`, or `staged` for a commit) |
-
-### Build from a plan
-
-| Tool | What it does |
-| --- | --- |
-| `blueprint_start` | Read a plan (Markdown, text, PDF, Word, HTML, or pasted text) and return it with the spec format and the technology catalogue |
-| `blueprint_spec` | Check the product spec the assistant wrote: what is missing, and the questions for the person with a recommendation |
-| `blueprint_design` | Draw the target from the checked spec: the technologies (each in one adapter folder), the layers and rules, and the build plan as milestones of cards |
-| `build_start` | Open the next milestone in an isolated copy (the first time, after the person's agreement). Returns the cards to build |
-| `build_read` | Read a file (or list a folder) in the build's copy |
-| `build_edit` | Write one build card; kept only if every gate passes, otherwise taken back with the reasons. Returns a job |
-| `build_skip` | Leave a build card out, with the reason |
-| `build_finish` | Close the milestone through every gate and hand it over as `eaos/build-N`, stacked on the one before. Returns a job |
-
-See [BUILD-FROM-PLAN.md](BUILD-FROM-PLAN.md).
-
-### Extend a checked project
-
-| Tool | What it does |
-| --- | --- |
-| `extend_start` | Read the plan of a feature, page or part, and return it with the project as its check read it: its parts, layers and rules, the functions to reuse, its look |
-| `extend_plan` | Check the feature's spec against itself and the project, then add its cards to the plan as one milestone that `fix_start` builds through every gate of a fix |
 
 ### Follow and govern runs
 
 | Tool | What it does |
 | --- | --- |
-| `runs` | The Studio's queue: `list`, `show` (stage, minutes left, cost so far, last events, its question), `estimate`, `check` (a new check in the background), `stop`, `pause`, `resume`, `retry` |
+| `runs` | The queue of runs: `list`, `show` (stage, minutes left, cost so far, last events, its question), `estimate`, `check` (a new check in the background), `stop`, `pause`, `resume`, `retry` |
 | `waiting` | What waits for the person: the runs' and the report's questions, a branch waiting for a decision, a sign-in a check waits for. `op=answer` takes `person_said`, their own reply |
 | `act` | A verb (`fix`, `verify`, `explain`, `plan`) on cards or a group (`severity=high`): `op=preview` first (cards, files, batches, estimate, risk, confirm token), then `op=start` |
 | `history` | The project over time: `list` every check, `compare` two, `usage` (tokens and cost per stage and per run) |
-| `reorder` | Put the queued runs in a given order, as dragging the Studio's queue does |
+| `branch_change` | Merge, delete, protect, unprotect, clean up, restore, fetch, or propose a conflict's resolution. A preview and its confirm token first; then `person_agreed=true` with the token |
 
 ## Governance
 
-`runs`, `waiting`, `act`, `history` and `branch_change` give an assistant the Studio's governance without the Studio
-(`eaos/interfaces/mcp_server/govern.py`). They and the terminal's commands (`eaos check`, `eaos runs`, `eaos waiting`,
-...) call the same core as the Studio (`eaos/interfaces/govern.py`), so no rule is written twice and a run is the
-same run in the terminal, the assistant and the Studio. When the Studio is not running, a host without HTTP
-(`eaos govern`) starts on demand and leaves two minutes after the queue is empty.
+`runs`, `waiting`, `act`, `history` and `branch_change` give an assistant the run queue, the questions, the verbs on
+cards, the history and branch control (`eaos/interfaces/mcp_server/govern.py`); only `eaos mcp` registers them. They
+and the terminal's commands (`eaos check`, `eaos runs`, `eaos waiting`, ...) call the same core
+(`eaos/interfaces/govern.py`, on the run engine of `eaos/journeys/runs/`), so no rule is written twice and a run is the
+same run in the terminal and in the assistant. A host without HTTP (`eaos govern`) starts on demand and leaves two
+minutes after the queue is empty.
 
 What only the person decides needs their word: `accept`, `undo`, `choose_branch`, answers to questions, merging,
-deleting, protecting, cleaning up or restoring branches, a fix that accepts itself (`auto_accept`), `sign_in_forget`,
-and `logic_flaws` (it spends). These take `person_agreed=true` (with the preview's confirm token where there is one)
-or `person_said`, given at least 30 seconds after the question was shown. They are always refused inside a run the
-Studio started; there the person decides in the Studio. The assistant asks the person only these, and does the rest
-on its own. Signing in to the app is the person's alone, in the Studio or with `eaos sign-in`; never the assistant's.
-
-## Parity with the Studio
-
-Everything the Studio does has an MCP tool, and the whole journey runs from the terminal alone. The table lives in the
-code: `PARITY` in [`eaos/interfaces/mcp_server/studio_parity.py`](../eaos/interfaces/mcp_server/studio_parity.py)
-covers the Studio's 62 routes: 50 with a tool, 12 without one on purpose (`NO_TOOL`).
-`tests/interfaces/test_parity.py` derives the routes from the code (the read server and the action contract
-[`docs/studio-actions.json`](studio-actions.json)), so a new route without a row, or a row naming a tool that does not
-exist, fails the tests. It also walks the journey with the `eaos` command alone.
-
-| Studio action | MCP tool | Command |
-| --- | --- | --- |
-| Sections, progress, events, report files | `overview`, `findings`, `finding`, `structure`, `plan`, `report_file`; `status`, `runs`, `wait` | `eaos problems`, `eaos status`, `eaos watch` |
-| The report page, its pictures and screens | `open_report` | none |
-| Projects and switching between them | `projects`, `open_studio` | `eaos projects`, `eaos studio <folder>` |
-| Sign-in: its state, going on without it, forgetting it | `waiting`, `status`, `sign_in_forget` | `eaos waiting`, `eaos sign-in --signed-out`, `eaos sign-in --forget` |
-| Start or preview any action | `act`, `runs` (`check`, `estimate`), `replan_ideal` | `eaos check`, `eaos fix`, `eaos verify`, `eaos explain`, `eaos plan` |
-| The queue: show, stop, pause, resume, retry, reorder | `runs`, `reorder` | `eaos runs`, `eaos watch`, `eaos stop`, `eaos pause`, `eaos resume`, `eaos retry`; reorder has no command |
-| Questions and the report's decisions | `waiting` | `eaos waiting`, `eaos answer` |
-| Accept or undo a branch | `accept`, `undo` | `eaos accept`, `eaos undo` |
-| Branches: inventory, detail, freshness, context | `branch_view`, `branches`, `status` | `eaos branches`, `eaos branch`, `eaos status`; detail has no command |
-| The analysis branch; merge, delete, protect, clean up, restore | `choose_branch`; `branch_change` | `eaos branch <name>`; `eaos branches …` |
-| Fetch a remote, propose a conflict's resolution | `branch_change` (`op=fetch`, `op=conflict`) | none |
-| A new project's plan | `blueprint_start` | none |
-| Usage, the assistants | `history` (`op=usage`), `assistant_check` | `eaos usage`, `eaos doctor` |
-| **No tool on purpose:** the Studio's chat (the assistant is the chat), the person signing in to their app by hand (theirs alone), the page's own plumbing (words, session, schemas) | none | none |
-
-The governance tools and the tools added for parity are registered only by `eaos mcp`, not among the Studio's own
-direct actions, and they call the Studio's own core, never a second implementation.
+deleting, protecting, cleaning up or restoring branches, and a fix that accepts itself (`auto_accept`). These take
+`person_agreed=true` (with the preview's confirm token where there is one) or `person_said`, given at least 30 seconds
+after the question was shown. They are always refused inside a run; there the person decides through `waiting`. The
+assistant asks the person only these, and does the rest on its own. Signing in to the app is the person's alone, with
+`eaos sign-in`; never the assistant's.
 
 ## The outputs: one folder per project
 
@@ -228,10 +155,8 @@ Everything EAOS makes for the person is in one visible folder, `~/EAOS/<project>
 | Part | What is in it |
 | --- | --- |
 | `README.md` | What each part is |
-| `REPORT.html` | The report for people in one page: project summary, gaps and risks, structure map, plan and progress. Rebuilt after every batch |
-| `technical/` | The full technical report, for the assistant and developers (`EXPERIENCE.md` among it after an experience run) |
+| `technical/` | The full technical report, for the assistant and developers (`START-HERE.md` first); rebuilt after every batch |
 | `fixes/wave-N/` | Each batch: `SUMMARY.md` in plain words, its `.patch` files and `wave.json` |
-| `blueprint/` | For a project built from its plan: the plan as read, the spec, the stack, the policy, the build plan, `BLUEPRINT.md` |
 | `logs/` | Technical logs |
 | `HANDOVER.md` | Where the work is, what the last assistant did, and how another continues it; rewritten after every call |
 | `branches/<name>/` | The same parts for each further branch EAOS worked on |
@@ -249,12 +174,10 @@ A fix reaches the person only as a branch, and only through its gates:
    brought (`eaos/analysis/rules/held.py`). A failing edit is taken back with its reason, in the person's words for a rule.
 2. **At the batch** (`fix_finish`): every kept change together through the project's own checks (tests, typecheck,
    lint; a check that rewrites the project's files instead of checking them, a lint reaching `--write`, is no gate and
-   is named at the hand-over), Semgrep once over the kept changes (Bandit and Gitleaks already read each edit), and the behaviour lock,
+   is named at the hand-over), Semgrep once over the kept changes (Gitleaks already read each edit), and the behaviour lock,
    which compares every recorded screen, its picture and its words. A batch that fails
    asks for a repair on top, or `leave_out=true` finds the changes responsible and leaves them out.
 3. **At the hand-over**: a branch `eaos/<branch>/wave-N`; the person's checkout is untouched until they `accept`.
-
-A build card passes the same gates against the blueprint ([BUILD-FROM-PLAN.md](BUILD-FROM-PLAN.md#the-gates-after-every-card)).
 
 ## Continuity: honest progress, merges that close the loop, hand-over between assistants
 
@@ -266,7 +189,7 @@ A build card passes the same gates against the blueprint ([BUILD-FROM-PLAN.md](B
 - **Merging** (`eaos/journeys/guided/batches.py`, `merge` and `reconcile`): `accept` merges (fast-forward, else a clean
   merge; a conflict is aborted, so nothing changes), deletes the branch and rebuilds the report. `status`, `menu` and
   `plan` reconcile with git on every call and remove no branch: a branch merged by hand is recorded, and what writes next
-  (`fix_start`, `accept`, `undo`, `open_report`, the next `eaos next`, opening the Studio) removes it; a branch deleted
+  (`fix_start`, `accept`, `undo`, `open_report`, the next `eaos next`) removes it; a branch deleted
   unmerged counts as undone. An open batch that no longer fits stays open with its copy: `status` says why in `next`,
   and `fix_start`, `fix_abandon` or the next check closes it. It takes no change: `fix_edit`, `fix_skip` and `fix_finish`
   answer `stale_batch` and change nothing, and their jobs look again before applying a change or handing it over. A batch
@@ -276,7 +199,7 @@ A build card passes the same gates against the blueprint ([BUILD-FROM-PLAN.md](B
   with why, for the person to remove by hand; it does not touch old patches or bisection logs. A copy found where a new
   one goes is never deleted: it moves aside as `<name>.left-<id>`. After merging EAOS's own fixes, no new check or run is
   needed.
-- **Active work**: `fix_abandon`, `fix_start`, `fix_skip`, `build_start` and `eaos clean` work under the lock jobs start
+- **Active work**: `fix_abandon`, `fix_start`, `fix_skip` and `eaos clean` work under the lock jobs start
   by (`jobs.alone`), on the state read there, and never wait on it. When a job holds the project the tools answer
   `status: busy` with `error` and `what_now` and change nothing, `fix_abandon` also when a run is queued; `eaos clean` keeps
   that project's files and names them. That lock is never nested, nor taken inside a job or inside `lanes.changing`.
@@ -287,7 +210,7 @@ A build card passes the same gates against the blueprint ([BUILD-FROM-PLAN.md](B
 - **Session start** (`eaos handover --hook`): the hook `eaos assistant install` adds means that when EAOS has work
   open in the folder (or the repository it is in), a new session starts already knowing the last step and who did
   it, the batch and what is kept and left, and the card in progress. "Continue" alone is enough. The person sees the
-  same with `eaos handover` and in the report's work log.
+  same with `eaos handover`.
 - **Branches** (`eaos/core/project/branches.py`): when the project has several of the person's branches with
   different code, `status` asks which one first (recommending the one furthest ahead of the main branch) and no check
   starts before the answer. The check, the run and the isolated copies read EAOS's own copy of that branch when it is
