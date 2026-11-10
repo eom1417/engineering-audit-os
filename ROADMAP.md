@@ -8,7 +8,7 @@ phase counts as done only when its exit test is measured.
 
 | Phase | What it builds |
 |---|---|
-| P0 The reset | the direction, the full target and this plan |
+| P0 EAOS cleaned and guarded | the direction, the target and this plan; then EAOS itself put through the round from its roots, its guards the kit later planted in every project |
 | P1 The exam bench | projects never seen, one with a known answer; the round's table measured before and after, judged outside EAOS |
 | P2 Measurement | every number of the round, by tools that parse the code; dead code found precisely; the bounds 400 / 50 / 10 / 5 / 120 |
 | P3 The safety net | proof that nothing changed, built where none exists: own tests as a gate, pixel-identical screens, fixed clocks, frozen data, recorded API answers, output fingerprints, planted defects |
@@ -21,4 +21,4 @@ phase counts as done only when its exit test is measured.
 | P10 Code only | comments that explain code, no development files or customer names in what ships, data out of the code |
 | P11 Agents and the guide | many assistants on owned files, and a guide kept true to the code |
 | P12 The full exam | the whole round on the exam projects, judged outside |
-| P13 EAOS on itself, then Python | EAOS cleaned by its own round; the round for Python projects |
+| P13 Python | the round for Python projects |
