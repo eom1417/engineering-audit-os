@@ -1,0 +1,15 @@
+{
+ "root": "../..",
+ "ledger": "ledger.json",
+ "folders": ["eaos", "tools", "tests"],
+ "exclude": ["tests/fixtures/", "eaos/data/", "eaos/rules/semgrep/", "eaos/rules/ast-grep/rule-tests/"],
+ "max_line": 120,
+ "history_patterns": [
+  "\\bM-?\\d{1,2}(\\.\\d+)?\\b",
+  "\\b20\\d\\d-\\d\\d-\\d\\d\\b",
+  "\\bowner'?s? (said|word|asked|decided|chose|approved|choice)\\b|\\(owner[,)]",
+  "\\b(strangers?'? (projects?|trial|round)|held-out|first trial|real project showed|second round)\\b",
+  "\\b(used to|no longer|was replaced|previously|formerly|we (tried|used|found))\\b"
+ ],
+ "env_allowed": []
+}
