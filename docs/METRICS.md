@@ -6,6 +6,10 @@ The numbers of EAOS, measured at each milestone end, oldest first. `tools/metric
 assistant (`tools/*_proof.py`) measure the journeys. Numbers are compared with the section before; a worse number
 needs its reason here.
 
+**From 2026-11-10 the one measure is the round's table** (`docs/NORTH-STAR.md`, "Success"): the round's numbers
+before and after on projects EAOS never saw, judged outside EAOS. It is first measured in phase P1 and written here as
+its own section. The sections below are EAOS's own measures before that, kept as history; they never count as it.
+
 Latest: **0.0.92**, the second round of strangers' projects (below). M7 (0.0.79) has no section of its own: what it changed is proved by the
 fix proof in the golden trial, not by a number.
 
