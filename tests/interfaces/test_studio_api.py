@@ -1,5 +1,6 @@
-"""The Studio's local server (eaos/interfaces/studio_server/): the guard, the read API generated from the schemas, the live feed, the
-stream with its replay, the mount point of the action API, and `eaos studio` / `open_studio` on a real project."""
+"""The Studio's local server (eaos/interfaces/studio_server/): the guard, the read API generated from the schemas, the
+live feed, the stream with its replay, the mount point of the action API, and `eaos studio` / `open_studio` on a real
+project."""
 import hashlib
 import json
 import os
@@ -36,7 +37,8 @@ KINDS = ('scan', 'batch', 'merge', 'decision')
 def report_with_data(where, cards=30):
     folder = Path(where) / 'report' / 'studio'
     contracts = artifact_contracts.contracts()
-    # Only the sections the contract still has: tools/studio_synthetic.py also builds the removed `quality` section.
+    # Only the sections the contract has; tools/studio_synthetic.py also builds a `quality` section that is not part of
+    # it.
     sections = {name: body for name, body in studio_synthetic.build(cards=cards, components=6).items() if f'studio-{name}' in contracts}
     problems = studio_synthetic.write(folder, sections)
     assert not problems, problems
@@ -376,7 +378,8 @@ class LiveServer(unittest.TestCase):
         self.tmp = tempfile.TemporaryDirectory()
         self.addCleanup(self.tmp.cleanup)
         self.report = report_with_data(self.tmp.name)
-        # The feed also tails the tools' install (eaos/interfaces/studio_server/events.py): this test's own folder, not the computer's.
+        # The feed also tails the tools' install (eaos/interfaces/studio_server/events.py): this test's own folder, not
+        # the computer's.
         patcher = mock.patch.dict(os.environ, {'EAOS_ENGINE_TOOLS': str(Path(self.tmp.name) / 'tools')})
         patcher.start()
         self.addCleanup(patcher.stop)
@@ -491,7 +494,8 @@ class Commands(unittest.TestCase):
         self.stop_later(saved['pid'])
         self.assertEqual(done.returncode, 0, done.stderr)
         address = done.stdout.strip().split('EAOS Studio: ', 1)[1]
-        # The page it opens depends on this computer (the tools page where they are not installed); the address does not.
+        # The page it opens depends on this computer (the tools page where they are not installed); the address does
+        # not.
         self.assertEqual(address.split('#', 1)[0], f"https://shop--{saved['port']}.dev.example.com/", 'the Remote address carries no token')
         host = {'Host': f"shop--{saved['port']}.dev.example.com"}
         status, page = _fetch(f"http://127.0.0.1:{saved['port']}/", host)
@@ -516,7 +520,7 @@ class Commands(unittest.TestCase):
         self.assertTrue(first['studio'].startswith('http://127.0.0.1:'))
         second = agent_tools.open_studio(str(self.project), show=False)
         self.assertEqual((second['studio'], second['started']), (first['studio'], False))
-        # EAOS updated under it (an SPA still showed 0.0.59): the old Studio is stopped and this EAOS's started.
+        # when EAOS is updated under a running Studio, the old Studio is stopped and this EAOS's is started.
         with mock.patch.object(launch, '__version__', 'newer'):
             third = agent_tools.open_studio(str(self.project), show=False)
         self.assertTrue(third['started'])
@@ -571,11 +575,12 @@ class Switcher(unittest.TestCase):
 
 
 class Remote(unittest.TestCase):
-    """A Studio behind the Remote sign-in: its exact routed origin, its kept token, and the opt-in that hands it over."""
+    """A Studio behind the Remote sign-in: its exact routed origin, its kept token, and the opt-in that hands it over.
+    """
 
     def test_on_a_remote_server_the_studio_is_a_service_of_the_computer_at_its_routed_address(self):
-        # Chef Operations (2026-10-13): the Studio ran in the assistant's session, which the server ended overnight, and
-        # its address carried the token.
+        # On a remote server the Studio is a service of the computer, so ending the assistant's session does not stop
+        # it, and its address carries no token.
         from eaos.core.system import launch
         with tempfile.TemporaryDirectory() as folder, mock.patch.dict(os.environ, {'EAOS_HOME': folder, 'SECRET_TOKEN': 'x'}):
             self.assertFalse(launch.durable(), 'a person\'s own computer: a process of its own')

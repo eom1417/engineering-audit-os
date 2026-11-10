@@ -1,5 +1,6 @@
 """A run whose assistant hit its limit waits until the limit comes back when it said when, and work goes to another
-assistant only when it answers now (a revoked Codex said it was signed in; the batch it took stopped, 2026-11-04)."""
+assistant only when it answers now (an assistant that says it is signed in but is not must not stop the batch it took).
+"""
 import unittest
 from unittest import mock
 from datetime import datetime, timezone

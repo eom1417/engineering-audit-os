@@ -1,6 +1,6 @@
-"""The owner's trial (2026-09-29): a merged batch left its branch behind, the report did not move, and after a new check
-the progress said 3 done and the same 339 left. The ledger (eaos/core/project/ledger.py), reconcile and merge (eaos/journeys/guided/), and
-the handover between assistants (eaos/journeys/handover.py)."""
+"""A merged batch leaves no branch behind, the report moves, and after a new check the progress counts what is closed
+and what is left. The ledger (eaos/core/project/ledger.py), reconcile and merge (eaos/journeys/guided/), and the
+handover between assistants (eaos/journeys/handover.py)."""
 import json
 import os
 import subprocess
@@ -59,7 +59,8 @@ class Base(unittest.TestCase):
         return ledger.sync(self.state)
 
     def batch(self, number, fixed, failed=None):
-        """What fix_finish leaves: the batch's branch in the project with one EAOS commit per kept card, and its record."""
+        """What fix_finish leaves: the batch's branch in the project with one EAOS commit per kept card, and its record.
+        """
         cards = {c['id']: c for c in read_plan(guided.report_of(self.state))['tasks']}
         here = git(self.project, 'rev-parse', '--abbrev-ref', 'HEAD')
         git(self.project, 'checkout', '-q', '-b', f'eaos/wave-{number}')
@@ -82,7 +83,7 @@ class Base(unittest.TestCase):
 
 class Continuity(Base):
     def test_a_batch_is_drawn_on_the_live_map_from_its_state_card_by_card_to_its_handover(self):
-        # owner, 2026-10-15: no batch ever showed on the live map, nothing wrote the flow `fix`, it read "waiting" throughout
+        # a batch shows on the live map: the flow `fix` is written and does not read "waiting" throughout
         from eaos.core import progress
         state = project_state.load(self.project)
         state['open_wave'] = {'number': 9, 'cards': ['TASK-001', 'TASK-002', 'TASK-003'], 'kept': {'TASK-001': 'a1'},
@@ -103,16 +104,16 @@ class Continuity(Base):
         again = [dict(c, id=f'TASK-{100 - i:03d}', title=c['title'].replace('line 3', 'line 7')) for i, c in enumerate(reversed(FIRST))]
         self.assertEqual(sorted(ledger.keys(FIRST).values()), sorted(ledger.keys(again).values()))
         self.assertEqual(len(set(ledger.keys(FIRST).values())), 5, 'alike cards stay apart')
-        # The incident (898 cards, 58.9% with no fix): a hotspot's title names the tools that saw it, so the next check
-        # gave it a new key. The observation's uid keys it, whatever the words; a problem no longer found is not progress.
+        # A hotspot's title names the tools that saw it, so it must not key the card: the observation's uid keys it,
+        # whatever the words. A problem no longer found is not progress.
         hotspot = dict(FIRST[3], decision={'readiness': 'ready', 'observation_uid': 'OBS-1'}, title='3 tools (codegraph, complexipy, reforge)')
         self.assertEqual(ledger.key(hotspot), ledger.key(dict(hotspot, title='4 tools (codegraph, complexipy, lizard, reforge)')))
         totals = self.check(FIRST[1:])['totals']
         self.assertEqual((totals['closed'], totals['total'], totals['percent']), (0, 4, 0.0))
 
     def test_a_batch_left_on_code_that_moved_on_is_retired_and_a_failed_finish_leaves_it_as_it_was(self):
-        """The owner's trial (2026-10-10): batch 1 outlived four checks; every fix_finish failed after rewriting its copy,
-        status kept sending the assistant back to it, and each run_setup added one more consent question."""
+        """A batch that outlives several checks: a fix_finish that fails after rewriting its copy must not make status
+        send the assistant back to it, and each run_setup must not add one more consent question."""
         state = project_state.load(self.project)
         state.update(consent={'run_and_fix': True}, setup={'commit': state['scanned_commit'], 'ok': True},
                      safety={'commit': state['scanned_commit'], 'screens': 1, 'passed': 1})
@@ -142,8 +143,8 @@ class Continuity(Base):
         self.assertEqual((git(copy, 'rev-parse', 'HEAD'), list(wave['kept'])), (kept, ['TASK-001']), 'the batch as it was')
         self.assertIn('S09', wave['last_error'])
         self.assertEqual(agent_tools.status(str(self.project))['next']['tool'], 'fix_abandon')
-        # The person commits: a batch with kept changes goes on (EAOS lost one so, mid hand-over), its merge says the rest;
-        # the person closes it, its copy removed.
+        # The person commits: a batch with kept changes goes on, its merge says the rest; the person closes it, its copy
+        # removed.
         (self.project / 'src/e.js').write_text('export const e = 1;\n')
         git(self.project, 'add', '-A')
         git(self.project, '-c', 'user.name=a', '-c', 'user.email=a@b', 'commit', '-qm', 'the person works')
@@ -195,7 +196,7 @@ class Continuity(Base):
         self.assertEqual((status['progress']['done'], status['progress']['total']), (2, 5))
         history = ledger.load(project_state.load(self.project))['history']
         self.assertEqual((history[0]['event'], history[-1]['event'], history[-1]['closed']), ('baseline', 'merged', 2))
-        # A branch an older EAOS left after its merge is deleted; a fix whose revert was reverted is done again.
+        # A branch left after its merge is deleted; a fix whose revert was reverted is done again.
         self.batch(2, ['TASK-005'])
         git(self.project, 'merge', '-q', '--ff-only', 'eaos/wave-2')
         state = project_state.load(self.project)
@@ -230,8 +231,8 @@ class Continuity(Base):
         self.assertEqual((state['waves'][-1]['status'], in_it(state), copy.exists()), ('superseded', set(), False))
 
     def test_a_new_check_after_the_merge_keeps_the_count_right(self):
-        """The trial's numbers: 339 before, then '3 done, 339 left'. Here: 5 before; 2 merged; the new check finds 3 of
-        the old (numbered again) and 1 new: 2 closed of 6, 4 open, not 2 done and 5 left."""
+        """The progress numbers: 5 before; 2 merged; the new check finds 3 of the old (numbered again) and 1 new: 2
+        closed of 6, 4 open, not 2 done and 5 left."""
         self.batch(1, ['TASK-001', 'TASK-003'])
         agent_tools.accept(str(self.project), person_agreed=True)
         old = {c['id']: c for c in FIRST}
@@ -275,8 +276,7 @@ class Continuity(Base):
             self.assertEqual(agent_tools.fix_start(str(self.project), cards=['TASK-001'])['status'], 'started')
         self.assertEqual(started.call_args[0][2], {'cards': ['TASK-001'], 'deliver_as': 'eaos/master/wave-1', 'merge_into': 'master',
                                                          'assistants': 1, 'scanned': project_state.load(self.project)['scanned']})
-        # A batch whose fix_finish was refused stayed open, and every later fix_start answered "not in batch 1".
-        # A batch whose fix_finish was refused stayed open, and every later fix_start answered "not in batch 1".
+        # A batch whose fix_finish was refused stays open, and a later fix_start must not answer "not in batch 1".
         state = project_state.load(self.project)
         root = project_state.runtime_of(state) / 'candidates/WAVE-1'
         root.mkdir(parents=True)

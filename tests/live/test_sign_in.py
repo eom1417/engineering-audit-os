@@ -40,7 +40,8 @@ def _as_the_person(workspace, cookie='signed'):
 
 
 def listening(port, seconds=30):
-    """Wait until the app answers on its port: a fixed sleep was too short on a loaded computer and long on an idle one."""
+    """Wait until the app answers on its port: a fixed sleep is too short on a loaded computer and too long on an idle
+    one."""
     import socket
     deadline = time.monotonic() + seconds
     while time.monotonic() < deadline:
@@ -61,7 +62,7 @@ class SignInTests(unittest.TestCase):
         self.assertEqual(sign_in.from_pages({**SIGNED_OUT_PAGE, 'url': 'http://127.0.0.1:1/'}), [])
         (self.root / 'features.json').write_text(json.dumps({'features': [{'name': 'auth', 'surfaces': ['/login']}, {'name': 'shop', 'surfaces': ['/']}]}))
         self.assertEqual(sign_in.from_code(self.root), ['/login: a sign-in route of the code'])
-        # The detection baseline: its sign-in route grouped with the rest of its API, and the check said no sign-in needed
+        # A sign-in route grouped with the rest of an API must still be seen, or the check says no sign-in is needed
         (self.root / 'features.json').write_text(json.dumps({'features': [{'name': 'api', 'surfaces': ['/api/login', '/api/orders']}]}))
         self.assertEqual(sign_in.from_code(self.root), ['/api/login: a sign-in route of the code'])
         from eaos.live.app.setup import routes
@@ -101,8 +102,8 @@ class SignInTests(unittest.TestCase):
                                                   'unreached': ['/access', '/rota']})
 
     def test_a_sign_in_that_did_not_take_is_asked_again_on_the_page_the_app_sends_to(self):
-        # "I signed in" with the pages still signed out once ended the wait as if nobody came; the browser opened the
-        # first page instead of the sign-in the pages are sent to
+        # "I signed in" with the pages still signed out must not end the wait as if nobody came; the browser opens the
+        # sign-in page the pages are sent to, not the first page
         page = {'url': 'http://127.0.0.1:4100/', 'others': [{'path': '/notes', 'url': 'http://127.0.0.1:4100/login?next=%2Fnotes'}]}
         self.assertEqual(sign_in.page_of(page, 'http://127.0.0.1:5200'), 'http://127.0.0.1:5200/login?next=%2Fnotes')
         live = SimpleNamespace(runtime=self.root / 'runtime', mail=lambda: None)

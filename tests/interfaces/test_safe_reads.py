@@ -1,6 +1,6 @@
-"""Reading where a project stands deletes nothing of the person's: status, menu and plan, through MCP, the Studio and the
-terminal, leave a merged batch's branch and an open batch's copy where they are, and say what they found. The cleaning
-stays with what writes (docs/MCP.md, Merging)."""
+"""Reading where a project stands deletes nothing of the person's: status, menu and plan, through MCP, the Studio and
+the terminal, leave a merged batch's branch and an open batch's copy where they are, and say what they found. The
+cleaning stays with what writes (docs/MCP.md, Merging)."""
 import contextlib
 import io
 import json

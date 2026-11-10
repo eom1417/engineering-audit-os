@@ -1,4 +1,5 @@
-"""The style oracle on a real browser (M18.7): a value moved into a token changes nothing, and a 1px border, a colour off by one and a hover colour under a transition are all found."""
+"""The style oracle on a real browser: a value moved into a token changes nothing, and a 1px border, a colour off by one
+and a hover colour under a transition are all found."""
 import json
 import shutil
 import subprocess

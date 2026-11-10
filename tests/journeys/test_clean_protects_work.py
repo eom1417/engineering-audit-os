@@ -1,6 +1,6 @@
-"""`eaos clean` removes a copy only when it is proved to hold nothing of anyone's: no work open or waiting on it, no change
-uncommitted, no commit that exists nowhere else. Whatever it cannot prove stays, and is named. Real repositories, copies
-and states, through the command itself."""
+"""`eaos clean` removes a copy only when it is proved to hold nothing of anyone's: no work open or waiting on it, no
+change uncommitted, no commit that exists nowhere else. Whatever it cannot prove stays, and is named. Real repositories,
+copies and states, through the command itself."""
 import contextlib
 import io
 import json
@@ -818,7 +818,8 @@ class IgnoredIsNotDisposable(Clean):
 
 class ACleanStoppedHalfway(Clean):
     def stopped(self, copy):
-        """A real clean stopped after it proved the copy, moved it aside and removed one of its files. The folder aside."""
+        """A real clean stopped after it proved the copy, moved it aside and removed one of its files. Returns the
+        folder aside."""
         unlink = Path.unlink
         def once(path, *args, **options):
             unlink(path, *args, **options)

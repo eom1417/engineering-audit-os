@@ -1,5 +1,6 @@
-"""Fixes in waves: the expensive gates once per batch (eaos/journeys/fix/waves/ finish_batch, behind the MCP fix_finish), the card
-at fault found by halving, and the result handed over as a branch that leaves the person's branch and files alone."""
+"""Fixes in waves: the expensive gates once per batch (eaos/journeys/fix/waves/ finish_batch, behind the MCP
+fix_finish), the card at fault found by halving, and the result handed over as a branch that leaves the person's branch
+and files alone."""
 import json
 import subprocess
 import tempfile
@@ -33,7 +34,7 @@ def commit_file(root, name, text):
 
 class OrderTests(unittest.TestCase):
     def test_a_batch_with_a_design_card_may_change_any_screens_look_but_not_its_errors(self):
-        # EAOS, 2026-10-15: a design card's shared change showed on pages its finding never named; each run found one more
+        # A design card's shared change shows on pages its finding never named; only an error on them fails it.
         from eaos.live.behavior.lock import _declared
         self.assertEqual(waves.declared_screens([{'design': {'findings': [{'page': '/library'}]}}, {}]), {'*'})
         self.assertEqual(waves.declared_screens([{'id': 'TASK-1'}]), set(), 'a batch of code changes keeps every screen locked')
@@ -43,8 +44,8 @@ class OrderTests(unittest.TestCase):
         self.assertEqual(_declared('failed', shot, set()), 'failed')
 
     def test_a_failure_that_names_a_file_finds_its_culprit_in_one_run_and_a_change_is_sized_against_the_copy(self):
-        # EAOS, 2026-10-15: halving 68 changes ran the whole suite for hours though the failure named the one file; a
-        # repair was refused for growing an 876-line file that the check on record knew at 861
+        # When a failure names a file, its culprit is found in one run instead of halving the batch; a repair is sized
+        # against the copy, not against the size the check on record knew.
         root = Path(scratch())
         run = lambda *a: subprocess.run(['git', '-C', str(root), '-c', 'user.name=t', '-c', 'user.email=t@t', *a], check=True,
                                         capture_output=True, text=True).stdout.strip()
@@ -62,8 +63,8 @@ class OrderTests(unittest.TestCase):
         self.assertEqual(wave_batch._sizes_before(root, ['b.py', 'c.py']), {'b.py': 2}, 'counted as facts/metrics counts lines')
 
     def test_a_card_whose_change_brings_a_finding_of_the_slower_security_engine_is_left_out_of_the_batch(self):
-        # M7.5: bandit and gitleaks read every change; semgrep (the browser's innerHTML, a shell built from strings) only
-        # read the batch's commit once it was merged, by the next check
+        # bandit and gitleaks read every change; semgrep (the browser's innerHTML, a shell built from strings) reads the
+        # batch's commit, so its finding leaves the card out of the batch.
         root = repository()
         base = git(root, 'rev-parse', 'HEAD')
         sound, unsafe = commit_file(root, 'b.txt', 'b\n'), commit_file(root, 'page.js', 'el.innerHTML = name\n')
@@ -98,7 +99,7 @@ class OrderTests(unittest.TestCase):
         self.assertEqual(exits, {'D': 0, 'G': 1, 'P': 0})
 
     def test_repository_craft_never_goes_in_a_fix_batch(self):
-        # five real projects: an assistant fixed "no map for extending" inside a fix batch, writing the guide and CLAUDE.md there
+        # repository_craft cards (the guide, CLAUDE.md) belong to their own batch, never to a fix batch
         report = Path(scratch())
         card = lambda i, pattern: {'id': i, 'kind': 'remediate', 'pattern': pattern, 'decision': {'readiness': 'ready'}}
         (report / 'plan.json').write_text(json.dumps({'tasks': [card('CRAFT', 'repository_craft'), card('FIX', 'duplication')], 'milestones': []}))
@@ -107,7 +108,7 @@ class OrderTests(unittest.TestCase):
         self.assertIsNone(waves.kept_apart([card('FIX', 'duplication')]))
 
     def test_a_layer_card_is_judged_by_the_layers_read_again_on_the_copy(self):
-        # Trial on real projects (2026-11-02): every layer card of a batch exited 2, "the boundaries facts are not present"
+        # a layer card is judged by the boundaries facts read again on the copy, which must be present
         spec = {'probe_type': 'graph_query', 'specification': {'query': 'boundary_finding_present', 'rule': 'ui-database',
                                                                'path': 'web/Orders.jsx', 'params': {}}}
         card = {'id': 'L', 'verify_command': ['eaos', 'recheck', '--spec', json.dumps(spec), '.']}
@@ -118,7 +119,7 @@ class OrderTests(unittest.TestCase):
                 self.assertEqual(wave_batch.batch_acceptance(scratch(), [card], scratch()), {'L': exit})
 
     def test_a_failing_tests_card_passes_only_when_its_command_passes_on_the_copy(self):
-        # Trial on real projects (2026-11-02): a failing-tests card's recheck read the code alone and would call it gone
+        # a failing-tests card's recheck must run its command, not read the code alone, which would call it gone
         spec = {'probe_type': 'graph_query', 'specification': {'query': 'boundary_finding_present', 'rule': 'tests-failing',
                                                                'path': '*', 'params': {'failed': 3, 'total': 40, 'command': 'npm run test'}}}
         card = {'id': 'T', 'verify_command': ['eaos', 'recheck', '--spec', json.dumps(spec), '.']}
@@ -130,7 +131,7 @@ class OrderTests(unittest.TestCase):
 
 class RebuildTests(unittest.TestCase):
     def test_a_module_is_split_only_after_its_complex_functions_and_a_split_tried_too_early_comes_back(self):
-        # EAOS, 2026-10-15: five module splits went into batches before their simplifications, failed, never came back
+        # a split tried before its simplifications fails and must come back after them
         from eaos.core.project import ledger
         report = Path(scratch())
         card = lambda i, needs=(): {'id': i, 'kind': 'remediate', 'decision': {'readiness': 'ready'},
@@ -146,7 +147,7 @@ class RebuildTests(unittest.TestCase):
             ledger._reopen_waited({c['id']: c for c in book.values()}, [card('SPLIT', ['SIMPLIFY'])])
             self.assertEqual(book[keys['SPLIT']]['state'], 'open', 'set aside by the order, not by its own change')
             self.assertEqual(waves.next_batch(report, state), ['SPLIT'], 'tried, but opened again by the ledger')
-        # a full-stack app: ten splits left for "the next batch" while their simplifications were open: now in the same batch, after
+        # a split whose simplifications are open goes in the same batch, after them, not left for the next batch
         book[keys['SIMPLIFY']].update(state='open', batch=None)
         with mock.patch.object(ledger, 'load', return_value={'cards': book}):
             self.assertEqual(waves.next_batch(report, state), ['SIMPLIFY', 'SPLIT'], 'listed first, the split comes after what it waits for')
@@ -154,7 +155,8 @@ class RebuildTests(unittest.TestCase):
             self.assertIsNone(waves.too_early(state, [card('SIMPLIFY'), card('SPLIT', ['SIMPLIFY'])]))
 
     def test_a_commit_says_what_changed_in_the_projects_language_cut_at_a_word(self):
-        # five real projects: subjects cut mid-word at 72, Arabic subjects in English repositories, "Executed by EAOS" bodies
+        # a commit subject is cut at a word, not mid-word at 72 characters, is in the project's language, and has no
+        # "Executed by EAOS" body
         root = repository()
         card = {'id': 'TASK-V001', 'title': 'زر القائمة الجانبية صغير جدًا على الجوال', 'pattern': 'design_review', 'key': '0123456789ab'}
         said = lambda what: git(root, 'log', '-1', f'--format={what}')
@@ -194,7 +196,7 @@ class RebuildTests(unittest.TestCase):
             found = waves.culprits(batch, commits)
         self.assertEqual(found, {'c5': 'broken by 1'}, "the culprit's own reason, not the batch's")
         self.assertLessEqual(len(applied), 6, 'halving, not trying every card alone')
-        # Wave 4 on EAOS (2026-10-13): without the Studio rebuilt, every half failed alike, 56 runs over three hours
+        # a half is checked with the files its build makes, so a stale generated build does not fail every half alike
         self.assertEqual(len(regenerated), len(applied), 'each half is checked with the files its build makes')
 
     def test_skipping_a_kept_card_gives_the_others_their_new_commits_and_fails_one_that_no_longer_applies(self):
@@ -209,8 +211,7 @@ class RebuildTests(unittest.TestCase):
 
 
     def test_a_lock_that_installs_only_unfrozen_fails_the_gate(self):
-        # Trial on real projects (2026-11-02): a dependency card left a lock npm ci refused; the gate's npm install fallback
-        # passed, the checks ran green, and the broken lock went into the delivered branch
+        # A fallback to an unfrozen npm install must not pass the gate: a lock that npm ci refuses must fail it.
         from eaos.journeys.fix.execute import project_checks, regressions
 
         class Run:
@@ -228,8 +229,7 @@ class RebuildTests(unittest.TestCase):
         self.assertEqual(regressions(before, after), ['npm ci --no-audit --no-fund'])
 
     def test_a_check_runs_once_as_on_ci_not_watching(self):
-        # Second strangers' round (2026-11-05): `vitest` watches unless CI is set; the suite never ended, and each card's
-        # check waited out its 30 minutes
+        # `vitest` watches unless CI is set: a check runs once, as on CI, so the suite ends.
         from eaos.journeys.fix.execute import project_checks
         root = repository()
 
@@ -246,7 +246,8 @@ class RebuildTests(unittest.TestCase):
             self.assertEqual([row['exit'] for row in project_checks(root, 'runtime', 'S09', 'edit', python=False)], [0])
 
     def test_a_check_that_rewrites_the_files_is_named_and_is_no_gate(self):
-        # Trial on real projects: a project's lint reached `biome --write` and always passed by fixing the files it checked
+        # A project's lint may reach `biome --write` and pass by fixing the files it checked; such a check rewrites
+        # files and is no gate.
         from eaos.journeys.fix.execute import project_checks, regressions, rewrites
         root = repository()
         copy = Path(scratch()) / 'copy'
@@ -280,7 +281,7 @@ class RebuildTests(unittest.TestCase):
         self.assertIn('rewrite the files instead of checking them, so no fix was held to them: npm run lint.', words)
 
     def test_the_cards_put_off_are_counted_at_the_hand_over_and_said_in_the_persons_language(self):
-        # Second strangers' round: a batch put off 219 of 263 cards, its reasons in English for an Arabic reader
+        # The cards put off are said in the person's language, not in English.
         from eaos.ai.assistant import prompts
         from eaos.journeys.fix import finish
         wave = {'failed': {'T1': 'skipped: a large split', 'T2': 'skipped: an import loop', 'T3': 'it broke something'}}
@@ -291,8 +292,8 @@ class RebuildTests(unittest.TestCase):
         self.assertIn("fix_skip's reason", prompts._written_in('ar'))
 
     def test_a_fix_that_raises_the_go_line_of_go_mod_says_so_in_its_commit_and_at_the_hand_over(self):
-        # Second trial on real projects: a Go module upgrade raised go.mod's `go` line, so everyone building the
-        # project needs a newer Go, and neither the commit nor the hand-over said it.
+        # A Go module upgrade may raise go.mod's `go` line, so everyone building the project needs a newer Go: the
+        # commit and the hand-over say it.
         from eaos.journeys.fix import finish
         root = repository()
         (root / 'svc').mkdir()
@@ -312,7 +313,7 @@ class RebuildTests(unittest.TestCase):
         self.assertNotIn('go.mod', git(root, 'log', '-1', '--format=%b'), 'a change that leaves go.mod alone says nothing of it')
 
     def test_a_codemod_that_fails_says_why_in_its_own_words(self):
-        # Trial on real projects (2026-11-02): eight dependency upgrades failed, each recorded as its command line only
+        # a failed upgrade records the command's own output, not only its command line
         import sys
         from eaos.journeys.fix.execute import run_codemod
         step = [sys.executable, '-c', "import sys; sys.stderr.write('npm error ERESOLVE could not resolve'); sys.exit(1)"]
@@ -322,8 +323,8 @@ class RebuildTests(unittest.TestCase):
                 run_codemod({'id': 'T1'}, scratch(), scratch())
 
     def test_a_dependency_change_that_breaks_a_consumers_range_is_refused_at_its_commit(self):
-        # Trial on real projects (2026-11-02): an upgrade put esbuild out of the range a build plugin asks; its own gate saw
-        # nothing, the install broke, and eight later upgrades failed on it
+        # an upgrade that puts a package out of the range a consumer asks for breaks the install; the dependency gate
+        # must see it, not only the card's own gate
         from eaos.engines.process import which
         from eaos.journeys.fix.execute import _dependencies_broken
         if not which('npm'): self.skipTest('npm is not installed')
@@ -340,12 +341,13 @@ class RebuildTests(unittest.TestCase):
         self.assertEqual(_dependencies_broken(root), [], 'a commit that changes no dependency is not read again')
 
     def test_a_lock_file_card_that_fails_whole_keeps_the_packages_that_pass_one_by_one(self):
-        # Second trial on real projects: a lock file card of 32 packages left the dependency tree invalid through one of
-        # them, and the 31 sound upgrades were lost with it
+        # a lock file card that fails whole may leave the dependency tree invalid through one package; the sound
+        # upgrades are kept one by one
         self._lock_card_in_part({'files_changed': 1})
 
     def test_a_lock_file_card_whose_dry_run_failed_whole_is_tried_one_by_one(self):
-        # A uv.lock card of ten packages failed its dry run whole (one needed a newer Python) and went to the assistant
+        # a lock file card whose dry run failed whole (one package needing a newer Python) is tried package by package
+        # instead of going to the assistant
         self._lock_card_in_part({'exit': 1, 'files_changed': 0})
 
     def _lock_card_in_part(self, dry_run):
@@ -460,8 +462,8 @@ class FinishTests(unittest.TestCase):
         self.assertEqual(json.loads((runtime / 'waves/wave-1/wave.json').read_text())['branch'], 'eaos/wave-1')
 
     def test_changes_that_fail_only_together_are_repaired_on_top_and_no_sound_card_is_left_out(self):
-        # Wave 2 on EAOS (2026-10-13): 45 cards passed one by one; together, a split module's parts imported each other.
-        # Halving would have left about 20 sound cards out; a repair on top kept all of them.
+        # Cards that pass one by one can fail together (a split module's parts importing each other); a repair on top
+        # keeps all of them, where halving would leave sound cards out.
         project, runtime, report = repository(), Path(scratch()), Path(scratch())
         cards = [{'id': f'T{n}', 'title': f't{n}', 'kind': 'remediate', 'decision': {'readiness': 'ready'}, 'paths': [f'{n}.txt'],
                   'verify_command': ['true']} for n in (1, 2)]
@@ -486,8 +488,8 @@ class FinishTests(unittest.TestCase):
         self.assertEqual(sorted(p.name for p in root.glob('*.txt')), ['1.txt', '2.txt', 'a.txt', 'repair.txt'])
 
     def test_what_fails_on_the_base_too_is_set_aside_and_the_batch_is_kept_whole(self):
-        # Wave 4 on EAOS (2026-10-14): the Studio page of the problems read live data the batch itself rewrote, so it
-        # differed with every card alone and with none; all 31 sound fixes were left out for it.
+        # What fails on the base too is set aside: a page reading live data that the batch itself rewrites differs with
+        # every card alone and with none, and must not leave sound fixes out.
         project, runtime, report = repository(), Path(scratch()), Path(scratch())
         cards = [{'id': f'T{n}', 'title': f't{n}', 'kind': 'remediate', 'decision': {'readiness': 'ready'}, 'paths': [f'{n}.txt'],
                   'verify_command': ['true']} for n in (1, 2)]
@@ -509,8 +511,8 @@ class FinishTests(unittest.TestCase):
 
 class RegenerateTests(unittest.TestCase):
     def test_what_the_build_makes_from_the_batchs_source_comes_back_as_one_commit_and_nothing_ignored(self):
-        # EAOS on itself (2026-10-13): Studio fixes changed studio/src, the shipped build in eaos/data/studio no longer
-        # matched it, and four sound fixes were about to be left out of the batch for it.
+        # A fix that changes the build's source makes the shipped build differ from it; the rebuilt build is committed,
+        # so sound fixes are not left out of the batch for it.
         from eaos.journeys.fix import regenerate
         root, runtime = repository(), Path(scratch())
         (root / 'app').mkdir(); (root / 'shipped').mkdir()
@@ -570,8 +572,8 @@ class CodeLawsGateTests(unittest.TestCase):
 
 
     def test_a_module_past_the_line_limit_or_outside_the_declared_layers_is_refused_on_the_card(self):
-        # EAOS, batch 5 (2026-10-14): a new module in no layer of eaos.policy.json and modules grown past their limit were
-        # found only when the 51 changes met, by the project's own suite
+        # A new module in no declared layer, or a module grown past its limit, is refused on the card, not found only
+        # when all the changes meet in the project's own suite.
         from eaos.analysis.repair import gates
 
         def lines(folder, sizes):
@@ -592,8 +594,8 @@ class CodeLawsGateTests(unittest.TestCase):
 
 class PythonSuiteGateTests(unittest.TestCase):
     def test_a_change_to_the_apps_files_runs_the_apps_checks_on_the_card_itself(self):
-        # EAOS, batch 5 (2026-10-14): an unused import in studio/ broke its type check and its build; no card's gate ran
-        # them, and it was found only when the 51 changes met
+        # An unused import in an app's folder breaks its type check and build: the app's checks run on the card itself,
+        # not only when the changes meet.
         from eaos.journeys.fix import execute
         typecheck = {'argv': ['npm', 'run', 'typecheck'], 'exit': 0, 'failing': []}
         with mock.patch('eaos.live.app.run.load_profile', return_value={'app': 'studio'}), \
@@ -610,7 +612,7 @@ class PythonSuiteGateTests(unittest.TestCase):
         root = Path(scratch())
         self.assertEqual(python_tests(root), [], 'no tests/ folder, no command')
         small = Path(scratch())
-        (small / 'tests.py').write_text('')        # flask-microblog of the corpus keeps its tests at its root (M9.5)
+        (small / 'tests.py').write_text('')  # a project that keeps its tests at its root
         (small / 'app').mkdir()
         (small / 'app' / 'testing.py').write_text('raise SystemExit')   # never imported to find the tests
         self.assertEqual(python_tests(small)[0][-3:], ['-m', 'unittest', 'tests'])
@@ -620,7 +622,7 @@ class PythonSuiteGateTests(unittest.TestCase):
         (layered / 'tests' / 'unit').mkdir()
         (layered / 'tests' / 'unit' / 'test_a.py').write_text('')    # a folder unittest cannot enter
         self.assertEqual(python_tests(layered), [])
-        (layered / 'tests' / 'unit' / '__init__.py').write_text('')  # EAOS's own since M8: its check found no suite
+        (layered / 'tests' / 'unit' / '__init__.py').write_text('')  # a package of tests with an __init__.py is found by discovery
         self.assertEqual(python_tests(layered)[0][-3:], ['discover', '-s', 'tests'])
         (root / 'tests').mkdir()
         (root / 'tests' / 'test_a.py').write_text('')
@@ -633,8 +635,7 @@ class PythonSuiteGateTests(unittest.TestCase):
         self.assertEqual(regressions(before, after), ['python -m unittest (1 new failing: test_new (tests.test_a.A.test_new))'])
 
     def test_a_jest_suite_already_failing_counts_its_new_failures(self):
-        # Trial on real projects (2026-11-02): the delivered branch had one more failing jest test than the original; no
-        # gate saw it, the test gate read only TAP, unittest and pytest
+        # the test gate must read jest output, not only TAP, unittest and pytest, so a new jest failure is counted
         from eaos.journeys.fix.execute import failing, regressions
         old = ('FAIL api src/tests/services/auth.service.test.ts\n  \u25cf AuthService \u203a login \u203a should throw an error\n\n'
                '    expect(received).rejects.toThrow()\n\n  \u25cf Console\n\n    console.log\nTests:       1 failed, 26 passed, 27 total\n')
@@ -646,16 +647,15 @@ class PythonSuiteGateTests(unittest.TestCase):
         self.assertEqual(failing(' FAIL  src/a.test.ts > cart > adds one\n'), ['cart > adds one'], 'vitest says it on one line')
 
     def test_a_check_that_cannot_run_here_is_named_never_silent(self):
-        # Trial on real projects (2026-11-02): both checks of a project exited 127 (their program not found) on the original
-        # and every gate; a check already failing with no names is no gate, so the lint gate was off and nobody was told
+        # a check that exits 127 (program not found) on the original and on every gate is no gate; it is named, not
+        # silent
         from eaos.journeys.fix.execute import not_run
         rows = [{'argv': ['bun', 'run', 'lint'], 'exit': 127, 'failing': []}, {'argv': ['bun', 'run', 'test'], 'exit': 127, 'failing': []},
                 {'argv': ['npm', 'test'], 'exit': 1, 'failing': []}]
         self.assertEqual(not_run(rows), ['bun run lint', 'bun run test'])
 
     def test_the_files_a_card_changed_beyond_its_own_are_named(self):
-        # Trial on real projects (2026-11-02): a card about one dialog's complexity was kept with 13 files changed, the
-        # other 12 never named to the person
+        # a card kept with changes to files beyond its own must name them to the person
         from eaos.journeys.fix.finish import beyond
         own = 'frontend/src/components/Admin/AddUser.tsx'
         others = [f'frontend/src/components/{name}.tsx' for name in (

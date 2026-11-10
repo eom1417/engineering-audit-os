@@ -1,5 +1,5 @@
-"""Save and replay (M10.4): a journey that reached its goal is done again with no assistant; one the app no longer
-allows replays red with the step it broke at; one that never reached its goal is skipped; replays join the lock."""
+"""Save and replay: a journey that reached its goal is done again with no assistant; one the app no longer allows
+replays red with the step it broke at; one that never reached its goal is skipped; replays join the lock."""
 import json
 import tempfile
 import threading

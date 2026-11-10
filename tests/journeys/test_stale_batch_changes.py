@@ -1,6 +1,7 @@
-"""A batch that no longer fits takes no change. Reading leaves it open with its copy (test_safe_reads), so fix_edit, fix_skip
-and fix_finish refuse it themselves, and the jobs they start look again before applying a change or handing it over. A
-refusal removes nothing: fix_start and fix_abandon close it. A batch with kept changes goes on when the code moves on."""
+"""A batch that no longer fits takes no change. Reading leaves it open with its copy (test_safe_reads), so fix_edit,
+fix_skip and fix_finish refuse it themselves, and the jobs they start look again before applying a change or handing it
+over. A refusal removes nothing: fix_start and fix_abandon close it. A batch with kept changes goes on when the code
+moves on."""
 import contextlib
 import subprocess
 from pathlib import Path
@@ -50,7 +51,8 @@ class Batch(Base):
         self.check([dict(c, id=f'TASK-{6 - i:03d}') for i, c in enumerate(FIRST, 1)])
 
     def everything(self):
-        """Every file of the project's EAOS folder (the batch's copy in it), the copy's commit, and the state's own bytes."""
+        """Every file of the project's EAOS folder (the batch's copy in it), the copy's commit, and the state's own
+        bytes."""
         record = Path(project_state.load(self.project)['workspace'])
         return {path.relative_to(record).as_posix(): path.read_bytes() for path in record.rglob('*')
                 if path.is_file() and '.git' not in path.parts and path.suffix != '.lock'}, git(self.copy, 'rev-parse', 'HEAD')
@@ -116,7 +118,8 @@ class AStaleBatchIsRefused(Batch):
 
 
 class WhatItsJobsSee(Batch):
-    """The code moves on after the tool let the job start. A job is its own running job, so nothing but looking again sees it."""
+    """The code moves on after the tool let the job start. A job is its own running job, so nothing but looking again
+    sees it."""
 
     def setUp(self):
         super().setUp()
@@ -190,7 +193,8 @@ class WhatItsJobsSee(Batch):
 
 
 class WithSeveralAssistants(Batch):
-    """Another lane's job running is the normal state of such a batch: it must not hide that the batch no longer fits."""
+    """Another lane's job running is the normal state of such a batch: it must not hide that the batch no longer fits.
+    """
 
     def setUp(self):
         super().setUp()

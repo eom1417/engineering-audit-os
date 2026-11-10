@@ -1,5 +1,5 @@
-"""Building a project from its plan (docs/BUILD-FROM-PLAN.md): any plan read, the spec checked, the target and the
-build drawn, the gates that keep copies, cycles, layer breaks and stray vendors out, and the build handed over."""
+"""Building a project from its plan (docs/BUILD-FROM-PLAN.md): any plan read, the spec checked, the target and the build
+drawn, the gates that keep copies, cycles, layer breaks and stray vendors out, and the build handed over."""
 import json
 import os
 import subprocess
@@ -98,7 +98,7 @@ class DesignTests(unittest.TestCase):
 
 
     def test_the_cards_every_product_needs_come_from_its_facts_and_every_requirement_is_built_by_something(self):
-        # an SPA: an assistant added about 50 such cards by hand, and nothing proved each requirement was built.
+        # the cards every product needs come from its facts, and each requirement is proved built by something.
         facts = spec(nonfunctional={'languages': ['ar', 'en'], 'data_sensitivity': 'health', 'platforms': ['mobile web'], 'expected_users': 5000},
                      integrations=[{'id': 'sms', 'name': 'Twilio', 'purpose': 'reminders'}],
                      requirements=[{'id': 'FR-1', 'text': 'book a visit', 'covered_by': ['F2']},
@@ -152,7 +152,7 @@ class GateTests(unittest.TestCase):
         self.assertTrue({'layers', 'structure', 'vendor', 'cycle', 'copy'} <= gates, gates)
 
     def test_a_shape_too_small_to_hold_a_rule_is_not_a_copy(self):
-        # A real build: `() => x.y()` in several files was refused as copied code.
+        # A short arrow function such as `() => x.y()` repeated in several files is not copied code.
         from eaos.facts.run import collect
         from eaos.analysis.repair.gates import found
         with tempfile.TemporaryDirectory() as tmp:
@@ -173,8 +173,8 @@ class BuildTests(unittest.TestCase):
         self.project = str(Path(self.tmp.name) / 'clinic')
 
     def test_a_blueprint_drawn_outside_the_studio_shows_there_its_build_plan_its_questions_and_its_next_step(self):
-        # The incident (an SPA): the blueprint was drawn from the person's own assistant session; the Studio showed
-        # no build card, none of its four questions, and "check the project" with no score.
+        # A blueprint drawn from the person's own assistant session still shows the build card and its four questions in
+        # the Studio, not "check the project" with no score.
         from eaos.interfaces import studio_actions as actions
         build_tools.blueprint_start(text='A clinic books visits for its patients.', project=self.project)
         asked = spec(decisions=[{'id': 'D1', 'question': 'Reminders by SMS or e-mail?', 'options': ['SMS', 'E-mail'],
@@ -222,7 +222,8 @@ class BuildTests(unittest.TestCase):
                                                {'id': 'L2', 'p95_ms': 120, 'error_rate': 0, 'threshold': {'p95_ms': 500, 'error_rate': 0.01}}]})
         self.assertEqual([(p['gate'], p['where']) for p in held], [('design', 'page'), ('load', 'L1')],
                          'a high design departure and a load scenario over its threshold hold the finished product back')
-        # A real build: k6 failed (its script unseen in the isolated run) and the milestone was delivered as if measured.
+        # A failed k6 run (its script unseen in the isolated run) must not let the milestone be delivered as if
+        # measured.
         unproven = build_tools.build_look.unusable({'not_done': {'baseline': 'RuntimeError: k6 did not run', 'visual': 'nothing to decide'}})
         self.assertEqual([(p['gate'], p['where']) for p in unproven], [('proof', 'baseline')])
         from eaos.live.isolation import sandbox
@@ -233,7 +234,8 @@ class BuildTests(unittest.TestCase):
                       "a candidate copy's report is the project's: k6 reads its scenario from it")
 
     def test_the_last_milestone_runs_the_projects_own_journeys_with_its_own_browsers(self):
-        # Two real builds: the e2e journeys were written but never run, and EAOS's browsers are another Playwright's.
+        # End-to-end journeys that were written must be run, and EAOS's browsers belong to a different Playwright than
+        # the project's.
         root, browsers, bin_ = Path(self.tmp.name) / 'copy', Path(self.tmp.name) / 'run/browsers', Path(self.tmp.name) / 'bin'
         (root / 'node_modules').mkdir(parents=True)
         bin_.mkdir()
@@ -265,7 +267,7 @@ class BuildTests(unittest.TestCase):
         self.assertFalse((Path(self.project) / '.git').exists(), 'nothing is made before the person agrees')
 
     def test_a_milestone_refused_three_times_in_a_row_is_handed_over_with_what_stays_unproven(self):
-        # M7.6: every refusal held the milestone back, and the journey stood still while one gate kept failing
+        # A refusal does not hold the milestone back for ever: the journey goes on while one gate keeps failing.
         build_tools.blueprint_start(text='plan', project=self.project)
         build_tools.blueprint_spec(spec(), self.project)
         build_tools.blueprint_design(project=self.project)
@@ -351,7 +353,8 @@ class LookTests(unittest.TestCase):
 
 class ExtendTests(unittest.TestCase):
     def test_a_file_of_a_kind_the_check_reads_no_module_of_fits_the_folder_the_project_keeps_it_in(self):
-        # M9.3: on flaskr an About page's template was refused, its folder unknown: the check knew only the Python modules
+        # A page template of a kind no Python module covers is accepted in the folder the project keeps it in, though
+        # that folder is not a module's.
         import json
         from eaos.journeys import agent_tools, extend
         with tempfile.TemporaryDirectory() as tmp, mock.patch.dict(os.environ, {'EAOS_HOME': str(Path(tmp) / 'home')}):

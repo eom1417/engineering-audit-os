@@ -1,5 +1,5 @@
-"""The first layer of screen discovery (M5.2): the pages a project's files and code name, at the address that shows
-each, every one a page of its own; the corpus apps whose screens were missed."""
+"""The first layer of screen discovery: the pages a project's files and code name, at the address that shows each, every
+one a page of its own."""
 import json
 import unittest
 from pathlib import Path
@@ -42,7 +42,7 @@ class FileRouteTests(unittest.TestCase):
 
 class CodeRouteTests(unittest.TestCase):
     def test_an_app_routing_by_the_hash_has_its_menu_s_paths_as_hash_routes(self):
-        # CoreUI: the router in App.jsx, the menu's addresses in a file of their own
+        # a router in App.jsx, with the menu's addresses in a file of their own
         coreui = project({'src/App.jsx': 'import { HashRouter } from "react-router-dom"\n<HashRouter/>\n',
                           'src/_nav.jsx': "export default [{ to: '/forms/form-control' }, { to: '/charts' }]\n"})
         self.assertEqual(code_routes(coreui), ['/#/forms/form-control', '/#/charts'])
@@ -59,7 +59,8 @@ if __name__ == '__main__':
 
 class VisitorTests(unittest.TestCase):
     def test_a_signed_in_check_still_pictures_the_sign_in_and_sign_up_pages_as_a_visitor(self):
-        # flask-microblog: signed in by rules, its /auth/login and /auth/register opened its home page
+        # a signed-in check must not turn /auth/login and /auth/register into the home page: the visitor sees them as
+        # they are
         from unittest import mock
         from eaos.pipeline.runners import pages
         out = Path(scratch())
@@ -80,7 +81,7 @@ class VisitorTests(unittest.TestCase):
 
 class NotFoundTests(unittest.TestCase):
     def test_pages_that_answered_404_are_named_as_not_measured(self):
-        # a real Express app mounted its router under /api in another file: its pages were opened without it, all 404
+        # an Express app mounts its router under /api in another file: its pages are opened with that prefix
         from eaos.pipeline.runners import pages
         rows = [{'url': 'http://h/', 'http': 200}, {'url': 'http://h/user', 'http': 404}, {'url': 'http://h/user', 'http': 404}]
         said = pages._not_found(rows)
@@ -91,8 +92,8 @@ class NotFoundTests(unittest.TestCase):
 
 class ApiTests(unittest.TestCase):
     def test_an_api_has_no_page_pictured_its_get_routes_are_the_locks_request_tests(self):
-        # A real Express API: its first page answered JSON, and the screens pictured it and two routes as pages; the
-        # phone width and the missing <title> of a JSON answer became a card no fix could pass.
+        # An Express API's first page answers JSON: it is not pictured as a page, since the phone width and the missing
+        # <title> of a JSON answer would become a card no fix could pass.
         from unittest import mock
         from eaos.pipeline.runners import pages
         from eaos.pipeline.stages import SkipStage

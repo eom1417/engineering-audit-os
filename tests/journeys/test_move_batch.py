@@ -1,5 +1,5 @@
-"""A batch of moves (M8.5): drawn as one tree from the repository's findings, made on a branch of its own, and refused
-whole when anything differs."""
+"""A batch of moves: drawn as one tree from the repository's findings, made on a branch of its own, and refused whole
+when anything differs."""
 import json
 import os
 import subprocess
@@ -75,8 +75,8 @@ class MoveBatchTests(Workspace):
                          'what a run left in the copy never lands on the branch')
 
     def test_tests_the_moves_take_out_of_reach_refuse_the_batch(self):
-        # Review of 2026-10-26: tests/test_x.py moved into tests/<folder>/ (the tests-flat proposal) left unittest with no
-        # test to run, no command was built after, and the gate passed with zero tests.
+        # A move of tests/test_x.py into tests/<folder>/ (the tests-flat proposal) would leave unittest with no test to
+        # run, no command would be built, and the gate would pass with zero tests.
         root = self.project(SHOP)
         summary = self.make(root, [{'from': 'tests/test_shop.py', 'to': 'tests/shop/test_shop.py'}])
         self.assertEqual(summary['kept'], [])
@@ -116,8 +116,8 @@ class MoveBatchTests(Workspace):
         self.assertTrue(any(line.startswith('  pipeline_load.py  →  shop/pipeline/load.py') for line in drawn['tree']))
 
     def test_two_drawn_moves_to_one_place_are_each_marked_as_unmakeable(self):
-        # M9.5 (flask-microblog): the target shape drew app/email.py and app/auth/email.py both into one feature folder;
-        # each looked makeable alone, and a batch holding both would be refused whole by the move tool.
+        # Two moves to one place: each looks makeable alone, but a batch holding both would be refused whole by the move
+        # tool, so both are marked unmakeable.
         root = self.project({'app/email.py': 'A = 1\n', 'app/auth/email.py': 'B = 1\n', 'app/other.py': 'C = 1\n'})
         drawn = [{'from': 'app/email.py', 'to': 'services/reset/email.py', 'rule': 'prefix-family', 'reason': 'r'},
                  {'from': 'app/auth/email.py', 'to': 'services/reset/email.py', 'rule': 'prefix-family', 'reason': 'r'},
@@ -130,8 +130,7 @@ class MoveBatchTests(Workspace):
         self.assertEqual(rows['app/other.py'], '')
 
     def test_a_move_whose_imports_cannot_be_written_is_marked_in_the_proposal(self):
-        # M9.5 (flaskr): flaskr/auth.py was proposed into services/auth/ as makeable; the package's `from . import auth`
-        # cannot reach it there, and the move tool refused the whole batch only at make.
+        # A move the package's `from . import auth` cannot reach is marked in the proposal, not refused only at make.
         root = self.project({'flaskr/__init__.py': 'def make():\n    from . import auth\n    return auth\n', 'flaskr/auth.py': 'X = 1\n'})
         drawn = [{'from': 'flaskr/auth.py', 'to': 'services/auth/auth.py', 'rule': 'prefix-family', 'reason': 'r'}]
         with mock.patch.object(move_batch, '_from_findings', return_value=drawn), \
@@ -140,8 +139,8 @@ class MoveBatchTests(Workspace):
         self.assertEqual(row['refused'], 'flaskr/__init__.py would import services.auth from outside its package')
 
     def test_the_target_shapes_moves_are_drawn_never_proposed_and_a_folder_no_import_names_is_refused(self):
-        # M9.5: made unproven on three corpus apps, the target shape's moves gave the same answers for 9-16% more tokens,
-        # into folders like services/cli-tests-py/ that no Python import can name.
+        # The target shape's moves are drawn, never proposed: they gave the same answers for more tokens, into folders
+        # like services/cli-tests-py/ that no Python import can name.
         root = self.project({'app/x.py': 'A = 1\n', 'tests.py': 'B = 1\n'})
         shape = [{'from': 'app/x.py', 'to': 'services/x/x.py', 'rule': 'target-shape', 'reason': 'r'}]
         family = [{'from': 'tests.py', 'to': 'services/cli-tests-py/tests.py', 'rule': 'prefix-family', 'reason': 'r'}]

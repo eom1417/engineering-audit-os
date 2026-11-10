@@ -1,5 +1,6 @@
-"""What MCP calls read-only changes nothing, and what changes something is not called read-only: reading a build's file leaves
-the project's state alone, and opening the report, which rebuilds it, is handled as work by the assistants and the Studio."""
+"""What MCP calls read-only changes nothing, and what changes something is not called read-only: reading a build's file
+leaves the project's state alone, and opening the report, which rebuilds it, is handled as work by the assistants and
+the Studio."""
 import asyncio
 import contextlib
 import io
@@ -182,7 +183,8 @@ class AskingWhereTheProjectIs(Home):
 
 
 class OpeningTheStudio(Home):
-    """It starts a server, or stops one to replace it, so MCP does not call it read-only; all it does stays as it was."""
+    """It starts a server, or stops one to replace it, so MCP does not call it read-only; all it does stays as it was.
+    """
     RUNNING = {'port': 9, 'token': 't' * 32}
 
     def test_mcp_does_not_call_it_read_only_nor_promise_its_updates_only_add(self):

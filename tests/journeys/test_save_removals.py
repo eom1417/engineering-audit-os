@@ -1,6 +1,6 @@
-"""A save removes only what it closes. A read that saves (its reconciling, its first settling of the branch) finds a batch's
-leftovers and leaves them: a copy may hold the only trace of a change. Closing a batch still removes its copy and logs, and
-the patches past the ones kept, and only once the state that says it closed is written."""
+"""A save removes only what it closes. A read that saves (its reconciling, its first settling of the branch) finds a
+batch's leftovers and leaves them: a copy may hold the only trace of a change. Closing a batch still removes its copy
+and logs, and the patches past the ones kept, and only once the state that says it closed is written."""
 import shutil
 from pathlib import Path
 from unittest import mock
@@ -31,7 +31,7 @@ class Leftovers(OpenBatch):
         self.runtime = project_state.runtime_of(project_state.load(self.project))
 
     def leftovers(self, numbers=(1, 2, 3, 4)):
-        """Closed batches as an older EAOS, or a removal that failed, left them. Written whole, so no save judged them."""
+        """Closed batches as a removal that failed leaves them. Written whole, so no save judged them."""
         state = project_state.load(self.project)
         state.pop('open_wave', None)
         state['branch'] = state['home_branch'] = git(self.project, 'rev-parse', '--abbrev-ref', 'HEAD')       # settled: a read has no reason to save

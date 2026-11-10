@@ -1,5 +1,6 @@
-"""What the Studio's button says after asking for the report to be rebuilt: only a rebuild that ended done is said to have opened
-the report as it should; a failed or stopped one, or one still waiting, opens it as it stands and says it may be outdated."""
+"""What the Studio's button says after asking for the report to be rebuilt: only a rebuild that ended done is said to
+have opened the report as it should; a failed or stopped one, or one still waiting, opens it as it stands and says it
+may be outdated."""
 import json
 import shutil
 import subprocess

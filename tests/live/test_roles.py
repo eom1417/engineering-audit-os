@@ -1,5 +1,5 @@
-"""The kinds of users of an app (eaos/live/access/roles.py): read from its code with real evidence, each opened as itself, and the
-coverage saying which kinds a check saw and who opened another kind's page."""
+"""The kinds of users of an app (eaos/live/access/roles.py): read from its code with real evidence, each opened as
+itself, and the coverage saying which kinds a check saw and who opened another kind's page."""
 import json
 import tempfile
 import unittest
@@ -48,16 +48,16 @@ class Roles(unittest.TestCase):
         self.assertEqual(roles.share(KINDS, groups, None, True), groups)
 
     def test_a_page_of_another_profile_showing_the_apps_not_found_is_not_seen_never_a_missing_page(self):
-        # a full-stack app (2026-10-20): signed in to the administration profile only, the check opened the programs profile's
-        # pages by their address, pictured the app's "not found" (answered 200), and asked whether to delete or build them
+        # when signed in to one profile only, the pages of another profile must not be opened by address: the app's "not
+        # found" (answered 200) would be pictured and taken for pages
         base = 'http://127.0.0.1:3000'
         gone = roles.nowhere_of({'text': 'Home\nWelcome back', 'others': [
             {'text': 'Page not found\nThe page /eaos-no-such-page-7f3a does not exist. Back home'}]})
         programs = 'Page not found\nThe page /programs/plans does not exist. Back home'
         self.assertFalse(roles.opened({'path': '/programs/plans', 'url': base + '/programs/plans', 'status': 200, 'text': programs}, gone))
         self.assertTrue(roles.opened({'path': '/admin', 'url': base + '/admin', 'status': 200, 'text': 'Administration\nUsers 12 Programs 3'}, gone))
-        # the second check of a full-stack app: the app draws its "not found" inside its menus, which the page of an address it
-        # does not have lacks, and the whole pages were too unlike for the "not found" to be told
+        # an app draws its "not found" inside its menus, which the page of an address it does not have lacks, so whole
+        # pages are too unlike to tell the "not found" by comparing them
         within = 'Chief Ops\nCommand centre\nPrograms\nRota\nSettings\nSupport team\nPage not found\nThe page /rota does not exist. Back home'
         self.assertFalse(roles.opened({'path': '/rota', 'url': base + '/rota', 'status': 200, 'text': within}, gone), 'its "not found" inside the menus')
         self.assertTrue(roles.opened({'path': '/rota', 'url': base + '/rota', 'status': 200, 'text': 'Chief Ops\nCommand centre\nRota\nWeek 43\nBack home'}, gone))
@@ -93,7 +93,8 @@ class Roles(unittest.TestCase):
 
 
     def test_a_view_the_running_app_shows_missing_is_added_as_checked_and_a_redirect_to_its_own_page_is_reached(self):
-        # a full-stack app (2026-10-20): only the support pages were pictured; the reading of the code had missed the programs
+        # a view the code's reading missed (such as a program's pages) is added from the running app, or only the other
+        # views' pages are pictured
         from unittest import mock
         from eaos.live.access import test_users
         with tempfile.TemporaryDirectory() as target, tempfile.TemporaryDirectory() as out:
@@ -112,7 +113,7 @@ class Roles(unittest.TestCase):
         self.assertFalse(test_users._reached({'path': '/rota', 'url': base + '/rota', 'status': 200, 'text': 'Home\nPage not found'}, nowhere))
 
     def test_every_page_no_session_opens_is_either_owned_by_the_view_that_opens_it_or_proved_unreachable(self):
-        # a full-stack app (2026-10-21): pages of the program skipped silently; a page a session found went to the wrong one
+        # pages of a view must not be skipped silently, and a page a session found must not go to the wrong view
         from unittest import mock
         from eaos.live.access import test_users
         with tempfile.TemporaryDirectory() as target, tempfile.TemporaryDirectory() as out:
@@ -131,7 +132,7 @@ class Roles(unittest.TestCase):
             self.assertEqual(roles.proven(out), {'/legacy': 'refuses every user'}, 'a verdict outlives the views written again')
 
     def test_a_lack_on_the_running_app_goes_back_to_the_reading_which_adds_views_and_never_drops_one(self):
-        # the owner, 2026-10-21: a loop back to the node that owns the views until every page opens
+        # a loop back to the node that owns the views, until every page opens
         from unittest import mock
         from eaos.live.access import test_users
         with tempfile.TemporaryDirectory() as target, tempfile.TemporaryDirectory() as out:

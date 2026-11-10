@@ -1,4 +1,5 @@
-"""/eaos alone (eaos/interfaces/menu.py): only the options that make sense now, the recommended one first, at most four to a page."""
+"""/eaos alone (eaos/interfaces/menu.py): only the options that make sense now, the recommended one first, at most four
+to a page."""
 import os
 import tempfile
 import unittest

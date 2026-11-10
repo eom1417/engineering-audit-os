@@ -1,5 +1,5 @@
-"""Branch control and scan freshness (eaos/interfaces/studio_actions/branches/, eaos/core/project/branches.py freshness) on real temporary
-git repositories through the command centre's own authenticated handler."""
+"""Branch control and scan freshness (eaos/interfaces/studio_actions/branches/, eaos/core/project/branches.py freshness)
+on real temporary git repositories through the command centre's own authenticated handler."""
 import json
 import os
 import subprocess
@@ -33,7 +33,8 @@ def commit(folder, path, text, message, env=None):
 
 
 class Repo(Workspace):
-    """main and develop with a remote origin, a tool-owned work branch (provenance), a human branch named like a tool's."""
+    """main and develop with a remote origin, a tool-owned work branch (provenance), a human branch named like a tool's.
+    """
 
     def setUp(self):
         super().setUp()

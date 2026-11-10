@@ -1,6 +1,6 @@
-"""A read that rebuilds the report holds no old state over what a worker wrote meanwhile: open_report, opening the Studio,
-and status, menu and plan when reconciling changes something. Real repositories; the worker runs in its own thread while
-the read is rebuilding the report."""
+"""A read that rebuilds the report holds no old state over what a worker wrote meanwhile: open_report, opening the
+Studio, and status, menu and plan when reconciling changes something. Real repositories; the worker runs in its own
+thread while the read is rebuilding the report."""
 import threading
 from unittest import mock
 
@@ -20,7 +20,8 @@ SECONDS = 20
 
 class Interleaved(Batch):
     def during_the_report(self, write):
-        """The first rebuild of the report lets `write` run to its end in a thread of its own, as another process would."""
+        """The first rebuild of the report lets `write` run to its end in a thread of its own, as another process would.
+        """
         real, done = guided.project.publish, []
         def publish(state, *args, **options):
             if not done:
@@ -63,7 +64,8 @@ class Interleaved(Batch):
             for patch in patches: patch.stop()
 
     def merged_earlier_batch(self):
-        """An earlier batch taken in by hand: EAOS's own commits, so the open batch still fits, and reconciling has work to do."""
+        """An earlier batch taken in by hand: EAOS's own commits, so the open batch still fits, and reconciling has work
+        to do."""
         self.batch(9, ['TASK-004'])
         git(self.project, 'merge', '-q', '--ff-only', 'eaos/wave-9')
 

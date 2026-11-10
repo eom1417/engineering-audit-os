@@ -31,7 +31,8 @@ class RouteTests(Workspace):
         literal, params = url('/contas/$accountId')
         self.assertEqual(params, ['accountId'])
         self.assertIn("process.env.E2E_ACCOUNTID", literal)
-        # a GET /logout run with the session ended it, and every page stage after the lock saw the sign-in page
+        # a GET /logout run with the session would end it, and every page stage after the lock would see the sign-in
+        # page
         from eaos.live.behavior.specs import playwright_spec
         spec, listed = playwright_spec({'name': 'auth'}, [('/logout', ('http', 'GET', None)), ('/login', ('http', 'GET', None))])
         self.assertNotIn("request.get(`/logout`)", spec)
@@ -40,8 +41,8 @@ class RouteTests(Workspace):
 
 
     def test_a_page_is_recorded_with_its_random_numbers_held_still(self):
-        # Second trial on real projects: a game drew its first tiles with Math.random, so no two loads of its page had the
-        # same words, the safety net held nothing and no batch could open (the first trial passed by luck).
+        # A page that draws with Math.random has different words on every load, so the safety net would hold nothing and
+        # no batch could open.
         from eaos.live.behavior.specs import playwright_spec
         spec, _ = playwright_spec({'name': 'game'}, [('/', ('page', 'GET', None))])
         self.assertIn('Math.random', spec)
@@ -102,7 +103,7 @@ class BuildTests(Workspace):
         _, _, plan = self.report([{'name': 'ui', 'surfaces': ['views/page.py'], 'files': ['views/page.py']}], [], files)
         self.assertEqual(plan['specs'][0]['path'], '')
         self.assertIn('needs_fixture', plan['specs'][0]['surfaces'][0])
-        # A spec without a test made Playwright stop the whole lock with "No tests found" (the root layout of EAOS's Studio).
+        # A spec without a test must not make Playwright stop the whole lock with "No tests found".
         shutil.rmtree(self.tmp); Path(self.tmp).mkdir()
         out, _, plan = self.report([{'name': 'home', 'surfaces': ['__root__']}], [entry('__root__')])
         self.assertEqual(plan['specs'], [{'feature': 'home', 'tool': 'playwright', 'path': '',
@@ -136,8 +137,8 @@ class BuildTests(Workspace):
         self.assertEqual(run_lock(report, Path(self.tmp), Path(self.tmp) / 'runtime')['results'], [], 'the safety net is empty, never a crash')
 
     def test_the_safety_net_crawls_the_running_app_for_its_pages_when_the_code_names_none(self):
-        # A real incident (an SPA, 0.0.59): the safety net recorded 0 screens (the code names no page: an SPA of
-        # /#/now routes), so no fix batch could open. The lock now crawls the app it started and locks those pages.
+        # An SPA's code names no page (its routes are /#/now and the like), so the lock crawls the app it started and
+        # locks those pages; otherwise it records 0 screens and no fix batch can open.
         from eaos.live.behavior import lock as behavior_lock
         report, runtime = Path(self.tmp) / 'report', Path(self.tmp) / 'runtime'
         report.mkdir(); runtime.mkdir()
@@ -174,7 +175,7 @@ class ApprovalResultTests(Workspace):
         self.assertEqual(statuses['home.spec.ts'][0], 'passed')
         self.assertEqual(statuses['rota.spec.ts'], ('failed', 'Screenshot comparison failed'))
         self.assertEqual(statuses['cases.spec.ts'][0], 'quarantined', 'a spec whose tests were all skipped')
-        # Wave 4 on EAOS (2026-10-13): design cards changed the screens they were about, and the lock refused them all
+        # design cards change the screens they are about, so the lock must not refuse them all
         looks = lambda name: f'Error: \x1b[2mexpect(\x1b[22mpage).toHaveScreenshot(expected) failed\n  Snapshot: {name}.png'
         report = playwright_report(('root.spec.ts', [('failed', looks('change')), ('passed', '')]),
                                    ('other.spec.ts', [('failed', looks('problems'))]), ('broken.spec.ts', [('failed', 'pageerror: boom')]))
@@ -309,8 +310,8 @@ class ApprovalRunTests(Workspace):
         return live
 
     def test_the_same_code_in_another_copy_matches_its_recording(self):
-        # On EAOS itself a default naming a file of the copy, and a default function with its address, failed an
-        # unchanged candidate: each run has its own copy and its own memory.
+        # A default naming a file of the copy, or a default function with its address, must not fail an unchanged
+        # candidate: each run has its own copy and its own memory.
         from eaos.live.behavior import lock as behavior_lock
         files = {'pkg/__init__.py': '', 'pkg/paths.py': 'from pathlib import Path\n\n\n'
                  'def where(root=Path(__file__).parent, pick=lambda x: x):\n    return root\n'}

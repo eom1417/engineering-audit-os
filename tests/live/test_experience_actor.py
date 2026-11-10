@@ -1,5 +1,5 @@
-"""One simulated user (M10.3): a persona drives the browser towards its goal within its budgets, every step kept with
-its picture and what it found hard; it stops when it says done or stuck, or when a budget ends."""
+"""One simulated user: a persona drives the browser towards its goal within its budgets, every step kept with its
+picture and what it found hard; it stops when it says done or stuck, or when a budget ends."""
 import json
 import tempfile
 import threading
@@ -56,7 +56,7 @@ class ActorTests(unittest.TestCase):
         self.assertIn('steps budget', journey['stuck'])
 
     def test_a_goals_own_seconds_end_it_sooner_than_the_budget(self):
-        # the short simulation's five minutes were never held: a goal ran on the actor's own ten (M10.10)
+        # the short simulation's five minutes are held: a goal does not run on the actor's own ten
         click = {'action': 'click', 'target': {'role': 'button', 'name': 'More', 'nth': 0}}
         clock = mock.Mock(monotonic=mock.Mock(side_effect=iter(range(0, 10000, 100))))
         with mock.patch.object(actor, 'time', clock):

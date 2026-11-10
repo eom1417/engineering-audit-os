@@ -1,4 +1,4 @@
-"""Parity with the Studio (M8.1): every Studio action has an MCP tool, and the whole journey runs from the terminal alone."""
+"""Parity with the Studio: every Studio action has an MCP tool, and the whole journey runs from the terminal alone."""
 import os
 import re
 import subprocess

@@ -1,6 +1,6 @@
-"""The person's decisions stay the person's under the Studio chat's direct control (2026-10-29): a chat proposal of
-rule op=approve with person_agreed=true ran an assistant's test command on the person's computer, the Studio taking the
-preview's confirm token for it. Now a decision waits for the person's own press, after a preview that shows it."""
+"""The person's decisions stay the person's under the Studio chat's direct control: a chat proposal of rule op=approve
+with person_agreed=true must not run an assistant's test command on the person's computer. A decision waits for the
+person's own press, after a preview that shows it."""
 import os
 import subprocess
 import sys
@@ -63,7 +63,7 @@ class ChatConsent(Workspace):
         self.assertEqual([p['action'] for p in safe if not chat._direct(p, self.actions)], [])
         done = chat._done_at_once(self.actions, [safe[0]])
         self.assertTrue(done and done[0].get('run'), done)
-        # it ran to its end, before the test's folder goes (its thread once outlived the folder: a KeyError, 2026-10-30)
+        # the run's thread ends before the test's folder is removed; otherwise it fails with a KeyError
         self.assertEqual(self.actions.wait(done[0]['run'], TERMINAL)['state'], 'done')
 
     def test_the_persons_own_press_after_a_preview_that_shows_the_command_runs_it(self):

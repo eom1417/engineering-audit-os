@@ -1,5 +1,5 @@
-"""The browser agent (eaos/live/agent.py, M5.2): the assistant drives the browser a step at a time towards a goal, each
-step recorded with its picture, and the record replays with no assistant; a step that would delete is refused."""
+"""The browser agent (eaos/live/agent.py): the assistant drives the browser a step at a time towards a goal, each step
+recorded with its picture, and the record replays with no assistant; a step that would delete is refused."""
 import tempfile
 import threading
 import unittest
@@ -64,8 +64,8 @@ class AgentTests(unittest.TestCase):
             server.shutdown()
 
     def test_a_labelled_field_is_listed_by_its_label_and_filled_by_what_was_listed(self):
-        # the simulated users of django-locallibrary and flask-microblog were shown "first_name" and "post", the fields'
-        # `name` attributes, which no fill could find: every form goal got stuck (M10.10)
+        # each field is shown by its label, not by its `name` attribute (such as "first_name" or "post"), which no fill
+        # can find; otherwise every form goal gets stuck
         server = ThreadingHTTPServer(('127.0.0.1', 0), App)
         threading.Thread(target=server.serve_forever, daemon=True).start()
         try:

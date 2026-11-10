@@ -1,5 +1,4 @@
-"""The common stacks start from their files alone, with no assistant (M5.1): the corpus' Python apps, its Expo apps
-and its static site had never started without one."""
+"""The common stacks start from their files alone, with no assistant: Python apps, Expo apps and a static site."""
 import json
 import unittest
 from pathlib import Path
@@ -50,7 +49,7 @@ class PythonStackTests(unittest.TestCase):
         tested = live_setup.detect(project({
             'pyproject.toml': '[project]\ndependencies = ["flask"]\n[project.optional-dependencies]\ntest = ["pytest", "coverage"]\n',
             'flaskr/__init__.py': 'from flask import Flask\ndef create_app():\n    return Flask(__name__)\n'}))['profile']
-        # flaskr of the corpus: its pytest is its test extra; every gate said its tests passed and none had run (M9.3)
+        # a project whose pytest is in its test extra: a gate must not say its tests passed when none ran
         self.assertEqual((tested['install'][0][-2:], tested['checks']), (['-e', '.[test]'], [['python', '-m', 'pytest', '-q']]))
         both = live_setup.detect(project({
             'requirements.txt': 'flask\n', 'pyproject.toml': '[project]\nname = "x"\n[project.optional-dependencies]\ntest = ["pytest"]\n',
@@ -100,7 +99,7 @@ class OtherStackTests(unittest.TestCase):
         self.assertEqual(server['start'], ['npm', 'run', 'start'])
 
     def test_a_node_server_with_no_script_starts_from_its_main_file_on_the_port_its_code_writes(self):
-        # The corpus's task-api (Express, no dev or start script, `const port = 3000`): the run started `true`
+        # an Express app with no dev or start script and `const port = 3000` starts from its main file, not `true`
         written = live_setup.detect(project({'package.json': {'main': 'index.js', 'dependencies': {'express': '5'}},
                                              'package-lock.json': '{}', 'index.js': 'const port = 3000;\napp.listen(port);'}))['profile']
         self.assertEqual((written['start'], written['port'], written['env']['PORT']), (['node', 'index.js'], 3000, '3000'))
@@ -112,7 +111,8 @@ class OtherStackTests(unittest.TestCase):
 
 class PagesAloneTests(unittest.TestCase):
     def test_a_site_of_pages_alone_is_a_project_to_check(self):
-        # its script inside its index.html: the check said "no source file" and never ran the app
+        # a static app with its script inside its index.html has a source file: the check must run the app, not say "no
+        # source file"
         from eaos.pipeline.runners import by_rules as runners
         from eaos.pipeline.stage_run import Context
         site = project({'index.html': '<button onclick="location.hash=\'#/a\'">A</button>'})

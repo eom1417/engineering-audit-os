@@ -1,5 +1,5 @@
-"""A test account by rules (eaos/live/access/test_account.py): the app's own sign-up and sign-in pages filled as a person fills
-them, with no assistant (the corpus' sign-in app was seen signed out without one)."""
+"""A test account by rules (eaos/live/access/test_account.py): the app's own sign-up and sign-in pages filled as a
+person fills them, with no assistant."""
 import json
 import os
 import subprocess

@@ -1,6 +1,5 @@
-"""The behaviour lock knows an intended change (M9.7): the M9.3 proof on flaskr added a link to the shared navigation,
-and the lock refused it on every screen. A card that declares the screens it changes passes there with only its
-declared addition; anything else still fails."""
+"""The behaviour lock knows an intended change: a card that declares the screens it changes passes there with only its
+declared addition (such as a link added to the shared navigation); anything else still fails."""
 import json
 import subprocess
 from pathlib import Path
@@ -21,7 +20,7 @@ def looks(name, ratio='0.00'):
 
 
 def report(*names, message=looks):
-    """Playwright's JSON report of the flaskr lock: one spec per page, each failing with `message`."""
+    """Playwright's JSON report of a lock: one spec per page, each failing with `message`."""
     return {'suites': [{'file': f'{name}.spec.ts', 'specs': [{'title': f'/{name} renders as it does today', 'tests': [
         {'results': [{'status': 'failed', 'error': {'message': message(name)}}]}]}]} for name in names]}
 
@@ -101,6 +100,6 @@ class IntendedChangeTests(Workspace):
 
 class Declaration(Workspace):
     def test_a_single_screen_or_word_given_as_text_is_one_not_its_letters(self):
-        # the review of M10: 'all' became ['a', 'l', 'l'] and the lock refused every screen
+        # a string such as 'all' must not be read as the list ['a', 'l', 'l'], which would refuse every screen
         from eaos.journeys.extend import changes_screens
         self.assertEqual(changes_screens({'changes_screens': {'screens': 'all', 'adds': 'About'}}), {'screens': ['all'], 'adds': ['About']})

@@ -1,4 +1,4 @@
-"""The fix proof's sound repair of one source per pattern (tools/fix_proof.py `one_source`, M15.7) keeps every contract it
+"""The fix proof's sound repair of one source per pattern (tools/fix_proof.py `one_source`) keeps every contract it
 touches: the golden trial checks that the invoice calls the one source, this checks the lines, totals, prices and the
 file to download are the same before and after, a missing quantity counted as one in the report and the export and as
 none in the invoice, an explicit zero as each counted it before."""

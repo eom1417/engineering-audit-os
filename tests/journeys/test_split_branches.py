@@ -1,6 +1,6 @@
-"""A batch handed over as branches a reviewer can merge one by one (eaos/journeys/fix/split.py): beside the whole branch,
-one branch per kind of card, made from the base with only that kind's commits; a kind that does not stand alone is named,
-not made; undo removes them with the batch's branch."""
+"""A batch handed over as branches a reviewer can merge one by one (eaos/journeys/fix/split.py): beside the whole
+branch, one branch per kind of card, made from the base with only that kind's commits; a kind that does not stand alone
+is named, not made; undo removes them with the batch's branch."""
 import json
 import os
 import subprocess
@@ -49,7 +49,7 @@ PASSING = mock.patch('eaos.journeys.fix.split.batch_acceptance', side_effect=lam
 
 class SplitTests(unittest.TestCase):
     def test_a_batch_of_a_dependency_and_a_refactor_is_handed_over_whole_and_as_one_branch_of_each(self):
-        # the first trial on real projects: one branch mixed upgrades, refactors and looks in 30 files, none mergeable in pieces
+        # without the split, one branch mixes upgrades, refactors and looks in many files, none mergeable in pieces
         project, report, runtime, wave, summary = batch([('T1', 'upgrade_dependency', 'requirements.txt', 'fastapi==1\n'),
                                                          ('T2', 'split_module', 'code.py', 'x = 1\n')])
         tip = git(wave['root'], 'rev-parse', 'HEAD')

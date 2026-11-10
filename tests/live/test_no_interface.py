@@ -1,6 +1,5 @@
-"""A project with no interface (a library, a command-line tool, a mobile app) is never pictured through a stand-in page:
-its own tests and build keep a change safe (a Python library and a Flutter app were judged by a file listing, and a Rust
-tool could not be fixed at all, 2026-11-04)."""
+"""A project with no interface (a library, a command-line tool, a mobile app) is never pictured through a stand-in page
+such as a file listing: its own tests and build keep a change safe, so a Rust tool can be fixed."""
 import json
 import tempfile
 import unittest

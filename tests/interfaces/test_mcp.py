@@ -28,7 +28,8 @@ def git_project(where):
 
 
 def wave_branch(project, name='eaos/wave-1', file='src/a.js', text='export const a = 5;\nexport const b = 2;\n'):
-    """A batch's branch in the project, one EAOS commit ahead, as fix_finish leaves it; the project stays on its branch."""
+    """A batch's branch in the project, one EAOS commit ahead, as fix_finish leaves it; the project stays on its branch.
+    """
     run = lambda *argv: subprocess.run(['git', '-C', str(project), *argv], check=True, capture_output=True, text=True).stdout.strip()
     here = run('rev-parse', '--abbrev-ref', 'HEAD')
     run('checkout', '-q', '-b', name)
@@ -95,7 +96,7 @@ class ServerTests(Home):
 
 class ToolTests(Home):
     def test_every_answer_in_a_studio_run_carries_the_persons_language(self):
-        # A real build from the Studio: after its first notes the assistant wrote 67 of 69 notes in English.
+        # Every answer in a Studio run carries the person's language, so all notes are written in it.
         from eaos.interfaces.mcp_server import server as mcp_server
         def status(project=None): return {'next': 'audit'}
         with mock.patch.dict(os.environ, {'EAOS_STUDIO_LANG': 'ar'}):
@@ -143,7 +144,7 @@ class ToolTests(Home):
                     [{'path': 'src/a.js', 'find': 'b = 2', 'replace': 'b = 5'}, {'path': 'src/none.js', 'find': 'x', 'replace': 'y'}]):
             with self.assertRaises(ValueError): agent_tools._apply(root, bad)
         self.assertEqual((root / 'src/a.js').read_text(), before, 'a refused set of edits changes nothing')
-        # a Windows file: fix_read shows its lines without \r, and the text copied from them is found (GettingStarted.tsx)
+        # a Windows file: fix_read shows its lines without \r, and the text copied from them is found
         (root / 'src/win.js').write_bytes(b'const a = 1;\r\nconst b = 2;\r\n')
         agent_tools._apply(root, [{'path': 'src/win.js', 'find': 'const a = 1;\nconst b = 2;', 'replace': 'const a = 1;\nconst b = 3;'}])
         self.assertEqual((root / 'src/win.js').read_bytes(), b'const a = 1;\r\nconst b = 3;\r\n')
@@ -197,8 +198,8 @@ class ToolTests(Home):
         self.assertEqual((state['waves'][-1]['status'], state.get('open_wave')), ('abandoned', None))
 
     def test_a_change_beyond_its_cards_files_is_kept_only_with_why(self):
-        # Trial on real projects (2026-11-02): a dialog's card changed 13 files, adding a password toggle and a full-width
-        # button nobody asked for; the other 12 files were only named at the hand-over
+        # A change to files beyond the card's own is kept only with a reason; a card about one dialog must not change
+        # other files unnamed.
         state = agent_tools.state_of(str(self.project))
         report = guided.report_of(state)
         report.mkdir(parents=True)
@@ -223,7 +224,8 @@ class ToolTests(Home):
         self.assertIn('src/b.js: the one-source gate made it move the shared constant', guided._git(copy, 'log', '-1', '--format=%B').stdout)
 
     def test_assistants_fixing_one_batch_at_once_keep_to_their_own_files_and_it_is_handed_over_once_all_are_done(self):
-        # speed mode: one batch, one copy and branch, two assistants; a change to a file the other one holds is never tried
+        # speed mode: one batch, one copy and branch, two assistants; a change to a file the other one holds is never
+        # tried
         state = agent_tools.state_of(str(self.project))
         report = guided.report_of(state)
         report.mkdir(parents=True)
@@ -388,7 +390,7 @@ class JobTests(Home):
         self.assertIn('KeyboardInterrupt', jobs.read(job, project)['error'])
 
     def test_where_studios_are_services_a_job_is_one_too_so_the_assistant_s_session_cannot_end_it(self):
-        # M7.1: a remote server ends an assistant's session with everything it started, a batch's hand-over among it
+        # a remote server ends an assistant's session with everything it started, a batch's hand-over among it
         from eaos.core.system import launch
         with mock.patch.object(launch, 'durable', return_value=True), \
                 mock.patch.object(launch, 'as_unit', return_value=True) as unit, mock.patch.object(launch, 'unit_pid', return_value=4321):
@@ -465,7 +467,8 @@ if __name__ == '__main__':
 
 class PersonOnly(Home):
     """What only the person decides, from a terminal and from the governance tools: refused without their word, and
-    refused inside a Studio run even with it (eaos/interfaces/govern.py, eaos/interfaces/terminal/commands.py, eaos/interfaces/mcp_server/govern.py)."""
+    refused inside a Studio run even with it (eaos/interfaces/govern.py, eaos/interfaces/terminal/commands.py,
+    eaos/interfaces/mcp_server/govern.py)."""
 
     def setUp(self):
         super().setUp()

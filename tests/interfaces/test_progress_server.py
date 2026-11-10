@@ -1,6 +1,6 @@
-"""The live map's server and entry (live scan map v2, phase 3): /api/progress, /api/report-file, the feed over every
-progress file, the `watch` address of the assistant's tools and of `eaos start`, and the Studio that open_studio starts
-never importing the checked project's own `eaos` (G12)."""
+"""The live map's server and entry: /api/progress, /api/report-file, the feed over every progress file, the `watch`
+address of the assistant's tools and of `eaos start`, and the Studio that open_studio starts never importing the checked
+project's own `eaos`."""
 import os
 import signal
 import sys
@@ -169,7 +169,8 @@ class ReportFile(Project):
         self.assertEqual(self.get('/api/report-file', path='edge.json').status_code, 200)
 
     def test_the_report_for_people_opens_by_a_one_use_ticket_as_html_with_its_own_policy(self):
-        # A real incident, remote Studio: "Open the full report" ran a browser on the server and showed its file path.
+        # The report must open in the person's own browser through the Studio, never by running a browser on the server
+        # or showing its file path.
         http, keys, _ = self.client()
         refused = http.get('/api/report-ticket', headers={'X-EAOS-Token': keys.token})
         self.assertEqual((refused.status_code, refused.json()['error']), (404, 'not_found'), 'no ticket before the page is built')
@@ -183,7 +184,7 @@ class ReportFile(Project):
         self.assertIn('تقرير', answer.text)
         self.assertIn("script-src 'unsafe-inline'", answer.headers['content-security-policy'])
         self.assertIn("connect-src 'none'", answer.headers['content-security-policy'])
-        # the Studio's report page frames it (M8.2); no other site may
+        # the Studio's report page frames it; no other site may
         self.assertIn("frame-ancestors 'self'", answer.headers['content-security-policy'])
         self.assertEqual(answer.headers['x-frame-options'], 'SAMEORIGIN')
         self.assertEqual(http.get(url).json()['error'], 'ticket', 'one use')
@@ -325,7 +326,7 @@ class Addresses(unittest.TestCase):
 
 
 class StudioProcess(unittest.TestCase):
-    """G12: the Studio open_studio starts never imports an `eaos` from the project (EAOS checking itself)."""
+    """The Studio open_studio starts never imports an `eaos` from the project (EAOS checking itself)."""
 
     def test_a_project_with_its_own_eaos_package_is_not_imported(self):
         with tempfile.TemporaryDirectory() as tmp, mock.patch.dict(os.environ, {'EAOS_HOME': str(Path(tmp) / 'home')}):

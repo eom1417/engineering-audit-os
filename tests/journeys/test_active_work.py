@@ -1,5 +1,6 @@
-"""What a job is doing is not taken from under it: closing a batch, starting one, opening a build, cleaning, all under the
-lock jobs start by, on real repositories with real threads and processes. A job that does not answer is not assumed dead."""
+"""What a job is doing is not taken from under it: closing a batch, starting one, opening a build, cleaning, all under
+the lock jobs start by, on real repositories with real threads and processes. A job that does not answer is not assumed
+dead."""
 import contextlib
 import fcntl
 import io

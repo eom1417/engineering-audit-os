@@ -1,4 +1,5 @@
-"""A batch whose hand-over a stopped session cut stays open: the fix step is not done, and `eaos next` says to continue it."""
+"""A batch whose hand-over a stopped session cut stays open: the fix step is not done, and `eaos next` says to continue
+it."""
 import contextlib
 import io
 import unittest

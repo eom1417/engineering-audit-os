@@ -1,6 +1,5 @@
-"""The Studio's weight after M8.2 (Understand's 15 views became one report page): the built Studio on disk, and what the
-report page reads to draw (its bundle and the sections its parts need), each held to a budget about 10 % above what it
-weighed when the page was made. A change that grows past one must earn it and raise the budget here."""
+"""The Studio's weight: the built Studio on disk, and what the report page reads to draw (its bundle and the sections
+its parts need), each held to a budget. A change that grows past one must earn it and raise the budget here."""
 import re
 import unittest
 from pathlib import Path
@@ -10,9 +9,8 @@ STUDIO = ROOT / 'eaos/data/studio'
 PAGE = ROOT / 'console/src/places/report'
 SECTIONS = ROOT / 'tests/fixtures/studio/v2'
 
-STUDIO_BYTES = 1_170_000      # 1 063 547 bytes when the report page was made (1 438 220 with Understand's views)
-PAGE_BYTES = 22_400           # 20 329 with the experience's part (M10.8): assets/report.js 18 464 and screens.json 1 865
-                              # of the fixture (12 976 when the page was made)
+STUDIO_BYTES = 1_170_000  # total size of the built Studio, in bytes
+PAGE_BYTES = 22_400  # size of the report page's bundle plus the fixture sections it reads, in bytes
 PAGE_SECTIONS = {'screens'}   # the pictures' part; the report for people and the files are read apart, by address
 
 

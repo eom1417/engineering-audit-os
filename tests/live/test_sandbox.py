@@ -1,4 +1,4 @@
-"""The sandbox refuses without the owner's grant, runs in a copy, and records what it could not isolate."""
+"""The sandbox refuses without the person's grant, runs in a copy, and records what it could not isolate."""
 import json
 import os
 import shutil
@@ -66,7 +66,8 @@ class SandboxTests(Workspace):
         self.assertIn('granted for commit', sandbox.refusal(self.grant, 'S08', head, self.project), 'an unrelated commit')
 
     def test_a_submodule_is_in_the_copy_at_its_pinned_commit_and_one_not_here_is_named(self):
-        # a real Angular app's API lived in a submodule: the copy had an empty folder, and its setup fetched the latest
+        # a submodule is copied with its files at its pinned commit, not as an empty folder whose setup fetches the
+        # latest
         library = Path(self.tmp) / 'library'
         library.mkdir()
         (library / 'api.txt').write_text('pinned\n')
@@ -108,8 +109,8 @@ class SandboxTests(Workspace):
             env = self.box().environment({'DATABASE_URL': 'postgres://local'})
         self.assertEqual(env['DATABASE_URL'], 'postgres://local')
         self.assertNotIn('OWNER_SECRET_TOKEN', env)
-        # a Python app's install once went into EAOS's own environment (the python PATH finds) and broke it: a Python
-        # command runs in the run's own virtual environment, first on PATH whatever PATH the run chose
+        # a Python command runs in the run's own virtual environment, first on PATH whatever PATH the run chose, so an
+        # install never goes into EAOS's own environment
         box = self.box()
         env = box.environment({'PATH': os.environ['PATH']}, ['python3', '-m', 'pip', 'install', '-e', '.'])
         self.assertEqual((env['PATH'].split(os.pathsep)[0], env['VIRTUAL_ENV']), (str(box.folder / 'python/bin'), str(box.folder / 'python')))
@@ -144,7 +145,7 @@ class SandboxTests(Workspace):
         self.assertEqual(record['commands'][-1]['exit'], 3)
 
     def test_a_first_page_that_fails_with_its_own_error_is_a_started_app_and_a_gateways_503_is_not(self):
-        # The corpus's next-dashboard: its first page needs a cloud database, answered 500 for 180 s, and nothing was seen
+        # an app's own error page (a 500 from a missing cloud database) means it started; a gateway's 503 does not
         from eaos.live.app.detect import free_port
         serve = ('import http.server, sys\nclass H(http.server.BaseHTTPRequestHandler):\n'
                  '    def do_GET(self): self.send_error(int(sys.argv[2]))\n'
@@ -158,7 +159,7 @@ class SandboxTests(Workspace):
             self.box().start([sys.executable, '-c', serve, str(port), '503'], f'http://127.0.0.1:{port}/', timeout=3)
 
     def test_a_stopped_services_log_keeps_its_end_only(self):
-        # Second strangers' round: a load test's request lines grew a service's log to 258 MB, kept beside the run
+        # a load test's request lines must not grow a service's log without limit
         from eaos.live.app.detect import free_port
         from eaos.live.isolation import service_log
         port = free_port()
@@ -171,7 +172,7 @@ class SandboxTests(Workspace):
         self.assertEqual((log.stat().st_size <= service_log.LOG_KEPT, 'LAST' in service_log.tail(log)), (True, True))
 
     def test_a_php_app_is_served_by_phps_own_server_from_its_public_folder(self):
-        # Second strangers' round: a PHP app was served as a listing of its files, then could not run at all
+        # a PHP app is run, not served as a listing of its files
         from eaos.live.app import detect_php, profile, setup
         from eaos.live.app.run import LiveRun
         (self.project / 'public').mkdir()
@@ -236,7 +237,7 @@ class SandboxTests(Workspace):
         self.assertTrue((Path(self.tmp) / 'work/sandbox-run.json').is_file())
 
     def test_a_stopped_service_returns_only_once_no_process_of_it_is_left_writing(self):
-        # A bundler's worker outlived its leader after the stop and wrote its coverage into a folder being removed
+        # A bundler's worker may outlive its leader after the stop and write its coverage into a folder being removed
         process = subprocess.Popen([sys.executable, '-c', 'import os, signal, subprocess, sys, time; '
                                     'subprocess.Popen([sys.executable, "-c", "import signal, time; signal.signal(signal.SIGTERM, lambda *a: (time.sleep(1), open(%r, \'w\').write(\'late\'), exit(0))); time.sleep(60)"]); '
                                     'time.sleep(60)' % str(Path(self.tmp) / 'late.txt')], start_new_session=True)
@@ -307,7 +308,7 @@ class TwoProjectsTests(Workspace):
         return sandbox.Sandbox(project['source'], project['runtime'] / 'authorization.json', project['runtime'] / 'sandbox', 'S05')
 
     def test_a_new_projects_run_reads_its_own_report_whose_folder_was_never_saved(self):
-        # a new project's state never kept `outputs`, so its report was hidden and k6 never found its load script
+        # a new project's state keeps `outputs`, or its report is hidden and k6 does not find its load script
         from eaos.journeys.agent_tools import state_of
         a = self.a
         (a['workspace'] / 'state.json').write_text(json.dumps({'project': str(a['source']), 'workspace': str(a['workspace'])}))

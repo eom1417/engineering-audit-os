@@ -1,6 +1,6 @@
-"""The owner's second finding (2026-09-29): a project whose work went on in a branch far ahead of main was checked on
-whatever was checked out, and nothing said which branch. EAOS asks which branch when there is a real choice, and the
-check, the fixes, the merges, the progress and the report follow it (eaos/core/project/branches.py, guided.choose/source)."""
+"""A project whose work goes on in a branch far ahead of main is checked on that branch, not on whatever is checked out.
+EAOS asks which branch when there is a real choice, and the check, the fixes, the merges, the progress and the report
+follow it (eaos/core/project/branches.py, guided.choose/source)."""
 import json
 import os
 import subprocess
@@ -145,8 +145,8 @@ class Branches(unittest.TestCase):
         self.assertIn('develop', page)
 
     def test_the_fix_preview_sets_the_base_the_new_branch_and_where_it_merges_and_a_moved_base_opens_nothing(self):
-        """The owner's trial: the batch was built on develop and named eaos/wave-1 on every branch, with no word of either;
-        a second branch's batch 1 would overwrite the first's waiting branch."""
+        """Batches built on develop are named per branch, so a second branch's batch 1 does not overwrite the first's
+        waiting branch."""
         self.choose('develop', self.project, 'develop please')
         state = self.check()
         state.update(consent={'run_and_fix': True}, setup={'commit': state['scanned_commit'], 'ok': True},
@@ -186,7 +186,8 @@ class Branches(unittest.TestCase):
         live_setup.authorize(guided.source(state), project_state.runtime_of(state), 'tester')
 
     def batch(self, card, **where):
-        """One batch of `card` through the real jobs: its change made in the copy as an assistant would, every gate passing."""
+        """One batch of `card` through the real jobs: its change made in the copy as an assistant would, every gate
+        passing."""
         agent_tools._fix_start_job(str(self.project), {'cards': [card], **where}, lambda *_: None)
         state = project_state.load(self.project)
         wave = state['open_wave']
@@ -203,8 +204,8 @@ class Branches(unittest.TestCase):
         return sorted(set(git(self.project, 'for-each-ref', '--format=%(refname:short)', 'refs/heads/eaos/').split()) - {'eaos/wave-9'})
 
     def test_a_group_continues_on_a_waiting_work_branch_and_one_accept_takes_both(self):
-        """The owner (2026-10-12): branches where features are built and never merged must not pile up; a group may go on
-        on the EAOS branch still waiting, on top of its commits."""
+        """Branches where features are built and never merged must not pile up; a group may go on on the EAOS branch
+        still waiting, on top of its commits."""
         self.ready_to_fix()
         first = self.batch('TASK-001')
         self.assertEqual(first['branch'], 'eaos/develop/wave-1')
@@ -238,7 +239,7 @@ class Branches(unittest.TestCase):
         self.ready_to_fix()
         git(self.project, 'branch', 'release', 'develop')
         self.batch('TASK-001')
-        # MCP's accept keeps the Studio's rule (M3.3): never into a branch the project's policy protects
+        # MCP's accept keeps the Studio's rule: never into a branch the project's policy protects
         git(self.project, 'branch', 'stable', 'develop')
         policy = places.workspace(self.project) / 'runs' / 'branch-policy.json'
         policy.parent.mkdir(parents=True, exist_ok=True)

@@ -12,8 +12,7 @@ ROOT = Path(__file__).resolve().parents[2]
 
 class ChatTests(unittest.TestCase):
     def test_it_reaches_only_reading_tools_and_proposes_only_what_the_studio_can_run(self):
-        # The owner, 2026-10-14: an assistant that helps inside the work, governed: it may read and diagnose, and every
-        # change waits for the person
+        # The chat assistant is governed: it may read and diagnose, and every change waits for the person.
         from eaos.interfaces.mcp_server.server import reading as read_only
         from eaos.interfaces.studio_actions.centre import ANSWERED_AT_ONCE
         reading = read_only() | set(ANSWERED_AT_ONCE)    # the server's own tools marked read-only, wherever each is defined, and these
@@ -26,8 +25,8 @@ class ChatTests(unittest.TestCase):
                                         {'kind': 'control', 'action': 'retry', 'run': 'r9', 'why': 'unknown run'},
                                         {'kind': 'control', 'action': 'accept', 'run': 'r1', 'why': 'only the person'}])
         self.assertEqual([(p['kind'], p['action']) for p in found], [('action', 'run_try'), ('control', 'retry')])
-        # the owner, 2026-10-21: it could not start a new check for them; direct control is on unless turned off and
-        # runs every action and control, only merging or throwing a branch away waits for the person's press
+        # Direct control is on unless turned off and runs every action and control; only merging or throwing a branch
+        # away waits for the person's press.
         self.assertEqual([chat._direct(p) for p in found], [True, True])
         self.assertTrue(chat._direct({'kind': 'action', 'action': 'fix_start'}))
         self.assertFalse(chat._direct({'kind': 'action', 'action': 'accept'}) or chat._direct({'kind': 'action', 'action': 'undo'}))
@@ -40,7 +39,7 @@ class ChatTests(unittest.TestCase):
             self.assertTrue(chat.control(store, {'on': True})['on'])
 
     def test_an_answer_to_a_step_s_question_acts_and_the_same_question_never_comes_back(self):
-        # the owner, 2026-10-21: "your assistant is not answering" came back after every answer, picked or written
+        # The "your assistant is not answering" notice must not come back after an answer, whether picked or written.
         from eaos.journeys import agent_tools
         from eaos.ai.assistant import prompts
         from eaos.interfaces.studio_actions.runs import Manager

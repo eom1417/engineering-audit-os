@@ -1,6 +1,6 @@
 """A run's page as the Studio derives it from the run's events (console/src/data/derive.js), replayed by Node: a Fix run
-stopped twice and retried showed "0 of 50 tried" and the stopped server's message while the server said 9 of 50, and
-stood still after the retry until opened again (run r20261024-090619-acc214, 2026-10-24)."""
+stopped twice and retried shows the counts of its cards as the server reports them, and updates after the retry without
+being opened again."""
 import json
 import shutil
 import subprocess

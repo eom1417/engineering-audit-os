@@ -1,5 +1,5 @@
-"""A batch of the assistants' context (M8.6), from the trim in a copy to the person's accept: the context is lighter on
-a branch of its own, every instruction still said once, and nothing reaches the project before the person takes it in."""
+"""A batch of the assistants' context, from the trim in a copy to the person's accept: the context is lighter on a
+branch of its own, every instruction still said once, and nothing reaches the project before the person takes it in."""
 import json
 import os
 import subprocess
@@ -72,8 +72,8 @@ class ContextBatchTests(unittest.TestCase):
             self.assertTrue(summary['refused'][0].endswith(('outside the repository', "an assistant's own folder")), summary['refused'])
 
     def test_a_trim_whose_archive_git_ignores_is_refused_and_what_is_committed_is_what_was_checked(self):
-        # Review of 2026-10-26: an ignored archive was written, checked in memory, never committed: the done items were
-        # lost from the delivered branch.
+        # An archive that git ignores must not be written and checked in memory only: the done items would be lost from
+        # the delivered branch.
         (self.project / '.gitignore').write_text('archive/\n')
         git(self.project, 'add', '-A')
         git(self.project, 'commit', '-qm', 'ignore the archive')

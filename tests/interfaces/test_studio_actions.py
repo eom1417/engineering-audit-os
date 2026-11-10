@@ -1,5 +1,5 @@
-"""The command centre (eaos/interfaces/studio_actions): the contract, the locks, the event log, the adapters on real recorded
-streams, and runs end to end with a fake assistant (tests/fixtures/studio/actions/fake_assistant.py)."""
+"""The command centre (eaos/interfaces/studio_actions): the contract, the locks, the event log, the adapters on real
+recorded streams, and runs end to end with a fake assistant (tests/fixtures/studio/actions/fake_assistant.py)."""
 import json
 import os
 import re
@@ -70,7 +70,7 @@ class Base(Workspace):
             app.close()
         pids = [run['pid'] for app in self.apps for run in app.store.all() if run.get('pid')]
         until(lambda: not any(alive(pid) for pid in pids), 5)
-        # a run's thread ends (its last event written) before the folder goes: once it outlived it, a KeyError (2026-10-30)
+        # a run's thread ends (its last event written) before the folder is removed, or it fails with a KeyError
         started = [thread for thread in threading.enumerate() if thread not in self.threads]
         until(lambda: not any(thread.is_alive() for thread in started), 10)
         super().tearDown()
@@ -138,7 +138,7 @@ class Contract(unittest.TestCase):
                 app.close()
 
     def test_every_tool_status_can_name_next_is_allowed_to_the_fix_verb(self):
-        """The incident: status said fix_abandon, the fix run was not allowed it, and the stuck batch could not be closed."""
+        """status offers fix_abandon, so a fix run is allowed it and a stuck batch can be closed."""
         import inspect
         from eaos.journeys.agent_tools import where
         source = ''.join(inspect.getsource(f) for f in (where.status, where._next_step, where._batch_step, where._setup_step))
@@ -194,7 +194,8 @@ class Locks(Base):
         self.assertEqual((status, payload.get('needs')), (403, 'confirm'))
         self.assertEqual(self.app.store.all(), [])
         self.assertEqual(self.post('/api/runs', {'action': 'accept', 'inputs': {'person_agreed': True}})[0], 403)
-        # A Fix shows and pins where it builds: a branch that moves after the preview is refused, never built on silently
+        # A Fix shows and pins where it builds: a branch that moves after the preview is refused, never built on
+        # silently
         commit = lambda: subprocess.run(['git', '-C', str(self.project), '-c', 'user.name=a', '-c', 'user.email=a@b', 'commit', '-q',
                                          '--allow-empty', '-m', 'm'], check=True)
         commit()
@@ -336,7 +337,7 @@ class Adapters(unittest.TestCase):
         refused = argv[argv.index('--disallowedTools') + 1:]
         for tool in ('Bash', 'Edit', 'Write', 'mcp__eaos__accept', 'mcp__eaos__undo', 'mcp__eaos__choose_branch'): self.assertIn(tool, refused)
         self.assertIn('--strict-mcp-config', argv)
-        # Trial on real projects (2026-11-02): a fixing run, its built-in tools never named, launched a subagent
+        # a fixing run gets no built-in tool beyond reading, so it cannot launch a subagent
         self.assertEqual(argv[argv.index('--tools') + 1], 'Read,Grep,Glob', 'no built-in tool beyond reading')
         self.assertEqual(argv[-2:], ['--resume', 's1'])
         self.assertEqual(config['mcpServers']['eaos']['env']['EAOS_STUDIO_RUN'], 'r1')
@@ -452,8 +453,8 @@ class Runs(Base):
         self.assertEqual(self.app.store.verify(run), [])
 
     def test_an_answer_in_the_persons_own_words_is_their_answer_and_the_session_goes_on_from_it(self):
-        # the owner (2026-10-20) answered the assistant's questions in their own words three or four times: each answer
-        # was taken for a clarification, and the same question came back until they picked one of its options
+        # an answer in the person's own words is not taken for a clarification: the same question must not come back
+        # until they pick one of its options
         run = self.start('explain')
         self.assertEqual(self.app.wait(run, ('waiting_for_person', 'failed'), 30)['state'], 'waiting_for_person')
         question = self.get('/api/questions')[1]['questions'][0]
@@ -468,8 +469,8 @@ class Runs(Base):
         self.assertIn('This is their answer', resumed)
 
     def test_an_answer_that_closes_the_stuck_batch_closes_it_and_a_direct_step_runs_while_a_question_waits(self):
-        """The incident: "yes, close the batch" was only text to a run without fix_abandon, and pressing fix_abandon from
-        the palette queued behind the run that waited for that same answer."""
+        """Answering "yes, close the batch" closes it through fix_abandon, and fix_abandon pressed from the palette is
+        not queued behind the run that waits for that same answer."""
         calls = []
         def tool(name):
             def call(**arguments):
@@ -493,7 +494,7 @@ class Runs(Base):
         self.assertIn('already ran fix_abandon', argvs[-1][argvs[-1].index('-p') + 1])
 
     def test_a_fix_run_that_kept_nothing_says_so_and_its_progress_is_its_batch(self):
-        """The incident: a fix run that fixed nothing ended "done / تم", its bar reading status's "0 of 898" cards."""
+        """A fix run that fixed nothing does not end as done, and its bar does not show status's count of cards."""
         self.assertEqual(adapters.result_events('status', {}, {'progress': {'done': 0, 'total': 898}}), [])
         run = self.start('fix', cards=('TASK-001', 'TASK-002'))
         question = self.app.wait(run, ('waiting_for_person', 'failed'), 30)['question']
@@ -508,8 +509,8 @@ class Runs(Base):
         self.assertNotIn('تم', ' '.join(e['text']['ar'] for e in events if e['kind'] == 'result'))
 
     def test_a_fix_run_whose_assistant_stopped_goes_on_by_itself_and_counts_on_from_the_cards_already_tried(self):
-        """The owner's batch (2026-10-13): Claude Code's sign-in expired at card 7, the run stopped "failed", and after
-        Retry its bar read "2 of 55" though 12 cards were done."""
+        """When an assistant's sign-in expires partway through a batch the run stops as "failed", and after Retry its
+        bar counts the cards already done."""
         os.environ['FAKE_MODE'] = 'crash_once'
         wave = {'open_wave': {'number': 1, 'cards': ['TASK-001', 'TASK-002'], 'kept': {'TASK-001': 'abc'}, 'failed': {}}}
         with mock.patch('eaos.core.project.state.load', return_value=wave):
@@ -558,7 +559,7 @@ class Runs(Base):
         self.assertIsNone(resume.next_assistant({'claude': 'signed-out'}, 'claude', 'not_signed_in', ready))
 
     def test_a_run_waiting_for_an_answer_lets_the_next_start_and_its_answer_goes_on_when_the_slot_is_free(self):
-        """The incident (M9.3): an extend_start run waited on "build it?" and the next run stayed queued seven minutes."""
+        """An extend_start run that waits on "build it?" does not keep the next run queued."""
         waiting = self.start('explain')
         self.assertEqual(self.app.wait(waiting, ('waiting_for_person', 'failed'), 30)['state'], 'waiting_for_person')
         os.environ.update(FAKE_MODE='slow', FAKE_SECONDS='2')
@@ -597,7 +598,7 @@ class Runs(Base):
         time.sleep(0.8)
         self.assertEqual(len(self.app.store.events(run)), count)
         resumed = self.post(f'/api/runs/{run}/resume')[1]['run']
-        # the Studio's clocks once went on counting through a pause: the pause is kept as a span they leave out
+        # the Studio's clocks must not count through a pause: the pause is kept as a span they leave out
         self.assertEqual((resumed['state'], len(resumed['paused']), resumed.get('paused_at')), ('running', 1, None))
         self.assertEqual(self.post(f'/api/runs/{run}/stop')[1]['run']['state'], 'stopped')
         pid = self.app.store.load(run).get('pid') or running.get('pid')
@@ -803,8 +804,8 @@ class Direct(Base):
 
 
     def test_a_branch_decided_outside_the_studio_waits_no_more(self):
-        """The owner's chat, 2026-10-23: the batch was merged by EAOS outside the Studio and its question stayed, its
-        accept answering "not waiting any more". Whether a branch waits is read from EAOS's state, the one truth."""
+        """When EAOS merges a batch outside the Studio, its question does not stay waiting: accept answers "not waiting
+        any more". Whether a branch waits is read from EAOS's state, the one truth."""
         self.app.store.save({'id': 'r-fix', 'action': 'fix', 'verb': 'fix', 'mode': 'assistant', 'state': 'done', 'label': {'en': 'x', 'ar': 'x'},
                              'created': '0', 'result': {'branch': 'eaos/develop/wave-10'}}, new=True)
         listed = lambda waves: mock.patch('eaos.core.project.state.load', return_value={'waves': waves})
@@ -817,8 +818,8 @@ class Direct(Base):
             self.assertEqual(self.get('/api/runs')[1]['runs'][0]['outcome'], 'undone')
 
     def test_a_fix_accepts_its_own_batch_only_when_the_person_chose_it_in_its_preview(self):
-        """The owner's rule: "accept automatically when the checks pass" is the person's choice in that Fix preview, for
-        that run only; without it, or into a protected branch, or with nothing kept, the branch waits for the person."""
+        """"Accept automatically when the checks pass" is the person's choice in that Fix preview, for that run only;
+        without it, or into a protected branch, or with nothing kept, the branch waits for the person."""
         selection = {'kind': 'cards', 'cards': ['TASK-001']}
         preview = lambda auto: self.post('/api/actions/fix/preview', {'verb': 'fix', 'selection': selection, 'inputs': {'auto_accept': auto}})[1]
         self.assertTrue(preview(True)['auto_accept'])
@@ -844,8 +845,8 @@ class Direct(Base):
         self.assertTrue(next(e for e in reversed(self.app.store.events('r-chosen')) if e['kind'] == 'result')['data']['auto_accept'])
 
     def test_closing_words_mostly_not_in_arabic_are_asked_once_again_and_kept_and_said_when_still_not(self):
-        # Trial on real projects (2026-11-02): under --lang ar the closing summary came back mostly English; its one Arabic
-        # word let it through
+        # under --lang ar a closing summary that is mostly English is asked for once again; one Arabic word must not let
+        # it through
         self.app.store.save({'id': 'r-lang', 'action': 'fix', 'verb': 'fix', 'mode': 'assistant', 'state': 'running', 'assistant': 'claude',
                              'label': {'en': 'x', 'ar': 'x'}, 'created': '0'}, new=True)
         words = 'تم. Fixed the AddUser dialog: split it into two components and moved the shared fields into `FormFields.tsx`.'
@@ -952,7 +953,7 @@ class Mounting(Base):
         self.assertEqual((status, json.loads(body)), (200, {'queue': []}))
 
     def test_the_polled_list_of_runs_is_light_and_an_unchanged_one_costs_a_304(self):
-        """On a phone over 4G the Studio's list of runs (1.1 MB, every 3 s) starved a run's own event stream (2026-10-24)."""
+        """On a slow connection the Studio's list of runs stays small enough not to starve a run's own event stream."""
         from starlette.applications import Starlette
         app = Starlette()
         actions.mount(app.router, self.app)
@@ -969,7 +970,8 @@ class Mounting(Base):
 
 
 class ReportDecisions(Base):
-    """A decision the report asks, answered in the Studio: saved once, handed to the assistant as context, never as consent."""
+    """A decision the report asks, answered in the Studio: saved once, handed to the assistant as context, never as
+    consent."""
 
     def setUp(self):
         super().setUp()
@@ -1035,8 +1037,8 @@ class ReportDecisions(Base):
         saved = app.store.load(row['response']['run'])
         self.assertIn(text, saved['owner_decision']['answer']['text'])
         self.assertNotIn('person_agreed', saved['inputs'])
-        # The trial of 2026-10-12: a review of the owner's answer followed `status` into running the app, was refused the
-        # tool (its run reads only) and then asked the owner to edit Claude Code's permission files.
+        # a review of the person's answer must not follow `status` into running the app, nor ask the person to edit
+        # permission files when a tool is refused
         prompt = app.manager.prompt_of(saved)
         self.assertIn('start nothing', prompt)
         self.assertIn('never ask the person to change permissions', prompt)
@@ -1071,7 +1073,8 @@ if __name__ == '__main__':
 
 
 class Headless(unittest.TestCase):
-    """Without the Studio (eaos/interfaces/govern.py): a command queues without starting anything, one host starts the runs."""
+    """Without the Studio (eaos/interfaces/govern.py): a command queues without starting anything, one host starts the
+    runs."""
 
     def setUp(self):
         tmp = tempfile.TemporaryDirectory()
@@ -1141,7 +1144,7 @@ class Headless(unittest.TestCase):
         self.assertIn('eaos problems --fixable', printed.getvalue(), 'a fix of nothing named: it says how to choose the cards')
 
     def test_where_studios_are_services_the_queue_host_is_one_too(self):
-        # a run queued from a session that ended waited for the next `eaos watch`: the runner ended the host with it
+        # the queue host is a service too, so the runner does not end it with the session that queued a run
         from eaos.core.system import launch
         with mock.patch.object(launch, 'durable', return_value=True), mock.patch.object(launch, 'as_unit', return_value=True) as unit, \
                 mock.patch.object(launch, 'detach') as detached:
@@ -1165,7 +1168,7 @@ class Headless(unittest.TestCase):
         woken.assert_called_once()
 
     def test_time_left_is_paced_from_the_first_card_and_said_from_the_third(self):
-        # a fix's first card comes after the app's setup: one card done once said 661 minutes left for three
+        # a fix's first card comes after the app's setup, so the time left is paced from that card
         from datetime import datetime, timedelta, timezone
         core = self.govern.core(str(self.project))
         self.addCleanup(core.close)

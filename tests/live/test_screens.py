@@ -51,7 +51,7 @@ class PageAuditTests(TemporaryWorkspace):
         self.assertEqual(rows[0]['axe']['version'], '4.13.0')
         self.assertEqual(sorted((r['variant'], r['viewport']) for r in rows), sorted(('default', s['name']) for s in audit.VIEWPORTS))
         self.assertEqual([r['failures'] for r in rows], [[]] * 3)
-        # The self-check pictured every page light and dark (308 pictures); one theme, the app's own, by default
+        # By default one theme, the app's own, is pictured, not every page in light and dark.
         self.assertEqual(len(self.result['rows']), len(PAGES) * len(audit.VIEWPORTS))
         phone = self.phone('clean')
         self.assertEqual((phone['mobile'], phone['layout_width']), (True, 390), 'a phone is emulated')
@@ -70,7 +70,8 @@ class PageAuditTests(TemporaryWorkspace):
         self.assertTrue(any(f.startswith('overflow:') for f in overflow['phone']['failures']), overflow['phone']['failures'])
         self.assertGreater(overflow['phone']['scroll_width'], 390)
         self.assertEqual(overflow['desktop']['failures'], [])
-        # Under mobile emulation an overflowing page widens innerWidth to its content; the gate judges the configured 390.
+        # Under mobile emulation an overflowing page widens innerWidth to its content; the gate judges the configured
+        # 390.
         self.assertEqual((overflow['phone']['layout_width'], overflow['phone']['inner_width']), (716, 390))
         self.assertTrue(overflow['phone']['failures'][0].startswith('layout_width: the page laid out 716px'))
         meta = {r['viewport']: r for r in self.observed('no-viewport-meta')}
@@ -179,7 +180,8 @@ class ServeAndLighthouseTests(unittest.TestCase):
 
 class DistinctPagesTests(unittest.TestCase):
     def test_pages_of_one_template_with_other_data_are_pictured_once(self):
-        # The self-check pictured 77 routes of the Studio, 8 task pages and 8 flow pages among them, each light and dark
+        # a hash-routed app has many routes (task pages, flow pages); pages of one template are pictured once, not each
+        # in light and dark
         from eaos.live.screens.crawl import distinct
         crawled = ['/', '/#/', '/#/problems', '/#/problems?severity=low', '/#/tasks/TASK-001', '/#/tasks/TASK-004',
                    '/#/plans/fix', '/#/plans/fix/M01', '/#/plans/fix/M02', '/#/system/f/eaos%2Fplan.py%23confirm',

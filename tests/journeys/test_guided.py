@@ -59,8 +59,8 @@ def run(command, project=None, **options):
                      request=options.get('request', ['where', 'are', 'we']), action='install', path=options.get('path'))
     printed = io.StringIO()
     steps = [(i, ar, en, done, _fake_scan if i == 'scan' else step) for i, ar, en, done, step in guided.STEPS]
-    # Never the person's real assistants (`eaos assistant install` writes into ~/.claude and ~/.codex), never the Studio,
-    # and no version check of every installed tool: the doctor's rows are tested on their own.
+    # Never the person's real assistants (`eaos assistant install` writes into ~/.claude and ~/.codex), never the
+    # Studio, and no version check of every installed tool: the doctor's rows are tested on their own.
     with redirect_stdout(printed), mock.patch.object(guided.commands, 'STEPS', steps), mock.patch.object(guided.commands, 'watch'), \
             mock.patch.dict(guided.TERMINAL, check=lambda args: _fake_scan(project_state.current(args.project), args)), \
             mock.patch.object(sys.stdin, 'isatty', return_value=False), \
@@ -191,7 +191,7 @@ class Journey(unittest.TestCase):
 
 class Bulk(unittest.TestCase):
     def test_a_new_check_replaces_the_previous_checks_bulky_data_and_clean_deletes_old_pictures_on_request(self):
-        # EAOS's own report kept 230 MB of pictures and 130 MB of the assistant's raw runs from check to check
+        # a new check does not keep the pictures and the assistant's raw runs of the previous one
         from eaos.pipeline import run as pipeline
         with tempfile.TemporaryDirectory() as folder, mock.patch.dict(os.environ, {'EAOS_HOME': str(Path(folder) / 'home')}):
             report = guided.outputs_root() / 'shop/technical'
@@ -266,8 +266,8 @@ if __name__ == '__main__':
 
 class RunConsent(unittest.TestCase):
     def test_a_yes_given_in_the_studio_or_to_the_assistant_lets_the_check_run_the_app(self):
-        """The self-check of 2026-10-12: the owner agreed in the Studio (run_setup, consent run_and_fix), yet the check
-        read only the terminal's question run_app and said the person had not agreed, so nothing ran."""
+        """The check reads the person's agreement given in the Studio (run_setup, consent run_and_fix), not only the
+        terminal's question run_app; otherwise it says the person had not agreed and nothing runs."""
         with mock.patch.object(guided.checking, 'runtime_of', return_value='runtime'):
             self.assertIsNone(guided.check_runtime({'questions': []}))
             self.assertEqual(guided.check_runtime({'questions': [], 'consent': {'run_and_fix': True}}), 'runtime')
