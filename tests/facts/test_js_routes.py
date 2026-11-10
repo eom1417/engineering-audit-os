@@ -22,7 +22,7 @@ class ReactRouterTests(unittest.TestCase):
         self.assertEqual(detect('src/App.tsx', '<Route path="/x" element={<X />} />'), [], 'no route without react-router')
 
     def test_nested_routes_are_joined_to_their_parent_path(self):
-        # Found on FleetManageWeb: 37 screens under <Route path="/app/*"> were reported at /drivers, /service…
+        # Screens under <Route path="/app/*"> are reported under /app/, not at /drivers or /service.
         app = ('import { Routes, Route, Navigate } from "react-router-dom";\n'
                '<Routes>\n'
                '  <Route path="/login" element={<Login />} />\n'
@@ -66,7 +66,7 @@ class OtherRouterTests(unittest.TestCase):
                          [('http', 'POST')])
 
     def test_tanstack_routes_built_in_code_are_pages_at_their_full_path_and_hash_history_serves_them_under_hash(self):
-        # Found on EAOS's own Studio: 38 createRoute pages were read as one root layout, so its UI went unaudited.
+        # Pages created with createRoute are read as pages, not as one root layout, so their UI is audited.
         text = ("import { createRootRoute, createRoute, createRouter, createHashHistory } from '@tanstack/react-router'\n"
                 "const root = createRootRoute({ component: Shell })\n"
                 "const plans = createRoute({ getParentRoute: () => root, path: '/plans', component: PlansPage })\n"
@@ -78,7 +78,7 @@ class OtherRouterTests(unittest.TestCase):
     def test_next_pages_are_routes_but_a_vite_pages_folder_is_not(self):
         [row] = detect('app/dashboard/page.tsx', 'export default function Dashboard() { return null }')
         self.assertEqual((row['route'], row['handler']), ('/dashboard', 'Dashboard'))
-        # Found on the corpus: 47 screens under src/pages/ of a Vite app were reported as Next.js routes.
+        # Screens under src/pages/ of a Vite app are not Next.js routes.
         self.assertEqual(detect('src/pages/Vehicles.tsx', 'export default function Vehicles() { return null }'), [])
         text = 'import Link from "next/link";\nexport default function About() { return null }\n'
         self.assertEqual([r['route'] for r in detect('pages/about.tsx', text)], ['/about'])

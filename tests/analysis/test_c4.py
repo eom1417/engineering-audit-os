@@ -49,8 +49,8 @@ class C4Tests(Workspace):
         self.assertIn('component "feature:fleet"', target)
         self.assertIn('c1 -> c2 "3 import(s)"', target)
         self.assertTrue((out / 'architecture/target/diagram.mmd').is_file())
-        # The reports stage draws the diagrams before CURRENT-STATE embeds one: a previous check's diagram (the
-        # self-audit's built eaos/data/studio/assets) never reaches the page.
+        # The reports stage draws the diagrams before CURRENT-STATE embeds one: a previous check's diagram (for example
+        # one built from eaos/data/studio/assets) never reaches the page.
         from types import SimpleNamespace
         from eaos.pipeline.runners.by_rules import reports
         (out / 'architecture/current/diagram.mmd').write_text('flowchart LR\n  stale["eaos/data/studio/assets"]\n')

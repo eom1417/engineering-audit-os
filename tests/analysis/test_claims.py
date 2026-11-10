@@ -125,8 +125,8 @@ class EngineClusterImpactTests(unittest.TestCase):
         return IMPACTS['ar'][key].format(**params)
 
     def test_a_layer_card_says_why_by_its_boundary(self):
-        # A FastAPI template's untested write read "a secret, data or a rule reachable by someone who does not own
-        # it": every layer card said the same why, whatever boundary it broke.
+        # A secret, data or a rule reachable by someone who does not own it: every layer card must say a why that fits
+        # the boundary it broke.
         for language in ('ar', 'en'):
             why = lambda boundary: impact_of({'render': {'key': 'layer_finding', 'params': {'boundary': boundary}}}, language)
             self.assertEqual(why('tests'), IMPACTS[language]['untested'])
@@ -185,8 +185,8 @@ def measured(id_, engine, path, value, name='cyclomatic_complexity', threshold=1
 
 
 class HotspotTests(unittest.TestCase):
-    """Self-audit: class totals (Actions, 171 branches over 20 methods) were hotspots, each doubled by an engine card on the
-    same file, and a complexity-1 file ranked third among the risks: ranking had no severity term."""
+    """Hotspots: a class total is not a hotspot, an engine card on the same file does not double one, and ranking has a
+    severity term, so a complexity-1 file never outranks a real risk."""
 
     def test_a_hotspot_is_one_function_one_card_and_the_worst_measurement_ranks_first(self):
         from eaos.analysis.planning.ranking import rank
@@ -206,14 +206,14 @@ class HotspotTests(unittest.TestCase):
         self.assertEqual(sorted(hotspots[0]['fact_ids']), ['F-1', 'F-2', 'FACT-m-run'])
         engine = {c['render']['params']['place']: c for c in rows if c['render']['key'] == 'engine_cluster'}
         self.assertEqual(sorted(engine), ['c.py', 'd.py'])
-        # The ledger is English (a check in English printed these in Arabic, 2026-10-24); reports render the template.
+        # The ledger is English whatever the language of the check; reports render the template.
         self.assertEqual(engine['c.py']['statement'], '2 independent engines (lizard, reforge) report complexity in c.py')
         ranked = rank(list(engine.values()), sets, {})
         self.assertEqual([c['render']['params']['place'] for c in ranked], ['d.py', 'c.py'])
         self.assertEqual(ranked[0]['priority_factors']['severity']['factor'], 3.0)
 
     def test_every_function_past_the_code_laws_limit_is_a_hotspot_not_the_three_worst_past_sixty(self):
-        # EAOS on itself (2026-10-13): 3 of 105 functions past the limit of 15 were named, and structure scored 100.
+        # A project with 3 of 105 functions past the limit of 15 must not score 100 on structure.
         sets = {'graph': {'facts': []}, 'history': {'facts': [], 'summary': {'commits_analysed': 0}},
                 'metrics': {'facts': [metric('a.py', f'f{n}', 'function', 16 + n) for n in range(5)]
                             + [metric('a.py', 'edge', 'function', 15), metric('a.py', 'Owner.go', 'method', 20),

@@ -1,4 +1,4 @@
-"""An engine's function measure longer than the function EAOS measured is set aside (excalidraw, 2026-11-04)."""
+"""An engine's function measure longer than the function EAOS measured is set aside."""
 import unittest
 
 from eaos.facts.misread import set_aside
@@ -15,7 +15,7 @@ SPAN = {'location': {'path': 'src/render.ts', 'start_line': 460, 'end_line': 722
 
 class MisreadTests(unittest.TestCase):
     def test_a_measure_longer_than_its_function_is_set_aside_and_counted(self):
-        # Lizard: 729 code lines for drawElementOnCanvas, which runs 263 lines; its complexity 110 reached a card.
+        # Lizard reports 729 code lines for a function that runs 263 lines; its complexity 110 must not reach a card.
         kept, count = set_aside([lizard(462, 729), lizard(462, 240)], [SPAN])
         self.assertEqual(([_length(f) for f in kept], count), ([240], 1))
 

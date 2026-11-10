@@ -1,4 +1,4 @@
-"""Old engines still wired in (M13): switches fixed to one value, two engines doing one job, code that never ran."""
+"""Old engines still wired in: switches fixed to one value, two engines doing one job, code that never ran."""
 import json
 import unittest
 from pathlib import Path

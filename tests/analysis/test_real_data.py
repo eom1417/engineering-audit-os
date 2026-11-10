@@ -1,4 +1,4 @@
-"""Real data written in the code (M12): the tables and records sorted on their evidence, and the cards they earn."""
+"""Real data written in the code: the tables and records sorted on their evidence, and the cards they earn."""
 import json
 import tempfile
 import unittest
@@ -76,7 +76,8 @@ class SortedOnEvidence(unittest.TestCase):
         by_path = {c['render']['params']['path']: c for c in claims}
         staff, test = by_path['src/staff.js']['render']['params'], by_path['tests/x.test.js']['render']['params']
         self.assertEqual((staff['severity'], test['severity']), ('high', 'low'))
-        self.assertEqual((staff['place'], staff['reached']), ('src/staff.js', 'product'))   # a card's place is its file (the plan's paths)
+        # a card's place is its file (the plan's paths)
+        self.assertEqual((staff['place'], staff['reached']), ('src/staff.js', 'product'))
         self.assertIn('holds 1 mobile number', staff['en']); self.assertIn('أرقام جوال (1)', staff['ar'])
         self.assertIn('database', staff['fix_en']); self.assertIn('placeholders', test['fix_en'])
         spec = by_path['src/staff.js']['probe_spec']['specification']

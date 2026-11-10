@@ -1,5 +1,6 @@
 """The six sustainability indicators, the transform plan built on them and the canonical home of a repeated definition
-(eaos/analysis/target_state/sustainability.py, eaos/analysis/target_state/transform.py, eaos/analysis/repair/canonical_home.py), restored from the archive in 0.0.9."""
+(eaos/analysis/target_state/sustainability.py, eaos/analysis/target_state/transform.py,
+eaos/analysis/repair/canonical_home.py)."""
 import json
 import shutil
 import tempfile

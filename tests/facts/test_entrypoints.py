@@ -44,8 +44,8 @@ class EntryPointTests(unittest.TestCase):
         data = load_files({'tool.py': 'import argparse\n\n\ndef main():\n    parser = argparse.ArgumentParser(prog="tool")\n'
                                       '    sub = parser.add_subparsers()\n    for command in ["a", "b"]:\n'
                                       '        sub.add_parser(command)\n',
-                          # The self-check of 2026-10-12: a quoted `'add_parser('` inside a line of code became a command
-                          # named after the next 200 characters, and the behaviour lock failed on that file name.
+                          # A quoted `'add_parser('` inside a line of code must not become a command named after the
+                          # next 200 characters.
                           'check.py': "import re\n\n\ndef cli(text):\n    if 'add_parser(' in text:\n"
                                       "        return re.findall(r'x', text)\n"})
         dynamic = [f for f in data['facts'] if f['value']['framework'] == 'argparse_dynamic']
@@ -79,8 +79,8 @@ class EntryPointTests(unittest.TestCase):
         self.assertEqual((route['handler'], route['framework']), ('s.handleIndex', 'go_http'))
 
     def test_express_routes_mounted_under_a_prefix_in_another_file_carry_it(self):
-        # A real Express app: an index router mounts the sub-routers and another file mounts it under /api; its pages
-        # were opened at /articles and answered 404.
+        # An Express app: an index router mounts the sub-routers and another file mounts it under /api; its pages must
+        # be opened at /api/articles, not /articles.
         data = load_files({
             'src/main.ts': "import express from 'express';\nimport routes from './routes/routes';\n"
                            "const app = express();\napp.use(routes);\napp.get('/', (req, res) => res.json({}));\n",
@@ -93,8 +93,8 @@ class EntryPointTests(unittest.TestCase):
         self.assertEqual(http, {('GET', '/'), ('GET', '/api/articles')})
 
     def test_gin_routes_registered_on_a_group_carry_its_prefix(self):
-        # A real Gin API: main makes the /api group and hands sub-groups to each package's register function; its
-        # routes were read as /feed and /:username, and the behaviour lock recorded their 404s.
+        # A Gin API: main makes the /api group and hands sub-groups to each package's register function; the routes must
+        # be read as /api/feed and /api/:username, not /feed and /:username.
         data = load_files({
             'hello.go': 'package main\n\nfunc main() {\n    r := gin.Default()\n    v1 := r.Group("/api")\n'
                         '    articles.ArticlesRegister(v1.Group("/articles"))\n    ping := r.Group("/api/ping")\n'

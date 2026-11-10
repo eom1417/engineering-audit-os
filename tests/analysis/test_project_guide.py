@@ -1,5 +1,5 @@
-"""A project's extension guide (M18.3): its recipes come from how the project really grew, and only what the project has
-gets one; written between EAOS's markers with one pointer line in the context files, what the person wrote stays."""
+"""A project's extension guide: its recipes come from how the project really grew, and only what the project has gets
+one; written between EAOS's markers with one pointer line in the context files, what the person wrote stays."""
 import json
 import subprocess
 from pathlib import Path

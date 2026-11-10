@@ -1,6 +1,6 @@
-"""The judging of the simulated users' difficulties (M10.7): a difficulty met again by a fresh actor and confirmed with
-who it harms becomes a fact and a card with its steps to reproduce; one not met again, or confirmed without who it
-harms, is at most a doubt; verdicts for unknown difficulties are ignored."""
+"""The judging of the simulated users' difficulties: a difficulty met again by a fresh actor and confirmed with who it
+harms becomes a fact and a card with its steps to reproduce; one not met again, or confirmed without who it harms, is
+at most a doubt; verdicts for unknown difficulties are ignored."""
 import json
 import tempfile
 import unittest
@@ -69,7 +69,7 @@ class JudgingTests(unittest.TestCase):
 
     def test_an_earlier_runs_saved_journey_is_not_judged_again(self):
         # a short simulation judged again, each with a deep call, the difficulties of the whole run before it, whose
-        # journeys stay saved for the replays (M10.10)
+        # journeys stay saved for the replays
         (self.report / judging.JOURNEYS / 'buyer--old.json').write_text(json.dumps(dict(ORDER, goal='buyer.old')))
         self.assertNotIn('buyer.old', {d['goal'] for d in judging.difficulties(self.report)})
 
@@ -99,7 +99,7 @@ class JudgingTests(unittest.TestCase):
         self.assertIn('no one named as harmed', ruled['D3']['why'])
         sets = {'experience': read_set(self.report, 'experience')}
         self.assertEqual([f['value']['id'] for f in sets['experience']['facts']], ['D1'])
-        # the card's triage reads a fact's summary: the kind alone made it doubt both real ones of flask-microblog
+        # the card's triage reads a fact's summary: the kind alone would make it doubt both real difficulties
         from eaos.report.studio.evidence import summary as said
         told = said(sets['experience']['facts'][0]['value'], 'experience_difficulty')
         self.assertIn('the cart is hard to find', told)

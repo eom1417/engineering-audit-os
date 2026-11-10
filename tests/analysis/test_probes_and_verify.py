@@ -42,7 +42,8 @@ class ProbeTests(unittest.TestCase):
             self.assertTrue(refuted['refuted_by'])
 
     def test_a_mention_inside_a_test_string_cannot_withdraw_a_true_finding(self):
-        """Regression: a text search matched an import written inside a test's string literal and refuted a true claim."""
+        """A text search does not match an import written inside a test's string literal, so it never refutes a true
+        claim."""
         with tempfile.TemporaryDirectory() as tmp:
             repo = Path(tmp) / 'repo'; (repo / 'tests').mkdir(parents=True)
             (repo / 'api.py').write_text('VAT_RATE = 0.15\n\n\ndef total(x):\n    return x * (1 + VAT_RATE)\n')
@@ -69,7 +70,7 @@ class ProbeTests(unittest.TestCase):
         # Execution probes are blocked unless explicitly allowed.
         row = probes.probe(1, 'CLM-001', 'execution', {'command': 'pytest'}, requires_execution=True)
         self.assertEqual((row['status'], row['requires_execution']), ('not_run', True))
-        # Regression: a claim that A must not import B was refuted because B imports A.
+        # A claim that A must not import B is not refuted because B imports A.
         sets = {'graph': {'facts': [
             {'kind': 'graph_node', 'location': {'path': 'a.py'}, 'value': {'depends_on': []}},
             {'kind': 'graph_node', 'location': {'path': 'b.py'}, 'value': {'depends_on': ['a.py']}}]}}
@@ -81,7 +82,7 @@ class ProbeTests(unittest.TestCase):
         self.assertEqual(symmetric, 'REFUTED')
 
     def test_a_static_probe_cannot_confirm_a_causal_claim(self):
-        """Regression: a branch-count probe raised a claim about *why* the branches exist to CONFIRMED."""
+        """A branch-count probe does not raise a claim about why the branches exist to CONFIRMED."""
         from eaos.analysis.claims import ledger
         with tempfile.TemporaryDirectory() as tmp:
             repo = Path(tmp) / 'repo'; repo.mkdir()
@@ -109,8 +110,8 @@ class ProbeTests(unittest.TestCase):
 
 
     def test_a_complexity_card_clears_exactly_its_finish_line_each_judged_by_one_ruler(self):
-        # EAOS, 2026-10-15: one card mixed seven kinds of finding, judged the whole file by any engine; six cards of a
-        # batch could not pass whatever the assistant changed
+        # One card mixing seven kinds of finding is judged on each kind by its own ruler, so a batch of cards can pass
+        # by what the assistant changes.
         from eaos.analysis.repair import finish_line
         def engine(rule, symbol, value=20):
             return {'id': rule + symbol, 'value': {'kind': 'complexity', 'engine': rule.split('.')[0], 'rule': rule,
@@ -118,24 +119,28 @@ class ProbeTests(unittest.TestCase):
         def counted(**branches):
             return {'facts': [{'value': {'scope': 'function', 'branches': n}, 'location': {'path': 'a.py', 'symbol': f}}
                               for f, n in branches.items()]}
-        found = [engine('reforge.codebase.complex_function', 'python:function:a.py::run:arity:1', 40),   # EAOS counts 12
-                 engine('lizard.ccn', 'a.py::decide'),                                                       # EAOS counts 19
+        # EAOS counts 12
+        found = [engine('reforge.codebase.complex_function', 'python:function:a.py::run:arity:1', 40),
+                 # EAOS counts 19
+                 engine('lizard.ccn', 'a.py::decide'),
                  engine('reforge.codebase.many_parameters', 'python:function:a.py::Job::start:arity:7'),
-                 engine('reforge.codebase.large_type', 'python:type:a.py::Job:declaration')]                # a split's work
+                 # a split's work
+                 engine('reforge.codebase.large_type', 'python:type:a.py::Job:declaration')]
         sets = {'metrics': counted(run=12, decide=19), 'external': {'facts': found}}
         wanted = finish_line.targets(found, sets)
         self.assertEqual([(t['rule'], t['name']) for t in wanted], [('branches', 'decide'), ('reforge.codebase.many_parameters', 'start')])
         spec = {'query': 'engine_cluster_present', 'place': 'a.py', 'kind': 'complexity', 'targets': wanted}
         self.assertEqual(probe_queries._engine_cluster(spec, sets)[0], 'CONFIRMED')
-        fixed = {'metrics': counted(run=12, decide=9), 'external': {'facts': [found[0], found[3]]}}     # what is left is not its
+        # what is left is not its
+        fixed = {'metrics': counted(run=12, decide=9), 'external': {'facts': [found[0], found[3]]}}
         self.assertEqual(probe_queries._engine_cluster(spec, fixed), ('REFUTED', 'every target is cleared'))
         moved = {'metrics': {'facts': [{'value': {'scope': 'function', 'branches': 19}, 'location': {'path': 'b.py', 'symbol': 'decide'}}]},
                  'external': {'facts': []}}
         self.assertIn('`decide` in a.py', probe_queries._engine_cluster(spec, moved)[1], 'moving it to another file does not clear it')
 
     def test_a_function_with_no_name_is_judged_in_its_file_and_a_name_follows_only_where_it_was_not(self):
-        # TASK-131 of a React project (2026-10-24): a target named <anonymous> was looked for in the whole project, and
-        # every arrow function anywhere kept the card standing whatever its own file became
+        # A target named <anonymous> is looked for in its own file only: an arrow function anywhere in the project must
+        # not keep the card standing whatever its own file became.
         from eaos.analysis.repair import finish_line
         def ccn(path, symbol, line=1):
             return {'id': path + symbol, 'value': {'kind': 'complexity', 'engine': 'lizard', 'rule': 'ccn',
@@ -153,7 +158,7 @@ class ProbeTests(unittest.TestCase):
 
 
 class VerificationTests(unittest.TestCase):
-    """The project's own tests, run in an isolated copy with coverage (eaos/live/testing/verify.py), restored in 0.0.9."""
+    """The project's own tests, run in an isolated copy with coverage (eaos/live/testing/verify.py)."""
 
     def project(self, tmp):
         repo = Path(tmp) / 'repo'

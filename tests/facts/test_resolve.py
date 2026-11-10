@@ -95,8 +95,8 @@ class GoResolutionTests(unittest.TestCase):
         self.assertTrue(edge('only')['value']['to_path'].endswith('_test.go'))
 
     def test_dart_package_and_bare_relative_imports_resolve(self):
-        # zulip-flutter, M17.3 (2026-11-05): only a URI starting with a dot was read, so a file ten files import was
-        # "imported by 0 modules" on its split card.
+        # A Dart import that is a package URI or a bare relative path resolves too, not only a URI starting with a dot,
+        # so a file many files import is not "imported by 0 modules".
         data, found = resolve_files({
             'app/pubspec.yaml': 'name: zulip\nversion: 1.0.0\n',
             'app/lib/widgets/sheet.dart': ("import 'dart:async';\nimport 'package:flutter/material.dart';\n"

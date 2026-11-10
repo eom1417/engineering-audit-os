@@ -40,8 +40,8 @@ class PlacementTests(Workspace):
 
 class DispositionTests(Workspace):
     def test_each_disposition_follows_the_declared_rules_in_order_and_says_why(self):
-        # The self-audit sent the whole `eaos` package to rebuild for one function past complexity 40: a complex
-        # function or a critical item is changed in place; only a structural reason (most files move) is a rebuild.
+        # A complex function or a critical item is changed in place; only a structural reason (most files move) is a
+        # rebuild.
         cases = [(dict(unreachable=4, moved=4, moved_share=1.0), 'delete'), (dict(moved=3, moved_share=0.75), 'rebuild'),
                  (dict(complexity_max=41), 'modify'), (dict(critical=1), 'modify'), ({}, 'retain'),
                  (dict(forbidden=1), 'modify'), (dict(complexity_max=15), 'modify')]

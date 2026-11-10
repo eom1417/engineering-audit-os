@@ -1,18 +1,14 @@
 """A dead-code candidate whose name lives in a distribution registry is not dead.
 
-The detector scans the snapshot for module lists (``MODULES = [a, b, c]``), dictionary
-lookups that reference a name by string, ``getattr(obj, "name")``, ``__all__``
-declarations, ``importlib.import_module('x')`` calls and JSON-name records under
-``eaos/data/``. A candidate whose qualified name resolves through any of those
-patterns is kept in the fact set (so downstream stages and the S2 measure still see
-it) but is tagged ``value.referenced_by_registry = True``; the cluster pass skips the
-tagged facts so a dead_code claim is never raised for them — the NS4.T2 spec:
-'a candidate referenced by one of these sources stays as engine_finding and does
-not become a dead_code claim'.
+The detector scans the snapshot for module lists (``MODULES = [a, b, c]``), dictionary lookups that reference a name
+by string, ``getattr(obj, "name")``, ``__all__`` declarations, ``importlib.import_module('x')`` calls and JSON-name
+records under ``eaos/data/``. A candidate whose qualified name resolves through any of those patterns is kept in the
+fact set (so downstream stages and the measures still see it) but is tagged ``value.referenced_by_registry = True``;
+the cluster pass skips the tagged facts, so a candidate referenced by one of these sources stays an engine_finding and
+does not become a dead_code claim.
 
-Findings the engine mislabels as ``dead_code`` (compatibility markers, plugin rows)
-carry the right kind but do not name a function or method; they are left alone, with
-no registry tag.
+Findings the engine mislabels as ``dead_code`` (compatibility markers, plugin rows) carry the right kind but do not
+name a function or method; they are left alone, with no registry tag.
 """
 import tempfile
 import unittest

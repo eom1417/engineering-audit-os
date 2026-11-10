@@ -1,5 +1,5 @@
-"""One definition of each card kind (eaos/core/contracts/card_kinds.py): a kind nobody registered is refused when a claim is
-built, so it can never reach a person as a generic card with its detector and its own fix lost."""
+"""One definition of each card kind (eaos/core/contracts/card_kinds.py): a kind nobody registered is refused when a
+claim is built, so it can never reach a person as a generic card with its detector and its own fix lost."""
 import ast
 import unittest
 from pathlib import Path

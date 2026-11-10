@@ -1,4 +1,4 @@
-"""One source per pattern (M15), sorted into cards: near copies joined into clusters, ways of working written by hand,
+"""One source per pattern, sorted into cards: near copies joined into clusters, ways of working written by hand,
 repeated screens and the look, each with every place and its home; the colour difference against its published pairs."""
 import json
 import unittest
@@ -51,7 +51,8 @@ class NearCopies(unittest.TestCase):
 
 
 class ThreeConditions(unittest.TestCase):
-    """A likeness is a card only when its copies belong together, cost upkeep, and one source is simpler; else a note."""
+    """A likeness is a card only when its copies belong together, cost upkeep, and one source is simpler; else a
+    note."""
     def test_copies_in_one_part_that_already_differ_are_a_card_and_alike_shapes_apart_are_a_note(self):
         drifted = sets(near(('src/billing/a.js', 1), ('src/billing/b.js', 1), 'similar'))
         self.assertEqual(len(one_source.findings(None, drifted)[0]), 1)
@@ -69,8 +70,8 @@ class ThreeConditions(unittest.TestCase):
 
 
     def test_the_history_alone_decides_nothing_yet_copies_in_two_parts_stay_a_note(self):
-        # A known limit (M17): "simpler" asks for one shared part, so copies in two parts are a note even when they
-        # changed together; the history is said as a reason, never the verdict.
+        # A known limit: "simpler" asks for one shared part, so copies in two parts are a note even when they changed
+        # together; the history is said as a reason, never the verdict.
         history = {'facts': [{'kind': 'history_cochange', 'location': {'path': 'src/billing/a.js', 'paired_path': 'src/orders/b.js'}, 'value': {}}]}
         apart = {**sets(near(('src/billing/a.js', 1), ('src/orders/b.js', 1), 'similar')), 'history': history}
         note = one_source.likenesses(None, apart)

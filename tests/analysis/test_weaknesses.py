@@ -22,7 +22,7 @@ def sets(*facts, observed=('semgrep', 'bandit', 'gitleaks')):
 
 class WeaknessTests(unittest.TestCase):
     def test_every_finding_reaches_a_card_and_two_engines_on_one_line_corroborate(self):
-        # EAOS on itself, 2026-10-14: 82 Semgrep security findings, none a card, the security score 100.
+        # Security findings each reach a card; none leaves the security score at 100.
         found = sets(fact('A', 'semgrep', 'app/db.py', 10, 'sql', ['CWE-89']),
                      fact('B', 'bandit', 'app/db.py', 11, 'B608', ['CWE-89']),
                      fact('C', 'semgrep', 'app/run.py', 5, 'exec', ['CWE-78']),
@@ -40,7 +40,7 @@ class WeaknessTests(unittest.TestCase):
         ]))
 
     def test_a_weak_hash_in_a_file_using_hmac_is_a_question_not_an_agreed_weakness(self):
-        # itsdangerous, M17.3 (2026-11-05): Semgrep and Bandit agreed on SHA-1, the default digest of its HMAC signer.
+        # Semgrep and Bandit agree on SHA-1, the default digest of an HMAC signer.
         found = sets(fact('A', 'semgrep', 'src/signer.py', 45, 'insecure-hash-algorithm-sha1', ['CWE-327']),
                      fact('B', 'bandit', 'src/signer.py', 45, 'B324', ['CWE-327']))
         with tempfile.TemporaryDirectory() as tmp:
@@ -67,7 +67,8 @@ class WeaknessTests(unittest.TestCase):
             self.assertEqual(weaknesses.new(before, after, {'app/other.py'}), [])
 
     def test_a_comment_hides_only_a_weakness_the_project_already_had_and_is_never_a_card(self):
-        # A fix that brought an unsafe call with `# nosemgrep: rule -- why` passed the gate; a justified finding is no card.
+        # A fix that brought an unsafe call with `# nosemgrep: rule -- why` passed the gate; a justified finding is no
+        # card.
         justified = {**fact('J', 'semgrep', 'app/db.py', 11, 'sql', ['CWE-89']), 'kind': 'engine_finding_justified'}
         with tempfile.TemporaryDirectory() as tmp:
             had, before, after = Path(tmp, 'had'), Path(tmp, 'before'), Path(tmp, 'after')

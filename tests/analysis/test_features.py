@@ -77,8 +77,8 @@ class BuildTests(unittest.TestCase):
         self.assertEqual(validate(result, contracts()['features']), [])
 
     def test_a_cli_groups_by_subcommand_and_its_scripts_tools_and_web_root_are_not_features(self):
-        # The self-audit: one feature per module with `__main__`, 53 features for tools/ scripts, and the whole
-        # Studio front end as `home` in a command-line program.
+        # One feature per module with `__main__` would give 53 features for tools/ scripts, and the whole Studio front
+        # end would be `home` in a command-line program.
         cli = lambda route, path, framework='argparse': entry_point(route, surface='cli', framework=framework, path=path,
                                                                      fact_id=f'C-{route}-{path}')
         facts = [cli('eaos', 'eaos/interfaces/cli.py'), cli('check', 'eaos/interfaces/cli.py'), cli('fix', 'eaos/interfaces/cli.py'),

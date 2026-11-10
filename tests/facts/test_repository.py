@@ -1,5 +1,5 @@
-"""The repository read as an engineer reads it (M7.8) and its assistants' context (M7.9): each rule finds what it names,
-and a framework's own layout, an output path, an ignored file or EAOS's own block is never a finding."""
+"""The repository read as an engineer reads it, and its assistants' context: each rule finds what it names, and a
+framework's own layout, an output path, an ignored file or EAOS's own block is never a finding."""
 import subprocess
 import unittest
 from pathlib import Path
@@ -41,7 +41,8 @@ class CraftTests(unittest.TestCase):
         self.assertEqual(found(root), {('stale-doc-path', 'README.md')})
 
     def test_source_in_a_folder_tools_skip_and_a_machine_detail_in_a_published_file_are_found(self):
-        machine = 'It ran at /ho' + 'me/alice/work on 10 ' + 'cores.'       # built, so this published file holds none itself
+        # built, so this published file holds none itself
+        machine = 'It ran at /ho' + 'me/alice/work on 10 ' + 'cores.'
         root = project({'src/target/plan.java': 'class Plan {}', 'notes.md': machine,
                         'local.md': 'see /home/alice/x', 'tools.json': '["(?<![\\\\w.-])/work' + 'space/"]'},
                        tracked=['src', 'notes.md', 'tools.json'])
@@ -60,8 +61,8 @@ class ContextTests(unittest.TestCase):
         self.assertEqual(found(heavy), {('context-heavy', 'AGENTS.md')})
 
     def test_a_skill_weighs_its_name_and_description_only(self):
-        # 26 generated area skills (GitNexus) were counted as read whole every session: 30,000 tokens and their shared
-        # lines "repeated"; a session reads a skill's front matter, its body only when the skill is used.
+        # 26 generated area skills are not read whole every session: a session reads a skill's front matter, its body
+        # only when the skill is used.
         body = 'Working with code in this area, read its key files and entry points first.\n' + 'z' * 8000
         skills = {f'.claude/skills/area-{n}/SKILL.md': f'---\nname: area-{n}\ndescription: the {n} area\n---\n' + body
                   for n in range(26)}

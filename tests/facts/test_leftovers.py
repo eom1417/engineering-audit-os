@@ -1,8 +1,7 @@
 """Leftover detection: temp files, build outputs, archived directories, .env, committed binaries.
 
-A file is a leftover when its name or location declares it is not part of the product AND the
-import graph does not reach it. A file the resolver already imports is not a leftover, no
-matter how suspicious the name.
+A file is a leftover when its name or location declares it is not part of the product AND the import graph does not
+reach it. A file the resolver already imports is not a leftover, no matter how suspicious the name.
 """
 import tempfile
 import unittest
@@ -48,7 +47,7 @@ class LeftoverTests(unittest.TestCase):
         self.assertEqual(result['summary']['by_reason']['build_output'], 1)
 
     def test_source_named_or_placed_as_build_output_beside_imported_source_or_under_src_is_source(self):
-        # M7.7: EAOS's own build_info.py, beside the modules it is imported with, and a Java package named `target`
+        # A build_info.py beside the modules it is imported with, and a Java package named `target`, are source.
         files = ['eaos/core/system/build_info.py', 'eaos/core/system/launch.py', 'src/main/java/app/target/Plan.java',
                  'target/classes/app/Plan.class', 'build_notes.txt', 'dist/bundle.js']
         imported = [{'kind': 'module_edge', 'value': {'to_path': 'eaos/core/system/launch.py'},

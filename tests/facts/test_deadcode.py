@@ -44,7 +44,7 @@ class DeadCodeTests(unittest.TestCase):
     def test_each_engine_way_of_naming_a_candidate_is_read_and_a_module_is_judged_by_eaos_reachability(self):
         from eaos.facts.dead_code.detect import _candidate_name, _verdict
         named = lambda path, symbol, message='': _candidate_name({'message': message}, {'path': path, 'symbol': symbol})
-        # As vulture, knip and enola write them (every vulture finding on EAOS was read as `py:act`, 2026-10-24).
+        # As vulture, knip and enola write them (a vulture finding is read as `py:act`).
         self.assertEqual(named('eaos/interfaces/terminal/commands.py', 'eaos/interfaces/terminal/commands.py:act'), 'act')
         self.assertEqual(named('src/routes.js', 'src/routes.js:routes'), 'routes')
         self.assertEqual(named('src/app/[slug]/page.tsx', 'src/app/[slug].generateMetadata'), 'generateMetadata')
@@ -118,8 +118,8 @@ class DeadCodeTests(unittest.TestCase):
         self.assertFalse([key for key in found if key[0] == 'unreachable-module'], found)
 
     def test_what_a_build_script_hands_its_bundler_or_loads_is_reached(self):
-        # EAOS's own Studio (2026-10-24): esbuild's entry points and the words the build imports are computed paths,
-        # and 96 of its modules were said to be dead
+        # A Studio's esbuild entry points and the words the build imports are computed paths, so its modules are not all
+        # dead.
         build = ("import path from 'node:path';\nimport { fileURLToPath, pathToFileURL } from 'node:url';\nimport * as esbuild from 'esbuild';\n"
                  "const HERE = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');\nconst SRC = path.join(HERE, 'src');\n"
                  "await esbuild.build({ entryPoints: [path.join(SRC, 'core/main.js')], outfile: path.join(HERE, 'out/main.js') });\n"
@@ -150,9 +150,9 @@ class DeadCodeTests(unittest.TestCase):
         self.assertEqual(rendered['src/lost.js'], ('dead_code', 'CONFIRMED'))
 
     def test_files_loaded_by_path_package_data_rule_fixtures_and_types_are_not_dead_classes_or_modules(self):
-        # The self-audit: `Path(__file__).parent / 'templates/screens/stream-reporter.mjs'` loads a file no import
-        # names; a k6 template ships as declared package data; a semgrep rule test carries `# ruleid:` lines; and
-        # an unused TypeScript type was called an "unused class".
+        # `Path(__file__).parent / 'templates/screens/stream-reporter.mjs'` loads a file no import names; a k6 template
+        # ships as declared package data; a semgrep rule test carries `# ruleid:` lines; and an unused TypeScript type
+        # is not an "unused class".
         found = run({'pyproject.toml': '[tool.setuptools.package-data]\npkg = ["templates/**/*", "rules/*.json"]\n',
                      'pkg/__init__.py': '', 'pkg/__main__.py': 'from pkg import lock\nlock.run()\n',
                      'pkg/lock.py': ('from pathlib import Path\n'
@@ -168,7 +168,7 @@ class DeadCodeTests(unittest.TestCase):
         self.assertIn('unused type', found[('unused-symbol', 'BranchWord')])
 
     def test_a_method_assigned_to_a_prototype_is_judged_by_its_own_name(self):
-        # A browser game's every `GameManager.prototype.x` method was called unused: the counter looked for the dotted
+        # Every `GameManager.prototype.x` method of a browser game is used: the counter must not look for the dotted
         # name, which no token ever is.
         found = run({'package.json': '{"name": "g", "main": "src/main.js"}',
                      'src/main.js': 'const Grid = require("./grid.js");\nnew Grid().empty();\n',
@@ -178,8 +178,8 @@ class DeadCodeTests(unittest.TestCase):
         self.assertIn(('unused-symbol', 'Grid.prototype.never'), found)
 
     def test_what_a_vendored_component_imports_from_the_project_is_used(self):
-        # A web app's copied-in ui kit (components/ui, out of the analysis) imported `@/hooks/useMobile`; the hook was
-        # called dead, since the walk stopped at the kit and its text was never read.
+        # A web app's copied-in ui kit (components/ui, out of the analysis) imports `@/hooks/useMobile`; the hook is not
+        # dead, so the walk must read the kit's text.
         found = run({'package.json': '{"name": "web", "main": "src/main.tsx"}',
                      'tsconfig.json': '{"compilerOptions": {"paths": {"@/*": ["./src/*"]}}}',
                      'src/main.tsx': 'import { Sidebar } from "@/components/ui/sidebar"\nSidebar()\n',
@@ -192,7 +192,7 @@ class DeadCodeTests(unittest.TestCase):
 
     def test_a_tool_that_loads_a_folder_by_convention_reaches_it(self):
         # A react-email package runs `email export`, which renders every file in its emails/ folder; no import names
-        # them, so each email and the ui parts they use were called unreachable.
+        # them, so each email and the ui parts they use are reachable.
         found = run({'package.json': '{"name": "web", "main": "src/main.js"}', 'src/main.js': 'console.log(1)\n',
                      'mail/package.json': '{"name": "emails", "scripts": {"export": "email export --outDir ../out"}}',
                      'mail/emails/welcome.tsx': ('import { Button } from "../ui/Button"\n'
@@ -204,8 +204,8 @@ class DeadCodeTests(unittest.TestCase):
         self.assertFalse([key for key in found if key[1].startswith('mail/')], found)
 
     def test_a_default_export_is_used_by_whoever_loads_its_module(self):
-        # An email the react-email CLI renders was called an unused function: a default export's name is written by
-        # no one who loads it.
+        # An email the react-email CLI renders is not an unused function: a default export's name is written by no one
+        # who loads it.
         found = run({'package.json': '{"name": "w", "main": "src/main.tsx"}',
                      'src/main.tsx': 'export default function Home() { return 1 }\nexport function named() {}\n'})
         self.assertNotIn(('unused-symbol', 'Home'), found)

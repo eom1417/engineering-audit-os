@@ -1,6 +1,6 @@
-"""M16's closure (2026-10-29): four cases an owner's review named, each reproduced before its fix. A rule and its
-contradiction are never one rule; new words never keep an old guard as their protection; a commit is judged on what it
-holds (the index, deletions included); an assistant's test command never runs before the person approves it."""
+"""Four cases of the person's rules. A rule and its contradiction are never one rule; new words never keep an old
+guard as their protection; a commit is judged on what it holds (the index, deletions included); an assistant's test
+command never runs before the person approves it."""
 import os
 import subprocess
 import sys
@@ -93,8 +93,8 @@ class WhatACommitHolds(Closure):
         self.assertEqual((found['changed'], found['refused']), (['total.js'], True))
 
     def test_a_commit_from_a_linked_worktree_keeps_what_it_staged_and_is_checked_on_it(self):
-        # EAOS's own hook, 2026-11-03: a commit from a linked worktree came out empty. Git hands the hook the worktree's
-        # GIT_DIR and index; the check's apart checkout wrote the base commit into that index, and then read no change.
+        # A commit from a linked worktree: git hands the hook the worktree's GIT_DIR and index, and the check's apart
+        # checkout writes the base commit into that index, so the check must still read the change.
         rules = self.totals_rule()
         tree = Path(self.tmp) / 'lane'
         git(self.project, 'worktree', 'add', '-q', '-b', 'lane', str(tree))

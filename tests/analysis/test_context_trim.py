@@ -1,4 +1,4 @@
-"""The assistants' context trimmed safely (M8.6): lighter, and every instruction found again in exactly one file."""
+"""The assistants' context is trimmed safely: lighter, and every instruction found again in exactly one file."""
 from pathlib import Path
 
 from shared_fixture import Workspace

@@ -41,7 +41,7 @@ class AssessmentTests(Workspace):
                 'query': 'broken_code_present', 'path': 'server/index.ts', 'symbol': './env.js', 'rule': rule}}}
         cases = {'test code': (claim(origin='test'), SAME), 'unconfirmed': (claim(confidence='LIKELY'), SAME),
                  'two different values': (claim(), DIFFERENT), 'across languages': (claim(), ACROSS),
-                 # Restore the file, or remove what uses it: removing it once deleted two admin routes.
+                 # Restore the file, or remove what uses it: a removal must not take working routes with it.
                  'missing file': (broken('missing-import'), {})}
         for case, (row, sets) in cases.items():
             with self.subTest(case):

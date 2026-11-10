@@ -14,10 +14,11 @@ class ScopeTests(Workspace):
         for name, text in {'app.py': 'def hello():\n    return 1\n', 'lib/util.py': 'def helper():\n    return 2\n',
                            'testdata/fixture_a.py': 'def noise_a():\n    return 10\n',
                            'vendor/lib.py': 'def vendored():\n    return 30\n',
-                           # Claude Code keeps whole copies of the code here; counting them would count every file twice.
+                           # Claude Code keeps whole copies of the code here; counting them would count every file
+                           # twice.
                            '.claude/worktrees/agent-1/app.py': 'def hello():\n    return 1\n',
                            # Minified and built files are generated, in any project: a vendor .min.js, and a built
-                           # bundle (the self-audit drew eaos/data/studio/assets in its C4 diagram).
+                           # bundle.
                            'web/app.js': 'export const x = 1;\n', 'web/vendor.min.js': 'var a=1;\n',
                            'pkg/data/studio/assets/index-B3x9.js': 'var a=1;' * 400 + '\n'}.items():
             (repo / name).parent.mkdir(parents=True, exist_ok=True)
@@ -37,8 +38,8 @@ class ScopeTests(Workspace):
         self.assertIn('.claude/worktrees', exclusions)
         self.assertEqual(sorted(item['path'] for item in Source(repo).files), ['app.py', 'lib/util.py', 'web/app.js'])
         self.assertIn('*.min.js', reasons)
-        # The self-check of 2026-10-12: the file globs reached the engines' folder excludes and Checkov, which reads a
-        # skip-path as a regular expression, crashed on `*.min.js`. The engines get folder names only.
+        # The file globs must not reach the engines' folder excludes: Checkov reads a skip-path as a regular expression
+        # and crashes on `*.min.js`. The engines get folder names only.
         self.assertFalse([pattern for pattern in exclusions if '*' in pattern])
         result, paths = self.syntax_paths(repo, Path(self.tmp) / 'out')
         self.assertGreater(result['excluded_paths'], 0)

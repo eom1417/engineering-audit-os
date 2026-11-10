@@ -87,7 +87,7 @@ class CodemodTests(Workspace):
         self.assertEqual(state_digest(root), before)
 
     def test_a_bun_lock_is_rewritten_by_bun_without_installing(self):
-        # A first trial on real projects: no card of a bun.lock had a codemod, so none could ever pass.
+        # A card of a bun.lock has a codemod, so it can pass.
         root = self.project({'package.json': '{"devDependencies": {"vitest": "4"}}', 'bun.lock': '{}'})
         steps = _commands(card_for(*upgrade('bun.lock', 'npm:vitest@4.1.6', '4.1.11'), root), root)
         self.assertEqual([step[1:] for step, _ in steps], [['add', 'vitest@4.1.11', '--lockfile-only', '--ignore-scripts']])
@@ -106,7 +106,7 @@ class CodemodTests(Workspace):
         self.assertFalse((root / 'node_modules').exists())
 
     def test_a_uv_lock_card_is_one_uv_lock_run_that_installs_nothing(self):
-        # A first trial on real projects: no card of a uv.lock had a codemod, so none could ever pass.
+        # A card of a uv.lock has a codemod, so it can pass.
         root = self.project({'uv.lock': ''})
         members = [card_for(*upgrade('uv.lock', f'PyPI:{name}@1', fixed), root) for name, fixed in (('idna', '3.7'), ('dnspython', '2.9.0'))]
         steps = _commands({'kind': 'uv', 'group': members}, root)
@@ -122,8 +122,7 @@ class CodemodTests(Workspace):
         self.assertFalse((root / '.venv').exists())
 
     def test_a_go_mod_card_moves_its_modules_with_go_and_leaves_no_module_cache(self):
-        # Second trial on real projects: a Go app ran and its batch opened, but no card of a go.mod had a codemod, so
-        # its vulnerable modules could never pass.
+        # A card of a go.mod has a codemod, so the vulnerable modules of a Go app can pass.
         root = self.project({'go.mod': 'module m\n\ngo 1.21\n'})
         members = [card_for(*upgrade('go.mod', f'Go:{name}@{version}', fixed), root)
                    for name, version, fixed in (('golang.org/x/text', '0.21.0', '0.22.0'), ('github.com/golang-jwt/jwt/v5', 'v5.2.1', '5.2.2'))]
@@ -140,8 +139,7 @@ class CodemodTests(Workspace):
         self.assertTrue((root / 'go.sum').is_file())
 
     def test_a_cargo_lock_card_moves_its_crate_with_cargo_alone(self):
-        # Second strangers' round: a Rust tool's crate card was refused before its batch, no tool rewrote Cargo.lock,
-        # though EAOS told the person the very command
+        # A Rust crate card has a codemod: a tool rewrites Cargo.lock with the very command the person is told.
         root = self.project({'Cargo.toml': '[package]\nname = "m"\nversion = "0.1.0"\nedition = "2021"\n\n[dependencies]\nitoa = "=1.0.10"\n',
                              'src/main.rs': 'fn main() {}\n', 'Cargo.lock': ''})
         card = card_for(*upgrade('Cargo.lock', 'crates.io:itoa@1.0.10', '1.0.11'), root)
@@ -157,8 +155,8 @@ class CodemodTests(Workspace):
         self.assertFalse((root / 'target').exists(), 'nothing built')
 
     def test_a_go_module_another_fix_already_moved_past_its_own_is_left_where_it_is(self):
-        # Second trial on real projects: one go get of a lock file card's modules asked x/sys at its fix while the fixed
-        # x/net needs a newer x/sys, so Go refused the whole card.
+        # One go get of a lock file card's modules must not ask x/sys at its fix while the fixed x/net needs a newer
+        # x/sys, or Go refuses the whole card.
         if not binary('go'): self.skipTest('go is not installed')
         root = self.project({'go.mod': 'module m\n\ngo 1.23\n\nrequire (\n\tgolang.org/x/net v0.34.0\n\tgolang.org/x/sys v0.29.0\n)\n',
                              'main.go': 'package main\n\nimport (\n\t_ "golang.org/x/net/html"\n\t_ "golang.org/x/sys/unix"\n)\n\nfunc main() {}\n'})
@@ -172,8 +170,8 @@ class CodemodTests(Workspace):
         self.assertIn('golang.org/x/sys v0.31.0', text, 'past its own fix, never pulled back to it')
 
     def test_two_versions_of_one_package_are_overridden_each_at_its_own(self):
-        # Trial on real projects (2026-11-02): the 2.x upgrade of a package overwrote its 1.x override, so every copy was
-        # forced to 2.x, below what its consumers ask and undoing the 1.x fix
+        # The 2.x upgrade of a package must not overwrite its 1.x override: forcing every copy to 2.x would sit below
+        # what its consumers ask and undo the 1.x fix.
         root = self.project({'package.json': '{\n  "name": "f",\n  "dependencies": {"minimatch": "3"}\n}\n', 'package-lock.json': '{}'})
         for vulnerable, fixed in (('1.1.11', '1.1.21'), ('2.0.1', '2.1.7')):
             card = {'kind': 'npm', 'package': 'brace-expansion', 'version': vulnerable, 'fixed': fixed, 'direct': False}
@@ -184,8 +182,8 @@ class CodemodTests(Workspace):
         self.assertTrue(written.startswith('{\n  "name"'), 'the file keeps its own indent')
 
     def test_a_fixed_version_that_is_itself_vulnerable_is_passed_to_the_next_fix(self):
-        # A first trial on real projects: seroval 1.5.4 was fixed in 1.6.8, itself vulnerable and fixed in 1.6.11; the
-        # lock file card moved the 1.5.4 copy onto 1.6.8 and its check could never pass.
+        # seroval 1.5.4 is fixed in 1.6.8, itself vulnerable and fixed in 1.6.11: the lock file card moves the 1.5.4
+        # copy to the final fix so its check can pass.
         root = self.project({'package.json': '{"dependencies": {"vite": "8"}}', 'bun.lock': '{}', 'uv.lock': ''})
         for lock, ecosystem in (('bun.lock', 'npm'), ('uv.lock', 'PyPI')):
             facts = {f'F{n}': upgrade(lock, f'{ecosystem}:seroval@{version}', fixed)[1]['F']

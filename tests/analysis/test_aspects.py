@@ -1,6 +1,7 @@
-"""Every aspect of the program reaches the person's assistant and gets a verdict (eaos/analysis/understanding/aspects.py), with the evidence
-stages restored in 0.0.9: production readiness (eaos/analysis/readiness/production.py), the architecture map's digest
-(eaos/analysis/maps/code_map.py) and the capped journeys (eaos/live/behavior/lock.py)."""
+"""Every aspect of the program reaches the person's assistant and gets a verdict
+(eaos/analysis/understanding/aspects.py), with the evidence stages: production readiness
+(eaos/analysis/readiness/production.py), the architecture map's digest (eaos/analysis/maps/code_map.py) and the capped
+journeys (eaos/live/behavior/lock.py)."""
 import json
 import os
 import subprocess
@@ -46,7 +47,7 @@ class Readiness(Workspace):
         self.assertEqual(rows['RDY-security-authentication']['status'], 'gap')
         self.assertEqual((rows['RDY-observability-health']['status'], rows['RDY-observability-telemetry']['status']), ('ok', 'gap'))
         self.assertEqual(rows['RDY-performance-QS-001']['status'], 'unmeasured')
-        # The threshold as the baseline stage writes it (runtime_baseline.shape): the readiness stage crashed on it.
+        # The threshold as the baseline stage writes it (runtime_baseline.shape).
         speed = lambda before: next(f for f in build(self.report({'conditions': {}, 'scenarios': [
             {'id': 'QS-001', 'threshold': {'p95_ms': 800.0, 'error_rate': 0.01}, 'before': before}]}), measured=True)['findings']
             if f['id'] == 'RDY-performance-QS-001')['status']
@@ -54,8 +55,8 @@ class Readiness(Workspace):
                           speed({'p95_ms': 8.0, 'error_rate': 0})], ['gap', 'gap', 'ok'])
 
     def test_a_health_route_with_a_trailing_slash_is_found(self):
-        # A FastAPI template serves `/utils/health-check/`: its last segment was the empty one after the slash, and the
-        # readiness check said there was no health route.
+        # A FastAPI template serves `/utils/health-check/`: the last segment is the empty one after the slash, and the
+        # readiness check must still find the health route.
         from eaos.analysis.readiness.production import _health_row
         _write(Path(self.tmp) / 'features.json', {'features': [{'name': 'utils', 'surfaces': ['/utils/health-check/']}]})
         self.assertEqual(_health_row(self.tmp)['status'], 'ok')
@@ -187,8 +188,8 @@ if __name__ == '__main__':
 
 class SuiteHealth(unittest.TestCase):
     def test_the_suites_redundant_and_slowest_tests_are_measured_by_coverage_and_the_runners_report(self):
-        """The owner's incident: EAOS's own suite grew to 2228 tests and an hour, and nothing in the check said so.
-        Coverage.py's contexts name the test that runs no line of its own; the runner's report gives each test's time."""
+        """The suite's redundant and slowest tests are measured: coverage contexts name a test that runs no line of its
+        own, and the runner's report gives each test's time."""
         from eaos.live.testing.verify import COVERAGERC, suite_health
         with tempfile.TemporaryDirectory() as folder:
             app = Path(folder)

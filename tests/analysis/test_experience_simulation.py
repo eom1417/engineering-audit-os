@@ -1,6 +1,6 @@
-"""The simulation end to end (M10) on a real browser and a tiny app: a buyer places an order, the admin waiting for it
-is told and gets stuck, support escalates, a fresh admin meets it again, the judge confirms it as a fix card, the
-buyer's journey replays green with no assistant, and EXPERIENCE.md tells the story."""
+"""The simulation end to end on a real browser and a tiny app: a buyer places an order, the admin waiting for it is told
+and gets stuck, support escalates, a fresh admin meets it again, the judge confirms it as a fix card, the buyer's
+journey replays green with no assistant, and EXPERIENCE.md tells the story."""
 import io
 import json
 import tempfile

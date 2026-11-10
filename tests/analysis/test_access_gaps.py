@@ -44,5 +44,5 @@ class AccessGapTests(TemporaryWorkspace):
         ids = {c['id'] for c in self.gaps}
         mine = [t for t in tasks if t.get('claim_id') in ids]
         self.assertEqual({t.get('pattern') for t in mine}, {'layer_boundary'})
-        # the card names the boundary it breaks and the reference's fix, for the person and for the judge (M6.11)
+        # the card names the boundary it breaks and the reference's fix, for the person and for the judge
         self.assertTrue(all(t['render']['params']['boundary'] == 'data' and 'owner' in t['render']['params']['fix_en'] for t in mine))

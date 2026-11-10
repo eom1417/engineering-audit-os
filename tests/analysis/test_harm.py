@@ -1,5 +1,5 @@
-"""A size measure is a card only with a sign of harm (M17.3, 2026-11-05: two judges found 30 of 40 sampled cards true
-sizes and branch counts, all but one not worth fixing; the one kept nested eight deep)."""
+"""A size measure is a card only with a sign of harm: a flat run of defaults and a cohesive unit are not worth a fix,
+a deeply nested function is."""
 import unittest
 
 from eaos.analysis.claims.harm import mark
@@ -28,14 +28,14 @@ class SizeNeedsHarm(unittest.TestCase):
         return [decide(row)['kind'] for row in rows]
 
     def test_a_flat_function_past_the_limit_is_kept_as_a_measure(self):
-        # FreshRSS's FeedDAO.addFeed: complexity 17 from a flat run of bindValue defaults, nesting 3.
+        # complexity 17 from a flat run of bindValue defaults, nesting 3
         facts = sets([metric('app/Models/FeedDAO.php', 'addFeed', 3)])
         row = claim('hotspot', path='app/Models/FeedDAO.php', symbol='addFeed')
         self.assertEqual(self.kinds([row], facts), ['retain'])
         self.assertIn('Measured only', decide(row)['reason'])
 
     def test_a_deep_function_stays_a_card(self):
-        # FreshRSS's entryController.readAction: nesting 8, the one both judges wanted fixed.
+        # nesting 8, the kind of function both judges wanted fixed
         facts = sets([metric('app/Controllers/entryController.php', 'readAction', 8)])
         row = claim('hotspot', path='app/Controllers/entryController.php', symbol='readAction')
         self.assertNotEqual(self.kinds([row], facts), ['retain'])
@@ -46,7 +46,7 @@ class SizeNeedsHarm(unittest.TestCase):
         self.assertNotIn('retain', self.kinds(rows, facts))
 
     def test_a_long_cohesive_module_is_kept_and_a_short_history_says_nothing(self):
-        # zulip-flutter's message list: one cohesive 1523-line unit; its fixes unknown with one commit read.
+        # a message list of one cohesive 1523-line unit; its fixes are unknown with one commit read
         facts = sets([metric('lib/model/message_list.dart', 'f', 6)], commits=1, fixes={'lib/model/message_list.dart': 5})
         self.assertEqual(self.kinds([claim('large_module', path='lib/model/message_list.dart')], facts), ['retain'])
 
@@ -65,7 +65,7 @@ class SizeNeedsHarm(unittest.TestCase):
 
 class NestingTests(unittest.TestCase):
     def test_only_a_block_is_a_level_an_object_or_a_jsx_value_is_not(self):
-        # excalidraw, 2026-11-05: every brace counted, 71 of its 90 complex functions read five deep.
+        # only a block is a level: counting every brace would read most complex functions five deep
         from eaos.facts.code.metrics import nesting_depth
         script = ['function f(a) {', '  const o = { x: { y: 1 } };', '  if (a) {', '    for (const b of a) {',
                   '      call({ k: () => { return 1; } });', '    }', '  } else {', '    return <div>{a}</div>;', '  }', '}']

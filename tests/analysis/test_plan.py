@@ -55,9 +55,8 @@ class TaskCardTests(TemporaryWorkspace):
         self.assertEqual((task['verify_command'], task['kind']), ([], 'investigate'))
 
     def test_design_cards_merge_one_page_and_title_rank_on_the_code_scale_and_read_in_their_own_words(self):
-        # The self-audit: 64 design cards for 53 titles (`/` and `/#/` two pages), each at a fixed 0.4 above every
-        # code claim (top 0.366), all counted as "other notes" in ease of change; private mutable state was
-        # described as "changed by several parts".
+        # 64 design cards for 53 titles (`/` and `/#/` are two pages) must merge by page, and rank on the code scale
+        # rather than at a fixed 0.4 above every code claim; private mutable state reads as "changed by several parts".
         from eaos.core.language import plain
         from eaos.analysis.presentation.model import classify
         def finding(page, severity, image):
@@ -75,7 +74,7 @@ class TaskCardTests(TemporaryWorkspace):
         mutable = lambda private: {'pattern': 'mutable_state', 'render': {'key': 'mutable_global', 'params': {'encapsulated': private}}}
         self.assertEqual((plain.kind(mutable(False)), plain.kind(mutable(True))), ('mutable_state', 'mutable_state_private'))
         self.assertNotIn('several parts', plain.problem('mutable_state_private', 'en')[1])
-        # The self-audit's code cards: four dead symbols of eaos/live/screens/audit.py were four cards for one change.
+        # Four dead symbols of one file are one card for one change, not four cards.
         def task(claim, pattern, path):
             return {'id': 'TASK-X', 'claim_id': claim, 'title': claim, 'pattern': pattern, 'kind': 'remediate', 'origin': 'source',
                     'paths': [path], 'finding_ids': [claim], 'acceptance': [{'command': f'check {claim}', 'expect': ''}],
@@ -131,8 +130,8 @@ class AddedClaimTests(unittest.TestCase):
 
 class ResolutionTests(unittest.TestCase):
     def test_the_assistant_resolves_its_cards_and_asks_the_owner_on_at_most_one_in_ten(self):
-        # The self-audit: 867 cards, 847 waiting for the owner; 653 of them one design card per picture, and every card
-        # the triage confirmed still an investigation only a person could close.
+        # Of 867 cards, 653 are one design card per picture, and a card the triage confirmed is still an investigation
+        # only a person could close; the assistant resolves its cards and asks the owner on at most one in ten.
         import shutil
         with tempfile.TemporaryDirectory() as tmp:
             target, out = Path(tmp) / 'shop', Path(tmp) / 'out'
@@ -142,7 +141,7 @@ class ResolutionTests(unittest.TestCase):
             build(target, out, language='en')
             dossier = json.loads((out / 'dossier.json').read_text())
             claim = next(c for c in dossier['claims'] if c['id'] == 'CLM-006')
-            claim.pop('assessment'); claim.pop('checks')            # an investigation, as most cards of the self-audit
+            claim.pop('assessment'); claim.pop('checks')            # an investigation, as most cards are
             (out / 'dossier.json').write_text(json.dumps(dossier))
             build(target, out, language='en')
             plan = json.loads((out / 'plan.json').read_text())
@@ -193,8 +192,8 @@ class ResolutionTests(unittest.TestCase):
         self.assertTrue(all(tasks[c]['kind'] == 'remediate' and tasks[c]['decision']['readiness'] == 'ready' for c in record['design']))
 
     def test_a_doubted_security_card_stays_for_the_person_and_any_other_doubted_card_closes_as_not_proven(self):
-        # Second trial on real projects: the triage doubted a write with no sign-in check and a Jinja template without
-        # autoescape (CWE-79), and both closed unseen as not proven.
+        # The triage doubts a write with no sign-in check and a Jinja template without autoescape (CWE-79): both stay
+        # open for the person, not closed unseen as not proven.
         with tempfile.TemporaryDirectory() as tmp:
             out = Path(tmp)
             claims = [{'id': 'CLM-003', 'render': {'key': 'layer_finding', 'params': {'rule': 'unguarded-write', 'boundary': 'endpoints'}}},
@@ -218,7 +217,8 @@ class ResolutionTests(unittest.TestCase):
             (out / 'cards.json').write_text(json.dumps(record))
             from eaos.ai.ideal.planner import disagreements
             rows = {row['id']: row for row in disagreements(out, 'en')}
-        # any other doubted card is closed, but listed apart for the person as closed by the assistant, not proven, with why
+        # any other doubted card is closed, but listed apart for the person as closed by the assistant, not proven, with
+        # why
         self.assertEqual([(row['card'], row['closed']) for row in record['doubted']],
                          [('TASK-004', True), ('TASK-010', False), ('TASK-016', False)])
         self.assertEqual(list(rows), ['disagree-TASK-004'])

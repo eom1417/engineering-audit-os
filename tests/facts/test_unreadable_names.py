@@ -1,5 +1,5 @@
-"""A file whose name is not valid UTF-8 never stops a check: everything else is read, the file is named as not read, the check
-says PARTIAL, and the project is left byte for byte as it was."""
+"""A file whose name is not valid UTF-8 never stops a check: everything else is read, the file is named as not read,
+the check says PARTIAL, and the project is left byte for byte as it was."""
 import contextlib
 import io
 import json

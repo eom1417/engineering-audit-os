@@ -1,5 +1,5 @@
-"""The move tool (M8.5): files moved, every import and path that names them written again, the program unchanged; and
-what the move gate reads to prove it."""
+"""The move tool: files moved, every import and path that names them written again, the program unchanged; and what the
+move gate reads to prove it."""
 import os
 import subprocess
 import sys
@@ -139,8 +139,8 @@ class MoveTests(Workspace):
         return (root / path).read_bytes().decode('utf-8')
 
     def test_python_imports_are_rewritten_at_the_right_place_whatever_the_line_holds_and_where_the_module_goes(self):
-        # Review of 2026-10-26: a column in UTF-8 bytes put the rewrite three characters off after Arabic text; a form
-        # feed split the lines; a module moved to the top gave `from  import mod`; CRLF came back LF.
+        # A column in UTF-8 bytes must not put the rewrite off after Arabic text; a form feed must not split the lines;
+        # a module moved to the top must not give `from  import mod`; CRLF must stay CRLF.
         sub = [{'from': 'pkg/m.py', 'to': 'pkg/sub/m.py'}]
         base = {'pkg/__init__.py': '', 'pkg/m.py': 'def f(): return 1\n'}
         self.assertEqual(self.apply_and_read({**base, 'main.py': 'import pkg.m\nprint("مرحبا", pkg.m.f())\n'}, sub, 'main.py'),

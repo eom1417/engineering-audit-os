@@ -1,4 +1,5 @@
-"""A repository with no commit yet is a project whose history is not there: the check reads everything else and says why."""
+"""A repository with no commit yet is a project whose history is not there: the check reads everything else and says
+why."""
 import contextlib
 import io
 import json

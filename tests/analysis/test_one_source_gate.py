@@ -1,5 +1,5 @@
-"""The gate of one source per pattern (M15.9, closed 2026-10-28): a detector not proven safe never refuses a sound change,
-code copied word for word still does, and each row is what the change wrote, not where it sits nor how many there are."""
+"""The gate of one source per pattern: a detector not proven safe never refuses a sound change, code copied word for
+word still does, and each row is what the change wrote, not where it sits nor how many there are."""
 import json
 import os
 import unittest
@@ -116,8 +116,8 @@ class Trust(unittest.TestCase):
             self.assertEqual(added(two, moved, {'src/lib/fee.js', 'src/lib/charge.js'}), [], 'a copy moved between the changed files')
 
     def test_a_split_that_moves_existing_copies_is_not_refused(self):
-        # a Flutter app's split moved a file's own copies into new files: their windows fell differently, every digest
-        # changed, and the sound split was refused twice
+        # a Flutter app's split moves a file's own copies into new files: their windows fall differently and every
+        # digest changes, yet the sound split must not be refused
         at = lambda path, start, end: {'path': path, 'start_line': start, 'end_line': end}
         before = check(clones=[{**clone('w1', 'a.dart', 'a.dart'), 'value': {'window_lines': 6, 'occurrences': [at('a.dart', 10, 21), at('a.dart', 50, 61)]}}])
         after = check(clones=[{**clone('w2', 'a.dart', 'b.dart'), 'value': {'window_lines': 6, 'occurrences': [at('a.dart', 10, 15), at('b.dart', 5, 10)]}},
@@ -168,7 +168,7 @@ class BeforeAfter(unittest.TestCase):
                                           idiom('src/c.js', 1, 'json_read')]), paths)), 1, 'one request state left, a JSON read came')
 
     def test_what_the_check_before_did_not_measure_holds_nothing_against_the_change(self):
-        older = check([near(('src/x.js', 1), ('src/y.js', 1), None)])       # near copies without their digest (0.0.88)
+        older = check([near(('src/x.js', 1), ('src/y.js', 1), None)])       # near copies without their digest
         for before, kind in ((check(ran=()), 'near_copy'), (older, 'near_copy'), (check(ran=()), 'idiom'), (check(read_patterns=False), 'look')):
             self.assertNotIn(kind, gate.measured(before))
         self.assertEqual(added(check(ran=(), read_patterns=False), AFTER, CHANGED), [])

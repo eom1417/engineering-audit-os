@@ -64,7 +64,7 @@ class DossierTests(TemporaryWorkspace):
 
 
 class ViewFreshnessTests(unittest.TestCase):
-    """Regression: the index said tasks 0 while ten cards sat next to it."""
+    """The index counts the tasks next to it: it never says tasks 0 while cards exist."""
 
     def test_the_views_follow_the_plan_and_the_probes(self):
         with tempfile.TemporaryDirectory() as tmp:

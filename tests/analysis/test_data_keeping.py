@@ -1,4 +1,4 @@
-"""How the data is saved and kept (M14), sorted into cards: from the code, and from what the running copy showed."""
+"""How the data is saved and kept, sorted into cards: from the code, and from what the running copy showed."""
 import json
 import unittest
 from pathlib import Path
@@ -57,7 +57,8 @@ class FromTheCode(unittest.TestCase):
         self.assertTrue({('whole_state_local', 'web/save.js'), ('whole_state_request', 'web/save.js'), ('growing_queue', 'web/save.js'),
                          ('told_early', 'web/save.js'), ('pictures_in_sql', 'supabase/migrations/20261028000000_brands.sql'),
                          ('backup_skips', 'scripts/backup.sh')} <= kinds, kinds)
-        self.assertEqual(len([f for f in found if f['place'] == 'web/save.js']), 4)        # not the theme, not the order
+        # not the theme, not the order
+        self.assertEqual(len([f for f in found if f['place'] == 'web/save.js']), 4)
 
 
 if __name__ == '__main__':

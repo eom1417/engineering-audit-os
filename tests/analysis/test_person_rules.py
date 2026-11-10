@@ -1,5 +1,5 @@
-"""The person's own rules (M16): kept in their words with their scope, guarded by a machine, one card with every place,
-held at a fix's gate and at the commit, a change checked on what it brought, unpinned without leaving a copy behind."""
+"""The person's own rules: kept in their words with their scope, guarded by a machine, one card with every place, held
+at a fix's gate and at the commit, a change checked on what it brought, unpinned without leaving a copy behind."""
 import json
 import os
 import subprocess
@@ -111,8 +111,8 @@ class HeldOnAChange(Rules):
         self.assertIn('No records in the code', held.refusal(result['rules'])[0])
 
     def test_a_commit_of_new_files_alone_is_checked_with_the_code_laws_too(self):
-        # EAOS's own hook, 2026-10-28: every file staged was new, the "before" snapshot was never made, and the check
-        # failed ("Target must be an existing directory") on each commit
+        # in a git hook every file staged is new, so the "before" snapshot is never made; the check must not fail with
+        # "Target must be an existing directory" on a commit
         rule, _ = registry.add(self.project, 'No code copied word for word', 'terminal', scope={'kind': 'pinned'})
         registry.guard(self.project, rule['id'], guards.checked({'kind': 'detector', 'detectors': ['copy']}), 'person', 'terminal')
         body = ''.join(f'export function step{n}(rows) {{\n  const kept = rows.filter(r => r.ok && r.size > {n});\n'

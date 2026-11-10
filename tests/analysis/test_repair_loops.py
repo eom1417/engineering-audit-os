@@ -1,5 +1,5 @@
-"""A loop of imports is the change's only when the change made it (second strangers' round, 2026-11-05: removing one
-import of a large loop in a monorepo showed a smaller loop it held, and the sound fix was refused for it)."""
+"""A loop of imports is the change's only when the change made it: removing one import of a large loop shows a smaller
+loop it held, and the sound fix must not be refused for it."""
 import json
 import unittest
 from pathlib import Path

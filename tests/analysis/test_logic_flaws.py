@@ -1,6 +1,6 @@
-"""The logic-flaw hunt (M9.2): only a flaw pointing at a real line of source and not refuted by the second reading is
-kept; the kept ones are read by the claims like any fact set, only on the code they were found on, and a fixed line
-closes their card."""
+"""The logic-flaw hunt: only a flaw pointing at a real line of source and not refuted by the second reading is kept;
+the kept ones are read by the claims like any fact set, only on the code they were found on, and a fixed line closes
+their card."""
 import io
 import json
 import tempfile
@@ -33,7 +33,8 @@ def flaw(**changes):
 
 
 class Assistant:
-    """A fake assistant: the hunt's answer, then the critic's verdicts (an exception is raised); it records what it was asked."""
+    """A fake assistant: the hunt's answer, then the critic's verdicts (an exception is raised); it records what it was
+    asked."""
 
     def __init__(self, flaws, verdicts):
         self.answers, self.asked, self.config = [{'flaws': flaws, 'reviewed': ['POST /orders/:id/refund']}, {'verdicts': verdicts}], [], {}
@@ -143,7 +144,8 @@ class LogicFlawsTest(unittest.TestCase):
         for said in ('no file ../outside.js', 'has no line 99', 'has no line True', 'cannot be read', 'README.md is not source',
                      'a layer finding already says pay.js:2', 'class or severity', 'no fix', 'the same flaw twice', 'refuted: refund() caps'):
             self.assertIn(said, reasons)
-        self.assertEqual(len(assistant.asked[1]['brief']['candidates']), 2)   # the critic reads only grounded candidates
+        # the critic reads only grounded candidates
+        self.assertEqual(len(assistant.asked[1]['brief']['candidates']), 2)
 
 
 class LogicFlawsCommandTest(unittest.TestCase):
