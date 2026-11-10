@@ -35,6 +35,10 @@
 
 ---
 
+> **Direction (2026-11):** EAOS is being re-centred on one goal: running a full structural clean-up round on a
+> beginner's or vibe-coded project, behaviour proved unchanged, until it is a clean product that can ship
+> ([North star](docs/NORTH-STAR.md), [Roadmap](ROADMAP.md)). What this page describes is what EAOS does today.
+
 ## Why EAOS
 
 Software built quickly, often with an AI assistant, works, until nobody can say how it is built, what it touches, or

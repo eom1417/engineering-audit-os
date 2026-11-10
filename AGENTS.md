@@ -13,7 +13,7 @@ before anything else; it binds over this file.
 
 | Reference | What it holds |
 |---|---|
-| `docs/NORTH-STAR.md` | what EAOS is for, the three journeys, the principles |
+| `docs/NORTH-STAR.md` | what EAOS is for (the clean-up round), what the person gets, the principles, the one measure |
 | `docs/STANDARDS.md` | the laws (code, security, safety, disk, tests, language), what guards each, the Definition of Done |
 | `docs/ARCHITECTURE.md` | the layout, the layers, the loops, where a new file goes |
 | `docs/EXTENDING.md` | **adding anything starts here**: per kind of addition, the files to read and touch, the test, the gates |

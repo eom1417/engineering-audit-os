@@ -2,48 +2,65 @@
 
 **English** · [العربية](NORTH-STAR.ar.md)
 
-Every change to EAOS is measured against this page. A change that does not move EAOS towards it is not made.
+Every change to EAOS is measured against this page. A change that does not move EAOS towards it is not made. When the
+work drifts, it comes back here.
 
 ## What EAOS is
 
-**A complete software engineering firm in one command.** The pinned open-source tools are its specialist engineers;
-the person's AI assistant is its senior strategic engineer, called with the strength each stage needs.
+**EAOS turns a project built by a beginner or by vibe coding into a clean, professional product that can ship: the
+same product, doing exactly what it did.** It does so by running one structural clean-up round on the project,
+proving every step, and leaving the project guarded so the order it reached keeps itself.
 
-Its client built a project quickly, often by vibe coding: it works on the surface, and underneath it carries dead
-code, duplicated functions, needless complexity, unreachable pages and calls that will fall over under real users.
-EAOS gives that person what a professional engineering firm would: a full study, evidence for every finding, the
-ideal shape the project should reach, a decision, a plan, and fixes that prove themselves.
+Its client built a project quickly. It works on the surface; underneath, one file serves many pages and one page needs
+many files, errors are swallowed, promises float, dead code and copies pile up, functions grow past reading, comments
+tell the story of how it was made, the development plans ship with the code, and the data the assistant was given to
+understand the domain sits in the code instead of the database. EAOS gives that person what a senior engineer would do
+by hand, on any repository, the first time.
 
-## The three journeys
+## What the person gets
 
-1. **Repair an existing project.** Study it from every side (structure, screens, user journeys, dead code,
-   unreachable pages, duplication, complexity, security, performance, data, documentation, and the user's experience
-   itself, tried by simulated users) → ask the owner what only they can answer → draw the ideal picture from the PRD
-   and the current state → decide **repair or rebuild**, with the time and effort of each → plan → fix in small
-   batches that prove themselves → a clean, sustainable program.
-2. **Build from an idea.** From an idea or a PRD to a complete plan, then a build held to the professional standard
-   from the first day (`docs/BUILD-FROM-PLAN.md`).
-3. **Add a feature to a sound project.** Study the project first, then plant the feature in its core without
-   breaking anything, proved by the same checks.
+1. **Nothing changed that they did not approve**: the same behaviour, screens, texts, stored data and official outputs,
+   proved before and after.
+2. **Every question has one obvious home**: one feature, one folder, each layer in its place; one file, one
+   responsibility; what is shared in one indexed place; features talking only through declared doors.
+3. **Code within bounds**: files, functions, lines, parameters and complexity under numbered limits, or a written reason.
+4. **Code that is only code**: comments that explain the code, never its history; no plans, agent context or customer
+   names in what ships; data in the database, not in the code.
+5. **A structure that keeps itself**: guards and ceilings installed in their own repository, which only go down and
+   become bans at zero.
+6. **A round they steer**: a charter they approve first, then phases, each one branch, one report in their language
+   and their approval; every step one numbered commit that can be reverted alone.
 
 ## Principles (never broken)
 
-- **No finding without evidence, no task without an acceptance check, no change bigger than the problem.**
-- **Nothing big is missed silently.** What was not checked is said, in red, at the top of the report.
-- **Quality never drops in any mode.** The speed mode changes time and cost only; a cheaper model never drops a
-  finding or closes a problem alone.
-- **The engine is the product.** The CLI with MCP gives 100% control; the Studio is an optional, light view of it.
-- **It works on strangers' projects the first time.** EAOS is never fixed project by project; when it cannot do
-  something it says why and how to solve it.
-- **EAOS holds itself to its own standards** (`docs/STANDARDS.md`): no dead code, no duplication, bounded size and
-  complexity, light outputs.
-- **The account is only the mind.** Everything EAOS and its developers keep lives locally with the project, never in
-  an assistant's account.
+- **Behaviour is frozen and stored data is untouchable.** A refactor that also changes behaviour cannot be verified.
+  A defect found on the way is written down, not fixed in passing.
+- **The safety net comes first.** What proves "nothing changed" is built before anything changes; a project without
+  one gets one. Without proof, no start.
+- **Guards before cleaning; ceilings only go down.** Every violation counted today is a ceiling; any rise fails; zero
+  is a ban.
+- **Measured by tools that understand the code**, never by text search. No finding without evidence; nothing big
+  missed silently: what was not checked is said.
+- **Moves and splits by tool, verbatim, names kept.** No rename while moving; no move by hand.
+- **No patch to pass a guard. One question, one tool. What is replaced goes in the same step. The same failure twice
+  stops the work.**
+- **The person decides design and data.** EAOS explains the root cause and the proper fix in their language and waits;
+  it never guesses.
+- **Pinned open-source tools first**; the assistant only where judgement is needed, and a cheaper model never closes
+  anything alone.
+- **EAOS holds itself to its own round**, and every claim of progress is a number measured from outside.
+- **The account is only the mind.** Everything EAOS and its developers keep lives with the project, never in an
+  assistant's account.
 
-## Success, measured each version (`docs/METRICS.md`)
+## Success: one measure
 
-- Share of the compatibility corpus whose app runs and whose expected screens are pictured.
-- Known problems found in the detection baseline (never fewer).
-- Check time, output size, lines of code.
-- Accepted cards against false alarms.
-- Saved user journeys replayed green; difficulties found by simulated users that became fixes.
+The round's table of numbers (`docs/METRICS.md`), produced by EAOS before and after on projects it has never seen:
+catch-all folders, imports past a door, layer breaks, swallowed errors, unawaited promises, skipped tests, dead code,
+files, lines, functions, parameters, complexity, comments carrying history, scattered configuration, data in the
+code, and the stack's own rows. It counts only when the project's own tests, build, screens and outputs are unchanged
+and the result is judged outside EAOS. EAOS's own checks of itself never count as this measure.
+
+## The question for every change
+
+Does it make EAOS run the round better on a stranger's project: more precise, safer, more complete, or cheaper?
+If not, it is not made.
