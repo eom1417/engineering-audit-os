@@ -1,5 +1,5 @@
-"""A file whose name is not valid UTF-8 never stops a check: everything else is read, the file is named as not read, the check
-says PARTIAL, and the project is left byte for byte as it was."""
+"""A file whose name is not valid UTF-8 never stops a check: everything else is read, the file is named as not read,
+the check says PARTIAL, and the project is left byte for byte as it was."""
 import contextlib
 import io
 import json
@@ -11,6 +11,7 @@ import unittest
 import unittest.mock
 from pathlib import Path
 
+from needs import need
 from eaos.core.system.process import run_command
 from eaos.engines.process import state_digest
 from eaos.facts.run import ORDER, collect
@@ -61,7 +62,8 @@ class Facts(unittest.TestCase):
             with self.subTest(layout):
                 _, done = self._collected(layout)
                 self.assertEqual([row['path'] for row in done['unread_names']], [SHOWN])
-                syntax = json.loads((self.root / f'{layout}-facts' / 'facts' / 'syntax.json').read_text(encoding='utf-8'))
+                syntax = json.loads((self.root / f'{layout}-facts' / 'facts' / 'syntax.json')
+                                    .read_text(encoding='utf-8'))
                 said = json.dumps(syntax['facts'])
                 self.assertIn('good', said)
                 self.assertNotIn('bad', said, 'a file not read has no facts of a clean file')
@@ -88,7 +90,8 @@ class TheEngines(unittest.TestCase):
             project = _project(Path(scratch) / 'app', 'no git')
             before = state_digest(project)
             (project / BAD).write_bytes(b'def bad():\n    return 22222\n')
-            self.assertNotEqual(state_digest(project), before, 'the proof no analyzer edited the project covers this file too')
+            self.assertNotEqual(state_digest(project), before,
+                                'the proof no analyzer edited the project covers this file too')
         said = run_command([sys.executable, '-c', r"import sys; sys.stdout.buffer.write(b'caf\xe9.py')"], 30)
         self.assertEqual((said.returncode, said.stdout), (0, SHOWN))
 
@@ -134,7 +137,7 @@ class NothingElseToRead(unittest.TestCase):
             project = Path(scratch) / 'app'
             project.mkdir()
             try: (project / BAD).write_bytes(b'def bad():\n    return 1\n')
-            except OSError as refused: self.skipTest(f'this file system refuses such a name: {refused}')
+            except OSError as refused: need(self, f'this file system refuses such a name: {refused}', tool=False)
             self._says_it_all(project, SHOWN)
 
 
@@ -143,7 +146,7 @@ class NothingElseToRead(unittest.TestCase):
             project = Path(scratch) / 'app'
             folder = project / os.fsdecode(b'old\xff')
             try: folder.mkdir(parents=True)
-            except OSError as refused: self.skipTest(f'this file system refuses such a name: {refused}')
+            except OSError as refused: need(self, f'this file system refuses such a name: {refused}', tool=False)
             (folder / 'inner.py').write_text('x = 1\n', encoding='utf-8')
             self._says_it_all(project, 'old\\xff')
 

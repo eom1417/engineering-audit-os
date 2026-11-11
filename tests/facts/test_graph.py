@@ -35,7 +35,8 @@ class GraphTests(unittest.TestCase):
             (repo / 'b.py').write_text('import a\n\n\ndef helper():\n    return a\n')
             data = graph_of(repo, Path(tmp) / 'out')
         self.assertEqual(data['summary']['cycles'], 1)
-        self.assertEqual([f['value']['members'] for f in data['facts'] if f['kind'] == 'graph_cycle'], [['a.py', 'b.py']])
+        self.assertEqual([f['value']['members'] for f in data['facts'] if f['kind'] == 'graph_cycle'], [['a.py',
+            'b.py']])
 
     def test_engine_resolved_edges_are_labelled_and_counted_apart_from_our_own(self):
         from eaos.facts.code.resolve import make as fact_make, digest, run as resolve_run

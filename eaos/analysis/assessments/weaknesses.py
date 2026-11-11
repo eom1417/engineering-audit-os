@@ -1,7 +1,7 @@
 """Security findings in the project's own code, read as a few cards and never dropped.
 
-Every engine that reads code for security (Semgrep's patterns, Bandit's syntax tree, CodeQL's data flow, and
-Gitleaks' secret scanner) reports weaknesses its own way, and a real one is often seen by only one of them. So:
+Every engine that reads code for security (Semgrep's patterns and Gitleaks' secret scanner) reports weaknesses its own
+way, and a real one is often seen by only one of them. So:
 - Two engines agree when they report a weakness of the same kind (a secret, or a vulnerability) in the same file
   within LINE_WINDOW lines of each other: the group is corroborated, a LIKELY card.
 - A finding no other engine confirms still becomes a card, a HYPOTHESIS the assistant's triage decides on the code
@@ -17,7 +17,7 @@ from pathlib import Path
 
 from ...core.contracts.vocabulary import classify
 SECURITY = ('secret', 'vulnerability')
-LINE_WINDOW = 5      # one statement: Bandit names its first line, CodeQL the expression inside it
+LINE_WINDOW = 5      # one statement: one engine names its first line, another the expression inside it
 SEVERITIES = ('low', 'medium', 'high', 'critical')
 PROJECT = '*'
 
@@ -103,8 +103,8 @@ def observed(sets):
 
 
 def present(specification, sets):
-    """The probe of a weakness card (eaos/analysis/claims/probes.py, which first makes sure its engines ran): CONFIRMED while an engine
-    still reports its weakness at its files."""
+    """The probe of a weakness card (eaos/analysis/claims/probes.py, which first makes sure its engines ran): CONFIRMED
+    while an engine still reports its weakness at its files."""
     labels, paths = set(specification['labels']), set(specification['paths'])
     left = [f for f in _findings(sets) if _label(f) in labels and f['location']['path'] in paths]
     if left:
@@ -115,24 +115,25 @@ def present(specification, sets):
 
 def new(before, after, paths):
     """The security findings in `paths` that the facts in folder `after` have and those in `before` had not, from the
-    engines both ran: the gate that refuses a change bringing a weakness in (eaos/journeys/fix/execute.py new_debt). `before` None:
-    nothing was there before, a project built from its plan (eaos/journeys/build_from_plan/steps.py). A finding the
-    change justified on its line counts: a comment hides only a finding the project already had."""
+    engines both ran: the gate that refuses a change bringing a weakness in (eaos/journeys/fix/execute.py new_debt).
+    `before` None: nothing was there before. A finding the change justified on its line counts: a comment hides only a
+    finding the project already had."""
     from pathlib import Path
     from ...facts.store import read_set
     built = before is None
-    before, after = ({'external': read_set(folder, 'external')} if folder and (Path(folder) / 'facts/external.json').is_file() else {}
+    before, after = ({'external': read_set(folder, 'external')}
+                     if folder and (Path(folder) / 'facts/external.json').is_file() else {}
                      for folder in (before, after))
     engines = observed(after) & (observed(after) if built else observed(before))
     def found(sets):
-        return {(f['value']['engine'], f['value']['rule'], f['location']['path']) for f in _findings(sets, justified=True)
+        return {(f['value']['engine'], f['value']['rule'], f['location']['path']) for f in _findings(sets,
+            justified=True)
                 if f['value']['engine'] in engines and f['location']['path'] in paths}
     return sorted(found(after) - found(before))
 
 
-# A weak hash as HMAC's digest is not weak: HMAC-SHA1 and HMAC-MD5 are not broken by their hashes' collisions. Two engines
-# agreed on itsdangerous's SHA-1, the default digest of its HMAC signer, and both judges of M17.3 (2026-11-05) called it
-# false. The engines cannot see the HMAC around it, so where the file uses HMAC the card is a question for the triage.
+# A weak hash as HMAC's digest is not weak: HMAC-SHA1 and HMAC-MD5 are not broken by their hashes' collisions. The
+# engines cannot see the HMAC around the hash, so where the file uses HMAC the card is a question for the triage.
 WEAK_HASH = {'CWE-327', 'CWE-328'}
 KEYED = 'This file uses HMAC: a weak hash used only as its digest is not a weakness. '
 
@@ -148,15 +149,17 @@ def _keyed_hash(group, target):
 
 
 def claims(fact_sets, add, target):
-    """One claim per group (eaos/analysis/claims/ledger.py BUILDERS): LIKELY when engines agree, else a HYPOTHESIS the triage decides.
-    Its probe asking the engines again never raises it: one engine repeating itself is not corroboration."""
+    """One claim per group (eaos/analysis/claims/ledger.py BUILDERS): LIKELY when engines agree, else a HYPOTHESIS the
+    triage decides. Its probe asking the engines again never raises it: one engine repeating itself is not
+    corroboration."""
     for group in groups(fact_sets):
         keyed = _keyed_hash(group, target)
         confidence = 'LIKELY' if group['agreed'] and not keyed else 'HYPOTHESIS'
         files = group['place'] if group['place'] != PROJECT else f"{len(group['paths'])} files"
         said = (f"{len(group['engines'])} engines ({', '.join(group['engines'])}) agree on" if group['agreed']
                 else f"{group['engines'][0]} alone reports")
-        add(f"{said} {group['kind']} {', '.join(group['labels'])} in {files}; {group['severity']} severity", 'risk', confidence,
+        add(f"{said} {group['kind']} {', '.join(group['labels'])} in {files}; {group['severity']} severity", 'risk',
+            confidence,
             ['external_engine'],
             (KEYED if keyed else '') +
             'Show from the code at each finding that no untrusted input reaches it, or that the secret is not a real '
@@ -167,6 +170,7 @@ def claims(fact_sets, add, target):
                                'engines': ', '.join(group['engines']), 'agreed': group['agreed'],
                                'severity': group['severity'], 'count': len(group['fact_ids'])}},
             probe_spec={'probe_type': 'graph_query',
-                        'specification': {'query': 'weakness_present', 'labels': group['labels'], 'paths': group['paths'],
+                        'specification': {'query': 'weakness_present', 'labels': group['labels'],
+                                          'paths': group['paths'],
                                           'engines': group['engines'],
                                           'expected': 'An engine still reports this weakness at these files.'}})

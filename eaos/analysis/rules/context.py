@@ -1,4 +1,4 @@
-"""Where a pinned rule is held beside its guard (M16.4, M16.3b), both written from the one registry and never sources of
+"""Where a pinned rule is held beside its guard, both written from the one registry and never sources of
 their own: the assistant's context of the project (its CLAUDE.md / AGENTS.md, between EAOS's rule markers) and, with the
 person's consent, the project's git pre-commit hook (between the same kind of markers). Unpinning writes them again
 from the registry: a rule's line and, with the last pinned rule, the hook's block go; a file EAOS made for them alone
@@ -13,13 +13,14 @@ from pathlib import Path
 
 from ...core.project import rules as registry
 
-BEGIN = '<!-- EAOS rules: begin (your pinned rules, written by EAOS from its rule registry; change them with eaos rules) -->'
+BEGIN = ('<!-- EAOS rules: begin (your pinned rules, written by EAOS from its rule registry; '
+         'change them with eaos rules) -->')
 END = '<!-- EAOS rules: end -->'
 HOOK_BEGIN = '# EAOS rules: begin (eaos rules hook: the rules you pinned, checked on what you commit)'
 HOOK_END = '# EAOS rules: end'
 IMPORT = re.compile(r'(?m)^@AGENTS\.md\s*$')
-HEADER = {'en': 'Rules the person pinned for this project. Keep every one of them in every change; EAOS refuses a change '
-                'that breaks one.',
+HEADER = {'en': 'Rules the person pinned for this project. Keep every one of them in every change; EAOS refuses '
+                'a change that breaks one.',
           'ar': 'قواعد ثبّتها صاحب المشروع. التزم بكل وحدة منها في كل تعديل؛ EAOS يرفض أي تعديل يكسر وحدة منها.'}
 
 
@@ -50,20 +51,23 @@ def block(rules, lang):
 def _guarded(rule):
     if rule.get('pending') and rule.get('guard'): return 'its guard waits for your word: keep it yourself until then'
     kind = (registry.in_force(rule) or {}).get('kind')
-    return {'pattern': 'guarded by a code pattern', 'test': 'guarded by a test', 'detector': "guarded by EAOS's detectors",
-            'none': 'EAOS cannot guard it: keep it yourself'}.get(kind, 'its guard is not written yet')
+    return {'pattern': 'guarded by a code pattern', 'test': 'guarded by a test',
+            'detector': "guarded by EAOS's detectors",
+            'none':'EAOS cannot guard it: keep it yourself'}.get(kind, 'its guard is not written yet')
 
 
 def _written(path, text, pinned, where, lang):
     """A context file's text with EAOS's block, or a CLAUDE.md made to read the AGENTS.md made beside it; `where`: (the
     files the block goes into, the files made for it)."""
     targets, to_make = where
-    if pinned and path in targets: return (text.rstrip('\n') + '\n\n' if text.strip() else '') + block(pinned, lang) + '\n'
+    if pinned and path in targets:
+        return (text.rstrip('\n') + '\n\n' if text.strip() else '') + block(pinned, lang) + '\n'
     return '@AGENTS.md\n' if pinned and path in to_make else text
 
 
 def _put(path, text, ours):
-    """The file written with `text`; one EAOS made (`ours`) left with nothing of the person's is removed. Whether written."""
+    """The file written with `text`; one EAOS made (`ours`) left with nothing of the person's is removed. Whether
+    written."""
     if ours and text.strip() in ('', '@AGENTS.md'):
         path.unlink(missing_ok=True)
         return False
@@ -81,7 +85,8 @@ def write(project, pinned, made, lang='en'):
     written = []
     for path in dict.fromkeys([*targets, *to_make, *(project / m for m in made)]):
         name = str(path.relative_to(project))
-        text = _written(path, _strip(path.read_text(encoding='utf-8') if path.is_file() else '', BEGIN, END), pinned, (targets, to_make), lang)
+        text = _written(path, _strip(path.read_text(encoding='utf-8') if path.is_file() else '', BEGIN, END),
+                        pinned, (targets, to_make), lang)
         if _put(path, text, not pinned and name in made): written.append(name)
     return written, sorted({*made, *(str(p.relative_to(project)) for p in to_make)}) if pinned else []
 
@@ -95,7 +100,8 @@ def hold_block(project, begin, end, line):
     for path in dict.fromkeys([*targets, *to_make]):
         old = path.read_text(encoding='utf-8') if path.is_file() else ''
         kept = _strip(old, begin, end)
-        new = (kept.rstrip('\n') + '\n\n' if kept.strip() else '') + f'{begin}\n{line}\n{end}\n' if path in targets else '@AGENTS.md\n'
+        new = ((kept.rstrip('\n') + '\n\n' if kept.strip() else '') + f'{begin}\n{line}\n{end}\n'
+               if path in targets else '@AGENTS.md\n')
         if new != old:
             path.write_text(new, encoding='utf-8')
             written.append(str(path.relative_to(project)))
@@ -105,8 +111,10 @@ def hold_block(project, begin, end, line):
 # ---------------------------------------------------------------- the hook
 
 def hook_path(project):
-    """The pre-commit hook git runs for the project (core.hooksPath respected; a linked hook is the file it links to)."""
-    found = subprocess.run(['git', '-C', str(project), 'rev-parse', '--git-path', 'hooks/pre-commit'], capture_output=True, text=True)
+    """The pre-commit hook git runs for the project (core.hooksPath respected; a linked hook is the file it links
+    to)."""
+    found = subprocess.run(['git', '-C', str(project), 'rev-parse', '--git-path', 'hooks/pre-commit'],
+                           capture_output=True, text=True)
     if found.returncode: raise ValueError('this project is not a git repository: a commit hook needs one')
     path = Path(found.stdout.strip())
     return (path if path.is_absolute() else Path(project) / path).resolve()
@@ -115,7 +123,8 @@ def hook_path(project):
 def hook_block(command, project):
     """The hook's lines: the commit is refused only when a rule is broken (exit 1); EAOS failing to run (an older EAOS
     without the command, a broken install) never stops the person's commit: it says so, and the commit goes on."""
-    line = ' '.join(shlex.quote(part) for part in [*command, 'check', '--changed', '--staged', '--hook', '--project', str(project)])
+    line = ' '.join(shlex.quote(part)
+                    for part in [*command, 'check', '--changed', '--staged', '--hook', '--project', str(project)])
     said = 'EAOS could not check your rules on this commit (exit $eaos); it goes on.'
     return (f'{HOOK_BEGIN}\n{line}; eaos=$?\nif [ $eaos -eq 1 ]; then exit 1; fi\n'
             f'if [ $eaos -ne 0 ]; then echo "{said}" >&2; fi\n{HOOK_END}\n')
@@ -144,4 +153,5 @@ def hooked(project):
     """Whether the project's pre-commit hook holds EAOS's block now."""
     try: path = hook_path(project)
     except ValueError: return False
-    return path.is_file() and HOOK_BEGIN in path.read_text(encoding='utf-8', errors='replace') and os.access(path, os.X_OK)
+    return (path.is_file() and HOOK_BEGIN in path.read_text(encoding='utf-8', errors='replace')
+            and os.access(path, os.X_OK))

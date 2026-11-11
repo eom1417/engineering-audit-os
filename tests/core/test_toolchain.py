@@ -61,7 +61,8 @@ class ToolchainBase(Workspace):
         super().tearDown()
 
     def write(self, *tools):
-        self.registry_file.write_text(json.dumps({'schema_version': 1, 'home': {'env': 'EAOS_ENGINE_TOOLS', 'default': '/nowhere'},
+        self.registry_file.write_text(json.dumps({'schema_version': 1, 'home': {'env': 'EAOS_ENGINE_TOOLS',
+                                                                                'default': '/nowhere'},
                                                   'tools': list(tools)}))
 
     def fresh_home(self, name):
@@ -79,7 +80,8 @@ class InstallTests(ToolchainBase):
         self.assertFalse((self.home / 'bin/fake').exists(), 'another hash is refused and nothing is installed')
         self.write(tool('fake', '1.2.3', self.archive.as_uri(), self.sha))
         self.assertEqual(toolchain.install(echo=lambda line: None), [])
-        self.assertEqual([(row['name'], row['ok'], row['found']) for row in toolchain.doctor()['tools']], [('fake', True, '1.2.3')])
+        self.assertEqual([(row['name'], row['ok'], row['found']) for row in toolchain.doctor()['tools']], [('fake',
+            True, '1.2.3')])
         self.write(tool('fake', '9.9.9', self.archive.as_uri(), self.sha))
         row = toolchain.doctor()['tools'][0]
         self.assertEqual((row['ok'], row['found']), (False, '1.2.3'))
@@ -112,9 +114,10 @@ class InstallTests(ToolchainBase):
         self.assertEqual(sorted(p.name for p in (self.home / 'releases').iterdir()), ['fake-2.0.0'])
 
     def test_a_tool_no_longer_pinned_leaves_the_disk_at_the_next_install(self):
-        # M18.1 retired six tools (about 850 MB): nothing removed what the registry stopped listing.
+        # A tool the registry does not list is removed from the disk at the next install.
         self.write(tool('fake', '1.2.3', self.archive.as_uri(), self.sha))
-        for folder in ('releases/trivy-0.74.0', 'npm/codecharta', 'npm/fake', 'venv-emerge', 'cache/trivy/policy', 'browsers'):
+        for folder in ('releases/trivy-0.74.0', 'npm/codecharta', 'npm/fake', 'venv-emerge', 'cache/trivy/policy',
+                       'browsers'):
             (self.home / folder).mkdir(parents=True)
         (self.home / 'bin').mkdir(exist_ok=True)
         (self.home / 'bin/trivy').symlink_to(self.home / 'releases/trivy-0.74.0/trivy')
@@ -136,19 +139,23 @@ class InstallTests(ToolchainBase):
         part.write_bytes(Ranged.body[:40])
         self.write(tool('fake', '1.2.3', f'http://127.0.0.1:{server.server_port}/fake.tar.gz', self.sha))
         self.assertEqual(toolchain.install(echo=lambda line: None), [])
-        self.assertEqual((Ranged.asked, part.exists()), ([40], False), 'only the rest was asked for, then checked whole')
+        self.assertEqual((Ranged.asked, part.exists()), ([40], False), 'only the rest was asked for, then checked '
+                         'whole')
 
 
 class ToolEnvironment(unittest.TestCase):
     def test_a_python_tool_installs_with_its_companions_and_runs_without_the_pythonpath_of_eaos(self):
-        # pip took a dependency EAOS carries as installed, so a fresh tools folder missed it (Semgrep without attrs), and
-        # its version check then imported EAOS's own mcp 2 instead of Semgrep's mcp 1.
+        # A pip tool is installed with its companions even when EAOS carries them itself (Semgrep needs attrs), and its
+        # version check imports the tool's own modules, not EAOS's (Semgrep's mcp 1, not EAOS's mcp 2).
         from eaos.engines import process
-        tool = {'name': 'semgrep', 'version': '1.0.0', 'binary': 'semgrep', 'install': {'method': 'pip', 'package': 'semgrep'}}
+        tool = {'name': 'semgrep', 'version': '1.0.0', 'binary': 'semgrep', 'install': {'method': 'pip',
+            'package': 'semgrep'}}
         done = mock.Mock(returncode=0, stdout='1.0.0', stderr='')
-        # PYTHONSAFEPATH, set where the Studio runs, kept CodeQL's Python extractor from importing its own modules.
+        # PYTHONSAFEPATH, set where the Studio runs, must not reach the tool: it would keep CodeQL's Python extractor
+        # from importing its own modules.
         with mock.patch.dict(os.environ, {'PYTHONPATH': '/eaos/site-packages', 'PYTHONSAFEPATH': '1'}), \
-                mock.patch.object(toolchain.installers, 'uv', return_value=None), mock.patch.object(toolchain.installers, '_link'), \
+                mock.patch.object(toolchain.installers, 'uv',
+                                  return_value=None), mock.patch.object(toolchain.installers, '_link'), \
                 mock.patch.object(toolchain.versions, 'binary_path', return_value='/tools/bin/semgrep'), \
                 mock.patch('subprocess.run', return_value=done) as run, mock.patch.object(process, 'run_command', run):
             toolchain.installers._pip_one(tool)
@@ -162,7 +169,8 @@ class ToolEnvironment(unittest.TestCase):
         tool = {'name': 'pytest', 'version': '9.1.1', 'binary': 'pytest',
                 'install': {'method': 'pip', 'package': 'pytest', 'with': ['approvaltests==19.1.1']}}
         with tempfile.TemporaryDirectory() as tmp, mock.patch.dict(os.environ, {'EAOS_ENGINE_TOOLS': tmp}), \
-                mock.patch.object(toolchain.installers, 'uv', return_value=None), mock.patch.object(toolchain.installers, '_link'), \
+                mock.patch.object(toolchain.installers, 'uv',
+                                  return_value=None), mock.patch.object(toolchain.installers, '_link'), \
                 mock.patch('subprocess.run') as run:
             (Path(tmp) / 'venv/bin').mkdir(parents=True)
             (Path(tmp) / 'venv/bin/python').touch()
@@ -170,7 +178,8 @@ class ToolEnvironment(unittest.TestCase):
             self.assertEqual(run.call_args.args[0][-2:], ['pytest==9.1.1', 'approvaltests==19.1.1'])
             packages = Path(tmp) / 'venv/lib/python3.12/site-packages'
             (packages / 'approvaltests-19.0.0.dist-info').mkdir(parents=True)
-            self.assertEqual(toolchain.versions._companions_missing(tool), 'approvaltests 19.1.1 is not installed beside it (found 19.0.0)')
+            self.assertEqual(toolchain.versions._companions_missing(tool), 'approvaltests 19.1.1 is not installed '
+                             'beside it (found 19.0.0)')
             (packages / 'approvaltests-19.0.0.dist-info').rename(packages / 'approvaltests-19.1.1.dist-info')
             self.assertEqual(toolchain.versions._companions_missing(tool), '')
 
@@ -187,23 +196,31 @@ class PreparingTests(ToolchainBase):
         (Path(self.tmp) / 'a.py').write_text('')
         self.assertEqual(toolchain.install(echo=lambda line: None, project=self.tmp), ['broken'])
         state = progress.fold(progress.read(self.home, 'tools'))
-        self.assertEqual([s['name'] for s in state['stages']], ['fake', 'broken', 'later'], "the check's first, then by stage")
-        self.assertEqual({s['name']: s['state'] for s in state['stages']}, {'fake': 'ok', 'broken': 'failed', 'later': 'ok'})
+        self.assertEqual([s['name'] for s in state['stages']], ['fake', 'broken', 'later'], "the check's first, then "
+                         "by stage")
+        self.assertEqual({s['name']: s['state'] for s in state['stages']}, {'fake': 'ok', 'broken': 'failed',
+                                                                            'later': 'ok'})
         broken_row = state['stages'][1]
         self.assertIn('does not match the pinned', broken_row['reason'])
-        self.assertEqual((broken_row['reason_code'], state['status'], state['stages'][0]['description']), ('tool_failed', 'INCOMPLETE', '1.2.3'))
+        self.assertEqual((broken_row['reason_code'], state['status'], state['stages'][0]['description']),
+                         ('tool_failed', 'INCOMPLETE', '1.2.3'))
         download, size = state['stages'][0]['steps'][0], self.archive.stat().st_size
         self.assertEqual((download['name'], download['done'], download['total']), ('download', size, size))
         # The check waits for the tools it needs here and only those.
         self.fresh_home('tools-2')
-        self.write(self.needed('fake'), self.needed('knip', applies='js'), tool('later', '1.2.3', self.archive.as_uri(), self.sha))
-        self.assertEqual(toolchain.readiness(['a.py'])['failed'], {'fake': 'not installed'}, 'never installed, and none runs')
+        self.write(self.needed('fake'), self.needed('knip', applies='js'), tool('later', '1.2.3', self.archive.as_uri(),
+                                                                                self.sha))
+        self.assertEqual(toolchain.readiness(['a.py'])['failed'], {'fake': 'not installed'}, 'never installed, and '
+                         'none runs')
         with toolchain.machine_lock():
             log = progress.ProgressLog(self.home, 'tools', pulse=False, sampler=None)
             log.started(toolchain.stages(toolchain.registry()['tools']), ['fake', 'knip', 'later'], {})
-            self.assertEqual(toolchain.readiness(['a.py']), {'needed': ['fake'], 'pending': ['fake'], 'failed': {}, 'ready': False})
-            log.ended({'stage': 'fake', 'status': 'ok', 'reason': '', 'seconds': 1, 'necessity': 'required', 'artifacts': []})
-            self.assertTrue(toolchain.readiness(['a.py'])['ready'], "knip does not apply here, later is not the check's")
+            self.assertEqual(toolchain.readiness(['a.py']), {'needed': ['fake'], 'pending': ['fake'], 'failed': {},
+                                                             'ready': False})
+            log.ended({'stage': 'fake', 'status': 'ok', 'reason': '', 'seconds': 1, 'necessity': 'required',
+                       'artifacts': []})
+            self.assertTrue(toolchain.readiness(['a.py'])['ready'], "knip does not apply here, later is not the "
+                            "check's")
             self.assertEqual(toolchain.readiness(['a.ts'])['pending'], ['knip'])
         self.assertEqual(list(toolchain.readiness(['a.ts'])['failed']), ['knip'], 'the install is over without it')
 
@@ -260,12 +277,13 @@ class PreparingTests(ToolchainBase):
 
 class AddedTools(ToolchainBase):
     def test_a_tool_the_person_adds_is_pinned_agreed_installed_and_runs_as_an_engine_with_no_python(self):
-        # The owner (2026-10-22): the assistant must find a tool it lacks (GitHub) and add it, safely.
+        # The assistant can find a tool it lacks (GitHub) and add it, safely.
         from unittest import mock
         from eaos.core.toolchain import catalog as tools_catalog
         from eaos.engines import sarif
         self.write()
-        entry = {**tool('fake', '1.2.3', self.archive.as_uri(), self.sha), 'license': 'MIT', 'repository': 'https://github.com/o/fake',
+        entry = {**tool('fake', '1.2.3', self.archive.as_uri(), self.sha), 'license': 'MIT',
+                 'repository': 'https://github.com/o/fake',
                  'engine': {'args': ['{target}', '{output}']}}
         unsafe = {**entry, 'install': {**entry['install'], 'sha256': ''}, 'license': ''}
         self.assertEqual(tools_catalog.add(unsafe, True)['status'], 'refused', 'never without its sha256 and license')
@@ -274,6 +292,7 @@ class AddedTools(ToolchainBase):
         self.assertEqual([t['name'] for t in toolchain.registry()['tools']], ['fake'], 'part of the one list')
         self.assertEqual(list(sarif.declared()), ['fake'])
         self.assertIn('already a tool', ' '.join(tools_catalog.problems(entry)))
-        hits = {'items': [{'full_name': 'o/fake', 'html_url': 'https://github.com/o/fake', 'stargazers_count': 9, 'license': {'spdx_id': 'MIT'}}]}
+        hits = {'items': [{'full_name': 'o/fake', 'html_url': 'https://github.com/o/fake', 'stargazers_count': 9,
+                           'license': {'spdx_id': 'MIT'}}]}
         with mock.patch.object(tools_catalog, '_get', side_effect=[hits, {'tag_name': 'v1.2.3', 'assets': []}]):
             self.assertEqual(tools_catalog.find('fake checks')['candidates'][0]['license'], 'MIT')

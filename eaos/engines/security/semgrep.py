@@ -6,7 +6,7 @@ code, SQL built by pasting values, the service-role key in browser code.
 
 The official library (semgrep-rules) may not be redistributed, so it is never in this repository:
 `eaos tools install` fetches it at a pinned commit to this machine, and only its security and secrets
-rules are read (its style and i18n rules put 1,000 findings on one project and say nothing about risk).
+rules are read (its style and i18n rules say nothing about risk).
 Of those, the rules in SILENCED are left out, each with its reason. The report records which rule sets ran.
 
 Semgrep prefixes a rule id with the path of its configuration, so the same rule would change its id
@@ -29,11 +29,11 @@ PINNED = tool.pinned(NAME)
 OWN = Path(eaos.__path__[0]).resolve() / 'rules/semgrep'
 OFFICIAL = ('javascript', 'typescript', 'python', 'php', 'generic/secrets')
 PREFIXES = ('rules.eaos.', 'rules.official.')
-# Official rules left out (M2.1, 2026-10-24). html-in-template-string flags every template literal that looks like HTML
-# and holds a value: 1,554 of semgrep's 1,673 findings on EAOS, none a weakness. Where such text becomes a page is what
-# insecure-innerhtml, insecure-document-method and raw-html-join report, and they stay.
+# Official rules left out. html-in-template-string flags every template literal that looks like HTML and holds a
+# value, which is almost never a weakness. Where such text becomes a page is what insecure-innerhtml,
+# insecure-document-method and raw-html-join report, and they stay.
 SILENCED = ('javascript/lang/security/html-in-template-string.yaml',)
-LIMIT = 1800         # seconds for the whole scan: 213 on EAOS's 62,000 lines
+LIMIT = 1800         # seconds for the whole scan
 EXCLUDED = ('node_modules', '.git', '.venv', 'venv', 'dist', 'build', '__pycache__', 'vendor', '.next')
 
 
@@ -56,7 +56,8 @@ def assemble(workdir):
     """rules/eaos and rules/official/<pack> under workdir; returns the rule sets it holds."""
     rules = workdir / 'rules'
     if rules.exists(): shutil.rmtree(rules)
-    shutil.copytree(OWN, rules / 'eaos', ignore=lambda _, names: [n for n in names if not n.endswith(('.yml', '.yaml'))])
+    shutil.copytree(OWN, rules / 'eaos',
+                    ignore=lambda _, names: [n for n in names if not n.endswith(('.yml', '.yaml'))])
     used = ['eaos']
     checkout, commit = official_checkout()
     if checkout is None: return used, None
@@ -92,8 +93,8 @@ def normalise(path, target):
 def analyze(target, workdir, exclude, formats, found):
     used, commit = assemble(workdir)
     output = workdir / 'semgrep.sarif'
-    # No time limit per rule and file: semgrep's own (5 s, a file skipped after three) dropped findings in silence on a
-    # loaded computer (37 of 40 on EAOS, 2026-10-24); the run's own limit (LIMIT) still ends it, as an error said.
+    # No time limit per rule and file: semgrep's own (5 s, a file skipped after three) drops findings in silence on a
+    # loaded computer; the run's own limit (LIMIT) still ends it, as an error said.
     command = [which(BINARY), 'scan', '--config', 'rules', '--sarif', '--output', str(output), '--metrics', 'off',
                '--disable-version-check', '--quiet', '--timeout', '0']
     for pattern in EXCLUDED + tuple(exclude): command += ['--exclude', pattern]
@@ -103,8 +104,10 @@ def analyze(target, workdir, exclude, formats, found):
     normalise(output, target)
     findings, unmapped = sarif.read(output, NAME, found, root=target)
     return Report(NAME, found, PINNED, OBSERVED, seconds=seconds, findings=findings, unmapped=unmapped, raw=str(output),
-                  coverage={'status': 'observed', 'rule_sets': used, 'silenced': list(SILENCED), 'official_commit': commit,
-                            'official_missing': None if commit else 'python -m eaos tools install --only semgrep-rules'},
+                  coverage={'status': 'observed', 'rule_sets': used, 'silenced': list(SILENCED),
+                            'official_commit': commit,
+                            'official_missing': None if commit
+                            else 'python -m eaos tools install --only semgrep-rules'},
                   evaluated={'dataflow': {'status': 'observed', 'granularity': 'file'},
                              'vulnerability': {'status': 'observed' if commit else 'partial', 'granularity': 'file'},
                              'secret': {'status': 'observed' if commit else 'partial', 'granularity': 'file'}})

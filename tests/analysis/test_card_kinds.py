@@ -1,12 +1,12 @@
-"""One definition of each card kind (eaos/core/contracts/card_kinds.py): a kind nobody registered is refused when a claim is
-built, so it can never reach a person as a generic card with its detector and its own fix lost."""
+"""One definition of each card kind (eaos/core/contracts/card_kinds.py): a kind nobody registered is refused when a
+claim is built, so it can never reach a person as a generic card with its detector and its own fix lost."""
 import ast
 import unittest
 from pathlib import Path
 from unittest import mock
 
 from eaos.analysis.claims import ledger
-from eaos.analysis.presentation.model import PATTERNS as AREAS
+from eaos.core.contracts.card_areas import PATTERNS as AREAS
 from eaos.analysis.repair import one_source_gate, remediation
 from eaos.core.contracts.card_kinds import KINDS
 from eaos.core.language.words import TEMPLATES, statement_of
@@ -16,14 +16,16 @@ ROOT = Path(__file__).resolve().parents[2]
 JUDGED_AS = {'engine_cluster': 'engine_cluster:X', 'layer_finding': 'layer:X', 'repository_finding': 'repository:X',
              'logic_flaw': 'logic:X', 'experience_difficulty': 'experience:X', 'real_data': 'real_data:X',
              'old_engine': 'old_engine:X', 'data_keeping': 'data_keeping:X', 'one_source': 'one_source:X'}
-OWN_FIX_AND_WORDS = ('layer_finding', 'repository_finding', 'logic_flaw', 'experience_difficulty', 'real_data', 'old_engine',
+OWN_FIX_AND_WORDS = ('layer_finding', 'repository_finding', 'logic_flaw', 'experience_difficulty', 'real_data',
+                     'old_engine',
                      'data_keeping', 'one_source', 'person_rule')
 OWN_PATTERN = ('old_engine', 'data_keeping', 'one_source', 'person_rule')
 SUBTYPE = {'kind': 'X', 'rule': 'X', 'class': 'X'}
 
 
 def claim(key=None, **params):
-    row = {'id': 'CLM-001', 'statement': 'A finding', 'claim_type': 'risk', 'confidence': 'LIKELY', 'method': ['static_fact'],
+    row = {'id': 'CLM-001', 'statement': 'A finding', 'claim_type': 'risk', 'confidence': 'LIKELY',
+           'method': ['static_fact'],
            'evidence_ids': ['E1'], 'falsifier': 'It is gone', 'presented_in': ['A1'], 'status': 'open'}
     return {**row, 'render': {'key': key, 'params': params}} if key else row
 
@@ -71,7 +73,8 @@ class Remediation(unittest.TestCase):
 
     def test_an_unknown_subtype_inside_a_known_kind_stays_generic_and_is_not_refused(self):
         card = {**claim('engine_cluster', kind='no_such_subtype'),
-                'probe_spec': {'probe_type': 'graph_query', 'specification': {'query': 'engine_cluster_present', 'kind': 'no_such_subtype'}}}
+                'probe_spec': {'probe_type': 'graph_query', 'specification': {'query': 'engine_cluster_present',
+                    'kind': 'no_such_subtype'}}}
         self.assertEqual(remediation.classify(card), 'generic')
         self.assertFalse([p for p in ledger.errors([card]) if 'card kind' in p])
 
@@ -100,7 +103,8 @@ class TheTable(unittest.TestCase):
         for path in (ROOT / 'eaos').rglob('*.py'):
             if path.parent.name == 'templates' or 'rules' in path.parts and 'semgrep' in path.parts: continue
             written |= {key for key in _render_keys(path.read_text(encoding='utf-8'))}
-        self.assertTrue({'one_source', 'cochange', 'dead_code_review'} <= written, 'the scan still finds what it looks for')
+        self.assertTrue({'one_source', 'cochange', 'dead_code_review'} <= written,
+                        'the scan still finds what it looks for')
         self.assertEqual(written - set(KINDS), set())
 
 
@@ -110,12 +114,15 @@ def _render_keys(text):
     for node in ast.walk(ast.parse(text)):
         rendered = [node.value] if isinstance(node, ast.keyword) and node.arg == 'render' else []
         if isinstance(node, ast.Dict):
-            rendered += [v for k, v in zip(node.keys, node.values) if isinstance(k, ast.Constant) and k.value == 'render']
+            rendered += [v for k, v in zip(node.keys, node.values) if isinstance(k, ast.Constant)
+                         and k.value == 'render']
         for value in rendered:
             if isinstance(value, ast.Dict):
                 found |= {v.value for k, v in zip(value.keys, value.values)
                           if isinstance(k, ast.Constant) and k.value == 'key' and isinstance(v, ast.Constant)}
-        if isinstance(node, ast.Assign) and isinstance(node.value, ast.Constant) and "['render']['key']" in ast.unparse(node.targets[0]):
+        if isinstance(node, ast.Assign) and isinstance(node.value,
+                                                       ast.Constant) and "['render']['key']" in ast.unparse(
+                                                           node.targets[0]):
             found.add(node.value.value)
     return found
 

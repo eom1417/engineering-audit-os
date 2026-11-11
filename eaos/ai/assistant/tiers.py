@@ -1,13 +1,13 @@
-"""Model tiers (M9.1): every stage that asks an assistant asks it on a tier, light, standard or deep, and the tier picks
+"""Model tiers: every stage that asks an assistant asks it on a tier, light, standard or deep, and the tier picks
 the model (Claude Code: haiku, sonnet, the person's own) or the reasoning effort (Codex: low, medium, high).
 
-    STAGES             each stage's tier, as data: a plain task (a card's first triage, a translation) on the light tier,
-                       a planning step on the standard one, what judges or plans the whole (the ideal, the fix review,
-                       the scenario planner, the judge) on the deep one; a stage not listed asks on the deep tier.
-                       The experience's stages (experience_*) ask through the provider, which reads no stage name:
-                       their calls pass the flags of these tiers (small: light, none: standard, deep: deep)
-    tier_of(stage)     the stage's tier; EAOS_TIER_<STAGE> sets one stage, the check's speed mode lowers standard to light
-    up(tier)           the next tier: a cheaper tier that fails, or that would close something, asks again one tier up
+    STAGES             each stage's tier, as data: a plain task (a card's first triage, a translation) on the light
+                       tier, a planning step on the standard one, what judges or plans the whole (the fix review) on
+                       the deep one; a stage not listed asks on the deep tier
+    tier_of(stage)     the stage's tier; EAOS_TIER_<STAGE> sets one stage, the check's speed mode lowers standard to
+                       light
+    up(tier)           the next tier: a cheaper tier that fails, or that would close something, asks again one tier
+                       up
     CLOSING            the decisions a cheaper tier never takes alone: one that would set a card aside, call a gap no
                        gap or a picture clean is asked again on the deep tier, so a cheaper model never drops or closes
                        anything
@@ -17,12 +17,9 @@ the model (Claude Code: haiku, sonnet, the person's own) or the reasoning effort
 import os
 
 TIERS = ('light', 'standard', 'deep')
-STAGES = {'card_triage': 'light', 'translation': 'light', 'experience_actor': 'light',
-          'visual_reviewer': 'standard', 'pipeline_gap_planner': 'standard', 'plan_orderer': 'standard',
-          'experience_support': 'standard', 'rule_guard': 'standard',
-          'ideal_planner': 'deep', 'fix_reviewer': 'deep', 'experience_scenario': 'deep', 'experience_data': 'deep',
-          'experience_judge': 'deep'}
-CLOSING = {'card_triage': ('reject',), 'pipeline_gap_planner': ('not a gap',), 'visual_reviewer': ('clean',)}
+STAGES = {'card_triage': 'light', 'translation': 'light', 'plan_orderer': 'standard', 'rule_guard': 'standard',
+          'fix_reviewer': 'deep'}
+CLOSING = {'card_triage': ('reject',)}
 CLAUDE = {'light': 'haiku', 'standard': 'sonnet', 'deep': None}
 CODEX = {'light': 'low', 'standard': 'medium', 'deep': 'high'}
 

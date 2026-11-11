@@ -41,8 +41,10 @@ def normalise(parsed, found):
                                          'parameters': int(row['parameters']), 'length': int(row['length']),
                                          'end_line': int(row['end'])}})
         if ccn > THRESHOLD:
-            findings.append(finding(NAME, found, 'ccn', 'complexity', subject('symbol', f"{path}::{row['function']}", path, start),
-                                    f"function {row['function']} has cyclomatic complexity {ccn} (threshold {THRESHOLD})",
+            findings.append(finding(NAME, found, 'ccn', 'complexity',
+                                    subject('symbol', f"{path}::{row['function']}", path, start),
+                                    f"function {row['function']} has cyclomatic complexity {ccn} "
+                                    f"(threshold {THRESHOLD})",
                                     measurements=[measurement('cyclomatic_complexity', ccn, THRESHOLD),
                                                   measurement('nloc', nloc)],
                                     raw_ref=f'{NAME}/lizard.csv'))
@@ -54,8 +56,7 @@ def analyze(target, workdir, exclude, formats, found):
     output = workdir / 'lizard.csv'
     patterns = [argument for name in EXCLUDED + tuple(exclude) for argument in ('-x', f'*/{name}/*')]
     # -i -1: the exit code stays 0 however many functions pass the threshold; a warning is a result. One process: its
-    # -t workers deadlocked now and then (2 of 6 runs on EAOS hung until the timeout; alone it takes 6 s), and the
-    # engines stage already runs engines side by side.
+    # -t workers can deadlock until the timeout, and the engines stage already runs engines side by side.
     code, out, error, seconds = run([which(BINARY), '--csv', '-i', '-1', *patterns, '.'], cwd=target)
     if code:
         return tool.failed(NAME, found, seconds, code, error)

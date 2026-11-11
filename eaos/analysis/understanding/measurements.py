@@ -28,13 +28,14 @@ FUNCTION_SCOPES = ('function', 'method')
 def _facts(out):
     rows = []
     for path in sorted((Path(out) / 'facts').glob('*.json')):
-        if path.stem == 'boundaries': continue          # the layers' findings (M6), the claims'; they measure no file
+        if path.stem == 'boundaries': continue          # the layers' findings, the claims' input; they measure no file
         rows += [row for row in (read_json(path) or {}).get('facts') or [] if isinstance(row, dict)]
     return rows
 
 
 def _engines_observed(out):
-    return set(((read_json(Path(out) / 'facts/external.json') or {}).get('summary') or {}).get('engines_observed') or [])
+    return set(((read_json(Path(out) / 'facts/external.json') or {}).get('summary') or {})
+               .get('engines_observed') or [])
 
 
 def _path_of(fact):
@@ -46,7 +47,8 @@ def _coverage(out):
     verification = out / 'verification.json'
     if not verification.is_file(): return {}
     coverage = (read_json(verification) or {}).get('coverage') or {}
-    return {path: round(value['percent'] / 100, 4) for path, value in coverage.items() if isinstance(value, dict) and 'percent' in value}
+    return {path: round(value['percent'] / 100, 4) for path, value in coverage.items()
+            if isinstance(value, dict) and 'percent' in value}
 
 
 class _Indexes:
@@ -94,9 +96,11 @@ class _Indexes:
             missing.append({'field': 'loc', 'reason': 'neither scc nor EAOS measured this file'})
 
     def complexity(self, path, row, used, missing):
-        if path in self.own_symbols: row['complexity_max'], used['complexity_max'] = self.own_symbols[path], 'eaos.metrics (branches + 1)'
+        if path in self.own_symbols:
+            row['complexity_max'], used['complexity_max'] = self.own_symbols[path], 'eaos.metrics (branches + 1)'
         elif path in self.own_file:
-            row['complexity_max'], used['complexity_max'] = (self.own_file[path].get('branches') or 0) + 1, 'eaos.metrics (file body, no function)'
+            row['complexity_max'], used['complexity_max'] = ((self.own_file[path].get('branches') or 0) + 1,
+                                                             'eaos.metrics (file body, no function)')
         else:
             row['complexity_max'] = None
             missing.append({'field': 'complexity_max', 'reason': 'no symbol or file metric for this file'})
@@ -114,11 +118,13 @@ class _Indexes:
             used['churn'] = 'git history'
         else:
             row['churn'] = row['authors'] = row['last_changed'] = None
-            missing.append({'field': 'churn', 'reason': 'not in the recorded git history' if self.churn else 'the project has no git history'})
+            missing.append({'field': 'churn', 'reason': 'not in the recorded git history' if self.churn
+                            else 'the project has no git history'})
 
     def dependency(self, path, row, used, missing):
         if path in self.graph:
-            row['fan_in'], row['fan_out'], used['fan_in'] = self.graph[path].get('fan_in'), self.graph[path].get('fan_out'), 'eaos.graph'
+            row['fan_in'], row['fan_out'], used['fan_in'] = (self.graph[path].get('fan_in'),
+                                                             self.graph[path].get('fan_out'), 'eaos.graph')
         else:
             row['fan_in'] = row['fan_out'] = None
             missing.append({'field': 'fan_in', 'reason': 'not in the resolved import graph'})
@@ -126,7 +132,8 @@ class _Indexes:
     def tested(self, path, row, used, missing):
         row['coverage'] = self.coverage.get(path)
         if row['coverage'] is None:
-            missing.append({'field': 'coverage', 'reason': 'no test command was run' if not self.coverage else 'the tests did not load this file'})
+            missing.append({'field': 'coverage', 'reason': 'no test command was run' if not self.coverage
+                            else 'the tests did not load this file'})
 
     def row(self, fact):
         path, missing, used = _path_of(fact), [], {}
@@ -147,7 +154,8 @@ def build(out):
     for fact in _facts(out): by_kind.setdefault(fact['kind'], []).append(fact)
     files = by_kind.get('source_file', [])
     sources = [f for f in files if _parse_status(f) == 'OBSERVED']
-    skipped = [{'path': _path_of(f), 'reason': f"not parsed: {_parse_status(f)}"} for f in files if _parse_status(f) != 'OBSERVED']
+    skipped = [{'path': _path_of(f), 'reason': f"not parsed: {_parse_status(f)}"} for f in files
+               if _parse_status(f) != 'OBSERVED']
     indexes = _Indexes(out, by_kind)
     rows = [indexes.row(fact) for fact in sorted(sources, key=_path_of)]
     return {'schema_version': 1, 'files': rows, 'not_measured': skipped,

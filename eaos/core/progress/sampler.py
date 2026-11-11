@@ -21,6 +21,7 @@ import os
 import subprocess
 from datetime import datetime, timedelta, timezone
 
+from ..system.errors import noted
 from . import context
 
 COMMAND = ('ps', '-A', '-o', 'pid=,ppid=,etime=,comm=')
@@ -61,7 +62,7 @@ def parse(text):
         parts = line.split(None, 3)
         if len(parts) < 4: continue
         try: pid, ppid = int(parts[0]), int(parts[1])
-        except ValueError: continue
+        except ValueError as error: noted('a line without numeric ids is not a process row', error); continue
         seconds = elapsed(parts[2])
         if seconds is None: continue
         name = parts[3].strip()
@@ -131,6 +132,7 @@ class Sampler:
             rows = parse(out)
             if not any(row[0] == self.root for row in rows): raise ValueError('ps did not list the run itself')
         except (OSError, ValueError, subprocess.SubprocessError) as problem:
-            self.off, self.reason = True, f'the running programs cannot be seen: {type(problem).__name__}: {problem}'[:200]
+            self.off, self.reason = True, (f'the running programs cannot be seen: '
+                                           f'{type(problem).__name__}: {problem}'[:200])
             return None
         return programs(rows, self.root, leave={own})

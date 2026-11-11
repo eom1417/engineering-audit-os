@@ -13,7 +13,8 @@ def registry():
     """The pinned tools, and those the person added (eaos/core/toolchain/catalog.py: <home>/toolchain-added.json)."""
     base = json.loads(REGISTRY.read_text(encoding='utf-8'))
     added = Path(os.environ.get(base['home']['env']) or base['home']['default']).expanduser() / 'toolchain-added.json'
-    return {**base, 'tools': base['tools'] + json.loads(added.read_text(encoding='utf-8'))['tools']} if added.is_file() else base
+    return ({**base, 'tools': base['tools'] + json.loads(added.read_text(encoding='utf-8'))['tools']}
+            if added.is_file() else base)
 
 
 SKIP = {'.git', 'node_modules', '.venv', 'venv', '__pycache__', 'dist', 'build', '.next', 'vendor'}
@@ -35,7 +36,8 @@ RULES = {
     'node_package': lambda files: 'package.json' in files,
     'python': lambda files: any(f.endswith('.py') for f in files),
     'sql': lambda files: any(f.endswith('.sql') for f in files),
-    'ci_or_iac': lambda files: any(f.startswith('.github/workflows/') or f.endswith(('Dockerfile', '.tf')) for f in files),
+    'ci_or_iac': lambda files: any(f.startswith('.github/workflows/') or f.endswith(('Dockerfile', '.tf'))
+                                   for f in files),
     'openapi': lambda files: any(f.split('/')[-1].startswith(('openapi.', 'swagger.')) for f in files),
 }
 
@@ -149,9 +151,9 @@ def uv():
 
 
 def tool_env():
-    """The environment a pinned tool runs or installs in: without EAOS's own Python settings. With PYTHONPATH, pip took
-    a dependency EAOS happens to carry (attrs for Semgrep) as already installed, so a fresh tools folder missed it; with
-    PYTHONSAFEPATH, a tool's script no longer imports its sibling modules (CodeQL's Python extractor failed)."""
+    """The environment a pinned tool runs or installs in: without EAOS's own Python settings. With PYTHONPATH, pip
+    takes a dependency EAOS happens to carry (attrs for Semgrep) as already installed, so a fresh tools folder misses
+    it; with PYTHONSAFEPATH, a tool's script cannot import its sibling modules (CodeQL's Python extractor fails)."""
     return {name: value for name, value in os.environ.items() if name not in ('PYTHONPATH', 'PYTHONSAFEPATH')}
 
 

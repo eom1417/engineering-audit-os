@@ -1,8 +1,9 @@
-"""A project's state, the one record of it: ~/.eaos/projects/<name>-<id>/state.json (or under $EAOS_HOME). The CLI, MCP,
-the Studio and every stage read and write it here and nowhere else (M3.2): what was chosen and asked, the check on
+"""A project's state, the one record of it: ~/.eaos/projects/<name>-<id>/state.json (or under $EAOS_HOME). The CLI,
+MCP, the Studio and every stage read and write it here and nowhere else: what was chosen and asked, the check on
 record, the batches, each branch's part (eaos/core/project/branches.py KEYS).
 
-The journeys save it through eaos/journeys/guided/ save, which then removes what that save closed (eaos/journeys/fix/waves.saved).
+The journeys save it through eaos/journeys/guided/ save, which then removes what that save closed
+(eaos/journeys/fix/waves.saved).
 """
 import json
 import os
@@ -15,7 +16,8 @@ from ...core.system.clock import now
 
 FILE = 'state.json'
 # A folder with one of these is a project; the person's home and a drive's root never are.
-PROJECT_MARKERS = ('.git', 'package.json', 'pyproject.toml', 'requirements.txt', 'go.mod', 'Cargo.toml', 'composer.json',
+PROJECT_MARKERS = ('.git', 'package.json', 'pyproject.toml', 'requirements.txt', 'go.mod',
+                   'Cargo.toml', 'composer.json',
                    'Gemfile', 'pom.xml', 'build.gradle', 'deno.json', 'index.html')
 
 
@@ -33,7 +35,8 @@ def write(state):
     """The state written whole, stamped: an assistant beside it never reads half of it."""
     (where := Path(state['workspace'])).mkdir(parents=True, exist_ok=True)
     state['updated'] = now()
-    (new := where / f'.state-{os.urandom(4).hex()}.json').write_text(json.dumps(state, ensure_ascii=False, indent=1) + '\n', encoding='utf-8')
+    (new := where / f'.state-{os.urandom(4).hex()}.json').write_text(
+        json.dumps(state, ensure_ascii=False, indent=1) + '\n', encoding='utf-8')
     new.replace(where / FILE)
 
 
@@ -56,7 +59,7 @@ def current(project='.'):
     here = Path(project).resolve()
     for folder in (here, *here.parents):
         state = load(folder)
-        # A record left by an older EAOS that scanned the home folder is never a project to go on with.
+        # A record that scanned the home folder is never a project to go on with.
         if state and looks_like_project(folder): return state
     raise LookupError('no EAOS project here: run eaos start first')
 

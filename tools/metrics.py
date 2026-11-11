@@ -1,4 +1,4 @@
-"""The numbers of docs/METRICS.md, measured from the repository and from a real check of EAOS (M0.4).
+"""The numbers of docs/METRICS.md, measured from the repository and from a real check of EAOS.
 
     python tools/metrics.py <check output> <project home> [--write "<title>"]
 
@@ -63,7 +63,8 @@ def check(output, home):
     out_mb, out_files = size(output)
     runtime_mb, _ = size(Path(home) / 'runtime')
     return [('Check time', _check_time(manifest, stages)),
-            ('Stages / documents / engines', f"{len(stages)} / {len(list(technical.glob('*.md')))} `.md` / {tools} tools"),
+            ('Stages / documents / engines',
+             f"{len(stages)} / {len(list(technical.glob('*.md')))} `.md` / {tools} tools"),
             ('Output', f'{out_mb:,} MB, {out_files:,} files'),
             ('Runtime', f'{runtime_mb:,} MB'),
             ('Cards on itself', _cards_on_itself(technical)),
@@ -74,7 +75,8 @@ def check(output, home):
 def _check_time(manifest, stages):
     """The check's wall time and its four slowest stages."""
     slowest = sorted(stages.items(), key=lambda item: -(item[1].get('seconds') or 0))[:4]
-    return f"{manifest.get('seconds', 0):,.0f} s wall (" + ' · '.join(f"{name} {row.get('seconds') or 0:,.0f}" for name, row in slowest) + ')'
+    return (f"{manifest.get('seconds', 0):,.0f} s wall (" +
+            ' · '.join(f"{name} {row.get('seconds') or 0:,.0f}" for name, row in slowest) + ')')
 
 
 def _cards_on_itself(technical):
@@ -86,21 +88,23 @@ def _cards_on_itself(technical):
 
 
 def _layers(technical, stages):
-    """What the layers read of EAOS (M6): its files placed, its findings by boundary, the stage's time."""
+    """What the layers read of EAOS: its files placed, its findings by boundary, the stage's time."""
     record = read(technical / 'layers.json')
     if not record: return 'not read in this check'
     by = Counter(finding['boundary'] for finding in record['findings']).most_common()
     seconds = (stages.get('layers') or {}).get('seconds') or 0
-    return (f"{len(record['map']) - len(record['gaps'])} of {len(record['map'])} files placed; {len(record['findings'])} findings ("
+    return (f"{len(record['map']) - len(record['gaps'])} of {len(record['map'])} files placed; "
+            f"{len(record['findings'])} findings ("
             + ', '.join(f'{name} {count}' for name, count in by) + f'); {seconds:,.0f} s')
 
 
 def trials():
-    return [('Compatibility corpus', _corpus()), ('Detection baseline', _baseline()), ('Layer findings judged on the corpus', _judged())]
+    return [('Compatibility corpus', _corpus()), ('Detection baseline', _baseline()),
+            ('Layer findings judged on the corpus', _judged())]
 
 
 def _judged():
-    """The layer findings judged by hand on the corpus apps the layers matter for (M6.12): how many were false."""
+    """The layer findings judged by hand on the corpus apps the layers matter for: how many were false."""
     judged = [app['layers_judged'] for app in (read(CORPUS, {}) or {}).get('apps') or [] if app.get('layers_judged')]
     if not judged: return 'not judged yet'
     true, false = sum(j['true'] for j in judged), sum(j['false'] for j in judged)
@@ -136,7 +140,8 @@ def write(title, text):
         page = page[:start] + section + (page[end + 1:] if end >= 0 else '')
     else:
         anchor = page.find('\n## Findings')
-        page = page[:anchor + 1] + section + '\n' + page[anchor + 1:] if anchor >= 0 else page.rstrip('\n') + '\n\n' + section
+        page = (page[:anchor + 1] + section + '\n' + page[anchor + 1:] if anchor >= 0
+                else page.rstrip('\n') + '\n\n' + section)
     METRICS.write_text(page, encoding='utf-8')
 
 

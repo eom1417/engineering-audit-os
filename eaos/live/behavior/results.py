@@ -10,6 +10,7 @@ from pathlib import Path
 
 from ...core import progress
 from ...core.system.files import read_json
+from ...core.system.errors import noted
 
 SCREENSHOT = re.compile(r'toHaveScreenshot.*?Snapshot: ([\w.-]+)\.png', re.S)
 WORDS = re.compile(r'([\w.-]+)\.text\.txt')      # a screen's words differ (specs.py): a design card may change them too
@@ -18,11 +19,12 @@ FAILED_STATUSES = ('failed', 'timedOut', 'interrupted')
 
 
 def failing_tests(runtime, name):
-    """The titles of the screen tests that failed in the lock run `name` (behavior-lock/playwright-<name>.json), and in its
-    passes as each kind of user (playwright-<name>@<kind>.json)."""
+    """The titles of the screen tests that failed in the lock run `name` (behavior-lock/playwright-<name>.json), and
+    in its passes as each kind of user (playwright-<name>@<kind>.json)."""
     found = set()
     for path in sorted((Path(runtime) / 'behavior-lock').glob(f'playwright-{name}*.json')):
-        if path.stem == f'playwright-{name}' or path.stem.startswith(f'playwright-{name}@'): found |= _failed_titles(path)
+        if path.stem == f'playwright-{name}' or path.stem.startswith(f'playwright-{name}@'):
+            found |= _failed_titles(path)
     return found
 
 
@@ -33,7 +35,8 @@ def _failed_titles(path):
 
     def walk(suite):
         for spec in suite.get('specs') or []:
-            if any(status in ('failed', 'timedOut') for status, _ in _outcomes(spec, ((), None, ''))): found.add(spec.get('title'))
+            if any(status in ('failed', 'timedOut') for status, _ in _outcomes(spec, ((), None, ''))):
+                found.add(spec.get('title'))
         for child in suite.get('suites') or []: walk(child)
     for suite in report.get('suites') or []: walk(suite)
     return found
@@ -68,19 +71,21 @@ def spec_statuses(report, declared=(), known=(), intended=None):
 
 
 def _outcomes(spec, declared, known=False):
-    """[(status, message)] of one spec's tests; a test that never ran, skipped with its reason. `declared`: (the declared
-    screens, the pass's Intended or None, the spec file). `known`: it fails on the code before the batch too
-    (eaos/journeys/fix/waves/ _against_control), so it says nothing of the batch."""
+    """[(status, message)] of one spec's tests; a test that never ran, skipped with its reason. `declared`: (the
+    declared screens, the pass's Intended or None, the spec file). `known`: it fails on the code before the batch
+    too (eaos/journeys/fix/waves/ _against_control), so it says nothing of the batch."""
     tests = spec.get('tests') or []
     ran = _ran(tests)
     screens, intended, file = declared
-    return ([('passed' if known else _declared(status, message, screens, (intended, file)), message) for status, message in ran] or
+    return ([('passed' if known else _declared(status, message, screens, (intended, file)), message)
+             for status, message in ran] or
             [('skipped', (test.get('annotations') or [{}])[0].get('description', '')) for test in tests])
 
 
 def _ran(tests):
     """[(status, message)] of every result of the tests that ran."""
-    return [(result.get('status'), ANSI.sub('', (result.get('error') or {}).get('message', ''))) for test in tests for result in test.get('results') or []]
+    return [(result.get('status'), ANSI.sub('', (result.get('error') or {}).get('message', '')))
+            for test in tests for result in test.get('results') or []]
 
 
 def _verdicts(found):
@@ -123,7 +128,8 @@ class Screens:
     kept (`snapshots`), the same file run_lock copies there after the pass. Never raises; a no-op outside a flow."""
 
     def __init__(self, stream, shots, snapshots, keep=False, every=0.5):
-        self.stream, self.shots, self.snapshots, self.keep, self.every = Path(stream), Path(shots), Path(snapshots), keep, every
+        self.stream, self.shots, self.snapshots, self.keep, self.every = (
+            Path(stream), Path(shots), Path(snapshots), keep, every)
         self.offset, self.buffer = 0, b''
         self.planned, self.outcomes, self.seconds, self.finished = {}, {}, {}, []
         self.halt = threading.Event()
@@ -142,13 +148,13 @@ class Screens:
             self.thread.join(timeout=5)
             self.thread = None
             try: self.read()
-            except Exception: pass
+            except Exception as error: noted('the last read is extra: what was read stays', error)
         return self
 
     def _follow(self):
         while not self.halt.wait(self.every):
             try: self.read()
-            except Exception: pass
+            except Exception as error: noted('one failed read must not stop the following', error)
 
     def read(self):
         """The lines written since the last read, each reported; a line still being written waits for its end."""
@@ -163,7 +169,9 @@ class Screens:
         *lines, self.buffer = self.buffer.split(b'\n')
         for line in lines:
             try: row = json.loads(line)
-            except ValueError: continue
+            except ValueError as error:
+                noted('a result line that is not JSON is left out', error)
+                continue
             if isinstance(row, dict): self.handle(row)
 
     def handle(self, row):
@@ -210,7 +218,8 @@ class Screens:
                 try:
                     kept.parent.mkdir(parents=True, exist_ok=True)
                     shutil.copyfile(source, kept)
-                except OSError:
+                except OSError as error:
+                    noted('a snapshot that cannot be kept is not linked', error)
                     continue
             return f'{self.snapshots.parent.name}/{self.snapshots.name}/{name}'
         return ''

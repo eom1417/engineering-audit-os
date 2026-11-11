@@ -1,5 +1,5 @@
-"""The plan's order (eaos/analysis/planning/cards.py builds the cards and their waves): the plan orderer's steps when it ran in this
-check and they hold, else the rules' waves; plan.json `order` and PLAN/STEPS.md.
+"""The plan's order (eaos/analysis/planning/cards.py builds the cards and their waves): the plan orderer's steps when
+it ran in this check and they hold, else the rules' waves; plan.json `order` and PLAN/STEPS.md.
 """
 from pathlib import Path
 
@@ -66,5 +66,6 @@ def _steps_text(steps, source, ar):
     """PLAN/STEPS.md: who ordered the plan, then each step with why and its cards."""
     lines = ['# ' + ('خطوات الخطة' if ar else 'Plan steps'), '', SOURCE_WORDS[source][1 if ar else 0], '']
     for number, step in enumerate(steps, 1):
-        lines += [f"## {number}. {step['title']}", '', step['why'] or '', '', ', '.join(f'`{t}`' for t in step['tasks']), '']
+        lines += [f"## {number}. {step['title']}", '', step['why'] or '', '',
+                  ', '.join(f'`{t}`' for t in step['tasks']), '']
     return '\n'.join(lines)

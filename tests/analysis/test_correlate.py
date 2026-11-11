@@ -1,9 +1,8 @@
-"""A card stands on its own file and its own evidence (NS30.T1).
+"""A card stands on its own file and its own evidence.
 
-On EAOS itself, 129 of the 130 "two independent engines" cards rested on one project-wide finding: a literal
-repeated across 17 files was counted as a second engine on each of them, and the card listed all 17 files. A group
-finding spread over more than three files is evidence about the group, so it neither joins a file's cluster nor
-lends it a second engine; and a claim about one kind cites only the evidence of that kind.
+A literal repeated across 17 files must not count as a second engine on each of them, nor must the card list all 17
+files. A group finding spread over more than three files is evidence about the group, so it neither joins a file's
+cluster nor lends it a second engine; and a claim about one kind cites only the evidence of that kind.
 """
 import unittest
 
@@ -53,7 +52,7 @@ class EvidenceOfItsKind(unittest.TestCase):
         made = claims.from_engines(sets(finding('F-1', 'codegraph', 'complexity', 'symbol', ['src/m0.py']), over,
                                         finding('F-3', 'jscpd', 'literal_duplication', 'file', ['src/m0.py', 'src/other.py'])))
         complexity = next(c for c in made if c['render']['params']['kind'] == 'complexity')
-        # Self-audit: two engines measuring complexity 1 at store.py were "corroborated"; no value over a threshold, no card.
+        # Two engines measuring complexity 1 at store.py are not "corroborated": no value over a threshold, no card.
         under = dict(over, value={**over['value'], 'measurements': [{'name': 'function.complexity', 'value': 1, 'threshold': 15}]})
         self.assertEqual([c for c in claims.from_engines(sets(finding('F-1', 'codegraph', 'complexity', 'symbol', ['src/m0.py']), under))
                           if c['render']['params']['kind'] == 'complexity'], [])

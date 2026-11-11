@@ -3,7 +3,8 @@ interface every door shares). What they print comes from govern_words.WORDS, in 
 
     eaos rules                                   every rule: in scope, pinned, held or broken where
     eaos rules add "<words>" [--card ID] [--pin] a rule said (for a card, for the batch now, or pinned)
-    eaos rules pin|unpin ID                      pinned for every change, or no longer held (what it touches shown first)
+    eaos rules pin|unpin ID                      pinned for every change, or no longer held (what it touches
+                                                 shown first)
     eaos rules change ID "<words>" [--yes]       its words changed, what it touches shown first
     eaos rules guard ID (--write | --pattern JSON --language L --broken CODE --kept CODE | --test CMD | --detectors D…)
     eaos rules hook on|off [--yes]               the pinned rules on every commit (git's pre-commit hook)
@@ -21,13 +22,16 @@ from .commands import agreed, command, say
 
 def _scope(rule, lang):
     kind = rule['scope']['kind']
-    return words('pinned', lang) if kind == 'pinned' else words(f'{kind}_scope', lang, ref=rule['scope'].get('ref') or '')
+    return (words('pinned', lang) if kind == 'pinned'
+            else words(f'{kind}_scope', lang, ref=rule['scope'].get('ref') or ''))
 
 
 def _show(row, lang):
     mark = '📌' if row['scope']['kind'] == 'pinned' else '  '
-    state = ('❌ ' + ', '.join(row['last_broken']['places'][:3]) if row['last_broken'] and row['broken'] and
-             (not row['held'] or row['held']['at'] < row['last_broken']['at']) else '✅' if row['held'] else '·')
+    state = ('❌ ' + ', '.join(row['last_broken']['places'][:3])
+             if row['last_broken'] and row['broken'] and
+             (not row['held'] or row['held']['at'] < row['last_broken']['at'])
+             else '✅' if row['held'] else '·')
     say(f"{mark} {row['id']:<4} {'' if row['in_scope'] else '(ended) '}{row['words'][:90]}")
     say(f"        {_scope(row, lang)} · {row['said_on']} · {row['guard'][:70]} · {state}")
 
@@ -47,7 +51,9 @@ def rules_command(args, lang):
 def _list(args, lang):
     found = rules.listing(args.project)
     for row in found['rules']: _show(row, lang)
-    guided.box(lang, words('rules', lang, count=len(found['rules']), pinned=found['pinned']) if found['rules'] else words('no_rules', lang),
+    guided.box(lang,
+               words('rules', lang, count=len(found['rules']), pinned=found['pinned']) if found['rules']
+               else words('no_rules', lang),
                commands=['eaos rules add "<…>"', 'eaos rules pin R1', 'eaos check --changed'])
 
 
@@ -58,8 +64,10 @@ def _add(args, lang):
     notes = [words('rule_again', lang, date=row['said_on'], times=row['said'])] if done['repeat'] else []
     if done['looks_like']: notes.append(words('rule_near', lang, ids=', '.join(done['looks_like'])))
     if row['offer_pin']: notes.append(words('rule_offer_pin', lang))
-    guided.box(lang, words('rule_kept', lang, id=row['id'], words=row['words'][:120], scope=_scope(row, lang)), note=notes,
-               commands=[f"eaos rules pin {row['id']}"] if row['offer_pin'] else [f"eaos rules guard {row['id']} --write"])
+    guided.box(lang, words('rule_kept', lang, id=row['id'], words=row['words'][:120], scope=_scope(row, lang)),
+               note=notes,
+               commands=[f"eaos rules pin {row['id']}"] if row['offer_pin']
+               else [f"eaos rules guard {row['id']} --write"])
 
 
 def _change(args, lang):
@@ -73,48 +81,62 @@ def _change(args, lang):
                           commands=['eaos rules hook on', 'eaos rules'])
     if args.action == 'unpin':
         done = rules.unpin(args.project, ident, door='terminal')
-        return guided.box(lang, words('rule_unpinned', lang, id=ident, files=', '.join(done['removed_from']) or '-'), commands=['eaos rules'])
+        return guided.box(lang, words('rule_unpinned', lang, id=ident, files=', '.join(done['removed_from']) or '-'),
+                          commands=['eaos rules'])
     agreed(rules._state(args.project)['project'], f'rule_change_{ident}', words('go_ahead', lang), args.yes)
     done = rules.change(args.project, ident, ' '.join(args.said or []), door='terminal')
-    guided.box(lang, words('rule_kept', lang, id=ident, words=done['rule']['words'][:120], scope=_scope(done['rule'], lang)),
+    guided.box(lang, words('rule_kept', lang, id=ident, words=done['rule']['words'][:120],
+                           scope=_scope(done['rule'], lang)),
                commands=[f'eaos rules guard {ident} --write'])
 
 
 # The guard a person writes on the command line: the first of these options given makes it.
 GIVEN = (('test', lambda a: {'kind': 'test', 'command': shlex.split(a.test)}),
          ('detectors', lambda a: {'kind': 'detector', 'detectors': a.detectors}),
-         ('pattern', lambda a: {'kind': 'pattern', 'language': a.language, 'rule': json.loads(a.pattern), 'message': a.message or '',
+         ('pattern', lambda a: {'kind': 'pattern', 'language': a.language, 'rule': json.loads(a.pattern),
+                                'message': a.message or '',
                                 'examples': {'broken': a.broken or [], 'kept': a.kept or []}}),
          ('none', lambda a: {'kind': 'none', 'why': a.none}))
 
 
 def _guard(args, lang):
     given = next(({**make(args), 'files': args.files or []} for name, make in GIVEN if getattr(args, name)), None)
-    if not given and not args.write: raise ValueError('say the guard (--pattern, --test, --detectors or --none), or --write to have your assistant write it')
+    if not given and not args.write:
+        raise ValueError('say the guard (--pattern, --test, --detectors or --none), '
+                         'or --write to have your assistant write it')
     done = rules.guard(args.project, args.id, given, write=not given, door='terminal')
     now = done['now']
-    guided.box(lang, words('rule_guarded', lang, id=args.id, guard=done['rule']['guard'], status=words(f"status_{now['status']}", lang),
-                           places=', '.join(now['places'][:5])), commands=['eaos rules', 'eaos check --changed'])
+    guided.box(lang, words('rule_guarded', lang, id=args.id, guard=done['rule']['guard'],
+                           status=words(f"status_{now['status']}", lang),
+                           places=', '.join(now['places'][:5])),
+               commands=['eaos rules', 'eaos check --changed'])
 
 
 def _approve(args, lang):
-    """A waiting guard approved by the person: its command (or the guard kept for new words) shown, their yes, then it runs."""
+    """A waiting guard approved by the person: its command (or the guard kept for new words) shown, their yes, then it
+    runs."""
     shown = rules.touches(args.project, args.id)
-    agreed(rules._state(args.project)['project'], f'rule_approve_{args.id}', words('rule_approve', lang, guard=shown['guard']), args.yes)
+    agreed(rules._state(args.project)['project'], f'rule_approve_{args.id}',
+           words('rule_approve', lang, guard=shown['guard']), args.yes)
     done = rules.approve(args.project, args.id, door='terminal')
-    guided.box(lang, words('rule_guarded', lang, id=args.id, guard=done['rule']['guard'], status=words(f"status_{done['now']['status']}", lang),
-                           places=', '.join(done['now']['places'][:5])), commands=['eaos rules'])
+    guided.box(lang, words('rule_guarded', lang, id=args.id, guard=done['rule']['guard'],
+                           status=words(f"status_{done['now']['status']}", lang),
+                           places=', '.join(done['now']['places'][:5])),
+               commands=['eaos rules'])
 
 
 def _hook(args, lang):
     on = args.id != 'off'
-    if on: agreed(rules._state(args.project)['project'], 'rules_hook', rules.hook(args.project, True)['ask_the_person'], args.yes)
+    if on:
+        agreed(rules._state(args.project)['project'], 'rules_hook', rules.hook(args.project, True)['ask_the_person'],
+               args.yes)
     done = rules.hook(args.project, on, agreed=True)
-    guided.box(lang, words('hook_on', lang, hook=done['hook']) if on else words('hook_off', lang), commands=['eaos rules'])
+    guided.box(lang, words('hook_on', lang, hook=done['hook']) if on else words('hook_off', lang),
+               commands=['eaos rules'])
 
 
 def check_or_changed(args):
-    """`eaos check`: the diff-scoped check here and now with --changed (M16.7), else a check queued as always."""
+    """`eaos check`: the diff-scoped check here and now with --changed, else a check queued as always."""
     from .commands import check
     return command(changed)(args) if getattr(args, 'changed', False) else check(args)
 
@@ -125,11 +147,13 @@ def changed(args, lang):
     try: found = rules.changed(args.project, args.base, args.staged, args.hook)
     except Exception as problem:
         if not args.hook: raise
-        print(f'EAOS could not check your rules on this commit ({type(problem).__name__}: {problem}); it goes on.', file=sys.stderr)
+        print(f'EAOS could not check your rules on this commit ({type(problem).__name__}: {problem}); it goes on.',
+              file=sys.stderr)
         return 0
     from ...analysis.rules.held import refusal, unchecked
     for line in refusal(found['rules'], lang): say(f'❌ {line}')
-    for item in unchecked(found['results']): say('⚠️  ' + words('rule_unchecked', lang, id=item['id'], why=item['found'][:200]))
+    for item in unchecked(found['results']):
+        say('⚠️  ' + words('rule_unchecked', lang, id=item['id'], why=item['found'][:200]))
     for problem in found['laws'][:20] if not args.hook else []: say(f"⚠️  {problem['what']}")
     if found['refused']: print(words('changed_broken', lang, count=len(found['rules'])), file=sys.stderr)
     if not args.hook: _changed_box(found, lang)        # git shows what a hook prints: no box, no next command
@@ -137,7 +161,9 @@ def changed(args, lang):
 
 
 def _changed_box(found, lang):
-    held = words('changed_ok', lang, files=len(found['changed']), reached=len(found['reached']), rules=len(found['results']), seconds=found['seconds'])
+    held = words('changed_ok', lang, files=len(found['changed']), reached=len(found['reached']),
+                 rules=len(found['results']), seconds=found['seconds'])
     guided.box(lang, held if not found['refused'] else words('changed_broken', lang, count=len(found['rules'])),
                status='warn' if found['refused'] or found['laws'] else 'ok',
-               note=words('changed_laws', lang, count=len(found['laws'])) if found['laws'] else None, commands=['eaos rules'])
+               note=words('changed_laws', lang, count=len(found['laws'])) if found['laws'] else None,
+               commands=['eaos rules'])

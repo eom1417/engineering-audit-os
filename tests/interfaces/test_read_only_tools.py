@@ -1,8 +1,6 @@
-"""What MCP calls read-only changes nothing, and what changes something is not called read-only: reading a build's file leaves
-the project's state alone, and opening the report, which rebuilds it, is handled as work by the assistants and the Studio."""
+"""What MCP calls read-only changes nothing, and what changes something is not called read-only: opening the report,
+which rebuilds it, is handled as work by the assistants and the run engine."""
 import asyncio
-import contextlib
-import io
 import json
 import os
 import subprocess
@@ -12,11 +10,8 @@ from pathlib import Path
 from unittest import mock
 
 from eaos.core.project import state as project_state
-from eaos.core.system import launch
-from eaos.interfaces import cli
 from eaos.interfaces.mcp_server.govern import every
 from eaos.interfaces.mcp_server.server import build, reading as read_only
-from eaos.interfaces.studio_actions import chat
 from eaos.journeys import agent_tools, guided, handover
 from eaos.pipeline.runners import by_rules
 from eaos.pipeline.stages import SkipStage
@@ -35,7 +30,8 @@ def _called(server, name, **arguments):
 
 
 def _files(root):
-    return {path.relative_to(root).as_posix(): path.read_bytes() for path in root.rglob('*') if path.is_file() and '.git' not in path.parts}
+    return {path.relative_to(root).as_posix(): path.read_bytes()
+            for path in root.rglob('*') if path.is_file() and '.git' not in path.parts}
 
 
 class Home(unittest.TestCase):
@@ -44,7 +40,9 @@ class Home(unittest.TestCase):
         self.addCleanup(scratch.cleanup)
         self.root = Path(scratch.name)
         home = self.root / 'home'
-        patcher = mock.patch.dict(os.environ, {'EAOS_HOME': str(home), 'EAOS_OUTPUT': str(self.root / 'out'), 'EAOS_ASSISTANT': 'none'})
+        patcher = mock.patch.dict(os.environ,
+                                  {'EAOS_HOME': str(home), 'EAOS_OUTPUT': str(self.root / 'out'),
+                                   'EAOS_ASSISTANT': 'none'})
         patcher.start()
         self.addCleanup(patcher.stop)
         self.home = home
@@ -52,53 +50,22 @@ class Home(unittest.TestCase):
         self.project.mkdir()
         (self.project / 'app.py').write_text('print(1)\n', encoding='utf-8')
         for argv in (('init', '-q', '-b', 'main'), ('add', '-A'), ('commit', '-qm', 'first')):
-            subprocess.run(['git', '-C', str(self.project), '-c', 'user.name=t', '-c', 'user.email=t@t', *argv], check=True, capture_output=True)
+            subprocess.run(['git', '-C', str(self.project), '-c', 'user.name=t', '-c', 'user.email=t@t', *argv],
+                           check=True, capture_output=True)
         self.server = build(every)
 
     def checked(self):
-        with mock.patch.dict(by_rules.RUNNERS, engines=_no_engines, architecture=_no_engines), mock.patch.object(guided, 'tools_for_check', return_value={}):
+        with mock.patch.dict(by_rules.RUNNERS, engines=_no_engines, architecture=_no_engines), mock.patch.object(guided,
+            'tools_for_check', return_value={}):
             agent_tools.state_of(str(self.project))
             agent_tools.choose_branch('main', str(self.project), 'the work goes on here')
             agent_tools._audit_job(str(self.project), {}, None)
 
     def _everything_but_the_journal(self):
-        return {f'{root.name}/{name}': data for root in (self.project, self.home, self.root / 'out') for name, data in _files(root).items()
+        return {f'{root.name}/{name}': data
+                for root in (self.project, self.home, self.root / 'out')
+                for name, data in _files(root).items()
                 if not name.endswith('journal.jsonl')}
-
-
-class ReadingABuildsFile(Home):
-    def test_a_project_never_started_is_answered_and_nothing_is_made(self):
-        before = _files(self.project)
-        answer = _called(self.server, 'build_read', path='app.py', project=str(self.project))
-        self.assertIn('no milestone is open', answer['error'])
-        self.assertIsNone(project_state.load(self.project), 'no state is made by reading')
-        self.assertEqual(_files(self.project), before)
-
-    def test_a_folder_not_there_is_not_made(self):
-        missing = self.root / 'not-there'
-        self.assertIn('error', _called(self.server, 'build_read', path='app.py', project=str(missing)))
-        self.assertFalse(missing.exists())
-
-    def test_a_checked_project_keeps_its_state_byte_for_byte_and_never_turns_into_a_build(self):
-        state = agent_tools.state_of(str(self.project))
-        project_state.write(state)
-        record = Path(state['workspace']) / 'state.json'
-        before = record.read_bytes()
-        self.assertIn('no milestone is open', _called(self.server, 'build_read', path='app.py', project=str(self.project))['error'])
-        self.assertEqual(record.read_bytes(), before)
-        self.assertNotIn('mode', json.loads(before))
-
-    def test_a_file_of_the_open_build_is_still_read(self):
-        copy = self.root / 'copy'
-        copy.mkdir()
-        (copy / 'made.py').write_text('x = 1\n', encoding='utf-8')
-        state = agent_tools.state_of(str(self.project))
-        project_state.write({**state, 'mode': 'build', 'open_build': {'root': str(copy)}})
-        record = Path(state['workspace']) / 'state.json'
-        before = record.read_bytes()
-        answer = _called(self.server, 'build_read', path='made.py', project=str(self.project))
-        self.assertEqual((answer['lines'], record.read_bytes()), (1, before))
-        self.assertIn('x = 1', answer['text'])
 
 
 class OpeningTheReport(Home):
@@ -109,7 +76,8 @@ class OpeningTheReport(Home):
         self.assertFalse(hints.open_world_hint)
 
     def test_it_rewrites_the_page_and_saves_the_state_which_is_why_it_is_not_reading(self):
-        with mock.patch.dict(by_rules.RUNNERS, engines=_no_engines, architecture=_no_engines), mock.patch.object(guided, 'tools_for_check', return_value={}):
+        with mock.patch.dict(by_rules.RUNNERS, engines=_no_engines, architecture=_no_engines), mock.patch.object(guided,
+            'tools_for_check', return_value={}):
             state = agent_tools.state_of(str(self.project))
             agent_tools.choose_branch('main', str(self.project), 'the work goes on here')
             agent_tools._audit_job(str(self.project), {}, None)
@@ -121,12 +89,11 @@ class OpeningTheReport(Home):
         answer = _called(self.server, 'open_report', show=False, project=str(self.project))
         self.assertTrue(Path(answer['report_for_people']).is_file(), 'the page is made again')
         self.assertFalse(answer['opened_in_browser'], 'and opened only when asked')
-        self.assertNotEqual(json.loads(record.read_text(encoding='utf-8'))['updated'], 'an older stamp', 'the state is saved')
+        self.assertNotEqual(json.loads(record.read_text(encoding='utf-8'))['updated'], 'an older stamp',
+                            'the state is saved')
 
-    def test_the_tools_the_server_calls_reading_leave_it_out_and_keep_build_read(self):
-        reading = read_only()
-        self.assertNotIn('open_report', reading)
-        self.assertIn('build_read', reading)
+    def test_the_tools_the_server_calls_reading_leave_it_out(self):
+        self.assertNotIn('open_report', read_only())
 
     def test_what_settles_the_project_as_it_answers_does_not_call_itself_read_only(self):
         for name in ('status', 'menu', 'plan'):
@@ -134,15 +101,11 @@ class OpeningTheReport(Home):
                 self.assertFalse(_tool(self.server, name).annotations.read_only_hint)
                 self.assertFalse(_tool(self.server, name).annotations.destructive_hint, 'it removes nothing')
 
-    def test_the_studio_still_answers_them_at_once_and_its_conversation_still_reaches_them(self):
-        from eaos.interfaces.studio_actions.centre import reading_tools
+    def test_the_run_engine_still_answers_them_at_once(self):
+        from eaos.interfaces.runs import reading_tools
         for name in ('status', 'menu', 'plan'):
             with self.subTest(tool=name):
                 self.assertIn(name, reading_tools())
-                self.assertIn(name, chat.READ_TOOLS)
-
-    def test_the_conversation_inside_the_studio_cannot_reach_it(self):
-        self.assertNotIn('open_report', chat.READ_TOOLS)
 
     def test_a_call_of_it_counts_as_a_step_in_the_handover(self):
         self.assertNotIn('open_report', handover.READING)
@@ -154,7 +117,9 @@ class AskingWhereTheProjectIs(Home):
     def test_on_a_settled_project_it_changes_no_state_no_project_file_and_no_report(self):
         self.checked()
         record = Path(project_state.load(self.project)['workspace']) / 'state.json'
-        record.write_text(json.dumps({**json.loads(record.read_text(encoding='utf-8')), 'updated': 'an older stamp'}), encoding='utf-8')   # a save would change it, even within one second
+        # a save would change it, even within one second
+        record.write_text(json.dumps({**json.loads(record.read_text(encoding='utf-8')), 'updated': 'an older stamp'}),
+                          encoding='utf-8')
         before = self._everything_but_the_journal()
         for _ in range(2):
             answer = _called(self.server, 'status', project=str(self.project))
@@ -168,49 +133,22 @@ class AskingWhereTheProjectIs(Home):
         self.assertEqual(_called(self.server, 'status', project=str(self.project))['branch'], 'main')
 
     def test_the_person_can_answer_only_a_branch_question_it_recorded_having_asked(self):
-        for argv in (('checkout', '-qb', 'feature'), ('commit', '-q', '--allow-empty', '-m', 'more'), ('checkout', '-q', 'main')):
-            subprocess.run(['git', '-C', str(self.project), '-c', 'user.name=t', '-c', 'user.email=t@t', *argv], check=True, capture_output=True)
+        for argv in (('checkout', '-qb', 'feature'), ('commit', '-q', '--allow-empty', '-m', 'more'),
+                     ('checkout', '-q', 'main')):
+            subprocess.run(['git', '-C', str(self.project), '-c', 'user.name=t', '-c', 'user.email=t@t', *argv],
+                           check=True, capture_output=True)
         (self.project / 'more.py').write_text('x = 1\n', encoding='utf-8')
         subprocess.run(['git', '-C', str(self.project), 'checkout', '-q', 'feature'], check=True, capture_output=True)
         subprocess.run(['git', '-C', str(self.project), 'add', '-A'], check=True, capture_output=True)
-        subprocess.run(['git', '-C', str(self.project), '-c', 'user.name=t', '-c', 'user.email=t@t', 'commit', '-qm', 'more'], check=True, capture_output=True)
+        subprocess.run(['git', '-C', str(self.project), '-c', 'user.name=t', '-c', 'user.email=t@t', 'commit', '-qm',
+                        'more'], check=True, capture_output=True)
         subprocess.run(['git', '-C', str(self.project), 'checkout', '-q', 'main'], check=True, capture_output=True)
         with mock.patch('eaos.journeys.agent_tools.where.ANSWER_SECONDS', 0):
-            self.assertEqual(_called(self.server, 'choose_branch', branch='feature', person_said='feature', project=str(self.project))['status'], 'needs_the_person')
+            self.assertEqual(_called(self.server, 'choose_branch', branch='feature', person_said='feature',
+                                     project=str(self.project))['status'], 'needs_the_person')
             self.assertEqual(_called(self.server, 'status', project=str(self.project))['status'], 'needs_branch')
-            self.assertEqual(_called(self.server, 'choose_branch', branch='feature', person_said='feature', project=str(self.project))['status'], 'chosen')
-
-
-class OpeningTheStudio(Home):
-    """It starts a server, or stops one to replace it, so MCP does not call it read-only; all it does stays as it was."""
-    RUNNING = {'port': 9, 'token': 't' * 32}
-
-    def test_mcp_does_not_call_it_read_only_nor_promise_its_updates_only_add(self):
-        hints = _tool(self.server, 'open_studio').annotations
-        self.assertFalse(hints.read_only_hint)
-        self.assertIsNone(hints.destructive_hint, 'it can replace a running server: by MCP, false would say it only adds')
-        self.assertFalse(hints.open_world_hint)
-        self.assertNotIn('open_studio', read_only())
-
-    def test_the_tool_still_starts_it_and_answers_as_it_did(self):
-        with mock.patch.object(launch, 'start', return_value=(self.RUNNING, True)) as started, mock.patch.object(launch, '_open', return_value=False):
-            answer = _called(self.server, 'open_studio', show=False, project=str(self.project))
-        started.assert_called_once()
-        self.assertEqual(sorted(answer), ['checked', 'live', 'opened_in_browser', 'started', 'studio', 'what_now'])
-        self.assertEqual((answer['studio'], answer['started'], answer['opened_in_browser']), (launch.url_of(self.RUNNING), True, False))
-
-    def test_the_terminal_still_opens_it_in_the_background_and_prints_its_address(self):
-        with mock.patch('eaos.core.toolchain.prepare'), mock.patch('eaos.core.toolchain.ready', return_value=True), \
-                mock.patch.object(launch, 'start', return_value=(self.RUNNING, False)), mock.patch.object(launch, '_open', return_value=False), \
-                contextlib.redirect_stdout(io.StringIO()) as printed:
-            code = cli.main(['studio', str(self.project), '--background', '--no-open'])
-        self.assertEqual((code, printed.getvalue().strip()), (0, f'EAOS Studio: {launch.url_of(self.RUNNING)}'))
-
-    def test_the_terminal_still_serves_it_in_the_foreground_by_default(self):
-        with mock.patch('eaos.interfaces.studio_server.server.run_foreground', return_value=0) as served:
-            self.assertEqual(cli.main(['studio', str(self.project), '--no-open']), 0)
-        served.assert_called_once()
-        self.assertEqual((served.call_args.args[0], served.call_args.kwargs['show']), (str(self.project), False))
+            self.assertEqual(_called(self.server, 'choose_branch', branch='feature', person_said='feature',
+                                     project=str(self.project))['status'], 'chosen')
 
 
 if __name__ == '__main__':

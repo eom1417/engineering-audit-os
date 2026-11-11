@@ -4,19 +4,21 @@ branch chosen.
 
 from ...core.project import branches, jobs
 from ...core.project.state import waiting_batch
-from .project import PUBLISHERS, _branch_exists, _git, fresh, publish, report_of, save_after_report, same_code, save, tip
+from .project import (PUBLISHERS, _branch_exists, _git, fresh, publish, report_of, save_after_report, same_code,
+                      save, tip)
 from ...core.system.clock import now
 
 
 def close_batch(state, status, why='', via='assistant'):
     """Close the open batch without handing anything over: its copy is removed, it is recorded in `waves` with `status`
-    (abandoned, superseded) and `why`; the ledger and the Studio follow, so its cards can be picked again at once."""
+    (abandoned, superseded) and `why`; the ledger and the records follow, so its cards can be picked again at once."""
     with fresh(state):
         wave = state.get('open_wave')
         if not wave: return None
         record = {'number': wave['number'], 'base': wave.get('base'), 'cards': wave['cards'], 'kept': {},
-                  'failed': wave.get('failed') or {} if status == 'abandoned' else {}, 'branch': None, 'status': status, 'via': via,
-                  'keys': wave.get('keys') or {}, **{k: wave[k] for k in ('deliver_as', 'merge_into', 'base_branch') if k in wave}}
+                  'failed': wave.get('failed') or {} if status == 'abandoned' else {}, 'branch': None,
+                  'status': status, 'via': via, 'keys': wave.get('keys') or {},
+                  **{k: wave[k] for k in ('deliver_as', 'merge_into', 'base_branch') if k in wave}}
         if why: record['why'] = why
         state.setdefault('waves', []).append(record)
         state.pop('open_wave', None)
@@ -26,7 +28,8 @@ def close_batch(state, status, why='', via='assistant'):
 
 
 class StaleBatch(Exception):
-    """A change stopped because the batch no longer fits. Leaving lanes.changing this way saves nothing. `answer`: the refusal."""
+    """A change stopped because the batch does not fit. Leaving lanes.changing this way saves nothing. `answer`:
+    the refusal."""
 
     def __init__(self, answer):
         super().__init__(answer['why'])
@@ -34,32 +37,35 @@ class StaleBatch(Exception):
 
 
 def why_stale(state):
-    """Why the open batch no longer fits, or None, and None under its own work (a status call retired a batch mid hand-over:
-    KeyError 'open_wave', two hours lost). It only says: `status` reports this, and retire_stale_batch acts on it."""
+    """Why the open batch does not fit, or None, and None under its own work (retiring a batch mid hand-over would
+    fail with KeyError 'open_wave'). It only says: `status` reports this, and retire_stale_batch acts on it."""
     wave = state.get('open_wave')
     if not wave or jobs.fixing(state['project']): return None
     return _no_longer_fits(state, wave)
 
 
 def _no_longer_fits(state, wave):
-    """Its base is not the code of the branch EAOS works on now (a commit of the person's came after it), or the check on
-    record numbered its cards again (a card id of the batch is another problem now); else None."""
+    """Its base is not the code of the branch EAOS works on now (a commit of the person's came after it), or the
+    check on record numbered its cards again (a card id of the batch is another problem now); else None."""
     now = tip(state)
-    built_on = wave.get('source_commit') or wave.get('base')         # a batch continued on a work branch: its branch's commit
+    # a batch continued on a work branch: its branch's commit
+    built_on = wave.get('source_commit') or wave.get('base')
     if now and not same_code(state, built_on, now) and not wave.get('kept'):    # kept changes go on: their merge says
-        return f"the code moved on since the batch opened (it was built on {str(built_on)[:12]}, the branch is at {now[:12]})"
+        return (f"the code moved on since the batch opened (it was built on {str(built_on)[:12]}, "
+                f"the branch is at {now[:12]})")
     return _renumbered(state, wave)
 
 
 def stale_refusal(state):
-    """What a tool or job that changes the open batch answers when it no longer fits, the batch as it was; else None. Refusing
-    removes nothing, so another job running hides nothing here, and a batch's own job can ask."""
+    """What a tool or job that changes the open batch answers when it does not fit, the batch as it was; else
+    None. Refusing removes nothing, so another job running hides nothing here, and a batch's own job can ask."""
     wave = state.get('open_wave')
     if not (wave and (why := _no_longer_fits(state, wave))): return None
     return {'status': 'stale_batch', 'batch': wave['number'], 'why': why,
-            'what_now': 'The batch is as it was: it no longer fits, so it takes no change. fix_start closes it and opens the next '
-                        'one; fix_abandon only closes it; its cards can be picked again. A helper of this batch closes nothing: '
-                        'it says so and ends its turn. A job still running ends first: fix_start closes nothing under it.'}
+            'what_now': 'The batch is as it was: it no longer fits, so it takes no change. fix_start closes it and '
+                        'opens the next one; fix_abandon only closes it; its cards can be picked again. A helper of '
+                        'this batch closes nothing: it says so and ends its turn. A job still running ends first: '
+                        'fix_start closes nothing under it.'}
 
 
 def refuse_if_stale(state):
@@ -67,14 +73,15 @@ def refuse_if_stale(state):
 
 
 def retire_stale_batch(state):
-    """The open batch closed as superseded, with why, when it no longer fits; its copy goes with it. Only what the person
-    asked to work does this, `fix_start` and every check: reading where things stand removes nothing. The record, or None."""
+    """The open batch closed as superseded, with why, when it does not fit; its copy goes with it. Only what the
+    person asked to work does this, `fix_start` and every check: reading where things stand removes nothing. The
+    record, or None."""
     why = why_stale(state)
     return close_batch(state, 'superseded', why, via='eaos') if why else None
 
 
 def _renumbered(state, wave):
-    """Why the open batch no longer fits when the check on record numbered its cards again; else None."""
+    """Why the open batch does not fit when the check on record numbered its cards again; else None."""
     if not (wave.get('keys') and (report_of(state) / 'plan.json').is_file()): return None
     from ..fix.waves import plan as read_plan
     try: keys = {t['id']: t['key'] for t in read_plan(report_of(state))['tasks']}
@@ -88,7 +95,8 @@ def reconcile(state, tidy=True):
     """Bring the state up to what git says, however the person or their assistant merged: a batch whose branch (or
     whose last commit) is in the current branch is accepted; one whose branch is gone without that is undone. With
     `tidy`, an accepted batch's branch is deleted: what only reads where things stand passes False. When something
-    changed, the ledger and REPORT.html follow at once, with no lock held. `state` itself becomes what is on disk. The changed batches."""
+    changed, the ledger and the report follow at once, with no lock held. `state` itself becomes what is on disk.
+    The changed batches."""
     if not (tidy or _something_to_settle(state)): return []     # a read with nothing to settle writes nothing
     with fresh(state):
         changed = [wave for wave in state.get('waves') or [] if _settle(state, wave, tidy)]
@@ -161,9 +169,11 @@ def merge(state, wave, into=None, delete_after=True):
 
 def _merge_choices(state, wave, into, delete_after):
     """Where the batch goes and whether its branch stays, set on it and on every batch continued on its branch."""
-    for each in [w for w in state.get('waves') or [] if w.get('status') == 'applied' and w.get('branch') == wave['branch']] + [wave]:
-        if into or wave.get('merge_into'): each['merge_into'] = into or wave['merge_into']     # batches continued on one branch
-        if not delete_after: each['keep_branch'] = True                                       # go in together
+    for each in [w for w in state.get('waves') or []
+                 if w.get('status') == 'applied' and w.get('branch') == wave['branch']] + [wave]:
+        # batches continued on one branch go in together
+        if into or wave.get('merge_into'): each['merge_into'] = into or wave['merge_into']
+        if not delete_after: each['keep_branch'] = True
 
 
 def _merge_elsewhere(state, wave, into):
@@ -177,11 +187,13 @@ def _merge_elsewhere(state, wave, into):
     else:
         tree = _git(project, 'merge-tree', '--write-tree', before, wave_tip)
         if tree.returncode: return 'conflict'
-        made = _git(project, '-c', 'user.name=EAOS', '-c', 'user.email=eaos@localhost', 'commit-tree', tree.stdout.split()[0],
+        made = _git(project, '-c', 'user.name=EAOS', '-c', 'user.email=eaos@localhost', 'commit-tree',
+                    tree.stdout.split()[0],
                     '-p', before, '-p', wave_tip, '-m', f"Merge {wave['branch']}: EAOS batch {wave.get('number')}")
         if made.returncode: return 'conflict'
         after = made.stdout.strip()
-    if _git(project, 'update-ref', '-m', f"EAOS: merge {wave['branch']}", ref, after, before).returncode: return 'conflict'
+    if _git(project, 'update-ref', '-m', f"EAOS: merge {wave['branch']}", ref, after,
+            before).returncode: return 'conflict'
     save(state)         # the choices made for this merge: reconcile goes on from what is on disk
     reconcile(state)
     return 'merged'
@@ -190,7 +202,8 @@ def _merge_elsewhere(state, wave, into):
 def choose(state, name, said=None, via=None):
     """Work on the branch `name` from now on: what this branch had (its check, run, batches) is kept aside, and what
     `name` had before comes back. A branch only on origin gets its local branch, at the same commit. The new state.
-    `via` (the assistant, the Studio): the person answered the branch question there, in the words `said`; the answer is
+    `via` (the assistant or the interface): the person answered the branch question there,
+    in the words `said`; the answer is
     kept with the state's questions, whoever asked."""
     if via: _keep_answer(state, name, said, via)
     if state.get('branch') == name: return state
@@ -209,8 +222,8 @@ def choose(state, name, said=None, via=None):
 
 def _keep_answer(state, name, said, via):
     """The person's answer to the branch question, kept with the state's questions."""
-    state.setdefault('questions', []).append({'id': 'branch', 'kind': 'choice', 'answer': name, 'said': str(said or '')[:300] or None,
-                                              'via': via})
+    state.setdefault('questions', []).append({'id': 'branch', 'kind': 'choice', 'answer': name,
+                                              'said': str(said or '')[:300] or None, 'via': via})
 
 
 def _finished(state, project, name):
@@ -231,7 +244,8 @@ def _local_branch(project, name):
 
 
 def _first_choice(state, project, name):
-    """The first choice of a branch: work done before it was on the branch checked out then. True when that is `name`."""
+    """The first choice of a branch: work done before it was on the branch checked out then. True when that is
+    `name`."""
     had = any(k in state for k in branches.KEYS)
     state['branch'] = state['home_branch'] = (branches.checked_out(project) if had else None) or name
     return state['branch'] == name

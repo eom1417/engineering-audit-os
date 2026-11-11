@@ -1,5 +1,6 @@
-"""Running the person's AI assistant: its adapter is a command (eaos/ai/assistant/claude_adapter.py, ai/assistant/codex_adapter.py)
-that reads JSON messages on stdin and answers JSON on stdout. No key, no endpoint, no shell."""
+"""Running the person's AI assistant: its adapter is a command (eaos/ai/assistant/claude_adapter.py,
+ai/assistant/codex_adapter.py) that reads JSON messages on stdin and answers JSON on stdout. No key, no endpoint, no
+shell."""
 import json
 import os
 import re
@@ -7,6 +8,7 @@ import subprocess
 import tempfile
 
 from ...core.system.process import wait
+from ...core.system.errors import noted
 
 
 def _int_in(value,low,high):
@@ -21,8 +23,8 @@ def _request(messages,small,reads,deep):
 
 
 def _reason(err):
-    """The adapter's own one-line reason (serve() in claude_adapter.py writes "<name> adapter: <why>"), never the rest of
-    its stderr (the assistant's stream); the cause stayed hidden behind "exited unsuccessfully" before."""
+    """The adapter's own one-line reason (serve() in claude_adapter.py writes "<name> adapter: <why>"), never the rest
+    of its stderr (the assistant's stream), so the cause is not hidden behind "exited unsuccessfully"."""
     err.seek(max(0,os.fstat(err.fileno()).st_size-4096))
     said=[line for line in err.read().decode('utf-8','replace').splitlines() if re.match(r'^\w+ adapter: ',line)]
     return f': {said[-1][:300]}' if said else '; no raw stderr exposed'
@@ -38,7 +40,8 @@ class Provider:
         if not _int_in(self.limit,1024,8_000_000):raise ValueError('Invalid provider response limit')
         if self.kind!='command':raise ValueError('Unknown provider kind')
         argv=config.get('argv')
-        if not isinstance(argv,list) or not argv or any(not isinstance(x,str) or not x for x in argv):raise ValueError('Provider argv must be a nonempty string array; shell is never used')
+        if not isinstance(argv, list) or not argv or any(not isinstance(x, str) or not x for x in argv):
+            raise ValueError('Provider argv must be a nonempty string array; shell is never used')
 
     def identity(self):
         # Cache identity omits secret values; changing model/endpoint/adapter changes jobs.
@@ -46,18 +49,23 @@ class Provider:
 
     def complete(self,messages,small=False,stage=None,reads=None,deep=False):
         # `reads`: a folder the assistant may read and search itself (read only); `deep`: it thinks as long as it needs
-        # `stage`: what asks, so its use is counted under it in config['usage'] (eaos/core/system/usage.py), when the check names a file
+        # `stage`: what asks, so its use is counted under it in config['usage'] (eaos/core/system/usage.py), when the
+        # check names a file.
         # A user-selected adapter receives JSON on stdin and emits JSON on stdout; it may work as long as it needs
         # while it writes anything (its progress on stderr counts): only silence for STUCK seconds ends it.
         # CWD is empty so repository code cannot be imported accidentally by the adapter.
-        with tempfile.TemporaryDirectory(prefix='eaos-adapter-') as cwd, tempfile.TemporaryFile() as out, tempfile.TemporaryFile() as err:
+        with tempfile.TemporaryDirectory(prefix='eaos-adapter-') as cwd, \
+                tempfile.TemporaryFile() as out, tempfile.TemporaryFile() as err:
             try:
-                counted={'EAOS_MODEL_USAGE':str(self.config['usage']),'EAOS_MODEL_STAGE':stage or 'other'} if self.config.get('usage') else {}
-                p=subprocess.Popen(self.config['argv'],stdin=subprocess.PIPE,stdout=out,stderr=err,cwd=cwd,shell=False,start_new_session=(os.name=='posix'),  # nosemgrep: python.lang.security.audit.dangerous-subprocess-use-audit -- the assistant command the person configured, a list argv, shell=False
+                counted={'EAOS_MODEL_USAGE':str(self.config['usage']),
+                         'EAOS_MODEL_STAGE':stage or 'other'} if self.config.get('usage') else {}
+                # nosemgrep: python.lang.security.audit.dangerous-subprocess-use-audit -- the assistant command the person configured, a list argv, shell=False
+                p=subprocess.Popen(self.config['argv'],stdin=subprocess.PIPE,stdout=out,stderr=err,cwd=cwd,shell=False,
+                                   start_new_session=(os.name=='posix'),
                                  env={**os.environ,**counted})
                 try:
                     with p.stdin:p.stdin.write(_request(messages,small,reads,deep))
-                except BrokenPipeError:pass   # it ended before reading: its exit code says why
+                except BrokenPipeError as error:noted('it ended before reading: its exit code says why', error)
                 wait(p,(out,err))
             except OSError:raise ValueError('Model adapter could not start; no raw stderr exposed') from None
             if p.returncode:raise ValueError('Model adapter exited unsuccessfully'+_reason(err))

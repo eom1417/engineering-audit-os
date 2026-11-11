@@ -7,12 +7,15 @@ from .workspace import read, write, safe_file, digest
 from ...core.system.clock import now
 
 # Preserve line numbering; obvious credential values are removed before provider access.
-SECRET=re.compile(r'''(?i)(\b[\w-]*(?:api[_-]?key|secret|password|access[_-]?token|authorization)[\w-]*["']?\s*[=:]\s*)("(?:\\.|[^"\\\r\n])*"|'(?:\\.|[^'\\\r\n])*'|[^\r\n,;}]+)''')
+SECRET=re.compile(r'''(?i)(\b[\w-]*(?:api[_-]?key|secret|password|access[_-]?token|'''
+                  r'''authorization)[\w-]*["']?\s*[=:]\s*)'''
+                  r'''("(?:\\.|[^"\\\r\n])*"|'(?:\\.|[^'\\\r\n])*'|[^\r\n,;}]+)''')
 TOKEN=re.compile(r'\b(?:sk-[A-Za-z0-9_-]{16,}|gh[pousr]_[A-Za-z0-9]{20,}|AKIA[A-Z0-9]{16})\b')
 URL_CREDENTIALS=re.compile(r'(?i)([a-z][a-z0-9+.-]*://)[^/\s:@]+:[^@\s]+@')
 
 def redact(text):
-    text=re.sub(r'-----BEGIN [^-]*PRIVATE KEY-----[\s\S]*?-----END [^-]*PRIVATE KEY-----',lambda m:'[REDACTED PRIVATE KEY]'+('\n'*m.group().count('\n')),text)
+    text=re.sub(r'-----BEGIN [^-]*PRIVATE KEY-----[\s\S]*?-----END [^-]*PRIVATE KEY-----',
+                lambda m:'[REDACTED PRIVATE KEY]'+('\n'*m.group().count('\n')),text)
     text=URL_CREDENTIALS.sub(lambda m:m.group(1)+'[REDACTED CREDENTIALS]@',text)
     return TOKEN.sub('[REDACTED TOKEN]',SECRET.sub(lambda m:m.group(1)+'[REDACTED VALUE]',text))
 
@@ -38,16 +41,28 @@ class Context:
 
     def source(self,path,start,end,persist=True):
         lines=self.lines(path)
-        if type(start) is not int or type(end) is not int or not 1<=start<=end<=len(lines):raise ValueError('Invalid requested source range')
+        if type(start) is not int or type(end) is not int or not 1<=start<=end<=len(lines):
+            raise ValueError('Invalid requested source range')
         raw=''.join(lines[start-1:end])
         # Redact before slicing: a requested range can start inside a multiline key.
         # Redaction preserves line boundaries; evidence hashes still use raw source.
         clean=''.join(redact(''.join(lines)).splitlines(keepends=True)[start-1:end])
-        ref={'path':path,'start_line':start,'end_line':end,'sha256':self.files[path]['sha256'],'range_sha256':digest(raw.encode())}
+        ref={'path':path,'start_line':start,'end_line':end,'sha256':self.files[path]['sha256'],
+             'range_sha256':digest(raw.encode())}
         eid='SRC-'+digest(json.dumps(ref,sort_keys=True).encode())[:20]
-        block={'evidence_id':eid,'path':path,'start_line':start,'end_line':end,'redacted':raw!=clean,'source':'\n'.join(f'{i}: {line}' for i,line in enumerate(clean.splitlines(),start))}
-        if len(json.dumps(block,ensure_ascii=False))>self.budget//2:raise ValueError('Requested range exceeds context allocation; narrow line range')
-        self.evidence[eid]={'id':eid,'kind':'source','location':f'{path}:{start}-{end}','revision':self.state['revision'],'observed_at':now('auto'),'observation':'Source range made available to the model; semantic conclusions are separate.','method':'source_range_capture','limitations':'Static source only. '+('Credential-like values redacted; inspect sanitized behavior separately.' if raw!=clean else 'Not proof of runtime behavior.'),'source_ref':ref}
+        block={'evidence_id':eid,'path':path,'start_line':start,'end_line':end,'redacted':raw!=clean,
+               'source':'\n'.join(f'{i}: {line}' for i,line in enumerate(clean.splitlines(),start))}
+        if len(json.dumps(block,ensure_ascii=False))>self.budget//2:
+            raise ValueError('Requested range exceeds context allocation; narrow line range')
+        self.evidence[eid]={'id':eid,'kind':'source','location':f'{path}:{start}-{end}',
+                            'revision':self.state['revision'],'observed_at':now('auto'),
+                            'observation':'Source range made available to the model; '
+                            'semantic conclusions are separate.',
+                            'method':'source_range_capture',
+                            'limitations':'Static source only. '+('Credential-like values redacted; '
+                                                                  'inspect sanitized behavior separately.'
+                                                                  if raw!=clean else 'Not proof of runtime behavior.'),
+                            'source_ref':ref}
         self.seen.add(eid)
         if persist:write(self.run/'evidence.json',list(self.evidence.values()))
         return block
@@ -58,13 +73,9 @@ class Context:
         deferred=[]
         if max_files is not None and max_files < len(paths):
             paths,deferred=paths[:max_files],paths[max_files:]
-        omissions=[{'path':path,'reason':'Deferred by the declared attention budget; this file was not semantically reviewed'} for path in deferred]
+        omissions=[{'path':path,'reason':'Deferred by the declared attention budget; this file was not semantically '
+                    'reviewed'} for path in deferred]
         return _stream(self,paths,omissions),omissions
-
-    def verify_refs(self,value):
-        errors=[]
-        _walk_refs(value,self.evidence,errors)
-        return errors
 
 
 def _ordered(paths,order,files):
@@ -79,7 +90,8 @@ def _readable(context,path,omissions):
     item=context.files[path]
     if item['capture']!='hashed':omissions.append({'path':path,'reason':item['capture']});return None
     try:lines=context.lines(path)
-    except (ValueError,UnicodeError,OSError):omissions.append({'path':path,'reason':'Sensitive, binary, unreadable or changed source'});return None
+    except (ValueError,UnicodeError,OSError):
+        omissions.append({'path':path,'reason':'Sensitive, binary, unreadable or changed source'});return None
     if not lines:omissions.append({'path':path,'reason':'empty file; metadata only'});return None
     return lines
 
@@ -98,7 +110,9 @@ def _file_blocks(context,path,lines,omissions):
     while start<=len(lines):
         end=_span_end(lines,start,context.budget//5)
         if end==start:
-            omissions.append({'path':path,'start_line':start,'end_line':start,'reason':'Single line exceeds budget; explicit alternate inspection required'});start+=1;continue
+            omissions.append({'path':path,'start_line':start,'end_line':start,
+                              'reason':'Single line exceeds budget; explicit alternate inspection required'})
+            start+=1;continue
         block=context.source(path,start,end-1,persist=False)
         yield block,len(json.dumps(block,ensure_ascii=False))
         start=end
@@ -116,17 +130,3 @@ def _stream(context,paths,omissions):
             batch.append(block);size+=amount
     write(context.run/'evidence.json',list(context.evidence.values()))
     if batch:yield batch
-
-
-def _valid_ids(ids,evidence):
-    return isinstance(ids,list) and all(isinstance(e,str) and e in evidence for e in ids)
-
-
-def _walk_refs(obj,evidence,errors):
-    """An error for every `evidence_ids` in `obj`, at any depth, that names an id the context does not hold."""
-    if isinstance(obj,dict):
-        for k,v in obj.items():
-            if k=='evidence_ids' and not _valid_ids(v,evidence):errors.append('Unknown or invalid evidence_ids')
-            _walk_refs(v,evidence,errors)
-    elif isinstance(obj,list):
-        for item in obj:_walk_refs(item,evidence,errors)

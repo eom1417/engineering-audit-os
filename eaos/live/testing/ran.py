@@ -1,4 +1,4 @@
-"""What ran of the project while EAOS ran it (M13.2): its own functions and lines run by its tests, by its server while
+"""What ran of the project while EAOS ran it: its own functions and lines run by its tests, by its server while
 the pages were opened, and in the browser, so code reached but never run can be told from code that runs.
 
 Each run leaves one record, <out>/live/ran-<kind>.json (`tests`, `server`, `browser`):
@@ -23,6 +23,7 @@ import eaos
 from ...core.contracts.vocabulary import classify
 from ...core.project.workspace import write
 from ...core.system.files import read_json
+from ...core.system.errors import noted
 
 PRELOAD = Path(eaos.__path__[0]).resolve() / 'templates/coverage/exit-on-term.cjs'
 INTERPRETERS = {'python', 'python3', 'py'}
@@ -32,7 +33,7 @@ RC = '.eaos-ran-coveragerc'
 def own(path, root):
     """`path` relative to the project root when it is one of its own source files, else None. A file the run made
     and removed is not one (Vite bundles its config into a `vite.config.*.timestamp-*.mjs` beside it, runs it and
-    deletes it: a server's record named it as the project's)."""
+    deletes it: a server's record would name it as the project's)."""
     name = str(path)
     if name.startswith('file://'): name = name[len('file://'):]
     root = Path(root).resolve().as_posix().rstrip('/') + '/'
@@ -99,7 +100,9 @@ def python_data(files, root):
                 for file_id, blob in db.execute('select file_id, numbits from line_bits'):
                     path = own(names.get(file_id, ''), root)
                     if path: lines.setdefault(path, set()).update(_numbits(blob))
-        except sqlite3.Error: continue
+        except sqlite3.Error as error:
+            noted('a coverage file that does not read adds no lines', error)
+            continue
     return {path: {'lines': _ranges(found)} for path, found in lines.items()}
 
 
@@ -145,8 +148,10 @@ def server(argv, env, folder, copy, python=False):
     options = ' '.join(filter(None, [env.get('NODE_OPTIONS', ''), f'--require={PRELOAD}']))
     env = {**env, 'NODE_V8_COVERAGE': str(folder / 'v8'), 'NODE_OPTIONS': options}
     if python:
-        (Path(copy) / RC).write_text(f'[run]\ndata_file = {folder / ".coverage"}\nparallel = true\nsigterm = true\n', encoding='utf-8')
-        # the interpreter's own options (-u, -X dev) stay the interpreter's, before `-m coverage`: Coverage.py takes none
+        (Path(copy) / RC).write_text(
+            f'[run]\ndata_file = {folder / ".coverage"}\nparallel = true\nsigterm = true\n', encoding='utf-8')
+        # the interpreter's own options (-u, -X dev) stay the interpreter's, before `-m coverage`: Coverage.py takes
+        # none
         flags = list(takewhile(lambda part: str(part).startswith('-') and str(part) != '-m', argv[1:]))
         argv = [argv[0], *flags, '-m', 'coverage', 'run', f'--rcfile={Path(copy) / RC}', *argv[1 + len(flags):]]
     return argv, env
@@ -155,6 +160,7 @@ def server(argv, env, folder, copy, python=False):
 def server_record(out, folder, copy):
     """The server's record from what its run left in `folder`, then the raw data removed."""
     files = merged(v8(Path(folder) / 'v8', copy), python_data(sorted(Path(folder).glob('.coverage*')), copy))
-    record(out, 'server', files, '' if files else 'the server wrote no coverage EAOS can read (neither Node nor a Python '
-                                                 'with Coverage.py ran the project\'s own code)')
+    record(out, 'server', files,
+           '' if files else 'the server wrote no coverage EAOS can read (neither Node nor a Python '
+           'with Coverage.py ran the project\'s own code)')
     shutil.rmtree(folder, ignore_errors=True)

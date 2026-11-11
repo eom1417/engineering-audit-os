@@ -1,4 +1,4 @@
-"""The time now, written one way (M15.3): an ISO 8601 stamp in UTC for what EAOS records, and a stamp for a name."""
+"""The time now, written one way: an ISO 8601 stamp in UTC for what EAOS records, and a stamp for a name."""
 from datetime import datetime, timezone
 
 

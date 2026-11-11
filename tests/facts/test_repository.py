@@ -1,5 +1,5 @@
-"""The repository read as an engineer reads it (M7.8) and its assistants' context (M7.9): each rule finds what it names,
-and a framework's own layout, an output path, an ignored file or EAOS's own block is never a finding."""
+"""The repository read as an engineer reads it, and its assistants' context: each rule finds what it names, and a
+framework's own layout, an output path, an ignored file or EAOS's own block is never a finding."""
 import subprocess
 import unittest
 from pathlib import Path
@@ -29,19 +29,22 @@ class CraftTests(unittest.TestCase):
         files = {f'src/part{n}.py': 'x = 1\n' for n in range(26)}
         files.update({f'src/pipeline_{n}.py': '' for n in ('a', 'b', 'c', 'd')})
         files.update({f'app/page{n}.tsx': '' for n in range(30)})             # Next.js routes: the framework's layout
-        files.update({'lib/utils.py': 'x = 1\n' * 301, 'lib/small/helpers.py': 'x = 1\n', 'lib/api.js': '', 'lib/api_v2.js': ''})
+        files.update({'lib/utils.py': 'x = 1\n' * 301, 'lib/small/helpers.py': 'x = 1\n', 'lib/api.js': '',
+                      'lib/api_v2.js': ''})
         rules = {rule for rule, _ in found(project(files))}
         self.assertEqual(rules, {'crowded-folder', 'prefix-family', 'vague-name', 'version-name', 'no-extending-guide'})
         self.assertIn(('crowded-folder', 'src'), found(project(files)))
         self.assertNotIn(('vague-name', 'lib/small/helpers.py'), found(project(files)), 'a short helpers file is fine')
 
     def test_a_document_naming_a_path_of_the_tree_that_is_gone_is_found_and_an_output_path_is_not(self):
-        root = project({'src/app.py': '', 'README.md': 'See `src/app.py`, `src/gone.py` and the report in `technical/RUN.md`.',
+        root = project({'src/app.py': '',
+                        'README.md': 'See `src/app.py`, `src/gone.py` and the report in `technical/RUN.md`.',
                         'CHANGELOG.md': 'Moved `src/old.py`.'})
         self.assertEqual(found(root), {('stale-doc-path', 'README.md')})
 
     def test_source_in_a_folder_tools_skip_and_a_machine_detail_in_a_published_file_are_found(self):
-        machine = 'It ran at /ho' + 'me/alice/work on 10 ' + 'cores.'       # built, so this published file holds none itself
+        # built, so this published file holds none itself
+        machine = 'It ran at /ho' + 'me/alice/work on 10 ' + 'cores.'
         root = project({'src/target/plan.java': 'class Plan {}', 'notes.md': machine,
                         'local.md': 'see /home/alice/x', 'tools.json': '["(?<![\\\\w.-])/work' + 'space/"]'},
                        tracked=['src', 'notes.md', 'tools.json'])
@@ -53,21 +56,24 @@ class ContextTests(unittest.TestCase):
     def test_heavy_repeated_and_done_context_is_measured_and_eaos_own_block_is_not_counted(self):
         rule = 'Every change goes through a branch of its own and is verified first.'
         eaos = '<!-- EAOS: begin (eaos assistant install) -->\n' + 'x' * 40000 + '\n<!-- EAOS: end -->\n'
-        root = project({'AGENTS.md': rule + '\n' + '- [x] done\n' * 5, 'CLAUDE.md': '@AGENTS.md\n@docs/more.md\n' + eaos,
+        root = project({'AGENTS.md': rule + '\n' + '- [x] done\n' * 5,
+                        'CLAUDE.md': '@AGENTS.md\n@docs/more.md\n' + eaos,
                         'docs/more.md': rule + '\n'})
-        self.assertEqual({r for r, _ in found(root)}, {'context-repeat', 'context-done'}, "EAOS's block is not the person's weight")
+        self.assertEqual({r for r, _ in found(root)}, {'context-repeat', 'context-done'},
+                         "EAOS's block is not the person's weight")
         heavy = project({'AGENTS.md': 'y' * 30000})
         self.assertEqual(found(heavy), {('context-heavy', 'AGENTS.md')})
 
     def test_a_skill_weighs_its_name_and_description_only(self):
-        # 26 generated area skills (GitNexus) were counted as read whole every session: 30,000 tokens and their shared
-        # lines "repeated"; a session reads a skill's front matter, its body only when the skill is used.
+        # 26 generated area skills are not read whole every session: a session reads a skill's front matter, its body
+        # only when the skill is used.
         body = 'Working with code in this area, read its key files and entry points first.\n' + 'z' * 8000
         skills = {f'.claude/skills/area-{n}/SKILL.md': f'---\nname: area-{n}\ndescription: the {n} area\n---\n' + body
                   for n in range(26)}
         self.assertEqual(found(project({'AGENTS.md': 'Read the guide first.\n', **skills})), set())
         long = {'.claude/skills/one/SKILL.md': '---\nname: one\ndescription: ' + 'w' * 30000 + '\n---\nbody'}
-        self.assertEqual(found(project({'AGENTS.md': 'Read the guide first.\n', **long})), {('context-heavy', 'AGENTS.md')})
+        self.assertEqual(found(project({'AGENTS.md': 'Read the guide first.\n', **long})),
+                         {('context-heavy', 'AGENTS.md')})
 
 
 class CleanTwinTests(unittest.TestCase):

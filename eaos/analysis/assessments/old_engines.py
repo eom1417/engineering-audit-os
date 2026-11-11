@@ -1,4 +1,4 @@
-"""Old engines still wired in (M13.1, M13.3): code another part replaced that is still called, or that sits behind a
+"""Old engines still wired in: code that another part supersedes but that is still called, or that sits behind a
 switch fixed to one value, so the dead-code check sees it reached and says nothing.
 
 Switches: ast-grep's records (eaos/rules/ast-grep/rules/flags.yml) of a name fixed to true or false at a module's top
@@ -19,8 +19,8 @@ from pathlib import Path, PurePosixPath
 from ...core.contracts.vocabulary import classify
 from ...facts.engine_findings import engine_records
 
-# A name says old only by these words; `new`, `next` or `previous` alone are a name's meaning (new_token, previous_seconds),
-# so a pair needs one of its names marked old, or both marked by a version (v1 and v2).
+# A name says old only by these words; `new`, `next` or `previous` alone are a name's meaning (new_token,
+# previous_seconds), so a pair needs one of its names marked old, or both marked by a version (v1 and v2).
 OLD = {'old', 'legacy', 'deprecated', 'obsolete', 'classic', 'bak', 'backup'}
 NEW = {'new', 'next', 'modern'}
 VERSION = re.compile(r'^v(\d+)$')
@@ -72,7 +72,8 @@ def _switch_of(path, name, fixed, imported):
 
 def _enclosing_end(sets, path, line):
     """The last line of the innermost function around `line`."""
-    around = [f for f in _of(sets, 'symbol') if f['location']['path'] == path and f['location']['start_line'] <= line <= (f['location'].get('end_line') or 0)]
+    around = [f for f in _of(sets, 'symbol') if f['location']['path'] == path
+              and f['location']['start_line'] <= line <= (f['location'].get('end_line') or 0)]
     return min((f['location']['end_line'] for f in around), default=line)
 
 
@@ -127,12 +128,14 @@ def _definitions(sets):
     """{name: its definition} of the project's own functions (a name defined twice is left out: it cannot be told)."""
     seen, out = set(), {}
     for fact in _of(sets, 'symbol'):
-        if fact['value'].get('kind') not in ('function', 'method') or classify(fact['location']['path']) != 'source': continue
+        if fact['value'].get('kind') not in ('function',
+                                             'method') or classify(fact['location']['path']) != 'source': continue
         name = fact['value']['name']
         if name in seen: out.pop(name, None); continue
         seen.add(name)
         out[name] = {'path': fact['location']['path'], 'line': fact['location']['start_line'],
-                     'end_line': fact['location'].get('end_line') or fact['location']['start_line'], 'fact_id': fact['id'],
+                     'end_line': fact['location'].get('end_line') or fact['location']['start_line'],
+                     'fact_id': fact['id'],
                      'parameters': len(((fact['value'].get('signature') or {}).get('parameters')) or [])}
     return out
 
@@ -164,14 +167,16 @@ def switched_off(sets, root=None):
     for row in branches:
         engines = [name for name in _callees(sets, row['path'], row['dead'], defined)
                    if _only_there(name, calls, spans) and not _named_elsewhere(name, defined[name], spans, root, cache)]
-        out.append({**row, 'engines': [{'name': n, 'path': defined[n]['path'], 'line': defined[n]['line']} for n in engines],
+        out.append({**row,
+                    'engines': [{'name': n, 'path': defined[n]['path'], 'line': defined[n]['line']} for n in engines],
                     'fact_ids': row['fact_ids'] + [defined[n]['fact_id'] for n in engines],
                     'replaced_by': [n for n in _callees(sets, row['path'], row['live'], defined) if n not in engines]})
     return out
 
 
 def words(name):
-    """The lower-case words of a name: legacyGenerate, old_export, exportV2 -> [legacy, generate], [old, export], [export, v2]."""
+    """The lower-case words of a name: legacyGenerate, old_export, exportV2 ->
+    [legacy, generate], [old, export], [export, v2]."""
     found = [w.lower() for w in WORDS.findall(name)]
     merged = []
     for word in found:
@@ -216,30 +221,37 @@ def _pairs(groups, older):
 
 def _row(kind, old, new, line, history, fact_ids):  # limits: parameters -- a finding's fields, each its own
     return {'kind': kind, 'old': old[0], 'new': new[0], 'path_old': old[1], 'path_new': new[1], 'line': line,
-            'stopped': (history.get(old[1]) or {}).get('last_change'), 'began': (history.get(new[1]) or {}).get('first_change'),
+            'stopped': (history.get(old[1]) or {}).get('last_change'),
+            'began': (history.get(new[1]) or {}).get('first_change'),
             'fact_ids': fact_ids}
 
 
 def two_engines(sets):
-    """[{kind, old, new, path_old, path_new, line, stopped, began, fact_ids}]: two functions or modules doing one job."""
+    """[{kind, old, new, path_old, path_new, line, stopped, began, fact_ids}]: two functions or modules doing one
+    job."""
     by_stem, defined, history, calls = {}, _definitions(sets), _history(sets), _calls(sets)
     for name, definition in defined.items():
         stem, path = _stem(name)[0], PurePosixPath(definition['path'])
-        if stem: by_stem.setdefault((stem, definition['parameters'], path.parent.as_posix(), path.suffix), []).append(name)
+        if stem: by_stem.setdefault((stem, definition['parameters'], path.parent.as_posix(), path.suffix),
+                                    []).append(name)
+    # a pair nobody calls is dead code, said elsewhere
     out = [_row('function', (old, defined[old]['path']), (new, defined[new]['path']), defined[old]['line'], history,
                 [defined[old]['fact_id'], defined[new]['fact_id']])
-           for old, new in _pairs(by_stem.values(), _older) if old in calls]      # nothing calls it: dead code, said elsewhere
+           for old, new in _pairs(by_stem.values(), _older) if old in calls]
     return out + two_modules(sets, history)
 
 
 def two_modules(sets, history):
     """Two modules a marker apart (engine.js and engine_v2.js, legacy/report.py and report.py), the old one still
     imported by the product."""
-    nodes = {f['location']['path']: f for f in _of(sets, 'graph_node', 'graph') if classify(f['location']['path']) == 'source'}
+    nodes = {f['location']['path']: f for f in _of(sets, 'graph_node',
+                                                   'graph') if classify(f['location']['path']) == 'source'}
     imported = {target for f in nodes.values() for target in f['value'].get('depends_on') or []}
     by_stem = {}
-    for path in nodes: by_stem.setdefault((_stem(PurePosixPath(path).stem)[0], PurePosixPath(path).suffix), []).append(path)
-    by_name = lambda one, other: {_module_name(one): one, _module_name(other): other}.get(_older(_module_name(one), _module_name(other)))
+    for path in nodes: by_stem.setdefault((_stem(PurePosixPath(path).stem)[0], PurePosixPath(path).suffix),
+                                          []).append(path)
+    by_name = lambda one, other: {_module_name(one): one,
+                                  _module_name(other): other}.get(_older(_module_name(one), _module_name(other)))
     return [_row('module', (old, old), (new, new), 1, history, [nodes[old]['id'], nodes[new]['id']])
             for old, new in _pairs(by_stem.values(), by_name) if old in imported]
 

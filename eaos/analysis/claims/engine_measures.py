@@ -1,5 +1,5 @@
-"""What a corroborated engine finding measured (eaos/analysis/claims/ledger.py from_engines): the impact key and the numbers
-of its claim, so the report reads the same measurement the claim carries.
+"""What a corroborated engine finding measured (eaos/analysis/claims/ledger.py from_engines): the impact key and the
+numbers of its claim, so the report reads the same measurement the claim carries.
 """
 import re
 

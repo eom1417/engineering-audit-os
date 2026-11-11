@@ -1,5 +1,5 @@
-"""Closing a batch while nothing is using it: under the lock jobs start by, then the state's, the lock order everywhere (jobs
-first), so no job loses its copy and no write of the lanes comes back over a closing."""
+"""Closing a batch while nothing is using it: under the lock jobs start by, then the state's, the lock order everywhere
+(jobs first), so no job loses its copy and no write of the lanes comes back over a closing."""
 from pathlib import Path
 
 from .. import guided
@@ -16,8 +16,9 @@ def _open(state):
 
 
 def _settled(project):
-    """(why nothing may start, the state brought up to git with a batch that no longer fits closed): under the jobs' lock, let
-    go before the job starts, as its own start takes it. A helper closes nothing, and a running job owns what is here."""
+    """(why nothing may start, the state brought up to git with a batch that no longer fits closed): under the jobs'
+    lock, let go before the job starts, as its own start takes it. A helper closes nothing, and a running job owns
+    what is here."""
     state = state_of(project)
     if stop := lanes.not_yours(state): return stop, state
     try:

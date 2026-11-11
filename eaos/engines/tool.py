@@ -23,7 +23,7 @@ def pinned(name):
 
 def version(binary, args=('--version',)):
     """The version the installed binary prints, or None when it is absent or prints none. A binary that is there but
-    does not answer in time (on a busy machine 120 s were not enough) is asked again with longer, then counted
+    does not answer in time (on a busy machine a short wait is not enough) is asked again with longer, then counted
     as installed, its version 'unknown': never taken for a tool that is not installed."""
     path = which(binary)
     if not path: return None
@@ -100,7 +100,8 @@ def engine(name, binary, fresh=False, shared=False):
         def analyze(target, workdir, exclude=(), formats=None):
             declined, found = started(name, binary, target)
             if declined: return declined
-            return body(Path(target).resolve(), Path(workdir) if shared else folder(workdir, name, fresh), exclude, formats, found)
+            return body(Path(target).resolve(), Path(workdir) if shared else folder(workdir, name, fresh),
+                        exclude, formats, found)
         return analyze
     return adapter
 

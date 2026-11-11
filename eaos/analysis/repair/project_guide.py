@@ -1,9 +1,7 @@
-"""A project's extension guide written (M18.3): docs/EXTENDING.md between EAOS's marker lines, from what
+"""A project's extension guide written: docs/EXTENDING.md between EAOS's marker lines, from what
 eaos/analysis/understanding/extending.py drew, and one pointer line in the assistants' context files, between its own
 markers; the guide is never copied into them. What the person wrote below the guide's end line stays. Written only in a
-copy, on a branch of its own (eaos/journeys/fix/context_batch.py), or in a build's copy at each milestone."""
-import shlex
-import shutil
+copy, on a branch of its own (eaos/journeys/fix/context_batch.py), or in a build's copy."""
 import subprocess
 from pathlib import Path
 
@@ -11,8 +9,6 @@ from ..rules import context as context_files
 from ..understanding import extending
 from ...core.project import rules as registry
 from ...core.system.files import read_json
-from ...engines.code import gitnexus
-from ...engines.process import run
 
 BEGIN = '<!-- EAOS guide: begin (written by EAOS from the project itself; what you write below the end line stays) -->'
 END = '<!-- EAOS guide: end -->'
@@ -20,7 +16,6 @@ POINTER_BEGIN = '<!-- EAOS guide pointer: begin (one line, written by EAOS) -->'
 POINTER_END = '<!-- EAOS guide pointer: end -->'
 FOLDERS = ('docs', 'doc', 'documentation')
 NAME = 'EXTENDING.md'
-SKILLS_IGNORED = '.claude/skills/gitnexus*'
 
 
 def place(tree):
@@ -37,8 +32,9 @@ def tracked(root):
 
 
 def pinned_ids(project):
-    """The ids of the rules pinned on the project now; none when it has no registry."""
-    return [rule['id'] for rule in registry.load(project)['rules'] if rule['scope']['kind'] == 'pinned' and rule['state'] == 'active']
+    """The ids of the rules pinned on the project; none when it has no registry."""
+    return [rule['id'] for rule in registry.load(project)['rules']
+            if rule['scope']['kind'] == 'pinned' and rule['state'] == 'active']
 
 
 def _quoted(paths):
@@ -55,7 +51,8 @@ def _layer_rows(layers):
     """A project's declared rules say what a layer must not use, the shorter list; a reference type what it may."""
     denies = any(layer['denied'] for layer in layers)
     head = 'Must not use' if denies else 'May use'
-    rows = [f"| {l['name']} | {_quoted(l['folders'])} | {l['files']} | {', '.join(l['denied'] if denies else l['allowed']) or '-'} |" for l in layers]
+    rows = [f"| {l['name']} | {_quoted(l['folders'])} | {l['files']} | "
+            f"{', '.join(l['denied'] if denies else l['allowed']) or '-'} |" for l in layers]
     return [f'| Layer | Where | Files | {head} |', '|---|---|---|---|', *rows]
 
 
@@ -68,25 +65,29 @@ def _areas_text(areas):
 def _places_text(recipes):
     rows = [f"| {r['title']} | `{r['home']}` | `{r['example']}` |" for r in recipes if r['grows'] == 'added']
     if not rows: return []
-    return ['## Where new code goes', '', 'New code goes here, not in a new place; a new place updates this table.', '',
+    return ['## Where new code goes', '',
+            'New code goes here, not in a new place; a new place updates this table.', '',
             '| Kind | Its folder | Example |', '|---|---|---|', *rows, '']
 
 
 def _reuse_text(reuse):
     if not reuse: return []
-    return ['## Reuse first', '', 'Before writing a helper, look here: the files most of the project already uses.', '',
+    return ['## Reuse first', '',
+            'Before writing a helper, look here: the files most of the project already uses.', '',
             *(f"- `{row['path']}` ({row['users']} files use it)" for row in reuse), '']
 
 
 def _sensitive_text(sensitive):
     if not sensitive: return []
-    return ['## Sensitive files', '', 'Complex and often changed: read them whole, change them in small steps, run every check.', '',
+    return ['## Sensitive files', '',
+            'Complex and often changed: read them whole, change them in small steps, run every check.', '',
             *(f"- `{row['path']}` ({row['commits']} commits, complexity {row['complexity']})" for row in sensitive), '']
 
 
 def _features_text(features):
     if not features: return []
-    rows = [f"| {f['name']} | {_quoted(f['surfaces'])} | {', '.join(f['tables']) or '-'} |" for f in features]
+    rows = [f"| {f['name']} | {_quoted(f['surfaces'])} | "
+            f"{', '.join(f['tables']) or '-'} |" for f in features]
     return ['## Features today', '', '| Feature | Where it starts | Its data |', '|---|---|---|', *rows, '']
 
 
@@ -94,7 +95,8 @@ def _checks_text(drawn):
     """The project's own checks and where its tests live, said once, so no one searches for them."""
     checks = ', '.join(f'`{command}`' for command in drawn['checks']) or 'it declares none'
     home = drawn['tests']
-    tests = f"{home['count']} tests, in {_quoted(f'{folder}/' for folder in home['folders'])}." if home['count'] else 'this project has none yet.'
+    tests = (f"{home['count']} tests, in {_quoted(f'{folder}/' for folder in home['folders'])}."
+             if home['count'] else 'this project has none yet.')
     return ['## The checks', '', f'Before merging: {checks}.', f'Tests: {tests}', '']
 
 
@@ -103,8 +105,8 @@ def _feature_text(drawn):
     steps = [f'{n}. {titles[step]}: its recipe below.' for n, step in enumerate(drawn['feature_steps'], 1)]
     if not steps: return []
     return ['## Add a new feature', '', 'Reuse first; then, in this order:', *steps, '',
-            'A feature is finished when it can be reached from where people use it, it keeps the layers, it wrote nothing '
-            '"Reuse first" already has, its tests and the checks pass, and this guide says it.', '']
+            'A feature is finished when it can be reached from where people use it, it keeps the layers, '
+            'it wrote nothing "Reuse first" already has, its tests and the checks pass, and this guide says it.', '']
 
 
 def _new_file(recipe):
@@ -129,29 +131,36 @@ def _keep_line(recipe):
 
 
 def _recipe_text(recipe):
-    made = f"{recipe['commit']['sha']}, {recipe['commit']['date']}" if recipe['commit'] else 'from the layout: no commit shows one added'
+    made = (f"{recipe['commit']['sha']}, {recipe['commit']['date']}" if recipe['commit']
+            else 'from the layout: no commit shows one added')
     return [f"### {recipe['title']}", f"- **Last real example:** `{recipe['example']}` ({made}).",
-            f"- **Read only:** {_quoted(recipe['read'])}.", _touch_line(recipe), *_keep_line(recipe), *_test_line(recipe), '']
+            f"- **Read only:** {_quoted(recipe['read'])}.", _touch_line(recipe), *_keep_line(recipe),
+            *_test_line(recipe), '']
 
 
 def _closing_text(drawn):
     heavy = ['## Do not read by default', '', 'Too large to read by chance; open one only when the task names it: '
              + _quoted(f'{folder}/' for folder in drawn['heavy']) + '.', ''] if drawn['heavy'] else []
-    missing = ['## Not in this project yet', '', '; '.join(drawn['missing']) + '. Keep the layers above when adding the first one.', ''] if drawn['missing'] else []
-    departures = ['## Known departures', '', 'Where the project breaks its own structure today. Follow the tables for new code, not these.', '',
-                  *(f'- {said}' for said in drawn['departures']), ''] if drawn['departures'] else []
+    missing = (['## Not in this project yet', '',
+                '; '.join(drawn['missing']) + '. Keep the layers above when adding the first one.', '']
+               if drawn['missing'] else [])
+    departures = (['## Known departures', '',
+                   'Where the project breaks its own structure today. Follow the tables for new code, not these.', '',
+                   *(f'- {said}' for said in drawn['departures']), ''] if drawn['departures'] else [])
     return [*heavy, *missing, *departures]
 
 
 def text(drawn, name):
     """The guide's text from `drawn` (extending.draft), for the project called `name`."""
-    pinned = [f"Rules pinned on this project hold in every change: {', '.join(drawn['pinned'])} (their words are in your context file)."] if drawn['pinned'] else []
+    pinned = ([f"Rules pinned on this project hold in every change: {', '.join(drawn['pinned'])} "
+               "(their words are in your context file)."] if drawn['pinned'] else [])
     head = [BEGIN, f'# Extending {name}', '',
-            '**Adding anything starts here.** Read the recipe of what you add, then its example; read further only if the recipe '
-            'leaves a question. It is taken from how this project really grew.', *pinned, '']
+            '**Adding anything starts here.** Read the recipe of what you add, then its example; read further only '
+            'if the recipe leaves a question. It is taken from how this project really grew.', *pinned, '']
     recipes = [line for recipe in drawn['recipes'] for line in _recipe_text(recipe)]
-    return '\n'.join([*head, *_layers_text(drawn['layers'], drawn['gaps']), *_places_text(drawn['recipes']), *_reuse_text(drawn['reuse']),
-                      *_sensitive_text(drawn['sensitive']), *_features_text(drawn['features']), *_areas_text(drawn['areas']), *_checks_text(drawn),
+    return '\n'.join([*head, *_layers_text(drawn['layers'], drawn['gaps']), *_places_text(drawn['recipes']),
+                      *_reuse_text(drawn['reuse']), *_sensitive_text(drawn['sensitive']),
+                      *_features_text(drawn['features']), *_areas_text(drawn['areas']), *_checks_text(drawn),
                       *_feature_text(drawn), '## Recipes', '', *recipes, *_closing_text(drawn), END]) + '\n'
 
 
@@ -160,8 +169,8 @@ def _keep_below(old, new):
 
 
 def refresh(root, path, drawn, name):
-    """The guide of the project called `name` at `path`, written in `root` (a copy, whose folder is no name of the project)
-    from `drawn`, what the person wrote below its end line kept; whether its text changed."""
+    """The guide of the project called `name` at `path`, written in `root` (a copy, whose folder is no name of the
+    project) from `drawn`, what the person wrote below its end line kept; whether its text changed."""
     target = Path(root) / path
     old = target.read_text(encoding='utf-8') if target.is_file() else ''
     new = _keep_below(old, text(drawn, name))
@@ -172,9 +181,11 @@ def refresh(root, path, drawn, name):
 
 
 def write(root, drawn, name):
-    """The guide of the project called `name` and its pointer written in `root` (a copy); the files whose text changed."""
+    """The guide of the project called `name` and its pointer written in `root` (a copy); the files whose text
+    changed."""
     path = place(tracked(root))
-    line = f'Adding anything to this project starts at `{path}`: the files to read and to touch, in order, per kind of addition.'
+    line = (f'Adding anything to this project starts at `{path}`: the files to read and to touch, '
+            'in order, per kind of addition.')
     written = [path] if refresh(root, path, drawn, name) else []
     return written + context_files.hold_block(root, POINTER_BEGIN, POINTER_END, line)
 
@@ -191,26 +202,15 @@ def _git(root, *argv):
 
 
 def drawn_from_report(root, report, project=None):
-    """What the guide says for the copy at `root`, from the check's folder `report`; None when no check has read its layers."""
+    """What the guide says for the copy at `root`, from the check's folder `report`; None when no check has read its
+    layers."""
     if not report or not (Path(report) / 'layers.json').is_file(): return None
     record = read_json(Path(report) / 'layers.json', {}) or {}
     tree = tracked(root) or {row['path'] for row in record.get('map') or []}
     return extending.draft(root, report, tree, record, pinned_ids(project) if project else ())
 
 
-def give_map(project, home):
-    """GitNexus's map of the person's project, with their yes: the index under `home`, the skills in its .claude/skills, kept
-    from git by its own .git/info/exclude, and its MCP registered for this project alone when Claude Code is there."""
-    project = Path(project)
-    made = gitnexus.make_map(project, home, project / '.claude' / 'skills')
-    excluded = project / '.git' / 'info' / 'exclude'
-    if excluded.parent.is_dir() and SKILLS_IGNORED not in (excluded.read_text(encoding='utf-8') if excluded.is_file() else ''):
-        with excluded.open('a', encoding='utf-8') as file: file.write(f'{SKILLS_IGNORED}\n')
-    command = ['claude', 'mcp', 'add', '--scope', 'local', '--env', f"GITNEXUS_HOME={made['registry']}", 'gitnexus', '--', 'gitnexus', 'mcp']
-    registered = bool(shutil.which('claude')) and run(command, cwd=project, timeout=60)[0] == 0
-    return {**made, 'registered': registered, 'register_yourself': None if registered else shlex.join(command)}
-
-
 def written_ignored(root, written):
     """The files of `written` git would not take (an ignored context file): they stay out of the branch."""
-    return [path for path in written if subprocess.run(['git', '-C', str(root), 'check-ignore', '-q', '--no-index', path]).returncode == 0]
+    return [path for path in written
+            if subprocess.run(['git', '-C', str(root), 'check-ignore', '-q', '--no-index', path]).returncode == 0]

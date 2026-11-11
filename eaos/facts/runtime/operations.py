@@ -39,10 +39,11 @@ LIMITATIONS = [
 
 
 # Hosting platforms a repository declares by one manifest file: the file names the host. A Dockerfile is read for its
-# ports (_dockerfile_ports); these say where the code is deployed, which the infrastructure map draws (eaos/report/studio/infra.py).
-HOSTING_MANIFESTS = {'vercel.json': 'Vercel', 'netlify.toml': 'Netlify', 'fly.toml': 'Fly.io', 'railway.json': 'Railway',
-                     'railway.toml': 'Railway', 'render.yaml': 'Render', 'Procfile': 'Procfile', 'nixpacks.toml': 'Nixpacks',
-                     'wrangler.toml': 'Cloudflare Workers'}
+# ports (_dockerfile_ports); these say where the code is deployed, which the target projection reads
+# (eaos/analysis/target_state/projection.py).
+HOSTING_MANIFESTS = {'vercel.json': 'Vercel', 'netlify.toml': 'Netlify', 'fly.toml': 'Fly.io',
+                     'railway.json': 'Railway', 'railway.toml': 'Railway', 'render.yaml': 'Render',
+                     'Procfile': 'Procfile', 'nixpacks.toml': 'Nixpacks', 'wrangler.toml': 'Cloudflare Workers'}
 
 
 def _dockerfile_ports(text):
@@ -139,11 +140,11 @@ def _migration_files(name):
 # to keep one service's slowness from becoming your outage.
 _TIMEOUT_PATTERNS = [
     re.compile(r'timeout\s*[=:]\s*\d+', re.IGNORECASE),     # timeout=30, timeout: 30
-    re.compile(r'\bTimeout\s*\('),                            # Timeout(30)
-    re.compile(r'\btimeout\s*=\s*[^,\)]+'),                  # timeout=httpx_timeout()
-    re.compile(r'\.timeout\s*\(\s*\d+'),                     # httpx .timeout(30)
+    re.compile(r'\bTimeout\s*\('),                            # a Timeout object with a number
+    re.compile(r'\btimeout\s*=\s*[^,\)]+'),                  # a timeout set from a call
+    re.compile(r'\.timeout\s*\(\s*\d+'),                     # a .timeout method with a number
     re.compile(r'\bctx\s+with\s+timeout', re.IGNORECASE),     # context with timeout
-    re.compile(r'\.with_timeout\s*\('),                       # tokio .with_timeout()
+    re.compile(r'\.with_timeout\s*\('),                       # a .with_timeout method
     re.compile(r'context\s+with\s+timeout', re.IGNORECASE),    # asyncio ctx with timeout
     re.compile(r'\bhttp\.Client\s*\{[^}]*Timeout\s*:'),       # Go http.Client{Timeout: ...}
     re.compile(r'\bcontext\.With(?:Timeout|Deadline)\s*\('),  # Go bounded contexts
@@ -233,7 +234,8 @@ def _deployment_rows(name, text):
         return [('deployment_target', None, {'kind': 'dockerfile', 'port': port, 'language': 'dockerfile'})
                 for port in _dockerfile_ports(text)]
     if name in _COMPOSE_FILES:
-        return [('deployment_target', None, {'kind': 'compose', 'service': service}) for service in _compose_services(text)]
+        return [('deployment_target', None, {'kind': 'compose', 'service': service})
+                for service in _compose_services(text)]
     if name in HOSTING_MANIFESTS:
         return [('deployment_target', None, {'kind': 'hosting', 'host': HOSTING_MANIFESTS[name]})]
     return None
@@ -242,13 +244,15 @@ def _deployment_rows(name, text):
 def _code_rows(text, language):
     """The rows of a source file: its auth hints, signals, outbound hosts and their guards, caches, models, queries."""
     rows = [('security_surface', None, {'hint': hint, 'language': language}) for hint in _auth_hints(text)]
-    rows += [('observability_signal', None, {'kind': signal, 'language': language}) for signal in _observability_signals(text)]
+    rows += [('observability_signal', None, {'kind': signal, 'language': language})
+             for signal in _observability_signals(text)]
     for host in _outbound_hosts(text):
         rows.append(('integration_target', None, {'host': host, 'language': language}))
         rows.append(('resilience_policy', None, _detect_resilience_for_integration(text, host, language)))
     rows += _line_rows('cache_policy', detect_cache_policies(text), ('scope', 'mechanism', 'ttl_declared'))
     rows += [('data_model', None, model) for model in _orm_models(text)]
-    return rows + _line_rows('query_bound', detect_query_bounds(text, language), ('bounded', 'mechanism', 'kind', 'snippet'))
+    return rows + _line_rows('query_bound', detect_query_bounds(text, language),
+                             ('bounded', 'mechanism', 'kind', 'snippet'))
 
 
 def _file_rows(rel, text):
@@ -257,7 +261,8 @@ def _file_rows(rel, text):
     rows = _manifest_rows(rel, name, text)
     if language in _CODE_LANGUAGES:
         rows += _code_rows(text, language)
-    rows += _line_rows('rate_limit', detect_rate_limits(text, rel, name), ('scope', 'mechanism', 'declared_limit', 'source'))
+    rows += _line_rows('rate_limit', detect_rate_limits(text, rel, name),
+                       ('scope', 'mechanism', 'declared_limit', 'source'))
     rows += _line_rows('connection_pool', detect_connection_pools(text), ('resource', 'declared_size', 'source'))
     if _migration_files(name):
         rows.append(('migration_step', None, {'name': name}))
@@ -275,8 +280,8 @@ def run(target, source, symbols=None, **options):
             facts.append(make(kind, NAME, VERSION, item['sha256'], location, value, limitations=LIMITATIONS))
     summary = {'files_observed': len(fingerprints), 'facts': len(facts),
                # Iterating a set orders by hash, which Python randomises per process: two runs over
-               # an unchanged tree wrote the same counts in a different order and the fact set was
-               # no longer byte-identical. A sorted tuple is the only honest order here.
+               # an unchanged tree could write the same counts in a different order, and the fact set
+               # would not be byte-identical. A sorted tuple gives one fixed order.
                'by_kind': {kind: sum(1 for f in facts if f['kind'] == kind) for kind in KINDS},
                'interpretation': 'Runtime facts describe the operational surface the static walk cannot see. '
                                   'None proves the system actually runs that way.'}

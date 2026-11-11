@@ -1,4 +1,4 @@
-"""The person's rules held (M16.3, M16.4): on a whole check every place each rule is broken; on a change only what the
+"""The person's rules held: on a whole check every place each rule is broken; on a change only what the
 change brought (a match it added, a test it made fail), so a rule already broken elsewhere never refuses a sound
 change, and the card that names every place is what fixes the rest.
 """
@@ -12,6 +12,7 @@ from pathlib import Path
 from . import guards
 from ...core.project import rules as registry
 from ...core.system.files import read_json
+from ...core.system.errors import noted
 
 RECORD = 'rules.json'          # a check's rules, beside its report (the rules stage writes it)
 
@@ -22,9 +23,11 @@ def read(out):
 
 def row(rule, result):
     """One rule's result as the check, the gate and the views read it."""
-    return {'id': rule['id'], 'words': rule['words'], 'lang': rule['lang'], 'scope': rule['scope'], 'said_on': registry.said_on(rule),
-            'said': len(rule['said']), 'kind': (registry.in_force(rule) or {}).get('kind'), 'guard': guards.said(registry.in_force(rule)),
-            'status': result['status'], 'places': result['places'], 'found': result['said'], 'seconds': result['seconds'],
+    return {'id': rule['id'], 'words': rule['words'], 'lang': rule['lang'], 'scope': rule['scope'],
+            'said_on': registry.said_on(rule), 'said': len(rule['said']),
+            'kind': (registry.in_force(rule) or {}).get('kind'), 'guard': guards.said(registry.in_force(rule)),
+            'status': result['status'], 'places': result['places'], 'found': result['said'],
+            'seconds': result['seconds'],
             'waiting': rule.get('pending') if rule.get('guard') else None,
             'broken_before': rule.get('broken', 0), 'returns': registry.came_back(rule)}
 
@@ -57,10 +60,13 @@ def _tree(repo, where, commit, index=False):
 
 
 def _linked(repo, where):
-    """The project's installed dependency folders (DEPENDENCIES, as git ignores them) linked into the tree at `where`."""
-    ignored = _git(repo, 'ls-files', '--others', '--ignored', '--exclude-standard', '--directory', text=True).stdout.split('\n')
+    """The project's installed dependency folders (DEPENDENCIES, as git ignores them) linked into the tree at
+    `where`."""
+    ignored = _git(repo, 'ls-files', '--others', '--ignored', '--exclude-standard', '--directory',
+                   text=True).stdout.split('\n')
     for folder in (f.rstrip('/') for f in ignored if f.endswith('/') and Path(f.rstrip('/')).name in DEPENDENCIES):
-        if (where / folder).parent.is_dir() and not (where / folder).exists(): (where / folder).symlink_to(Path(repo).resolve() / folder)
+        if (where / folder).parent.is_dir() and not (where / folder).exists():
+            (where / folder).symlink_to(Path(repo).resolve() / folder)
 
 
 @contextlib.contextmanager
@@ -70,7 +76,8 @@ def at_commit(repo, commit, index=False):
     made = {}
     with tempfile.TemporaryDirectory(prefix='eaos-rule-tree-') as folder:
         def code():
-            if 'where' not in made: made['where'] = Path(folder) / 'code' if _tree(repo, Path(folder) / 'code', commit, index) else None
+            if 'where' not in made:
+                made['where'] = Path(folder) / 'code' if _tree(repo, Path(folder) / 'code', commit, index) else None
             return made['where']
         try:
             yield code
@@ -80,7 +87,8 @@ def at_commit(repo, commit, index=False):
 
 def unstaged(repo):
     """Whether the working tree holds anything a commit would not: a tracked file changed and not staged, a new file."""
-    return bool(_git(repo, 'diff', '--quiet').returncode or _git(repo, 'ls-files', '--others', '--exclude-standard', text=True).stdout.strip())
+    return bool(_git(repo, 'diff', '--quiet').returncode
+                or _git(repo, 'ls-files', '--others', '--exclude-standard', text=True).stdout.strip())
 
 
 def _new_places(after, before):
@@ -102,7 +110,8 @@ def _brought(rule, result, paths, before, found):
     earlier = (before() if callable(before) else before) if kind in ('pattern', 'test') else None
     if earlier is not None:
         was = guards.run(registry.in_force(rule), earlier, paths, found)
-        if kind == 'test' and was['status'] == 'broken': result['status'] = 'held'        # it failed before the change too
+        # it failed before the change too
+        if kind == 'test' and was['status'] == 'broken': result['status'] = 'held'
         if kind == 'pattern': result['places'] = _new_places(result['places'], was['places'])
     if not result['places'] and kind != 'test': result['status'] = 'held'
     return result
@@ -126,19 +135,22 @@ def broken(results):
 
 def brief(project, state, card=None, batch=None):
     """The rules that hold for this work, as its assistant reads them: [{id, words, said_on, guard}]."""
-    return [{'id': r['id'], 'words': r['words'], 'said_on': registry.said_on(r), 'guard': guards.said(registry.in_force(r))}
+    return [{'id': r['id'], 'words': r['words'], 'said_on': registry.said_on(r),
+             'guard': guards.said(registry.in_force(r))}
             for r in registry.holding(project, state, card, batch)]
 
 
-SAID = {'en': ('it breaks your rule {id}, said on {said_on}: "{words}" at {where}', '; this change brought it back ({returns} time(s) '
-              'it came back)', '; pin it so it holds for every change (eaos rules pin {id})'),
-        'ar': ('يكسر قاعدتك {id} اللي قلتها في {said_on}: «{words}» عند {where}', '؛ هذا التعديل رجّعها (رجعت تنكسر {returns} مرة)',
+SAID = {'en': ('it breaks your rule {id}, said on {said_on}: "{words}" at {where}',
+               '; this change brought it back ({returns} time(s) '
+               'it came back)', '; pin it so it holds for every change (eaos rules pin {id})'),
+        'ar': ('يكسر قاعدتك {id} اللي قلتها في {said_on}: «{words}» عند {where}',
+               '؛ هذا التعديل رجّعها (رجعت تنكسر {returns} مرة)',
                '؛ ثبّتها عشان تنطبق على كل تعديل (eaos rules pin {id})')}
 
 
 def refusal(broken, lang='en'):
     """The sentence a refused change gives for each rule it breaks: the person's words, when they said them, where, how
-    often it came back (this change brought it back once more), and pinning offered when it is not pinned (M16.5)."""
+    often it came back (this change brought it back once more), and pinning offered when it is not pinned."""
     first, back, pin = SAID['ar' if lang == 'ar' else 'en']
     said = []
     for item in broken:
@@ -150,13 +162,15 @@ def refusal(broken, lang='en'):
 
 
 def record(project, results, where):
-    """Each result into the rule's record: a break with its places, a hold; the same break of the same check counted once."""
+    """Each result into the rule's record: a break with its places, a hold; the same break of the same check counted
+    once."""
     for item in results:
         try:
             if item['status'] == 'broken': registry.broke(project, item['id'], where, item['places'])
             elif item['status'] == 'held': registry.held(project, item['id'], where)
-        except LookupError:
-            continue                     # a rule removed while the check ran
+        except LookupError as error:
+            noted('a rule removed while the check ran', error)
+            continue
 
 
 def gate(owner, rules, root, changed, laws):
@@ -169,15 +183,10 @@ def gate(owner, rules, root, changed, laws):
     return refusal(broken(results))
 
 
-def as_gate(state, card, root, changed, laws):
-    """The gate's problems ({gate, where, what}) of the person's rules that hold for this card (a build's, M16.4)."""
-    rules = registry.holding(state['project'], state, card)
-    return [{'gate': 'rules', 'where': card or '', 'what': said} for said in gate(state['project'], rules, root, changed, laws)] if rules else []
-
-
 def found_of(problems):
     """The gates' problems as a detector guard reads them."""
-    return [{'detector': p['gate'], 'places': [part.strip() for part in p['where'].split(',') if part.strip()], 'said': p['what']}
+    return [{'detector': p['gate'],
+             'places': [part.strip() for part in p['where'].split(',') if part.strip()], 'said': p['what']}
             for p in problems]
 
 

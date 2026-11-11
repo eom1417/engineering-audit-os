@@ -1,7 +1,7 @@
-"""What the product reaches, for the dead-code detector (eaos/facts/dead_code/detect.py): its production entry points and the
-roots walked from them (tool configurations, the programs a CI step or a document runs, what a build script bundles),
-the resolved import graph, the loads it cannot see (a module named in text, a path literal) and the package data read
-whole.
+"""What the product reaches, for the dead-code detector (eaos/facts/dead_code/detect.py): its production entry points
+and the roots walked from them (tool configurations, the programs a CI step or a document runs, what a build script
+bundles), the resolved import graph, the loads it cannot see (a module named in text, a path literal) and the package
+data read whole.
 """
 import re
 from collections import defaultdict
@@ -27,8 +27,9 @@ RELATIVE_LITERAL = re.compile(r'''['"`](\.{1,2}/[^'"`\s${}]+)['"`]''')
 PATH_LITERAL = re.compile(r'''['"`]([\w-][\w.-]*(?:/[\w.-]+)+\.\w+)['"`]''')
 # Folders a package ships as data, loaded by path at run time: templates and rules.
 DATA_FOLDERS = {'templates', 'rules'}
-# Tools a script runs that load every file of a folder by convention, so no import names those files: (the command, the
-# folder it loads, the option that names another one). The react-email CLI renders every file in emails/, or `--dir <x>`.
+# Tools a script runs that load every file of a folder by convention, so no import names those files: (the command,
+# the folder it loads, the option that names another one). The react-email CLI renders every file in emails/, or
+# `--dir <x>`.
 CONVENTION_FOLDERS = ((re.compile(r'(?:^|[;&|]\s*)(?:npx\s+)?email\s+(?:build|export|dev)\b'), 'emails', '--dir'),)
 
 
@@ -53,11 +54,14 @@ def _source_of(base, file, known):
 
 BUILD_SCRIPTS = ('.js', '.mjs', '.cjs', '.ts', '.mts')
 CODE_PATH = re.compile(r'(?<![\w/.-])((?:\.{1,2}/)?[\w][\w./-]*\.(?:[cm]?[jt]sx?|py))\b')
-RUN_COMMAND = re.compile(r'\b(?:node|python3?|tsx|ts-node|bun|deno\s+run|bash|sh)\s+(?:--?[\w-]+(?:[= ][\w./:=-]+)?\s+)*'
+RUN_COMMAND = re.compile(r'\b(?:node|python3?|tsx|ts-node|bun|deno\s+run|bash|sh)\s+(?:--?[\w-]+(?:[= '
+                         r'][\w./:=-]+)?\s+)*'
                          r'((?:\.{1,2}/)?[\w][\w./-]*\.(?:[cm]?[jt]sx?|py))\b')
 # Files whose lines are commands a machine runs: CI workflows, container and make recipes, process files, shell scripts.
-AUTOMATION = re.compile(r'(^|/)(\.github/workflows/[^/]+\.ya?ml|\.gitlab-ci\.ya?ml|\.circleci/[^/]+\.ya?ml|azure-pipelines\.ya?ml|'
-                        r'bitbucket-pipelines\.ya?ml|Jenkinsfile|Dockerfile[^/]*|[^/]*\.dockerfile|docker-compose[^/]*\.ya?ml|'
+AUTOMATION = re.compile(r'(^|/)(\.github/workflows/[^/]+\.ya?ml|\.gitlab-ci\.ya?ml|\.circleci/[^/]+\.ya?ml|'
+                        r'azure-pipelines\.ya?ml|'
+                        r'bitbucket-pipelines\.ya?ml|Jenkinsfile|Dockerfile[^/]*|[^/]*\.dockerfile|'
+                        r'docker-compose[^/]*\.ya?ml|'
                         r'compose\.ya?ml|Makefile|justfile|Procfile|[^/]*\.sh)$')
 
 
@@ -135,7 +139,8 @@ def _edges(resolved):
     for fact in resolved:
         if fact.get('kind') != 'module_edge': continue
         value = fact.get('value') or {}
-        to_path = value.get('to_path') or (value.get('package_path') if value.get('target_kind') == 'excluded' else None)
+        to_path = value.get('to_path') or (
+            value.get('package_path') if value.get('target_kind') == 'excluded' else None)
         path = (fact.get('location') or {}).get('path')
         if not (path and to_path): continue
         (test_importers[to_path].add(path) if _is_test(path) else graph[path].add(to_path))
@@ -180,7 +185,8 @@ def _loaded(path, text, texts):
 def _glob(glob):
     """A setuptools glob as a pattern: `**/` any folders, `*` any name within one folder."""
     parts = re.split(r'(\*\*/|\*\*|\*|\?)', glob)
-    return re.compile(''.join({'**/': '(?:.*/)?', '**': '.*', '*': '[^/]*', '?': '[^/]'}.get(part, re.escape(part)) for part in parts))
+    return re.compile(''.join({'**/': '(?:.*/)?', '**': '.*', '*': '[^/]*', '?': '[^/]'}.get(part, re.escape(part))
+                      for part in parts))
 
 
 def _package_data(source, known):
@@ -200,15 +206,18 @@ def _package_bases(known, root, package):
 def _matching(known, bases, glob):
     pattern = _glob(glob)
     return {path for path in known for base in bases
-            if PurePosixPath(path).is_relative_to(base) and pattern.fullmatch(str(PurePosixPath(path).relative_to(base)))}
+            if PurePosixPath(path).is_relative_to(base)
+            and pattern.fullmatch(str(PurePosixPath(path).relative_to(base)))}
 
 
 def _declared_data(source, manifest, known):
     """The files one pyproject.toml's `[tool.setuptools.package-data]` globs match."""
-    section = re.search(r'^\[tool\.setuptools\.package-data\]\s*$(.*?)(?=^\[|\Z)', source.text(manifest) or '', re.M | re.S)
+    section = re.search(r'^\[tool\.setuptools\.package-data\]\s*$(.*?)(?=^\[|\Z)', source.text(manifest) or '',
+                        re.M | re.S)
     root = PurePosixPath(manifest).parent
     data = set()
-    for package, globs in re.findall(r'^\s*"?([\w.*-]+)"?\s*=\s*\[([^\]]*)\]', section.group(1) if section else '', re.M):
+    for package, globs in re.findall(r'^\s*"?([\w.*-]+)"?\s*=\s*\[([^\]]*)\]', section.group(1) if section else '',
+                                     re.M):
         bases = _package_bases(known, root, package)
         for glob in re.findall(r'["\']([^"\']+)["\']', globs): data |= _matching(known, bases, glob)
     return data
@@ -266,5 +275,7 @@ def _walk(source, known, texts, resolved, entry_points):
     reached = _reachable(_roots(source, known, seeds), graph, texts)
     # Package data and files loaded by a path literal are run or read whole by something else (a test runner, k6,
     # a codemod engine): they are reached, and their names are not judged one by one.
-    whole = _package_data(source, known) | {found for path in reached if path in texts for found in _loaded(path, texts[path], texts)}
+    whole = _package_data(source, known) | {found for path in reached if path in texts for found in _loaded(path,
+                                                                                                            texts[path],
+                                                                                                            texts)}
     return seeds, reached | whole, whole, test_importers

@@ -9,9 +9,7 @@ import os
 from pathlib import Path
 from .duplicates import duplicated_rules, redundant_work
 from .engine_measures import engine_measurement
-from .from_experience import experience
 from .from_layers import layer_findings
-from .from_logic_flaws import logic_flaws
 from .from_real_data import real_data
 from .from_repository import repository_findings
 from .from_facts import (broken_code, cochanges, cycles, dead_code, external_writes, hotspots, large_modules,
@@ -25,12 +23,12 @@ from ...core.system.clock import now
 
 CONFIDENCE = ['CONFIRMED', 'LIKELY', 'HYPOTHESIS', 'REFUTED']
 PROVING_METHODS = {'runtime_probe', 'test_evidence', 'static_fact', 'history_fact'}
-# The builders of the claims facts earn (eaos/analysis/claims/from_facts.py), in ledger order: the claims are numbered in it.
+# The builders of the claims facts earn (from_facts.py), in the order the claims are numbered.
 BUILDERS = (cycles, cochanges, duplicated_rules, hotspots, large_modules, mutable_globals, external_writes,
             redundant_work, policy_violations, trace_gaps, dead_code, broken_code,
-            vulnerable_dependencies, weaknesses, layer_findings, logic_flaws, repository_findings,
-            experience, real_data)
-TYPES = ['structure', 'responsibility', 'contract', 'business_rule', 'flow_step', 'risk', 'cause', 'capability_gap', 'cost']
+            vulnerable_dependencies, weaknesses, layer_findings, repository_findings, real_data)
+TYPES = ['structure', 'responsibility', 'contract', 'business_rule', 'flow_step', 'risk', 'cause',
+         'capability_gap', 'cost']
 
 
 def schema(): return read(DATA / 'schemas/claim.schema.json')
@@ -48,8 +46,8 @@ def claim_counts(claims):
 
 STATEMENT_LIMIT = 600
 
-# What the precision set (tools/precision.py) measured for each detector: shown or hidden. A detector whose
-# measured precision or recall is under its declared bar is hidden, not shown with a caveat (NS38.T1).
+# What was measured for each detector: shown or hidden. A detector whose measured precision or recall is under its
+# declared bar is hidden, not shown with a caveat.
 VERDICTS = DATA / 'detector-verdicts.json'
 
 
@@ -109,7 +107,8 @@ def withheld_said(withheld, ar):
     count = Counter(row['withheld']['detector'] for row in held)
     why = {row['withheld']['detector']: row['withheld']['why'] for row in held}
     return [(f'كاشف تجريبي محجوب حتى تثبت دقته: {name} ({n} نتيجة ما انعرضت، {why[name]})' if ar else
-             f'an experimental detector kept aside until it is measured precise: {name} ({n} results not shown: {why[name]})')
+             f'an experimental detector kept aside until it is measured precise: {name} '
+             f'({n} results not shown: {why[name]})')
             for name, n in sorted(count.items())] + rejected_said(withheld, ar)
 
 def make(index, statement, claim_type, confidence, method, evidence_ids, falsifier, **extra):  # limits: parameters -- a claim's required fields (the claim-ledger schema)
@@ -149,9 +148,11 @@ def _unowned_acceptance(claim):
 
 
 def _unknown_kind(claim):
-    """A card kind nobody registered: refused when built, since it would be shown generic, its detector and own fix lost."""
+    """A card kind nobody registered: refused when built, since it would be shown generic, its detector and own fix
+    lost."""
     key = (claim.get('render') or {}).get('key')
-    return [f'unknown card kind {key!r}: register it in eaos/core/contracts/card_kinds.py'] if key and key not in KINDS else []
+    return ([f'unknown card kind {key!r}: register it in eaos/core/contracts/card_kinds.py']
+            if key and key not in KINDS else [])
 
 
 def _claim_errors(claim, known):
@@ -229,7 +230,8 @@ def _named(kind, detail):
 def _corroborated(kind, detail, cluster, fact_sets):
     engines, word = _named(kind, detail)
     impact_key, measured = engine_measurement(kind, cluster, fact_sets)
-    return {'statement': f"{len(detail['asserted_by'])} independent engines ({engines}) report {word} in {cluster['place']}",
+    return {'statement': f"{len(detail['asserted_by'])} independent engines ({engines}) report {word} "
+                         f"in {cluster['place']}",
             'confidence': 'LIKELY',
             'falsifier': ('Show the measurement each engine reports is below the threshold it declares, '
                           'or that the engines share one implementation and are therefore one witness.'),
@@ -297,7 +299,7 @@ def from_engines(fact_sets, offset=0):
     Two independent engines agreeing is worth a LIKELY claim that a probe can raise. One engine
     contradicted by another that fully evaluated the same property is worth a HYPOTHESIS that a
     probe must settle. One engine speaking alone is left as a fact: promoting it would flood the
-    ledger with 586 findings and teach a reader to ignore it. Except a count it states exactly (M2.2): a function with
+    ledger with findings and teach a reader to ignore it. Except a count it states exactly: a function with
     eight parameters has eight whoever counts them, so that count alone is a claim, on those targets only.
     """
     from .correlate import clusters, CORROBORATED, CONTESTED, GRANULARITY_GAP, SINGLE
@@ -319,8 +321,8 @@ def from_engines(fact_sets, offset=0):
 
 def _earns_a_claim(kind, detail, said):
     """Whether a kind of finding at a place is a claim of the engines; `said`: its verdict is one a claim is made of."""
-    # Security findings are cards of their own, alone or agreed (eaos/analysis/assessments/weaknesses.py), a vulnerable dependency too;
-    # dead code EAOS's own detector also reports is its card (fact_claims.dead_code), not a second one.
+    # Security findings are cards of their own, alone or agreed (eaos/analysis/assessments/weaknesses.py), and so is a
+    # vulnerable dependency. Dead code that EAOS's own detector also reports is its card (from_facts.dead_code).
     return not (kind in SECURITY or (kind == 'dead_code' and 'eaos' in detail['asserted_by']) or not said)
 
 
@@ -331,8 +333,8 @@ def _complexity_rows(cluster, fact_sets):
 
 
 def _finish(kind, cluster, fact_sets, exact=False):
-    """(finish line, the engines that judge it) of a complexity claim (eaos/analysis/repair/finish_line.py), (None, None) for another kind.
-    `exact`: only the counts an engine states exactly."""
+    """(finish line, the engines that judge it) of a complexity claim (eaos/analysis/repair/finish_line.py), (None,
+    None) for another kind. `exact`: only the counts an engine states exactly."""
     if kind != 'complexity': return None, None
     from ..repair.finish_line import EXACT, judges, targets
     rows = _complexity_rows(cluster, fact_sets)

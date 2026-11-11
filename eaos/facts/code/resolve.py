@@ -362,7 +362,8 @@ def _summary(facts, counts, go_module):
             'resolved_by_engine': counts['RESOLVED_BY_ENGINE'],
             'internal_resolution_rate': round(counts['RESOLVED'] / internal, 3) if internal else 0.0,
             'go_module': go_module,
-            'interpretation': 'Source dependencies only. Unresolved and ambiguous edges stay visible and must never be drawn as confirmed dependencies.'}
+            'interpretation': 'Source dependencies only. Unresolved and ambiguous edges stay visible and must never be '
+                              'drawn as confirmed dependencies.'}
 
 
 def _read_imports(target, source):

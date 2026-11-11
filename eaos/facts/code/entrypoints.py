@@ -56,7 +56,8 @@ def symbol_map(symbol_facts):
     for fact in symbol_facts:
         location = fact['location']
         table.setdefault(location['path'], []).append(
-            {'name': location.get('symbol') or fact['value']['name'], 'start': location['start_line'], 'end': location['end_line']})
+            {'name': location.get('symbol') or fact['value']['name'], 'start': location['start_line'],
+             'end': location['end_line']})
     return table
 
 
@@ -111,7 +112,8 @@ def _prepared(source):
     # A detector that needs the whole project before reading one file (which names reach a database
     # client across imports, say) declares prepare(texts); what it returns per file reaches it as
     # context.prepared[its module name]. The core never names a detector.
-    return {module.__name__: module.prepare(_texts_for(module, source)) for module in MODULES if hasattr(module, 'prepare')}
+    return {module.__name__: module.prepare(_texts_for(module, source))
+            for module in MODULES if hasattr(module, 'prepare')}
 
 
 def _record_entry_points(module, context, file, tally):
@@ -128,8 +130,8 @@ def _record_entry_points(module, context, file, tally):
 
 
 def _recorder(counted, field, fact):
-    """The recorder of a detector whose finds are (offset, line, found): each counted by `field` into `counted`, and its
-    fact made by `fact(module, file, line, found)`."""
+    """The recorder of a detector whose finds are (offset, line, found): each counted by `field` into `counted`, and
+    its fact made by `fact(module, file, line, found)`."""
     def record(module, context, file, tally):
         for _offset, line, found in module.detect(context):
             tally['fingerprints'].append(file['item']['sha256'])
@@ -140,8 +142,11 @@ def _recorder(counted, field, fact):
 
 RECORDERS = {'entry_point': _record_entry_points,
              'data_access': _recorder('data_access_by_client', 'client',
-                                      lambda module, file, line, call: _data_access_fact(file['item'], file['rel'], line, call, file['category'])),
-             'navigation': _recorder('navigation_by_via', 'via', lambda module, file, line, link: _navigation_fact(file, line, link, module.LIMITATIONS))}
+                                      lambda module, file, line, call:
+                                      _data_access_fact(file['item'], file['rel'], line, call, file['category'])),
+             'navigation': _recorder('navigation_by_via', 'via',
+                                     lambda module, file, line, link:
+                                     _navigation_fact(file, line, link, module.LIMITATIONS))}
 
 
 def _scan_file(item, source, table, prepared, tally):
@@ -181,7 +186,8 @@ def _summary(tally):
             'by_framework': dict(sorted(tally['frameworks'].items())),
             'languages_with_detections': sorted(tally['covered_languages']),
             'files_without_any_detector': dict(sorted(tally['uncovered'].items())),
-            'interpretation': 'Detected invocation surfaces. Absence of a route here means no detector matched, not that the system cannot be invoked that way.'}
+            'interpretation': 'Detected invocation surfaces. Absence of a route here means no detector matched, '
+                              'not that the system cannot be invoked that way.'}
 
 
 def run(target, source, symbols=None, **options):

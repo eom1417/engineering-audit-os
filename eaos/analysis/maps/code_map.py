@@ -1,10 +1,12 @@
-"""The code map of the architecture stage, from EAOS's own facts: the files most worth a look and the groups the imports draw.
+"""The code map of the architecture stage, from EAOS's own facts: the files most worth a look and the groups the
+imports draw.
 
     hotspots    each production file's complexity (1 + its branches, facts/metrics.json) times how often it changed
                 (facts/history.json history_churn), its code lines breaking a tie
-    clusters    the production files grouped by their imports (facts/graph.json depends_on, read both ways) with Louvain's
-                method: a file moves to its neighbours' group while modularity rises, then each group becomes one node and
-                it starts again; nodes are visited in path order, so two runs on one tree draw the same groups
+    clusters    the production files grouped by their imports (facts/graph.json depends_on, read both ways) with
+                Louvain's method: a file moves to its neighbours' group while modularity rises, then each group
+                becomes one node and it starts again; nodes are visited in path order, so two runs on one tree draw
+                the same groups
     modularity  Newman's Q of those groups: the share of imports inside a group minus what chance would give
 
 Only records the check already wrote are read; a missing one gives an empty part.
@@ -13,13 +15,14 @@ from collections import defaultdict
 from pathlib import Path
 
 from ...core.system.files import read_json
-from .system import is_test
+from .system_paths import is_test
 
 HOTSPOTS, CLUSTERS, MEMBERS = 10, 8, 8
 
 
 def _facts(out, name, kind):
-    return [f for f in (read_json(Path(out) / 'facts' / f'{name}.json', {}) or {}).get('facts') or [] if f.get('kind') == kind]
+    return [f for f in (read_json(Path(out) / 'facts' / f'{name}.json', {}) or {}).get('facts') or []
+            if f.get('kind') == kind]
 
 
 def _path(fact): return (fact.get('location') or {}).get('path') or ''
@@ -134,4 +137,5 @@ def digest(out):
     """{hotspots, clusters, modularity} of one check's facts."""
     graph, fan_in = import_graph(out)
     member = louvain(graph)
-    return {'hotspots': hotspots(out), 'clusters': clusters(graph, member, fan_in), 'modularity': modularity(graph, member)}
+    return {'hotspots': hotspots(out), 'clusters': clusters(graph, member, fan_in),
+            'modularity': modularity(graph, member)}

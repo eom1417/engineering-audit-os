@@ -15,29 +15,10 @@
     "eaos/analysis/layers/boundaries.py"
    ]
   },
-  "assistant_map": {
-   "what": "A map of the code an assistant reads before a change: its areas, callers and what a change touches",
-   "primary": "gitnexus"
-  },
-  "architecture_map": {
-   "what": "The files most worth a look (complexity times changes) and the clusters the imports draw",
-   "primary": "eaos",
-   "eaos": [
-    "eaos/analysis/maps/code_map.py"
-   ]
-  },
   "near_copies": {
    "what": "Code copied or nearly copied in several places",
    "primary": "jscpd",
    "eaos": [
-    "eaos/analysis/assessments/one_source.py"
-   ]
-  },
-  "one_source_patterns": {
-   "what": "A value of the look, a screen pattern or a way of working written many times",
-   "primary": "eaos",
-   "eaos": [
-    "eaos/facts/duplication/patterns.py",
     "eaos/analysis/assessments/one_source.py"
    ]
   },
@@ -75,45 +56,13 @@
    "what": "Real personal data written in the code",
    "primary": "presidio"
   },
-  "infrastructure_config": {
-   "what": "Pitfalls of CI, container, Terraform and Kubernetes files",
-   "primary": "checkov"
-  },
-  "vulnerable_dependencies": {
-   "what": "Locked dependency versions with a known advisory",
-   "primary": "osv-scanner"
-  },
-  "sbom": {
-   "what": "Every dependency as an inventory (SBOM)",
-   "primary": "syft"
-  },
-  "api_lint": {
-   "what": "The OpenAPI document checked against its ruleset",
-   "primary": "spectral"
-  },
-  "api_breaking": {
-   "what": "What the last change of the API document broke for its clients",
-   "primary": "oasdiff"
-  },
   "api_live": {
    "what": "The running API tried with generated requests",
    "primary": "schemathesis"
   },
-  "sql_lint": {
-   "what": "The project's SQL linted",
-   "primary": "sqlfluff"
-  },
-  "migration_risk": {
-   "what": "Risky database migrations",
-   "primary": "squawk"
-  },
   "database_rules": {
    "what": "The database's security rules read and tried on the run's own database",
    "primary": "supabase"
-  },
-  "components": {
-   "what": "React components and the props they declare",
-   "primary": "react-docgen"
   },
   "codemods": {
    "what": "Mechanical edits made by rules on an isolated copy",
@@ -154,51 +103,6 @@
  },
  "tools": [
   {
-   "name": "reforge",
-   "role": "read",
-   "stages": [
-    "S03",
-    "S04"
-   ],
-   "check": "engines",
-   "license": "Apache-2.0",
-   "repository": "https://github.com/LyleMi/Reforge",
-   "version": "0.3.0",
-   "source_commit": "6c986d4739e13d198e71d0eed9490c69d16e707a",
-   "binary": "reforge",
-   "install": {
-    "method": "release",
-    "url": "https://github.com/LyleMi/Reforge/releases/download/v0.3.0/reforge-linux-x86_64.tar.gz",
-    "sha256": "1ec4e7228d0c9a56dbd09dfcc743f0aa38234428829a84eb0f02466f76a6cdc0",
-    "archive": "tar.gz",
-    "member": "reforge",
-    "platforms": {
-     "linux-x86_64": {
-      "method": "release",
-      "url": "https://github.com/LyleMi/Reforge/releases/download/v0.3.0/reforge-linux-x86_64.tar.gz",
-      "sha256": "1ec4e7228d0c9a56dbd09dfcc743f0aa38234428829a84eb0f02466f76a6cdc0",
-      "archive": "tar.gz",
-      "member": "reforge"
-     },
-     "darwin-arm64": {
-      "url": "https://github.com/LyleMi/Reforge/releases/download/v0.3.0/reforge-macos-aarch64.tar.gz",
-      "sha256": "1e5c912754e91ceac8d6bff0016de89c108d191311433b1adbaa903ea7fb7ecd",
-      "archive": "tar.gz",
-      "member": "./reforge"
-     },
-     "darwin-x86_64": {
-      "url": "https://github.com/LyleMi/Reforge/releases/download/v0.3.0/reforge-macos-x86_64.tar.gz",
-      "sha256": "bfd6d68f6854d6cecf76b5ae8d30ad2a7167221789e1b5aecb6a648ea5235fce",
-      "archive": "tar.gz",
-      "member": "./reforge"
-     }
-    }
-   },
-   "jobs": {
-    "size_complexity": "parameters, nesting and length per function, data clumps, test duplication and boundary bypasses (hidden until measured, M18.16)"
-   }
-  },
-  {
    "name": "jscpd",
    "role": "read",
    "stages": [
@@ -217,141 +121,6 @@
    },
    "jobs": {
     "near_copies": "primary"
-   }
-  },
-  {
-   "name": "syft",
-   "role": "read",
-   "stages": [
-    "S01"
-   ],
-   "applies": "all",
-   "check": "engines",
-   "license": "Apache-2.0",
-   "repository": "https://github.com/anchore/syft",
-   "version": "1.52.0",
-   "binary": "syft",
-   "install": {
-    "method": "release",
-    "url": "https://github.com/anchore/syft/releases/download/v1.52.0/syft_1.52.0_linux_amd64.tar.gz",
-    "sha256": "caeedb81fb0491615f1ebd1761e4145d41ee86dd2cc7bf80669f9f5ad9d6133d",
-    "archive": "tar.gz",
-    "member": "syft",
-    "platforms": {
-     "linux-x86_64": {
-      "method": "release",
-      "url": "https://github.com/anchore/syft/releases/download/v1.52.0/syft_1.52.0_linux_amd64.tar.gz",
-      "sha256": "caeedb81fb0491615f1ebd1761e4145d41ee86dd2cc7bf80669f9f5ad9d6133d",
-      "archive": "tar.gz",
-      "member": "syft"
-     },
-     "darwin-arm64": {
-      "url": "https://github.com/anchore/syft/releases/download/v1.52.0/syft_1.52.0_darwin_arm64.tar.gz",
-      "sha256": "014d561b6d13059124155f74a6c5a9a99501f5e209313638dd884f39eb418ee6",
-      "archive": "tar.gz",
-      "member": "syft"
-     },
-     "darwin-x86_64": {
-      "url": "https://github.com/anchore/syft/releases/download/v1.52.0/syft_1.52.0_darwin_amd64.tar.gz",
-      "sha256": "56975f5d7ffa9846a1eaf64330647841b878097bc7e3730cb9325f93add96917",
-      "archive": "tar.gz",
-      "member": "syft"
-     }
-    }
-   },
-   "jobs": {
-    "sbom": "primary"
-   }
-  },
-  {
-   "name": "osv-scanner",
-   "role": "read",
-   "stages": [
-    "S01",
-    "S04",
-    "S10"
-   ],
-   "applies": "all",
-   "check": "engines",
-   "license": "Apache-2.0",
-   "repository": "https://github.com/google/osv-scanner",
-   "version": "2.6.0",
-   "binary": "osv-scanner",
-   "install": {
-    "method": "release",
-    "url": "https://github.com/google/osv-scanner/releases/download/v2.6.0/osv-scanner_linux_amd64",
-    "sha256": "ca69b3d3cd08f889a49dc0a383122f71cc528b83803671df5fd874d97485b108",
-    "archive": "binary",
-    "member": "osv-scanner",
-    "platforms": {
-     "linux-x86_64": {
-      "method": "release",
-      "url": "https://github.com/google/osv-scanner/releases/download/v2.6.0/osv-scanner_linux_amd64",
-      "sha256": "ca69b3d3cd08f889a49dc0a383122f71cc528b83803671df5fd874d97485b108",
-      "archive": "binary",
-      "member": "osv-scanner"
-     },
-     "darwin-arm64": {
-      "url": "https://github.com/google/osv-scanner/releases/download/v2.6.0/osv-scanner_darwin_arm64",
-      "sha256": "98c460dcd37de25819babd757d04542045b6243113e209edcd4d89fedb0256b4",
-      "archive": "binary",
-      "member": "osv-scanner"
-     },
-     "darwin-x86_64": {
-      "url": "https://github.com/google/osv-scanner/releases/download/v2.6.0/osv-scanner_darwin_amd64",
-      "sha256": "60c5296637e977b28eeda5c7f13573e447659a632922737f94d11fa7e30ad6ca",
-      "archive": "binary",
-      "member": "osv-scanner"
-     }
-    }
-   },
-   "jobs": {
-    "vulnerable_dependencies": "primary"
-   }
-  },
-  {
-   "name": "scc",
-   "role": "read",
-   "stages": [
-    "S01",
-    "S03"
-   ],
-   "applies": "all",
-   "check": "engines",
-   "license": "MIT",
-   "repository": "https://github.com/boyter/scc",
-   "version": "4.1.0",
-   "binary": "scc",
-   "install": {
-    "method": "release",
-    "url": "https://github.com/boyter/scc/releases/download/v4.1.0/scc_Linux_x86_64.tar.gz",
-    "sha256": "c7328436d3027f4357d3d7853f7dc3ac2bbcb4ca08f1adad91a27c593884079b",
-    "archive": "tar.gz",
-    "member": "scc",
-    "platforms": {
-     "linux-x86_64": {
-      "method": "release",
-      "url": "https://github.com/boyter/scc/releases/download/v4.1.0/scc_Linux_x86_64.tar.gz",
-      "sha256": "c7328436d3027f4357d3d7853f7dc3ac2bbcb4ca08f1adad91a27c593884079b",
-      "archive": "tar.gz",
-      "member": "scc"
-     },
-     "darwin-arm64": {
-      "url": "https://github.com/boyter/scc/releases/download/v4.1.0/scc_Darwin_arm64.tar.gz",
-      "sha256": "7201c7aa4aace058d43308462cba72adb18f6094c08c0741727455976d0a0747",
-      "archive": "tar.gz",
-      "member": "scc"
-     },
-     "darwin-x86_64": {
-      "url": "https://github.com/boyter/scc/releases/download/v4.1.0/scc_Darwin_x86_64.tar.gz",
-      "sha256": "7f705031228add7e55edded409179a60de6b538d41f153ba2922dee95adda50d",
-      "archive": "tar.gz",
-      "member": "scc"
-     }
-    }
-   },
-   "jobs": {
-    "size_complexity": "the lines of files in the languages EAOS's parser does not read"
    }
   },
   {
@@ -396,48 +165,6 @@
    "license_note": "Semgrep Rules License v1.0: fetched to this machine for non-commercial use and read by the semgrep adapter; never copied into the EAOS repository or redistributed.",
    "jobs": {
     "static_security": "the official rule library Semgrep reads (security and secrets only)"
-   }
-  },
-  {
-   "name": "checkov",
-   "role": "read",
-   "stages": [
-    "S04",
-    "S10"
-   ],
-   "applies": "ci_or_iac",
-   "check": "engines",
-   "license": "Apache-2.0",
-   "repository": "https://github.com/bridgecrewio/checkov",
-   "version": "3.3.19",
-   "binary": "checkov",
-   "install": {
-    "method": "pip",
-    "package": "checkov"
-   },
-   "jobs": {
-    "infrastructure_config": "primary"
-   }
-  },
-  {
-   "name": "bandit",
-   "role": "read",
-   "stages": [
-    "S04",
-    "S10"
-   ],
-   "applies": "python",
-   "check": "engines",
-   "license": "Apache-2.0",
-   "repository": "https://github.com/PyCQA/bandit",
-   "version": "1.9.4",
-   "binary": "bandit",
-   "install": {
-    "method": "pip",
-    "package": "bandit[sarif]"
-   },
-   "jobs": {
-    "static_security": "Python weaknesses read from the syntax tree that Semgrep's security pack has no rule for (a request without a timeout)"
    }
   },
   {
@@ -510,62 +237,6 @@
    "install_note": "Real data written in the code (M12.1): a library, no executable; eaos/templates/presidio/scan.py imports it in its own environment and reads the project's string literals only, with the Saudi mobile, national id and Arabic name patterns and the placeholders of eaos/rules/personal-data.json. spaCy's small English model (MIT, its wheel pinned by its sha256) finds English names. Its own environment: spaCy's numpy and pydantic would move the versions the other Python tools share.",
    "jobs": {
     "personal_data": "primary"
-   }
-  },
-  {
-   "name": "codeql",
-   "role": "read",
-   "stages": [
-    "S04",
-    "S10"
-   ],
-   "applies": "all",
-   "check": "engines",
-   "license": "GitHub CodeQL Terms and Conditions (open-source codebases only)",
-   "repository": "https://github.com/github/codeql-action",
-   "version": "2.27.2",
-   "binary": "codeql",
-   "install": {
-    "method": "release",
-    "url": "https://github.com/github/codeql-action/releases/download/codeql-bundle-v2.27.2/codeql-bundle-linux64.tar.gz",
-    "sha256": "f002864be6dd8d5d7bdb123aaf7291ec8e291012bd9f70b6d2362f730db52aeb",
-    "archive": "tar.gz",
-    "tree": true,
-    "entry": "codeql/codeql",
-    "platforms": {
-     "linux-x86_64": {
-      "method": "release",
-      "url": "https://github.com/github/codeql-action/releases/download/codeql-bundle-v2.27.2/codeql-bundle-linux64.tar.gz",
-      "sha256": "f002864be6dd8d5d7bdb123aaf7291ec8e291012bd9f70b6d2362f730db52aeb",
-      "archive": "tar.gz",
-      "tree": true,
-      "entry": "codeql/codeql"
-     },
-     "linux-arm64": {
-      "url": "https://github.com/github/codeql-action/releases/download/codeql-bundle-v2.27.2/codeql-bundle-linux-arm64.tar.gz",
-      "sha256": "c1779ce6335606ef86fce4aae0db2ac4d7da869527d6a67bf055d9135695473c",
-      "archive": "tar.gz",
-      "tree": true,
-      "entry": "codeql/codeql"
-     },
-     "darwin-arm64": {
-      "url": "https://github.com/github/codeql-action/releases/download/codeql-bundle-v2.27.2/codeql-bundle-osx64.tar.gz",
-      "sha256": "bdd42bab471ed16277048b35b9be7264d07bd19b7391c37d30c74e9555e61e92",
-      "archive": "tar.gz",
-      "tree": true,
-      "entry": "codeql/codeql"
-     },
-     "darwin-x86_64": {
-      "url": "https://github.com/github/codeql-action/releases/download/codeql-bundle-v2.27.2/codeql-bundle-osx64.tar.gz",
-      "sha256": "bdd42bab471ed16277048b35b9be7264d07bd19b7391c37d30c74e9555e61e92",
-      "archive": "tar.gz",
-      "tree": true,
-      "entry": "codeql/codeql"
-     }
-    }
-   },
-   "jobs": {
-    "static_security": "data followed across functions and files (open-source projects on GitHub only)"
    }
   },
   {
@@ -664,181 +335,6 @@
    }
   },
   {
-   "name": "pgtap",
-   "role": "validate",
-   "stages": [
-    "S05"
-   ],
-   "license": "PostgreSQL",
-   "repository": "https://github.com/theory/pgtap",
-   "version": "968eb53a33114e83042b3bdb0c664b5b80cf8bdf",
-   "install": {
-    "method": "git",
-    "repository": "https://github.com/theory/pgtap",
-    "dir": "pgtap"
-   },
-   "install_note": "v1.3.4: the per-table tests of the data rules (M6.6) load it as SQL into the run's own database (eaos/live/trials/data.py makes pgtap.sql from its source once).",
-   "jobs": {
-    "database_rules": "per-table tests of the data rules, loaded into the run's own database"
-   }
-  },
-  {
-   "name": "sqlfluff",
-   "role": "read",
-   "stages": [
-    "S04"
-   ],
-   "applies": "sql",
-   "check": "engines",
-   "license": "MIT",
-   "repository": "https://github.com/sqlfluff/sqlfluff",
-   "version": "4.3.0",
-   "binary": "sqlfluff",
-   "install": {
-    "method": "pip",
-    "package": "sqlfluff"
-   },
-   "jobs": {
-    "sql_lint": "primary"
-   }
-  },
-  {
-   "name": "squawk",
-   "role": "read",
-   "stages": [
-    "S04"
-   ],
-   "applies": "sql",
-   "check": "engines",
-   "license": "Apache-2.0 OR MIT",
-   "repository": "https://github.com/sbdchd/squawk",
-   "version": "2.70.0",
-   "binary": "squawk",
-   "install": {
-    "method": "release",
-    "url": "https://github.com/sbdchd/squawk/releases/download/v2.70.0/squawk-linux-x64",
-    "sha256": "836ba2ab0c0ec30ae02c9f2cec065b341ff853765ceaa3965c22109c2f53eb1c",
-    "archive": "binary",
-    "member": "squawk-linux-x64",
-    "platforms": {
-     "linux-x86_64": {
-      "method": "release",
-      "url": "https://github.com/sbdchd/squawk/releases/download/v2.70.0/squawk-linux-x64",
-      "sha256": "836ba2ab0c0ec30ae02c9f2cec065b341ff853765ceaa3965c22109c2f53eb1c",
-      "archive": "binary",
-      "member": "squawk-linux-x64"
-     },
-     "darwin-arm64": {
-      "url": "https://github.com/sbdchd/squawk/releases/download/v2.70.0/squawk-darwin-arm64",
-      "sha256": "6d96c07032109202a43802e212b2c592d48a11b208d661b2c8814a7eca4a984a",
-      "archive": "binary",
-      "member": "squawk-darwin-arm64"
-     },
-     "darwin-x86_64": {
-      "url": "https://github.com/sbdchd/squawk/releases/download/v2.70.0/squawk-darwin-x64",
-      "sha256": "0369f5cc2beb7e224952d5d30068a92f9e23d65af99d7e7565c9a4fda916c379",
-      "archive": "binary",
-      "member": "squawk-darwin-x64"
-     }
-    }
-   },
-   "install_note": "Risky PostgreSQL migrations (M14.3): a NOT NULL column added without a default, no lock timeout, a table rewritten, ... read from the project's migrations (eaos/engines/code/squawk.py). It sees a migration's risk, not a design such as a whole document kept in one column: that is read on the run's own database.",
-   "jobs": {
-    "migration_risk": "primary"
-   }
-  },
-  {
-   "name": "spectral",
-   "role": "read",
-   "stages": [
-    "S04"
-   ],
-   "applies": "openapi",
-   "check": "engines",
-   "license": "Apache-2.0",
-   "repository": "https://github.com/stoplightio/spectral",
-   "version": "6.16.3",
-   "binary": "spectral",
-   "install": {
-    "method": "npm",
-    "package": "@stoplight/spectral-cli"
-   },
-   "jobs": {
-    "api_lint": "primary"
-   }
-  },
-  {
-   "name": "oasdiff",
-   "role": "read",
-   "stages": [
-    "S04",
-    "S09"
-   ],
-   "applies": "openapi",
-   "check": "engines",
-   "license": "Apache-2.0",
-   "repository": "https://github.com/oasdiff/oasdiff",
-   "version": "1.32.1",
-   "binary": "oasdiff",
-   "install": {
-    "method": "release",
-    "url": "https://github.com/oasdiff/oasdiff/releases/download/v1.32.1/oasdiff_1.32.1_linux_amd64.tar.gz",
-    "sha256": "7c8939fc49b75ee11fec66a5b83b37a2fca6aee109fed85013b1ba2ac2a1ee7f",
-    "archive": "tar.gz",
-    "member": "oasdiff",
-    "platforms": {
-     "linux-x86_64": {
-      "method": "release",
-      "url": "https://github.com/oasdiff/oasdiff/releases/download/v1.32.1/oasdiff_1.32.1_linux_amd64.tar.gz",
-      "sha256": "7c8939fc49b75ee11fec66a5b83b37a2fca6aee109fed85013b1ba2ac2a1ee7f",
-      "archive": "tar.gz",
-      "member": "oasdiff"
-     },
-     "darwin-arm64": {
-      "url": "https://github.com/oasdiff/oasdiff/releases/download/v1.32.1/oasdiff_1.32.1_darwin_all.tar.gz",
-      "sha256": "e4d74b7e2dfb9d4819e7fc720c905ec86547e4637ac270a2b0187c0f1fb7187e",
-      "archive": "tar.gz",
-      "member": "oasdiff"
-     },
-     "darwin-x86_64": {
-      "url": "https://github.com/oasdiff/oasdiff/releases/download/v1.32.1/oasdiff_1.32.1_darwin_all.tar.gz",
-      "sha256": "e4d74b7e2dfb9d4819e7fc720c905ec86547e4637ac270a2b0187c0f1fb7187e",
-      "archive": "tar.gz",
-      "member": "oasdiff"
-     }
-    }
-   },
-   "jobs": {
-    "api_breaking": "primary"
-   }
-  },
-  {
-   "name": "gitnexus",
-   "role": "read",
-   "stages": [
-    "S02",
-    "S04"
-   ],
-   "applies": "all",
-   "check": "engines",
-   "license": "PolyForm-Noncommercial-1.0.0",
-   "repository": "https://github.com/abhigyanpatwari/GitNexus",
-   "version": "1.6.12",
-   "binary": "gitnexus",
-   "install": {
-    "method": "npm",
-    "package": "gitnexus",
-    "env": {
-     "GITNEXUS_SKIP_OPTIONAL_GRAMMARS": "1"
-    }
-   },
-   "license_note": "Non-commercial use only. EAOS is free and non-commercial; a commercial user of EAOS is bound by this license and may skip it (--skip gitnexus): EAOS's own graph and dependency-cruiser cover what the check reads from it.",
-   "jobs": {
-    "assistant_map": "primary",
-    "code_graph": "a second witness of calls and imports, exact on calls through a module, with impact and processes for an assistant"
-   }
-  },
-  {
    "name": "ast-grep",
    "role": "read",
    "stages": [
@@ -901,29 +397,6 @@
    },
    "jobs": {
     "dead_code": "unused exports, types and dependencies of a JavaScript or TypeScript package; the Studio's own law"
-   }
-  },
-  {
-   "name": "react-docgen",
-   "role": "read",
-   "stages": [
-    "S02",
-    "S03"
-   ],
-   "applies": "react",
-   "check": "engines",
-   "license": "MIT",
-   "repository": "https://github.com/reactjs/react-docgen",
-   "version": "3.0.7",
-   "binary": "react-docgen",
-   "install": {
-    "method": "npm",
-    "package": "@react-docgen/cli"
-   },
-   "version_from": "package",
-   "install_note": "The command-line package @react-docgen/cli 3.0.7 pins the react-docgen library at exactly 8.0.4. It has no --version: its version is read from its own package.json.",
-   "jobs": {
-    "components": "primary"
    }
   },
   {

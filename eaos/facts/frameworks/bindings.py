@@ -1,5 +1,6 @@
-"""The names a file binds, as the files that import it reach them: by the importing path's last part (its stem). Shared by
-the data-access detectors (http_access, supabase_access); a stem too common to carry a binding is left out."""
+"""The names a file binds, as the files that import it reach them: by the importing path's last part (its stem).
+Shared by the data-access detectors (http_access, supabase_access); a stem too common to carry a binding is left
+out."""
 
 # Stems too common to carry a binding: importing any `types` or `index` says nothing about a client.
 GENERIC_STEMS = {'index', 'types', 'utils', 'constants', 'config', 'helpers'}

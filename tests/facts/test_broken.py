@@ -29,30 +29,34 @@ class BrokenProjectTests(unittest.TestCase):
                 (repo / name).parent.mkdir(parents=True, exist_ok=True)
                 (repo / name).write_text(text)
             collect(repo, out, ['syntax', 'resolve', 'broken'])
-            return {(f['value']['rule'], f['location']['symbol']) for f in json.loads((out / 'facts/broken.json').read_text())['facts']}
+            return {(f['value']['rule'],
+                     f['location']['symbol']) for f in json.loads((out / 'facts/broken.json').read_text())['facts']}
 
     def test_an_import_into_a_submodule_not_checked_out_is_not_missing(self):
-        # An Angular app's playwright config imports from its `realworld` git submodule; the folder is empty until
-        # `git submodule update --init`, and the import was called missing, high.
-        found = self.run_on({'.gitmodules': '[submodule "realworld"]\n\tpath = realworld\n\turl = https://example.org/realworld.git\n',
-                             'playwright.config.ts': "import { baseConfig } from './realworld/specs/e2e/playwright.base';\n",
+        # An Angular app's playwright config imports from a git submodule; the folder is empty until
+        # `git submodule update --init`, so the import is not missing.
+        found = self.run_on({'.gitmodules': '[submodule "realworld"]\n\tpath = realworld\n\turl = '
+                             'https://example.org/realworld.git\n',
+                             'playwright.config.ts': "import { baseConfig } from "
+                                 "'./realworld/specs/e2e/playwright.base';\n",
                              'src/a.ts': 'import { x } from "./gone";\n'})
         self.assertNotIn(('missing-import', './realworld/specs/e2e/playwright.base'), found)
         self.assertIn(('missing-import', './gone'), found)
 
     def test_a_command_that_runs_build_output_is_not_stale(self):
         # An Nx API's README runs `node dist/api/main.js`, which its build makes: no dist/ is committed, and the command
-        # was called stale. Without a build script, the same command still is.
+        # is not stale. Without a build script, the same command still is.
         files = {'package.json': '{"scripts": {"build": "tsc"}}', 'src/main.ts': 'export const x = 1;\n',
                  'README.md': '```\nnode dist/api/main.js\npython tools/gone.py\n```\n'}
         found = self.run_on(files)
         self.assertNotIn(('stale-instruction', 'node dist/api/main.js'), found)
         self.assertIn(('stale-instruction', 'python tools/gone.py'), found)
-        self.assertIn(('stale-instruction', 'node dist/api/main.js'), self.run_on({**files, 'package.json': '{"scripts": {"start": "node x.js"}}'}))
+        self.assertIn(('stale-instruction', 'node dist/api/main.js'), self.run_on({**files,
+            'package.json': '{"scripts": {"start": "node x.js"}}'}))
 
     def test_a_command_run_from_a_folder_the_document_names_is_not_stale(self):
-        # A full-stack template's docs say `bash scripts/prestart.sh` "from the `backend` directory" (or after a
-        # `cd backend`); the file is backend/scripts/prestart.sh, and the command was called broken.
+        # A full-stack template's docs say `bash scripts/prestart.sh` "from the `backend` directory" (or after a `cd
+        # backend`); the file is backend/scripts/prestart.sh, and the command must not be called broken.
         files = {'backend/scripts/prestart.sh': 'alembic upgrade head\n', 'backend/app/main.py': 'x = 1\n',
                  'development.md': 'From the `backend` directory:\n```bash\nuv run bash scripts/prestart.sh\n```\n',
                  'frontend/README.md': '```\ncd ../backend\nbash scripts/prestart.sh\nbash scripts/gone.sh\n```\n'}
@@ -67,7 +71,8 @@ class BrokenProjectTests(unittest.TestCase):
             'package.json': '{"scripts": {"dev": "vite"}}',
             'src/pages/Old.tsx': 'import { api } from "@/lib/historyApi";\n',
             'src/lib/other.ts': 'export {};\n',
-            'README.md': 'Run `tool audit`, then `tool next`.\n\n```\nnpm run dev\nnpm run build\npython scripts/gone.py\n```\n',
+            'README.md': 'Run `tool audit`, then `tool next`.\n\n```\nnpm run dev\nnpm run build\npython '
+                'scripts/gone.py\n```\n',
             'posts/empty.md': 'An empty block (SvelteKit blog starter):\n```\n```\n'})
         self.assertIn(('missing-import', '@/lib/historyApi'), found)
         for symbol in ('tool next', 'npm run build', 'python scripts/gone.py'):

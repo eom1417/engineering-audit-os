@@ -1,21 +1,18 @@
-"""Reading where a project stands deletes nothing of the person's: status, menu and plan, through MCP, the Studio and the
-terminal, leave a merged batch's branch and an open batch's copy where they are, and say what they found. The cleaning
-stays with what writes (docs/MCP.md, Merging)."""
+"""Reading where a project stands deletes nothing of the person's: status, menu and plan, through MCP, the run
+engine and the terminal, leave a merged batch's branch and an open batch's copy where they are, and say what they
+found. The cleaning stays with what writes (docs/MCP.md, Merging)."""
 import contextlib
 import io
 import json
 import shutil
 import subprocess
 from pathlib import Path
-from unittest import mock
 
 from eaos.core.project import state as project_state
 from eaos.interfaces import cli
 from eaos.interfaces.mcp_server.server import functions
-from eaos.interfaces import studio_actions as actions
-from eaos.interfaces.studio_server import server as studio_server
+from eaos.interfaces import runs as actions
 from eaos.journeys import agent_tools, guided
-from eaos.journeys.build_from_plan import steps
 from tests.interfaces.test_read_only_tools import Home, _called, _files
 
 BATCH = 'eaos/main/wave-1'
@@ -23,7 +20,8 @@ READS = ('status', 'menu', 'plan')
 
 
 def _git(project, *argv):
-    done = subprocess.run(['git', '-C', str(project), '-c', 'user.name=t', '-c', 'user.email=t@t', *argv], check=True, capture_output=True, text=True)
+    done = subprocess.run(['git', '-C', str(project), '-c', 'user.name=t', '-c', 'user.email=t@t', *argv], check=True,
+                          capture_output=True, text=True)
     return done.stdout.strip()
 
 
@@ -55,7 +53,9 @@ class Settled(Home):
     def waiting_batch(self, branch=BATCH, tip=None):
         """A batch handed over and waiting for the person: its record in the state, as finishing a batch writes it."""
         state = self.state()
-        state.setdefault('waves', []).append({'number': 1, 'branch': branch, 'status': 'applied', 'tip': tip, 'merge_into': 'main', 'cards': [], 'kept': {}})
+        state.setdefault('waves',
+                         []).append({'number': 1, 'branch': branch, 'status': 'applied', 'tip': tip,
+                                     'merge_into': 'main', 'cards': [], 'kept': {}})
         guided.save(state)
 
     def merged_by_hand(self, name='fixed.py'):
@@ -72,7 +72,8 @@ class Settled(Home):
         copy = project_state.runtime_of(state) / 'candidates' / 'WAVE-1'
         copy.parent.mkdir(parents=True, exist_ok=True)
         subprocess.run(['git', 'clone', '-q', str(self.project), str(copy)], check=True, capture_output=True)
-        state['open_wave'] = {'number': 1, 'root': str(copy), 'base': base, 'source_commit': base, 'cards': ['TASK-001'], 'kept': {}, 'failed': {}, 'tools': {}}
+        state['open_wave'] = {'number': 1, 'root': str(copy), 'base': base, 'source_commit': base,
+                              'cards': ['TASK-001'], 'kept': {}, 'failed': {}, 'tools': {}}
         guided.save(state)
         return copy
 
@@ -99,21 +100,13 @@ class AManuallyMergedBatch(Settled):
         self.assertTrue(self.has_branch())
         self.assertEqual(self.state()['waves'][0]['status'], 'accepted')
 
-    def test_a_projects_status_while_it_is_built_leaves_it_too(self):
-        self.merged_by_hand()
-        state = self.state()
-        state['mode'] = 'build'
-        guided.save(state)
-        with mock.patch.object(steps.journeys, 'which', return_value='build'):
-            self.assertEqual(steps.status_of(str(self.project))['mode'], 'build from a plan')
-        self.assertTrue(self.has_branch())
-        self.assertEqual(self.state()['waves'][0]['status'], 'accepted')
-
     def test_each_writing_step_still_removes_it_after_a_read_recorded_it(self):
         where = str(self.project)
-        for number, (name, step) in enumerate((('fix_start', lambda: agent_tools.fix_start(where)), ('accept', lambda: agent_tools.accept(where)),
-                                               ('undo', lambda: agent_tools.undo(where)), ('open_report', lambda: agent_tools.open_report(where, show=False)),
-                                               ('opening the Studio', lambda: studio_server.prepare(where)))):
+        for number, (name,
+                     step) in enumerate((('fix_start', lambda: agent_tools.fix_start(where)),
+                                         ('accept', lambda: agent_tools.accept(where)),
+                                               ('undo', lambda: agent_tools.undo(where)),
+                                         ('open_report', lambda: agent_tools.open_report(where, show=False)))):
             with self.subTest(step=name):
                 self.merged_by_hand(f'fixed{number}.py')
                 self.read('status')
@@ -168,7 +161,8 @@ class AStaleOpenBatch(Settled):
         answer = self.read('status')
         self.assertIsNone(answer['retired_batch'], 'nothing was retired')
         self.assertEqual(answer['open_batch']['number'], 1, 'it is still open')
-        self.assertEqual(answer['next']['tool'], 'run_setup', 'the step the new code needs, never to go on with the batch')
+        self.assertEqual(answer['next']['tool'], 'run_setup',
+                         'the step the new code needs, never to go on with the batch')
         self.assertIn(guided.why_stale(self.state()), answer['next']['why'])
         self.assertNotIn('retired', answer['next']['why'], 'the owner\'s rule: only detected, so not said to be closed')
         self.assertIsNone(answer['handover']['open_work'], 'fix_start would close it, not continue it')
@@ -200,7 +194,9 @@ class AStaleOpenBatch(Settled):
         self.commit('moved.py')
         self.read('status')
         record = Path(self.state()['workspace']) / 'state.json'
-        record.write_text(json.dumps({**json.loads(record.read_text(encoding='utf-8')), 'updated': 'an older stamp'}), encoding='utf-8')   # a save would change
+        # a save would change it, even within one second
+        record.write_text(json.dumps({**json.loads(record.read_text(encoding='utf-8')), 'updated': 'an older stamp'}),
+                          encoding='utf-8')
         before = self._everything_but_the_journal()
         self.read('status')
         self.assertEqual(self._everything_but_the_journal(), before)
@@ -212,7 +208,8 @@ class AStaleOpenBatch(Settled):
         self.read('status')
         agent_tools.fix_start(str(self.project))
         state = self.state()
-        self.assertEqual((state['waves'][-1]['status'], bool(state['waves'][-1]['why']), copy.exists()), ('superseded', True, False))
+        self.assertEqual((state['waves'][-1]['status'], bool(state['waves'][-1]['why']), copy.exists()),
+                         ('superseded', True, False))
 
     def test_abandoning_it_closes_it_and_removes_its_copy(self):
         copy = self.open_batch()
@@ -231,8 +228,8 @@ class AStaleOpenBatch(Settled):
         self.assertEqual((state['waves'][-1]['status'], copy.exists()), ('superseded', False))
 
 
-class ThroughTheStudio(Settled):
-    """The Studio answers a reading action with the MCP tool itself."""
+class ThroughTheRunEngine(Settled):
+    """The run engine answers a reading action with the MCP tool itself."""
 
     def setUp(self):
         super().setUp()
@@ -243,7 +240,8 @@ class ThroughTheStudio(Settled):
         self.app.manager.tools = functions
 
     def run_action(self, name):
-        headers = {'X-EAOS-Token': self.app.token, 'X-EAOS-CSRF': self.app.csrf, 'Origin': 'http://127.0.0.1:8765', 'Host': '127.0.0.1:8765'}
+        headers = {'X-EAOS-Token': self.app.token, 'X-EAOS-CSRF': self.app.csrf, 'Origin': 'http://127.0.0.1:8765',
+                   'Host': '127.0.0.1:8765'}
         status, payload = self.app.handle('POST', '/api/runs', headers, {'action': name})
         self.assertEqual((status, payload['run']['state']), (200, 'done'))
         return payload['run']['result']['answer']

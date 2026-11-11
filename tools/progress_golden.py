@@ -4,11 +4,12 @@
         copy a real run's progress file to tests/fixtures/progress/<name>.jsonl; the host becomes `golden-host`,
         every process number a small fixed one, and every path under <folder> starts with `/golden` instead
     python tools/progress_golden.py expect
-        write tests/fixtures/progress/<name>.fold.json = the Python fold (eaos/core/progress/fold.py) of every golden file
+        write tests/fixtures/progress/<name>.fold.json = the Python fold (eaos/core/progress/fold.py) of every golden
+        file
     python tools/progress_golden.py check
         exit 1 when a committed .fold.json differs from the fold of its golden file
 
-The Studio's TypeScript fold is held to the same .fold.json files (plan section 4.4), so a change to either fold
+The Studio's TypeScript fold is held to the same .fold.json files, so a change to either fold
 that changes what the page shows shows up as a diff here.
 """
 import json

@@ -42,7 +42,7 @@ class DeclarationLineTests(Workspace):
 
 class StarletteRouteTests(unittest.TestCase):
     def test_starlette_route_objects_are_http_entry_points_with_their_methods(self):
-        # Found on EAOS's own server: its /api routes are Route(...) objects, and no route was found, so no load test ran.
+        # Its /api routes are Route(...) objects; without them no route is found, so no load test runs.
         from eaos.facts.code.entrypoints import Context
         text = ("from starlette.routing import Route\n"
                 "routes = [Route('/api/runs', runs, methods=['GET', 'POST']), Route('/health', health)]\n")
@@ -51,7 +51,7 @@ class StarletteRouteTests(unittest.TestCase):
                          [('GET', '/api/runs', 'starlette'), ('POST', '/api/runs', 'starlette'), ('GET', '/health', 'starlette')])
 
     def test_a_blueprint_or_router_made_with_its_prefix_puts_its_routes_under_it(self):
-        # flaskr (the final proof, 2026-10-27): /auth/register was read as /register, and a repair stopped on a page not there
+        # /auth/register is read as /auth/register, not /register
         from eaos.facts.code.entrypoints import Context
         text = ('bp = Blueprint("auth", __name__, url_prefix="/auth")\napi = APIRouter(prefix="/api/")\nplain = Blueprint("blog", __name__)\n'
                 '@bp.route("/register")\ndef register(): pass\n@api.get("/users")\ndef users(): pass\n@plain.route("/")\ndef index(): pass\n')

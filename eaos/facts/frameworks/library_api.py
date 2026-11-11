@@ -43,7 +43,8 @@ def _public(pairs):
     found, seen = [], set()
     for symbol, line in pairs:
         symbol = symbol.strip().strip('\'"').split(' as ')[-1].strip()
-        if not symbol or symbol in seen or symbol.startswith('_') or not symbol.replace('*', 'x').isidentifier(): continue
+        if not symbol or symbol in seen or symbol.startswith('_') or not symbol.replace('*',
+                                                                                        'x').isidentifier(): continue
         seen.add(symbol)
         found.append({'surface': 'library', 'route': symbol, 'http_method': None, 'handler': symbol,
                       'framework': 'public_api', 'line': line})

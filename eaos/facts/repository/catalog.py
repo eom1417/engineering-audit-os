@@ -1,5 +1,5 @@
-"""The rules of the repository's craft (M7.8) and its assistants' context (M7.9): each rule's sentence for one finding and
-its fix, in English and Arabic; the thresholds are data (eaos/rules/repository-craft.json)."""
+"""The rules of the repository's craft and its assistants' context: each rule's sentence for one finding and its
+fix, in English and Arabic; the thresholds are data (eaos/rules/repository-craft.json)."""
 import json
 from pathlib import Path
 

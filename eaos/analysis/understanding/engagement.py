@@ -11,7 +11,7 @@ the work begins. The contract carries:
 
 Nothing here is a verdict on the code. The contract is the team's own statement
 about what they will pay attention to, and the engine reads it back as input
-to the transform plan and the dashboard.
+to the transform plan and the reports.
 """
 from pathlib import Path
 import json
@@ -29,14 +29,8 @@ LIMITATIONS = [
     '`analysis.exclude` in the policy also excludes it.',
 ]
 
-DEFAULT_TARGETS = {
-    'single_source': 0.0, 'minimal_path': 0.0, 'data_owners': 0,
-    'honest_boundaries': 0, 'verifiable_paths': 0.0, 'understandable_units': 0,
-}
-
-
 # Rules the audit applies unless the project says otherwise in eaos.engagement.json at its root. Each is a
-# declared default, not a judgement about this project: the owner turns one off by writing it as false.
+# declared default, not a judgement about this project: the project turns one off by writing it as false.
 DEFAULT_RULES = {
     'remove_dead_code': {
         'value': True, 'source': 'default',

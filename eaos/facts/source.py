@@ -36,7 +36,8 @@ class Source:
 
     def _split(self):
         """The files the extractors read (in scope and not generated), and the paths of those left out."""
-        files = [item for item in self.inventory['files'] if not self.excluded(item['path']) and not self.generated(item)]
+        files = [item for item in self.inventory['files']
+                 if not self.excluded(item['path']) and not self.generated(item)]
         kept = {item['path'] for item in files}
         return files, [item['path'] for item in self.inventory['files'] if item['path'] not in kept]
 
@@ -74,11 +75,6 @@ class Source:
         return [item for item in self.files if item['capture'] == 'hashed']
 
     def category(self, rel): return classify(rel)
-
-    def readable_including_sensitive(self):
-        """Every readable file plus sensitive-flagged files."""
-        return [item for item in self.inventory['files']
-                if item.get('capture') in ('hashed', 'sensitive_metadata_only')]
 
     def text(self, rel):
         """UTF-8 text of an in-target file, or None when it is binary, oversize or excluded."""

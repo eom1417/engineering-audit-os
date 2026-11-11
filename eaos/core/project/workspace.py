@@ -12,12 +12,18 @@ from ... import __version__
 from ...core.system.clock import now
 
 DATA = Path(__file__).resolve().parents[2] / 'data'
-SKIP_DIRS = {'.git', 'node_modules', '.venv', 'venv', '__pycache__', 'vendor', 'dist', 'build', '.next', '.nuxt', '.terraform'}
-STACKS = {'package.json':'JavaScript/TypeScript', 'pyproject.toml':'Python', 'requirements.txt':'Python', 'go.mod':'Go', 'Cargo.toml':'Rust', 'pom.xml':'JVM', 'build.gradle':'JVM', 'composer.json':'PHP', 'Gemfile':'Ruby', 'mix.exs':'Elixir', 'pubspec.yaml':'Dart'}
-INFRA = re.compile(r'(docker|compose|helm|kubernetes|k8s|terraform|serverless|pulumi|ansible|\.github/workflows|\.gitlab-ci|jenkins|cloudformation|\.tf$)', re.I)
+SKIP_DIRS = {'.git', 'node_modules', '.venv', 'venv', '__pycache__', 'vendor', 'dist', 'build',
+             '.next', '.nuxt', '.terraform'}
+STACKS = {'package.json':'JavaScript/TypeScript', 'pyproject.toml':'Python', 'requirements.txt':'Python', 'go.mod':'Go',
+          'Cargo.toml':'Rust', 'pom.xml':'JVM', 'build.gradle':'JVM', 'composer.json':'PHP',
+          'Gemfile':'Ruby', 'mix.exs':'Elixir', 'pubspec.yaml':'Dart'}
+INFRA = re.compile(r'(docker|compose|helm|kubernetes|k8s|terraform|serverless|pulumi|ansible|'
+                   r'\.github/workflows|\.gitlab-ci|jenkins|cloudformation|\.tf$)', re.I)
 # A secrets or credentials file is data (secrets.json, app-credentials.yaml, a folder named secrets), never code:
 # adminSecrets.ts or credentialsForm.tsx are source the audit must read, or it calls their imports missing.
-SENSITIVE = re.compile(r'(^\.env($|\.)|\.pem$|\.key$|^id_(rsa|ed25519)$|(^|[._-])(credentials?|secrets?)(\.(json|ya?ml|toml|ini|txt|env|conf|cfg|properties|xml|csv)$|$)|\.tfstate($|\.)|\.p12$|\.pfx$|^\.npmrc$|^\.netrc$)',re.I)
+SENSITIVE = re.compile(r'(^\.env($|\.)|\.pem$|\.key$|^id_(rsa|ed25519)$|(^|[._-])(credentials?|secrets?)'
+                       r'(\.(json|ya?ml|toml|ini|txt|env|conf|cfg|properties|xml|csv)$|$)|\.tfstate($|\.)|'
+                       r'\.p12$|\.pfx$|^\.npmrc$|^\.netrc$)',re.I)
 
 def digest(b): return hashlib.sha256(b).hexdigest()
 def read(p): return json.loads(Path(p).read_text(encoding='utf-8'))
@@ -35,7 +41,9 @@ def _prune_dirs(root, base, dirs, exclusions):
     for name in list(dirs):
         p=Path(base)/name
         if name in SKIP_DIRS or p.is_symlink():
-            exclusions.append({'path':p.relative_to(root).as_posix(),'reason':'symlink' if p.is_symlink() else 'generated/dependency/VCS directory; external verification may be required'})
+            exclusions.append({'path':p.relative_to(root).as_posix(),
+                               'reason':'symlink' if p.is_symlink() else 'generated/dependency/VCS directory; '
+                               'external verification may be required'})
             dirs.remove(name)
 
 def _capture(p, name, size, max_bytes):
@@ -63,14 +71,15 @@ def _scan_names(root, base, names, limits, found):
     return True
 
 def _set_aside_unread_names(root, base, names, found):
-    """A file or folder whose name is not valid UTF-8 cannot be said in a record, so it is not read; it is named instead,
-    with \\xNN for its bad bytes (as git's log reads, eaos/facts/code/history.py), and its bytes kept."""
+    """A file or folder whose name is not valid UTF-8 cannot be said in a record, so it is not read; it is named
+    instead, with \\xNN for its bad bytes (as git's log reads, eaos/facts/code/history.py), and its bytes kept."""
     for name in list(names):
         try: name.encode('utf-8')
         except UnicodeEncodeError:
             names.remove(name)
             raw = os.fsencode(os.path.relpath(os.path.join(base, name), root))
-            found['unread_names'].append({'path': raw.decode('utf-8', 'backslashreplace'), 'raw_base64': base64.b64encode(raw).decode()})
+            found['unread_names'].append({'path': raw.decode('utf-8', 'backslashreplace'),
+                                          'raw_base64': base64.b64encode(raw).decode()})
 
 def inventory(root, max_files=100000, max_bytes=2_000_000):
     root=Path(root).resolve()
@@ -83,14 +92,21 @@ def inventory(root, max_files=100000, max_bytes=2_000_000):
         _prune_dirs(root,base,dirs,found['exclusions'])
         if not _scan_names(root,base,names,limits,found): limited=True;break
     files,exclusions,errors=found['files'],found['exclusions'],found['errors']
-    manifest_names=sorted({f['path'] for f in files if Path(f['path']).name in STACKS or f['path'].endswith(('.csproj','.fsproj','.sln'))})
+    manifest_names=sorted({f['path'] for f in files
+                           if Path(f['path']).name in STACKS or f['path'].endswith(('.csproj','.fsproj','.sln'))})
     stack_hints=sorted({STACKS.get(Path(p).name,'.NET') for p in manifest_names})
     fingerprint=digest(json.dumps(files+found['unread_names'],sort_keys=True).encode())
-    return {'root':str(root),'unread_names':found['unread_names'],'created_at':now('auto'),'fingerprint':fingerprint,'limits':{'max_files':max_files,'max_bytes':max_bytes},'truncated':limited,'errors':errors,'exclusions':exclusions,'files':files,'manifest_candidates':manifest_names,'stack_hints':stack_hints,'infrastructure_candidates':[f['path'] for f in files if INFRA.search(f['path'])],'interpretation':'Filename hints only; confirm actual architecture, versions and deployed infrastructure with evidence.'}
+    return {'root':str(root),'unread_names':found['unread_names'],'created_at':now('auto'),
+            'fingerprint':fingerprint,'limits':{'max_files':max_files,'max_bytes':max_bytes},'truncated':limited,
+            'errors':errors,'exclusions':exclusions,'files':files,'manifest_candidates':manifest_names,
+            'stack_hints':stack_hints,'infrastructure_candidates':[f['path'] for f in files if INFRA.search(f['path'])],
+            'interpretation':'Filename hints only; confirm actual architecture, versions and '
+            'deployed infrastructure with evidence.'}
 
 def load_run(path):
     run=Path(path).resolve(); state=read(run/'run.json')
-    if state.get('framework_version')!=__version__: raise ValueError('Unsupported framework version; migrate records explicitly')
+    if state.get('framework_version')!=__version__:
+        raise ValueError('Unsupported framework version; migrate records explicitly')
     return run,state
 
 def fresh(state, inv):
@@ -109,7 +125,8 @@ def safe_file(root,relative):
     _refuse_symlinks(root,raw)
     resolved=raw.resolve()
     if root not in resolved.parents or not resolved.is_file(): raise ValueError('Not a regular in-target file')
-    if any(SENSITIVE.search(p) for p in rel.parts): raise ValueError('Sensitive path: metadata only; do not capture contents')
+    if any(SENSITIVE.search(p) for p in rel.parts):
+        raise ValueError('Sensitive path: metadata only; do not capture contents')
     return resolved
 
 
@@ -118,7 +135,8 @@ def run_lock(run):
     """Single writer/read-consistent CLI session across cooperating processes."""
     lock=Path(run).resolve()/'engine.lock'
     try:fd=os.open(lock,os.O_CREAT|os.O_EXCL|os.O_WRONLY,0o600)
-    except FileExistsError:raise ValueError('Run is locked; verify its process stopped before removing a stale engine.lock') from None
+    except FileExistsError:
+        raise ValueError('Run is locked; verify its process stopped before removing a stale engine.lock') from None
     try:
         with os.fdopen(fd,'w') as stream:stream.write(str(os.getpid()))
         yield

@@ -1,5 +1,5 @@
 """EAOS reads the web over http(s) only: urllib also opens file:// and ftp://, and an address built from a record or a
-project's configuration could read a file of this computer (EAOS's check of itself, 2026-10-24: eleven such calls)."""
+project's configuration could read a file of this computer."""
 import tempfile
 import unittest
 from pathlib import Path

@@ -4,8 +4,9 @@ and what happened to it. The report for people reads its progress from here, and
 Why a key: a check numbers its cards TASK-001, TASK-002… in its own order, so after the next check TASK-008 is another
 problem. A card's key is its observation's uid (decision.observation_uid, OBS-…: what was observed and where, not how
 the title words it, so a reworded title or another list of tools keeps the key); a card without one (a design card)
-is keyed by its kind, its files and its words with the numbers taken out. Two cards alike are told apart by their order. Every commit EAOS makes carries its card's key as a trailer
-(`EAOS-Card: <key>`), so what is in the person's branch is read from git itself, whoever merged it and however.
+is keyed by its kind, its files and its words with the numbers taken out. Two cards alike are told apart by their
+order. Every commit EAOS makes carries its card's key as a trailer (`EAOS-Card: <key>`), so what is in the person's
+branch is read from git itself, whoever merged it and however.
 
 A card's state:
     open        in the plan, not tried yet (or tried and brought back by a later check)
@@ -31,7 +32,8 @@ from ...core.system.files import read_json
 from ...core.system.clock import now
 
 TRAILER = 'EAOS-Card'
-SUBJECT, HISTORY = 72, 20      # a commit subject's length at most; the project's own recent commits its language is read from
+# a commit subject's length at most; the project's own recent commits its language is read from
+SUBJECT, HISTORY = 72, 20
 NUMBERS = re.compile(r'\d+')
 GO_LINE = re.compile(r'^([+-])(go|toolchain)\s+(\S+)\s*$')      # a go.mod's `go` or `toolchain` line in a diff
 CLOSED = ('done',)
@@ -46,7 +48,8 @@ def key(card, ordinal=0):
     if uid: text = '|'.join([uid] + ([str(ordinal)] if ordinal else []))
     else:
         words = NUMBERS.sub('#', ' '.join((card.get('title') or '').split()).lower())
-        text = '|'.join([card.get('pattern') or 'generic', *sorted(card.get('paths') or []), words] + ([str(ordinal)] if ordinal else []))
+        text = '|'.join([card.get('pattern') or 'generic', *sorted(card.get('paths') or []), words]
+                        + ([str(ordinal)] if ordinal else []))
     return hashlib.sha256(text.encode('utf-8')).hexdigest()[:12]
 
 
@@ -61,14 +64,15 @@ def keys(cards):
 
 
 def message(root, card, summary=''):
-    """The message of the commit of `card` in the copy at `root`, as a maintainer reads it: a subject saying what changed
-    (the first line of the assistant's `summary`, else the card's title), in the language of the project's own commits
-    (English unless most of them are Arabic: the card's English kind then), never cut mid-word; then the why the summary
-    gives, and the Go it now needs when it raised a go.mod's (go_raised); the card's id and key last (only the key is read
-    back, walk). Five real projects got subjects cut mid-word and Arabic ones in English repositories."""
+    """The message of the commit of `card` in the copy at `root`, as a maintainer reads it: a subject saying what
+    changed (the first line of the assistant's `summary`, else the card's title), in the language of the project's own
+    commits (English unless most of them are Arabic: the card's English kind then), never cut mid-word; then the why
+    the summary gives, and the Go it now needs when it raised a go.mod's (go_raised); the card's id and key last (only
+    the key is read back, walk)."""
     first, _, why = (summary or '').strip().partition('\n')
     arabic = _commits_in_arabic(root)
-    said = next((text for text in (first.strip(), card.get('title') or '') if text and (arabic or not ARABIC.search(text))),
+    said = next((text for text in (first.strip(), card.get('title') or '')
+                 if text and (arabic or not ARABIC.search(text))),
                 None) or plain.problem(card.get('pattern'), 'en')[0]
     body = list(filter(None, (why.strip(), '\n'.join(go_raised(root, '--cached')))))
     return '\n\n'.join([_cut(said), *body, f"EAOS-Task: {card['id']}\n{TRAILER}: {card.get('key') or key(card)}"])
@@ -77,14 +81,14 @@ def message(root, card, summary=''):
 def go_raised(root, *span):
     """What a change did to the Go each go.mod needs, one sentence per go.mod whose `go` line it raised or whose
     `toolchain` it added or raised ("svc/go.mod now needs Go 1.26 (was 1.21)"); `span`: the git diff's revisions
-    (`--cached`: the change staged). Everyone who builds the project then needs that Go (a second trial on real
-    projects: a module upgrade raised it and nothing said so)."""
+    (`--cached`: the change staged). Everyone who builds the project then needs that Go."""
     seen, name = {}, 'go.mod'
     for line in _git(root, 'diff', '--no-color', *span, '--', 'go.mod', '*/go.mod').stdout.splitlines():
         if line.startswith('+++ b/'): name = line[6:]
         found = GO_LINE.match(line)
         if found: seen.setdefault((name, found[2]), {})[found[1]] = found[3]
-    return [f"{name} now needs {'Go' if what == 'go' else 'the toolchain'} {row['+']}" + (f" (was {row['-']})" if row.get('-') else '')
+    return [f"{name} now needs {'Go' if what == 'go' else 'the toolchain'} {row['+']}"
+            + (f" (was {row['-']})" if row.get('-') else '')
             for (name, what), row in seen.items() if '+' in row and _newer(row['+'], row.get('-'))]
 
 
@@ -151,8 +155,8 @@ def _commits(log):
 
 
 def _plan(state, report=None):
-    """The plan of the check on record: `report`/plan.json (eaos/journeys/guided.report_of), by default in the branch's part of
-    the outputs folder."""
+    """The plan of the check on record: `report`/plan.json (eaos/journeys/guided.report_of), by default in the
+    branch's part of the outputs folder."""
     if report is None and not state.get('outputs'): return None
     return read_json(Path(report or branches.home(state) / 'technical') / 'plan.json')
 
@@ -240,9 +244,8 @@ def _apply_waves(cards, waves):
 
 
 def _apply_wave(wave, cards, known):
-    """What a batch did to its cards. One closed without handing anything over (abandoned, superseded) changed nothing:
-    its cards stay open, whatever it failed on, and the next batch can pick them (EAOS on itself, 2026-10-13: the 7 module
-    splits a gate bug had refused stayed "skipped" after their batch was abandoned, out of every later batch)."""
+    """What a batch did to its cards. One closed without handing anything over (abandoned, superseded) changed
+    nothing: its cards stay open, whatever it failed on, and the next batch can pick them."""
     if wave.get('status') in CLOSED_UNUSED: return _reopen_skipped(wave, cards)
     for card_id, reason in (wave.get('failed') or {}).items():
         card = cards.get(known.get(card_id))
@@ -255,7 +258,8 @@ def _apply_wave(wave, cards, known):
 def _reopen_skipped(wave, cards):
     """The cards a batch closed unused had skipped before _apply_wave's rule are open again."""
     for card in cards.values():
-        if card['state'] == 'skipped' and card.get('batch') == wave.get('number'): card.update(state='open', batch=None, why='')
+        if card['state'] == 'skipped' and card.get('batch') == wave.get('number'):
+            card.update(state='open', batch=None, why='')
 
 
 CLOSED_UNUSED = ('abandoned', 'superseded')
@@ -271,7 +275,7 @@ def _apply_history(cards, in_branch, undone):
 
 def _reopen_waited(by_id, tasks):
     """A card a batch set aside before the cards it waits for were done is open again once they are: the order failed
-    it, not its own change (EAOS, 2026-10-15: five module splits set aside before their simplifications, never again)."""
+    it, not its own change."""
     for task in tasks:
         card, needs = by_id.get(task['id']), [by_id.get(p['task_id']) for p in task.get('prerequisites') or []]
         if card and card['state'] == 'skipped' and needs and _done_after(needs, card):
@@ -280,14 +284,16 @@ def _reopen_waited(by_id, tasks):
 
 def _done_after(needs, card):
     """Whether every card waited for is done, and in a later batch than the one that set `card` aside."""
-    return all(need and need['state'] == 'done' and (need.get('batch') or float('inf')) > (card.get('batch') or 0) for need in needs)
+    return all(need and need['state'] == 'done' and (need.get('batch') or float('inf')) > (card.get('batch') or 0)
+               for need in needs)
 
 
 def _apply_open_batch(cards, by_id, open_wave):
     in_batch = open_wave.get('cards') or []
     for card_id in in_batch:
         card = by_id.get(card_id)
-        if card and card['state'] in ('open', 'skipped'): card.update(state='in_batch', batch=open_wave.get('number'), why='')
+        if card and card['state'] in ('open', 'skipped'):
+            card.update(state='in_batch', batch=open_wave.get('number'), why='')
     for card in cards.values():                                              # a batch that closed without it
         if card['state'] == 'in_batch' and card['id'] not in in_batch: card['state'] = 'open'
 
@@ -307,7 +313,8 @@ def _record_history(ledger, first, event, project, state):
 
 def count(ledger):
     cards = list(ledger['cards'].values())
-    tally = {s: sum(c['state'] == s for c in cards) for s in ('done', 'resolved', 'on_branch', 'in_batch', 'open', 'skipped')}
+    tally = {s: sum(c['state'] == s for c in cards)
+             for s in ('done', 'resolved', 'on_branch', 'in_batch', 'open', 'skipped')}
     total = len(cards)
     closed = tally['done']
     return {'total': total, 'closed': closed, **tally, 'new': sum(c['new'] for c in cards),

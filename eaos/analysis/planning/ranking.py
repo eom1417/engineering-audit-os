@@ -1,9 +1,8 @@
 """Why one finding comes before another, stated as a formula with visible inputs.
 
-Ordering by the length of a sentence, which is what the first version effectively did, is not a
-priority model. This one multiplies what a change would reach by how well the claim is established,
-divided by what it would cost to act, times how far its measurement passes its threshold, and shows every input it
-used.
+Ordering by the length of a sentence is not a priority model. This one multiplies what a change would reach by how
+well the claim is established, divided by what it would cost to act, times how far its measurement passes its
+threshold, and shows every input it used.
 """
 from ..maps.impact import dependents, entry_points_in, flows_through
 
@@ -32,7 +31,8 @@ def severity_of(claim):
     value, threshold = params.get('value'), params.get('threshold')
     if threshold is None and specification.get('max_branches'):
         value, threshold = params.get('branches'), specification['max_branches']
-    if not all(map(_number, (value, threshold))) or threshold <= 0: return {'value': None, 'threshold': None, 'factor': 1.0}
+    if not all(map(_number, (value, threshold))) or threshold <= 0:
+        return {'value': None, 'threshold': None, 'factor': 1.0}
     return {'value': value, 'threshold': threshold, 'factor': round(min(value / threshold, SEVERITY_CAP), 4)}
 
 
@@ -42,8 +42,9 @@ def claim_paths(claim, fact_index):
         value = fact_index.get(fact_id)
         if value: paths.append(value)
         paths += fact_index.get(fact_id + ':paths', [])
-    # The card's own file leads, so a list cut to its first few paths never hides the file the card is about. An engine
-    # card's place is where its evidence lies (eaos/analysis/claims/correlate.clusters), even when only a site of a finding names it.
+    # The card's own file leads, so a list cut to its first few paths never hides the file the card is about. An
+    # engine card's place is where its evidence lies (eaos/analysis/claims/correlate.clusters), even when only a site
+    # of a finding names it.
     params = (claim.get('render') or {}).get('params') or {}
     place = params.get('place')
     if place and not str(place).startswith('group:'): paths.append(place)
@@ -53,7 +54,8 @@ def claim_paths(claim, fact_index):
 def _places(params):
     """The files of a pattern written in many places (one source per pattern names each 'path:line'): its card is about
     all of them."""
-    return [str(where).rsplit(':', 1)[0] for where in params['places']] if isinstance(params.get('places'), list) else []
+    return [str(where).rsplit(':', 1)[0] for where in params['places']] \
+        if isinstance(params.get('places'), list) else []
 
 
 def cost_of(paths, sets):

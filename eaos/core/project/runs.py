@@ -1,14 +1,15 @@
-"""Where the command centre keeps its runs: on disk, so a run outlives the server, the tab and a restart.
+"""Where the runs of a project are kept: on disk, so a run outlives the server, the terminal and a restart.
 
     ~/.eaos/projects/<project>/runs/
         queue.json                  the order of the queued runs (the person may change it)
         dispatch.lock               held by the one server that starts runs for this project
         <run>/run.json              the run: action, verb, selection, state, attempt, session, result, question
-        <run>/events.jsonl          its events, append-only, hash-chained (the envelope of D-platform 2.5)
+        <run>/events.jsonl          its events, append-only, hash-chained
         <run>/stream.jsonl          the assistant's raw output, which a restarted server can go on reading
         <run>/stderr.log            the assistant's error output, shown only in part
 
-The newest KEEP ended runs keep all of it, for a diagnosis; an older one keeps its record alone (trim), with what it used.
+The newest KEEP ended runs keep all of it, for a diagnosis; an older one keeps its record alone
+(trim), with what it used.
 
 A run's events carry a gapless `seq` (the SSE id), and each its `prev` and `hash` = sha256(prev + canonical JSON of
 the event without `hash`), so a reader can tell a log that was edited. Nothing secret is written: every string goes
@@ -23,10 +24,11 @@ import threading
 from pathlib import Path
 from ...core.system.files import read_json
 from ...core.system.clock import now
+from ...core.system.errors import noted
 
 ZERO = '0' * 64
-# A run's fields only its assistant's brief reads (eaos/interfaces/studio_actions/runs.py prompt_of), never a page: the list of
-# runs leaves them out, half its size (1.1 MB on EAOS's Studio, polled every 3 s over 4G).
+# A run's fields only its assistant's brief reads (eaos/journeys/runs/runs.py prompt_of), never a page: the list of
+# runs leaves them out, which halves its size: the list is polled every 3 s over a mobile link.
 BRIEF_ONLY = ('cards_detail', 'owner_decision', 'owner_answers', 'selection')
 CONTRACT = Path(__file__).resolve().parents[2] / 'data/studio-actions.json'
 
@@ -43,9 +45,12 @@ RETRYABLE = ('failed', 'stopped', 'unchanged')
 ACTIVE = ('running', 'paused', 'waiting_for_person')
 DIFF_LIMIT = 64 * 1024
 KEEP = 10
-SECRET = re.compile(r'(sk-[A-Za-z0-9_-]{16,}|sk-ant-[A-Za-z0-9_-]{16,}|gh[pousr]_[A-Za-z0-9]{20,}|github_pat_[A-Za-z0-9_]{20,}'
-                    r'|AKIA[0-9A-Z]{16}|xox[abpr]-[A-Za-z0-9-]{10,}|eyJ[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}'
-                    r'|(?i:bearer)\s+[A-Za-z0-9._~+/-]{16,}=*|-----BEGIN [A-Z ]*PRIVATE KEY-----[\s\S]*?-----END [A-Z ]*PRIVATE KEY-----)')
+SECRET = re.compile(r'(sk-[A-Za-z0-9_-]{16,}|sk-ant-[A-Za-z0-9_-]{16,}|gh[pousr]_[A-Za-z0-9]{20,}'
+                    r'|github_pat_[A-Za-z0-9_]{20,}'
+                    r'|AKIA[0-9A-Z]{16}|xox[abpr]-[A-Za-z0-9-]{10,}'
+                    r'|eyJ[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}'
+                    r'|(?i:bearer)\s+[A-Za-z0-9._~+/-]{16,}=*'
+                    r'|-----BEGIN [A-Z ]*PRIVATE KEY-----[\s\S]*?-----END [A-Z ]*PRIVATE KEY-----)')
 
 
 def canonical(value):
@@ -72,7 +77,8 @@ class Scrubber:
 
 
 def _write_json(path, data, create=False):
-    if create: path.parent.mkdir(exist_ok=True)       # a new run's folder, never the runs folder: a deleted project stays deleted
+    # a new run's folder, never the runs folder: a deleted project stays deleted
+    if create: path.parent.mkdir(exist_ok=True)
     elif not path.parent.is_dir(): raise KeyError(path.parent.name)
     temporary = path.with_name(path.name + f'.{os.getpid()}.{threading.get_ident()}.tmp')
     temporary.write_text(json.dumps(data, ensure_ascii=False, indent=1) + '\n', encoding='utf-8')
@@ -91,7 +97,6 @@ class Store:
         self.lock = threading.RLock()
         self.changed = threading.Condition(self.lock)
 
-    # runs
     def path(self, run):
         if not re.fullmatch(r'[A-Za-z0-9_-]{1,80}', str(run or '')): raise KeyError(run)
         return self.folder / run
@@ -111,8 +116,7 @@ class Store:
 
     def trim(self):
         """Every ended run past the newest KEEP (quick answers aside) keeps its record alone, with what it used
-        (eaos/core/system/usage.py) and when it was trimmed; its raw stream, events and error output go (57 runs had kept 64 MB,
-        most of it raw streams)."""
+        (eaos/core/system/usage.py) and when it was trimmed; its raw stream, events and error output go."""
         ended = [row for row in self.all() if row.get('state') in TERMINAL]
         # a quick answer (a reading tool, `read`) keeps its answer in its record and never pushes a run's details out
         kept = {row['id'] for row in [row for row in ended if not row.get('read')][:KEEP]}
@@ -139,7 +143,6 @@ class Store:
             if data: rows.append(data)
         return sorted(rows, key=lambda row: row.get('created') or '', reverse=True)
 
-    # the queue
     def queue(self):
         order = read_json(self.folder / 'queue.json', []) or []
         queued = {row['id']: row for row in self.all() if row.get('state') == 'queued' and not row.get('read')}
@@ -152,14 +155,13 @@ class Store:
             _write_json(self.folder / 'queue.json', list(order))     # the runs folder exists: the Store made it
             self.changed.notify_all()
 
-    # events
     def events(self, run, after=0):
         path = self.path(run) / 'events.jsonl'
         if not path.is_file(): return []
         out = []
         for line in path.read_text(encoding='utf-8').splitlines():
             try: event = json.loads(line)
-            except ValueError: continue
+            except ValueError as error: noted('an event line that is not JSON is left out', error); continue
             if event.get('seq', 0) > after: out.append(event)
         return out
 
@@ -178,8 +180,10 @@ class Store:
                 out.seek(0)
                 lines = [line for line in out.read().splitlines() if line.strip()]
                 last = json.loads(lines[-1]) if lines else {'seq': 0, 'hash': ZERO}
-                event = {'seq': last['seq'] + 1, 'id': f"{run}-{last['seq'] + 1}", 'run': run, 'at': now('milliseconds'), 'kind': kind,
-                         'text': self.scrub(text), 'data': self.scrub(data), 'detail': self.scrub(detail), 'prev': last['hash']}
+                event = {'seq': last['seq'] + 1, 'id': f"{run}-{last['seq'] + 1}", 'run': run,
+                         'at': now('milliseconds'), 'kind': kind,
+                         'text': self.scrub(text), 'data': self.scrub(data),
+                         'detail': self.scrub(detail), 'prev': last['hash']}
                 event['hash'] = hashlib.sha256((event['prev'] + canonical(event)).encode('utf-8')).hexdigest()
                 out.write(json.dumps(event, ensure_ascii=False) + '\n')
                 out.flush()
@@ -201,7 +205,8 @@ class Store:
 
     def refused(self, method, path, reason, keep=500):
         """A call the locks refused, in runs/refused.jsonl: when, which route, why; never a token or a query."""
-        line = json.dumps({'at': now('milliseconds'), 'method': method, 'path': self.scrub(str(path).split('?')[0])[:200], 'reason': reason}, ensure_ascii=False)
+        line = json.dumps({'at': now('milliseconds'), 'method': method,
+                           'path': self.scrub(str(path).split('?')[0])[:200], 'reason': reason}, ensure_ascii=False)
         path = self.folder / 'refused.jsonl'
         with self.lock:
             if not self.folder.is_dir(): return
@@ -214,6 +219,7 @@ class Store:
 
 
 def decision_scope(folder, question):
-    """The key an owner's answer is kept under: the Studio folder, the question's id and its revision."""
-    identity = question.get('revision') or {k: question.get(k) for k in ('id', 'question', 'options', 'blocks', 'asked', 'tool')}
+    """The key a person's answer is kept under: the project folder, the question's id and its revision."""
+    identity = question.get('revision') or {k: question.get(k)
+                                            for k in ('id', 'question', 'options', 'blocks', 'asked', 'tool')}
     return hashlib.sha256(canonical([str(Path(folder).resolve()), question['id'], identity]).encode()).hexdigest()

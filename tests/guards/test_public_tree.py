@@ -1,9 +1,8 @@
 """The published tree holds only the product: nothing of the machine, the container or the people EAOS was built by.
 
-A review of the public repository (2026-10-26) read the development host from its documents (its cores and load), the
-container's paths (its work folder), its host name and internal address, and the names of private projects a check had
-been tried on. Every tracked file is read for the kinds any machine has; a maintainer's own words (project names, host
-names, addresses) are listed outside the repository, one regular expression a line, in the file $EAOS_PRIVATE_WORDS.
+Every tracked file is read for the kinds of leak any machine has: the development host's cores and load, the
+container's paths, its host name and internal address. A maintainer's own words (project names, host names,
+addresses) are listed outside the repository, one regular expression a line, in the file $EAOS_PRIVATE_WORDS.
 """
 import os
 import re

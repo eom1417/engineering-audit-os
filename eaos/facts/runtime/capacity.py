@@ -1,6 +1,6 @@
-"""How a source file bounds its load, for the runtime facts (eaos/facts/runtime/operations.py): the bounds its queries declare,
-its caches, its rate limits and concurrency bounds, and its connection pools. Each detector reports what it observed,
-never what it assumed.
+"""How a source file bounds its load, for the runtime facts (eaos/facts/runtime/operations.py): the bounds its
+queries declare, its caches, its rate limits and concurrency bounds, and its connection pools. Each detector reports
+what it observed, never what it assumed.
 """
 import re
 
@@ -75,7 +75,8 @@ def detect_query_bounds(text, language):
             line = text.count('\n', 0, match.start()) + 1
             rows.append({
                 'bounded': True, 'mechanism': mechanism, 'kind': kind,
-                'line': line, 'snippet': text.splitlines()[line - 1].strip()[:120] if line - 1 < len(text.splitlines()) else ''
+                'line': line,
+                'snippet': text.splitlines()[line - 1].strip()[:120] if line - 1 < len(text.splitlines()) else ''
             })
     # Unbounded sites
     for regex in unbounded:
@@ -83,7 +84,8 @@ def detect_query_bounds(text, language):
             line = text.count('\n', 0, match.start()) + 1
             rows.append({
                 'bounded': False, 'mechanism': 'unbounded', 'kind': regex.pattern[:30],
-                'line': line, 'snippet': text.splitlines()[line - 1].strip()[:120] if line - 1 < len(text.splitlines()) else ''
+                'line': line,
+                'snippet': text.splitlines()[line - 1].strip()[:120] if line - 1 < len(text.splitlines()) else ''
             })
     if not rows:
         # No matches at all means we cannot measure; record that explicitly.
@@ -255,7 +257,8 @@ _POOL_PATTERNS = [
     ('prisma_pool', re.compile(r'connection_limit\s*:\s*(\d+)', re.IGNORECASE)),
     ('sequelize_pool', re.compile(r'pool\s*:\s*\{[^}]*max\s*:\s*(\d+)', re.DOTALL)),
     ('gorm_setmax', re.compile(r'SetMaxOpenConns\s*\(\s*(\d+)')),
-    ('dburl_pool', re.compile(r'DATABASE_URL[^&]*[?&](?:pool|max_connections|connection_limit)\s*=\s*(\d+)', re.IGNORECASE)),
+    ('dburl_pool', re.compile(r'DATABASE_URL[^&]*[?&](?:pool|max_connections|connection_limit)\s*=\s*(\d+)',
+                              re.IGNORECASE)),
 ]
 
 

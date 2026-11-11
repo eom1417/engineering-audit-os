@@ -53,7 +53,8 @@ class Project:
     def code(self):
         """The source files that ship: neither tests, nor schemas, nor built output."""
         skipped = set(self.tests) | set(self.schemas) | set(self.built)
-        return sorted(path for path, value in self._files.items() if path not in skipped and value.get('language') not in (None, 'sql'))
+        return sorted(path for path, value in self._files.items()
+                      if path not in skipped and value.get('language') not in (None, 'sql'))
 
     @cached_property
     def imports(self):
@@ -89,7 +90,8 @@ class Project:
     def packages(self):
         """The names in every package.json of the project (its root and the app folders)."""
         names = set()
-        for manifest in [self.root / 'package.json', *self.root.glob('*/package.json'), *self.root.glob('apps/*/package.json')]:
+        for manifest in [self.root / 'package.json', *self.root.glob('*/package.json'),
+                         *self.root.glob('apps/*/package.json')]:
             data = read_json(manifest, {})
             names |= set(data.get('dependencies') or {}) | set(data.get('devDependencies') or {})
         return names

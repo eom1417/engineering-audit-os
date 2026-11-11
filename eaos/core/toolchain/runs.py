@@ -104,13 +104,15 @@ def stale():
     pinned = {s['name']: s['description'] for s in state['stages']}
     tools = registry()['tools']
     commands = [t for t in tools if t['install']['method'] != 'git' and not t['install'].get('library')]
-    return any(pinned.get(t['name']) != t['version'] for t in tools) or any(not (home() / 'bin' / t['binary']).exists() for t in commands)
+    return (any(pinned.get(t['name']) != t['version'] for t in tools)
+            or any(not (home() / 'bin' / t['binary']).exists() for t in commands))
 
 
 def _spawn(argv, log):
     """`python -m eaos <argv>` of this same EAOS, on its own: it outlives whoever started it."""
     here = str(Path(__file__).resolve().parents[3])
-    env = {**os.environ, 'PYTHONSAFEPATH': '1', 'PYTHONPATH': os.pathsep.join([here, *filter(None, [os.environ.get('PYTHONPATH')])])}
+    env = {**os.environ, 'PYTHONSAFEPATH': '1',
+           'PYTHONPATH': os.pathsep.join([here, *filter(None, [os.environ.get('PYTHONPATH')])])}
     home().mkdir(parents=True, exist_ok=True)
     with open(home() / log, 'ab') as out:
         return subprocess.Popen([sys.executable, '-m', 'eaos', *argv], cwd=home(), env=env, stdin=subprocess.DEVNULL,  # nosemgrep: python.lang.security.audit.dangerous-subprocess-use-audit -- EAOS starts itself (sys.executable -m eaos), a list argv, no shell
@@ -172,7 +174,8 @@ def _show(report, as_json):
     if as_json: print(json.dumps(report, ensure_ascii=False, indent=1))
     else:
         for row in report['tools']:
-            print(f"{'ok  ' if row['ok'] else 'MISS'} {row['name']:20} pinned {row['pinned']:10} {row['found'] or '-':10} {row['reason']}")
+            print(f"{'ok  ' if row['ok'] else 'MISS'} {row['name']:20} pinned {row['pinned']:10} "
+                  f"{row['found'] or '-':10} {row['reason']}")
     return 0 if all(row['ok'] for row in report['tools']) else 1
 
 

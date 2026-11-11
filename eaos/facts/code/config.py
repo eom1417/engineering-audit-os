@@ -59,11 +59,13 @@ def _file_facts(item, text):
     """The environment variables one readable file reads and the config keys it declares."""
     rel, sha, language = item['path'], item['sha256'], language_of(item['path'])
     facts = [make('env_read', NAME, VERSION, sha, {'path': rel, 'start_line': line_of(text, match.start())},
-                  {'name': match.group('name'), 'has_default': bool(match.groupdict().get('rest')), 'language': language,
+                  {'name': match.group('name'), 'has_default': bool(match.groupdict().get('rest')),
+                   'language': language,
                    'secret_shaped': bool(SECRET_SHAPE.search(match.group('name')))}, limitations=LIMITATIONS)
              for pattern in PATTERNS.get(language, []) for match in pattern.finditer(text)]
     return facts + [make('config_key', NAME, VERSION, sha, {'path': rel, 'start_line': line},
-                         {'key': key, 'source': kind, 'secret_shaped': bool(SECRET_SHAPE.search(key))}, limitations=LIMITATIONS)
+                         {'key': key, 'source': kind, 'secret_shaped': bool(SECRET_SHAPE.search(key))},
+                         limitations=LIMITATIONS)
                     for key, line, kind in config_keys(rel, text)]
 
 
@@ -75,8 +77,10 @@ def _summary(facts, unread):
             'read_but_not_declared': sorted(set(reads) - declared),
             'declared_but_not_read': sorted(declared - set(reads)),
             'unread_sensitive_config_files': sorted(unread),
-            'secret_shaped_names': sorted({f['value'].get('name') or f['value'].get('key') or f['location']['path'] for f in facts if f['value'].get('secret_shaped')}),
-            'interpretation': 'Names only; no configuration value was captured. A mismatch between declared and read names is a question, not a defect.'}
+            'secret_shaped_names': sorted({f['value'].get('name') or f['value'].get('key') or f['location']['path']
+                                           for f in facts if f['value'].get('secret_shaped')}),
+            'interpretation': 'Names only; no configuration value was captured. '
+                              'A mismatch between declared and read names is a question, not a defect.'}
 
 
 def run(target, source, **options):
@@ -90,6 +94,7 @@ def run(target, source, **options):
     facts += [make('config_file_unread', NAME, VERSION, digest(item['path'].encode('utf-8')), {'path': item['path']},
                    {'reason': 'Path classified sensitive by the snapshot; contents are never read by any extractor.',
                     'bytes': item['size']}, limitations=LIMITATIONS) for item in unread]
-    facts.sort(key=lambda f: (f['kind'], f['value'].get('name') or f['value'].get('key') or f['location']['path'], f['location']['path'], f['location'].get('start_line') or 0))
+    facts.sort(key=lambda f: (f['kind'], f['value'].get('name') or f['value'].get('key') or f['location']['path'],
+                              f['location']['path'], f['location'].get('start_line') or 0))
     return {'facts': facts, 'summary': _summary(facts, [item['path'] for item in unread]), 'available': True,
             'input_sha': digest(''.join(sorted(fingerprints)).encode('utf-8')), 'reason': None}

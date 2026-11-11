@@ -19,12 +19,15 @@ FACT_KIND = 'navigation'
 LANGUAGES = ('javascript', 'typescript', 'tsx')
 LIMITATIONS = [
     'Only links written in the source are read; a target held in a variable or assembled at runtime is not followed.',
-    'A link inside a file is a link of every screen that renders that file; which button or state shows it is not read.',
-    'Object entries count as menu links when their key is `to`, or (url, href, link) in files named for navigation, menus or sidebars.',
+    'A link inside a file is a link of every screen that renders that file; which button or state shows it is not '
+    'read.',
+    'Object entries count as menu links when their key is `to`, or (url, href, link) in files named for navigation, '
+    'menus or sidebars.',
 ]
 TARGET = r'''(?P<quote>['"`])(?P<target>[^'"`\n]*)(?P=quote)'''
 ATTRIBUTE = re.compile(r'''\b(?P<attr>to|href)\s*=\s*(?:\{\s*)?''' + TARGET)
-CALL = re.compile(r'''\b(?P<call>navigate|router\.push|router\.replace|history\.push|history\.replace|redirect|navigateTo)'''
+CALL = re.compile(r'''\b(?P<call>navigate|router\.push|router\.replace|history\.push|history\.replace|'''
+                  r'''redirect|navigateTo)'''
                   r'''\s*\(\s*(?:\{\s*to\s*:\s*)?''' + TARGET)
 MENU_ENTRY = re.compile(r'''\b(?P<key>url|href|to|link)\s*:\s*''' + TARGET)
 MENU_FILE = re.compile(r'(?i)(nav|menu|sidebar|links?)[^/]*\.[jt]sx?$')
@@ -67,7 +70,8 @@ def _attribute_links(text):
     for match in ATTRIBUTE.finditer(text):
         tag = TAG_BEFORE.search(text, max(0, match.start() - 400), match.start())
         if not tag or (match.group('attr') == 'href' and not match.group('target').startswith('/')): continue
-        yield match.start(), match.group('target'), 'redirect' if tag.group('tag').split('.')[-1] in REDIRECTS else 'link'
+        yield (match.start(), match.group('target'),
+               'redirect' if tag.group('tag').split('.')[-1] in REDIRECTS else 'link')
 
 
 def detect(context):

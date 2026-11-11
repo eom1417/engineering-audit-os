@@ -2,15 +2,16 @@
 
 An adapter knows one assistant: whether it is installed and logged in, the command that starts it on a prompt (and
 resumes its session with the person's answer) with the EAOS MCP server and nothing else that writes, and how to read
-its output, one JSON object per line, as the contract's events (eaos/ai/assistant/events.py). The run manager does the rest.
+its output, one JSON object per line, as the contract's events (eaos/ai/assistant/events.py). The run manager does the
+rest.
 
 Claude Code: `claude -p --output-format stream-json --verbose`, the EAOS server by `--mcp-config --strict-mcp-config`,
 EAOS tools plus Read, Grep and Glob allowed, and Bash, Edit, Write and the person-only EAOS tools refused.
 Codex: `codex exec --json`, the EAOS server by `-c mcp_servers.eaos=...`, a read-only sandbox and no approvals.
 
 `ask(adapter, prompt, schema, folder)` is the other way to use an assistant: one question, no tool, an answer the
-assistant's own CLI holds to a JSON Schema (Claude Code `--json-schema`, Codex `--output-schema`). The planned ideal
-(eaos/ai/ideal/planner.py) asks this way, and so does any AI node after it.
+assistant's own CLI holds to a JSON Schema (Claude Code `--json-schema`, Codex `--output-schema`). Every AI node asks
+this way.
 """
 import json
 import os
@@ -20,17 +21,18 @@ import time
 from pathlib import Path
 
 from . import tiers
+from ...core.system.errors import noted
 from .events import READS, json_text, result_events, said, tool_events
 
 PERSON_ONLY = ('accept', 'undo', 'choose_branch')
 
 
 def eaos_server(run, assistant):
-    """The EAOS MCP server's argv and environment for a run: this very EAOS (the Python and the package the Studio runs,
-    never another `eaos` on the PATH), the person's EAOS home, and the run's id, which makes the person-only tools refuse
-    (eaos/interfaces/mcp_server/server.py)."""
+    """The EAOS MCP server's argv and environment for a run: this very EAOS (the Python and the package running it,
+    never another `eaos` on the PATH), the person's EAOS home, and the run's id, which makes the person-only tools
+    refuse (eaos/interfaces/mcp_server/server.py)."""
     import sys
-    from ...core.system.launch import HEADLESS              # a run of the headless host opens no Studio either
+    from ...core.system.launch import HEADLESS              # a headless run opens no window either
     env = {'EAOS_STUDIO_RUN': run, 'EAOS_ASSISTANT': assistant, 'PYTHONPATH': str(Path(__file__).resolve().parents[3])}
     for name in ('EAOS_HOME', 'EAOS_OUTPUT', 'EAOS_ENGINE_TOOLS', HEADLESS):
         if os.environ.get(name): env[name] = os.environ[name]
@@ -62,7 +64,9 @@ class Adapter:
         self.command = list(command or [self.id_command])
 
     def _run(self, *arguments, timeout=15):
-        try: return subprocess.run(self.command + list(arguments), capture_output=True, text=True, timeout=timeout)  # nosemgrep: python.lang.security.audit.dangerous-subprocess-use-audit -- the assistant's CLI as its adapter builds it, a list argv, no shell
+        # nosemgrep: python.lang.security.audit.dangerous-subprocess-use-audit -- the assistant's CLI as its adapter builds it, a list argv, no shell
+        try: return subprocess.run(self.command + list(arguments), capture_output=True, text=True,
+                                   timeout=timeout)
         except (OSError, subprocess.SubprocessError): return None
 
     def detect(self, fresh=False):
@@ -88,7 +92,8 @@ class Adapter:
         return found['installed'] and found['logged_in']
 
     def new_state(self):
-        return {'session': None, 'resumed': False, 'pending': {}, 'final': None, 'failed': None, 'texts': [], 'eaos_results': []}
+        return {'session': None, 'resumed': False, 'pending': {}, 'final': None, 'failed': None, 'texts': [],
+                'eaos_results': []}
 
     def model(self):
         """The model this assistant uses when its stream does not say."""
@@ -100,7 +105,10 @@ class Adapter:
 
     def _started(self, state):
         """The step event of the assistant's start, or of its going on with the person's answer."""
-        return ('step', {'en': f'{self.name} went on', 'ar': f'{self.name} كمّل'} if state['resumed'] else {'en': f'{self.name} started', 'ar': f'بدأ {self.name}'},
+        return ('step',
+                {'en': f'{self.name} went on',
+                 'ar': f'{self.name} كمّل'} if state['resumed'] else {'en': f'{self.name} started',
+                                                                      'ar': f'بدأ {self.name}'},
                 {'tool': None, 'assistant': self.name}, None)
 
 
@@ -374,8 +382,8 @@ def ask(adapter, prompt, schema, folder, cancel=None, started=None, images=(), t
         try:
             process.stdin.write(prompt.encode('utf-8'))
             process.stdin.close()
-        except OSError:
-            pass
+        except OSError as error:
+            noted('it ended before reading its prompt: its exit code says why', error)
         wait(process, (out, err), cancel)
     if cancel is not None and cancel.is_set(): raise AskFailed('stopped')
     lines = stream.read_text(encoding='utf-8', errors='replace').splitlines()

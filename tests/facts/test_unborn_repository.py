@@ -1,4 +1,5 @@
-"""A repository with no commit yet is a project whose history is not there: the check reads everything else and says why."""
+"""A repository with no commit yet is a project whose history is not there: the check reads everything else and says
+why."""
 import contextlib
 import io
 import json
@@ -47,11 +48,13 @@ class NoCommitYet(unittest.TestCase):
         unborn, plain = manifests
         self.assertEqual(unborn['stages']['reports']['status'], 'ok')
         self.assertEqual(unborn['status'], plain['status'])
-        self.assertEqual({name: row['status'] for name, row in unborn['stages'].items()}, {name: row['status'] for name, row in plain['stages'].items()})
+        self.assertEqual({name: row['status'] for name, row in unborn['stages'].items()},
+                         {name: row['status'] for name, row in plain['stages'].items()})
 
     def test_a_broken_ref_is_said_as_a_failure_never_as_no_commit_yet(self):
         (self.project / '.git/refs/heads').mkdir(parents=True, exist_ok=True)
-        branch = subprocess.run(['git', '-C', str(self.project), 'symbolic-ref', '--short', 'HEAD'], check=True, capture_output=True, text=True).stdout.strip()
+        branch = subprocess.run(['git', '-C', str(self.project), 'symbolic-ref', '--short', 'HEAD'], check=True,
+                                capture_output=True, text=True).stdout.strip()
         (self.project / '.git/refs/heads' / branch).write_text('not a commit\n', encoding='utf-8')
         with self.assertRaises(ValueError):
             history.run(self.project)

@@ -1,5 +1,5 @@
-"""Which commit EAOS says it is (2026-10-30): pip's record of the commit it was installed from, else EAOS's own checkout;
-never the commit of a repository EAOS only happens to sit in (a .venv inside a person's project)."""
+"""Which commit EAOS says it is: pip's record of the commit it was installed from, else EAOS's own checkout; never the
+commit of a repository EAOS only happens to sit in (a .venv inside a person's project)."""
 import shutil
 import subprocess
 import sys
@@ -21,7 +21,8 @@ def git(*args, cwd):
 def said(packages):
     """The commit a fresh Python with EAOS at `packages` says, with no site-packages (-S): no pip record of an install
     answers before git does."""
-    return subprocess.run([sys.executable, '-I', '-S', '-c', f'import sys; sys.path.insert(0, {str(packages)!r}); {ASK}'],
+    return subprocess.run([sys.executable, '-I', '-S', '-c',
+                           f'import sys; sys.path.insert(0, {str(packages)!r}); {ASK}'],
                           capture_output=True, text=True, check=True, cwd=packages).stdout.strip()
 
 

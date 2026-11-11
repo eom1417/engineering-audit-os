@@ -1,4 +1,4 @@
-"""The claims one source per pattern earns (M15), one per finding of eaos/analysis/assessments/one_source.py: a cluster
+"""The claims one source per pattern earns, one per finding of eaos/analysis/assessments/one_source.py: a cluster
 of near copies, a way of working written by hand three times or more, an element tree repeated across the screens, and
 the look written outside its tokens file. Each card names every place and its central home by the project's own
 layout; its acceptance is the detector finding none (its probe reads the code again). Near copies and the look are
@@ -21,27 +21,34 @@ FORMS = {   # an idiom's form: (English, Arabic)
 WORDS = {   # kind: (English, Arabic, fix in English, fix in Arabic); the finding's evidence fills them
     'near_copy': ("{copies} near copies of {lines} lines ({kinds}), the fullest at {place}:{line}",
                   "{copies} نسخ متقاربة من {lines} سطر ({kinds})، أكملها في {place}:{line}",
-                  'Keep the fullest copy as the one source ({home}), make what differs a parameter, and call it from every other place.',
+                  'Keep the fullest copy as the one source ({home}), make what differs a parameter, '
+                  'and call it from every other place.',
                   'خلّ أكمل نسخة هي المصدر الواحد ({home})، واللي يختلف خلّه معامل، ونادِها من كل الأماكن الثانية.'),
     'idiom': ("{form_en} is written by hand in {count} places, from {place}:{line}",
               "{form_ar} مكتوب يدويًا في {count} أماكن، أولها {place}:{line}",
               'Write it once as a helper, hook or middleware in {home} and call it from every place.',
               'اكتبها مرة وحدة كدالة مساعدة أو hook أو middleware في {home} ونادِها من كل مكان.'),
-    'ui_pattern': ("The same <{tag}> structure of {elements} elements is written in {count} places ({similarity} alike), from {place}:{line}",
-                   "نفس بنية <{tag}> من {elements} عناصر مكتوبة في {count} أماكن (متشابهة {similarity})، أولها {place}:{line}",
+    'ui_pattern': ("The same <{tag}> structure of {elements} elements is written in {count} places "
+                   "({similarity} alike), from {place}:{line}",
+                   "نفس بنية <{tag}> من {elements} عناصر مكتوبة في {count} أماكن "
+                   "(متشابهة {similarity})، أولها {place}:{line}",
                    'Make it one component in {home} and use it in every place; what differs becomes its props.',
                    'سوّها مكوّن واحد في {home} واستخدمه في كل مكان؛ واللي يختلف يصير خصائص له.'),
     'look': ("{written} values of the look are written outside the tokens file ({by_kind}){seen_en}",
              "{written} قيمة للشكل مكتوبة خارج ملف الـ tokens ({by_kind}){seen_ar}",
-             'Keep every colour, font size, spacing, radius, shadow and z-index in one tokens file ({home}) and use only its names.',
+             'Keep every colour, font size, spacing, radius, shadow and z-index in one tokens file ({home}) '
+             'and use only its names.',
              'خلّ كل لون وحجم خط ومسافة وانحناء وظل وترتيب طبقات في ملف tokens واحد ({home})، واستخدم أسماءه بس.'),
     'looks': ("{role}: {looks} different looks for {count} on the screens",
               "{role}: {looks} شكل مختلف لـ{count} على الشاشات",
-              'Keep the variants the design needs as one component and move the others to it; what changes on the screen is shown first and needs your yes.',
-              'خلّ الأشكال اللي يحتاجها التصميم في مكوّن واحد وانقل الباقي له؛ واللي يتغير على الشاشة ينعرض أول ويحتاج موافقتك.'),
+              'Keep the variants the design needs as one component and move the others to it; '
+              'what changes on the screen is shown first and needs your yes.',
+              'خلّ الأشكال اللي يحتاجها التصميم في مكوّن واحد وانقل الباقي له؛ '
+              'واللي يتغير على الشاشة ينعرض أول ويحتاج موافقتك.'),
     'formats': ("{format} are shown in {count} forms: {forms}",
                 "{format} تنعرض بـ{count} أشكال: {forms}",
-                'Write one helper on Intl that gives the form most used, and call it everywhere; another form shown is your decision.',
+                'Write one helper on Intl that gives the form most used, and call it everywhere; '
+                'another form shown is your decision.',
                 'اكتب دالة وحدة على Intl تعطي الشكل الأكثر استخدامًا، ونادِها من كل مكان؛ وأي شكل ثاني قرارك.'),
     'libraries': ("Two or more libraries do one job ({job}): {names}",
                   "أكثر من مكتبة لنفس الشغلة ({job}): {names}",
@@ -70,9 +77,11 @@ def _values(finding):
     home = evidence.get('home')
     values = {'place': finding['place'], 'line': finding['line'] or 1, **evidence,
               'home': ', '.join(home) if isinstance(home, list) else home or 'tokens.json',
-              'kinds': ', '.join(evidence.get('kinds') or []), 'seen_en': _seen(evidence, 'en'), 'seen_ar': _seen(evidence, 'ar'),
+              'kinds': ', '.join(evidence.get('kinds') or []),
+              'seen_en': _seen(evidence, 'en'), 'seen_ar': _seen(evidence, 'ar'),
               'by_kind': ', '.join(f'{k} {v}' for k, v in (evidence.get('by_kind') or {}).items())}
-    if finding['kind'] == 'idiom': values['form_en'], values['form_ar'] = FORMS.get(evidence['form'], (evidence['form'],) * 2)
+    if finding['kind'] == 'idiom':
+        values['form_en'], values['form_ar'] = FORMS.get(evidence['form'], (evidence['form'],) * 2)
     if isinstance(values.get('similarity'), float): values['similarity'] = f"{round(values['similarity'] * 100)}%"
     return values
 
@@ -80,10 +89,13 @@ def _values(finding):
 def params(finding):
     values = _values(finding)
     en, ar, fix_en, fix_ar = (text.format(**values) for text in WORDS[finding['kind']])
-    return {'kind': finding['kind'] if finding['kind'] != 'idiom' else f"idiom:{finding['evidence']['form']}", 'severity': finding['severity'],
+    return {'kind': finding['kind'] if finding['kind'] != 'idiom' else f"idiom:{finding['evidence']['form']}",
+            'severity': finding['severity'],
             'en': en, 'ar': ar, 'fix_en': fix_en, 'fix_ar': fix_ar, 'place': finding['place'], 'line': finding['line'],
-            'home': values['home'], 'places': [f"{p['path']}:{p.get('line') or 1}" for p in finding['evidence'].get('places') or []][:40],
-            'evidence': finding['evidence'].get('why') or {},     # the three conditions a near copy or a screen pattern met
+            'home': values['home'],
+            'places': [f"{p['path']}:{p.get('line') or 1}" for p in finding['evidence'].get('places') or []][:40],
+            # the three conditions a near copy or a screen pattern met
+            'evidence': finding['evidence'].get('why') or {},
             'category': 'maintainability'}
 
 
@@ -91,23 +103,28 @@ def _probe(finding):
     """The probe that reads the code again: CONFIRMED while the detector still finds this pattern."""
     engines = {'near_copy': ['jscpd'], 'idiom': ['ast-grep']}.get(finding['kind'], [])
     key = finding['evidence'].get('form') or finding['evidence'].get('tag') or ''
-    if finding['kind'] in DESIGN_KINDS: return None         # read from the running app: only a new check can close it
-    return {'probe_type': 'graph_query', 'specification': {'query': 'one_source_present', 'kind': finding['kind'], 'key': key,
-                                                           'places': sorted({p['path'] for p in finding['evidence'].get('places') or []})[:40],
-                                                           'engines': engines, 'expected': 'The detector still finds this pattern.'}}
+    # read from the running app: only a new check can close it
+    if finding['kind'] in DESIGN_KINDS: return None
+    return {'probe_type': 'graph_query',
+            'specification': {'query': 'one_source_present', 'kind': finding['kind'], 'key': key,
+                              'places': sorted({p['path'] for p in finding['evidence'].get('places') or []})[:40],
+                              'engines': engines, 'expected': 'The detector still finds this pattern.'}}
 
 
 def one_source_claims(out, sets, target, offset):
-    """Every claim of M15, numbered after `offset`."""
+    """Every claim of one source per pattern, numbered after `offset`."""
     found, _ = findings(out, sets, target)
     rows = []
     for finding in found:
         confidence = 'CONFIRMED' if finding['kind'] in ('near_copy', 'look') else 'LIKELY'
         rendered = params(finding)
-        facts = finding['evidence'].get('fact_ids') or ([finding['evidence']['fact_id']] if finding['evidence'].get('fact_id') else None)
+        facts = (finding['evidence'].get('fact_ids')
+                 or ([finding['evidence']['fact_id']] if finding['evidence'].get('fact_id') else None))
         rows.append(ledger.make(offset + len(rows) + 1, rendered['en'], 'structure', confidence, ['static_fact'],
-                                [] if facts else [finding['place']], 'The detector of this pattern finding none in the code.',
-                                fact_ids=facts, confidence_ceiling=confidence, render={'key': 'one_source', 'params': rendered},
+                                [] if facts else [finding['place']],
+                                'The detector of this pattern finding none in the code.',
+                                fact_ids=facts, confidence_ceiling=confidence,
+                                render={'key': 'one_source', 'params': rendered},
                                 probe_spec=_probe(finding), impact={'scenario': rendered['fix_en']}))
     return rows
 
@@ -134,7 +151,8 @@ MISSING = {'belongs': ('nothing shows they carry one responsibility', 'ما في
 
 
 def notes(out, sets):
-    """The likenesses said in the report, never cards: each with its places and the condition it lacks, in both languages."""
+    """The likenesses said in the report, never cards: each with its places and the condition it lacks, in both
+    languages."""
     said = []
     for finding in likenesses(out, sets)[:30]:
         en, ar = (text.format(**_values(finding)) for text in WORDS[finding['kind']][:2])

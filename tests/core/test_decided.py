@@ -26,6 +26,7 @@ class DecidedTests(Workspace):
                 self.assertEqual(status(self.report(claim), uid)[0], expected)
 
     def test_the_card_command_exits_1_while_open(self):
-        done = subprocess.run([sys.executable, '-m', 'eaos', 'decided', self.report(CLAIM), 'OBS-1'], capture_output=True,
+        done = subprocess.run([sys.executable, '-m', 'eaos', 'decided', self.report(CLAIM), 'OBS-1'],
+                              capture_output=True,
                               text=True, cwd=Path(__file__).resolve().parents[2])
         self.assertEqual(done.returncode, 1, done.stderr)

@@ -1,17 +1,17 @@
-"""Governance without the Studio: the terminal's commands (eaos check, watch, waiting, fix, branches...) and the
-assistant's governance tools (eaos/interfaces/mcp_server/govern.py), both thin callers of the Studio's own core, `Actions` and its
-`BranchControl` (eaos/interfaces/studio_actions), so no rule is written twice and every surface sees the same runs.
+"""Governance: the terminal's commands (eaos check, watch, waiting, fix, branches...) and the assistant's governance
+tools (eaos/interfaces/mcp_server/govern.py), both thin callers of the run engine (eaos/interfaces/runs.py), `Actions`
+and its `BranchControl`, so no rule is written twice and every surface sees the same runs.
 
-Who starts a run. The Studio's dispatcher is a thread of whatever builds `Actions` (runs.py, `dispatch.lock`). The
+Who starts a run. The dispatcher is a thread of whatever builds `Actions` (runs.py, `dispatch.lock`). The
 callers here build it without that thread (`core`): a command never starts a run it would not live to follow. What
-they queue is started by the project's Studio when it runs, else by one headless host (`eaos govern`, no HTTP), woken
+they queue is started by the project's server when one runs, else by one headless host (`eaos govern`, no HTTP), woken
 on demand (`wake`), gone HOST_IDLE seconds after the queue is empty and no run is active. An answer that lets a run go
 on is given in a host too: the work it starts lives in the process that answered.
 
 What only the person decides: accept, undo, the branch, merging, deleting, protecting and cleaning up branches, a Fix
 that accepts itself, and every answer waiting for them. A command shows what will happen and asks (or takes --yes); a
 tool needs the person's word (person_agreed, or person_said ANSWER_SECONDS after the question was shown) and the
-preview's confirm token; inside a run the Studio started (EAOS_STUDIO_RUN) each is refused, --yes or not
+preview's confirm token; inside a run a server started (EAOS_STUDIO_RUN) each is refused, --yes or not
 (mcp_server.refuse_in_studio_run, PERSON_ONLY).
 """
 import fcntl
@@ -43,7 +43,7 @@ BRANCH_OPS = {'merge': ('preview_merge', 'merge'), 'delete': ('preview_delete', 
 
 @functools.lru_cache(maxsize=8)
 def _core(project):
-    from .studio_actions import Actions
+    from .runs import Actions
     return Actions(project, dispatch=False, lang=(project_state.load(project) or {}).get('lang') or 'ar')
 
 
@@ -63,17 +63,17 @@ def _held(path):
 
 
 def wake(project, answer=None):
-    """The host that starts the project's queued runs, unless the project's Studio or a host already runs; with `answer`
+    """The host that starts the project's queued runs, unless a host already runs; with `answer`
     (question, option, text), a host that gives it first, whatever runs. True when one was started."""
     from ..core.system import launch
     actions, state = core(project), project_state.load(core(project).project)
-    if not answer and (_held(actions.store.folder / 'host.lock') or launch.running(state)): return False
+    if not answer and _held(actions.store.folder / 'host.lock'): return False
     question, option, text = answer or (None, None, None)
     argv = [sys.executable, '-m', 'eaos', 'govern', str(actions.project), *(['--answer', question] if question else []),
             *(['--option', option] if option else []), *(['--text', text] if text else [])]
     env, log = launch.own_env(**{HEADLESS: '1'}), launch.log_path(state, 'govern.log')
     log.write_bytes(b'')        # one host's words, written again by the next
-    unit = f"{launch.service_name(state, 'govern')}-{time.time_ns()}"   # where Studios are services, so is the host: a session that ends cannot end it
+    unit = f"{launch.service_name(state, 'govern')}-{time.time_ns()}"   # where EAOS's work runs as services, so does the host: a session that ends cannot end it
     if not (launch.durable() and launch.as_unit(unit, argv, env, {'description': 'EAOS queue host', 'log': log, 'cwd': state['workspace']})):
         launch.detach(state, argv, env, 'govern.log')
     return True
@@ -85,10 +85,10 @@ def wake_queued(project):
 
 
 def host(project, answer=None, idle=HOST_IDLE):
-    """`eaos govern`: the project's runs started and followed without the Studio, by this process's dispatcher while it
-    holds `dispatch.lock` (a Studio that holds it starts them instead), until nothing is queued, active or followed here
+    """`eaos govern`: the project's runs started and followed without a server, by this process's dispatcher while it
+    holds `dispatch.lock` (a server that holds it starts them instead), until nothing is queued, active or followed here
     for `idle` seconds. `answer` (question, option, text) is given first; a second host with no answer leaves at once."""
-    from .studio_actions import Actions
+    from .runs import Actions
     os.environ[HEADLESS] = '1'
     actions = Actions(project, lang=(project_state.load(Path(project).resolve()) or {}).get('lang') or 'ar')
     try:
@@ -143,7 +143,7 @@ def ai_inputs(assistant):
 
 def check_inputs(paths=None, assistant=None, again_from=None, **chosen):
     """A new check (always fresh: a check asked for is a new one), of these paths, with this AI; `again_from`: the last
-    check goes on from that stage instead (the Studio's "Redo from here"). `chosen`, each kept when given: mode, sign_in
+    check goes on from that stage instead (the "Redo from here" choice). `chosen`, each kept when given: mode, sign_in
     (how the app is signed in to, kept), published (the address named for this check), run_app (when agreed, kept)."""
     chosen = {'paths': list(paths or []), **chosen, 'again_from': again_from}
     return {'fresh': not again_from, **{key: value for key, value in chosen.items() if value}, **ai_inputs(assistant)}
@@ -156,7 +156,7 @@ def estimate(project, inputs):
 
 
 def start_check(project, inputs, lang=None):
-    """The check queued, as the Studio queues it, and its host woken."""
+    """The check queued the way any run is, and its host woken."""
     actions = core(project)
     record = actions.create({'action': 'audit', 'inputs': inputs, **({'lang': lang} if lang else {})})
     wake(actions.project)
@@ -177,7 +177,7 @@ CONTROLS = {'stop': (*ACTIVE, 'queued'), 'pause': ('running',), 'resume': ('paus
 
 
 def control(project, operation, run=None):
-    """Stop, pause, resume or retry a run (the newest it applies to by default), as the Studio's buttons do; a retried
+    """Stop, pause, resume or retry a run (the newest it applies to by default), as the terminal commands do; a retried
     run wakes the host. The stop's last resort (a kill after the grace) is waited for here, before this process ends."""
     actions = core(project)
     record = chosen_run(actions, run, CONTROLS[operation])
@@ -294,7 +294,7 @@ def _answer_run(actions, row, option, text):
 # ---------------------------------------------------------------- the verbs on a selection
 
 def selection_of(ids=(), group=None):
-    """The Studio's selection (eaos/journeys/fix/selection.py) from card ids, or a group as by=value."""
+    """The selection (eaos/journeys/fix/selection.py) from card ids, or a group as by=value."""
     if group:
         by, _, value = str(group).partition('=')
         return {'kind': 'group', 'group': {'by': by.strip(), 'value': value.strip()}}
@@ -302,14 +302,14 @@ def selection_of(ids=(), group=None):
 
 
 def verb_preview(project, verb, selection, auto_accept=False, assistant=None):
-    """What the verb would do, as the Studio's preview says it (cards, files, batches, estimate, risk, confirm token)."""
+    """What the verb would do, as its preview says it (cards, files, batches, estimate, risk, confirm token)."""
     return core(project).preview(verb, {'verb': verb, 'selection': selection, 'assistant': assistant,
                                         'inputs': {'auto_accept': True} if auto_accept else {}})
 
 
 def verb_start(project, preview, confirm=None, assistant=None):
     """The run its preview showed, with that preview's confirm token (a Fix's), queued, and the host woken."""
-    from .studio_actions import _where_of
+    from .runs import _where_of
     actions = core(project)
     record = actions.create({'verb': preview['verb'], 'selection': preview['selection'], 'assistant': assistant, 'confirm': confirm,
                              'inputs': {'auto_accept': True} if preview.get('auto_accept') else {}, 'where': _where_of(preview.get('where'))})
@@ -347,13 +347,13 @@ def restore(project, recovery):
 
 
 def fetch(project, remote=None):
-    """The remote's branches brought up to date (git fetch --prune of one remote), as the Studio's Refresh does."""
+    """The remote's branches brought up to date (git fetch --prune of one remote), as the branch refresh does."""
     return _control(project).fetch({'remote': remote})
 
 
 def propose_resolution(project, source, target, assistant=None):
     """A merge's conflict handed to the person's assistant as a review run that proposes how to resolve it and changes
-    nothing, as the Studio's Propose a resolution does; the host woken."""
+    nothing, as the propose-a-resolution review does; the host woken."""
     done = _control(project).propose_resolution({'source': source, 'target': target, 'assistant': assistant})
     wake(core(project).project)
     return done
@@ -368,7 +368,7 @@ def _section(project, name):
 
 
 def history(project):
-    """Every check on record, oldest first (studio/history.json: eaos/report/studio/history.py), and what changed between."""
+    """Every check on record, oldest first (studio/history.json of the latest check), and what changed between."""
     found = _section(project, 'history') or {}
     return {'scans': found.get('scans') or [], 'events': (found.get('events') or [])[-20:], 'missing': found.get('missing') or []}
 

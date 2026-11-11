@@ -21,7 +21,8 @@ class PlacementTests(Workspace):
     def test_every_file_is_placed_and_every_forbidden_import_named(self):
         features = [{'name': 'Contas', 'files': ['src/components/accounts/Card.tsx', 'src/lib/format.ts']},
                     {'name': 'Metas', 'files': ['src/lib/format.ts']}]
-        placed = place(['src/components/accounts/Card.tsx', 'src/lib/format.ts', 'src/components/ui/button.tsx', 'vite.config.ts'],
+        placed = place(['src/components/accounts/Card.tsx', 'src/lib/format.ts', 'src/components/ui/button.tsx',
+                        'vite.config.ts'],
                        features, REFERENCE)
         self.assertEqual(placed['src/components/accounts/Card.tsx'], ('feature:contas', 'features'))
         self.assertEqual(placed['src/lib/format.ts'], ('lib', 'lib'))
@@ -40,9 +41,10 @@ class PlacementTests(Workspace):
 
 class DispositionTests(Workspace):
     def test_each_disposition_follows_the_declared_rules_in_order_and_says_why(self):
-        # The self-audit sent the whole `eaos` package to rebuild for one function past complexity 40: a complex
-        # function or a critical item is changed in place; only a structural reason (most files move) is a rebuild.
-        cases = [(dict(unreachable=4, moved=4, moved_share=1.0), 'delete'), (dict(moved=3, moved_share=0.75), 'rebuild'),
+        # A complex function or a critical item is changed in place; only a structural reason (most files move) is a
+        # rebuild.
+        cases = [(dict(unreachable=4, moved=4, moved_share=1.0), 'delete'), (dict(moved=3, moved_share=0.75),
+                                                                             'rebuild'),
                  (dict(complexity_max=41), 'modify'), (dict(critical=1), 'modify'), ({}, 'retain'),
                  (dict(forbidden=1), 'modify'), (dict(complexity_max=15), 'modify')]
         for change, expected in cases:
@@ -61,7 +63,8 @@ class InfrastructureTests(Workspace):
     def test_every_baseline_item_is_decided_from_evidence_for_the_kind_of_program(self):
         root = Path(self.tmp)
         (root / 'supabase/migrations').mkdir(parents=True)
-        facts = self.facts(ci_step=[{}], env_read=[{'location': {'path': 'src/a.ts'}}, {'location': {'path': 'src/b.ts'}}],
+        facts = self.facts(ci_step=[{}], env_read=[{'location': {'path': 'src/a.ts'}},
+                                                   {'location': {'path': 'src/b.ts'}}],
                            data_table=[{'value': {'rls_enabled': True}}, {'value': {'rls_enabled': False}}])
         rows = {row['area']: row for row in infrastructure(REFERENCE, facts, root, ['src/a.ts'])}
         self.assertTrue(rows['ci']['present'])
@@ -80,29 +83,7 @@ class InfrastructureTests(Workspace):
 
 
 class ProjectTests(Workspace):
-    def test_the_projection_keeps_its_contract_and_places_every_feature(self):
-        from eaos.core.contracts.artifact_rules import contracts, validate
-        from eaos.report.target_architecture.picture import build
-        out, target = Path(self.tmp) / 'out', Path(self.tmp) / 'project'
-        (out / 'facts').mkdir(parents=True)
-        target.mkdir()
-        (target / 'package.json').write_text(json.dumps({'dependencies': {'react': '1', '@tanstack/react-start': '1', '@supabase/supabase-js': '1'}}))
-        nodes = [('src/components/accounts/Card.tsx', ['src/services/accounts.ts']), ('src/services/accounts.ts', ['src/lib/money.ts']),
-                 ('src/lib/money.ts', [])]
-        (out / 'facts/graph.json').write_text(json.dumps({'facts': [
-            {'id': f'F{i}', 'kind': 'graph_node', 'location': {'path': p}, 'value': {'depends_on': d, 'fan_in': 0, 'fan_out': len(d)}}
-            for i, (p, d) in enumerate(nodes)]}))
-        (out / 'features.json').write_text(json.dumps({'features': [{'name': 'Contas', 'files': ['src/components/accounts/Card.tsx']}]}))
-        result = build(out, target=target)
-        self.assertEqual(result['reference'], 'react-tanstack-start-supabase')
-        self.assertEqual(validate(result, contracts()['target-fragment']), [])
-        self.assertEqual({c['name'] for c in result['target_components']}, {'feature:contas', 'data-access', 'lib'})
-        self.assertEqual(next(c for c in result['target_components'] if c['name'] == 'feature:contas')['feature'], 'Contas')
-        components = {c['origin']: c for c in result['current_components']}
-        # One file to move into its feature is an edit (modify), not a rebuild.
-        self.assertEqual(components['src/components/accounts']['relation'], 'modify')
-        self.assertTrue(all(row.get('target_component') for row in result['gap_matrix']))
-        # Without a recognisable type there is no projection.
+    def test_without_a_recognisable_type_there_is_no_projection(self):
         empty = Path(self.tmp) / 'empty'
         (empty / 'facts').mkdir(parents=True)
         self.assertIsNone(project(empty, empty))

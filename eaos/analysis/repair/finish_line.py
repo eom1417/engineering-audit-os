@@ -1,17 +1,19 @@
 """The finish line of a card on what engines report about code: the exact findings it must clear, fixed when the card is
-made, each judged by one ruler. On EAOS itself (2026-10-15) one "complexity" card mixed seven kinds of finding, judged
-the whole file by whichever engine spoke, and six cards of a batch could not pass whatever the assistant did:
-- a branching score (reforge complex_function, lizard ccn) is judged by EAOS's own count
-  (facts/code/metrics.py, the one the gates and the code laws use): engines disagree (one function scored 15, 40 and 49), so a
-  function EAOS counts within MAX_COMPLEXITY is no target, whatever an engine said; one EAOS does not count (a language
-  it does not read) is judged by the engine that reported it;
-- a count an engine states exactly (too many parameters, nesting too deep, a function too long) is judged by that engine;
-- the size of a file or a class is a split's work (eaos/analysis/planning/cards.py _split_last), never a simplification's target.
-A target is followed by its function's name, so moving the function to another file does not clear it: to a file where no
-function of that name was reported when the card was made (`also_in`), never to one that had one already. A function with
-no name (an arrow function, a lambda: engines call it <anonymous>) is judged in its own file only. A target was judged by
-its name across the whole project, and every anonymous function anywhere kept a card standing that no fix of its file
-could finish (TASK-131 of a React project, 2026-10-24).
+made, each judged by one ruler. A "complexity" card can mix several kinds of finding; judging the whole file by
+whichever engine spoke would leave cards that no fix can pass:
+- a branching score (reforge complex_function, lizard ccn) is judged by EAOS's own count (facts/code/metrics.py, the
+  one the gates and the code laws use): engines disagree on one function (it can score 15, 40 and 49), so a function
+  EAOS counts within MAX_COMPLEXITY is no target, whatever an engine said; one EAOS does not count (a language it does
+  not read) is judged by the engine that reported it;
+- a count an engine states exactly (too many parameters, nesting too deep, a function too long) is judged by that
+  engine;
+- the size of a file or a class is a split's work (eaos/analysis/planning/cards.py _split_last), never a
+  simplification's target.
+A target is followed by its function's name, so moving the function to another file does not clear it: to a file where
+no function of that name was reported when the card was made (`also_in`), never to one that had one already. A
+function with no name (an arrow function, a lambda: engines call it <anonymous>) is judged in its own file only;
+judged by name across the whole project, every anonymous function anywhere would keep a card standing that no fix of
+its file could finish.
 """
 import re
 
@@ -44,7 +46,8 @@ def targets(facts, sets):
         if value.get('kind') != 'complexity' or value.get('rule') in SIZE or not key[1]: continue
         branches = counted.get(key)
         rule = _ruler(value, branches)
-        if rule != 'branches' or branches > MAX_COMPLEXITY: out[(rule, *key)] = _target(rule, key, where, counted, places)
+        if rule != 'branches' or branches > MAX_COMPLEXITY:
+            out[(rule, *key)] = _target(rule, key, where, counted, places)
     return [out[k] for k in sorted(out)]
 
 
@@ -65,7 +68,8 @@ def _target(rule, key, where, counted, places):
 def judges(wanted, facts):
     """The engines that state the targets: a card is rechecked by the engine that found it, and a branch count, EAOS's
     own (facts/code/metrics.py), needs none."""
-    return sorted({f['value']['engine'] for f in facts for t in wanted if t['rule'] != 'branches' and _rule(f['value']) == t['rule']})
+    return sorted({f['value']['engine'] for f in facts for t in wanted
+                   if t['rule'] != 'branches' and _rule(f['value']) == t['rule']})
 
 
 def left(wanted, sets):
@@ -78,7 +82,8 @@ def _standing(target, counted, places):
     """Whether the target is still there: in its own file; a named function moved, in a file it was not in when the card
     was made (a card made before `also_in`: in any file)."""
     rule, path, function = target['rule'], target['path'], target['name']
-    over = lambda file: (counted.get((file, function)) or 0) > MAX_COMPLEXITY if rule == 'branches' else (rule, file, function) in places
+    over = lambda file: ((counted.get((file, function)) or 0) > MAX_COMPLEXITY if rule == 'branches'
+                         else (rule, file, function) in places)
     if over(path) or nameless(function): return over(path)
     elsewhere = _files(rule, function, counted, places) - {path} - set(target.get('also_in') or ())
     return any(over(file) for file in elsewhere)
@@ -119,7 +124,8 @@ def _counted(sets):
 def _reported(sets):
     """(rule, path, function name) of every complexity finding an engine reported."""
     return {(_rule(f['value']), (f.get('location') or {}).get('path'), name((f.get('location') or {}).get('symbol')))
-            for f in (sets.get('external') or {}).get('facts') or [] if (f.get('value') or {}).get('kind') == 'complexity'}
+            for f in (sets.get('external') or {}).get('facts') or []
+            if (f.get('value') or {}).get('kind') == 'complexity'}
 
 
 def _files(rule, function, counted, places):

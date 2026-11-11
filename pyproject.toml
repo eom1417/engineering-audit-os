@@ -8,7 +8,7 @@ description = "Architecture, structure and maintainability audit CLI"
 requires-python = ">=3.10"
 readme = "README.md"
 license = { text = "MIT" }
-dependencies = ["defusedxml>=0.7,<1", "mcp>=2.2,<3", "pypdf>=5", "starlette>=1.7,<2", "sse-starlette>=3.4,<4", "uvicorn>=0.54,<1", "tomli>=2; python_version < '3.11'"]
+dependencies = ["defusedxml>=0.7,<1", "mcp>=2.2,<3", "tomli>=2; python_version < '3.11'"]
 [project.optional-dependencies]
 facts = ["tree-sitter>=0.21", "tree-sitter-language-pack>=0.2"]
 runtime = ["coverage>=7.0"]
@@ -20,7 +20,7 @@ eaos = "eaos.interfaces.cli:main"
 [tool.setuptools.packages.find]
 include = ["eaos*"]
 [tool.setuptools.package-data]
-eaos = ["data/*.json", "data/schemas/*.json", "data/schemas/artifacts/*.json", "data/studio/*", "data/studio/**/*", "rules/*.json", "rules/**/*", "templates/**/*"]
+eaos = ["data/*.json", "data/schemas/*.json", "data/schemas/artifacts/*.json", "rules/*.json", "rules/**/*", "templates/**/*"]
 
 # The layers of docs/ARCHITECTURE.md §2 (M3.1): each imports only the layers under it, directly or not (tools/quality.sh).
 [tool.importlinter]

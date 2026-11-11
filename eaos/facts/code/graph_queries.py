@@ -8,7 +8,8 @@ STATIC_RELATIONS = {'imports', 'uses_contract'}
 def adjacency(model, relations=None):
     graph = {n['id']: set() for n in model['nodes']}
     for e in model['edges']:
-        if e['status'] == 'CONFIRMED' and (relations is None or e['relation'] in relations): graph[e['from']].add(e['to'])
+        if e['status'] == 'CONFIRMED' and (relations is None or e['relation'] in relations):
+            graph[e['from']].add(e['to'])
     return graph
 
 
@@ -74,7 +75,8 @@ def _consumers_within(reverse, node, depth):
 
 
 def _declared_consumers(model, node):
-    return sorted({c for col in ['contracts', 'business_rules'] for r in model[col] if r['owner'] == node for c in r['consumers']})
+    return sorted({c for col in ['contracts',
+                                 'business_rules'] for r in model[col] if r['owner'] == node for c in r['consumers']})
 
 
 def impact(model, node, depth=2):
@@ -85,20 +87,24 @@ def impact(model, node, depth=2):
     frontier = sorted({c for n, d in distances.items() if d == depth for c in reverse[n] if c not in distances})
     # Explicit consumer declarations participate even if an edge has not yet been modelled.
     return {'node': node, 'potential_dependents': sorted(n for n in distances if n != node), 'distances': distances,
-            'direct_dependencies': sorted(graph[node]), 'declared_contract_or_rule_consumers': _declared_consumers(model, node),
+            'direct_dependencies': sorted(graph[node]),
+            'declared_contract_or_rule_consumers': _declared_consumers(model, node),
             'depth': depth, 'unexpanded_frontier': frontier,
             'hypothesis_edges': _hypothesis_edges(model, distances),
-            'interpretation': 'Potential review scope in the supplied model, not proof that every node must change. Missing/dynamic edges can expand impact.'}
+            'interpretation': 'Potential review scope in the supplied model, not proof that every node must change. '
+                              'Missing/dynamic edges can expand impact.'}
 
 
 def _hypothesis_edges(model, distances):
     """The ids of the model's unconfirmed (HYPOTHESIS) edges that touch a node the impact reaches."""
-    return [e['id'] for e in model['edges'] if e['status'] == 'HYPOTHESIS' and (e['from'] in distances or e['to'] in distances)]
+    return [e['id'] for e in model['edges']
+            if e['status'] == 'HYPOTHESIS' and (e['from'] in distances or e['to'] in distances)]
 
 
 def _policy_violations(model):
     """Each confirmed edge a declared dependency policy forbids, with the evidence of both."""
-    return [{'policy_id': p['id'], 'edge_id': e['id'], 'evidence_ids': sorted(set(p['evidence_ids'] + e['evidence_ids']))}
+    return [{'policy_id': p['id'], 'edge_id': e['id'],
+             'evidence_ids': sorted(set(p['evidence_ids'] + e['evidence_ids']))}
             for p in model['dependency_policies'] for e in model['edges']
             if e['status'] == 'CONFIRMED' and all(e[k] == p[k] for k in ['from', 'to', 'relation'])]
 
@@ -108,8 +114,10 @@ def summary(model):
     fan_in = {n: 0 for n in graph}
     for neighbors in graph.values():
         for n in neighbors: fan_in[n] += 1
-    return {'coverage': model['coverage'], 'nodes': len(graph), 'confirmed_edges': sum(e['status'] == 'CONFIRMED' for e in model['edges']),
+    return {'coverage': model['coverage'], 'nodes': len(graph),
+            'confirmed_edges': sum(e['status'] == 'CONFIRMED' for e in model['edges']),
             'static_dependency_cycles': cycles(graph),
             'degree_signals': [{'node': n, 'fan_in': fan_in[n], 'fan_out': len(graph[n])} for n in sorted(graph)],
             'declared_policy_violations': _policy_violations(model),
-            'interpretation': 'Cycles/degree are investigation signals, never severity scores. Only explicitly declared forbidden dependencies yield policy matches.'}
+            'interpretation': 'Cycles/degree are investigation signals, never severity scores. Only explicitly '
+                              'declared forbidden dependencies yield policy matches.'}

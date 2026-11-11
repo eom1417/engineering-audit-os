@@ -1,6 +1,6 @@
-"""What EAOS promises its outside users holds: the CLI and MCP tools as declared, how they answer, and saved projects still
-read. A break is refused unless the maintainers agreed to it; an addition is recorded; words and values are not held here.
-The comparison is proved here on every run; tools/public_contract/mutations.py proves it on the real code."""
+"""What EAOS promises its outside users holds: the CLI and MCP tools as declared, how they answer, and saved projects
+still read. A break is refused unless the maintainers agreed to it; an addition is recorded; words and values are not
+held here. The comparison is proved here on every run; tools/public_contract/mutations.py proves it on the real code."""
 import copy
 import sys
 import tempfile
@@ -18,7 +18,8 @@ def _argument(snapshot, command, flag):
 
 
 def _new_argument(snapshot, required):
-    snapshot['cli']['audit'].append({'dest': 'more', 'flags': ['--more'], 'nargs': None, 'default': None, 'choices': None,
+    snapshot['cli']['audit'].append({'dest': 'more', 'flags': ['--more'], 'nargs': None, 'default': None,
+                                     'choices': None,
                                      'required': required, 'kind': 'StoreAction', 'type': None})
 
 
@@ -38,35 +39,58 @@ STATUS = lambda s: s['behaviour']['empty:mcp:status']  # noqa: E731
 BREAKS = (
     ('a tool removed', lambda s: TOOLS(s).pop('fix_skip'), 'MCP tool fix_skip removed'),
     ('a prompt removed', lambda s: s['mcp']['prompts'].remove('audit'), 'MCP prompt audit removed'),
-    ('a parameter removed', lambda s: TOOLS(s)['fix_skip']['input']['properties'].pop('project'), 'fix_skip: parameter project removed'),
+    ('a parameter removed', lambda s: TOOLS(s)['fix_skip']['input']['properties'].pop('project'),
+     'fix_skip: parameter project removed'),
     ('a required parameter added', lambda s: _new_parameter(s, True), 'fix_skip: new required parameter more'),
-    ('an optional parameter made required', lambda s: TOOLS(s)['status']['input'].setdefault('required', []).append('project'), 'status.project: optional became required'),
-    ('a parameter narrowed', lambda s: _set(TOOLS(s)['status']['input']['properties']['project'], anyOf=[{'type': 'string'}]), 'status.project: kind narrowed'),
-    ('a parameter default changed', lambda s: _set(TOOLS(s)['status']['input']['properties']['project'], default='.'), 'status.project: default changed'),
-    ('values taken from a parameter', lambda s: _set(TOOLS(s)['status']['input']['properties']['project'], anyOf=[{'type': 'string', 'enum': ['one']}, {'type': 'null'}]), 'status.project: fewer values accepted'),
-    ('a read-only tool now writes', lambda s: _set(TOOLS(s)['branches']['annotations'], read_only_hint=False), 'branches: read_only_hint changed'),
-    ('a writing tool called read-only', lambda s: _set(TOOLS(s)['fix_skip']['annotations'], read_only_hint=True), 'fix_skip: read_only_hint changed'),
+    ('an optional parameter made required',
+     lambda s: TOOLS(s)['status']['input'].setdefault('required', []).append('project'),
+     'status.project: optional became required'),
+    ('a parameter narrowed',
+     lambda s: _set(TOOLS(s)['status']['input']['properties']['project'], anyOf=[{'type': 'string'}]),
+     'status.project: kind narrowed'),
+    ('a parameter default changed', lambda s: _set(TOOLS(s)['status']['input']['properties']['project'], default='.'),
+     'status.project: default changed'),
+    ('values taken from a parameter',
+     lambda s: _set(TOOLS(s)['status']['input']['properties']['project'],
+                    anyOf=[{'type': 'string', 'enum': ['one']}, {'type': 'null'}]),
+     'status.project: fewer values accepted'),
+    ('a read-only tool now writes', lambda s: _set(TOOLS(s)['branches']['annotations'], read_only_hint=False),
+     'branches: read_only_hint changed'),
+    ('a writing tool called read-only', lambda s: _set(TOOLS(s)['fix_skip']['annotations'], read_only_hint=True),
+     'fix_skip: read_only_hint changed'),
     ('a command removed', lambda s: s['cli'].pop('facts'), 'CLI command facts removed'),
-    ('an argument removed', lambda s: s['cli']['audit'].remove(_argument(s, 'audit', '--goal')), 'audit: argument --goal removed'),
+    ('an argument removed', lambda s: s['cli']['audit'].remove(_argument(s, 'audit', '--goal')),
+     'audit: argument --goal removed'),
     ('a required argument added', lambda s: _new_argument(s, True), 'audit: new required argument --more'),
-    ('an argument made required', lambda s: _set(_argument(s, 'audit', '--goal'), required=True), 'audit --goal: became required'),
-    ('an argument default changed', lambda s: _set(_argument(s, 'audit', '--lang'), default='en'), 'audit --lang: default changed'),
-    ('a choice removed', lambda s: _argument(s, 'audit', '--goal')['choices'].remove('debugging'), 'audit --goal: fewer choices accepted'),
-    ('an argument changed its form', lambda s: _set(_argument(s, 'audit', '--goal'), nargs='+'), 'audit --goal: nargs changed'),
+    ('an argument made required', lambda s: _set(_argument(s, 'audit', '--goal'), required=True),
+     'audit --goal: became required'),
+    ('an argument default changed', lambda s: _set(_argument(s, 'audit', '--lang'), default='en'),
+     'audit --lang: default changed'),
+    ('a choice removed', lambda s: _argument(s, 'audit', '--goal')['choices'].remove('debugging'),
+     'audit --goal: fewer choices accepted'),
+    ('an argument changed its form', lambda s: _set(_argument(s, 'audit', '--goal'), nargs='+'),
+     'audit --goal: nargs changed'),
     ('a key gone from an answer', lambda s: STATUS(s).pop('next'), 'empty:mcp:status: answer lost next'),
-    ('a key of another kind', lambda s: _set(STATUS(s), checked='str'), 'empty:mcp:status.checked: "bool" became "str"'),
-    ('an exit code changed', lambda s: _set(s['behaviour']['empty:cli:nosuch'], exit='1'), 'empty:cli:nosuch.exit: "2" became "1"'),
-    ('a case no longer answered', lambda s: s['behaviour'].pop('empty:cli:nosuch'), 'empty:cli:nosuch: no longer answered'),
-    ('a saved project read and written', lambda s: _set(s['behaviour']['saved-0.0.90:reading-leaves-the-state'], unchanged='no'), 'reading-leaves-the-state.unchanged'),
+    ('a key of another kind', lambda s: _set(STATUS(s), checked='str'),
+     'empty:mcp:status.checked: "bool" became "str"'),
+    ('an exit code changed', lambda s: _set(s['behaviour']['empty:cli:nosuch'], exit='1'),
+     'empty:cli:nosuch.exit: "2" became "1"'),
+    ('a case no longer answered', lambda s: s['behaviour'].pop('empty:cli:nosuch'),
+     'empty:cli:nosuch: no longer answered'),
+    ('a saved project read and written',
+     lambda s: _set(s['behaviour']['saved-0.0.90:reading-leaves-the-state'], unchanged='no'),
+     'reading-leaves-the-state.unchanged'),
 )
 ADDITIONS = (
     ('a tool', lambda s: _set(TOOLS(s), brand_new=copy.deepcopy(TOOLS(s)['status'])), 'MCP tool brand_new added'),
     ('a prompt', lambda s: s['mcp']['prompts'].append('more'), 'MCP prompt more added'),
     ('an optional parameter', lambda s: _new_parameter(s, False), 'fix_skip: new optional parameter more'),
-    ('a parameter that now says less', lambda s: TOOLS(s)['fix_skip']['input']['required'].remove('reason'), 'fix_skip.reason: required became optional'),
+    ('a parameter that now says less', lambda s: TOOLS(s)['fix_skip']['input']['required'].remove('reason'),
+     'fix_skip.reason: required became optional'),
     ('a command', lambda s: _set(s['cli'], more=[]), 'CLI command more added'),
     ('an optional argument', lambda s: _new_argument(s, False), 'audit: new optional argument --more'),
-    ('a choice', lambda s: _argument(s, 'audit', '--goal')['choices'].append('extra'), 'audit --goal: more choices accepted'),
+    ('a choice', lambda s: _argument(s, 'audit', '--goal')['choices'].append('extra'),
+     'audit --goal: more choices accepted'),
     ('a key in an answer', lambda s: _set(STATUS(s), extra='int'), 'empty:mcp:status: answer gained extra'),
     ('a behaviour case', lambda s: _set(s['behaviour'], another={'exit': '0'}), 'another: new case'),
 )
@@ -97,7 +121,8 @@ class Comparison(unittest.TestCase):
                 self.assertTrue(any(words in line for line in additions), words)
 
     def test_words_are_not_the_contract(self):
-        self.assertEqual(self.changed(lambda s: _set(TOOLS(s)['status']['input']['properties']['project'], title='Another')), ([], []))
+        self.assertEqual(self.changed(lambda s: _set(TOOLS(s)['status']['input']['properties']['project'],
+                                                     title='Another')), ([], []))
 
 
 class TheLock(unittest.TestCase):
@@ -105,7 +130,9 @@ class TheLock(unittest.TestCase):
 
     def test_the_code_keeps_what_the_lock_promises_and_the_lock_is_current(self):
         breaks, additions = contract.compare(contract.load(), contract.capture())
-        self.assertEqual(breaks, [], 'this takes from callers: restore it, or the maintainers agree and tools/public_contract/lock.py --accept-break')
+        self.assertEqual(breaks, [],
+                         'this takes from callers: restore it, or the maintainers agree and '
+                         'tools/public_contract/lock.py --accept-break')
         self.assertEqual(additions, [], 'new and allowed: record it with python tools/public_contract/lock.py --record')
 
     def test_every_break_accepted_says_why_who_agreed_and_is_in_the_changelog(self):
@@ -121,7 +148,8 @@ class TheLock(unittest.TestCase):
         self.assertIn('0.0.90', frozen, 'a frozen project stays, so every later version must read it')
         for version in frozen:
             self.assertEqual(behaviour[f'saved-{version}:reading-leaves-the-state'], {'unchanged': 'yes'})
-            self.assertIn('findings', behaviour[f'saved-{version}:mcp:findings'], 'the saved check still reads as a check')
+            self.assertIn('findings', behaviour[f'saved-{version}:mcp:findings'],
+                          'the saved check still reads as a check')
 
 
 class Recording(unittest.TestCase):
@@ -164,7 +192,8 @@ class Recording(unittest.TestCase):
 
 
 class EveryToolAccountedFor(unittest.TestCase):
-    """A new tool cannot slip past the lock: it is called, or the reason it is not is written, and a named test is real."""
+    """A new tool cannot slip past the lock: it is called, or the reason it is not is written, and a named test is real.
+    """
 
     def setUp(self):
         self.lock = contract.load()
@@ -174,7 +203,8 @@ class EveryToolAccountedFor(unittest.TestCase):
         for name, how in self.lock['accounting'].items():
             with self.subTest(name):
                 self.assertFalse(how.startswith('UNACCOUNTED'), how)
-                if how.startswith('called'): self.assertTrue({f'empty:mcp:{name}', f'empty:writing:{name}'} & set(self.lock['behaviour']))
+                if how.startswith('called'):
+                    self.assertTrue({f'empty:mcp:{name}', f'empty:writing:{name}'} & set(self.lock['behaviour']))
 
     def test_a_tool_that_says_nothing_cannot_be_recorded(self):
         scratch = tempfile.TemporaryDirectory()

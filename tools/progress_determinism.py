@@ -1,11 +1,11 @@
-"""Progress never changes a result (live scan map v2, guarantee I6): the same check with progress on and off.
+"""Progress never changes a result: the same check with progress on and off.
 
     python tools/progress_determinism.py <project> <workdir> [--engines] [--json out.json]
 
 Runs the whole check of <project> three times, each in its own process and its own fresh report folder under
 <workdir>: `on1` and `on2` with progress written as usual, `off` with EAOS_PROGRESS=off (the three names have one
-length: a report quotes its own folder, and a byte count of a document must not differ by the name) (no progress file, no
-count or step heard, no sampler, no heartbeat). Then compares every file the runs wrote:
+length: a report quotes its own folder, and a byte count of a document must not differ by the name): no progress
+file, no count or step heard, no sampler, no heartbeat. Then compares every file the runs wrote:
 
 - the progress files themselves (run-progress.jsonl and progress/) are left out: they are what is switched;
 - each run's own folder is replaced by <OUT>, and every timestamp, duration and run id is masked (TIME_PATTERNS):
@@ -38,14 +38,16 @@ SWITCHED = ('run-progress.jsonl', 'progress/')
 TIME_PATTERNS = [
     (re.compile(rb'\d{4}-\d{2}-\d{2}[T ]\d{2}:\d{2}(:\d{2}(\.\d+)?)?(Z|[+-]\d{2}:?\d{2}| UTC)?'), b'<TIME>'),
     (re.compile(rb'\d{8}T\d{6}(-[0-9a-f]{6})?'), b'<RUN>'),
-    (re.compile(rb'"(seconds|duration|duration_ms|elapsed|took|wall_seconds|runtime_seconds)": ?-?[\d.]+(e-?\d+)?'), rb'"\1": <S>'),
+    (re.compile(rb'"(seconds|duration|duration_ms|elapsed|took|wall_seconds|runtime_seconds)": ?-?[\d.]+'
+                rb'(e-?\d+)?'), rb'"\1": <S>'),
     (re.compile(rb'\b\d+(\.\d+)? ?(s|ms|seconds)\b'), b'<S>'),
     (re.compile(r'\b\d+(\.\d+)? ?ثانية'.encode()), b'<S>'),
     (re.compile(rb'\| \d+\.\d+ \|'), b'| <S> |'),                              # RUN.md: a stage's seconds
     (re.compile(rb'D:\d{14}(Z|[+-]\d{2}\'?\d{2}\'?)?'), b'D:<TIME>'),          # a PDF's creation and change dates
-    (re.compile(rb'/ID ?\[ ?(<[0-9A-Fa-f]+>|\([^)]*\)) ?(<[0-9A-Fa-f]+>|\([^)]*\)) ?\]'), b'/ID[<ID>]'),  # a PDF's id, from its dates
+    # a PDF's id, from its dates
+    (re.compile(rb'/ID ?\[ ?(<[0-9A-Fa-f]+>|\([^)]*\)) ?(<[0-9A-Fa-f]+>|\([^)]*\)) ?\]'), b'/ID[<ID>]'),
     (re.compile(rb'"(hash|config_hash)": ?-?\d+'), rb'"\1": <HASH>'),
-    (re.compile(rb'<xmpMM:(InstanceID|DocumentID)>[^<]*<'), rb'<xmpMM:\1><ID><'),  # a PDF's XMP ids, from its dates          # mkdocs' cache keys, random per process
+    (re.compile(rb'<xmpMM:(InstanceID|DocumentID)>[^<]*<'), rb'<xmpMM:\1><ID><'),  # a PDF's XMP ids, from its dates
 ]
 
 
@@ -105,7 +107,8 @@ def compare(left, right):
     a, b = files(left), files(right)
     differ = [name for name in sorted(set(a) & set(b))
               if hashlib.sha256(masked(a[name], left)).digest() != hashlib.sha256(masked(b[name], right)).digest()]
-    return {'only_left': sorted(set(a) - set(b)), 'only_right': sorted(set(b) - set(a)), 'differ': differ, 'compared': len(set(a) & set(b))}
+    return {'only_left': sorted(set(a) - set(b)), 'only_right': sorted(set(b) - set(a)), 'differ': differ,
+            'compared': len(set(a) & set(b))}
 
 
 def _check(project, out, on, engines):
@@ -118,7 +121,8 @@ def _added(progress_vs_off, run_vs_run):
     """The files that differ only when progress is switched: what differs between two runs with it is left out."""
     named = lambda rows: {re.sub(r'\d{6,}', '#', name) for name in rows}
     variance = set(run_vs_run['differ']) | named(run_vs_run['only_left'] + run_vs_run['only_right'])
-    return sorted((set(progress_vs_off['differ']) | named(progress_vs_off['only_left'] + progress_vs_off['only_right'])) - variance)
+    return sorted((set(progress_vs_off['differ'])
+                   | named(progress_vs_off['only_left'] + progress_vs_off['only_right'])) - variance)
 
 
 def _record(project, engines, runs, progress_vs_off, run_vs_run):
@@ -145,7 +149,8 @@ def main(argv=None):
     args = parser.parse_args(argv)
     project, work = Path(args.project).resolve(), Path(args.workdir).resolve()
     work.mkdir(parents=True, exist_ok=True)
-    runs = {name: _check(project, work / name, on, args.engines) for name, on in (('on1', True), ('off', False), ('on2', True))}
+    runs = {name: _check(project, work / name, on, args.engines)
+            for name, on in (('on1', True), ('off', False), ('on2', True))}
     progress_vs_off = compare(work / 'on1', work / 'off')
     run_vs_run = compare(work / 'on1', work / 'on2')
     record = _record(project, args.engines, runs, progress_vs_off, run_vs_run)

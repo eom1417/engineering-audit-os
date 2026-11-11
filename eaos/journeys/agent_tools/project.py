@@ -1,5 +1,5 @@
 """The project an assistant's call is about, its state, and its jobs: a call that takes longer than a tool call waits
-returns a job (eaos/core/project/jobs.py) that `wait` follows; the Studio opened on it.
+returns a job (eaos/core/project/jobs.py) that `wait` follows.
 """
 import json
 import os
@@ -7,14 +7,13 @@ from pathlib import Path
 
 from .. import guided
 from ...core.project import jobs
-from ...core.system import launch
-from ...core import toolchain
 from ...core.project import state as project_state
 from ...core.system.clock import now
 
 
 # A person's answer comes at least this long after the question: sooner, nobody was asked (EAOS_ANSWER_SECONDS: tests).
-ANSWER_SECONDS, WAIT = int(os.environ.get('EAOS_ANSWER_SECONDS') or 30), 50   # WAIT: seconds a tool call waits for its job
+# WAIT: seconds a tool call waits for its job
+ANSWER_SECONDS, WAIT = int(os.environ.get('EAOS_ANSWER_SECONDS') or 30), 50
 PAGE, EVIDENCE = 30, 24     # EVIDENCE: facts shown behind one card, enough for every function its check judges
 
 
@@ -23,7 +22,8 @@ PAGE, EVIDENCE = 30, 24     # EVIDENCE: facts shown behind one card, enough for 
 class SeveralProjects(ValueError):
     """A folder that is no project but holds several git repositories directly under it: the person says which."""
     def __init__(self, folder, projects):
-        super().__init__(f'{folder} holds several projects: {", ".join(str(p) for p in projects[:10])}; pass one as `project`')
+        super().__init__(f'{folder} holds several projects: {", ".join(str(p) for p in projects[:10])}; pass one as '
+                         f'`project`')
         self.projects = projects
 
 
@@ -34,9 +34,9 @@ def repositories_under(folder):
 
 
 def locate(folder):
-    """The project a folder means: itself when it is one (eaos/core/project/state.looks_like_project); a folder with no project file
-    and exactly one git repository directly under it (the assistant opened in the folder above) means that repository; with several, SeveralProjects: the
-    person chooses, EAOS never guesses."""
+    """The project a folder means: itself when it is one (eaos/core/project/state.looks_like_project); a folder with
+    no project file and exactly one git repository directly under it (the assistant opened in the folder above)
+    means that repository; with several, SeveralProjects: the person chooses, EAOS never guesses."""
     if not folder.is_dir() or project_state.looks_like_project(folder): return folder
     found = repositories_under(folder)
     if len(found) > 1: raise SeveralProjects(folder, found)
@@ -49,7 +49,8 @@ def _project_folder(project, new):
     if not new and not _state_in(folder): folder = locate(folder)
     if new or (_state_in(folder) or {}).get('mode') == 'build':
         if folder in (Path.home().resolve(), Path(folder.anchor)):
-            raise ValueError(f'not a project folder: {folder} (make an empty folder for the new project and open the assistant there)')
+            raise ValueError(f'not a project folder: {folder} (make an empty folder for the new project and open the '
+                             f'assistant there)')
         folder.mkdir(parents=True, exist_ok=True)
         return folder
     if not folder.is_dir(): raise ValueError(f'project folder not found: {folder}')
@@ -72,7 +73,8 @@ def state_of(project=None, new=False):
     if not state:
         state = {'schema_version': 1, 'project': str(folder), 'workspace': str(guided.workspace(folder)),
                  'started': now(), 'questions': [], 'lang': guided.language()}
-    # its report's folder kept from the start: a run of its app is shown only that folder (eaos/live/isolation/sandbox.py _own)
+    # its report's folder kept from the start: a run of its app is shown only that folder
+    # (eaos/live/isolation/sandbox.py _own)
     if not state.get('outputs') and guided.outputs(state): guided.save(state)
     return state
 
@@ -83,7 +85,8 @@ def _head(state):
 
 
 def tool_digest():
-    """This EAOS's own code, as a fingerprint (eaos/core/system/version_info.py): a report made by an older EAOS is checked again."""
+    """This EAOS's own code, as a fingerprint (eaos/core/system/version_info.py): a report made by an older EAOS is
+    checked again."""
     from ...core.system.version_info import digest
     return digest()
 
@@ -101,8 +104,7 @@ def _report(state):
 
 
 def _stopped(report):
-    """The step a check that ran stopped at and why, from its manifest; '' when no check ran here (excalidraw,
-    2026-11-04: the person was told 'not checked yet' after 52 minutes of a check)."""
+    """The step a check that ran stopped at and why, from its manifest; '' when no check ran here."""
     path = report / 'run-manifest.json'
     stages = (_read(path).get('stages') or {}) if path.is_file() else {}
     name, row = next(((name, row) for name, row in stages.items() if row.get('status') == 'failed'), (None, None))
@@ -125,76 +127,24 @@ def _job_answer(job, seconds, project):
 
 
 def busy_answer(record):
-    """What a tool answers when something holds the project and it did nothing: `error` makes a Studio run say so, not `done`."""
+    """What a tool answers when something holds the project and it did nothing: `error` makes a run say so,
+    not `done`."""
     job = record['id']
     return {'job': job, 'status': 'busy', 'kind': record['kind'], 'progress': record.get('progress'),
             'error': f"a {record['kind']} is running for this project, so nothing was done",
-            'what_now': (f'Another piece of work is running for this project: call `wait` with job="{job}" first, then ask again.' if job else
+            'what_now': (f'Another piece of work is running for this project: call `wait` with job="{job}" first, then '
+                         f'ask again.' if job else
                          'Another step is at work on this project: ask again in a moment.')}
 
 
-def _start(kind, state, arguments, seconds=WAIT, runner='eaos.journeys.agent_tools', watch=False):  # limits: parameters -- the job and how it is waited for, run and watched, each set apart by its callers
-    """Start a job once the project's running one ended (waited for up to `seconds`: eaos/journeys/fix/lanes.py), and answer as `_job_answer`
-    does. `watch`: the live Studio is opened on its map first (once, before the job writes anything), its address in `watch`."""
-    route = '/scan' if kind != 'audit' or toolchain.ready(state['project']) else '/tools'
-    studio = _watch(state, route) if watch and not jobs.running(state['project']) else None
+def _start(kind, state, arguments, seconds=WAIT, runner='eaos.journeys.agent_tools'):
+    """Start a job once the project's running one ended (waited for up to `seconds`: eaos/journeys/fix/lanes.py),
+    and answer as `_job_answer` does."""
     try:
         with jobs.alone(state['project'], seconds): job = jobs.start(kind, state['project'], arguments, runner=runner)
     except jobs.Busy as busy:
         return busy_answer(busy.record)
-    answer = _job_answer(job, seconds, state['project'])
-    if studio and route == '/tools':
-        answer.update(watch=studio['studio'], what_now=TOOLS_FIRST)
-    elif studio:
-        told = ('Tell the person the live map of this work is open in their browser.' if studio['opened_in_browser'] else
-                'Before anything else, write the person a message with the `watch` address, the live map of this work, which '
-                'still shows how it went once it ends and stays the same every time (it opens on this computer only).')
-        answer.update(watch=studio['studio'], what_now=f"{told} {answer.get('what_now', '')}".strip())
-    return answer
-
-
-TOOLS_FIRST = ('Tell the person the EAOS Studio is open on "Preparing the tools" (give them the `watch` address if it did not '
-               'open in their browser): every tool it installs, live; the check starts by itself once the tools it needs '
-               'are ready. Then call `wait` with the job to follow it. If it fails because a tool could not be installed, '
-               'the person picks Retry or "Start without it" there, or tells you, and you call `tools_check` with '
-               'retry=true, or `audit` with without_tools=true.')
-
-
-def _watch(state, route='/scan'):
-    """open_studio on `route`, in the browser unless the Studio asked (EAOS_STUDIO_RUN); None headless or when it cannot start."""
-    try: opened = {} if os.environ.get(launch.HEADLESS) else open_studio(state['project'], show=not os.environ.get('EAOS_STUDIO_RUN'), route=route)
-    except Exception: return None
-    return opened if 'studio' in opened else None
-
-
-def open_studio(project=None, show=True, route='', address=None):
-    """`open_studio`: the live Studio's address (on `route`, when given), starting its server in the background when it
-    is not running. The server runs from the EAOS workspace folder with PYTHONSAFEPATH=1, so neither the folder it
-    starts in nor the project (which may be EAOS's own repository) can put another `eaos` before this one. It rebuilds
-    no data: a server it starts does (run_foreground), and a running one's is kept by every step that changes it, so a
-    check asked for starts at once. `address`: this computer is a remote server reached at that routed address
-    (launch.serve_remotely); a running Studio that answers elsewhere starts again there."""
-    state = state_of(project)
-    if address:
-        try: pattern = launch.serve_remotely(address)
-        except ValueError as problem: return {'error': str(problem), 'what_now': 'Pass the exact https address your environment routes to a port.'}
-        running = launch.running(state)
-        if running and running.get('remote_origin') != pattern.format(port=running['port']): launch.stop(running)
-    found, started = launch.start(state)
-    if not found:
-        return {'error': 'the Studio server did not start in time', 'log': str(Path(state['workspace']) / 'logs/studio-server.log'),
-                'what_now': 'Tell the person the live Studio could not start, and offer open_report (the report page) instead.'}
-    url = launch.url_of(found, route)
-    opened = launch._open(url, show)
-    return {'studio': url, 'opened_in_browser': opened, 'started': started, 'live': True,
-            'checked': guided.scan_done(state),
-            'what_now': ('Tell the person the Studio is open in their browser' if opened else
-                         'Send the person this address now, without being asked: it stays the same, and the Studio keeps '
-                         'running on this server after your session ends' if found.get('remote_origin') else
-                         'Give the person this address to open in their browser on this computer (it works only here)')
-                        + '; it updates by itself after every check, batch, merge and decision. '
-                        + ('' if guided.scan_done(state) else 'The project is not checked yet: offer audit first. ')
-                        + 'Do not paste the address anywhere else.'}
+    return _job_answer(job, seconds, state['project'])
 
 
 def wait(job, seconds=WAIT, project=None):          # a job of this project only: another project's is not found

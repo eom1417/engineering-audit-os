@@ -1,8 +1,6 @@
-"""The four reports a client reads first: where the project is, where it should be, the distance, and the plan.
+"""The reports a client reads first: where the project is, and the plan.
 
-  CURRENT-STATE.md      what the program is today: features, data, measured risk, the C4 view
-  TARGET-STATE.md       the same features on the project's reference type: components, infrastructure, decisions
-  GAP-AND-STRATEGY.md   the distance, component by component and item by item, and the order to close it
+  CURRENT-STATE.md      what the program is today: features, data, measured risk, the C4 view, every aspect's verdict
   EXECUTION-PLAN.md     milestones, sections and the first cards a team starts with
 
 Each follows docs/MASTER-BLUEPRINT.md §6: a one-page summary (the decision asked for, the three numbers that
@@ -12,12 +10,11 @@ id or a claim id. They repeat nothing the appendices hold; they link to them.
 """
 from pathlib import Path
 
-from ...core.language.words import decided, who_decided
 from .markdown import Page, clip
 from ...core.system.files import read_json
 from ...analysis.claims.ledger import withheld_said
 
-NAMES = ('CURRENT-STATE.md', 'TARGET-STATE.md', 'GAP-AND-STRATEGY.md', 'EXECUTION-PLAN.md')
+NAMES = ('CURRENT-STATE.md', 'EXECUTION-PLAN.md')
 
 
 def _read(out, name, key, empty):
@@ -40,45 +37,40 @@ def _risks(register, n=3):
 
 
 VERDICT_WORDS = {'keep': ('keep: already right, nothing changes', 'يبقى: صحيح كما هو، لا تغيير'),
-                 'improve': ('improve', 'يتحسّن'), 'unmeasured': ('not measured in this check', 'لم يُقَس في هذا الفحص')}
-
-
-def aspects(out):
-    """Every aspect of the program with its verdict: the final target's (target-architecture.json, written by the
-    reconcile stage), else the rules' verdict from the records (eaos/analysis/understanding/aspects.py)."""
-    rows = (read_json(Path(out) / 'target-architecture.json', {}) or {}).get('aspects')
-    if rows: return rows
-    from ...analysis.understanding.aspects import final
-    return final(out)
+                 'improve': ('improve', 'يتحسّن'),
+                 'unmeasured': ('not measured in this check', 'لم يُقَس في هذا الفحص')}
 
 
 def aspect_section(page, out, ar):
-    """One line per aspect: its verdict, why, and for one to improve its plan and cards; who decided. The counts."""
-    rows = aspects(out)
+    """One line per aspect: its verdict, why, and for one to improve its plan and cards; who decided."""
+    from ...analysis.understanding.aspects import final
+    rows = final(out)
     page.heading('كل جانب من البرنامج: يبقى أو يتحسّن' if ar else 'Every aspect of the program: keep or improve')
-    page.para('حكم مساعدك على كل جانب حيث حكم، وحكم القواعد في الباقي (target-architecture.json → aspects).' if ar else
-              "Your assistant's verdict on each aspect it judged, the rules' on the rest (target-architecture.json → aspects).")
+    page.para('حكم القواعد على كل جانب، من سجلات الفحص (eaos/analysis/understanding/aspects.py).' if ar else
+              "The rules' verdict on each aspect, from the check's records (eaos/analysis/understanding/aspects.py).")
     page.items([_aspect_line(row, ar) for row in rows])
-    return {verdict: sum(1 for row in rows if row['verdict'] == verdict) for verdict in ('keep', 'improve', 'unmeasured')}
 
 
 def _aspect_line(row, ar):
     """An aspect, its verdict and why, its plan and cards when it is to improve, and who decided."""
-    label = row['label'][1 if ar else 0] if isinstance(row.get('label'), (list, tuple)) else row.get('label') or row['aspect']
+    label = row['label'][1 if ar else 0] if isinstance(row.get('label'),
+                                                       (list, tuple)) else row.get('label') or row['aspect']
     words = VERDICT_WORDS.get(row['verdict'], (row['verdict'], row['verdict']))[1 if ar else 0]
     line = f"{label}: {words}. {clip(row.get('why'), 220)}"
-    if row['verdict'] == 'improve' and row.get('plan'): line += (' الخطة: ' if ar else ' Plan: ') + clip(row['plan'], 220)
+    if row['verdict'] == 'improve' and row.get('plan'):
+        line += (' الخطة: ' if ar else ' Plan: ') + clip(row['plan'], 220)
     if row.get('cards'): line += ' (' + ', '.join(row['cards'][:4]) + ')'
     return line + f" ({_who(row, ar)})"
 
 
 def _who(row, ar):
     """Who judged an aspect: the person's assistant, or the rules."""
-    return ('مساعدك' if ar else 'your assistant') if row.get('decided_by') == 'assistant' else ('القواعد' if ar else 'the rules')
+    return ('مساعدك' if ar else 'your assistant') if row.get('decided_by') == 'assistant' else ('القواعد' if ar
+        else 'the rules')
 
 
 def _diagram(page, out, which, ar):
-    """The C4 diagram of `which` (current or target) as a mermaid block, when it was drawn."""
+    """The C4 diagram of `which` (current) as a mermaid block, when it was drawn."""
     diagram = Path(out) / f'architecture/{which}/diagram.mmd'
     if diagram.is_file():
         page.heading('C4' if not ar else 'خريطة C4', 3)
@@ -101,30 +93,98 @@ def _baseline_decision(severe, ar):
         return (f"قبول هذا الوصف أساسًا للتحول، ومعالجة البنود العالية الخطورة ({len(severe)}) أولًا." if ar else
                 f"accept this description as the baseline, and treat the {len(severe)} high or critical items first.")
     return ('قبول هذا الوصف أساسًا للتحول؛ لا بند عالي الخطورة بشاهد كافٍ، فالبداية بمعلم التثبيت.' if ar else
-            'accept this description as the baseline; no high item has enough witnesses, so start with the stabilize milestone.')
+            'accept this description as the baseline; no high item has enough witnesses, so start with the '
+            'stabilize milestone.')
 
 
 def _feature_items(features, ar):
     return ([clip(f"{f['name']}: {f.get('description', '')}", 160) for f in features[:12]]
-            + ([f"… {len(features) - 12} " + ('أخرى في features.json' if ar else 'more in features.json')] if len(features) > 12 else []))
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+            + ([f"… {len(features) - 12} " + ('أخرى في features.json' if ar else 'more in features.json')]
+               if len(features) > 12 else []))
 
 
 def _unexamined(page, out, coverage, external, ar):
-    alike = [row['ar' if ar else 'en'] for row in _read(out, 'dossier.json', 'likenesses', [])[:10]]   # said, no card (M15)
+    alike = [row['ar' if ar else 'en'] for row in _read(out, 'dossier.json', 'likenesses', [])[:10]]   # said, no card
     if alike:
-        page.para('متشابهات في الشكل بس، ما صارت بطاقات (ما استوفت الشروط الثلاثة):' if ar else 'Alike in shape only, not cards (they miss one of the three conditions):')
+        page.para('متشابهات في الشكل بس، ما صارت بطاقات (ما استوفت الشروط الثلاثة):' if ar
+                  else 'Alike in shape only, not cards (they miss one of the three conditions):')
         page.items(alike)
     page.heading(_labels(ar)['unexamined'])
-    page.items(list(coverage.get('not_examined') or [])[:8] + withheld_said(_read(out, 'dossier.json', 'withheld_claims', []), ar)
-               + [('محرك غير مثبت: ' if ar else 'engine not installed: ') + name for name in external.get('engines_unavailable') or []])
+    page.items(list(coverage.get('not_examined') or [])[:8]
+               + withheld_said(_read(out, 'dossier.json', 'withheld_claims', []), ar)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+               + [('محرك غير مثبت: ' if ar else 'engine not installed: ') + name
+               for name in external.get('engines_unavailable') or []])
 
 
 def _current_number_items(numbers, ar):
     """The summary's three numbers, each with the record it comes from."""
-    return [f"{numbers['files_parsed'][0]} " + ('ملفًا محللًا' if ar else 'files analysed') + f" ({numbers['files_parsed'][1]})",
-            f"{numbers['features'][0]} " + ('وظيفة، منها' if ar else 'features, of which') + f" {numbers['critical_features'][0]} "
+    return [f"{numbers['files_parsed'][0]} " + ('ملفًا محللًا' if ar else 'files analysed')
+            + f" ({numbers['files_parsed'][1]})",
+            f"{numbers['features'][0]} " + ('وظيفة، منها' if ar else 'features, of which')
+            + f" {numbers['critical_features'][0]} "
             + ('حرجة' if ar else 'critical') + f" ({numbers['features'][1]})",
-            f"{numbers['debt_items'][0]} " + ('بند دَين، منها' if ar else 'debt items, of which') + f" {numbers['high_or_critical'][0]} "
+            f"{numbers['debt_items'][0]} " + ('بند دَين، منها' if ar else 'debt items, of which')
+            + f" {numbers['high_or_critical'][0]} "
             + ('عالية أو حرجة' if ar else 'high or critical') + f" ({numbers['debt_items'][1]})"]
 
 
@@ -139,8 +199,10 @@ def _current_evidence(page, features, items, measured, ar):
               + ', '.join(f'{k} {v}' for k, v in sorted(by_category.items(), key=lambda kv: -kv[1])))
     hottest = sorted(measured, key=lambda r: (-(r.get('complexity_max') or 0), -(r.get('churn') or 0)))[:5]
     if hottest:
-        page.para(('أعقد الملفات وأكثرها تغيّرًا (measurements.json):' if ar else 'The most complex, most changed files (measurements.json):'))
-        page.items([f"{r['path']}: complexity {r.get('complexity_max')}, commits {r.get('churn')}, fan-in {r.get('fan_in')}" for r in hottest])
+        page.para(('أعقد الملفات وأكثرها تغيّرًا (measurements.json):' if ar
+                   else 'The most complex, most changed files (measurements.json):'))
+        page.items([f"{r['path']}: complexity {r.get('complexity_max')}, "
+                    f"commits {r.get('churn')}, fan-in {r.get('fan_in')}" for r in hottest])
 
 
 def current_state(out, ar):
@@ -161,148 +223,19 @@ def current_state(out, ar):
     page.heading(L['evidence'])
     _current_evidence(page, features, items, measured, ar)
     _diagram(page, out, 'current', ar)
+    aspect_section(page, out, ar)
     page.heading(L['impact'])
-    page.para(('كل بند عالي الخطورة في السجل له شاهد حتمي أو أداتان؛ تركه يعني أن الخطر المعروف يبقى في كل إصدار.' if ar else
-               'Every high item in the register has a deterministic witness or two tools; leaving one means a known risk ships in every release.'))
+    page.para(('كل بند عالي الخطورة في السجل له شاهد حتمي أو أداتان؛ تركه يعني أن الخطر المعروف يبقى في كل إصدار.' if ar
+               else
+               'Every high item in the register has a deterministic witness or two tools; leaving one means a known '
+               'risk ships in every release.'))
     page.heading(L['recommendation'])
-    page.para(('ابدأ بمعلم التثبيت في EXECUTION-PLAN.md.' if ar else 'Start with the stabilize milestone in EXECUTION-PLAN.md.'))
+    page.para(('ابدأ بمعلم التثبيت في EXECUTION-PLAN.md.' if ar
+               else 'Start with the stabilize milestone in EXECUTION-PLAN.md.'))
     _unexamined(page, out, coverage, external, ar)
     page.heading(L['appendices'])
-    page.items(['`features.json`', '`measurements.json`', '`debt-register.json`', '`load-model.json`', '`facts/external.json`'])
-    return page.text()
-
-
-def target_state(out, ar):
-    L = _labels(ar)
-    target = read_json(Path(out) / 'target-architecture.json', {}) or {}
-    components = target.get('target_components') or []
-    infrastructure = target.get('infrastructure') or []
-    absent = [i for i in infrastructure if not i['present']]
-    numbers = _target_numbers(target, _read(out, 'features.json', 'features', []), ar)
-    page = Page('الصورة المثالية' if ar else 'Target state')
-    _target_summary(page, L, numbers, absent, ar)
-    _target_evidence(page, out, components, infrastructure, ar)
-    numbers['aspects'] = (aspect_section(page, out, ar), 'target-architecture.json → aspects')
-    page.heading(L['recommendation'])
-    page.para(('القرارات المعمارية بصيغة MADR في adr/، وكل قرار يذكر بدائله وكلفة ألا نفعل شيئًا.' if ar else
-               'The decisions are MADR files in adr/, each with its options and the cost of doing nothing.'))
-    page.heading(L['unexamined'])
-    page.items([_target_unexamined(target, ar)])
-    page.heading(L['appendices'])
-    page.items(['[TARGET-ARCHITECTURE.md](TARGET-ARCHITECTURE.md)', '[adr/](adr/)', '[architecture/](architecture/)'])
-    return page.text()
-
-
-def _target_summary(page, L, numbers, absent, ar):
-    """The target's decision, its numbers and its largest risks: the infrastructure it lacks."""
-    page.heading(L['summary'])
-    page.para(f"{L['decision']}: " + (f"اعتماد النوع المرجعي `{numbers['reference'][0]}` كوحدة واحدة معيارية، بالوظائف نفسها." if ar else
-                                       f"adopt `{numbers['reference'][0]}` as a modular monolith, with the same features."))
-    page.heading(L['numbers'], 3)
-    page.items([f"{numbers['components'][0]} " + ('مكوّنًا مستهدفًا' if ar else 'target components') + f" ({numbers['components'][1]})",
-                f"{numbers['features_placed'][0]} " + ('وظيفة لها مكان' if ar else 'features placed') + f" ({numbers['features_placed'][1]})",
-                f"{numbers['forbidden_imports'][0]} " + ('استيرادًا ممنوعًا يزول' if ar else 'forbidden imports removed') + f" ({numbers['forbidden_imports'][1]})",
-                f"{numbers['decided'][0]} ({numbers['decided'][1]})"])
-    page.heading(L['risks'], 3)
-    page.items([clip(f"{i['area']}: {i['decision']}", 150) for i in absent[:3]] or ['—'])
-
-
-def _target_evidence(page, out, components, infrastructure, ar):
-    """The target's largest components, its C4 view and its infrastructure, present or not."""
-    page.heading(_labels(ar)['evidence'])
-    page.para(('المكوّنات الأكبر (الأسماء والمسؤوليات كاملة في TARGET-ARCHITECTURE.md):' if ar else
-               'The largest components (names and responsibilities in TARGET-ARCHITECTURE.md):'))
-    page.items([f"{c['name']} ({c['layer']}): {c.get('files', 0)} files, {c.get('moves_in', 0)} moving in"
-                for c in sorted(components, key=lambda c: -c.get('files', 0))[:8]])
-    _diagram(page, out, 'target', ar)
-    page.heading(('البنية التحتية' if ar else 'Infrastructure'))
-    page.items([clip(f"{'✅' if i['present'] else '⬜'} {i['area']}: {i.get('tool') or '—'}. {i['evidence']}", 170) for i in infrastructure])
-
-
-def _target_unexamined(target, ar):
-    """What the target did not examine: no reference type fits, or a service split nothing justifies."""
-    if not target.get('reference'):
-        return 'لا يوجد نوع مرجعي معروف لهذا المشروع؛ لا إسقاط.' if ar else 'No known reference type fits this project; no projection.'
-    return 'الخدمات المصغّرة غير مقترحة: لا سيناريو جودة يبررها.' if ar else 'No service split is proposed: no quality scenario justifies one.'
-
-
-def _target_numbers(target, features, ar):
-    """The numbers the target page cites, each with the record it is read from: the target's own, and the plan's
-    features it places."""
-    components, infrastructure = target.get('target_components') or [], target.get('infrastructure') or []
-    absent = [i for i in infrastructure if not i['present']]
-    return {
-        'reference': (target.get('reference') or '—', 'target-architecture.json → reference'),
-        'components': (len(components), 'target-architecture.json → target_components'),
-        'features_placed': (f"{len({f.get('name') for f in features} & {c.get('feature') for c in components})}/{len(features)}",
-                            'target-architecture.json → target_components → feature'),
-        'infrastructure_absent': (f"{len(absent)}/{len(infrastructure)}", 'target-architecture.json → infrastructure'),
-        'forbidden_imports': (target.get('forbidden_edges', 0), 'target-architecture.json → forbidden_edges'),
-        'decided': (who_decided(target, 'ar' if ar else 'en'), 'target-architecture.json → decided'),
-    }
-
-
-def _gap_numbers(current, milestones):
-    """The numbers the gap page cites, each with the record it is read from."""
-    counts = {}
-    for component in current: counts[component.get('relation')] = counts.get(component.get('relation'), 0) + 1
-    return {
-        'dispositions': (counts, 'target-architecture.json → current_components[].relation'),
-        'files_to_move': (sum((c.get('projection') or {}).get('moved', 0) for c in current),
-                          'target-architecture.json → current_components[].projection.moved'),
-        'milestones': (len(milestones), 'plan.json → milestones'),
-    }
-
-
-def _gap_number_items(numbers, milestones, ar):
-    """The gap page's three numbers: the dispositions, the files that move and the milestones, each with its record."""
-    counts, moved = numbers['dispositions'][0], numbers['files_to_move'][0]
-    return [', '.join(f'{k} {v}' for k, v in sorted(counts.items())) + f" ({numbers['dispositions'][1]})",
-            f"{moved} " + ('ملفًا ينتقل' if ar else 'files move') + f" ({numbers['files_to_move'][1]})",
-            f"{len(milestones)} " + ('معالم' if ar else 'milestones') + f" ({numbers['milestones'][1]})"]
-
-
-def _rebuilt_items(current):
-    rebuilt = [c for c in current if c.get('relation') == 'rebuild']
-    return [f"{c['origin']} → {c.get('target_component')}: {clip(c.get('reason'), 120)}" for c in rebuilt[:3]] or ['—']
-
-
-def _disposition_items(current, ar):
-    """Each component of today, its disposition and where it goes: the deleted first, then rebuilt, modified, kept."""
-    order = {'delete': 0, 'rebuild': 1, 'modify': 2, 'retain': 3}
-    return [f"{c['origin']}: {c.get('relation')} → {c.get('target_component') or '—'}"
-            + (f" ({decided(c['decided_by']['label'], 'ar' if ar else 'en')})" if c.get('decided_by') else '')
-            for c in sorted(current, key=lambda c: (order.get(c.get('relation'), 9), c['origin']))[:20]]
-
-
-def gap_and_strategy(out, ar):
-    L = _labels(ar)
-    current = _read(out, 'target-architecture.json', 'current_components', [])
-    milestones = _read(out, 'plan.json', 'milestones', [])
-    numbers = _gap_numbers(current, milestones)
-    page = Page('الفجوة والاستراتيجية' if ar else 'Gap and strategy')
-    page.heading(L['summary'])
-    page.para(f"{L['decision']}: " + ('الموافقة على ترتيب المعالم: التثبيت، ثم شبكة الأمان، ثم الحدود، ثم البناء، ثم التصليب.' if ar else
-                                       'approve the order: stabilize, safety net, boundaries, build, harden.'))
-    page.heading(L['numbers'], 3)
-    page.items(_gap_number_items(numbers, milestones, ar))
-    page.heading(L['risks'], 3)
-    page.items(_rebuilt_items(current))
-    page.heading(L['evidence'])
-    page.para(('كل مكوّن حالي وقراره وأرقامه (الترتيب: حذف، إعادة بناء، تعديل، إبقاء):' if ar else
-               'Each current component, its disposition and its numbers (delete, rebuild, modify, retain):'))
-    page.items(_disposition_items(current, ar))
-    numbers['aspects'] = (aspect_section(page, out, ar), 'target-architecture.json → aspects')
-    page.heading(L['impact'])
-    page.para(('المكوّن الذي يُعاد بناؤه يُبنى بنمط Strangler Fig: المسار الجديد خلف علم، والقديم يُزال بعد تكافؤ السلوك فقط.' if ar else
-               'A component that is rebuilt is done Strangler Fig: the new path behind a flag, the old removed only after behaviour parity.'))
-    page.heading(L['recommendation'])
-    page.items([f"{m['id']} {m['name']}: {m.get('goal_ar' if ar else 'goal', m['goal'])}" for m in milestones])
-    page.heading(L['unexamined'])
-    page.items([('الكلفة بالزمن غير مقيسة: الحجم S/M/L قاعدة على الملفات والتابعين.' if ar else
-                 'Duration is not measured: S/M/L is a rule on files and dependents.')])
-    page.heading(L['appendices'])
-    page.items(['[TARGET-ARCHITECTURE.md](TARGET-ARCHITECTURE.md)', '[EXECUTION-PLAN.md](EXECUTION-PLAN.md)'])
+    page.items(['`features.json`', '`measurements.json`', '`debt-register.json`', '`load-model.json`',
+                '`facts/external.json`'])
     return page.text()
 
 
@@ -313,8 +246,9 @@ def execution_plan(out, ar):
     numbers = _plan_numbers(plan, tasks, read_json(Path(out) / 'cards.json', {}) or {})
     page = Page('خطة التنفيذ' if ar else 'Execution plan')
     page.heading(L['summary'])
-    page.para(f"{L['decision']}: " + (f"تخصيص فريق للمعلم الأول ({(plan.get('milestones') or [{}])[0].get('name', '—')})." if ar else
-                                       f"staff the first milestone ({(plan.get('milestones') or [{}])[0].get('name', '—')})."))
+    page.para(f"{L['decision']}: "
+              + (f"تخصيص فريق للمعلم الأول ({(plan.get('milestones') or [{}])[0].get('name', '—')})." if ar else
+                 f"staff the first milestone ({(plan.get('milestones') or [{}])[0].get('name', '—')})."))
     _numbers_section(page, L, tasks, numbers, ar)
     _plan_sections(page, L, plan, tasks, ar)
     return page.text()
@@ -325,10 +259,14 @@ def _numbers_section(page, L, tasks, numbers, ar):
     ready, sizes = numbers['ready'][0], numbers['sizes'][0]
     page.heading(L['numbers'], 3)
     page.items([f"{len(tasks)} " + ('بطاقة' if ar else 'cards') + f" ({numbers['cards'][1]})",
-                f"{ready} " + ('جاهزة بأمر قبول يقرر' if ar else 'ready, with an acceptance command that decides') + f" ({numbers['ready'][1]})",
-                ', '.join(f'{k} {v}' for k, v in sorted((k or '?', v) for k, v in sizes.items())) + f" ({numbers['sizes'][1]})",
-                (f"{numbers['set_aside'][0]} بطاقة رفضها مساعدك فخرجت من الخطة، و{numbers['design'][0]} بطاقة تصميم من صور الشاشات" if ar else
-                 f"{numbers['set_aside'][0]} cards your assistant rejected left the plan; {numbers['design'][0]} design cards came from the screens")
+                f"{ready} " + ('جاهزة بأمر قبول يقرر' if ar else 'ready, with an acceptance command that decides')
+                + f" ({numbers['ready'][1]})",
+                ', '.join(f'{k} {v}' for k, v in sorted((k or '?', v) for k, v in sizes.items()))
+                + f" ({numbers['sizes'][1]})",
+                (f"{numbers['set_aside'][0]} بطاقة رفضها مساعدك فخرجت من الخطة، و{numbers['design'][0]} بطاقة تصميم "
+                 f"من صور الشاشات" if ar else
+                 f"{numbers['set_aside'][0]} cards your assistant rejected left the plan; "
+                 f"{numbers['design'][0]} design cards came from the screens")
                 + f" ({numbers['set_aside'][1]}, {numbers['design'][1]})",
                 _order_line(numbers['order'][0] == 'assistant', ar) + f" ({numbers['order'][1]}, PLAN/STEPS.md)"])
 
@@ -343,8 +281,10 @@ def _plan_sections(page, L, plan, tasks, ar):
     page.heading(('الأقسام' if ar else 'Sections'))
     page.items([_section_line(s, ar) for s in plan.get('sections') or []])
     page.heading(L['recommendation'])
-    page.para(('نفّذ كل بطاقة في نسخة معزولة، وشغّل أمر قبولها، ثم أعد التدقيق؛ التراجع لكل بطاقة مكتوب فيها.' if ar else
-               'Run each card in an isolated copy, run its acceptance command, then audit again; each card states its rollback.'))
+    page.para(('نفّذ كل بطاقة في نسخة معزولة، وشغّل أمر قبولها، ثم أعد التدقيق؛ التراجع لكل بطاقة مكتوب فيها.' if ar
+               else
+               'Run each card in an isolated copy, run its acceptance command, then audit again; each card states '
+               'its rollback.'))
     page.heading(L['unexamined'])
     page.items([('لم تُشغَّل أي بطاقة على كود المشروع بعد؛ التنفيذ يحتاج تفويض المالك (authorization.json).' if ar else
                  'No card has run against the project yet; execution needs the owner\'s authorization.json.')])
@@ -373,7 +313,8 @@ def _plan_numbers(plan, tasks, cards):
         'set_aside': (len(cards.get('set_aside') or []), 'cards.json → set_aside'),
         'design': (len(cards.get('design') or []), 'cards.json → design'),
         'order': ((plan.get('order') or {}).get('source') or 'rules', 'plan.json → order.source'),
-        'ready': (sum(1 for t in tasks if (t.get('decision') or {}).get('readiness') == 'ready'), 'plan.json → tasks[].decision.readiness'),
+        'ready': (sum(1 for t in tasks if (t.get('decision') or {}).get('readiness') == 'ready'),
+                  'plan.json → tasks[].decision.readiness'),
         'sizes': (sizes, 'plan.json → tasks[].effort'),
     }
 
@@ -395,6 +336,6 @@ def _milestone_section(page, milestone, by_id, ar):
 
 def write(out, language='ar'):
     ar = language == 'ar'
-    for name, builder in zip(NAMES, (current_state, target_state, gap_and_strategy, execution_plan)):
+    for name, builder in zip(NAMES, (current_state, execution_plan)):
         (Path(out) / name).write_text(builder(out, ar), encoding='utf-8')
     return {'reports': len(NAMES)}

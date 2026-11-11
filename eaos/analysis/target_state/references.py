@@ -6,8 +6,9 @@ and an infrastructure baseline whose every item says why it matters and how succ
 
 choose() picks the type from the project's own files (package.json, pyproject.toml, requirements*.txt, and
 the names of a few files), in catalogue order; it never runs anything. locate() also finds an application kept
-in one conventional folder (app/, web/, client/, frontend/), and rooted() moves the layer paths under it. layer_of() places a path in the
-layer whose matching pattern is the most specific, so src/components/ui/button.tsx is ui, not features.
+in one conventional folder (app/, web/, client/, frontend/), and rooted() moves the layer paths under it. layer_of()
+places a path in the layer whose matching pattern is the most specific, so src/components/ui/button.tsx is ui, not
+features.
 """
 import json
 import re
@@ -51,7 +52,8 @@ def _python_names(root):
     return {m.group(1).lower().replace('_', '-') for line in names for m in [REQUIREMENT.match(line)] if m}
 
 
-SOURCE_SUFFIXES = {'.py', '.ts', '.tsx', '.js', '.jsx', '.mjs', '.go', '.java', '.rb', '.php', '.cs', '.kt', '.swift', '.rs'}
+SOURCE_SUFFIXES = {'.py', '.ts', '.tsx', '.js', '.jsx', '.mjs', '.go', '.java', '.rb', '.php', '.cs', '.kt',
+                   '.swift', '.rs'}
 
 
 def _workspace(root):
@@ -123,7 +125,8 @@ def locate(project_dir):
 
 def _fitting_type(types, base, fallback):
     """The first type of the catalogue (the fallback types, or the others) whose detection fits `base`."""
-    return next((t['id'] for t in types if bool(t['detect'].get('any_source')) == fallback and matches(t['detect'], base)), None)
+    return next((t['id'] for t in types
+                 if bool(t['detect'].get('any_source')) == fallback and matches(t['detect'], base)), None)
 
 
 def choose(project_dir):
@@ -137,7 +140,8 @@ def rooted(reference, prefix):
     import copy
     reference = copy.deepcopy(reference)
     for layer in reference['layers']:
-        layer['paths'] = [prefix + pattern if not pattern.startswith('**') else pattern for pattern in layer.get('paths') or ()]
+        layer['paths'] = [prefix + pattern if not pattern.startswith('**') else pattern
+                          for pattern in layer.get('paths') or ()]
     reference['root'] = prefix
     return reference
 

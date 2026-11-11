@@ -4,7 +4,7 @@ These facts are the substrate of every redundancy detector that follows:
 a duplicate call must sit inside a function, a hoistable call must sit inside
 a loop, a pass-through layer must have a body that is one call, and a call
 sequence must come from an ordered list of call sites. Without these facts,
-L3/L4/L5 detection cannot exist at all.
+those detectors have nothing to read.
 """
 import ast
 from .. import digest, make, tree_sitter_tree
@@ -14,7 +14,8 @@ NAME = 'structure'
 VERSION = '1'
 LIMITATIONS = [
     'Only languages with a parser produce structure facts; the rest stay in the denominator.',
-    'A control-flow fact is a syntactic observation, not a runtime trace: a branch that is statically unreachable still appears here.',
+    'A control-flow fact is a syntactic observation, not a runtime trace: a branch that is statically unreachable '
+    'still appears here.',
     'A call_site binds the call to its enclosing symbol; dynamic dispatch and reflection are invisible.',
     'Scopes reflect lexical containment, not lifetime; a closure is reported under its defining scope.',
 ]
@@ -41,7 +42,8 @@ _BRANCH_KINDS = {
 }
 
 # Python nodes: the scopes they open, the loops and the branches they are.
-_PY_SCOPES = {ast.FunctionDef: 'function', ast.AsyncFunctionDef: 'function', ast.ClassDef: 'class', ast.Lambda: 'lambda'}
+_PY_SCOPES = {ast.FunctionDef: 'function', ast.AsyncFunctionDef: 'function', ast.ClassDef: 'class',
+              ast.Lambda: 'lambda'}
 _PY_LOOPS = {ast.For: 'for', ast.AsyncFor: 'for', ast.While: 'while'}
 _PY_BRANCHES = {ast.If: 'if', ast.With: 'with', ast.AsyncWith: 'with', ast.Try: 'try', ast.IfExp: 'if_expr'}
 
@@ -174,7 +176,7 @@ def _ts_walk(node, walk):
     else:
         for child in node.children: _ts_walk(child, walk)
         return
-    # A loop, a branch or a call is descended into through its first child only, as the extractor always has;
+    # A loop, a branch or a call is descended into through its first child only, as the extractor does;
     # the golden facts (tests/fixtures/golden/structure.json) record that.
     if node.children: _ts_walk(node.children[0], walk)
 
@@ -212,7 +214,8 @@ _TS_CALLEES = {
     'function_call_expression': ({'name', 'identifier'}, False, '<call>'),
     'selector': ({'identifier'}, True, '<selector>'),
 }
-_CALL_TARGETS = {'identifier', 'member_expression', 'field_expression', 'scoped_identifier', 'attribute', 'property_identifier'}
+_CALL_TARGETS = {'identifier', 'member_expression', 'field_expression', 'scoped_identifier', 'attribute',
+                 'property_identifier'}
 
 
 def _call_expression_callee(node):
@@ -263,7 +266,8 @@ def _file_facts(rel, info, parser_name):
                    {'path': rel, 'start_line': loop['start'], 'end_line': loop['end'], 'parent_symbol': loop['parent']},
                    {'kind': loop['kind']}, limitations=LIMITATIONS) for loop in info['loops']]
     facts += [make('branch', NAME, VERSION, sha,
-                   {'path': rel, 'start_line': branch['start'], 'end_line': branch['end'], 'parent_symbol': branch['parent']},
+                   {'path': rel, 'start_line': branch['start'], 'end_line': branch['end'],
+                    'parent_symbol': branch['parent']},
                    {'kind': branch['kind']}, limitations=LIMITATIONS) for branch in info['branches']]
     facts += [make('call_site', NAME, VERSION, sha,
                    {'path': rel, 'start_line': site['start'], 'end_line': site['end'], 'symbol': site['enclosing']},

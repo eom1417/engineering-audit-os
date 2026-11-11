@@ -1,16 +1,17 @@
-"""The assistants' context trimmed safely (M8.6): what an assistant reads at the start of every session (M7.9,
-eaos/facts/repository/context.py) made lighter without losing one instruction.
+"""The assistants' context trimmed safely: what an assistant reads at the start of every session
+(eaos/facts/repository/context.py) made lighter without losing one instruction.
 
-    plan(root, private_to=None)   {edits {file: new text}, archive, private, kept_twice, personal, renamed}; nothing written
+    plan(root, private_to=None)   {edits {file: new text}, archive, private, kept_twice, personal, renamed}; nothing
+                                  written
     apply(root, private_to=None)  the plan written in `root` (a copy: never the person's project); Untrimmable when an
                                   instruction of the files before is not found again in exactly one file after
 
-What it does: a done item (`- [x] ...`) moves to the archive file (rules: context_archive), never deleted; a line said in
-two files stays only in the one the other imports (CLAUDE.md's `@AGENTS.md`), so every assistant still reads it once (a
-line read by two different assistants is kept twice, and said so); a path a file names that is not there is pointed at
-the one file of that name. A person's own instructions (rules: context_personal, and the machine details of dev_details)
-are proposed to move to the private file the person names (`private_to`), the public file keeping the rest. Only the
-repository's own files are read and written, never an assistant's own folders (~/.claude, ~/.codex)."""
+What it does: a done item (`- [x] ...`) moves to the archive file (rules: context_archive), never deleted; a line
+said in two files stays only in the one the other imports (CLAUDE.md's `@AGENTS.md`), so every assistant still reads
+it once (a line read by two different assistants is kept twice, and said so); a path a file names that is not there is
+pointed at the one file of that name. A person's own instructions (rules: context_personal, and the machine details of
+dev_details) are proposed to move to the private file the person names (`private_to`), the public file keeping the
+rest. Only the repository's own files are read and written, never an assistant's own folders (~/.claude, ~/.codex)."""
 import posixpath
 import re
 from collections import Counter
@@ -30,7 +31,8 @@ class Untrimmable(ValueError):
 
 def read(root, known, rules):
     """{path: text} of every context file a session reads (CLAUDE.md's @imports among them), inside the repository."""
-    return followed(context_files(known, rules), known, lambda path: (Path(root) / path).read_text(encoding='utf-8', errors='replace'))
+    return followed(context_files(known, rules), known,
+                    lambda path: (Path(root) / path).read_text(encoding='utf-8', errors='replace'))
 
 
 def imported(texts):
@@ -76,11 +78,12 @@ def _done(lines):
 
 
 def _repeats(lines, reads, rules):
-    """A line said in two files removed from each one that imports another saying it; [(line, files)] of those kept twice:
-    files no assistant reads together."""
+    """A line said in two files removed from each one that imports another saying it; [(line, files)] of those kept
+    twice: files no assistant reads together."""
     kept = []
     for text, paths in _said_twice(lines, rules):
-        stays = sorted(p for p in paths if not reads.get(p, set()) & paths) or sorted(paths)[:1]   # read with nothing else saying it
+        # the files that no other file saying it is read with stay
+        stays = sorted(p for p in paths if not reads.get(p, set()) & paths) or sorted(paths)[:1]
         for other in paths - set(stays): lines[other][:] = [row for row in lines[other] if said(row) != text]
         if len(stays) > 1: kept.append((text, stays))
     return kept
@@ -90,7 +93,8 @@ def _said_twice(lines, rules):
     """[(line, the files saying it)] of each long line said in more than one file."""
     where = {}
     for path, rows in lines.items():
-        for row in (r for r in rows if len(said(r)) >= rules['context_repeat_chars']): where.setdefault(said(row), set()).add(path)
+        for row in (r for r in rows if len(said(r)) >= rules['context_repeat_chars']):
+            where.setdefault(said(row), set()).add(path)
     return sorted((text, paths) for text, paths in where.items() if len(paths) > 1)
 
 
@@ -135,7 +139,8 @@ def _section(existing, moved):
     """The archive or private file with the moved lines appended, each group under the file it came from."""
     text = existing or '# Moved out of the assistants\' context by EAOS (M8.6): kept, read when needed\n'
     for source in dict.fromkeys(path for path, _ in moved):
-        text += f'\n## From {source}\n\n' + ''.join(row if row.endswith('\n') else row + '\n' for path, row in moved if path == source)
+        text += f'\n## From {source}\n\n' + ''.join(row if row.endswith('\n') else row + '\n'
+                                                   for path, row in moved if path == source)
     return text
 
 
@@ -148,9 +153,11 @@ def verify(drawn, after):
     """Each instruction of the context before that is not found again in exactly one file after (the context, the
     archive, the private file), a renamed path read as renamed; [] when none."""
     counts = Counter(line for text in after.values() for line in instructions(text))
-    wanted = sorted({_renamed(line, drawn['renamed']) for text in drawn['before'].values() for line in instructions(text)})
+    wanted = sorted({_renamed(line, drawn['renamed'])
+                     for text in drawn['before'].values() for line in instructions(text)})
     twice = {said(text) for text, _ in drawn['kept_twice']}
-    return [_problem(line, counts[line]) for line in wanted if counts[line] != 1 and line not in twice or not counts[line]]
+    return [_problem(line, counts[line]) for line in wanted
+            if counts[line] != 1 and line not in twice or not counts[line]]
 
 
 def _problem(line, count):
@@ -182,7 +189,8 @@ def apply(root, private_to=None):
 def _after(root, drawn, private_to):
     """{file: its text after the trim}: the context files, and the archive and private file with what moved to them."""
     after = {path: drawn['edits'].get(path, text) for path, text in drawn['before'].items()}
-    for path, moved in {drawn['archive_file']: drawn['archive'], **({private_to: drawn['private']} if private_to else {})}.items():
+    for path, moved in {drawn['archive_file']: drawn['archive'],
+                        **({private_to: drawn['private']} if private_to else {})}.items():
         if moved: after[path] = _section(_existing(root, path), moved)
     return after
 

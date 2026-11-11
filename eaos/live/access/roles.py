@@ -1,14 +1,15 @@
 """The views of an app, read from its code by the person's assistant: each set of pages one kind of user sees (a
 clinic's reception, doctor, nurse, pharmacy, administration...), with the line of code that makes it a view, how a
 person enters it (an account of its own, or a switch of profile, workspace or organization within one sign-in, and the
-line of that switch) and the pages that are its own. One reading serves every check: the stage `session` makes a
-session per view on the running app (eaos/live/access/test_users.py), the page stages open each view's pages with its own session
-(share), and a page that did not open as itself (opened: a sign-in, a refusal, the app's page for an address it does
-not have) is not seen, never a missing page; the coverage says which views the check saw and why not the others.
+line of that switch) and the pages that are its own. One reading serves every check: the stage `session` makes a session
+per view on the running app (eaos/live/access/test_users.py), the page stages open each view's pages with its own
+session (share), and a page that did not open as itself (opened: a sign-in, a refusal, the app's page for an address it
+does not have) is not seen, never a missing page; the coverage says which views the check saw and why not the others.
 
     <out>/roles.json   {"roles": [{"id", "name", "evidence": "file:line", "enter": "account" | "switch",
                                    "switch": "file:line", "pages": ["/admin", ...]}],
-                        "unreachable": [{"page", "why", "evidence": "file:line"}],   the pages the code proves no one reaches
+                        "unreachable": [{"page", "why", "evidence": "file:line"}],   the pages the code proves no
+                                        one reaches
                         "strategy": "one_account" | "account_per_view", "sign_in": "..."}   the way in (WAY_IN)
 """
 import json
@@ -27,11 +28,14 @@ SIGNS = re.compile(r'\b(roles?|is_?admin|admin|permissions?|rbac|authori[sz]\w*|
 # An address no app has: the page an app shows for it is its page for an address it does not have (opened).
 NOWHERE = '/eaos-no-such-page-7f3a'
 # The words a page opens with when it is not the page asked for but the app's "not found" or a refusal (absent).
-NOT_SEEN = re.compile(r'\b(404|403|not found|could not be found|does not exist|doesn.t exist|no longer exists|not available|'
-                      r'no access|access denied|forbidden|not allowed|not authori[sz]ed|unauthori[sz]ed|no permission)\b|'
+NOT_SEEN = re.compile(r'\b(404|403|not found|could not be found|does not exist|doesn.t exist|no longer exists|'
+                      r'not available|no access|access denied|forbidden|not allowed|not authori[sz]ed|'
+                      r'unauthori[sz]ed|no permission)\b|'
                       r'غير موجود|غير متاح|لا (توجد|يوجد)|ليس لديك|غير مصرح|لا تملك|لا يمكنك الوصول', re.I)
-SKIP = ('node_modules', 'dist', 'build', '.next', 'coverage', '.venv', '__pycache__', '.git', 'test', 'tests', '__tests__')
-SOURCE = ('.js', '.jsx', '.ts', '.tsx', '.mjs', '.cjs', '.vue', '.svelte', '.py', '.rb', '.php', '.go', '.prisma', '.sql')
+SKIP = ('node_modules', 'dist', 'build', '.next', 'coverage', '.venv', '__pycache__', '.git', 'test', 'tests',
+        '__tests__')
+SOURCE = ('.js', '.jsx', '.ts', '.tsx', '.mjs', '.cjs', '.vue', '.svelte', '.py', '.rb', '.php', '.go', '.prisma',
+          '.sql')
 
 SYSTEM = """You read a web app's code and name every view it has: each set of pages one kind of user sees (an
 administrator, support staff, a customer; a clinic's reception, doctor, nurse, pharmacy, insurance...). A person may
@@ -74,8 +78,8 @@ def _record(out):
 
 
 def pages_of(out, served=True):
-    """The app's static page routes (eaos/live/behavior/specs.py surfaces): its pages, and with `served` a server's GET routes,
-    which draw the pages of an app rendered on the server (the only routes a kind of user may name)."""
+    """The app's static page routes (eaos/live/behavior/specs.py surfaces): its pages, and with `served` a server's
+    GET routes, which draw the pages of an app rendered on the server (the only routes a kind of user may name)."""
     from ..behavior.specs import surfaces
     return sorted(route for route, (kind, method, _) in surfaces(out).items()
                   if (kind == 'page' or (served and kind == 'http' and method == 'GET')) and route.startswith('/')
@@ -123,7 +127,8 @@ def errors(answer, target, pages):
     found = [] if len(kinds) <= MOST else [f'at most {MOST} kinds']
     found += [wrong for kind in kinds for wrong in _wrong(kind, target, pages)]
     if len({str(k.get('id')) for k in kinds if isinstance(k, dict)}) < len(kinds): found.append('each "id" once')
-    if answer.get('strategy') not in (None, *STRATEGIES): found.append('"strategy" is "one_account" or "account_per_view"')
+    if answer.get('strategy') not in (None, *STRATEGIES):
+        found.append('"strategy" is "one_account" or "account_per_view"')
     return found
 
 
@@ -131,32 +136,40 @@ def _wrong(kind, target, pages):
     if not isinstance(kind, dict) or not re.fullmatch(r'[a-z0-9-]{1,20}', str(kind.get('id') or '')):
         return [f'{kind}: "id" is a short lowercase word']
     switch = kind.get('enter') == 'switch'
-    wrong = [] if _line(target, kind.get('evidence')) else [f"{kind['id']}: evidence {kind.get('evidence')!r} is no line of the code"]
+    wrong = [] if _line(target, kind.get('evidence')) else [
+        f"{kind['id']}: evidence {kind.get('evidence')!r} is no line of the code"]
     if kind.get('enter') not in ('account', 'switch'): wrong.append(f'{kind["id"]}: "enter" is "account" or "switch"')
-    if switch and not _line(target, kind.get('switch')): wrong.append(f"{kind['id']}: switch {kind.get('switch')!r} is no line of the code")
+    if switch and not _line(target, kind.get('switch')):
+        wrong.append(f"{kind['id']}: switch {kind.get('switch')!r} is no line of the code")
     return wrong + _unlisted(kind, pages)
 
 
 def _unlisted(kind, pages):
     """What is wrong with the pages a kind names: each one not in the list."""
-    return [f"{kind['id']}: {page!r} is not in the list of pages" for page in kind.get('pages') or [] if page not in pages]
+    return [f"{kind['id']}: {page!r} is not in the list of pages"
+            for page in kind.get('pages') or [] if page not in pages]
 
 
 def _line(target, cited):
     """Whether `cited` ("file:line") is a line of the project's code."""
     file, _, line = str(cited or '').rpartition(':')
     path = Path(target) / file
-    return bool(file and line.isdigit() and path.is_file() and 0 < int(line) <= len(path.read_text(errors='replace').splitlines()))
+    return bool(file and line.isdigit() and path.is_file()
+                and 0 < int(line) <= len(path.read_text(errors='replace').splitlines()))
 
 
 def find(target, out, provider, lacking=None):
-    """Ask the assistant for the kinds of users, its answer sent back with what is wrong with it, ROUNDS times at most;
-    <out>/roles.json. The kinds. `lacking`: what the running app still lacks with the sessions made (eaos/live/access/test_users.py
-    make), the reading asked again with it and the views so far, its answer added to them (add), never in their place."""
+    """Ask the assistant for the kinds of users, its answer sent back with what is wrong with it, ROUNDS times at
+    most; <out>/roles.json. The kinds. `lacking`: what the running app still lacks with the sessions made
+    (eaos/live/access/test_users.py make), the reading asked again with it and the views so far, its answer added to
+    them (add), never in their place."""
     pages = pages_of(out)
-    told = f'\n\nThe views so far:\n{json.dumps(read(out), ensure_ascii=False)}\n\nOn the running app, still lacking:\n{lacking}' if lacking else ''
+    told = (f'\n\nThe views so far:\n{json.dumps(read(out), ensure_ascii=False)}'
+            f'\n\nOn the running app, still lacking:\n{lacking}' if lacking else '')
     messages = [{'role': 'system', 'content': SYSTEM},
-                {'role': 'user', 'content': 'The page routes:\n' + json.dumps(pages) + '\n\nThe code about users:\n' + about_users(target, out=out) + told}]
+                {'role': 'user',
+                 'content': 'The page routes:\n' + json.dumps(pages) + '\n\nThe code about users:\n'
+                            + about_users(target, out=out) + told}]
     for _ in range(ROUNDS):
         answer, _ = provider.complete(messages, stage='roles', reads=target, deep=True)
         wrong = errors(answer, target, pages)
@@ -171,15 +184,17 @@ def find(target, out, provider, lacking=None):
 
 
 def add(out, target, found):
-    """The views the assistant found missing on the running app (eaos/live/access/test_users.py) added to <out>/roles.json, each
-    checked as the reading's are (_wrong), one of the same id replaced; why each other one was refused."""
+    """The views the assistant found missing on the running app (eaos/live/access/test_users.py) added to
+    <out>/roles.json, each checked as the reading's are (_wrong), one of the same id replaced; why each other one
+    was refused."""
     kinds, refused, pages = read(out), [], pages_of(out)
     for view in found if isinstance(found, list) else []:
         wrong = _wrong(view, target, pages) if isinstance(view, dict) else [f'{view}: a view is an object']
         if wrong or _full(kinds, view):
             refused += wrong[:2] or [f'at most {MOST} views']
             continue
-        kinds = [kind for kind in kinds if kind['id'] != view['id']] + [_kept(view) | {'found': 'app'}]   # by the running app
+        # by the running app
+        kinds = [kind for kind in kinds if kind['id'] != view['id']] + [_kept(view) | {'found': 'app'}]
     if found: _write(out, kinds)
     return refused
 
@@ -197,8 +212,10 @@ def prove(out, target, verdicts):
         row = row if isinstance(row, dict) else {}
         if _proved(row, pages, target):
             kept.append({k: row[k] for k in ('page', 'why', 'evidence')})
-        else: refused.append(f"unreachable {row.get('page')!r}: a page of the list, a why and its evidence, a line of the code")
-    if kept: _write(out, read(out), {r['page']: r for r in _record(out).get('unreachable') or []} | {r['page']: r for r in kept})
+        else: refused.append(f"unreachable {row.get('page')!r}: "
+                             "a page of the list, a why and its evidence, a line of the code")
+    if kept: _write(out, read(out),
+                    {r['page']: r for r in _record(out).get('unreachable') or []} | {r['page']: r for r in kept})
     return refused
 
 
@@ -208,15 +225,16 @@ def _proved(row, pages, target):
 
 
 def claim(out, owned):
-    """Each page a view's session opened and no session before it (eaos/live/access/test_users.py unreached) made that view's own,
-    so the pictures open it with that session: {view: [pages]}."""
+    """Each page a view's session opened and no session before it (eaos/live/access/test_users.py unreached) made
+    that view's own, so the pictures open it with that session: {view: [pages]}."""
     kinds = read(out)
     grown = [{**kind, 'pages': list(dict.fromkeys(kind['pages'] + owned.get(kind['id'], [])))} for kind in kinds]
     if grown != kinds: _write(out, grown)
 
 
 def _kept(kind):
-    return {k: kind.get(k) for k in ('id', 'name', 'evidence', 'enter', 'switch', 'found') if kind.get(k)} | {'pages': kind.get('pages') or []}
+    return {k: kind.get(k) for k in ('id', 'name', 'evidence', 'enter', 'switch', 'found')
+            if kind.get(k)} | {'pages': kind.get('pages') or []}
 
 
 def way_in(out):
@@ -279,7 +297,8 @@ def coverage(kinds, sessions, seen):
     for kind in kinds:
         own = kind.get('pages') or []
         name = kind.get('name') or kind['id']
-        row = {'id': kind['id'], 'name': name if isinstance(name, dict) else {'en': name, 'ar': name}, 'pages': len(own),
+        row = {'id': kind['id'], 'name': name if isinstance(name, dict) else {'en': name, 'ar': name},
+               'pages': len(own),
                'seen': sum(page in seen for page in own)}
         row['reached'] = row['seen'] > 0 or (not own and sessions is not None and kind['id'] in sessions)
         if not row['reached']: row['why'] = _why_unseen(kind, sessions)
@@ -288,16 +307,18 @@ def coverage(kinds, sessions, seen):
 
 
 def _why_unseen(kind, sessions):
-    """Why no session saw a kind of user: no session at all (signed in by hand), no test user of its own, or not opened."""
+    """Why no session saw a kind of user: no session at all (signed in by hand), no test user of its own, or not
+    opened."""
     return 'no_access' if sessions is None else 'no_test_user' if kind['id'] not in sessions else 'not_opened'
 
 
 def unseen(screens):
-    """The pages a check did not see as themselves, [{page, view}] (the screens record `screens`, eaos/pipeline/runners/pages.py):
-    what they show is unknown, never a page missing or to build."""
+    """The pages a check did not see as themselves, [{page, view}] (the screens record `screens`,
+    eaos/pipeline/runners/pages.py): what they show is unknown, never a page missing or to build."""
     rows = (screens or {}).get('rows') or []
     seen = {row.get('url') for row in rows if not row.get('unseen')}
-    missed = sorted({(row.get('url'), row.get('kind')) for row in rows if row.get('unseen') and row.get('url') not in seen}, key=str)
+    missed = sorted({(row.get('url'), row.get('kind')) for row in rows
+                     if row.get('unseen') and row.get('url') not in seen}, key=str)
     return [{'page': page, 'view': view} for page, view in missed]
 
 
@@ -317,11 +338,13 @@ def _not_held(groups, own, held):
 
 
 def breaches(kinds, made, look):
-    """Each page of one view only that another account's session opened as itself: [{kind, page, of}]. `made`: [(kind,
-    session)]; `look(session, paths)`: the probe of `paths` with it (read only), NOWHERE last, so that the app's page for
-    an address it does not have, which another view's page often shows, is never taken for that page opened."""
+    """Each page of one view only that another account's session opened as itself: [{kind, page, of}]. `made`:
+    [(kind, session)]; `look(session, paths)`: the probe of `paths` with it (read only), NOWHERE last, so that the
+    app's page for an address it does not have, which another view's page often shows, is never taken for that page
+    opened."""
     owner = {page: k['id'] for k in kinds for page in k['pages']}
-    switched = {k['id'] for k in kinds if k.get('enter') == 'switch'}     # the same account in another view: its pages too
+    # the same account in another view: its pages too
+    switched = {k['id'] for k in kinds if k.get('enter') == 'switch'}
     found = []
     for kind, state in [(kind, state) for kind, state in made if kind not in switched]:
         page = look(state, sorted(page for page, of in owner.items() if of != kind)[:8] + [NOWHERE])

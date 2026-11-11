@@ -65,31 +65,40 @@ def _ask_once(manifest, redo, record, provider):
     answer = _answer(provider, unknown)
     if answer is None: return manifest           # the rules' record stands; the assistant is a help, never a failure
     stage = answer.get('stage') if answer.get('action') == 'again_from' and answer.get('stage') in unknown else None
-    record.append({'stage': stage or next(iter(unknown)), 'code': 'stage_error', 'remedy': {'assistant': answer.get('advice') or ''},
+    record.append({'stage': stage or next(iter(unknown)), 'code': 'stage_error',
+                   'remedy': {'assistant': answer.get('advice') or ''},
                    'round': ROUNDS + 1, 'outcome': 'fixed' if stage else 'needs_person'})
     return redo([stage]) if stage else manifest
 
 
 def _unremedied(manifest):
     """{stage: reason} of the failed stages the catalog knows no remedy for."""
-    return {name: row.get('reason') for name, row in manifest['stages'].items() if row.get('status') == 'failed' and not remedy_of(row)}
+    return {name: row.get('reason') for name, row in manifest['stages'].items() if row.get('status') == 'failed'
+            and not remedy_of(row)}
 
 
 def _answer(provider, unknown):
-    """The assistant's answer about the failed stages `unknown` ({stage: reason}), or None when it could not be asked."""
-    ask = ('These stages of an EAOS check failed, each with its reason: ' + json.dumps(unknown, ensure_ascii=False)[:4000] + '. Answer one '
-           'JSON object: {"action": "again_from" or "none", "stage": "<one of them, for again_from>", "advice": "<what the person should do, '
-           'one sentence>"}. again_from only when running it again may pass (a timeout, a passing hiccup); otherwise none.')
-    try: return (provider.complete([{'role': 'user', 'content': ask}], small=True, stage='remedies')[0] or {}).get('result') or {}
+    """The assistant's answer about the failed stages `unknown` ({stage: reason}), or None when it could not be
+    asked."""
+    ask = ('These stages of an EAOS check failed, each with its reason: '
+           + json.dumps(unknown, ensure_ascii=False)[:4000] + '. Answer one '
+           'JSON object: {"action": "again_from" or "none", "stage": "<one of them, for again_from>", "advice": '
+           '"<what the person should do, '
+           'one sentence>"}. again_from only when running it again may pass (a timeout, a passing hiccup); '
+           'otherwise none.')
+    try: return (provider.complete([{'role': 'user', 'content': ask}], small=True, stage='remedies')[0]
+                 or {}).get('result') or {}
     except Exception: return None
 
 
 def consent(manifest, question):
     """`question` for the person when a remedy needs their agreement (running the app), else {}: their yes runs the
     check again from setup (audit person_agreed)."""
-    if not any(r.get('remedy', {}).get('consent') == 'run' and r['outcome'] == 'needs_person' for r in manifest.get('remedies') or []): return {}
+    if not any(r.get('remedy', {}).get('consent') == 'run' and r['outcome'] == 'needs_person'
+               for r in manifest.get('remedies') or []): return {}
     return {'status': 'needs_agreement', 'ask_the_person': question,
-            'what_now': 'Ask the person this. Only if they say yes, call audit with person_agreed=true: the app runs and the stages that need it run again.'}
+            'what_now': 'Ask the person this. Only if they say yes, call audit with person_agreed=true: the app '
+                        'runs and the stages that need it run again.'}
 
 
 def pending(report):
@@ -98,12 +107,14 @@ def pending(report):
     manifest = read_json(Path(report) / MANIFEST)
     if manifest is None: return None
     tried = {r['stage'] for r in manifest.get('remedies') or []}
-    return next((name for name, row in (manifest.get('stages') or {}).items() if row.get('status') != 'ok' and name not in tried
+    return next((name for name, row in (manifest.get('stages') or {}).items() if row.get('status') != 'ok'
+                 and name not in tried
                  and _unattended(row)), None)
 
 
 def _unattended(row):
-    """Whether a stage row's reason has a remedy EAOS applies alone: one that needs neither the person nor their consent."""
+    """Whether a stage row's reason has a remedy EAOS applies alone: one that needs neither the person nor their
+    consent."""
     remedy = remedy_of(row)
     return bool(remedy) and not (remedy.get('needs') or remedy.get('consent'))
 

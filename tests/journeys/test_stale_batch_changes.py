@@ -1,6 +1,7 @@
-"""A batch that no longer fits takes no change. Reading leaves it open with its copy (test_safe_reads), so fix_edit, fix_skip
-and fix_finish refuse it themselves, and the jobs they start look again before applying a change or handing it over. A
-refusal removes nothing: fix_start and fix_abandon close it. A batch with kept changes goes on when the code moves on."""
+"""A batch that no longer fits takes no change. Reading leaves it open with its copy (test_safe_reads), so fix_edit,
+fix_skip and fix_finish refuse it themselves, and the jobs they start look again before applying a change or handing it
+over. A refusal removes nothing: fix_start and fix_abandon close it. A batch with kept changes goes on when the code
+moves on."""
 import contextlib
 import subprocess
 from pathlib import Path
@@ -28,7 +29,8 @@ class Batch(Base):
         subprocess.run(['git', 'clone', '-q', self.where, str(self.copy)], check=True)
         self.cards = {c['id']: c for c in read_plan(guided.report_of(state))['tasks']}
         ids = ['TASK-001', 'TASK-002']
-        state['open_wave'] = {'number': 1, 'root': str(self.copy), 'base': git(self.copy, 'rev-parse', 'HEAD'), 'cards': ids, 'kept': {}, 'failed': {},
+        state['open_wave'] = {'number': 1, 'root': str(self.copy),
+                              'base': git(self.copy, 'rev-parse', 'HEAD'), 'cards': ids, 'kept': {}, 'failed': {},
                               'tools': {}, 'keys': {c: self.cards[c]['key'] for c in ids}}
         guided.save(state)
 
@@ -50,10 +52,12 @@ class Batch(Base):
         self.check([dict(c, id=f'TASK-{6 - i:03d}') for i, c in enumerate(FIRST, 1)])
 
     def everything(self):
-        """Every file of the project's EAOS folder (the batch's copy in it), the copy's commit, and the state's own bytes."""
+        """Every file of the project's EAOS folder (the batch's copy in it), the copy's commit, and the state's own
+        bytes."""
         record = Path(project_state.load(self.project)['workspace'])
         return {path.relative_to(record).as_posix(): path.read_bytes() for path in record.rglob('*')
-                if path.is_file() and '.git' not in path.parts and path.suffix != '.lock'}, git(self.copy, 'rev-parse', 'HEAD')
+                if path.is_file() and '.git' not in path.parts and path.suffix != '.lock'}, \
+            git(self.copy, 'rev-parse', 'HEAD')
 
     def assertRefused(self, answer):
         self.assertEqual((answer.get('status'), answer.get('batch')), ('stale_batch', 1), f'it went on: {answer}')
@@ -81,7 +85,8 @@ class AStaleBatchIsRefused(Batch):
 
     def test_fix_finish_starts_no_job_and_changes_nothing(self):
         state = project_state.load(self.project)
-        state['open_wave']['failed'] = {'TASK-001': 'skipped: x', 'TASK-002': 'skipped: y'}     # nothing left to do, so only staleness stops it
+        # nothing left to do, so only staleness stops it
+        state['open_wave']['failed'] = {'TASK-001': 'skipped: x', 'TASK-002': 'skipped: y'}
         guided.save(state)
         before = self.everything()
         with mock.patch.object(jobs, 'start') as started:
@@ -94,13 +99,15 @@ class AStaleBatchIsRefused(Batch):
 
     def test_through_mcp_each_tool_refuses_it_and_only_the_journal_moves(self):
         server = build(every)
-        calls = (('fix_edit', {'card': 'TASK-001', 'edits': EDIT}), ('fix_skip', {'card': 'TASK-001', 'reason': 'x'}), ('fix_finish', {}))
+        calls = (('fix_edit', {'card': 'TASK-001', 'edits': EDIT}),
+                 ('fix_skip', {'card': 'TASK-001', 'reason': 'x'}), ('fix_finish', {}))
         for name, arguments in calls:
             with self.subTest(tool=name):
                 self.assertRefused(_called(server, name, project=self.where, **arguments))
                 self.assertEqual(git(self.copy, 'rev-parse', 'HEAD'), self.before[1])
                 state = project_state.load(self.project)
-                self.assertEqual((state['open_wave']['kept'], state['open_wave']['failed'], state.get('waves') or []), ({}, {}, []))
+                self.assertEqual((state['open_wave']['kept'], state['open_wave']['failed'],
+                                  state.get('waves') or []), ({}, {}, []))
 
     def test_after_a_refusal_fix_start_still_closes_it_as_superseded(self):
         agent_tools.fix_skip('TASK-001', 'no safe change', self.where)
@@ -116,7 +123,8 @@ class AStaleBatchIsRefused(Batch):
 
 
 class WhatItsJobsSee(Batch):
-    """The code moves on after the tool let the job start. A job is its own running job, so nothing but looking again sees it."""
+    """The code moves on after the tool let the job start. A job is its own running job, so nothing but looking again
+    sees it."""
 
     def setUp(self):
         super().setUp()
@@ -125,7 +133,8 @@ class WhatItsJobsSee(Batch):
         self.addCleanup(inside.stop)
 
     def edit_job(self):
-        return fixing._fix_edit_job(self.where, {'card': 'TASK-001', 'edits': EDIT, 'summary': 'a fix'}, lambda *_: None)
+        return fixing._fix_edit_job(self.where, {'card': 'TASK-001', 'edits': EDIT, 'summary': 'a fix'},
+                                    lambda *_: None)
 
     def test_an_edit_job_applies_nothing_once_the_code_moved_on(self):
         self.person_commits()
@@ -144,7 +153,8 @@ class WhatItsJobsSee(Batch):
         with mock.patch('eaos.journeys.fix.waves.edit_gates', side_effect=moved_meanwhile):
             self.assertRefused(self.edit_job())
         wave = project_state.load(self.project)['open_wave']
-        self.assertEqual((wave['kept'], git(self.copy, 'rev-parse', 'HEAD')), ({}, head), 'one kept change would let the stale batch go on')
+        self.assertEqual((wave['kept'], git(self.copy, 'rev-parse', 'HEAD')), ({}, head),
+                         'one kept change would let the stale batch go on')
 
     def test_fix_skip_records_nothing_when_the_code_moves_on_while_it_waits_its_turn(self):
         @contextlib.contextmanager
@@ -174,28 +184,36 @@ class WhatItsJobsSee(Batch):
             git(self.copy, '-c', 'user.name=a', '-c', 'user.email=a@b', 'commit', '-qm', 'the batch rewritten')
             self.numbered_again()
             return kept
-        the_checks = {name: mock.patch.object(batch_steps, name, side_effect=lambda batch, kept, *_: kept) for name in ('_accepted', '_secure')}
+        the_checks = {name: mock.patch.object(batch_steps, name, side_effect=lambda batch, kept, *_: kept)
+                      for name in ('_accepted', '_secure')}
         for patcher in the_checks.values():
             patcher.start()
             self.addCleanup(patcher.stop)
-        with mock.patch.object(batch_steps, '_through_gates', side_effect=through_the_gates), mock.patch.object(batch_steps, '_declare'), \
-                mock.patch.object(batch_steps, '_new_truth'), mock.patch('eaos.journeys.fix.regenerate.regenerate'), mock.patch('eaos.journeys.fix.regenerate.keep_guide'), \
+        with mock.patch.object(batch_steps, '_through_gates', side_effect=through_the_gates), \
+                mock.patch.object(batch_steps, '_declare'), \
+                mock.patch.object(batch_steps, '_new_truth'), \
+                mock.patch('eaos.journeys.fix.regenerate.regenerate'), \
+                mock.patch('eaos.journeys.fix.regenerate.keep_guide'), \
                 mock.patch('eaos.journeys.fix.waves.apply') as handing:
             self.assertRefused(batch_finish.finish_job(self.where, {}, lambda *_: None))
         handing.assert_not_called()
         state = project_state.load(self.project)
-        self.assertEqual((git(self.copy, 'rev-parse', 'HEAD'), state.get('waves') or [], state['open_wave']['number'], self.branches()), (head, [], 1, []))
-        self.assertFalse((runtime / 'waves' / 'wave-1').exists(), 'no patches of a batch never handed over: a later batch would read them')
+        self.assertEqual((git(self.copy, 'rev-parse', 'HEAD'), state.get('waves') or [],
+                          state['open_wave']['number'], self.branches()), (head, [], 1, []))
+        self.assertFalse((runtime / 'waves' / 'wave-1').exists(),
+                         'no patches of a batch never handed over: a later batch would read them')
         self.assertNotIn('phases', state['open_wave'], 'the live map shows no hand-over that never came')
 
 
 class WithSeveralAssistants(Batch):
-    """Another lane's job running is the normal state of such a batch: it must not hide that the batch no longer fits."""
+    """Another lane's job running is the normal state of such a batch: it must not hide that the batch no longer fits.
+    """
 
     def setUp(self):
         super().setUp()
         state = project_state.load(self.project)
-        state['open_wave'].update(lanes=[['TASK-001'], ['TASK-002']], claims={'src/a.js': 0}, helpers={}, later=[], released=[])
+        state['open_wave'].update(lanes=[['TASK-001'], ['TASK-002']], claims={'src/a.js': 0}, helpers={},
+                                  later=[], released=[])
         guided.save(state)
         self.person_commits()
         guided.save(project_state.load(self.project))
@@ -212,7 +230,8 @@ class WithSeveralAssistants(Batch):
         self.assertEqual(self.everything(), self.before)
 
     def test_fix_skip_refuses_it_at_once_while_a_job_runs(self):
-        with mock.patch.object(jobs, 'running', return_value={'id': 'j', 'kind': 'fix_edit', 'progress': None}), mock.patch.object(fixing, 'WAIT', 0):
+        with mock.patch.object(jobs, 'running', return_value={'id': 'j', 'kind': 'fix_edit', 'progress': None}), \
+                mock.patch.object(fixing, 'WAIT', 0):
             self.assertRefused(agent_tools.fix_skip('TASK-002', 'x', self.where))
         self.assertEqual(self.everything(), self.before)
 
@@ -222,8 +241,10 @@ class WithSeveralAssistants(Batch):
 
 class WhatStillWorks(Batch):
     def test_a_batch_that_fits_keeps_an_edit(self):
-        with mock.patch('eaos.journeys.fix.waves.edit_gates', return_value=([], 0, None)), mock.patch.object(jobs, 'fixing', return_value=True):
-            answer = fixing._fix_edit_job(self.where, {'card': 'TASK-001', 'edits': EDIT, 'summary': 'a fix'}, lambda *_: None)
+        with mock.patch('eaos.journeys.fix.waves.edit_gates', return_value=([], 0, None)), \
+                mock.patch.object(jobs, 'fixing', return_value=True):
+            answer = fixing._fix_edit_job(self.where, {'card': 'TASK-001', 'edits': EDIT, 'summary': 'a fix'},
+                                          lambda *_: None)
         self.assertTrue(answer['kept'])
 
     def test_a_batch_that_fits_takes_a_skip(self):
@@ -248,8 +269,10 @@ class WhatStillWorks(Batch):
             self.assertEqual(agent_tools.fix_skip('TASK-002', 'no safe change', self.where)['skipped'], True)
             self.assertEqual(agent_tools.fix_finish(self.where), {'job': 'j'})
         self.assertEqual(started.call_count, 2)
-        with mock.patch('eaos.journeys.fix.waves.edit_gates', return_value=([], 0, None)), mock.patch.object(jobs, 'fixing', return_value=True):
+        with mock.patch('eaos.journeys.fix.waves.edit_gates', return_value=([], 0, None)), \
+                mock.patch.object(jobs, 'fixing', return_value=True):
             state = project_state.load(self.project)
             state['open_wave']['failed'] = {}
             guided.save(state)
-            self.assertTrue(fixing._fix_edit_job(self.where, {'card': 'TASK-002', 'edits': EDIT, 'summary': 'a fix'}, lambda *_: None)['kept'])
+            self.assertTrue(fixing._fix_edit_job(self.where, {'card': 'TASK-002', 'edits': EDIT, 'summary': 'a fix'},
+                                                 lambda *_: None)['kept'])

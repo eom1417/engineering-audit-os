@@ -1,6 +1,5 @@
 // EAOS sign-in: the person signs in to their app by hand, by any way it has (a password, a code, a link, two factors,
-// an outside sign-in page), in the pinned Chromium, driven from the sign-in page (eaos/interfaces/studio_server/sign_in.py) or, headed, by
-// the person themselves.
+// an outside sign-in page), in the pinned Chromium, headed, driven by the person themselves (eaos/journeys/sign_in_window.py).
 //
 // Run as a separate process:  node sign-in.mjs <config.json>     config: {modules: {playwright}, base, state, headed}
 // One JSON command a line on stdin, one JSON answer a line on stdout:

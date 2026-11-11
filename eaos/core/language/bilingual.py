@@ -1,21 +1,22 @@
-"""Every document of the report in both languages (report/i18n/ar/, report/i18n/en/), so the Studio shows each one
+"""Every document of the report in both languages (report/i18n/ar/, report/i18n/en/), so a report shows each one
 whole in the person's language and switches with it.
 
 The documents are written by many hands (EAOS's own sentences, the engines' messages, the assistant's words) and come
-out mixed. Translating what is written is small, and kept small this way (EAOS's own check, 2026-10-14: 2818 lines,
-24 calls, 54 minutes, $2.19, 77% of the output the model's thinking):
+out mixed. Translating what is written is kept small this way (a 2818-line report took 24 calls):
 - The unit is a whole piece: a heading, a list item, a paragraph with its wrapped lines joined (a line cut mid
   sentence translates badly), or one table cell. Only the pieces in the wrong language are sent; fenced code, rule
   lines, command lines, and a piece in the right language stay as written.
-- Every number, path, code span, link target, id, package version and identifier (snake_case or camelCase) becomes a numbered slot (⟦1⟧) before
+- Every number, path, code span, link target, id, package version and identifier (snake_case or camelCase)
+  becomes a numbered slot (⟦1⟧) before
   sending and is put back after, so it is never altered, and two pieces that differ only by them share one template:
   the 2818 lines became 633 templates.
 - A translation memory keeps every template once translated: EAOS's own (eaos/data/translation-memory.json: what the
-  reports of different projects share, translated once by a strong model and reviewed, tools/translation_seed.py),
+  reports of different projects share, translated once by a strong model and reviewed),
   then the report's (translation-memory.json beside it), so the next check sends only what is new.
 - The rest, the project's own words, goes in batches of BATCH characters to the smallest model of the assistant the
   person already uses (no other account or key), without thinking, keyed item by item, told the
-  terms EAOS uses (its labels in eaos/core/language/words.py and TERMS). An answer whose slots are not exactly the template's,
+  terms EAOS uses (its labels in eaos/core/language/words.py and TERMS). An answer whose slots are not
+  exactly the template's,
   or still in the wrong language, is asked once more, then left as written.
 """
 import json
@@ -39,10 +40,13 @@ ARABIC = re.compile('[؀-ۿ]')
 LATIN_WORD = re.compile(r'\b[A-Za-z][a-z]{2,}\b')
 ARABIC_WORD = re.compile('[؀-ۿ]{2,}')
 UNSENT = re.compile(r'`[^`]*`|\]\([^)]*\)|https?://\S+|\b[\w.-]+/[\w./-]+|\b\w+\.(?:py|ts|tsx|js|json|md|mjs|css)\b')
-TOKEN = (UNSENT.pattern + r'|\b[\w./-]+@[\w.^~<>=*-]+|(?<!\S)/\S+|\b\w+\.(?:sh|toml|ya?ml|txt|html|cfg|ini|lock)\b|\b\w+(?:\.\w+){2,}'
+TOKEN = (UNSENT.pattern + r'|\b[\w./-]+@[\w.^~<>=*-]+|(?<!\S)/\S+|\b\w+\.(?:sh|toml|ya?ml|txt|html|cfg|ini|lock)\b'
+         r'|\b\w+(?:\.\w+){2,}'
          r'|\b[\w-]*\d[\w-]*%?|\b\w*_\w+\b|\b[A-Za-z][a-z]+[A-Z][A-Za-z]*\b')
-KEPT = re.compile(f'(?:{TOKEN})(?:, (?:{TOKEN}))*')     # a list of them is one slot: "facts: A, B" and "facts: A, B, C" share one
-COMMAND = re.compile(r'(?:\$ )?\.?(?:(?:npm|npx|pnpm|yarn|python3?|pip|git|eaos|bash|node|uv)\s|⟦\d+⟧ -)')     # a command line
+# a list of them is one slot: "facts: A, B" and "facts: A, B, C" share one
+KEPT = re.compile(f'(?:{TOKEN})(?:, (?:{TOKEN}))*')
+# a command line
+COMMAND = re.compile(r'(?:\$ )?\.?(?:(?:npm|npx|pnpm|yarn|python3?|pip|git|eaos|bash|node|uv)\s|⟦\d+⟧ -)')
 PROSE = re.compile(r'[A-Za-z]{2,} [A-Za-z]{2,} [A-Za-z]{2,}')    # three words in a row: a sentence, not a list of names
 SLOT = re.compile('⟦(\\d+)⟧')
 LEAD = re.compile(r'\s*(?:#{1,6}\s+|[-*+]\s+(?:\[[ xX]\]\s+)?|\d+[.)]\s+|>\s*)*')
@@ -52,15 +56,19 @@ FENCE = re.compile(r'^\s*(```|~~~)')
 SKIP = ('studio/', 'engines/', 'i18n/')
 TERMS = {'ar': {'probe': 'مجسّ', 'claim': 'ادعاء', 'falsifier': 'دليل النقض', 'evidence': 'دليل', 'card': 'بطاقة',
                 'check': 'فحص', 'audit': 'فحص', 'fix': 'إصلاح', 'batch': 'دفعة', 'gate': 'بوابة', 'layer': 'طبقة',
-                'component': 'مكوّن', 'dead code': 'كود ميت', 'acceptance check': 'فحص الاستلام', 'assistant': 'المساعد',
+                'component': 'مكوّن', 'dead code': 'كود ميت', 'acceptance check': 'فحص الاستلام',
+                'assistant': 'المساعد',
                 'Studio': 'الاستوديو', 'candidate repository': 'النسخة المعزولة', 'command': 'أمر', 'plan': 'خطة',
                 'migration': 'الترحيل', 'commit': 'حفظ في git', 'retain': 'يبقى كما هو', 'live claim': 'ادعاء قائم',
                 'threshold': 'الحد المسموح', 'module': 'وحدة', 'repository': 'المستودع'}}
 TASK = ('Translate each item of `items` into {lang}, in plain words a non-developer reads easily. Each item is a whole '
-        'heading, list item, paragraph or table cell. Keep Markdown exactly (**, links, backticks). Every slot like ⟦1⟧ '
+        'heading, list item, paragraph or table cell. Keep Markdown exactly (**, links, backticks). '
+        'Every slot like ⟦1⟧ '
         'stands for a number, path, code or name: copy each one unchanged, exactly once, where the sentence needs it. '
-        'Keep tool and product names, and commands, as written; a lone word in a table cell is often a name in the code '
-        '(a function, command, folder or table: get, measure, handover, orders): keep it as written when it reads as one. '
+        'Keep tool and product names, and commands, as written; a lone word in a table cell is often a name '
+        'in the code '
+        '(a function, command, folder or table: get, measure, handover, orders): keep it as written '
+        'when it reads as one. '
         'Use these terms: {terms}. Return {{"items": {{...}}}}: every key of `items` with its item translated, and '
         'nothing else.')
 
@@ -88,8 +96,10 @@ def _segments(text):
 
 
 def _continues(out, line):
-    """Whether a line carries on the paragraph or list item before it: no lead of its own, after prose, not a heading."""
-    return out and out[-1][0] == 'prose' and not LEAD.match(line).group().strip() and not out[-1][1].lstrip().startswith('#')
+    """Whether a line carries on the paragraph or list item before it: no lead of its own, after prose,
+    not a heading."""
+    return (out and out[-1][0] == 'prose' and not LEAD.match(line).group().strip()
+            and not out[-1][1].lstrip().startswith('#'))
 
 
 def rewrite(text, change):
@@ -144,9 +154,11 @@ def translate(report, provider, say=lambda done, total: None):
     report = Path(report)
     memory_file, memory = report.parent / MEMORY, memory_of(report)
     texts = [(name, path.read_text(encoding='utf-8', errors='replace')) for path, name in documents(report)]
-    wanted = sorted({(lang, template(piece)[0]) for _, text in texts for lang in LANGS for piece in pieces_to_send(text, lang)})
+    wanted = sorted({(lang, template(piece)[0]) for _, text in texts for lang in LANGS
+                     for piece in pieces_to_send(text, lang)})
     missing = [pair for pair in wanted if pair[1] not in memory[pair[0]]]
-    counts = {'pieces': len(wanted), 'remembered': len(wanted) - len(missing), **_ask_all(provider, missing, memory, say)}
+    counts = {'pieces': len(wanted), 'remembered': len(wanted) - len(missing),
+              **_ask_all(provider, missing, memory, say)}
     _save_memory(memory_file, memory, wanted)
     _write_translations(report, texts, memory)
     return counts
@@ -158,21 +170,16 @@ def memory_of(report):
     return {lang: {**seed.get(lang, {}), **kept.get(lang, {})} for lang in LANGS}
 
 
-def in_language(piece, memory, lang):
-    """A piece in `lang` from the memory (`memory_of`), as the documents were translated; None when it is already in
-    `lang` or the memory has no translation of it. No model is asked."""
-    return _translated(piece, memory[lang], lang)
-
-
 def _save_memory(memory_file, memory, wanted):
     """Keep in the report's translation memory the templates its documents use, and only those."""
-    used = {lang: {source: memory[lang][source] for one, source in wanted if one == lang and source in memory[lang]} for lang in LANGS}
+    used = {lang: {source: memory[lang][source] for one, source in wanted if one == lang and source in memory[lang]}
+            for lang in LANGS}
     memory_file.write_text(json.dumps(used, ensure_ascii=False, indent=1), encoding='utf-8')
 
 
 def _write_translations(report, texts, memory):
     """Write report/i18n/<lang>/<name> for every document, afresh."""
-    shutil.rmtree(report / 'i18n', ignore_errors=True)     # the translations of documents gone (1,070 of 1,214 files)
+    shutil.rmtree(report / 'i18n', ignore_errors=True)     # the old translations go, so each is written afresh
     for name, text in texts:
         for lang in LANGS:
             target = report / 'i18n' / lang / name
@@ -201,7 +208,8 @@ def keep(memory, batch, answered):
     for (lang, source), answer in zip(batch, answered):
         if not isinstance(answer, str): continue
         answer = answer.replace('\n', ' ').strip()
-        if sorted(SLOT.findall(answer)) == sorted(SLOT.findall(source)) and (not wrong(answer, lang) or answer == source and not PROSE.search(source)):
+        if (sorted(SLOT.findall(answer)) == sorted(SLOT.findall(source))
+                and (not wrong(answer, lang) or answer == source and not PROSE.search(source))):
             memory[lang][source] = answer
 
 

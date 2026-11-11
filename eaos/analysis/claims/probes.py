@@ -121,9 +121,11 @@ def _absence(row, sets):
     sites = constant_sites(name, sets)
     link = linking_import(name, sites, sets) if len(sites) > 1 else None
     if len(sites) > 1 and not link:
-        return 'CONFIRMED', f"parsed as a definition in {len(sites)} files with no import linking them: " + ', '.join(sites)
+        return ('CONFIRMED',
+                f"parsed as a definition in {len(sites)} files with no import linking them: " + ', '.join(sites))
     if link and link.startswith('UNKNOWN: '):
-        return 'INCONCLUSIVE', link[len('UNKNOWN: '):] + '; a claim is not withdrawn on weaker evidence than confirmed it'
+        return ('INCONCLUSIVE',
+                link[len('UNKNOWN: '):] + '; a claim is not withdrawn on weaker evidence than confirmed it')
     if link: return 'REFUTED', f'a single owner exists: {link}'
     # One definition left is the repair; none at all may be a file the parser could not read, so it decides nothing.
     if len(sites) == 1: return 'REFUTED', f'the name is defined in one file now: {sites[0]}'
@@ -143,7 +145,8 @@ def decide_probe(row, sets, allow_execution=False):
 
 
 def _confirm(claim, row):
-    """A probe that confirmed its claim: CONFIRMED when the probe can establish the claim's type, else LIKELY at most."""
+    """A probe that confirmed its claim: CONFIRMED when the probe can establish the claim's type, else LIKELY at
+    most."""
     if claim.get('claim_type') in DECIDABLE.get(row['probe_type'], set()):
         claim['confidence'] = 'CONFIRMED'
     else:
@@ -152,7 +155,8 @@ def _confirm(claim, row):
         row['result'] += (f"; this probe cannot establish a {claim.get('claim_type')} claim, "
                           f"so the claim rises to LIKELY at most")
         row['status'] = 'PARTIAL'
-    claim['method'] = sorted(set(claim['method'] + ['runtime_probe' if row['probe_type'] == 'execution' else 'static_fact']))
+    claim['method'] = sorted(set(claim['method']
+                                 + ['runtime_probe' if row['probe_type'] == 'execution' else 'static_fact']))
     _apply_ceiling(claim, row)
 
 
@@ -179,7 +183,8 @@ def run_all(target, out, allow_execution=False):
     for row in probes:
         status, detail = decide_probe(row, sets, allow_execution)
         row['status'], row['result'], row['ran_at'] = status, detail, now('auto')
-        row['searched'] = sorted(constant_sites(_searched_name(row), sets)) if row['probe_type'] == 'absence_search' else None
+        row['searched'] = (sorted(constant_sites(_searched_name(row), sets))
+                           if row['probe_type'] == 'absence_search' else None)
         claim = by_claim.get(row['claim_id'])
         if claim is None:
             counts[status] = counts.get(status, 0) + 1
@@ -194,4 +199,5 @@ def run_all(target, out, allow_execution=False):
     write(out / 'dossier.json', dossier)
     return {'target': str(Path(target).resolve()), 'out': str(out), 'probes': len(probes), 'by_status': counts,
             'confirmed_claims': confirmed, 'claims': len(dossier['claims']),
-            'limits': 'A probe decides only what it checks. Execution probes stay disabled unless explicitly allowed, and an isolated copy is not an OS sandbox.'}
+            'limits': 'A probe decides only what it checks. Execution probes stay disabled unless explicitly allowed, '
+                      'and an isolated copy is not an OS sandbox.'}

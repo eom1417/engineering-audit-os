@@ -10,6 +10,7 @@ import os
 import signal
 import sys
 from ...core.contracts.decisions import check_errors
+from ...core.system.errors import noted
 
 
 SKIPPED = {'.git', '.venv', '__pycache__', 'node_modules'}
@@ -17,8 +18,9 @@ _FINGERPRINTS = {}
 
 
 def recheck(prefix, test, engines=()):
-    """The argv of a card's check, bound to `cwd='.'` (the changed copy): its facts collected into a private folder (with
-    `engines`), then `test`, Python lines that read them under `tmp` and exit 0 only when the candidate is gone."""
+    """The argv of a card's check, bound to `cwd='.'` (the changed copy): its facts collected into a private folder
+    (with `engines`), then `test`, Python lines that read them under `tmp` and exit 0 only when the candidate is
+    gone."""
     asked = ''.join(f', {word!r}' for word in ('--engines', *engines)) if engines else ''
     code = ("import json, subprocess, sys, tempfile\n"
             f"holder = tempfile.TemporaryDirectory(prefix={prefix!r}); tmp = holder.name\n"
@@ -33,7 +35,7 @@ def _files(root):
     for base, directories, names in os.walk(root):
         directories[:] = sorted(d for d in directories if d not in SKIPPED)
         found += [Path(base) / name for name in names]
-    return sorted(found, key=lambda path: path.relative_to(root).parts)  # the order Path sorting gave before
+    return sorted(found, key=lambda path: path.relative_to(root).parts)
 
 
 def fingerprint(root, cached=True):
@@ -47,7 +49,9 @@ def fingerprint(root, cached=True):
         stats = []
         for path in files:
             try: stat = path.lstat()
-            except OSError: continue
+            except OSError as error:
+                noted('a file that vanished or cannot be read is left out of the signature', error)
+                continue
             stats.append((path.relative_to(root).as_posix(), stat.st_size, stat.st_mtime_ns, path.is_symlink()))
         signature = hash(tuple(stats))
         known = _FINGERPRINTS.get(str(root))
@@ -114,5 +118,6 @@ def run(check, target, *, execute=False, timeout=60):
     after = fingerprint(target, cached=False)
     result['after_sha256'] = after
     if before != after:
-        return {**result, 'status': 'inconclusive', 'errors': ['Check changed the candidate; review and rebind before acceptance.']}
+        return {**result, 'status': 'inconclusive',
+                'errors': ['Check changed the candidate; review and rebind before acceptance.']}
     return {**result, 'status': 'pass' if code == check['expected_exit'] else 'fail'}

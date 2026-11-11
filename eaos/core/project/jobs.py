@@ -11,8 +11,9 @@ and writes what it has done to the project's own ~/.eaos/projects/<workspace>/jo
 batch, eaos/journeys/fix/lanes.py, take turns at EAOS's checks). `read` and `wait` follow a job, for the project
 they name only: another project's job is not found.
 A project keeps its last KEEP jobs. The analyzers a job runs keep their caches in the project's own cache folder
-(EAOS_ENGINE_CACHE, eaos/engines/process.py), removed when the job ends: no project reads what another's left. The work itself is JOBS[kind] of the module the record names (`runner`,
-eaos.journeys.agent_tools by default), found by name so that it and this module do not import each other.
+(EAOS_ENGINE_CACHE, eaos/engines/process.py), removed when the job ends: no project reads what another's left.
+The work itself is JOBS[kind] of the module the record names (`runner`, eaos.journeys.agent_tools by default),
+found by name so that it and this module do not import each other.
 """
 import fcntl
 import json
@@ -30,7 +31,7 @@ from ...core.system.clock import now, stamp
 
 
 KEEP = 30           # the jobs a project keeps; older ended ones go with their logs
-LEGACY_DAYS = 1     # the one folder older EAOS versions shared between projects goes once none of it is this recent
+LEGACY_DAYS = 1     # the one legacy folder shared between projects goes once none of it is this recent
 
 
 def folder(project):
@@ -50,8 +51,8 @@ def _path(job, project):
 def _write(record):
     path = _path(record['id'], record['project'])
     path.parent.mkdir(parents=True, exist_ok=True)
-    # a temporary file of its own per writer (as core/project/runs.py): the job and its progress write the same record at
-    # once, and a shared name was renamed away under the other (the golden trial's clean twin, 2026-10-27)
+    # a temporary file of its own per writer (as core/project/runs.py): the job and its progress write the same record
+    # at once, and a shared name would be renamed away under the other
     temporary = path.with_name(path.name + f'.{os.getpid()}.{threading.get_ident()}.tmp')
     temporary.write_text(json.dumps(record, ensure_ascii=False, indent=1) + '\n', encoding='utf-8')
     temporary.replace(path)
@@ -62,8 +63,10 @@ def read(job, project):
     if not path.is_file(): raise ValueError(f'no job named {job!r} in this project')
     record = json.loads(path.read_text(encoding='utf-8'))
     if record['status'] == 'running' and not _alive(record.get('pid')):
-        record.update(status='failed', ended=now(), error='the job stopped before it finished (the computer slept or the process was '
-                      'killed); start it again' + (': the batch keeps every change it kept, and fix_finish goes on from them'
+        record.update(status='failed', ended=now(), error='the job stopped before it finished (the computer slept '
+                      'or the process was '
+                      'killed); start it again' + (': the batch keeps every change it kept, '
+                      'and fix_finish goes on from them'
                                                    if record.get('kind') == 'fix_finish' else ''))
         _write(record)
     return record
@@ -96,7 +99,7 @@ def fixing(project):
 
 
 def _prune(project):
-    """Keep the project's last KEEP jobs (a running one always), and drop the shared folder of older versions."""
+    """Keep the project's last KEEP jobs (a running one always), and drop the legacy shared folder."""
     for path in sorted(folder(project).glob('*.json'), key=lambda found: found.stat().st_mtime)[:-KEEP]:
         running = read_json(path, {}).get('status') == 'running'
         if not running:
@@ -118,9 +121,9 @@ class Busy(Exception):
 
 @contextmanager
 def alone(project, wait=0):
-    """The project's jobs held, on a lock never waited on: none starts while this holds it, and it holds it only once none is
-    running, tried for up to `wait` seconds (Busy after it). A launch it finds cut short is failed first. Never taken twice
-    at once, nor inside a job, whose own record is running, nor inside lanes.changing."""
+    """The project's jobs held, on a lock never waited on: none starts while this holds it, and it holds it only once
+    none is running, tried for up to `wait` seconds (Busy after it). A launch it finds cut short is failed first.
+    Never taken twice at once, nor inside a job, whose own record is running, nor inside lanes.changing."""
     folder(project).mkdir(parents=True, exist_ok=True)
     until = time.monotonic() + wait
     with open(folder(project) / '.turn.lock', 'a') as turn:
@@ -141,29 +144,34 @@ def _busy_or_none(project, turn):
 
 
 def _launches_that_failed(project):
-    """Under the lock a launcher holds until it wrote the pid, so none is at work: a record with no pid and no process of
-    its job never started. Age proves nothing: systemd can start a job and tell no pid in time."""
+    """Under the lock a launcher holds until it wrote the pid, so none is at work: a record with no pid and no
+    process of its job never started. Age proves nothing: systemd can start a job and tell no pid in time."""
     for path in folder(project).glob('*.json'):
         record = read_json(path, {})
-        if not (isinstance(record, dict) and record.get('status') == 'running' and record.get('id') and not record.get('pid')): continue
+        if not (isinstance(record, dict) and record.get('status') == 'running' and record.get('id')
+                and not record.get('pid')): continue
         if _has_process(record['id']): continue
         record = read_json(path, {})        # as it is now: a worker may have ended while it was looked for
         if record.get('status') == 'running' and not record.get('pid'):
-            record.update(status='failed', ended=now(), error='the job never started: its launch was cut short; start it again')
+            record.update(status='failed', ended=now(),
+                          error='the job never started: its launch was cut short; start it again')
             _write(record)
 
 
 def _has_process(job):
     """Whether a process of the job exists; when that cannot be told, it may."""
-    try: return subprocess.run(['pgrep', '-f', f'eaos.core.project.jobs {job}'], capture_output=True, timeout=10).returncode != 1
+    try: return subprocess.run(['pgrep', '-f', f'eaos.core.project.jobs {job}'], capture_output=True,
+                               timeout=10).returncode != 1
     except (OSError, subprocess.SubprocessError): return True
 
 
 def start(kind, project, arguments, runner='eaos.journeys.agent_tools'):
     job = f"{kind}-{stamp('%Y%m%d-%H%M%S')}-{os.urandom(2).hex()}"
     log = folder(project) / f'{job}.log'
-    record = {'id': job, 'kind': kind, 'runner': runner, 'project': str(project), 'arguments': arguments, 'status': 'running',
-              'progress': None, 'result': None, 'error': None, 'log': str(log), 'started': now(), 'ended': None, 'pid': None}
+    record = {'id': job, 'kind': kind, 'runner': runner, 'project': str(project),
+              'arguments': arguments, 'status': 'running',
+              'progress': None, 'result': None, 'error': None, 'log': str(log),
+              'started': now(), 'ended': None, 'pid': None}
     _write(record)
     pid = _launch(job, project, log)
     record = json.loads(_path(job, project).read_text(encoding='utf-8'))
@@ -182,13 +190,17 @@ def _launch(job, project, log):
     env = {**os.environ, 'PYTHONUNBUFFERED': '1', 'EAOS_ENGINE_CACHE': str(cache(project))}
     log.write_text('', encoding='utf-8')
     unit = 'eaos-job-' + job
-    if launch.durable() and launch.as_unit(unit, argv, env, {'description': f'EAOS {job}', 'log': log, 'cwd': folder(project)}):
+    if launch.durable() and launch.as_unit(unit, argv, env,
+        {'description': f'EAOS {job}', 'log': log, 'cwd': folder(project)}):
         for _ in range(50):          # None: it ended already, its record says how
-            if (pid := launch.unit_pid(unit)) or _path(job, project).read_text(encoding='utf-8').find('"running"') < 0: return pid
+            if (pid := launch.unit_pid(unit)) or _path(job, project).read_text(encoding='utf-8').find('"running"') < 0:
+                return pid
             time.sleep(0.1)
         return None
     with log.open('w', encoding='utf-8') as out:
-        return subprocess.Popen(argv, stdout=out, stderr=subprocess.STDOUT, stdin=subprocess.DEVNULL, start_new_session=True, env=env).pid  # nosemgrep: python.lang.security.audit.dangerous-subprocess-use-audit -- EAOS starts itself (sys.executable -m eaos), a list argv, no shell
+        # nosemgrep: python.lang.security.audit.dangerous-subprocess-use-audit -- EAOS starts itself (sys.executable -m eaos), a list argv, no shell
+        return subprocess.Popen(argv, stdout=out, stderr=subprocess.STDOUT, stdin=subprocess.DEVNULL,
+                                start_new_session=True, env=env).pid
 
 
 def wait(job, seconds, project):

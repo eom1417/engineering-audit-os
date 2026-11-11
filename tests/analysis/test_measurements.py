@@ -17,7 +17,8 @@ class MeasurementTests(Workspace):
         out = Path(self.tmp)
         (out / 'facts').mkdir(exist_ok=True)
         (out / 'facts/all.json').write_text(json.dumps({'facts': facts}))
-        (out / 'facts/external.json').write_text(json.dumps({'facts': [], 'summary': {'engines_observed': list(engines)}}))
+        (out / 'facts/external.json').write_text(json.dumps({'facts': [],
+                                                             'summary': {'engines_observed': list(engines)}}))
         if verification is not None: (out / 'verification.json').write_text(json.dumps(verification))
         return build(out)
 
@@ -34,7 +35,8 @@ class MeasurementTests(Workspace):
         record = self.report(self.base() + [scc])
         self.assertEqual(validate(record, contracts()['measurements']), [])
         [row] = record['files']
-        self.assertEqual((row['loc'], row['complexity_max'], row['churn'], row['authors'], row['fan_in']), (30, 7, 4, 2, 3))
+        self.assertEqual((row['loc'], row['complexity_max'], row['churn'], row['authors'], row['fan_in']), (30, 7, 4, 2,
+            3))
         self.assertEqual(row['sources'], {'loc': 'eaos.metrics', 'complexity_max': 'eaos.metrics (branches + 1)',
                                           'duplicated_lines': 'jscpd', 'churn': 'git history', 'fan_in': 'eaos.graph'})
         # scc answers only for a file EAOS does not measure (a language its parser does not read).
@@ -46,7 +48,8 @@ class MeasurementTests(Workspace):
         self.assertIn({'field': 'duplicated_lines', 'reason': 'jscpd did not run in this audit'}, row['missing'])
         # A file with no function is measured by its body.
         [row] = self.report([f for f in self.base() if f['value'].get('scope') != 'function'])['files']
-        self.assertEqual((row['complexity_max'], row['sources']['complexity_max']), (3, 'eaos.metrics (file body, no function)'))
+        self.assertEqual((row['complexity_max'], row['sources']['complexity_max']), (3,
+            'eaos.metrics (file body, no function)'))
 
     def test_an_unknown_is_null_with_a_reason_never_zero_and_unparsed_files_are_listed(self):
         facts = [f for f in self.base() if f['kind'] not in ('history_churn', 'graph_node')]
@@ -59,5 +62,6 @@ class MeasurementTests(Workspace):
         self.assertEqual(record['complete'], 0)
         self.assertEqual(record['not_measured'], [{'path': 'db/schema.sql', 'reason': 'not parsed: UNSUPPORTED'}])
         # Coverage is read as eaos verify writes it.
-        record = self.report(self.base(), verification={'coverage': {'src/a.ts': {'percent': 62.5, 'covered_lines': 5}}})
+        record = self.report(self.base(), verification={'coverage': {'src/a.ts': {'percent': 62.5,
+            'covered_lines': 5}}})
         self.assertEqual(record['files'][0]['coverage'], 0.625)

@@ -66,7 +66,8 @@ def _release(tool, step=lambda done, total: None):
             digest = hashlib.sha256()
             while chunk := blob.read(CHUNK): digest.update(chunk)
             if (digest := digest.hexdigest()) != spec['sha256']:
-                raise RuntimeError(f"{tool['name']}: sha256 {digest} does not match the pinned {spec['sha256']}; nothing installed")
+                raise RuntimeError(f"{tool['name']}: sha256 {digest} does not match the pinned {spec['sha256']}; "
+                                   "nothing installed")
             blob.seek(0)
             _unpack(tool, spec, blob)
     finally:
@@ -74,22 +75,26 @@ def _release(tool, step=lambda done, total: None):
 
 
 def _unpack(tool, spec, blob):
-    """The checked archive (an open file) unpacked into the tool's release folder, its binary linked; the older version goes."""
+    """The checked archive (an open file) unpacked into the tool's release folder, its binary linked; the older
+    version goes."""
     folder = home() / 'releases' / f"{tool['name']}-{tool['version']}"
     folder.mkdir(parents=True, exist_ok=True)
     if spec.get('tree'): target = _tree(tool, spec, blob, folder)
-    else: (target := folder / tool['binary']).write_bytes(blob.read() if spec['archive'] == 'binary' else _member(tool, spec, blob))
+    else: (target := folder / tool['binary']).write_bytes(
+        blob.read() if spec['archive'] == 'binary' else _member(tool, spec, blob))
     target.chmod(0o755)
     before = (home() / 'bin' / tool['binary']).resolve()           # the version linked until now (CodeQL's is 1.4 GB)
     _link(target, tool['binary'])
-    if folder.parent in before.parents and folder not in before.parents: shutil.rmtree(folder.parent / before.relative_to(folder.parent).parts[0])
+    if folder.parent in before.parents and folder not in before.parents:
+        shutil.rmtree(folder.parent / before.relative_to(folder.parent).parts[0])
 
 
 def _tree(tool, spec, blob, folder):
     """A whole directory (a JRE, a CLI with its jars) extracted into `folder` with no path escaping it; its entry."""
     if spec['archive'] == 'zip':
         with zipfile.ZipFile(blob) as archive:
-            unsafe = next((name for name in archive.namelist() if name.startswith('/') or '..' in Path(name).parts), None)
+            unsafe = next((name for name in archive.namelist()
+                           if name.startswith('/') or '..' in Path(name).parts), None)
             if unsafe: raise RuntimeError(f"{tool['name']}: unsafe path {unsafe!r} in the archive; nothing installed")
             archive.extractall(folder)  # nosec B202: every name was checked just above
     else:
@@ -139,11 +144,13 @@ def _pip_one(tool):
 def _npm(tool):
     (prefix := npm_prefix(tool)).mkdir(parents=True, exist_ok=True)
     npm = shutil.which('npm')
-    if not npm: raise RuntimeError(f"{tool['name']}: npm is not installed; install Node.js 18 or newer, then run this again")
+    if not npm:
+        raise RuntimeError(f"{tool['name']}: npm is not installed; install Node.js 18 or newer, then run this again")
     env = {**tool_env(), **tool['install'].get('env', {})}
     with tempfile.TemporaryDirectory(prefix='eaos-npm-cache-') as cache:   # npm's own kept 1.5 GB of the tools
         subprocess.run([npm, 'install', '--prefix', str(prefix), '--cache', cache, '--no-audit', '--no-fund', '--loglevel=error',  # nosemgrep: python.lang.security.audit.dangerous-subprocess-use-audit -- npm installing the registry's pinned packages, a list argv, no shell
-                        f"{tool['install']['package']}@{tool['version']}", *tool['install'].get('with', [])], check=True, env=env)
+                        f"{tool['install']['package']}@{tool['version']}",
+                        *tool['install'].get('with', [])], check=True, env=env)
     if tool['install'].get('library'): return
     _link(prefix / 'node_modules/.bin' / tool['binary'], tool['binary'])
 
@@ -153,7 +160,8 @@ def _git(tool):
     folder, spec = checkout(tool), tool['install']
     folder.mkdir(parents=True, exist_ok=True)
     for argv in (['init', '-q'], ['remote', 'remove', 'origin'], ['remote', 'add', 'origin', spec['repository']],
-                 ['fetch', '-q', '--depth', '1', 'origin', tool['version']], ['checkout', '-q', '--force', 'FETCH_HEAD']):
+                 ['fetch', '-q', '--depth', '1', 'origin', tool['version']],
+                 ['checkout', '-q', '--force', 'FETCH_HEAD']):
         done = subprocess.run(['git', '-C', str(folder), *argv], capture_output=True, text=True)
         if done.returncode and argv[:2] != ['remote', 'remove']:
             raise RuntimeError(f"{tool['name']}: git {' '.join(argv)} failed: {done.stderr.strip()[-200:]}")
@@ -175,14 +183,14 @@ def _ensure(tool, step, echo):
     if tool['name'] == 'playwright': install_browsers(echo)
 
 
-# The caches of tools no longer pinned (Trivy's, retired in M18.1), removed with the tools themselves.
+# The caches of tools that are not pinned (Trivy's), removed with the tools themselves.
 RETIRED_CACHES = ('cache/trivy', 'cache/trivy-next')
 
 
 def retire():
-    """Remove from the tools home what no pinned tool owns: a release, an npm prefix or an own virtualenv of a tool the
-    registry no longer lists, the caches of retired tools and the links left pointing at nothing. What EAOS installed,
-    EAOS removes when it stops using it. Returns what was removed, relative to the tools home."""
+    """Remove from the tools home what no pinned tool owns: a release, an npm prefix or an own virtualenv of a tool
+    the registry does not list, the caches of unpinned tools and the links left pointing at nothing. What EAOS
+    installed, EAOS removes when it stops using it. Returns what was removed, relative to the tools home."""
     base = home()
     gone = _unowned(base, {t['name'] for t in registry()['tools']})
     for folder in gone: shutil.rmtree(folder, ignore_errors=True)

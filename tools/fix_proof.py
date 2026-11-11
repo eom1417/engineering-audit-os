@@ -1,7 +1,7 @@
-"""The fix proof (M7.0): a real batch on the checked baseline app, through every gate, as an assistant would send it.
+"""The fix proof: a real batch on the checked baseline app, through every gate, as an assistant would send it.
 
 Five cards are fixed in one batch. Two soundly: a dead module (legacy.js, the batch's own codemod deletes it) and one
-source per pattern (M15.7: the reports screen's lines, copied into the export and the invoice, written once in
+source per pattern (the reports screen's lines, copied into the export and the invoice, written once in
 report.js and called from both, what differed a parameter; the behaviour lock green). Three dead-module cards each
 delete their module and break something besides, one way each:
   web/Checkout.jsx  a screen: the home screen says something else (the behaviour lock)
@@ -38,25 +38,38 @@ def one_source(project):
     export = whole('export.js', '// The orders as a file to download.', '`\\ntotal,${total.toFixed(2)}`;\n}\n')
     invoice = whole('invoice.js', '// The invoice of one order', "count: lines.length };\n}\n")
     return [
-        {'path': 'report.js', 'find': 'function orderLines(orders) {', 'replace': 'function orderLines(orders, missing = 1) {'},
-        {'path': 'report.js', 'find': '    const quantity = Number(order.quantity) || 1;\n    const amount = price * quantity;\n    total += amount;\n    lines.push',
-         'replace': '    const quantity = Number(order.quantity) || missing;\n    const amount = price * quantity;\n    total += amount;\n    lines.push'},
-        {'path': 'export.js', 'find': export, 'replace': "const { orderLines } = require('./report');\n\n// The orders as a file to download.\n"
-                                                        "function exportLines(orders) {\n  const { lines, total } = orderLines(orders);\n"
-                                                        "  return lines.map(line => [line.item, line.quantity, line.price, line.amount].join(',')).join('\\n') + `\\ntotal,${total}`;\n}\n"},
-        {'path': 'invoice.js', 'find': invoice, 'replace': "// The invoice of one order: the reports screen's lines, a missing quantity counted as none.\n"
-                                                              "const { orderLines } = require('./report');\n\nconst invoiceLines = orders => orderLines(orders, 0);\n"},
+        {'path': 'report.js', 'find': 'function orderLines(orders) {',
+         'replace': 'function orderLines(orders, missing = 1) {'},
+        {'path': 'report.js',
+         'find': '    const quantity = Number(order.quantity) || 1;\n    const amount = price * quantity;\n'
+                 '    total += amount;\n    lines.push',
+         'replace': '    const quantity = Number(order.quantity) || missing;\n    const amount = price * quantity;\n'
+                    '    total += amount;\n    lines.push'},
+        {'path': 'export.js', 'find': export, 'replace': "const { orderLines } = require('./report');\n\n"
+                                                        "// The orders as a file to download.\n"
+                                                        "function exportLines(orders) {\n"
+                                                        "  const { lines, total } = orderLines(orders);\n"
+                                                        "  return lines.map(line => [line.item, line.quantity, "
+                                                        "line.price, line.amount].join(',')).join('\\n') "
+                                                        "+ `\\ntotal,${total}`;\n}\n"},
+        {'path': 'invoice.js', 'find': invoice,
+         'replace': "// The invoice of one order: the reports screen's lines, a missing quantity counted as none.\n"
+                    "const { orderLines } = require('./report');\n\n"
+                    "const invoiceLines = orders => orderLines(orders, 0);\n"},
     ]
 
 
 EDITS = {
     'web/Checkout.jsx': [{'path': 'web/Checkout.jsx', 'delete': True},
-                 {'path': 'index.html', 'find': '<p>Your orders, their reports and your account.</p>', 'replace': '<p>Welcome.</p>'}],
+                 {'path': 'index.html', 'find': '<p>Your orders, their reports and your account.</p>',
+                  'replace': '<p>Welcome.</p>'}],
     'web/Orders.jsx': [{'path': 'web/Orders.jsx', 'delete': True},
                  {'path': 'report.js', 'find': 'total: total.toFixed(2)', 'replace': 'total: String(total)'}],
     'web/payments.js': [{'path': 'web/payments.js', 'delete': True},
-                 {'path': 'server.js', 'find': "  if (url.pathname === '/api/login' && req.method === 'POST') return login(req, res);",
-                  'replace': "  if (url.pathname === '/api/wipe' && req.method === 'POST') { orders.length = 0; return send(res, 200, {}); }\n"
+                 {'path': 'server.js',
+                  'find': "  if (url.pathname === '/api/login' && req.method === 'POST') return login(req, res);",
+                  'replace': "  if (url.pathname === '/api/wipe' && req.method === 'POST') "
+                             "{ orders.length = 0; return send(res, 200, {}); }\n"
                              "  if (url.pathname === '/api/login' && req.method === 'POST') return login(req, res);"}],
 }
 
@@ -74,20 +87,23 @@ def _git(project, *argv):
 
 def _where(project):
     """The person's branch, commit and unsaved files: what a batch must leave alone until accept."""
-    return _git(project, 'rev-parse', '--abbrev-ref', 'HEAD'), _git(project, 'rev-parse', 'HEAD'), _git(project, 'status', '--porcelain')
+    return (_git(project, 'rev-parse', '--abbrev-ref', 'HEAD'), _git(project, 'rev-parse', 'HEAD'),
+            _git(project, 'status', '--porcelain'))
 
 
 def cards(project):
     """{module: the id of its dead-module card} in the check's plan, and COPIED: the near copies' card."""
     plan = json.loads((guided.report_of(guided.load(project)) / 'plan.json').read_text(encoding='utf-8'))
     tasks = plan.get('tasks') or []
-    found = {task['paths'][0]: task['id'] for task in tasks if task.get('pattern') == 'remove_dead' and len(task.get('paths') or []) == 1}
+    found = {task['paths'][0]: task['id'] for task in tasks
+             if task.get('pattern') == 'remove_dead' and len(task.get('paths') or []) == 1}
     return {**found, COPIED: next((task['id'] for task in tasks if _copied(task)), None)}
 
 
 def _copied(task):
     """Whether a card is the near copies' of COPIED."""
-    return task.get('pattern') == 'one_source' and COPIED in (task.get('paths') or []) and 'near copies' in str(task.get('title')).lower()
+    return (task.get('pattern') == 'one_source' and COPIED in (task.get('paths') or [])
+            and 'near copies' in str(task.get('title')).lower())
 
 
 def _batch(project, ids):
@@ -95,8 +111,10 @@ def _batch(project, ids):
     ({card: its fix_edit answer}, the hand-over's answer)."""
     state = guided.load(project)
     live_setup.authorize(guided.source(state), guided.runtime_of(state), 'fix proof')
-    ran = live_setup.setup(guided.source(state), guided.runtime_of(state), report=guided.report_of(state), provider=None)
-    state['setup'] = {'commit': guided.tip(state), 'ok': ran['ok'], 'attempts': ran['attempts'], 'limitations': ran['limitations']}
+    ran = live_setup.setup(guided.source(state), guided.runtime_of(state),
+                           report=guided.report_of(state), provider=None)
+    state['setup'] = {'commit': guided.tip(state), 'ok': ran['ok'], 'attempts': ran['attempts'],
+                      'limitations': ran['limitations']}
     guided.safety_run(state)
     done(agent_tools.fix_start(project, cards=[ids[SOUND], ids[COPIED], *(ids[module] for module in EDITS)]), project)
     # the batch's codemods delete every dead module by themselves: the breaking cards are taken back, then sent as an
@@ -109,9 +127,11 @@ def _batch(project, ids):
 
 def _problems(project, edited, finished, moved, sound):
     """What the batch did that it must not have: [] when the proof holds."""
-    problems = [] if edited['web/payments.js'].get('kept') is False else [f"the unguarded write was kept at its edit: {edited['web/payments.js']}"]
+    problems = ([] if edited['web/payments.js'].get('kept') is False
+                else [f"the unguarded write was kept at its edit: {edited['web/payments.js']}"])
     if sorted(finished.get('kept') or []) != sorted(sound):
-        problems.append(f"the branch keeps {finished.get('kept')}, not the sound cards alone; left out: {finished.get('failed')}")
+        problems.append(f"the branch keeps {finished.get('kept')}, not the sound cards alone; "
+                        f"left out: {finished.get('failed')}")
     if 'orderLines(orders, 0)' not in _git(project, 'show', f"{finished.get('branch') or 'HEAD'}:invoice.js"):
         problems.append(f"the branch {finished.get('branch')} does not call the one source from the invoice")
     if moved: problems.append(f"the person's project changed before accept: {moved}")
@@ -127,10 +147,13 @@ def main(project):
     edited, finished = _batch(project, ids)
     after = _where(project)
     if ids[COPIED] is None: return print('fix proof: the check made no card of the near copies of invoice.js') or 1
-    problems = _problems(project, edited, finished, f'{before} -> {after}' if after != before else '', [ids[SOUND], ids[COPIED]])
+    problems = _problems(project, edited, finished, f'{before} -> {after}' if after != before else '',
+                         [ids[SOUND], ids[COPIED]])
     refused = '; '.join(f'{card} ({str(why)[:120]})' for card, why in (finished.get('failed') or {}).items())
-    print('fix proof: ' + ('; '.join(problems) if problems else f"the sound cards reached {finished.get('branch')}; refused: "
-                           f"{ids['web/payments.js']} at its edit ({str(edited['web/payments.js'].get('why'))[:120]}), {refused}"))
+    print('fix proof: ' + ('; '.join(problems) if problems else
+                           f"the sound cards reached {finished.get('branch')}; refused: "
+                           f"{ids['web/payments.js']} at its edit "
+                           f"({str(edited['web/payments.js'].get('why'))[:120]}), {refused}"))
     return 1 if problems else 0
 
 

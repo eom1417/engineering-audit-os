@@ -1,9 +1,9 @@
 """Structural fingerprints: a normal form of an AST subtree that ignores names.
 
 Two functions doing the same thing under different identifiers should produce the same
-fingerprint. This is what makes the L3 ("same shape, different names") detector possible:
-the reference example from the doctrine, two functions computing the same pricing rule
-under different parameter names, lands in a single cluster.
+fingerprint. This is what makes a "same shape, different names" detector possible:
+two functions computing the same pricing rule under different parameter names land in
+a single cluster.
 
 The fingerprint walks one parsed AST, replaces every identifier with a slot, keeps the
 control-flow and operator skeleton, and hashes the result. Two fingerprints are equal iff
@@ -28,20 +28,24 @@ _MIN_SIZE = 8
 _CLUSTER_MIN_MEMBERS = 2
 
 
-_UNSHAPED = frozenset({'ctx', 'type_comment', 'type_ignore', 'end_lineno', 'end_col_offset', 'lineno', 'col_offset', 'parent'})
+_UNSHAPED = frozenset({'ctx', 'type_comment', 'type_ignore', 'end_lineno', 'end_col_offset', 'lineno', 'col_offset',
+                       'parent'})
 
 
 def _field_shape(value, depth):
     """One field of a node: a subtree, a list of subtrees and plain values, or the type of a plain value."""
     if isinstance(value, ast.AST): return _python_shape(value, depth)
-    if isinstance(value, list): return [_python_shape(item, depth) if isinstance(item, ast.AST) else item for item in value]
+    if isinstance(value, list): return [_python_shape(item, depth) if isinstance(item,
+                                                                                 ast.AST) else item for item in value]
     return type(value).__name__
 
 
 def _fields(node):
-    """A node's fields as Python 3.12 has them, so one code has one shape on every Python: `type_params` came in 3.12."""
+    """A node's fields as Python 3.12 has them, so one code has one shape on every Python: `type_params` exists
+    from 3.12."""
     yield from ast.iter_fields(node)
-    if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)) and 'type_params' not in node._fields: yield 'type_params', []
+    if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef,
+                         ast.ClassDef)) and 'type_params' not in node._fields: yield 'type_params', []
 
 
 def _python_shape(node, depth=0):
@@ -99,9 +103,9 @@ def _subtree_size(node):
     """How many nodes the symbol's whole body holds, the same quantity the Python path reports.
 
     `_MIN_SIZE` is one threshold applied to both paths, so both have to be the same measurement.
-    Counting only a node's direct children made every Go function score 5 against a threshold of
-    8: 1021 Go files produced 7 fingerprints and no duplicate cluster, and the dashboard read that
-    silence as a perfect "one source of truth". A threshold is only meaningful over one scale.
+    Counting only a node's direct children would score every Go function far below the threshold, so
+    no Go function would ever be compared and the silence would read as "one source of truth". A
+    threshold is only meaningful over one scale.
     """
     total = 0
     stack = [node]
@@ -116,7 +120,8 @@ _TS_FUNCTIONS = {'function_declaration', 'function_definition', 'function_item',
                  'method_declaration', 'method_definition', 'function', 'function_expression',
                  'arrow_function', 'generator_function_declaration', 'singleton_method',
                  'function_signature', 'method_signature', 'local_function_statement'}
-_TS_CONTAINERS = {'class_declaration', 'class_definition', 'impl_item', 'class_specifier', 'struct_item', 'object_definition'}
+_TS_CONTAINERS = {'class_declaration', 'class_definition', 'impl_item', 'class_specifier', 'struct_item',
+                  'object_definition'}
 
 
 def _function_types(language):
@@ -163,7 +168,8 @@ def _fingerprint_files(source):
     for item in source.readable():
         rel = item['path']
         language = language_of(rel)
-        if language is None or rel.endswith('.d.ts'): continue   # declarations only: types for code that lives elsewhere
+        # A .d.ts file holds declarations only: types for code that lives elsewhere.
+        if language is None or rel.endswith('.d.ts'): continue
         text = source.text(rel)
         if text is None: continue
         rows = _file_rows(text, rel, language)
@@ -227,5 +233,7 @@ def run(target, source, symbols=None, **options):
                'interpretation': 'A cluster contains symbols whose AST shape is identical up to identifier names. '
                                  'Membership is structural; the cluster itself is a hypothesis, not a defect.'}
     return {'facts': fingerprints_for_facts + cluster_facts, 'summary': summary,
-            'available': True, 'input_sha': digest(''.join(sorted([m['shape_sha'] for m in fingerprints])).encode()) if fingerprints else digest(b''),
+            'available': True,
+            'input_sha': digest(''.join(sorted([m['shape_sha'] for m in fingerprints])).encode())
+                         if fingerprints else digest(b''),
             'reason': None}

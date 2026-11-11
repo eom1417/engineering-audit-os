@@ -9,6 +9,7 @@ run-manifest.json.
 """
 import json
 from pathlib import Path
+from ..system.errors import noted
 
 WAITING, RUNNING = 'waiting', 'running'
 ENDED = ('ok', 'skipped', 'unavailable', 'failed', 'not_reached')
@@ -27,7 +28,8 @@ def declared(flow, stages):
 
 def _stage(declared, requested):
     return {**declared, 'requested': declared['name'] in requested, 'state': WAITING, 'started_at': None,
-            'ended_at': None, 'seconds': None, 'reason': '', 'reason_code': '', 'reason_texts': None, 'artifacts': [], 'detail': {},
+            'ended_at': None, 'seconds': None, 'reason': '', 'reason_code': '', 'reason_texts': None,
+            'artifacts': [], 'detail': {},
             'steps': [], 'programs': [], 'activity_note': '', 'resumed': False}
 
 
@@ -35,8 +37,10 @@ def _run_started(state, row):
     requested = row.get('requested') or []
     state.clear()
     state.update(empty(), flow=row.get('flow') or 'check', run=row.get('run'), state=RUNNING, started_at=row.get('at'),
-                 requested=list(requested), previous=row.get('previous') or {}, previous_steps=row.get('previous_steps') or {},
-                 alive_every=row.get('alive_every'), pid=row.get('pid'), host=row.get('host'), **{key: row[key] for key in ('mode', 'assistants') if row.get(key)})
+                  requested=list(requested), previous=row.get('previous') or {},
+                  previous_steps=row.get('previous_steps') or {},
+                 alive_every=row.get('alive_every'), pid=row.get('pid'), host=row.get('host'),
+                 **{key: row[key] for key in ('mode', 'assistants') if row.get(key)})
     state['stages'] = _stages(row, set(requested))
 
 
@@ -67,8 +71,10 @@ def _stage_activity(stage, row):
 
 def _stage_ended(stage, row):
     from .reasons import reasons
-    stage.update(state=row.get('status'), ended_at=row.get('at'), seconds=row.get('seconds'), reason=row.get('reason') or '',
-                 reason_code=row.get('reason_code') or '', reason_texts=reasons().get(str(row.get('reason_code') or '')),
+    stage.update(state=row.get('status'), ended_at=row.get('at'), seconds=row.get('seconds'),
+                 reason=row.get('reason') or '',
+                 reason_code=row.get('reason_code') or '',
+                 reason_texts=reasons().get(str(row.get('reason_code') or '')),
                  artifacts=list(row.get('artifacts') or []),
                  detail=row.get('detail') or {}, resumed=bool(row.get('resumed')), programs=[])
 
@@ -118,6 +124,6 @@ def fold_file(path):
     except OSError: return empty()
     for line in text.splitlines():
         try: row = json.loads(line)
-        except ValueError: continue
+        except ValueError as error: noted('a progress line that is not JSON is left out', error); continue
         if isinstance(row, dict): rows.append(row)
     return fold(rows)

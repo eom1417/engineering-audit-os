@@ -207,7 +207,7 @@ rows on 0.0.80).
 
 ## After M10: 0.0.82 (2026-10-27)
 
-The simulated users on three corpus apps of different kinds (`tools/experience_proof.py`, the real assistant):
+The simulated users on three corpus apps of different kinds (the real assistant; its proof removed with the frozen code):
 
 | App | Whole simulation (`--path experience`) | Found | The short option beside the complete check | The replays in that full check |
 |---|---|---|---|---|
@@ -223,8 +223,8 @@ simulation found one real failure a person would meet. The replays cost nothing 
 | Measure | Value |
 |---|---|
 | Reading a page's look, the Studio (about 250 elements, hover, focus and pressed forced on the interactive ones) | **0.2 to 0.4 s** a page, about 150 KB saved |
-| The oracle on the baseline (`tools/judging/look_proof.py`) | a token kept; one colour off by one **refused**, which the lock's pictures passed; the same change declared kept |
-| Design batches, no token (`tools/judging/tokens_proof.py`) | plain CSS **kept** (agreed merges too), SCSS **kept**, MUI **kept**, Tailwind **kept**; styled-components not proved: its app needs an assistant to start |
+| The oracle on the baseline (the look proof, removed with the frozen code) | a token kept; one colour off by one **refused**, which the lock's pictures passed; the same change declared kept |
+| Design batches, no token (the tokens proof, removed with the frozen code) | plain CSS **kept** (agreed merges too), SCSS **kept**, MUI **kept**, Tailwind **kept**; styled-components not proved: its app needs an assistant to start |
 | The Studio's raw values | **0** (the codemod finds none) |
 | The inventory on the Studio, four pages | **11 looks for 44 buttons**, 6 for 45 links |
 | The guide, same tasks with and without, 2 runs a side | 21% fewer tokens on three small apps (target 30%, **not met**), 32% fewer files read, the same correctness; **-9%** on one large project |

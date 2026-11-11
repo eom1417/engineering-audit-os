@@ -30,8 +30,10 @@ def _line_ends(text, find, replace):
 def _not_once(relative, times):
     """Why an edit was refused, and what to do: read the lines again, they are not what the edit remembers."""
     if not times:
-        return (f'{relative}: the text to find is not in the file as it is now: read those lines again with fix_read (an '
-                'earlier edit, or a change taken back, may have changed them) and copy `find` from them, without the line numbers')
+        return (f'{relative}: the text to find is not in the file as it is now: read those lines again with fix_read '
+                f'(an '
+                'earlier edit, or a change taken back, may have changed them) and copy `find` from them, without the '
+                'line numbers')
     return f'{relative}: the text to find occurs {times} times, not once: take more lines around it so it is found once'
 
 
@@ -53,7 +55,8 @@ def _apply(root, edits):
 
 
 def _edited(edit, path, staged):
-    """What one edit leaves of its file: None (deleted), its new content, or its text so far with `find` replaced once."""
+    """What one edit leaves of its file: None (deleted), its new content, or its text so far with `find` replaced
+    once."""
     relative = edit['path']
     if edit.get('delete'): return None
     if 'content' in edit:
@@ -75,8 +78,8 @@ def _replaced(relative, text, find, replace):
 
 def _committed(root, card, arguments, repair):
     """((the files changed, those beyond the card's own paths), None), the change committed in the copy; else (None, why
-    nothing was kept), the copy as it was. A change beyond the card is kept only with the assistant's `beyond_why`, said in
-    its commit body (trial on real projects: a dialog's card changed 13 files, adding what nobody asked for)."""
+    nothing was kept), the copy as it was. A change beyond the card is kept only with the assistant's `beyond_why`, said
+    in its commit body, since it adds what nobody asked for."""
     from ..fix.waves import commit
     summary, why = arguments.get('summary') or '', (arguments.get('beyond_why') or '').strip()
     try:
@@ -96,7 +99,10 @@ def _committed(root, card, arguments, repair):
 
 
 def _unexplained(outside):
-    return {'why': f"it changed files beyond the card's own ({', '.join(outside[:10])}) and gave no beyond_why", 'beyond_the_card': outside,
-            'what_now': "The change was taken back. Keep it to the card's files and to what the card asks; or, when each other file "
-                        'must change for this fix (the one-source gate made it reach the copies of what it changed, say), send '
+    return {'why': f"it changed files beyond the card's own ({', '.join(outside[:10])}) and gave no beyond_why",
+            'beyond_the_card': outside,
+            'what_now': "The change was taken back. Keep it to the card's files and to what the card asks; or, when "
+                        "each other file "
+                        'must change for this fix (the one-source gate made it reach the copies of what it changed, '
+                        'say), send '
                         'fix_edit again with beyond_why: one sentence per other file, or one for all.'}

@@ -7,7 +7,7 @@ The writer adds a `run.alive` line whenever ALIVE_EVERY seconds pass without any
 - `stalled` when the run promised heartbeats and nothing was written for more than STALLED_AFTER seconds;
 - otherwise it is still `running`.
 
-A run written without the promise (an older EAOS) is never called stalled: its silence proves nothing.
+A run written without the promise is never called stalled: its silence proves nothing.
 """
 import os
 import socket

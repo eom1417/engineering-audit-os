@@ -24,7 +24,8 @@ class IntakeTests(Workspace):
         (self.target / path).write_text(text)
         facts = self.out / 'facts/domain.json'
         rows = json.loads(facts.read_text())['facts'] if facts.is_file() else []
-        rows.append({'kind': 'data_model', 'location': {'path': path, 'start_line': start_line}, 'value': {'name': name}})
+        rows.append({'kind': 'data_model', 'location': {'path': path, 'start_line': start_line},
+                     'value': {'name': name}})
         facts.write_text(json.dumps({'facts': rows}))
 
     def questions(self, answers=None):
@@ -51,7 +52,8 @@ class IntakeTests(Workspace):
 
     def test_personal_data_is_found_on_a_person_and_the_reason_says_where(self):
         # A definition ends where the next one starts; a name is personal only on a person.
-        self.model('src/types.ts', 'Category', 'export interface Category {\n  id: string;\n}\nexport interface Vendor {\n  email: string;\n}\n')
+        self.model('src/types.ts', 'Category',
+                   'export interface Category {\n  id: string;\n}\nexport interface Vendor {\n  email: string;\n}\n')
         self.model('src/category.ts', 'Category', 'export interface Category {\n  name: string;\n}\n')
         self.assertIs(self.questions()['personal_data']['answer'], False)
         self.model('src/vendor.ts', 'Vendor', 'export interface Vendor {\n  id: string;\n  email: string;\n}\n')

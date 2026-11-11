@@ -34,7 +34,8 @@ class ActionsUpgradeTests(unittest.TestCase):
     def test_an_action_fact_becomes_its_codemod(self):
         fact = {'location': {'symbol': 'GitHub Actions:pypa/gh-action-pypi-publish@v1.12.4', 'path': 'sbom.cdx.json'},
                 'value': {'measurements': [{'name': 'fixed_in', 'value': '1.14.3'}]}}
-        self.assertEqual(actions_upgrade.action_card(fact), {'kind': 'actions', 'package': 'pypa/gh-action-pypi-publish',
+        self.assertEqual(actions_upgrade.action_card(fact), {'kind': 'actions',
+                                                             'package': 'pypa/gh-action-pypi-publish',
                                                              'version': 'v1.12.4', 'fixed': '1.14.3'})
         self.assertIsNone(actions_upgrade.action_card({**fact, 'location': {'symbol': 'npm:a@1.0.0'}}))
 

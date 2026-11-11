@@ -47,7 +47,8 @@ class HistoryFactTests(unittest.TestCase):
         self.assertEqual((pairs[('a.py', 'b.py')]['support'], pairs[('a.py', 'b.py')]['confidence']), (3, 1.0))
         self.assertNotIn(('a.py', 'c.py'), pairs)
         owner = self.row(data, 'history_ownership', 'a.py')['value']
-        self.assertEqual((owner['single_author'], owner['top_author'], owner['top_author_share']), (True, 'Fixture', 1.0))
+        self.assertEqual((owner['single_author'], owner['top_author'], owner['top_author_share']), (True, 'Fixture',
+            1.0))
         raw = (self.base / 'run-a/facts/history.json').read_bytes()
         self.assertNotIn(b'SUBJECT_SENTINEL', raw)
         self.facts('run-b')

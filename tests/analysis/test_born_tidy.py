@@ -1,5 +1,5 @@
-"""Born tidy (M8.7): the gates every change passes hold the repository's craft and its assistants' context, so a project
-built from its plan or extended with a feature ends with no such finding, and a fix is held only for what it made worse."""
+"""Born tidy: the gates every change passes hold the repository's craft and its assistants' context, so a project built
+from its plan or extended with a feature ends with no such finding, and a fix is held only for what it made worse."""
 from pathlib import Path
 
 from shared_fixture import Workspace
@@ -33,7 +33,7 @@ class BornTidyTests(Workspace):
         self.assertEqual(tidy(None, built, ['src/main.py']), [], 'a change elsewhere is not held for it')
 
     def test_a_check_older_than_the_repository_reading_holds_nothing_against_a_change(self):
-        # Review of 2026-10-26: with no repository facts before, every finding at a changed path looked new.
+        # With no repository facts before, every finding at a changed path would look new.
         built = self.facts('built', {**APP, **FAMILY})
         older = self.facts('older', APP)
         (older / 'facts/repository.json').unlink()

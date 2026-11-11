@@ -1,8 +1,9 @@
 """A PostgreSQL of the run's own, on 127.0.0.1, for a project that needs a database to start.
 
-The owner's database is never used: a run gets an empty one here, created for it, and the project's own
-migrations fill it; the project's checks get a copy of it of their own (copy()), dropped when they end. The binaries come from the `pgserver` package (Apache-2.0, installed with EAOS's `live`
-extra), so nothing needs an administrator; a PostgreSQL already installed on the machine is the fallback.
+The project's own database is never used: a run gets an empty one here, created for it, and the project's own
+migrations fill it; the project's checks get a copy of it of their own (copy()), dropped when they end. The binaries
+come from the `pgserver` package (Apache-2.0, installed with EAOS's `live` extra), so nothing needs an administrator;
+a PostgreSQL already installed on the machine is the fallback.
 It answers 127.0.0.1 only, to a password of its own (scram-sha-256) kept in <runtime>/database/password, readable by
 the person only and carried in the address the run gets: another project's run on this computer cannot connect.
 
@@ -11,7 +12,7 @@ of this runtime, as its own postmaster.pid says, is reused. Every run that creat
 (shared) until its stop(), and the last one leaving stops the server, keeping the data for the next step: runs side by
 side, each on a database of its own (eaos/live/app/run.py), never stop one another's. Under root the data
 sits in the temporary folder instead, with a note naming its runtime beside it: once that runtime is gone, the next
-start() removes the data (356 such databases had kept 16 GB after their projects were deleted).
+start() removes the data, so no data outlives a deleted project.
 """
 import contextlib
 import fcntl
@@ -26,6 +27,7 @@ import stat
 import subprocess
 import tempfile
 from pathlib import Path
+from .errors import noted
 
 
 def binaries():
@@ -33,11 +35,12 @@ def binaries():
     try:
         from pgserver._commands import POSTGRES_BIN_PATH
         if (Path(POSTGRES_BIN_PATH) / 'initdb').exists(): return Path(POSTGRES_BIN_PATH)
-    except ImportError:
-        pass
+    except ImportError as error:
+        noted('pgserver is not installed: the initdb on the path is used', error)
     found = shutil.which('initdb')
     if found: return Path(found).parent
-    candidates = sorted(glob.glob('/usr/lib/postgresql/*/bin/initdb') + glob.glob('/opt/homebrew/opt/postgresql*/bin/initdb')
+    candidates = sorted(glob.glob('/usr/lib/postgresql/*/bin/initdb')
+                        + glob.glob('/opt/homebrew/opt/postgresql*/bin/initdb')
                         + glob.glob('/usr/local/opt/postgresql*/bin/initdb'))
     return Path(candidates[-1]).parent if candidates else None
 
@@ -76,7 +79,8 @@ def _reachable(bin_dir, owner):
         _open_to(copy.parent, owner)
         with tempfile.TemporaryDirectory(prefix='.partial-', dir=copy.parent) as partial:
             made = Path(partial) / 'pgserver-copy'
-            shutil.copytree(install, made / 'pgserver' / 'pginstall', symlinks=True, ignore=shutil.ignore_patterns('include'))
+            shutil.copytree(install, made / 'pgserver' / 'pginstall', symlinks=True,
+                            ignore=shutil.ignore_patterns('include'))
             if (install.parent.parent / 'pgserver.libs').is_dir():
                 shutil.copytree(install.parent.parent / 'pgserver.libs', made / 'pgserver.libs', symlinks=True)
             for folder, _, _ in os.walk(made): _open_to(folder, owner)
@@ -85,7 +89,7 @@ def _reachable(bin_dir, owner):
 
 
 def _open_to(folder, owner):
-    """A folder the dedicated account owns, closed to every other account (it was open to all of them)."""
+    """A folder the dedicated account owns, closed to every other account."""
     shutil.chown(folder, user=owner, group=owner)
     os.chmod(folder, 0o700)  # nosemgrep: python.lang.security.audit.insecure-file-permissions -- 0o700 closes the folder to every other account
 
@@ -95,7 +99,8 @@ def _as_owner():
     if os.name == 'nt' or os.geteuid() != 0: return None
     import pwd
     try: pwd.getpwnam('eaos-pg')
-    except KeyError: subprocess.run(['useradd', '--system', '--no-create-home', '-s', '/usr/sbin/nologin', 'eaos-pg'], check=True)
+    except KeyError:
+        subprocess.run(['useradd', '--system', '--no-create-home', '-s', '/usr/sbin/nologin', 'eaos-pg'], check=True)
     return 'eaos-pg'
 
 
@@ -104,7 +109,8 @@ class LocalPostgres:
         self.root = Path(runtime) / 'database'
         self.owner = _as_owner()
         # Under root the data must be where the dedicated account can reach it: /root is not.
-        self.data = (Path(tempfile.gettempdir()) / 'eaos-pg' / self.root.resolve().as_posix().strip('/').replace('/', '_')
+        self.data = (Path(tempfile.gettempdir()) / 'eaos-pg'
+                     / self.root.resolve().as_posix().strip('/').replace('/', '_')
                      if self.owner else self.root / 'data')
         self.state, self.password_file = self.root / 'server.json', self.root / 'password'
         # A Unix socket's path may not pass about 104 characters (macOS) or 107 (Linux), and the data folder under
@@ -140,7 +146,8 @@ class LocalPostgres:
         return self.password_file.read_text().strip()
 
     def start(self):
-        """The server's address, postgresql://postgres:<password>@127.0.0.1:<port>, starting it when it is not running."""
+        """The server's address, postgresql://postgres:<password>@127.0.0.1:<port>, starting it when it is not
+        running."""
         state = self.running()
         if state: return self.url(state)
         bin_dir = binaries()
@@ -161,7 +168,8 @@ class LocalPostgres:
             given = self.data.with_name(self.data.name + '.pw')         # where initdb's account reads it, then gone
             _private(given, password)
             if self.owner: shutil.chown(given, self.owner)
-            try: self._run(bin_dir, 'initdb', '-D', str(self.data), '-U', 'postgres', '--auth=scram-sha-256', f'--pwfile={given}',
+            try: self._run(bin_dir, 'initdb', '-D', str(self.data), '-U', 'postgres',
+                           '--auth=scram-sha-256', f'--pwfile={given}',
                            '-E', 'UTF8', '--no-instructions')
             finally: given.unlink(missing_ok=True)
         port = free_port()
@@ -172,7 +180,8 @@ class LocalPostgres:
                   f"-h 127.0.0.1 -p {port} -k {self.sockets}", 'start')
         state = {'port': port, 'bin': str(bin_dir)}
         self.state.write_text(json.dumps(state))
-        self._psql(state, "select format('drop database %I with (force)', datname) from pg_database where datname ~ (:'copy' || '[0-9a-f]{8}$') \\gexec",
+        self._psql(state, "select format('drop database %I with (force)', datname) from pg_database "
+                   "where datname ~ (:'copy' || '[0-9a-f]{8}$') \\gexec",
                    copy=COPY)
         return self.url(state)
 
@@ -180,7 +189,9 @@ class LocalPostgres:
         """Stop and remove every database whose runtime is gone: none of them can be asked for again."""
         for note in self.data.parent.glob('*.from'):
             try: root = Path(note.read_text(encoding='utf-8'))
-            except FileNotFoundError: continue          # another run's sweep took it first
+            except FileNotFoundError as error:          # another run's sweep took it first
+                noted('the note is gone', error)
+                continue
             if root.exists(): continue
             data = note.with_suffix('')
             self._run(bin_dir, 'pg_ctl', '-D', str(data), '-m', 'immediate', 'stop', check=False)
@@ -220,9 +231,10 @@ class LocalPostgres:
         return self.url(state, name)
 
     def copy(self, base):
-        """The address of a database of this holder's alone, copied from `base` as it is now (created empty when missing):
-        what setup wrote in it is there, nothing an earlier holder wrote in its copy is, and `base` is never written.
-        Dropped at stop(). A base another run is connected to cannot be copied: the database is then made empty."""
+        """The address of a database of this holder's alone, copied from `base` as it is now (created empty when
+        missing): what setup wrote in it is there, nothing an earlier holder wrote in its copy is, and `base` is never
+        written. Dropped at stop(). A base another run is connected to cannot be copied: the database is then made
+        empty."""
         name = f'{base[:40]}{COPY}{secrets.token_hex(4)}'
         with self._server() as state:
             self._ensure(state, base)
@@ -234,7 +246,8 @@ class LocalPostgres:
     def stop(self):
         """Leave the server, and stop it when no other run holds it (its data stays)."""
         state = self.running()
-        for name in self._copies if state else []:     # FORCE ends its connections in the same step: a check may leave one open
+        # FORCE ends its connections in the same step: a check may leave one open
+        for name in self._copies if state else []:
             self._psql(state, 'drop database if exists :"name" with (force)', name=name)
         self._copies = []
         if self._held is not None:

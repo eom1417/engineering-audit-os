@@ -16,7 +16,7 @@ from ...core.system.clock import now
 
 
 
-# The commands a user types, each ending with the next-step box (X4 in docs/north-star.json).
+# The commands a user types, each ending with the next-step box.
 USER_COMMANDS = ('start', 'next', 'status', 'doctor', 'clean', 'accept', 'undo', 'show', 'do', 'assistant', 'handover')
 
 
@@ -26,7 +26,8 @@ def show(args):
     lang = language(args.lang, state)
     page = report_of(state) / 'START-HERE.md'
     if not page.is_file():
-        box(lang, 'لم أفحص المشروع بعد' if lang == 'ar' else 'I have not checked the project yet', commands=['eaos next'], status='warn')
+        box(lang, 'لم أفحص المشروع بعد' if lang == 'ar' else 'I have not checked the project yet',
+            commands=['eaos next'], status='warn')
         return 0
     say(page.read_text(encoding='utf-8'))
     box(lang, 'هذه نتيجة الفحص' if lang == 'ar' else 'This is what the check found', where=page, commands=['eaos next'])
@@ -40,15 +41,18 @@ def do(args):
     request = ' '.join(args.request or [])
     intent, _ = understand(request)
     if intent is None:
-        box(lang, ('لم أفهم الطلب. جرّب مثلًا: «افحص مشروعي»، «كمّل»، «وش المشاكل»، «وين وصلنا»' if lang == 'ar'
-                   else 'I did not understand. Try, for example: "check my project", "continue", "what is wrong", "where are we"'),
+        box(lang, ('لم أفهم الطلب. جرّب مثلًا: «افحص مشروعي»، «كمّل»، «وش المشاكل»، «وين وصلنا»'
+                   if lang == 'ar' else
+                   'I did not understand. Try, for example: "check my project", "continue", "what is wrong", '
+                   '"where are we"'),
             commands=['eaos do "افحص مشروعي"' if lang == 'ar' else 'eaos do "check my project"'], status='warn')
         return 0
     command = intent['command'][0]
     say(('سأنفّذ: ' if lang == 'ar' else 'Doing: ') + 'eaos ' + ' '.join(intent['command']))
     from argparse import Namespace
     target = intent['command'][1] if len(intent['command']) > 1 else args.project
-    inner = Namespace(command=command, project=target if command != 'doctor' else None, lang=args.lang, yes=args.yes, fix=False)
+    inner = Namespace(command=command, project=target if command != 'doctor' else None, lang=args.lang,
+                      yes=args.yes, fix=False)
     return COMMANDS[command](inner)
 
 
@@ -58,20 +62,23 @@ def assistant(args):
     lang = language(args.lang)
     done = install()
     if not done:
-        box(lang, ('لم أجد Claude Code ولا Codex على جهازك' if lang == 'ar' else 'I found neither Claude Code nor Codex on this computer'),
+        box(lang, ('لم أجد Claude Code ولا Codex على جهازك' if lang == 'ar'
+                   else 'I found neither Claude Code nor Codex on this computer'),
             commands=['eaos start .'], status='warn',
             note=('ثبّت أحدهما لتكلّمه بكلامك، أو استخدم أوامر eaos مباشرة' if lang == 'ar'
                   else 'Install one to talk to it in your own words, or use the eaos commands directly'))
         return 0
     box(lang, ('صار مساعدك يعرف EAOS: ' if lang == 'ar' else 'Your assistant now knows EAOS: ') + ', '.join(done),
         commands=['«افحص مشروعي»' if lang == 'ar' else '"check my project"'],
-        note=('افتح مساعدك في مجلد مشروعك واكتب له بكلامك' if lang == 'ar' else 'Open your assistant in your project folder and ask in your own words'))
+        note=('افتح مساعدك في مجلد مشروعك واكتب له بكلامك' if lang == 'ar'
+              else 'Open your assistant in your project folder and ask in your own words'))
     return 0
 
 
 # (id, Arabic title, English title, done(state), run(state, args)): check and fix, its words in eaos/data/journeys.json
 STEPS = [(step['id'], step['title']['ar'], step['title']['en'], done, run) for step, (done, run) in zip(
-    json.loads((Path(__file__).resolve().parents[2] / 'data/journeys.json').read_text(encoding='utf-8'))['journeys']['check']['steps'],
+    json.loads((Path(__file__).resolve().parents[2] / 'data/journeys.json').read_text(
+        encoding='utf-8'))['journeys']['check']['steps'],
     ((scan_done, scan), (ready_done, ready), (safety_done, safety), (fix_done, fix)))]
 
 
@@ -92,8 +99,10 @@ def start(args):
     save(state)
     _keep_assistant(state, getattr(args, 'assistant', None))
     lang = state['lang']
-    say((f"مرحبًا. سأفحص مشروع «{project.name}» وأكتب لك تقريرًا بكلام بسيط. لن أغيّر شيئًا في مشروعك." if lang == 'ar' else
-         f"Hello. I will check «{project.name}» and write you a report in plain words. I will not change anything in your project."))
+    say((f"مرحبًا. سأفحص مشروع «{project.name}» وأكتب لك تقريرًا بكلام بسيط. لن أغيّر شيئًا في مشروعك."
+         if lang == 'ar' else
+         f"Hello. I will check «{project.name}» and write you a report in plain words. "
+         "I will not change anything in your project."))
     if _missing_first(project, lang): return 1
     watch(state, args)
     if not (getattr(args, 'path', None) or getattr(args, 'mode', None)): return advance(state, args)
@@ -106,7 +115,8 @@ def _keep_assistant(state, named):
 
 
 def _missing_first(project, lang):
-    """Whether the computer misses something the check needs now that `eaos doctor --fix` cannot install; said, with its fix."""
+    """Whether the computer misses something the check needs now that `eaos doctor --fix` cannot install; said, with
+    its fix."""
     blocking = [row for row in doctor_rows(project) if not row['ok'] and row['when'] == 'now']
     if not blocking or all(row['fix'] == 'eaos doctor --fix' for row in blocking): return False
     for row in blocking: say(f"❌ {row[lang]}\n     → {row['fix']}")
@@ -116,18 +126,11 @@ def _missing_first(project, lang):
 
 
 def watch(state, args):
-    """Interface first: the install of the tools starts in the background (eaos/core/toolchain/runs.py), and the project's Studio,
-    started when it is not running, is printed and opened in the browser, unless `eaos start --no-watch`: on
-    "Preparing the tools" while a tool the check needs here is not ready, else on the live map."""
+    """The install of the tools the check needs starts in the background (eaos/core/toolchain/runs.py), unless
+    `eaos start --no-watch`."""
     if getattr(args, 'no_watch', False): return
-    from ...core.system import launch
     from ...core import toolchain
     toolchain.prepare(state['project'])
-    record, _ = launch.start(state)
-    if not record: return
-    url = launch.url_of(record, '/scan' if toolchain.ready(state['project']) else '/tools')
-    say(f"تابع العمل حيًّا: {url}" if state['lang'] == 'ar' else f"Watch the work live: {url}")
-    launch._open(url, True)
 
 
 def next_command(args):
@@ -162,13 +165,14 @@ def status(args):
 
 
 def clean(args):
-    """Remove the isolated copies proved to hold nothing (guided/copies.py), caches and app sessions EAOS made; reports and state stay. With --pictures, the screen
-    pictures, the crawl and the assistant's raw runs of every report (eaos/pipeline/run.py PICTURES): a new check
-    takes them again."""
+    """Remove the isolated copies proved to hold nothing (guided/copies.py), caches and app sessions EAOS made;
+    reports and state stay. With --pictures, the screen pictures, the crawl and the assistant's raw runs of every
+    report (eaos/pipeline/run.py PICTURES): a new check takes them again."""
     lang = language(args.lang)
     pictures = getattr(args, 'pictures', False)
     freed, kept = _pictures_cleared() if pictures else (0, [])
-    from ...live.isolation.sandbox import sweep                     # a live run's folder (held) stays: another project's check runs on
+    # a live run's folder (held) stays: another project's check runs on
+    from ...live.isolation.sandbox import sweep
     freed += sum(sweep(folder) for folder in (home() / 'projects').glob('*/runtime*/sandbox'))
     kept += _sessions_forgotten()
     gone, left = copies.cleared()
@@ -177,42 +181,52 @@ def clean(args):
 
 
 def _sessions_forgotten():
-    """The sessions of the apps removed: a check asks to sign in again. A project with work going on, or that cannot be told,
-    keeps its own: what stayed."""
+    """The sessions of the apps removed: a check asks to sign in again. A project with work going on, or that cannot
+    be told, keeps its own: what stayed."""
     from ...live.access.sign_in import forget
-    return [(folder, 'held') for folder in (home() / 'projects').glob('*') if not copies.when_idle(folder, lambda place=folder: forget(place))]
+    return [(folder, 'held') for folder in (home() / 'projects').glob('*')
+            if not copies.when_idle(folder, lambda place=folder: forget(place))]
 
 
 def _say_cleaned(lang, pictures, freed, kept):
     ar = lang == 'ar'
-    done = (f"حذفت النسخ المؤقتة{' وصور الشاشات القديمة' if pictures else ''} ووفّرت {freed / 2 ** 30:.1f} GB. التقارير باقية" if ar
-            else f"Removed the temporary copies{' and the old screen pictures' if pictures else ''} and freed {freed / 2 ** 30:.1f} GB. Reports are kept")
-    if kept: done = (f"حذفت ما ثبت أنه لا يحمل عملًا ووفّرت {freed / 2 ** 30:.1f} GB. بقي {len(kept)} مما لم يثبت" if ar
-                     else f"Removed what is proved to hold nothing and freed {freed / 2 ** 30:.1f} GB. {len(kept)} stay, not proved")
-    box(lang, done, status='warn' if kept else 'ok', note=[f"{str(copy).encode('utf-8', 'replace').decode()}: {copies.WHY[why][0 if ar else 1]}" for copy, why in kept],
+    done = (f"حذفت النسخ المؤقتة{' وصور الشاشات القديمة' if pictures else ''} ووفّرت {freed / 2 ** 30:.1f} GB. "
+            "التقارير باقية" if ar
+            else f"Removed the temporary copies{' and the old screen pictures' if pictures else ''} and freed "
+                 f"{freed / 2 ** 30:.1f} GB. Reports are kept")
+    if kept: done = (f"حذفت ما ثبت أنه لا يحمل عملًا ووفّرت {freed / 2 ** 30:.1f} GB. بقي {len(kept)} مما لم يثبت"
+                     if ar else
+                     f"Removed what is proved to hold nothing and freed {freed / 2 ** 30:.1f} GB. "
+                     f"{len(kept)} stay, not proved")
+    box(lang, done, status='warn' if kept else 'ok',
+        note=[f"{str(copy).encode('utf-8', 'replace').decode()}: {copies.WHY[why][0 if ar else 1]}"
+              for copy, why in kept],
         where=home(), commands=['eaos next'])
 
 
 def _pictures_cleared():
-    """The screen pictures, crawl and raw assistant runs of every report removed (PICTURES), but those of a project with work
-    going on, or whose folder does not say which project it is: (the bytes freed, what stayed)."""
+    """The screen pictures, crawl and raw assistant runs of every report removed (PICTURES), but those of a project
+    with work going on, or whose folder does not say which project it is: (the bytes freed, what stayed)."""
     from ...pipeline.run import PICTURES, clear
     freed, kept = [], []
     for report in (*outputs_root().glob('*/technical'), *outputs_root().glob('*/branches/*/technical')):
         folder = _project_of(report)
-        if not (folder and copies.when_idle(folder, lambda place=report: freed.append(clear(place, PICTURES)))): kept.append((report, 'held'))
+        if not (folder and copies.when_idle(folder, lambda place=report: freed.append(clear(place, PICTURES)))):
+            kept.append((report, 'held'))
     return sum(freed), kept
 
 
 def _project_of(report):
-    """The project's EAOS folder for this report, only when its outputs folder's mark and that project's state agree; else None."""
+    """The project's EAOS folder for this report, only when its outputs folder's mark and that project's state
+    agree; else None."""
     outputs = report.parent if report.parent.parent == outputs_root() else report.parents[2]
     try:
         project = (outputs / '.eaos-project').read_text(encoding='utf-8').strip()
         state = load(project) if project else None
     except (OSError, ValueError):
         return None
-    if not isinstance(state, dict) or state.get('project') != project or Path(state.get('outputs') or '/').resolve() != outputs.resolve(): return None
+    if (not isinstance(state, dict) or state.get('project') != project
+            or Path(state.get('outputs') or '/').resolve() != outputs.resolve()): return None
     return workspace(project)
 
 
@@ -223,19 +237,24 @@ def resume(args):
     lang = language(args.lang, state)
     found = RESUME[0](state['project'], lang) if RESUME else None
     if not found or not found['rows']:
-        box(lang, 'لم يبدأ عمل EAOS في هذا المشروع بعد' if lang == 'ar' else 'No EAOS work has started in this project yet',
+        box(lang, 'لم يبدأ عمل EAOS في هذا المشروع بعد' if lang == 'ar'
+            else 'No EAOS work has started in this project yet',
             commands=['eaos start .'], status='warn')
         return 0
     for label, value in found['rows']: say(f'   {label}: {value}')
     ar = lang == 'ar'
-    box(lang, ('هذا ما وصل إليه العمل. افتح أي مساعد (Claude Code أو Codex) في مجلد مشروعك واكتب له الجملة أدناه' if ar else
-               'This is where the work is. Open any assistant (Claude Code or Codex) in your project folder and write it the line below'),
-        where=found['handover'], commands=[found['say']], note=(None if found['open'] else ('لا يوجد عمل مفتوح الآن' if ar else 'Nothing is open now')))
+    box(lang, ('هذا ما وصل إليه العمل. افتح أي مساعد (Claude Code أو Codex) في مجلد مشروعك واكتب له الجملة أدناه'
+               if ar else
+               'This is where the work is. Open any assistant (Claude Code or Codex) in your project folder and '
+               'write it the line below'),
+        where=found['handover'], commands=[found['say']],
+        note=(None if found['open'] else ('لا يوجد عمل مفتوح الآن' if ar else 'Nothing is open now')))
     return 0
 
 
-# accept, undo and the check `start` asks for are the terminal's (eaos/interfaces/terminal/commands.py: what will happen, the person's yes),
-# registered by that module itself (TERMINAL['check'] and COMMANDS), so that this one does not import it.
+# accept, undo and the check `start` asks for are the terminal's (eaos/interfaces/terminal/commands.py: what will
+# happen, the person's yes), registered by that module itself (TERMINAL['check'] and COMMANDS), so that this one does
+# not import it.
 TERMINAL = {}
 COMMANDS = {'start': start, 'next': next_command, 'status': status, 'doctor': doctor, 'clean': clean,
             'show': show, 'do': do, 'assistant': assistant, 'handover': resume}
@@ -271,7 +290,8 @@ def _ask_to_agree(lang, question, args):
     box(lang, question['text'], status='ask',
         note=('للموافقة اكتب الأمر أدناه، ولن يحدث شيء حتى توافق' if lang == 'ar'
               else 'To agree, type the command below; nothing happens until you do'),
-        commands=[f"eaos {args.command} --yes" + (f" {args.project}" if args.command == 'start' and args.project not in (None, '.') else '')])
+        commands=[f"eaos {args.command} --yes"
+                  + (f" {args.project}" if args.command == 'start' and args.project not in (None, '.') else '')])
 
 
 def _failed(lang, problem, state):

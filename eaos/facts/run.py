@@ -7,8 +7,7 @@ from .code import config, entrypoints, flows, graph, history, metrics, resolve, 
 from .dead_code import detect as deadcode
 from .domain import model as domain
 from . import engine_findings as external
-from .duplication import fingerprint, patterns, redundancy
-from .declared_pipelines import detect as pipeline
+from .duplication import fingerprint, redundancy
 from .runtime import operations as runtime
 from .repository import read as repository
 from .source import Source
@@ -20,21 +19,20 @@ from ..core.system.files import read_json
 
 def digest(data): return _sha256(data).hexdigest()
 
-EXTRACTORS = {'history': history, 'syntax': syntax, 'structure': structure, 'resolve': resolve, 'entrypoints': entrypoints,
-              'config': config, 'metrics': metrics, 'graph': graph, 'flows': flows, 'domain': domain,
-              'fingerprint': fingerprint, 'patterns': patterns, 'redundancy': redundancy, 'runtime': runtime,
+EXTRACTORS = {'history': history, 'syntax': syntax, 'structure': structure, 'resolve': resolve,
+              'entrypoints': entrypoints, 'config': config, 'metrics': metrics, 'graph': graph, 'flows': flows,
+              'domain': domain, 'fingerprint': fingerprint, 'redundancy': redundancy, 'runtime': runtime,
               'leftovers': leftovers, 'deadcode': deadcode, 'broken': broken,
-              'secrets': secrets, 'pipeline': pipeline, 'repository': repository}
-ORDER = ['syntax', 'resolve', 'structure', 'fingerprint', 'patterns', 'runtime', 'entrypoints', 'redundancy', 'config', 'metrics', 'domain', 'history', 'graph', 'flows', 'leftovers', 'deadcode', 'broken', 'secrets', 'pipeline', 'repository']
+              'secrets': secrets, 'repository': repository}
+ORDER = ['syntax', 'resolve', 'structure', 'fingerprint', 'runtime', 'entrypoints', 'redundancy', 'config',
+         'metrics', 'domain', 'history', 'graph', 'flows', 'leftovers', 'deadcode', 'broken', 'secrets',
+         'repository']
 
 
-# Every fact set the tool can read, in one place. Three modules used to keep their own copy of
-# this list, and a set added to one of them was invisible to the others — the duplication this
-# product exists to find, in the product itself.
+# Every fact set the tool can read, in one place, so every reader sees the same list.
 # 'external' is produced here too, but only when a caller asks for engines: it shells out to
-# pinned binaries, so it never runs by default. 'boundaries' is the layers' (eaos/analysis/layers/); 'logic_flaws' the
-# logic-flaw hunt's (eaos/analysis/logic_flaws/), an optional deep check.
-PRODUCED_ELSEWHERE = ['policy', 'verification', 'external', 'boundaries', 'logic_flaws', 'experience']
+# pinned binaries, so it never runs by default. 'boundaries' is the layers' (eaos/analysis/layers/).
+PRODUCED_ELSEWHERE = ['policy', 'verification', 'external', 'boundaries']
 ALL_SETS = ORDER + PRODUCED_ELSEWHERE
 # The minimum a caller needs before it can ask what a change would reach.
 GRAPH_PREREQUISITES = ['syntax', 'resolve', 'entrypoints', 'config', 'metrics', 'history', 'graph']
@@ -73,7 +71,8 @@ def collect_external(target, out, source, only=None, keep=False):
     counted = {'registry_referenced_dead_code_marked': referenced, 'measures_longer_than_their_function': misread}
     if any(counted.values()):
         result['summary'] = {**(result.get('summary') or {}), **{name: n for name, n in counted.items() if n}}
-    external_entry = write_set(out, 'external', external.NAME, external.VERSION, external.LIMITATIONS, {**result, 'facts': facts})
+    external_entry = write_set(out, 'external', external.NAME, external.VERSION, external.LIMITATIONS,
+                               {**result, 'facts': facts})
     return [external_entry]
 
 
@@ -114,7 +113,8 @@ def _redundancy_args(produced, context):
 
 def _flows_args(produced, context):
     return {'symbols': _syntax_of(produced, 'symbol'), 'calls': _syntax_of(produced, 'call_edge'),
-            'edges': produced.get('resolve', []), 'entry_points': produced.get('entrypoints', []), 'env': produced.get('config', []),
+            'edges': produced.get('resolve', []), 'entry_points': produced.get('entrypoints', []),
+            'env': produced.get('config', []),
             'imports': _syntax_of(produced, 'import_edge')}
 
 
@@ -149,7 +149,8 @@ def _checked_paths(target, out):
     target = Path(target).resolve()
     if not target.is_dir(): raise ValueError('Target must be an existing directory')
     out = Path(out).resolve()
-    if out == target or target in out.parents: raise ValueError('Write facts outside the target; the target stays read-only')
+    if out == target or target in out.parents:
+        raise ValueError('Write facts outside the target; the target stays read-only')
     return target, out
 
 
@@ -187,13 +188,14 @@ def _extract(names, target, out, source, context):
 
 
 def collect(target, out, selected=None, max_commits=2000, source=None, exclude=(), engines=None, cache=None):  # limits: parameters -- the `eaos facts` command's options and a check's own snapshot and cache, each a keyword
-    """Each extractor's start and end is reported as a step of the running stage (eaos/core/progress/context.py): the live
-    map shows where the facts stage is inside. It does not change what runs. `cache`: the file the parsed files are kept in between checks (in the check's runtime,
-    never in the report: 63 MB of it sat among EAOS's facts); without one they are kept for this call only. `source`: the snapshot to read when the
-    caller built it (with its own bounds); else one with the default bounds."""
+    """Each extractor's start and end is reported as a step of the running stage
+    (eaos/core/progress/context.py): the live map shows where the facts stage is inside. It does not change what
+    runs. `cache`: the file the parsed files are kept in between checks (in the check's runtime, never in the
+    report: 63 MB of it sat among EAOS's facts); without one they are kept for this call only. `source`: the
+    snapshot to read when the caller built it (with its own bounds); else one with the default bounds."""
     target, out = _checked_paths(target, out)
     # What the project declared out of scope applies to every caller, not only the ones that
-    # remembered to ask. Two commands honoured it and three did not.
+    # remembered to ask.
     from .scope import declared_exclusions
     from .scope import exclusion_reasons
     exclude = sorted({*(exclude or ()), *declared_exclusions(target)})

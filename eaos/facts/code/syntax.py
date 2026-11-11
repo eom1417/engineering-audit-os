@@ -19,33 +19,47 @@ LIMITATIONS = [
 ]
 
 TREE_SITTER = {
-    'javascript': {'functions': {'function_declaration', 'function_expression', 'arrow_function', 'method_definition', 'generator_function_declaration'},
-                   'classes': {'class_declaration', 'class'}, 'imports': {'import_statement'}, 'calls': {'call_expression'}},
+    'javascript': {'functions': {'function_declaration', 'function_expression', 'arrow_function', 'method_definition',
+                                 'generator_function_declaration'},
+                   'classes': {'class_declaration', 'class'}, 'imports': {'import_statement'},
+                   'calls': {'call_expression'}},
     'go': {'functions': {'function_declaration', 'method_declaration'}, 'classes': {'type_declaration'},
            'imports': {'import_spec'}, 'calls': {'call_expression'}},
-    'java': {'functions': {'method_declaration', 'constructor_declaration'}, 'classes': {'class_declaration', 'interface_declaration', 'enum_declaration', 'record_declaration'},
+    'java': {'functions': {'method_declaration', 'constructor_declaration'}, 'classes': {'class_declaration',
+                                                                                         'interface_declaration',
+                                                                                         'enum_declaration',
+                                                                                         'record_declaration'},
              'imports': {'import_declaration'}, 'calls': {'method_invocation'}},
     'rust': {'functions': {'function_item'}, 'classes': {'struct_item', 'enum_item', 'trait_item', 'impl_item'},
              'imports': {'use_declaration'}, 'calls': {'call_expression'}},
     'ruby': {'functions': {'method', 'singleton_method'}, 'classes': {'class', 'module'},
              'imports': {'call'}, 'calls': {'call'}},
-    'php': {'functions': {'function_definition', 'method_declaration'}, 'classes': {'class_declaration', 'interface_declaration', 'trait_declaration'},
-            'imports': {'namespace_use_declaration', 'require_expression', 'include_expression'}, 'calls': {'function_call_expression', 'member_call_expression'}},
-    'csharp': {'functions': {'method_declaration', 'constructor_declaration', 'local_function_statement'}, 'classes': {'class_declaration', 'interface_declaration', 'record_declaration', 'struct_declaration'},
+    'php': {'functions': {'function_definition', 'method_declaration'}, 'classes': {'class_declaration',
+                                                                                    'interface_declaration',
+                                                                                    'trait_declaration'},
+            'imports': {'namespace_use_declaration', 'require_expression', 'include_expression'},
+            'calls': {'function_call_expression', 'member_call_expression'}},
+    'csharp': {'functions': {'method_declaration', 'constructor_declaration', 'local_function_statement'},
+               'classes': {'class_declaration', 'interface_declaration', 'record_declaration', 'struct_declaration'},
                'imports': {'using_directive'}, 'calls': {'invocation_expression'}},
     'kotlin': {'functions': {'function_declaration'}, 'classes': {'class_declaration', 'object_declaration'},
                'imports': {'import_header'}, 'calls': {'call_expression'}},
     'swift': {'functions': {'function_declaration'}, 'classes': {'class_declaration', 'protocol_declaration'},
               'imports': {'import_declaration'}, 'calls': {'call_expression'}},
-    'c': {'functions': {'function_definition'}, 'classes': {'struct_specifier'}, 'imports': {'preproc_include'}, 'calls': {'call_expression'}},
-    'cpp': {'functions': {'function_definition'}, 'classes': {'class_specifier', 'struct_specifier'}, 'imports': {'preproc_include'}, 'calls': {'call_expression'}},
-    'scala': {'functions': {'function_definition'}, 'classes': {'class_definition', 'object_definition', 'trait_definition'},
+    'c': {'functions': {'function_definition'}, 'classes': {'struct_specifier'}, 'imports': {'preproc_include'},
+          'calls': {'call_expression'}},
+    'cpp': {'functions': {'function_definition'}, 'classes': {'class_specifier', 'struct_specifier'},
+            'imports': {'preproc_include'}, 'calls': {'call_expression'}},
+    'scala': {'functions': {'function_definition'}, 'classes': {'class_definition', 'object_definition',
+                                                                'trait_definition'},
               'imports': {'import_declaration'}, 'calls': {'call_expression'}},
     'dart': {'functions': {'function_signature', 'method_signature'}, 'classes': {'class_definition'},
              'imports': {'import_or_export'}, 'calls': {'selector'}},
     'bash': {'functions': {'function_definition'}, 'classes': set(), 'imports': set(), 'calls': {'command'}},
 }
-TREE_SITTER['typescript'] = dict(TREE_SITTER['javascript'], classes={'class_declaration', 'interface_declaration', 'enum_declaration', 'type_alias_declaration', 'abstract_class_declaration'})
+TREE_SITTER['typescript'] = dict(TREE_SITTER['javascript'], classes={'class_declaration', 'interface_declaration',
+                                                                     'enum_declaration', 'type_alias_declaration',
+                                                                     'abstract_class_declaration'})
 TREE_SITTER['tsx'] = TREE_SITTER['typescript']
 
 
@@ -96,7 +110,8 @@ def _python_import(node, units):
         units['imports'] += [{'module': alias.name, 'names': [], 'level': 0, 'line': node.lineno, 'style': 'absolute'}
                              for alias in node.names]
     else:
-        units['imports'].append({'module': node.module or '', 'names': [a.name for a in node.names], 'level': node.level,
+        units['imports'].append({'module': node.module or '', 'names': [a.name for a in node.names],
+                                 'level': node.level,
                                  'line': node.lineno, 'style': 'relative' if node.level else 'absolute'})
 
 
@@ -123,7 +138,8 @@ def named_child(node, blob):
     field = node.child_by_field_name('name')
     if field is not None: return node_text(field, blob)
     for child in node.named_children:
-        if child.type in {'identifier', 'type_identifier', 'field_identifier', 'property_identifier', 'constant', 'scoped_identifier'}:
+        if child.type in {'identifier', 'type_identifier', 'field_identifier', 'property_identifier', 'constant',
+                          'scoped_identifier'}:
             return node_text(child, blob)
     return None
 
@@ -134,7 +150,8 @@ def anonymous_name(node, blob):
     for _ in range(3):
         if parent is None: break
         if parent.type in {'variable_declarator', 'pair', 'assignment_expression', 'public_field_definition'}:
-            return named_child(parent, blob) or node_text(parent.named_children[0], blob) if parent.named_children else None
+            return named_child(parent, blob) or node_text(parent.named_children[0],
+                                                          blob) if parent.named_children else None
         parent = parent.parent
     return None
 
@@ -144,7 +161,8 @@ def imported_names(node, blob):
     names, stack = [], [node]
     while stack:
         current = stack.pop(0)
-        if current.type in {'import_specifier', 'namespace_import', 'identifier', 'shorthand_property_identifier_pattern'}:
+        if current.type in {'import_specifier', 'namespace_import', 'identifier',
+                            'shorthand_property_identifier_pattern'}:
             field = current.child_by_field_name('name') or current
             text = node_text(field, blob).strip()
             if text and text.isidentifier(): names.append(text)
@@ -160,7 +178,8 @@ def first_string(node, blob):
     stack = [node]
     while stack:
         current = stack.pop(0)
-        if current.type in {'string', 'string_literal', 'interpreted_string_literal', 'raw_string_literal', 'string_fragment'}:
+        if current.type in {'string', 'string_literal', 'interpreted_string_literal', 'raw_string_literal',
+                            'string_fragment'}:
             return node_text(current, blob).strip('\'"`')
         stack.extend(current.named_children)
     return None
@@ -169,12 +188,14 @@ def first_string(node, blob):
 def literal_argument(node, blob):
     """The specifier of `import("./x")` or `require("./x")`: the first argument when it is a literal, else None.
     `import(new URL("../server/", import.meta.url).href)` loads a computed path; the string inside it is a base
-    folder, not the module, and reading it as one reported a missing import."""
+    folder, not the module, so reading it as one would report a missing import."""
     arguments = node.child_by_field_name('arguments')
     first = arguments.named_children[0] if arguments is not None and arguments.named_children else None
     if first is None: return None
-    if first.type == 'template_string' and any(child.type == 'template_substitution' for child in first.named_children): return None
-    if first.type not in {'string', 'template_string', 'string_literal', 'interpreted_string_literal', 'raw_string_literal'}: return None
+    if first.type == 'template_string' and any(child.type == 'template_substitution' for child in first.named_children):
+        return None
+    if first.type not in {'string', 'template_string', 'string_literal', 'interpreted_string_literal',
+                          'raw_string_literal'}: return None
     return node_text(first, blob).strip('\'"`')
 
 
@@ -228,8 +249,8 @@ def _tree_import(node, blob):
 
 def _tree_reexport(node, blob):
     # A re-export (`export { Dialog } from "./Dialog"`, `export * from "./types"`) depends on its source
-    # exactly as an import does. A barrel index.ts made only of these was a file with no edges, and every
-    # module behind it looked unreachable.
+    # exactly as an import does. A barrel index.ts made only of these would be a file with no edges, and every
+    # module behind it would look unreachable.
     module = node_text(node.child_by_field_name('source'), blob).strip('\'"`')
     clause = re.search(r'\{([^}]*)\}', node_text(node, blob))
     names = [part.split(' as ')[0].strip() for part in clause.group(1).split(',') if part.strip()] if clause else ['*']
@@ -238,7 +259,8 @@ def _tree_reexport(node, blob):
 
 def _tree_call(node, current, walker):
     blob = walker['blob']
-    target = node.child_by_field_name('function') or node.child_by_field_name('method') or (node.named_children[0] if node.named_children else None)
+    target = (node.child_by_field_name('function') or node.child_by_field_name('method')
+              or (node.named_children[0] if node.named_children else None))
     if target is None: return
     raw_callee = node_text(target, blob).split('(')[0].strip()
     callee = raw_callee.split('.')[-1].split('::')[-1].split('->')[-1].strip()
@@ -289,7 +311,7 @@ def parse_text(path, text):
 
 def run(target, source, cache=None, **options):
     """Per-file results are cached by content hash, so re-running after a small change is cheap. The cache keeps only
-    today's files: an edited or removed file's old entry goes, else every edit grew it for good (175 MB on EAOS)."""
+    today's files: an edited or removed file's old entry goes, else every edit would grow it for good."""
     facts, statuses, languages = [], {}, {}
     fingerprints, seen = [], set()
     cache = cache if cache is not None else {}
@@ -314,7 +336,8 @@ def run(target, source, cache=None, **options):
     facts.sort(key=lambda f: (f['location']['path'], f['location'].get('start_line', 0), f['kind'], f['id']))
     # The cache counter is run telemetry, not a fact about the code: keeping it out of the fact set
     # means a cached run and a cold run produce byte-identical output.
-    return {'facts': facts, 'summary': _summary(facts, statuses, languages), 'available': True, 'reused_from_cache': reused,
+    return {'facts': facts, 'summary': _summary(facts, statuses, languages), 'available': True,
+            'reused_from_cache': reused,
             'input_sha': digest(''.join(sorted(fingerprints)).encode('utf-8')), 'reason': None}
 
 
@@ -328,14 +351,17 @@ def _considered(source, rel):
 def _unit_facts(item, rel, language, units):
     symbols, imports, calls = units
     facts = [make('symbol', NAME, VERSION, item['sha256'],
-                  {'path': rel, 'start_line': symbol['start_line'], 'end_line': symbol['end_line'], 'symbol': symbol['qualified_name']},
-                  {k: symbol[k] for k in ['name', 'kind', 'parent', 'exported', 'decorators', 'signature']} | {'language': language},
+                  {'path': rel, 'start_line': symbol['start_line'], 'end_line': symbol['end_line'],
+                   'symbol': symbol['qualified_name']},
+                  {k: symbol[k] for k in ['name', 'kind', 'parent', 'exported', 'decorators',
+                                          'signature']} | {'language': language},
                   limitations=LIMITATIONS) for symbol in symbols]
     facts += [make('import_edge', NAME, VERSION, item['sha256'], {'path': rel, 'start_line': entry['line']},
                    {'module': entry['module'], 'names': entry['names'], 'level': entry['level'],
                     'style': entry['style'], 'language': language},
                    resolution='UNRESOLVED', limitations=LIMITATIONS) for entry in imports]
-    facts += [make('call_edge', NAME, VERSION, item['sha256'], {'path': rel, 'start_line': entry['line'], 'symbol': entry['caller']},
+    facts += [make('call_edge', NAME, VERSION, item['sha256'], {'path': rel, 'start_line': entry['line'],
+                                                                'symbol': entry['caller']},
                    {'callee': entry['callee'], 'attribute': entry.get('attribute', False), 'language': language},
                    resolution='UNRESOLVED', limitations=LIMITATIONS) for entry in calls]
     return facts
@@ -364,4 +390,5 @@ def _summary(facts, statuses, languages):
             'imports': sum(f['kind'] == 'import_edge' for f in facts),
             'calls': sum(f['kind'] == 'call_edge' for f in facts),
             'tree_sitter_available': parser_for('typescript') is not None,
-            'interpretation': 'Structural observations only. No responsibility, boundary or defect is implied by any symbol or edge.'}
+            'interpretation': 'Structural observations only. No responsibility, boundary or defect is implied by any '
+                              'symbol or edge.'}

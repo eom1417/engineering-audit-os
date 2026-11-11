@@ -1,7 +1,7 @@
-"""How a card is judged and settled (eaos/analysis/planning/cards.py builds and orders the cards): its acceptance and verify command, what
-to do about its claim and what must still hold after, the assistant's triage verdicts applied to the ledger, the screen
-reviewer's findings as design cards, the resolution that settles each card, and cards.json, the record of who decided
-each card.
+"""How a card is judged and settled (eaos/analysis/planning/cards.py builds and orders the cards): its acceptance and
+verify command, what to do about its claim and what must still hold after, the assistant's triage verdicts applied to
+the ledger, the screen reviewer's findings as design cards, the resolution that settles each card, and cards.json, the
+record of who decided each card.
 """
 from pathlib import Path
 from ...core.language.words import falsifier_of
@@ -15,8 +15,8 @@ from ...core.system.files import read_json
 SEVERITY_SHARE = {'high': 1.0, 'medium': 0.5, 'low': 0.25}
 SEVERITY_ORDER = ('high', 'medium', 'low')
 RESOLUTIONS = ('fix', 'keep', 'owner')
-# The probes a changed copy can answer by reading its facts again (eaos/analysis/claims/probes.py decide_probe); one that runs the
-# program is not, and would fail every fix.
+# The probes a changed copy can answer by reading its facts again (eaos/analysis/claims/probes.py decide_probe);
+# one that runs the program is not, and would fail every fix.
 RECHECKED = ('graph_query', 'absence_search')
 RESOLUTION_FIELDS = ('resolution', 'change', 'question', 'options', 'recommendation', 'note', 'checks')
 
@@ -28,8 +28,8 @@ def acceptance_for(claim, target, out):
         import shlex
         return [{'command': shlex.join(check['argv']) if check.get('kind') == 'command' else 'human review',
                  'expect': check.get('expected', '')} for check in decision['checks']]
-    # An investigation changes no code: it is done when its decision is recorded (eaos decision-review), which
-    # `eaos decided` checks. The decision itself stays a person's; the command only shows it was made.
+    # An investigation changes no code: it is done when its decision is recorded (`eaos decided` checks it). The
+    # decision itself stays a person's; the command only shows it was made.
     import shlex, sys
     from ...core.contracts.decisions import identity
     uid = claim.get('uid') or identity(claim)
@@ -48,7 +48,8 @@ def verify_command_for(claim, target, out):
 def what_to_do(claim, pattern, unproven):
     """(change, options, rollback): proving or refuting an unproven claim first, else its pattern's change."""
     if not unproven:
-        return (claim.get('assessment') or {}).get('proposed_change', pattern['change']), pattern['options'], pattern['rollback']
+        return ((claim.get('assessment') or {}).get('proposed_change', pattern['change']), pattern['options'],
+                pattern['rollback'])
     return (('أثبت هذا الادعاء أو انقضه قبل أي تغيير: ' + falsifier_of(claim, 'ar')),
             [{'option': 'تشغيل مجسّ يحسم الادعاء', 'cost': 'منخفضة', 'verdict': 'مختار: لا تغيير قبل الحسم'},
              {'option': 'قبول الادعاء بلا إثبات', 'cost': 'صفر الآن', 'verdict': 'مرفوض: يخالف قاعدة الإسناد'},
@@ -95,7 +96,8 @@ def design_cards(findings, tasks):
     kept = {}
     for finding in sorted(findings, key=lambda f: SEVERITY_ORDER.index(f['severity']) if f.get('severity') in SEVERITY_ORDER else 3):
         kept.setdefault(_design_key(finding), []).append(finding)
-    return [_group_card(number, group, (top, CONFIDENCE_WEIGHT['HYPOTHESIS'])) for number, group in enumerate(kept.values(), 1)]
+    return [_group_card(number, group, (top, CONFIDENCE_WEIGHT['HYPOTHESIS']))
+            for number, group in enumerate(kept.values(), 1)]
 
 
 def _design_key(finding):
@@ -108,7 +110,7 @@ def _design_key(finding):
 
 def _also_shown(card, group, finding):
     """Every picture of the group as the card's evidence, and the other problems seen on the page in its change."""
-    # A finding of the page reviewer (eaos/ai/nodes/visual_reviewer.py) lists every picture it shows on.
+    # A finding of a page review lists every picture it shows on.
     shown = [show for f in group for show in f.get('pictures') or [f]]
     images = list(dict.fromkeys(show['image'] for show in shown))
     if len(images) <= 1: return
@@ -139,7 +141,8 @@ def _group_card(number, group, scale):
                                   for f in group]
     _also_shown(card, group, finding)
     if finding.get('resolution') in RESOLUTIONS:
-        card['design']['resolution'] = {k: finding.get(k) for k in ('resolution', 'question', 'options', 'recommendation')}
+        card['design']['resolution'] = {k: finding.get(k)
+                                        for k in ('resolution', 'question', 'options', 'recommendation')}
     return card
 
 
@@ -192,10 +195,11 @@ def decided(out, tasks, triaged, reviewed):
 
 
 def _security(out, tasks, verdicts):
-    """The doubted cards that are security cards: their area, as every report shows it (eaos/analysis/presentation/model.py
+    """The doubted cards that are security cards: their area, as every report shows it
+    (eaos/core/contracts/card_areas.py
     classify, with the debt register's category: an access gap, an injection or other weakness, a secret, a vulnerable
     dependency)."""
-    from ..presentation.model import classify
+    from ...core.contracts.card_areas import classify
     doubted = [t for t in tasks if (verdicts.get(t['id']) or {}).get('decision') == 'doubt']
     category = _categories(out) if doubted else {}
     return {t['id'] for t in doubted if classify(t, None, category.get(t.get('claim_id')))[0] == 'security'}
@@ -210,10 +214,10 @@ def _categories(out):
 def apply_verdicts(out, tasks, verdicts, language='ar'):
     """The one place the assistant's triage reaches the ledger, before anything ranks, plans or reports: the claims of
     a card it rejected are refuted (confidence REFUTED, `refuted_by` the card, its why kept in `triage`), the claims of
-    a card it doubted carry the doubt (eaos/core/contracts/decisions.py: needs_review, never fixed automatically), those of a card it
-    confirmed carry its resolution (fix, keep or owner, eaos/core/contracts/decisions.py decide), and the ledger's ranking, decisions,
-    brief and debt register are drawn again (dossier.refresh_views), so the risks, the reports and the plan all read the
-    same verdicts. Returns {claim id: claim}."""
+    a card it doubted carry the doubt (eaos/core/contracts/decisions.py: needs_review, never fixed automatically),
+    those of a card it confirmed carry its resolution (fix, keep or owner, eaos/core/contracts/decisions.py decide), and
+    the ledger's ranking, decisions, brief and debt register are drawn again (dossier.refresh_views), so the risks, the
+    reports and the plan all read the same verdicts. Returns {claim id: claim}."""
     from ..understanding.dossier import refresh_views
     out = Path(out)
     dossier = read(out / 'dossier.json')
@@ -252,13 +256,16 @@ def _design_resolution(card):
 def _triaged(verdict, reach, security=False):
     """The resolution the triage gave a code card it confirmed or doubted; None otherwise. A doubted security card has
     none: it stays for the person to review (eaos/core/contracts/decisions.py DOUBTED), never closed unseen nor fixed
-    automatically, and outside the owner's share (cap_owner), which only counts the questions the assistant asks."""
+    automatically, and outside the share of questions the assistant asks (cap_owner in
+    eaos/core/contracts/owner_share.py)."""
     if verdict.get('decision') == 'confirm' and verdict.get('resolution') in RESOLUTIONS:
-        return {**{k: verdict.get(k) for k in RESOLUTION_FIELDS if verdict.get(k) is not None}, 'why': verdict.get('why'),
+        return {**{k: verdict.get(k) for k in RESOLUTION_FIELDS if verdict.get(k) is not None},
+                'why': verdict.get('why'),
                 'severity': verdict.get('severity'), 'reach': reach}
     if verdict.get('decision') == 'doubt' and not security:
         return {'resolution': 'keep', 'severity': verdict.get('severity'), 'reach': reach,
-                'why': f"Not proven by its evidence ({verdict.get('why') or 'no reason given'}); the next check judges it again."}
+                'why': f"Not proven by its evidence ({verdict.get('why') or 'no reason given'}); "
+                       "the next check judges it again."}
     return None
 
 
@@ -266,8 +273,7 @@ def resolutions(tasks, verdicts, design, security=()):
     """{card: resolution} the assistant gave: the triage's for the code cards it confirmed (nodes/card_triage), the
     screen reviewer's for the design cards (a design card is the change it named, unless its finding asked the
     person or kept it). A card the triage doubted is closed as not proven, never fixed blind: the next check judges it
-    again on its new evidence; one of the `security` cards stays for the person instead (a second trial on real
-    projects closed a write with no sign-in check and an XSS unseen)."""
+    again on its new evidence; one of the `security` cards stays for the person instead."""
     out = {}
     for task in tasks:
         row = _triaged(verdicts.get(task['id']) or {}, (task.get('blast_radius') or {}).get('total') or 0, task['id'] in security)
@@ -279,14 +285,17 @@ def resolutions(tasks, verdicts, design, security=()):
 def fix_check(card, change, revision, spec=None):
     """The check of a change the assistant decided: its claim's own probe asked again on the changed copy (`eaos
     recheck`, passing only when the problem is gone), when the claim has one; else the project's own checks gate it
-    (eaos/journeys/fix/waves/: a card with no command of its own is kept on the gates) and the next check tells whether it is gone."""
+    (eaos/journeys/fix/waves/: a card with no command of its own is kept on the gates) and the next check tells whether
+    it is gone."""
     if spec:
         import json, sys
-        return {'id': 'TRIAGE-' + card, 'kind': 'command', 'invariant': 'The problem this card names is gone and nothing else changed.',
+        return {'id': 'TRIAGE-' + card, 'kind': 'command',
+                'invariant': 'The problem this card names is gone and nothing else changed.',
                 'expected': "the card's own probe refutes it on the changed copy", 'expected_exit': 0, 'cwd': '.',
                 'argv': [sys.executable, '-m', 'eaos', 'recheck', '--spec', json.dumps(spec, ensure_ascii=False), '.'],
                 'source_revision': revision}
-    return {'id': 'TRIAGE-' + card, 'kind': 'human', 'invariant': 'The problem this card names is gone and nothing else changed.',
+    return {'id': 'TRIAGE-' + card, 'kind': 'human',
+            'invariant': 'The problem this card names is gone and nothing else changed.',
             'expected': change, 'cwd': '.', 'source_revision': revision,
             'rubric': "The change your assistant decided is made, the project's own checks pass, and the next check no longer finds it."}
 
@@ -322,7 +331,8 @@ def resolve(task, resolution, claim, where):
     target, out, revision = where
     from ...core.contracts.decisions import decide
     words = 'decided by your assistant: ' + (resolution.get('note') or resolution.get('why') or '')
-    task['resolution'] = {**{k: v for k, v in resolution.items() if k not in ('checks', 'severity', 'reach')}, 'by': 'assistant', 'words': words}
+    task['resolution'] = {**{k: v for k, v in resolution.items() if k not in ('checks', 'severity', 'reach')},
+                          'by': 'assistant', 'words': words}
     if claim is not None:
         task['decision'] = decide(claim)
         task['acceptance'], task['verify_command'] = acceptance_for(claim, target, out), verify_command_for(claim, target, out)
@@ -383,7 +393,7 @@ def _set_aside(tasks, rejected, verdicts):
 
 def _doubted(tasks, verdicts, closed):
     """The cards the triage doubted, each with why and whether the assistant closed it as not proven (`closed`: shown
-    to the person apart, eaos/ai/ideal/studio.py) or it waits for the person's review (a security card)."""
+    to the person apart) or it waits for the person's review (a security card)."""
     return [{'card': t['id'], 'claim_id': t.get('claim_id'), 'title': t.get('title'), 'why': verdicts[t['id']].get('why'),
              'closed': t['id'] in closed} for t in sorted(tasks, key=lambda t: t['id'])
             if (verdicts.get(t['id']) or {}).get('decision') == 'doubt']

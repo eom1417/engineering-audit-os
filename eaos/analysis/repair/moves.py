@@ -1,4 +1,4 @@
-"""The move tool (M8.5): files and folders moved to their new places, every import and every path that names them
+"""The move tool: files and folders moved to their new places, every import and every path that names them
 written again, and every name the code exposes kept, so the program does exactly what it did. Python (move_python.py)
 and JavaScript or TypeScript (move_js.py); any other text file (a document, package.json, a CI workflow, a Dockerfile)
 has the paths it writes to a moved file or folder renamed, from the repository's root or from its own folder.
@@ -6,7 +6,8 @@ has the paths it writes to a moved file or folder renamed, from the repository's
     plan(root, moves)       {mapping {old file: new file}, folders, refused [reasons]}: nothing written
     apply(root, moves)      the moves made in `root` (a copy: never the person's project), with git when it is a
                             repository; returns what moved and which files were written again
-    dry_run(target, moves)  apply() on an isolated copy, like every codemod (codemods.py): {exit, files_changed, refused}
+    dry_run(target, moves)  apply() on an isolated copy, like every codemod (codemods.py):
+                            {exit, files_changed, refused}
 
 `moves` is [{'from': path, 'to': path}], a file or a folder each. Every edit is computed from the files as they were
 before anything moves, then made once: a span is never edited twice. A move that would change what the code means is
@@ -26,17 +27,19 @@ from .move_python import Moves, Unmovable
 
 PYTHON = ('.py',)
 SCRIPT = tuple(move_js.JS_SUFFIXES)
-OWN_PLACE = {'.py': re.compile(r'\b__file__\b'), 'js': re.compile(r'\b__dirname\b|\b__filename\b|import\.meta\.(?:url|dirname|filename)')}
+OWN_PLACE = {'.py': re.compile(r'\b__file__\b'),
+             'js': re.compile(r'\b__dirname\b|\b__filename\b|import\.meta\.(?:url|dirname|filename)')}
 MENTION = re.compile(r'(?<![\w.@/-])((?:\.{1,2}/)*[\w@][\w.@-]*(?:/[\w.@-]+)+/?)')
 NOT_TEXT = ('package-lock.json', 'yarn.lock', 'pnpm-lock.yaml', 'bun.lockb', 'poetry.lock', 'uv.lock', 'Cargo.lock')
 BIGGEST = 2 * 1024 * 1024
 
 
 def files(root):
-    """Every file of the project, relative and in posix form: git's own list in a repository (what a push publishes and
-    what the code can name), else every file outside the folders tools fill (node_modules, .venv...)."""
+    """Every file of the project, relative and in posix form: git's own list in a repository (what a push publishes
+    and what the code can name), else every file outside the folders tools fill (node_modules, .venv...)."""
     if (Path(root) / '.git').exists():          # its own repository, not a folder inside another one
-        done = subprocess.run(['git', '-C', str(root), 'ls-files', '-co', '--exclude-standard'], capture_output=True, text=True)
+        done = subprocess.run(['git', '-C', str(root), 'ls-files', '-co', '--exclude-standard'],
+                              capture_output=True, text=True)
         if done.returncode == 0: return sorted(set(done.stdout.splitlines()))
     from ...core.project.workspace import SKIP_DIRS
     found = []
@@ -135,7 +138,8 @@ def _roots(known):
 
 def _spans(path, text, moves, aliased, folders):
     suffix = PurePosixPath(path).suffix
-    found = move_python.spans(path, text, moves) if suffix in PYTHON else move_js.spans(path, text, moves, aliased) if suffix in SCRIPT else []
+    found = (move_python.spans(path, text, moves) if suffix in PYTHON
+             else move_js.spans(path, text, moves, aliased) if suffix in SCRIPT else [])
     return found + _mentions(path, text, moves, folders)
 
 
@@ -160,7 +164,8 @@ def _mention(path, token, moves, folders):
 
 
 def _from_folder(path, token, moves, folders):
-    """`token`, written from the file's folder, written from its new folder; None when neither it nor the file moves."""
+    """`token`, written from the file's folder, written from its new folder; None when neither it nor the file
+    moves."""
     named = _clean(posixpath.join(posixpath.dirname(path), token))
     new = _moved_to(named, moves, folders) or (named if moves.moved(path) and _exists(named, moves.known) else None)
     if new is None: return None
@@ -192,7 +197,8 @@ def _edited(text, found):
 
 
 def apply(root, moves):
-    """Make the moves in `root`; {moved, rewritten, created}. Raises Unmovable, with every reason, and writes nothing."""
+    """Make the moves in `root`; {moved, rewritten, created}. Raises Unmovable, with every reason, and writes
+    nothing."""
     root = Path(root)
     known = files(root)
     drawn = plan(root, moves, known)
@@ -200,10 +206,12 @@ def apply(root, moves):
     texts = edits(root, drawn, known)
     git = (root / '.git').exists()
     for old, new in sorted(drawn['mapping'].items()): _move(root, old, new, git)
-    for old, text in texts.items(): (root / drawn['mapping'].get(old, old)).write_text(text, encoding='utf-8', newline='')
+    for old, text in texts.items():
+        (root / drawn['mapping'].get(old, old)).write_text(text, encoding='utf-8', newline='')
     created = _new_packages(root, drawn['mapping'], set(known))
     _prune(root, drawn['mapping'])
-    return {'moved': len(drawn['mapping']), 'rewritten': sorted(drawn['mapping'].get(p, p) for p in texts), 'created': created}
+    return {'moved': len(drawn['mapping']), 'rewritten': sorted(drawn['mapping'].get(p, p) for p in texts),
+            'created': created}
 
 
 def _move(root, old, new, git):
@@ -242,7 +250,8 @@ def _prune(root, mapping):
 
 
 def dry_run(target, moves):
-    """{exit, files_changed, refused} of the moves on an isolated copy of `target`: nothing of the project is written."""
+    """{exit, files_changed, refused} of the moves on an isolated copy of `target`: nothing of the project is
+    written."""
     from ...live.testing.verify import isolated_copy
     from .codemods import _changed, _stats
     with tempfile.TemporaryDirectory(prefix='eaos-move-') as holder:

@@ -58,7 +58,8 @@ def _checked(directory, mode, opens=None):
     project = Path(directory) / 'project'
     if not project.exists():
         shutil.copytree(FIXTURE, project)
-        subprocess.run('git init -q && git add -A && git -c user.email=t@t -c user.name=t commit -qm fixture', shell=True,
+        subprocess.run('git init -q && git add -A && '
+                       'git -c user.email=t@t -c user.name=t commit -qm fixture', shell=True,
                        cwd=project, check=True)
     out = Path(directory) / mode
     if opens: opens.out = out.resolve()
@@ -78,7 +79,8 @@ def _contents(out):
     where left out."""
     found = {}
     for path in sorted(Path(out).rglob('*')):
-        if path.is_file() and path.suffix in ('.json', '.md') and not path.name.startswith(('run-', 'RUN.', 'report-result')):
+        if (path.is_file() and path.suffix in ('.json', '.md')
+                and not path.name.startswith(('run-', 'RUN.', 'report-result'))):
             text = path.read_text(encoding='utf-8').replace(str(Path(out).resolve()), '<out>')
             kept = [line for line in text.splitlines() if not any(s in line for s in STAMPS)]
             found[path.relative_to(out).as_posix()] = hashlib.sha256('\n'.join(kept).encode()).hexdigest()
@@ -98,7 +100,7 @@ class ParallelCheckTests(unittest.TestCase):
         cls.directory.cleanup()
 
     def test_every_stage_is_in_one_part_of_the_check_and_a_part_keeps_the_declared_order(self):
-        # the Studio drew the stages in layers of their `requires` alone, which their real waits contradicted
+        # the progress view draws the stages in layers of their real waits, not of their `requires` alone
         from eaos.pipeline.stages import PHASES, ORDER
         named = [name for names in PHASES.values() for name in names]
         self.assertEqual(sorted(named), sorted(ORDER), 'each stage in exactly one part')
@@ -108,10 +110,13 @@ class ParallelCheckTests(unittest.TestCase):
         maker, under = {artifact: stage.name for stage in STAGES for artifact in stage.produces}, _under()
         # a stage may read what a later stage made in the last check (it runs after it either way), never what a stage
         # beside it is making
-        undeclared = sorted(f'{stage} reads {path} of {maker[path]}' for stage, paths in self.opens.read.items() for path in paths
-                            if maker.get(path, stage) != stage and maker[path] not in under[stage] and stage not in under[maker[path]])
+        undeclared = sorted(f'{stage} reads {path} of {maker[path]}'
+                            for stage, paths in self.opens.read.items() for path in paths
+                            if maker.get(path, stage) != stage and maker[path] not in under[stage]
+                            and stage not in under[maker[path]])
         self.assertEqual(undeclared, [], 'declare each in the reading stage (requires, reads or gathers)')
-        rewrites = sorted(f'{stage} rewrites {path} of {maker[path]}' for stage, paths in self.opens.wrote.items() for path in paths
+        rewrites = sorted(f'{stage} rewrites {path} of {maker[path]}'
+                          for stage, paths in self.opens.wrote.items() for path in paths
                           if maker.get(path, stage) != stage and path not in BY_NAME[stage].amends)
         self.assertEqual(rewrites, [], "declare each in the rewriting stage's amends")
 
@@ -126,12 +131,13 @@ class ParallelCheckTests(unittest.TestCase):
                 path = out / name
                 text = path.read_text().replace(str(out.resolve()), '<out>') if path.exists() else '<missing>'
                 return [line for line in text.splitlines() if not any(s in line for s in STAMPS)]
-            detail.extend(difflib.unified_diff(lines(self.one_out), lines(self.parallel_out), fromfile='one/' + name, tofile='normal/' + name))
+            detail.extend(difflib.unified_diff(lines(self.one_out), lines(self.parallel_out),
+                                               fromfile='one/' + name, tofile='normal/' + name))
         self.assertEqual(different, [], '\n'.join(detail[:120]))
         self.assertEqual(self.parallel['mode'], 'normal')
 
     def test_each_stage_asks_of_the_run_only_what_it_waits_for(self):
-        """_ran(context, name) reads the run's results while other stages run: only a stage it waits for has surely ended."""
+        """_ran(context, name) reads the run's results while other stages run: only a stage it waits for has ended."""
         trees = [ast.parse(Path(module.__file__).read_text(encoding='utf-8')) for module in (stage_runners, ai_runners)]
         functions = {f.name: f for tree in trees for f in tree.body if isinstance(f, ast.FunctionDef)}
         def asked(function, seen):
@@ -150,32 +156,35 @@ class ParallelCheckTests(unittest.TestCase):
 
 class ProgressTests(unittest.TestCase):
     def test_the_progress_names_a_stage_still_running_never_one_that_ended(self):
-        # next-dashboard's check said "Measuring size and complexity (5 of 30)" for 14 minutes: measure, started beside the
-        # sign-in, ended in 0.03 s, and the sign-in that ran on was never named
+        # measure, started beside the sign-in, ends in 0.03 s, and the sign-in that runs on must be named, so the
+        # progress line never names a stage that ended.
         from eaos.pipeline import stage_run
         said, log, folder = [], mock.Mock(enabled=False), tempfile.TemporaryDirectory()
         self.addCleanup(folder.cleanup)
-        run = {'context': {}, 'log': log, 'results': {}, 'progress': lambda *step: said.append(step), 'todo': ['session', 'measure'],
-               'runners': {}, 'out': Path(folder.name), 'head': {}, 'blocked': {}, 'lock': threading.RLock(), 'running': ['session']}
-        with mock.patch.object(stage_run, '_one', return_value={'status': 'ok'}), mock.patch.object(stage_run, 'ledger', return_value={}):
+        run = {'context': {}, 'log': log, 'results': {}, 'progress': lambda *step: said.append(step),
+               'todo': ['session', 'measure'],
+               'runners': {}, 'out': Path(folder.name), 'head': {}, 'blocked': {},
+               'lock': threading.RLock(), 'running': ['session']}
+        with mock.patch.object(stage_run, '_one', return_value={'status': 'ok'}), \
+                mock.patch.object(stage_run, 'ledger', return_value={}):
             stage_run._run_stage(BY_NAME['measure'], run)
         self.assertEqual(said, [(0, 2, 'measure'), (1, 2, 'session')])
 
 
 class ReadyStagesTests(unittest.TestCase):
     def test_ai_readers_wait_for_the_same_inputs_in_speed_mode_as_in_serial_mode(self):
-        ended = set(ORDER) - {'triage', 'visual', 'ideal', 'pipeline_gaps', 'order'}
-        self.assertNotIn('ideal', ready_stages(['ideal'], ended, ['triage', 'visual'], 'speed', 5))
-        ended.update(('triage', 'visual'))
-        self.assertEqual(ready_stages(['ideal'], ended, [], 'speed', 5), ['ideal'])
-        self.assertNotIn('order', ready_stages(['order'], ended, ['ideal', 'pipeline_gaps'], 'speed', 5))
-        self.assertIn('probe', WAITS['semantic'], 'the semantic pass rewrites the probed ledger')
+        ended = set(ORDER) - {'triage', 'cards', 'order'}
+        self.assertNotIn('order', ready_stages(['order'], ended, ['triage'], 'speed', 5))
+        ended.update(('triage', 'cards'))
+        self.assertEqual(ready_stages(['order'], ended, [], 'speed', 5), ['order'])
+        self.assertIn('plan', WAITS['triage'], 'the triage reads the plan')
 
     def test_speed_uses_available_container_memory_and_leaves_room_for_the_app(self):
         from eaos.core.system.resources import capacity
         gb = 2 ** 30
         files = {'/sys/fs/cgroup/cpu.max': '200000 100000', '/sys/fs/cgroup/memory.max': str(4 * gb),
-                 '/sys/fs/cgroup/memory.current': str(gb), '/sys/fs/cgroup/memory.stat': 'inactive_file 0\nslab_reclaimable 0',
+                 '/sys/fs/cgroup/memory.current': str(gb),
+                 '/sys/fs/cgroup/memory.stat': 'inactive_file 0\nslab_reclaimable 0',
                  '/proc/meminfo': f'MemAvailable: {64 * gb // 1024} kB'}
         with mock.patch('pathlib.Path.read_text', autospec=True, side_effect=lambda path, **kw: files[str(path)]), \
                 mock.patch('os.sysconf', side_effect=lambda name: 4096 if name == 'SC_PAGE_SIZE' else 64 * gb // 4096):
@@ -238,13 +247,11 @@ class ReadyStagesTests(unittest.TestCase):
         left = [n for n in ORDER if n not in ended]
         ready = ready_stages(left, ended, [], 'normal', 10)
         self.assertEqual(sum('app' in BY_NAME[n].uses for n in ready), 1, 'one stage at a time runs the app')
-        # the project's tests waited for the whole chain of page stages, seven minutes of a check of EAOS beside nothing
+        # the project's tests do not wait for the whole chain of page stages
         self.assertIn('verify', ready, 'its own copy and database: beside the stage running the app')
-        self.assertNotIn('baseline', ready_stages(left, ended, ['engines'], 'normal', 10), 'the load test runs alone')
-        self.assertEqual(ready_stages(['measure'], ended, ['baseline'], 'normal', 10), [], 'nothing runs beside it')
-        thinking = set(ORDER) - {'triage', 'visual', 'ideal'}
-        self.assertEqual(ready_stages(['visual'], thinking, ['triage'], 'normal', 10), [])
-        self.assertEqual(ready_stages(['visual'], thinking, ['triage'], 'speed', 10), ['visual'])
+        thinking = set(ORDER) - {'triage', 'order'}
+        self.assertEqual(ready_stages(['order'], thinking, ['triage'], 'normal', 10), [])
+        self.assertEqual(ready_stages(['order'], thinking, ['triage'], 'speed', 10), ['order'])
         self.assertEqual(ready_stages(left, ended, [], 'one', 1), [left[0]] if WAITS[left[0]] <= ended else [])
 
     def test_the_time_a_check_takes_is_its_longest_chain_not_its_sum(self):

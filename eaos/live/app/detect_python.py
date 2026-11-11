@@ -1,18 +1,19 @@
-"""The first pass of a run's setup for a Python web app (live/app/detect.py does JavaScript ones): Django, Flask, FastAPI
-and Streamlit, found from the project's files alone; how it installs, prepares its database, starts and is checked,
-and the environment names its code reads. Deterministic: a Python app runs without an assistant (the corpus' four
-Python apps never started without one, M5.1)."""
+"""The first pass of a run's setup for a Python web app (live/app/detect.py does JavaScript ones): Django, Flask,
+FastAPI and Streamlit, found from the project's files alone; how it installs, prepares its database, starts and is
+checked, and the environment names its code reads. Deterministic: a Python app runs without an assistant."""
 import re
 from pathlib import Path
 
 from .python_install import MANIFESTS, _read, install, test_extra, test_group
 
-PY_ENV = re.compile(r'''os\.(?:environ\.get|getenv)\(\s*['"]([A-Z][A-Z0-9_]{2,})['"]|os\.environ\[\s*['"]([A-Z][A-Z0-9_]{2,})['"]\s*\]''')
+PY_ENV = re.compile(r'''os\.(?:environ\.get|getenv)\(\s*['"]([A-Z][A-Z0-9_]{2,})['"]'''
+                    r'''|os\.environ\[\s*['"]([A-Z][A-Z0-9_]{2,})['"]\s*\]''')
 SKIP = {'.venv', 'venv', 'env', 'node_modules', '.git', 'tests', 'test', 'site-packages', '__pycache__', 'migrations'}
 MARKERS = ('manage.py', *MANIFESTS)
-FIRST = ('streamlit_app.py', 'app.py', 'main.py', 'wsgi.py', 'run.py', 'server.py', 'Home.py')    # tried before the others
-# The run's test account in a Django app's own users (eaos/live/access/test_account.py signs in with it); an app whose user
-# model needs more is left to the sign-up page or the assistant, never a failed setup.
+# tried before the others
+FIRST = ('streamlit_app.py', 'app.py', 'main.py', 'wsgi.py', 'run.py', 'server.py', 'Home.py')
+# The run's test account in a Django app's own users (eaos/live/access/test_account.py signs in with it); an app whose
+# user model needs more is left to the sign-up page or the assistant, never a failed setup.
 DJANGO_ACCOUNT = '''import os
 from django.contrib.auth import get_user_model
 User, name = get_user_model(), os.environ['EAOS_TEST_USER']
@@ -37,20 +38,24 @@ def folder(project):
 
 def _requirements(app):
     """The lowercase text that names the app's dependencies: its requirements files and pyproject.toml."""
-    return '\n'.join(_read(path) for path in [*sorted(app.glob('requirements*.txt')), app / 'pyproject.toml', app / 'setup.py']).lower()
+    return '\n'.join(_read(path) for path in [*sorted(app.glob('requirements*.txt')), app / 'pyproject.toml',
+                                              app / 'setup.py']).lower()
 
 
 def _modules(app):
     """(module name, text) of the app's Python files outside tests and environments, the usual entry points first."""
-    paths = [p for p in app.rglob('*.py') if not SKIP & set(p.relative_to(app).parts[:-1]) and len(p.relative_to(app).parts) <= 4][:2000]
-    paths.sort(key=lambda p: (len(p.relative_to(app).parts), p.name not in FIRST, FIRST.index(p.name) if p.name in FIRST else 0, str(p)))
+    paths = [p for p in app.rglob('*.py')
+             if not SKIP & set(p.relative_to(app).parts[:-1]) and len(p.relative_to(app).parts) <= 4][:2000]
+    paths.sort(key=lambda p: (len(p.relative_to(app).parts), p.name not in FIRST,
+                              FIRST.index(p.name) if p.name in FIRST else 0, str(p)))
     for path in paths:
         parts = path.relative_to(app).with_suffix('').parts
         yield '.'.join(parts[:-1] if parts[-1] == '__init__' else parts), _read(path)
 
 
 def _flask_app(app, modules):
-    """What `flask --app` names: FLASK_APP of .flaskenv or an example env file, else the first module that makes the app."""
+    """What `flask --app` names: FLASK_APP of .flaskenv or an example env file, else the first module that makes the
+    app."""
     for name in ('.flaskenv', '.env.example', '.env.sample'):
         declared = re.search(r'^\s*FLASK_APP\s*=\s*["\']?([\w.:()]+)', _read(app / name), re.M)
         if declared: return declared[1].removesuffix('.py')
@@ -82,22 +87,25 @@ def _kind(app, needs, modules):
 def _streamlit(needs, modules):
     """The file `streamlit run` starts: the first top-level module that imports Streamlit, or None."""
     if 'streamlit' not in needs: return None
-    entry = next((name for name, text in modules if '.' not in name and re.search(r'^\s*import streamlit', text, re.M)), None)
+    entry = next((name for name, text in modules
+                  if '.' not in name and re.search(r'^\s*import streamlit', text, re.M)), None)
     return entry + '.py' if entry else None
 
 
 def start(kind, target, port):
     port = str(port)
     return {'django': ['python', 'manage.py', 'runserver', f'127.0.0.1:{port}', '--noreload'],
-            'flask': ['python', '-m', 'flask', '--app', target, 'run', '--host', '127.0.0.1', '--port', port, '--no-reload'],
+            'flask': ['python', '-m', 'flask', '--app', target, 'run', '--host', '127.0.0.1', '--port', port,
+                      '--no-reload'],
             'fastapi': ['python', '-m', 'uvicorn', target, '--host', '127.0.0.1', '--port', port],
-            'streamlit': ['python', '-m', 'streamlit', 'run', target, '--server.port', port, '--server.address', '127.0.0.1',
+            'streamlit': ['python', '-m', 'streamlit', 'run', target, '--server.port', port,
+                          '--server.address', '127.0.0.1',
                           '--server.headless', 'true', '--browser.gatherUsageStats', 'false']}[kind]
 
 
 def served_pages(live):
     """The GET routes without parameters a running Flask app serves, as Flask itself lists them (`flask routes`): the
-    blueprints' prefixes included, which the code read file by file misses (microblog's /login is /auth/login)."""
+    blueprints' prefixes included, which the code read file by file misses (a blueprint's /login is /auth/login)."""
     start = [str(word) for word in live.profile.get('start') or []]
     if start[1:4] != ['-m', 'flask', '--app']: return []
     code, out, _ = live.run(['python', '-m', 'flask', '--app', start[4], 'routes'], timeout=300)
@@ -110,7 +118,8 @@ def prepare(kind, target, app, needs, modules):
     `init-db` command, or Alembic's."""
     if kind == 'django':
         account = re.search(r'django\.contrib\.auth\b', '\n'.join(text for _, text in modules))
-        return [['python', 'manage.py', 'migrate', '--noinput']] + ([['python', 'manage.py', 'shell', '-c', DJANGO_ACCOUNT]] if account else [])
+        return [['python', 'manage.py', 'migrate', '--noinput']] \
+            + ([['python', 'manage.py', 'shell', '-c', DJANGO_ACCOUNT]] if account else [])
     if kind == 'flask': return _flask_tables(target, app, needs, modules)
     if (app / 'alembic.ini').is_file() and 'alembic' in needs: return [['python', '-m', 'alembic', 'upgrade', 'head']]
     return []
@@ -118,7 +127,8 @@ def prepare(kind, target, app, needs, modules):
 
 def _flask_tables(target, app, needs, modules):
     """Flask-Migrate's migrations, else the app's own `init-db` command."""
-    if (app / 'migrations/alembic.ini').is_file() and 'flask-migrate' in needs: return [['python', '-m', 'flask', '--app', target, 'db', 'upgrade']]
+    if (app / 'migrations/alembic.ini').is_file() and 'flask-migrate' in needs:
+        return [['python', '-m', 'flask', '--app', target, 'db', 'upgrade']]
     command = next((found[1] for _, text in modules for found in [INIT_DB.search(text)] if found), None)
     return [['python', '-m', 'flask', '--app', target, command]] if command else []
 
@@ -144,9 +154,10 @@ def detect(project):
     if kind is None: return None
     port, names = free_port(), environment_names(app, modules)
     env, unset = environment_values(names, port, None)
-    profile = {'schema_version': 1, 'app': where, 'install': install(app), 'start': start(kind, target, port), 'port': port,
-               'health': '/', 'start_timeout': 180, 'env': {'PYTHONUNBUFFERED': '1', **env},
-               'checks': [['python', '-m', 'pytest', '-q']] if re.search(r'^pytest\b', needs, re.M) or test_extra(app) or test_group(app) else []}
+    profile = {'schema_version': 1, 'app': where, 'install': install(app), 'start': start(kind, target, port),
+               'port': port, 'health': '/', 'start_timeout': 180, 'env': {'PYTHONUNBUFFERED': '1', **env},
+               'checks': [['python', '-m', 'pytest', '-q']]
+               if re.search(r'^pytest\b', needs, re.M) or test_extra(app) or test_group(app) else []}
     commands = prepare(kind, target, app, needs, modules)
     if commands: profile['prepare'] = commands
     if kind == 'django':

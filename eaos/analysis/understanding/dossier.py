@@ -46,8 +46,10 @@ def coverage_of(sets, records, verification=None):
             'semantic_review': bool(records['findings']),
             'runtime_confirmation': 0,  # replaced below when execution evidence exists
             'not_examined': [
-                f"unparsed source files: {syntax['by_status'].get('BLOCKED', 0) + syntax['by_status'].get('UNSUPPORTED', 0)}",
-                f"unresolved or ambiguous imports: {resolve['by_resolution']['UNRESOLVED'] + resolve['by_resolution']['AMBIGUOUS']}",
+                "unparsed source files: "
+                f"{syntax['by_status'].get('BLOCKED', 0) + syntax['by_status'].get('UNSUPPORTED', 0)}",
+                "unresolved or ambiguous imports: "
+                f"{resolve['by_resolution']['UNRESOLVED'] + resolve['by_resolution']['AMBIGUOUS']}",
                 f"invocation surfaces with no detector: {sum(entry['files_without_any_detector'].values())} files",
                 ('runtime behaviour: no execution evidence in this run'
                  if not (verification and verification.get('executed'))
@@ -88,7 +90,8 @@ def tasks_of(records):
     for task in (records['roadmap'] or {}).get('tasks', []):
         rows.append({'id': task['id'], 'title': task.get('title', ''), 'kind': task.get('kind'),
                      'status': task.get('status'), 'readiness': 'needs_revalidation',
-                     'compatibility': {'source': 'legacy', 'missing': ['typed decision', 'revision-bound checks']}, 'finding_ids': task.get('finding_ids', []),
+                     'compatibility': {'source': 'legacy', 'missing': ['typed decision', 'revision-bound checks']},
+                     'finding_ids': task.get('finding_ids', []),
                      'verify_command': task.get('verify_command'), 'files': task.get('files', [])})
     return rows
 
@@ -117,7 +120,8 @@ def inventory_rows(language):
 def describe(sets, records):
     syntax = sets['syntax']['summary']
     entry = sets['entrypoints']['summary']
-    languages = ', '.join(f'{name} ({count})' for name, count in sorted(syntax['by_language'].items(), key=lambda kv: -kv[1])[:4])
+    languages = ', '.join(f'{name} ({count})'
+                          for name, count in sorted(syntax['by_language'].items(), key=lambda kv: -kv[1])[:4])
     surfaces = ', '.join(f'{name} ({count})' for name, count in sorted(entry['by_surface'].items()))
     line = (f"⬤ {syntax['source_files']} source files, {syntax['symbols']} symbols, languages: {languages}. "
             f"Invocation surfaces: {surfaces or 'none detected'}.")
@@ -140,14 +144,11 @@ def index_document(target, dossier, language):
                      f"tasks {len(dossier.get('tasks', []))} · waves {len(dossier.get('waves', []))}"])
     document.section(tr('اقرأ بهذا الترتيب', 'Read in this order'))
     rows = [
-        [tr('تريد الصورة كاملة: التقارير الأربعة، وبقية الوثائق ملاحق لها',
-            'wanting the whole picture: the four reports; every other document is an appendix to them'),
-         '[CURRENT-STATE.md](CURRENT-STATE.md) → [TARGET-STATE.md](TARGET-STATE.md) → '
-         '[GAP-AND-STRATEGY.md](GAP-AND-STRATEGY.md) → [EXECUTION-PLAN.md](EXECUTION-PLAN.md)', '20 min'],
+        [tr('تريد الصورة كاملة: التقريران، وبقية الوثائق ملاحق لهما',
+            'wanting the whole picture: the two reports; every other document is an appendix to them'),
+         '[CURRENT-STATE.md](CURRENT-STATE.md) → [EXECUTION-PLAN.md](EXECUTION-PLAN.md)', '20 min'],
         [tr('تقرّر أين يذهب الجهد', 'deciding where effort goes'),
          '[START-HERE.md](START-HERE.md) → [PLAN/STEPS.md](PLAN/STEPS.md) → [PLAN/WAVES.md](PLAN/WAVES.md)', '5 min'],
-        [tr('تراجع البنية', 'reviewing the architecture'),
-         '[TARGET-ARCHITECTURE.md](TARGET-ARCHITECTURE.md) → [GAP-AND-STRATEGY.md](GAP-AND-STRATEGY.md)', '30 min'],
         [tr('تريد أن تعرف كيف جرى الفحص', 'checking how this check ran'), '[RUN.md](RUN.md)', '2 min'],
         [tr('ستغيّر ملفًا محددًا', 'about to change one file'), "the assistant's `impact` tool (/eaos)", '1 min'],
     ]
@@ -162,17 +163,11 @@ def index_document(target, dossier, language):
     return document
 
 
-def write_register(out, dossier):
-    """debt-register.json: one register (eaos/analysis/assessments/debt_register.py)."""
-    from ..assessments.debt_register import build
-    write(Path(out) / REGISTER, build(out, dossier))
-
-
 def refresh_views(out, language='ar'):
-    """Re-render the views the ledger owns: the debt register and the index.
+    """Re-render the view the ledger owns: the index.
 
     Rebuilding the plan or the product report belongs to eaos.report.views, one layer up. Doing it here
-    made dossier, plan and product_review import each other in a cycle.
+    would make the dossier and the report views import each other in a cycle.
     """
     out = Path(out)
     dossier_path = out / 'dossier.json'
@@ -207,8 +202,7 @@ def _decide(dossier):
 
 
 def _write_views(out, target, dossier, language):
-    """The views the ledger owns: the debt register and the index."""
-    write_register(out, dossier)
+    """The view the ledger owns: the index."""
     (out / 'README.md').write_text(index_document(target, dossier, language).render(), encoding='utf-8')
 
 
@@ -263,7 +257,8 @@ def assemble(target, out, run=None, language='ar', version=None, exclude=(), eng
     records = legacy_records(run) if run else {'findings': [], 'architecture': {}, 'flows': [], 'coverage': [],
                                                'evidence': [], 'roadmap': {}, 'state': {}}
     verification = read(out / 'verification.json') if (out / 'verification.json').is_file() else None
-    request, inputs = _Request(target, out, run, language, version, exclude), _Inputs(map_result, sets, records, verification)
+    request, inputs = (_Request(target, out, run, language, version, exclude),
+                       _Inputs(map_result, sets, records, verification))
     rows, withheld = _claims(request, inputs)
     progress.count('claim steps', 3, CLAIM_STEPS)
     rows, withheld = aside.screen(rows, withheld, records, sets)
@@ -302,22 +297,25 @@ def _claims(request, inputs):
     """(ranked claims, withheld claims): the facts' claims and the runtime ones, outside the excluded paths."""
     # The load record lives beside the fact sets, not among them: it has a different shape, so it
     # is handed over separately rather than pushed into a map every consumer expects to be uniform.
-    load_record = read(request.out / 'load-model.json') if (request.out / 'load-model.json').is_file() else None
-    rows, fact_index, withheld = build_claims(inputs.sets, inputs.records, load_record=load_record, target=request.target)
+    rows, fact_index, withheld = build_claims(inputs.sets, inputs.records, target=request.target)
     progress.count('claim steps', 2, CLAIM_STEPS)
     coverage_set = _more_sets(request.out, inputs.sets)
-    runtime = runtime_claims(inputs.verification, len(rows), (coverage_set or {}).get('facts'), excluded=_excluded(request.exclude))
-    runtime += from_runs.run_claims(request.out, inputs.sets, request.target, len(rows) + len(runtime))   # they read what ran (M13, M14)
-    runtime += from_rules.rule_claims(request.out, rows + runtime, fact_index, len(rows) + len(runtime))  # the person's own rules, last: a detector's guard reads the others (M16)
-    runtime, held = ledger.withhold(runtime)        # a detector under its measured bar is kept aside here too (M15)
+    runtime = runtime_claims(inputs.verification, len(rows), (coverage_set or {}).get('facts'),
+                             excluded=_excluded(request.exclude))
+    runtime += from_runs.run_claims(request.out, inputs.sets, request.target,
+                                    len(rows) + len(runtime))   # they read what ran
+    runtime += from_rules.rule_claims(request.out, rows + runtime, fact_index, len(rows) + len(runtime))  # the person's own rules, last: a detector's guard reads the others
+    runtime, held = ledger.withhold(runtime)        # a detector under its measured bar is kept aside here too
     for number, row in enumerate(held, start=len(withheld) + 1): row['id'] = 'WHD-%03d' % number
     withheld = withheld + held
     for fact in (coverage_set or {}).get('facts', []): fact_index.setdefault(fact['id'], fact['location'].get('path'))
     for row in runtime:
         row['origin'] = origin_of(row, fact_index)
         row.setdefault('artifacts', [REGISTER])
-        row.setdefault('disposition', {'kind': 'investigate', 'reason': 'Ranked for review; no owner assigned yet in this run.'})
-    if request.target is not None: assess_mechanically(runtime, inputs.sets, request.target)   # one source per pattern's (M15.7)
+        row.setdefault('disposition', {'kind': 'investigate',
+                                       'reason': 'Ranked for review; no owner assigned yet in this run.'})
+    if request.target is not None:
+        assess_mechanically(runtime, inputs.sets, request.target)   # one source per pattern's repair
     from ..planning.ranking import rank
     return rank(rows + runtime, inputs.sets, fact_index), withheld
 
@@ -328,17 +326,19 @@ def _dossier(request, inputs, rows, withheld):
     return {
         'schema_version': 1,
         'provenance': {'target': str(target), 'tool_version': request.version or __version__,
-                       'generated_at': stamp('%Y-%m-%d %H:%M UTC', utc=True), 'snapshot_fingerprint': sets['syntax']['input_sha'],
+                       'generated_at': stamp('%Y-%m-%d %H:%M UTC', utc=True),
+                       'snapshot_fingerprint': sets['syntax']['input_sha'],
                        'audit_run': str(run) if run else None,
-                       'model_calls': 0 if not run else (records['state'] or {}).get('model_calls', 'see engine-state.json'),
+                       'model_calls': 0 if not run else (records['state'] or {}).get('model_calls',
+                                                                    'see engine-state.json'),
                        'extractors': {name: data['extractor_version'] for name, data in sorted(sets.items())},
                        'excluded_patterns': inputs.map_result.get('exclude_patterns', list(request.exclude or []))},
         'coverage': _dossier_coverage(sets, records, verification, rows),
         'description': describe(sets, records),
         'claim_counts': ledger.claim_counts(rows),
         'claims': rows,
-        'likenesses': from_one_source.notes(request.out, sets),     # alike in shape only: said, never cards (M15)
-        'person_rules': from_rules.said(request.out),                # the rules held, and those EAOS cannot guard, with why (M16)
+        'likenesses': from_one_source.notes(request.out, sets),     # alike in shape only: said, never cards
+        'person_rules': from_rules.said(request.out),                # the rules held, and those EAOS cannot guard, with why
         'withheld_claims': withheld,
         'questions': questions_of(records, sets),
         'tasks': tasks,
@@ -358,7 +358,8 @@ def _dossier(request, inputs, rows, withheld):
 def _dossier_coverage(sets, records, verification, rows):
     """What was examined, with how many claims execution confirmed and how much of the code the tests ran."""
     return {**coverage_of(sets, records, verification),
-            'runtime_confirmation': sum(1 for row in rows if 'test_evidence' in row['method'] or 'runtime_probe' in row['method']),
+            'runtime_confirmation': sum(1 for row in rows
+                                        if 'test_evidence' in row['method'] or 'runtime_probe' in row['method']),
             'executed_verification': bool(verification and verification.get('executed')),
             'executed_coverage_percent': (verification or {}).get('overall_percent')}
 
@@ -369,8 +370,7 @@ VERDICT = 'report-result.json'
 def write_verdict(out, dossier, violations, target=None, facts=None):
     """The one place report-result.json is written.
 
-    The validate stage used to write a thinner copy of this record over the dossier's, dropping the
-    claim and fact counts a reader needs beside the verdict.
+    A second writer would drop the claim and fact counts a reader needs beside the verdict.
     """
     out = Path(out)
     provenance = dossier.get('provenance') or {}

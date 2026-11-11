@@ -14,7 +14,8 @@ class Rounds:
         """What stage `name` sees ended: all of `ended` but what a loop of another, which may still run again, broke."""
         mine = LOOP_OF.get(name)
         with self.run['lock']: rows = dict(self.run['results'])
-        return ended - {stage for loop in LOOPS if loop.name != mine and loop.max_rounds > 1 and loop.name not in self.settled
+        return ended - {stage for loop in LOOPS if loop.name != mine and loop.max_rounds > 1
+                        and loop.name not in self.settled
                         for stage in loop.stages if (rows.get(stage) or {}).get('status') in BROKEN}
 
     def ended(self, name, ended):
@@ -35,9 +36,9 @@ class Rounds:
         return []
 
     def _again(self, loop, failed):
-        """The broken stages of `loop`, their rows and what they blocked cleared, when one of them failed itself (`failed`:
-        a stage only not reached behind another loop's would not reach it again); the shared app closed when a page
-        stage is among them, so the next round starts it afresh."""
+        """The broken stages of `loop`, their rows and what they blocked cleared, when one of them failed itself
+        (`failed`: a stage only not reached behind another loop's would not reach it again); the shared app closed when
+        a page stage is among them, so the next round starts it afresh."""
         results, blocked = self.run['results'], self.run['blocked']
         if not any(results[name]['status'] == 'failed' for name in failed): return []
         broken = [name for name in loop.stages if results[name]['status'] in BROKEN]
@@ -54,5 +55,6 @@ class Rounds:
 
 def _unblock(blocked, broken):
     """What the `broken` stages blocked, and what blocked them but a stage (a stop, missing prerequisites), cleared."""
-    for name in [name for name, (_, _, cause) in blocked.items() if cause in broken or (name in broken and cause is None)]:
+    for name in [name for name, (_, _, cause) in blocked.items()
+                 if cause in broken or (name in broken and cause is None)]:
         del blocked[name]

@@ -1,4 +1,4 @@
-"""The layer rules (M6): each rule's boundary, its sentence for one finding, why it matters and the reference's fix, in
+"""The layer rules: each rule's boundary, its sentence for one finding, why it matters and the reference's fix, in
 English and Arabic. A sentence composed with values stays beside its code (docs/ARCHITECTURE.md §4)."""
 
 # The boundaries, in the order people read them: a breach of an earlier one is nearer the person's data.
@@ -22,12 +22,14 @@ RULES = {
     'secret-in-browser': ('browser', 'high',
                           '{name} is shipped to the browser in {path}: its name says it is a secret',
                           '{name} يصل إلى المتصفح في {path}، واسمه يقول إنه سر',
-                          'Keep the secret on the server (an endpoint or an edge function) and give the browser only a public key.',
+                          'Keep the secret on the server (an endpoint or an edge function) and give the browser '
+                          'only a public key.',
                           'أبقِ السر في الخادم (نقطة طلب أو دالة طرفية)، ولا تعطِ المتصفح إلا مفتاحًا عامًا.'),
     'key-in-shipped-code': ('browser', 'high',
                             'A privileged key ({family}) is in code shipped to the browser: {path}',
                             'مفتاح بصلاحيات كاملة ({family}) في كود يصل إلى المتصفح: {path}',
-                            'Revoke the key, move every use of it to the server, and keep it in the host\'s secret store.',
+                            'Revoke the key, move every use of it to the server, and keep it in the host\'s '
+                            'secret store.',
                             'ألغِ المفتاح، وانقل كل استخدام له إلى الخادم، واحفظه في مخزن الأسرار عند الاستضافة.'),
     'key-in-built-output': ('browser', 'high',
                             'A privileged key ({family}) is in the built output: {path}',
@@ -57,7 +59,8 @@ RULES = {
     'unowned-row': ('endpoints', 'high',
                     '{method} {route} {verb} any person\'s row by its id without checking its owner ({path})',
                     '{method} {route} يصل إلى صف أي شخص برقمه دون أن يتحقق من صاحبه ({path})',
-                     'Check that the row belongs to the person signed in (or their role allows it) before returning it.',
+                     'Check that the row belongs to the person signed in (or their role allows it) '
+                     'before returning it.',
                      'تحقق أن الصف يخص الشخص الداخل (أو أن دوره يسمح) قبل أن تعيده.'),
     'unguarded-private-read': ('endpoints', 'high',
                                '{method} {route} answers anyone with {data}, which other endpoints guard ({path})',
@@ -65,19 +68,26 @@ RULES = {
                                'Add the same sign-in and owner checks the other endpoints of this data have.',
                                'أضف نفس تحقق الدخول والملكية الموجود في النقاط الأخرى لهذه البيانات.'),
     'table-without-rls': ('data', 'high',
-                          'Table {table} has no row-level security: anyone holding the app\'s public key reads and changes its rows ({path})',
-                          'الجدول {table} بلا أمان على مستوى الصفوف: من يملك المفتاح العام للتطبيق يقرأ صفوفه ويغيّرها ({path})',
-                          'A new migration that enables row-level security on the table with a policy per command tying each row to its owner.',
+                          'Table {table} has no row-level security: anyone holding the app\'s public key reads '
+                          'and changes its rows ({path})',
+                          'الجدول {table} بلا أمان على مستوى الصفوف: من يملك المفتاح العام للتطبيق يقرأ صفوفه '
+                          'ويغيّرها ({path})',
+                          'A new migration that enables row-level security on the table with a policy per command '
+                          'tying each row to its owner.',
                           'هجرة جديدة تفعّل أمان الصفوف على الجدول مع سياسة لكل عملية تربط الصف بصاحبه.'),
     'open-write-policy': ('data', 'high',
-                          'The policy "{policy}" lets anyone {command} rows of {table}: its condition checks nothing (true) ({path})',
-                          'السياسة "{policy}" تسمح لأي أحد بعملية {command} على صفوف {table}: شرطها لا يتحقق من شيء (true) ({path})',
+                          'The policy "{policy}" lets anyone {command} rows of {table}: its condition checks nothing '
+                          '(true) ({path})',
+                          'السياسة "{policy}" تسمح لأي أحد بعملية {command} على صفوف {table}: شرطها لا يتحقق من شيء '
+                          '(true) ({path})',
                           'Replace the condition with one that ties each row to its owner (auth.uid() = owner).',
                           'استبدل الشرط بشرط يربط كل صف بصاحبه (auth.uid() = owner).'),
     'rls-without-policy': ('data', 'low',
-                           'Table {table} has row-level security on and no policy: nobody but the server reaches it ({path})',
+                           'Table {table} has row-level security on and no policy: nobody but the server reaches '
+                           'it ({path})',
                            'الجدول {table} عليه أمان الصفوف بلا أي سياسة، فلا يصل إليه إلا الخادم ({path})',
-                           'Add the policies the app needs (each person their own rows), or say that only the server uses it.',
+                           'Add the policies the app needs (each person their own rows), or say that only the server '
+                           'uses it.',
                            'أضف السياسات التي يحتاجها التطبيق (كل شخص صفوفه)، أو وثّق أن الخادم وحده يستخدمه.'),
     'definer-function-public': ('data', 'medium',
                                 'Function {name} runs with its owner\'s rights and anyone may call it ({path})',
@@ -92,10 +102,12 @@ RULES = {
     'public-bucket-listed': ('data', 'medium',
                              'The storage bucket {bucket} is public and anyone can list its files ({path})',
                              'مخزن الملفات {bucket} عام ويقدر أي أحد يسرد ملفاته ({path})',
-                             'Keep the bucket public for reading by address only: drop the policy that lets anyone list it.',
+                             'Keep the bucket public for reading by address only: drop the policy that lets anyone '
+                             'list it.',
                              'اترك المخزن عامًا للقراءة بالعنوان فقط، واحذف السياسة التي تسمح لأي أحد بسرد ملفاته.'),
     'browser-only-rule': ('rules', 'high',
-                          'The {field} rule of {route} is checked only in the browser ({where}); the server accepts any value ({path})',
+                          'The {field} rule of {route} is checked only in the browser ({where}); the server accepts '
+                          'any value ({path})',
                           'قاعدة {field} في {route} تُفحص في المتصفح فقط ({where})، والخادم يقبل أي قيمة ({path})',
                           'Check the same rule on the server, from one definition both sides use.',
                           'افحص القاعدة نفسها في الخادم، من تعريف واحد يستخدمه الطرفان.'),
@@ -112,7 +124,8 @@ RULES = {
     'policy-failed-live': ('data', 'high',
                            "{table}: the test '{test}' failed on a copy of the database with the migrations applied",
                            "{table}: فشل الاختبار '{test}' على نسخة من قاعدة البيانات بعد تطبيق الهجرات",
-                           'Tie the policy to the row\'s owner (auth.uid() = owner) for every command, then run the test again.',
+                           'Tie the policy to the row\'s owner (auth.uid() = owner) for every command, '
+                           'then run the test again.',
                            'اربط السياسة بصاحب الصف (auth.uid() = owner) في كل عملية، ثم أعد الاختبار.'),
     'database-advisor': ('data', 'medium',
                          'The Supabase security advisor {name}: {detail}',

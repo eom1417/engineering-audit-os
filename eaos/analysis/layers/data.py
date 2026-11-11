@@ -1,22 +1,25 @@
 """The data layer's rules, read from the migrations with no database (M6.5).
 
-What lets anyone through the API Supabase serves, from the net state of every migration (eaos/facts/domain/model.py's tables
-and policies, and the migrations' text): a table without row-level security, a write policy open to everyone (`true`),
-security enabled with no policy, a security-definer function or view the public may run, a public storage bucket whose
-files anyone may list. And for each table, who reads it and who writes it (the data-access facts, each with the side of
-its file), so a table written from the browser is seen beside its rules.
+What lets anyone through the API Supabase serves, from the net state of every migration (eaos/facts/domain/model.py's
+tables and policies, and the migrations' text): a table without row-level security, a write policy open to everyone
+(`true`), security enabled with no policy, a security-definer function or view the public may run, a public storage
+bucket whose files anyone may list. And for each table, who reads it and who writes it (the data-access facts, each
+with the side of its file), so a table written from the browser is seen beside its rules.
 """
 import re
 from collections import defaultdict
 
 from ...facts.domain.model import table_key
 
-FUNCTION = re.compile(r'create\s+(?:or\s+replace\s+)?function\s+(?P<name>[\w."]+)\s*\((?P<args>[^)]*)\)(?P<body>.*?)(?:\$\w*\$.*?\$\w*\$|;)',
+FUNCTION = re.compile(r'create\s+(?:or\s+replace\s+)?function\s+(?P<name>[\w."]+)\s*\((?P<args>[^)]*)\)(?P<body>.*?)'
+                      r'(?:\$\w*\$.*?\$\w*\$|;)',
                       re.I | re.S)
 DEFINER = re.compile(r'\bsecurity\s+definer\b', re.I)
 TRIGGER = re.compile(r'\breturns\s+trigger\b', re.I)
-REVOKE = re.compile(r'revoke\s+(?:all|execute)[^;]*?on\s+function\s+(?P<name>[\w."]+)[^;]*?from\s+(?P<roles>[^;]+);', re.I | re.S)
-VIEW = re.compile(r'create\s+(?:or\s+replace\s+)?(?:materialized\s+)?view\s+(?:if\s+not\s+exists\s+)?(?P<name>[\w."]+)(?P<options>[^;]*?)\bas\b', re.I | re.S)
+REVOKE = re.compile(r'revoke\s+(?:all|execute)[^;]*?on\s+function\s+(?P<name>[\w."]+)[^;]*?'
+                    r'from\s+(?P<roles>[^;]+);', re.I | re.S)
+VIEW = re.compile(r'create\s+(?:or\s+replace\s+)?(?:materialized\s+)?view\s+(?:if\s+not\s+exists\s+)?'
+                  r'(?P<name>[\w."]+)(?P<options>[^;]*?)\bas\b', re.I | re.S)
 INVOKER = re.compile(r'security_invoker\s*=\s*(?:true|on)', re.I)
 VIEW_INVOKER = re.compile(r'alter\s+view\s+(?P<name>[\w."]+)\s+set\s*\([^)]*security_invoker\s*=\s*(?:true|on)', re.I)
 BUCKET = re.compile(r'insert\s+into\s+storage\.buckets\s*\((?P<columns>[^)]*)\)\s*values\s*\((?P<values>[^)]*)\)', re.I)
@@ -56,10 +59,12 @@ def definer_functions(texts):
 
 def definer_views(texts):
     fixed = {table_key(m.group('name')) for _, text in texts for m in VIEW_INVOKER.finditer(text)}
-    return [{'rule': 'definer-view', 'path': path, 'line': _line(text, match.start()), 'evidence': 'a view without security_invoker',
+    return [{'rule': 'definer-view', 'path': path, 'line': _line(text, match.start()),
+             'evidence': 'a view without security_invoker',
              'params': {'name': match.group('name').replace('"', ''), 'path': path}}
             for path, text in texts for match in VIEW.finditer(text)
-            if _public(match.group('name')) and not INVOKER.search(match.group('options')) and table_key(match.group('name')) not in fixed]
+            if _public(match.group('name')) and not INVOKER.search(match.group('options'))
+            and table_key(match.group('name')) not in fixed]
 
 
 def _public_buckets(texts):
@@ -83,7 +88,8 @@ def listed_buckets(texts):
             for bucket in buckets:
                 if re.search(r"bucket_id\s*=\s*'" + re.escape(bucket) + "'", body):
                     found.append({'rule': 'public-bucket-listed', 'path': path, 'line': _line(text, match.start()),
-                                  'evidence': 'a select policy on storage.objects with no owner check', 'params': {'bucket': bucket, 'path': path}})
+                                  'evidence': 'a select policy on storage.objects with no owner check',
+                                  'params': {'bucket': bucket, 'path': path}})
     return found
 
 
@@ -92,21 +98,25 @@ def open_tables(project):
     found = []
     for fact in project.facts('domain'):
         value, where = fact['value'], fact['location']
-        if fact['kind'] == 'data_table' and '/supabase/' in '/' + where['path'] and value.get('rls_enabled') is False and not value.get('dropped'):
+        if (fact['kind'] == 'data_table' and '/supabase/' in '/' + where['path']
+                and value.get('rls_enabled') is False and not value.get('dropped')):
             found.append({'rule': 'table-without-rls', 'path': where['path'], 'line': where.get('start_line'),
                           'evidence': 'no ALTER TABLE ... ENABLE ROW LEVEL SECURITY after every migration',
                           'params': {'table': value['name'], 'path': where['path']}})
-        elif fact['kind'] == 'db_policy' and value.get('open') and value.get('command') in ('ALL', 'INSERT', 'UPDATE', 'DELETE'):
+        elif (fact['kind'] == 'db_policy' and value.get('open')
+              and value.get('command') in ('ALL', 'INSERT', 'UPDATE', 'DELETE')):
             found.append({'rule': 'open-write-policy', 'path': where['path'], 'line': where.get('start_line'),
                           'evidence': f"a {value['command']} policy whose condition is true",
-                          'params': {'table': value['table'], 'policy': value.get('name'), 'command': value['command'], 'path': where['path']}})
+                          'params': {'table': value['table'], 'policy': value.get('name'),
+                                     'command': value['command'], 'path': where['path']}})
     return found
 
 
 def unpoliced(project):
     """Tables with row-level security on and no policy at all."""
     return [{'rule': 'rls-without-policy', 'path': f['location']['path'], 'line': f['location'].get('start_line'),
-             'evidence': 'row-level security enabled, no policy', 'params': {'table': f['value']['name'], 'path': f['location']['path']}}
+             'evidence': 'row-level security enabled, no policy',
+             'params': {'table': f['value']['name'], 'path': f['location']['path']}}
             for f in project.facts('domain', 'data_table')
             if f['value'].get('rls_enabled') and not f['value'].get('policies') and not f['value'].get('dropped')
             and '/supabase/' in '/' + f['location']['path']]
@@ -121,7 +131,8 @@ def _access(project):
     for fact in project.facts('entrypoints', 'data_access'):
         value = fact['value']
         if not value.get('target') or value.get('client') not in ('supabase', 'supabase-js', None): continue
-        access[table_key(str(value['target']))]['writers' if value.get('operation') in WRITES else 'readers'].add(fact['location']['path'])
+        access[table_key(str(value['target']))]['writers' if value.get('operation') in WRITES
+                                               else 'readers'].add(fact['location']['path'])
     return access
 
 
@@ -133,13 +144,15 @@ def _open_writes(project):
 def _table(fact, seen, opened, sides):
     key = table_key(fact['value']['name'])
     return {'table': key, 'path': fact['location']['path'], 'line': fact['location'].get('start_line'),
-            'rls': fact['value'].get('rls_enabled'), 'policies': fact['value'].get('policies') or 0, 'open_write': key in opened,
+            'rls': fact['value'].get('rls_enabled'), 'policies': fact['value'].get('policies') or 0,
+            'open_write': key in opened,
             'readers': sorted(seen['readers']), 'writers': sorted(seen['writers']),
             'written_from_browser': any(sides.get(path) in ('browser', 'shared') for path in seen['writers'])}
 
 
 def tables(project, sides):
-    """[{table, path, rls, policies, open_write, readers, writers, written_from_browser}] for every table the migrations make."""
+    """[{table, path, rls, policies, open_write, readers, writers, written_from_browser}] for every table the
+    migrations make."""
     access, opened, empty = _access(project), _open_writes(project), {'readers': set(), 'writers': set()}
     return [_table(fact, access.get(table_key(fact['value']['name']), empty), opened, sides)
             for fact in project.facts('domain', 'data_table')
@@ -149,6 +162,7 @@ def tables(project, sides):
 def check(project, sides):
     """{'tables': [...], 'findings': [...]} of a project that uses Supabase."""
     texts = [(path, project.text(path)) for path in project.schemas if path.endswith('.sql')]
-    findings = open_tables(project) + unpoliced(project) + definer_functions(texts) + definer_views(texts) + listed_buckets(texts) \
-        if (project.root / 'supabase').is_dir() or project.packages & {'@supabase/supabase-js', '@supabase/ssr'} else []
+    findings = open_tables(project) + unpoliced(project) + definer_functions(texts) + definer_views(texts) \
+        + listed_buckets(texts) if (project.root / 'supabase').is_dir() \
+        or project.packages & {'@supabase/supabase-js', '@supabase/ssr'} else []
     return {'tables': tables(project, sides), 'findings': findings}

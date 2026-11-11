@@ -6,9 +6,8 @@ from concurrent.futures import FIRST_COMPLETED, ThreadPoolExecutor, wait
 from pathlib import Path
 from typing import NamedTuple
 
-from .code import ast_grep, dependency_cruiser, gitnexus, jscpd, knip, lizard, react_docgen, reforge, scc, sqlfluff, squawk
-from .security import bandit, checkov, codeql, gitleaks, osv_scanner, presidio, semgrep, syft
-from .api import oasdiff, spectral
+from .code import ast_grep, dependency_cruiser, jscpd, knip, lizard
+from .security import gitleaks, presidio, semgrep
 from . import sarif, tool
 from .contract import NOT_APPLICABLE, OBSERVED, UNAVAILABLE
 from .process import state_digest
@@ -21,12 +20,12 @@ from ..core.system.clock import now
 # The engines are the registry's (eaos/data/toolchain.json): every tool the engines stage runs (`check: engines`) with a
 # command of its own has its adapter here, by its NAME; an added tool that declares an `engine` runs through sarif.py.
 # Install, run and display read the one list; an entry without its adapter fails here, at import.
-_BY_NAME = {module.NAME: module for module in (ast_grep, bandit, checkov, codeql, dependency_cruiser, gitleaks,
-                                                gitnexus, jscpd, knip, lizard, oasdiff, osv_scanner, presidio, react_docgen, reforge, scc,
-                                                semgrep, spectral, sqlfluff, squawk, syft)}
+_BY_NAME = {module.NAME: module
+            for module in (ast_grep, dependency_cruiser, gitleaks, jscpd, knip, lizard, presidio, semgrep)}
 ADAPTERS = {tool['name']: _BY_NAME[tool['name']] for tool in registry()['tools']
-            if tool.get('check') == 'engines' and (tool.get('binary') or tool['install'].get('library')) and not tool.get('engine')} | sarif.declared()
-# What an engine may take while it runs; an adapter that takes more says so (CodeQL's database: codeql.MEMORY).
+            if tool.get('check') == 'engines' and (tool.get('binary') or tool['install'].get('library'))
+            and not tool.get('engine')} | sarif.declared()
+# What an engine may take while it runs; an adapter that takes more says so (its MEMORY).
 ENGINE_MB = 1024
 
 
@@ -60,7 +59,8 @@ def _report(name, target, workdir, exclude, formats):
 
 
 class _Job(NamedTuple):
-    """What every engine of one run is asked to read: the target, its scratch folder, the excluded paths, the formats."""
+    """What every engine of one run is asked to read: the target, its scratch folder, the excluded paths,
+    the formats."""
     target: Path
     workdir: Path
     exclude: tuple
@@ -73,7 +73,8 @@ def _run_one(name, selected, reports, job):
     reports[name] = _report(name, *job)
     status = reports[name].get('status') or 'error'
     progress.step(name, len(reports), len(selected), status, time.monotonic() - began,
-                  reason=reports[name].get('reason') or '', reason_code='' if status == 'observed' else f'engine_{status}')
+                  reason=reports[name].get('reason') or '',
+                  reason_code='' if status == 'observed' else f'engine_{status}')
 
 
 def _need(name):
@@ -118,7 +119,8 @@ def analyze(target, workdir, exclude=(), only=None, formats=None, keep=False):  
     """Run every requested engine and return one manifest. The target is proven unchanged afterwards.
 
     Each engine of the registry is reported as a step of the running stage (eaos/core/progress/context.py), from waiting
-    to its own status (observed, not applicable, unavailable, error): the live map shows each tool as it runs. `keep`:
+    to its own status (observed, not applicable, unavailable, error): the progress log shows each tool as it runs.
+    `keep`:
     the engines named in `only` are run again within the same check (one that failed), beside the others' results kept
     from it."""
     target, workdir = Path(target).resolve(), Path(workdir).resolve()
@@ -148,14 +150,16 @@ def analyze(target, workdir, exclude=(), only=None, formats=None, keep=False):  
     # On disk each finding once, under its engine (the list above repeats them for the caller): compact, read back
     # by _with_kept; the facts carry them on (facts/external.json).
     on_disk = {key: value for key, value in manifest.items() if key not in ('findings', 'justified')}
-    (workdir / 'engines.json').write_text(json.dumps(on_disk, ensure_ascii=False, separators=(',', ':')), encoding='utf-8')
+    (workdir / 'engines.json').write_text(json.dumps(on_disk, ensure_ascii=False, separators=(',', ':')),
+                                          encoding='utf-8')
     return manifest
 
 
 def _split(selected, reports):
-    """(the findings, the findings the project justified on their line): every engine's, in one order. A justified one is
-    reported apart, never as a defect, and still read by the gates (eaos/engines/sarif.py)."""
-    every = sorted((item for name in selected for item in reports[name].get('findings', [])), key=lambda row: (row['engine'], row['id']))
+    """(the findings, the findings the project justified on their line): every engine's, in one order. A justified
+    one is reported apart, never as a defect, and still read by the gates (eaos/engines/sarif.py)."""
+    every = sorted((item for name in selected for item in reports[name].get('findings', [])),
+                   key=lambda row: (row['engine'], row['id']))
     return [f for f in every if not f.get('justified')], [f for f in every if f.get('justified')]
 
 
@@ -168,7 +172,8 @@ def _with_kept(workdir, selected, reports):
     """(every engine, every report): the ones run now and the others of the check's last engines.json."""
     previous = read_json(workdir / 'engines.json')
     if previous is None: return selected, reports
-    kept = {name: row for name, row in (previous.get('engines') or {}).items() if name in ADAPTERS and name not in reports}
+    kept = {name: row for name, row in (previous.get('engines') or {}).items()
+            if name in ADAPTERS and name not in reports}
     return ordered([*kept, *selected]), {**kept, **reports}
 
 

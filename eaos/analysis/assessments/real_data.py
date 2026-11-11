@@ -1,5 +1,5 @@
-"""Real data written in the code (M12.2, M12.3): each table written as code and each record of personal values, sorted
-on its evidence before anything is said.
+"""Real data written in the code: each table written as code and each record of personal values, sorted on its
+evidence before anything is said.
 
 From the engines' records (the `external` fact set): Presidio's personal values in string literals
 (eaos/engines/security/presidio.py) and ast-grep's tables of records and maps keyed by dates (eaos/rules/ast-grep
@@ -43,13 +43,17 @@ def values(sets):
 
 
 def tables(sets):
-    """ast-grep's tables and dated maps: [{path, line, end_line, record}], an inner table inside an outer one dropped."""
-    rows = sorted(({'path': f['location']['path'], 'line': f['location'].get('line'), 'end_line': f['value'].get('end_line'),
-                    'record': f['value']['record'], 'fact_id': f['id']} for record in TABLES for f in engine_records(sets, record)),
+    """ast-grep's tables and dated maps: [{path, line, end_line, record}], an inner table inside an outer one
+    dropped."""
+    rows = sorted(({'path': f['location']['path'], 'line': f['location'].get('line'),
+                    'end_line': f['value'].get('end_line'),
+                    'record': f['value']['record'],
+                    'fact_id': f['id']} for record in TABLES for f in engine_records(sets, record)),
                   key=lambda t: (t['path'], t['line'], -(t['end_line'] or 0)))
     kept = []
     for row in rows:
-        if kept and kept[-1]['path'] == row['path'] and kept[-1]['line'] <= row['line'] <= (kept[-1]['end_line'] or 0): continue
+        if (kept and kept[-1]['path'] == row['path']
+                and kept[-1]['line'] <= row['line'] <= (kept[-1]['end_line'] or 0)): continue
         kept.append(row)
     return kept
 
@@ -57,7 +61,8 @@ def tables(sets):
 def place(path):
     """Where a file sits: product, test, story, docs, mock, seed or migration."""
     parts, name = {p.lower() for p in PurePosixPath(path).parts[:-1]}, PurePosixPath(path).name.lower()
-    if name.endswith('.sql'): return 'seed' if 'seed' in name or parts & set(RULES['outside_the_product']['seed']) else 'migration'
+    if name.endswith('.sql'):
+        return 'seed' if 'seed' in name or parts & set(RULES['outside_the_product']['seed']) else 'migration'
     if classify(path) == 'test': return 'test'
     if '.stories.' in name or '.story.' in name: return 'story'
     for where, folders in RULES['outside_the_product'].items():
@@ -88,7 +93,10 @@ def _entries(sets):
     for fact in (sets.get('entrypoints') or {}).get('facts', []):
         value = fact['value']
         if fact['kind'] == 'entry_point' and value.get('surface') in ('page', 'http') and value.get('route'):
-            entries.setdefault(fact['location']['path'], []).append(' '.join(filter(None, (value['surface'], value.get('http_method'), value['route']))))
+            entries.setdefault(fact['location']['path'],
+                               []).append(' '.join(filter(None,
+                                                          (value['surface'], value.get('http_method'),
+                                                           value['route']))))
     return entries
 
 
@@ -135,7 +143,8 @@ def _from_tables(sets, root, hits):
     for table in tables(sets):
         inside, keys = _inside(table, hits), _keys(_read(root, table['path']), table)
         used |= {id(h) for h in inside}
-        if not keys & DOMAIN: inside = [h for h in inside if h['entity'] not in NAMES_ONLY]    # a menu's 'Button Groups'
+        # a menu's 'Button Groups' is no person
+        if not keys & DOMAIN: inside = [h for h in inside if h['entity'] not in NAMES_ONLY]
         kind = kind_of(table, inside, keys)
         if kind: out.append({**table, 'kind': kind, 'values': inside})
     return _one_per_file(out), used
@@ -146,7 +155,8 @@ def _one_per_file(rows):
     kept = {}
     for row in rows:
         same = kept.get((row['path'], row['kind'], row['record']))
-        if same is None: kept[(row['path'], row['kind'], row['record'])] = dict(row, fact_ids=[row['fact_id']]); continue
+        if same is None: kept[(row['path'], row['kind'], row['record'])] = dict(row,
+                                                                                fact_ids=[row['fact_id']]); continue
         same['end_line'] = max(same['end_line'] or same['line'], row['end_line'] or row['line'])
         same['values'] = same['values'] + row['values']; same['fact_ids'].append(row['fact_id'])
     return list(kept.values())
@@ -159,7 +169,8 @@ def _grouped(hits):
         last = groups[-1] if groups else None
         if last and last['path'] == hit['path'] and hit['line'] - last['end_line'] <= LINE_WINDOW:
             last['values'].append(hit); last['end_line'] = hit['line']
-        else: groups.append({'path': hit['path'], 'line': hit['line'], 'end_line': hit['line'], 'record': 'record', 'values': [hit]})
+        else: groups.append({'path': hit['path'], 'line': hit['line'], 'end_line': hit['line'], 'record': 'record',
+                             'values': [hit]})
     return groups
 
 
@@ -193,7 +204,8 @@ def _json_tables(sets, root):
         rows = _json_rows(root, path)
         if len(rows) < RULES['tables']['min_records']: continue
         kind = kind_of({'record': 'data_table'}, [], {key.lower() for row in rows for key in row})
-        if kind: out.append({'path': path, 'line': 1, 'end_line': None, 'record': 'json', 'kind': kind, 'values': [], 'fact_id': fact_ids[0]})
+        if kind: out.append({'path': path, 'line': 1, 'end_line': None, 'record': 'json', 'kind': kind, 'values': [],
+                             'fact_id': fact_ids[0]})
     return out
 
 
@@ -210,7 +222,9 @@ def _finding(row, where, stored, feeds):
     for value in row['values']: entities[value['entity']] = entities.get(value['entity'], 0) + 1
     return {**{k: row[k] for k in ('path', 'line', 'end_line', 'record', 'kind')}, 'place': where,
             'entities': dict(sorted(entities.items())),
-            'fact_ids': sorted(filter(None, [*row.get('fact_ids', [row.get('fact_id')]), *(v['fact_id'] for v in row['values'])])),
+            'fact_ids': sorted(filter(None,
+                                      [*row.get('fact_ids', [row.get('fact_id')]),
+                                       *(v['fact_id'] for v in row['values'])])),
             'in_database': sorted({p for v in row['values'] for p in stored.get(v['digest'], ()) if p != row['path']}),
             'feeds': feeds}
 

@@ -7,25 +7,27 @@ import shutil
 from pathlib import Path
 from ...core.system.files import read_json
 
-# ── NS26: the lock, run on the original code ────────────────────────────────────────────────────────────
+# ── the lock, run on the original code ────────────────────────────────────────────────────────────
 # The browser reaches loopback only: Chromium sends every other host to a proxy nobody answers on, so a
 # page's call to production or a third party fails inside the run instead of leaving the machine.
-LOCK_CONFIG = """import base from './playwright.config';
+LOCK_CONFIG = ("""import base from './playwright.config';
 
 // Written by EAOS for a run in the sandbox: the generated config, with every non-loopback host refused.
 // Loopback is named in the bypass list: every other host goes to a proxy nobody answers on.
-const offline = { launchOptions: { args: ['--proxy-server=http://127.0.0.1:9', '--proxy-bypass-list=127.0.0.1;localhost;[::1]'] } };
+const offline = { launchOptions: { args: ['--proxy-server=http://127.0.0.1:9', '"""
+"""--proxy-bypass-list=127.0.0.1;localhost;[::1]'] } };
 // A pass as one kind of user (EAOS_LOCK_KIND): its own session, its own recorded screens beside the others'.
 const kind = process.env.EAOS_LOCK_KIND;
 const as = kind ? { ...offline, storageState: `${__dirname}/.auth/@${kind}.json` } : offline;
 export default {
   ...base,
   ...(kind ? { snapshotPathTemplate: `{testDir}/../__screenshots__/@${kind}/{testFilePath}/{arg}{ext}` } : {}),
-  reporter: [['json', { outputFile: process.env.EAOS_LOCK_REPORT }], ['./stream-reporter.mjs', { outputFile: process.env.EAOS_LOCK_STREAM }]],
+  reporter: [['json', { outputFile: process.env.EAOS_LOCK_REPORT }], """
+"""['./stream-reporter.mjs', { outputFile: process.env.EAOS_LOCK_STREAM }]],
   use: { ...base.use, ...as },
   projects: (base.projects ?? []).map((project) => ({ ...project, use: { ...project.use, ...as } })),
 };
-"""
+""")
 
 # The approval tests run from the copy's root with this file as their settings: the project's pytest settings and
 # conftest files stay out.
@@ -48,7 +50,8 @@ def _prepare(live, report, recorded=None):
     # its real path: in the run's own view the tools are shown at their name and at their real path, two mounts, and the
     # runner (found on PATH through the same links) loads Playwright from the real one: one copy, never two
     modules = Path(os.path.realpath(home() / 'node/node_modules'))
-    if modules.is_dir() and not (lock / 'node_modules').exists(): (lock / 'node_modules').symlink_to(modules, target_is_directory=True)
+    if modules.is_dir() and not (lock / 'node_modules').exists():
+        (lock / 'node_modules').symlink_to(modules, target_is_directory=True)
     # Its own package.json: a project declaring "type": "module" must not change how the lock's files load.
     (lock / 'package.json').write_text('{"private": true, "type": "commonjs"}\n', encoding='utf-8')
     (lock / '.auth').mkdir(exist_ok=True)
@@ -59,9 +62,10 @@ def _prepare(live, report, recorded=None):
 
 
 def lend_kinds(report, lock, state):
-    """Each kind of user's session (eaos/live/access/roles.py, made by the seed beside session file `state`) lent to the lock as
-    .auth/@<kind>.json, and .auth/kinds.json: [[kind, [spec files of its own pages]]], the passes the lock runs as each
-    kind beside its pass with the run's one session (passes). A kind with no page of its own is seen in that pass."""
+    """Each kind of user's session (eaos/live/access/roles.py, made by the seed beside session file `state`) lent to
+    the lock as .auth/@<kind>.json, and .auth/kinds.json: [[kind, [spec files of its own pages]]], the passes the
+    lock runs as each kind beside its pass with the run's one session (passes). A kind with no page of its own is
+    seen in that pass."""
     from ..access.roles import read
     from ..app.run import kinds_folder
     specs, passes = _page_specs(report), []
@@ -79,7 +83,8 @@ def _page_specs(report):
     """[(spec file, {the pages it opens})] of the lock's Playwright specs."""
     plan = Path(report) / 'behavior-lock/plan.json'
     specs = json.loads(plan.read_text(encoding='utf-8')).get('specs') or [] if plan.is_file() else []
-    return [(s['path'], {str(x).split(' (')[0].removeprefix('GET ') for x in s.get('surfaces') or []})      # a server's page: GET /admin
+    # a server's page: GET /admin
+    return [(s['path'], {str(x).split(' (')[0].removeprefix('GET ') for x in s.get('surfaces') or []})
             for s in specs if s.get('tool') == 'playwright' and s.get('path')]
 
 

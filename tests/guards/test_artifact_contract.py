@@ -1,8 +1,7 @@
-"""Every artifact has one owner, one purpose and one budget — and the contract checks all of them.
+"""Every artifact has one writer, one purpose and one budget — and the contract checks all of them.
 
-Sixteen of thirty documents were once outside the output contract, unbudgeted and unchecked, and
-four were written twice: the second writer replaced 574 lines of measured content with empty
-headings and nothing failed. These tests exist so that cannot happen quietly again.
+Every document is inside the output contract, budgeted and checked, and written by one module: a second writer could
+replace measured content with empty headings and nothing would fail. These tests keep that from happening quietly.
 """
 import ast
 import json
@@ -48,7 +47,8 @@ class RuleThirteenTests(unittest.TestCase):
         return validate(out, {'claims': []})
 
     def test_undeclared_and_unexplained_missing_artifacts_are_violations(self):
-        cases = [('ok', {'SURPRISE.md': '# surprise\n'}, 'R13 SURPRISE.md'), (None, {'STRAY.md': '# stray\n'}, 'R13 STRAY.md'),
+        cases = [('ok', {'SURPRISE.md': '# surprise\n'}, 'R13 SURPRISE.md'), (None, {'STRAY.md': '# stray\n'},
+                                                                              'R13 STRAY.md'),
                  ('ok', None, 'R13 CURRENT-STATE.md')]
         for statuses, extra, expected in cases:
             with self.subTest(expected), tempfile.TemporaryDirectory() as directory:
@@ -61,7 +61,7 @@ class RuleThirteenTests(unittest.TestCase):
 
 
 class SingleWriterTests(unittest.TestCase):
-    """One artifact, one module. Two writers is how the system map was silently emptied."""
+    """One artifact, one module. Two writers could silently empty a document such as the architecture map."""
 
     def _writers(self, kind=contract.DOCUMENT, source=Path('eaos')):
         """Compare report-relative paths, including local directory aliases, rather than basenames."""
@@ -130,16 +130,16 @@ class SingleWriterTests(unittest.TestCase):
             for name, code in {
                 'root': "(report / 'plan.json').write_text('root')",
                 'behavior': "folder = report / 'behavior-lock'\n(folder / 'plan.json').write_text('nested')",
-                'ideal': "folder = Path(report) / 'ideal'\nalias = folder\n(alias / 'plan.json').write_text('nested')",
+                'aliased': "folder = Path(report) / 'behavior-lock'\nalias = folder\n"
+                           "(alias / 'plan.json').write_text('nested')",
                 'node': "folder = core.folder_of(report, record['node'])\n(folder / 'plan.json').write_text('nested')",
                 'direct': "(report / 'nodes' / 'planner' / 'plan.json').write_text('nested')",
-                'joined': "(report / 'ideal/plan.json').write_text('nested')",
             }.items():
                 (source / (name + '.py')).write_text(code, encoding='utf-8')
             self.assertEqual(self._writers(contract.RECORD, source),
                              {'plan.json': {(source / 'root.py').as_posix()},
-                              'behavior-lock/plan.json': {(source / 'behavior.py').as_posix()},
-                              'ideal/plan.json': {(source / 'ideal.py').as_posix(), (source / 'joined.py').as_posix()}})
+                              'behavior-lock/plan.json': {(source / 'behavior.py').as_posix(),
+                                                          (source / 'aliased.py').as_posix()}})
         with tempfile.TemporaryDirectory() as directory:
             source = Path(directory)
             (source / 'first.py').write_text("(report / 'plan.json').write_text('one')", encoding='utf-8')
@@ -203,8 +203,8 @@ class RecordTwinTests(unittest.TestCase):
 
 class SchemasMadeNotWritten(unittest.TestCase):
     def test_every_schema_on_disk_is_the_one_tools_make_contracts_makes(self):
-        # Two schemas edited by hand were silently undone by the next `make_contracts.py`, and the manifest of a check
-        # in English (its other language Arabic) would have failed its contract and not been written.
+        # A schema edited by hand would be silently undone by the next `make_contracts.py`, and the manifest of a check
+        # in English (its other language Arabic) must pass its contract and be written.
         import sys
         tools = Path(__file__).resolve().parents[2] / 'tools'
         sys.path.insert(0, str(tools))

@@ -42,7 +42,8 @@ class ProbeTests(unittest.TestCase):
             self.assertTrue(refuted['refuted_by'])
 
     def test_a_mention_inside_a_test_string_cannot_withdraw_a_true_finding(self):
-        """Regression: a text search matched an import written inside a test's string literal and refuted a true claim."""
+        """A text search does not match an import written inside a test's string literal, so it never refutes a true
+        claim."""
         with tempfile.TemporaryDirectory() as tmp:
             repo = Path(tmp) / 'repo'; (repo / 'tests').mkdir(parents=True)
             (repo / 'api.py').write_text('VAT_RATE = 0.15\n\n\ndef total(x):\n    return x * (1 + VAT_RATE)\n')
@@ -69,7 +70,7 @@ class ProbeTests(unittest.TestCase):
         # Execution probes are blocked unless explicitly allowed.
         row = probes.probe(1, 'CLM-001', 'execution', {'command': 'pytest'}, requires_execution=True)
         self.assertEqual((row['status'], row['requires_execution']), ('not_run', True))
-        # Regression: a claim that A must not import B was refuted because B imports A.
+        # A claim that A must not import B is not refuted because B imports A.
         sets = {'graph': {'facts': [
             {'kind': 'graph_node', 'location': {'path': 'a.py'}, 'value': {'depends_on': []}},
             {'kind': 'graph_node', 'location': {'path': 'b.py'}, 'value': {'depends_on': ['a.py']}}]}}
@@ -81,20 +82,22 @@ class ProbeTests(unittest.TestCase):
         self.assertEqual(symmetric, 'REFUTED')
 
     def test_a_static_probe_cannot_confirm_a_causal_claim(self):
-        """Regression: a branch-count probe raised a claim about *why* the branches exist to CONFIRMED."""
+        """A branch-count probe does not raise a claim about why the branches exist to CONFIRMED."""
         from eaos.analysis.claims import ledger
         with tempfile.TemporaryDirectory() as tmp:
             repo = Path(tmp) / 'repo'; repo.mkdir()
             branches = '\n'.join(f'    if value == {n}:\n        return {n}' for n in range(70))
             (repo / 'core.py').write_text(f'def decide(value):\n{branches}\n    return 0\n')
             (repo / 'main.py').write_text('import argparse\nimport core\n\n\ndef main():\n'
-                                          '    argparse.ArgumentParser(prog="demo").parse_args()\n    return core.decide(1)\n')
+                                          '    argparse.ArgumentParser(prog="demo").parse_args()\n    return '
+                                          'core.decide(1)\n')
             out = Path(tmp) / 'out'
             assemble(repo, out)
             dossier = json.loads((out / 'dossier.json').read_text())
             hotspot = next(claim for claim in dossier['claims'] if 'has complexity' in claim['statement'])
             causal = ledger.make(900, 'The branching comes from inlined validation rather than the problem itself',
-                                 'cause', 'HYPOTHESIS', ['model_inference'], [], 'Extracting the validation and measuring no change',
+                                 'cause', 'HYPOTHESIS', ['model_inference'], [],
+                                 'Extracting the validation and measuring no change',
                                  fact_ids=hotspot['fact_ids'], probe_spec=hotspot['probe_spec'])
             dossier['claims'].append(causal)
             (out / 'dossier.json').write_text(json.dumps(dossier, ensure_ascii=False))
@@ -109,51 +112,64 @@ class ProbeTests(unittest.TestCase):
 
 
     def test_a_complexity_card_clears_exactly_its_finish_line_each_judged_by_one_ruler(self):
-        # EAOS, 2026-10-15: one card mixed seven kinds of finding, judged the whole file by any engine; six cards of a
-        # batch could not pass whatever the assistant changed
+        # One card mixing seven kinds of finding is judged on each kind by its own ruler, so a batch of cards can pass
+        # by what the assistant changes.
         from eaos.analysis.repair import finish_line
         def engine(rule, symbol, value=20):
             return {'id': rule + symbol, 'value': {'kind': 'complexity', 'engine': rule.split('.')[0], 'rule': rule,
-                    'measurements': [{'value': value, 'threshold': 15}]}, 'location': {'path': 'a.py', 'symbol': symbol}}
+                    'measurements': [{'value': value, 'threshold': 15}]}, 'location': {'path': 'a.py',
+                        'symbol': symbol}}
         def counted(**branches):
             return {'facts': [{'value': {'scope': 'function', 'branches': n}, 'location': {'path': 'a.py', 'symbol': f}}
                               for f, n in branches.items()]}
-        found = [engine('reforge.codebase.complex_function', 'python:function:a.py::run:arity:1', 40),   # EAOS counts 12
-                 engine('lizard.ccn', 'a.py::decide'),                                                       # EAOS counts 19
+        # EAOS counts 12
+        found = [engine('reforge.codebase.complex_function', 'python:function:a.py::run:arity:1', 40),
+                 # EAOS counts 19
+                 engine('lizard.ccn', 'a.py::decide'),
                  engine('reforge.codebase.many_parameters', 'python:function:a.py::Job::start:arity:7'),
-                 engine('reforge.codebase.large_type', 'python:type:a.py::Job:declaration')]                # a split's work
+                 # a split's work
+                 engine('reforge.codebase.large_type', 'python:type:a.py::Job:declaration')]
         sets = {'metrics': counted(run=12, decide=19), 'external': {'facts': found}}
         wanted = finish_line.targets(found, sets)
-        self.assertEqual([(t['rule'], t['name']) for t in wanted], [('branches', 'decide'), ('reforge.codebase.many_parameters', 'start')])
+        self.assertEqual([(t['rule'], t['name']) for t in wanted], [('branches', 'decide'),
+                                                                    ('reforge.codebase.many_parameters', 'start')])
         spec = {'query': 'engine_cluster_present', 'place': 'a.py', 'kind': 'complexity', 'targets': wanted}
         self.assertEqual(probe_queries._engine_cluster(spec, sets)[0], 'CONFIRMED')
-        fixed = {'metrics': counted(run=12, decide=9), 'external': {'facts': [found[0], found[3]]}}     # what is left is not its
+        # what is left is not its
+        fixed = {'metrics': counted(run=12, decide=9), 'external': {'facts': [found[0], found[3]]}}
         self.assertEqual(probe_queries._engine_cluster(spec, fixed), ('REFUTED', 'every target is cleared'))
-        moved = {'metrics': {'facts': [{'value': {'scope': 'function', 'branches': 19}, 'location': {'path': 'b.py', 'symbol': 'decide'}}]},
+        moved = {'metrics': {'facts': [{'value': {'scope': 'function', 'branches': 19}, 'location': {'path': 'b.py',
+            'symbol': 'decide'}}]},
                  'external': {'facts': []}}
-        self.assertIn('`decide` in a.py', probe_queries._engine_cluster(spec, moved)[1], 'moving it to another file does not clear it')
+        self.assertIn('`decide` in a.py', probe_queries._engine_cluster(spec, moved)[1],
+                      'moving it to another file does not clear it')
 
     def test_a_function_with_no_name_is_judged_in_its_file_and_a_name_follows_only_where_it_was_not(self):
-        # TASK-131 of a React project (2026-10-24): a target named <anonymous> was looked for in the whole project, and
-        # every arrow function anywhere kept the card standing whatever its own file became
+        # A target named <anonymous> is looked for in its own file only: an arrow function anywhere in the project must
+        # not keep the card standing whatever its own file became.
         from eaos.analysis.repair import finish_line
         def ccn(path, symbol, line=1):
             return {'id': path + symbol, 'value': {'kind': 'complexity', 'engine': 'lizard', 'rule': 'ccn',
-                    'measurements': [{'value': 30, 'threshold': 15}]}, 'location': {'path': path, 'symbol': symbol, 'line': line}}
-        made = [ccn('shell.tsx', 'shell.tsx::<anonymous>', 12), ccn('shell.tsx', 'shell.tsx::pageDetails'), ccn('other.tsx', 'other.tsx::pageDetails')]
+                    'measurements': [{'value': 30, 'threshold': 15}]}, 'location': {'path': path, 'symbol': symbol,
+                        'line': line}}
+        made = [ccn('shell.tsx', 'shell.tsx::<anonymous>', 12), ccn('shell.tsx', 'shell.tsx::pageDetails'),
+                ccn('other.tsx', 'other.tsx::pageDetails')]
         wanted = finish_line.targets(made[:2], {'external': {'facts': made}})
         self.assertEqual([(t['name'], t.get('line'), t.get('also_in')) for t in wanted],
                          [('<anonymous>', 12, None), ('pageDetails', None, ['other.tsx'])])
         self.assertIn('the function with no name at line 12 in shell.tsx', finish_line.said(wanted[0]))
         elsewhere = {'external': {'facts': [ccn('other.tsx', 'other.tsx::<anonymous>'), made[2]]}}
-        self.assertEqual(finish_line.left(wanted, elsewhere), [], 'what other files hold, and held then, is not this card')
+        self.assertEqual(finish_line.left(wanted, elsewhere), [],
+                         'what other files hold, and held then, is not this card')
         moved = {'external': {'facts': [ccn('new.tsx', 'new.tsx::pageDetails')]}}
-        self.assertEqual([t['name'] for t in finish_line.left(wanted, moved)], ['pageDetails'], 'moved to a new file, it still stands')
-        self.assertEqual([t['name'] for t in finish_line.left(wanted, {'external': {'facts': made[:1]}})], ['<anonymous>'])
+        self.assertEqual([t['name'] for t in finish_line.left(wanted, moved)], ['pageDetails'],
+                         'moved to a new file, it still stands')
+        self.assertEqual([t['name'] for t in finish_line.left(wanted, {'external': {'facts': made[:1]}})],
+                         ['<anonymous>'])
 
 
 class VerificationTests(unittest.TestCase):
-    """The project's own tests, run in an isolated copy with coverage (eaos/live/testing/verify.py), restored in 0.0.9."""
+    """The project's own tests, run in an isolated copy with coverage (eaos/live/testing/verify.py)."""
 
     def project(self, tmp):
         repo = Path(tmp) / 'repo'
@@ -161,7 +177,8 @@ class VerificationTests(unittest.TestCase):
         (repo / 'used.py').write_text('def add(a, b):\n    return a + b\n')
         (repo / 'never_run.py').write_text('import used\n\n\ndef unused():\n    return used.add(1, 2)\n')
         (repo / 'tests/test_used.py').write_text('import unittest\nimport used\n\n\nclass T(unittest.TestCase):\n'
-                                                 '    def test_add(self):\n        self.assertEqual(used.add(1, 2), 3)\n')
+                                                 '    def test_add(self):\n        self.assertEqual(used.add(1, 2), '
+                                                 '3)\n')
         return repo
 
     def test_a_real_suite_gives_coverage_facts_and_leaves_the_target_untouched(self):
@@ -170,11 +187,13 @@ class VerificationTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             repo = self.project(tmp)
             before = {p.relative_to(repo).as_posix(): p.read_bytes() for p in repo.rglob('*') if p.is_file()}
-            result = verify_run(repo, Path(tmp) / 'out', command=['python', '-m', 'unittest', 'discover', '-s', 'tests'])
+            result = verify_run(repo, Path(tmp) / 'out', command=['python', '-m', 'unittest', 'discover', '-s',
+                                                                  'tests'])
             self.assertTrue(result['executed'], result.get('reason'))
             self.assertGreater(result['coverage']['used.py']['percent'], 0)
             self.assertTrue(read_set(Path(tmp) / 'out', 'verification')['available'])
-            self.assertEqual(before, {p.relative_to(repo).as_posix(): p.read_bytes() for p in repo.rglob('*') if p.is_file()})
+            self.assertEqual(before, {p.relative_to(repo).as_posix(): p.read_bytes() for p in repo.rglob('*')
+                                      if p.is_file()})
 
     def test_the_check_runs_the_test_command_of_the_run_profile_not_its_lint(self):
         """The verify stage takes the test command from the run profile's checks and runs it in the sandbox copy."""
@@ -209,7 +228,8 @@ class VerificationTests(unittest.TestCase):
             repo, runtime = self.project(tmp), Path(tmp) / 'runtime'
             result = verify.run_profile(repo, Path(tmp) / 'out', runtime)
         self.assertNotIn(['npm', 'run', 'lint'], ran)
-        self.assertIn(['python', '-m', 'coverage', 'run', '--rcfile=.eaos-coveragerc', '-m', 'unittest', 'discover', '-s', 'tests'], ran)
+        self.assertIn(['python', '-m', 'coverage', 'run', '--rcfile=.eaos-coveragerc', '-m', 'unittest', 'discover',
+                       '-s', 'tests'], ran)
         self.assertTrue(result['passed'])
         self.assertGreater(result['coverage']['used.py']['percent'], 0)
         self.assertEqual(result['coverage'].get('never_run.py', {}).get('percent', 0), 0)

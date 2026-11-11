@@ -1,6 +1,6 @@
-"""What a sandboxed command sees of the disk (eaos/live/isolation/sandbox.py runs it, eaos/live/isolation/view.py applies the view):
-the real folders hidden from it, the ones its run owns, and the mounts that hide the first and show again what it is
-given inside the second; and whether this kernel gives a command a view of its own at all."""
+"""What a sandboxed command sees of the disk (eaos/live/isolation/sandbox.py runs it, eaos/live/isolation/view.py
+applies the view): the real folders hidden from it, the ones its run owns, and the mounts that hide the first and show
+again what it is given inside the second; and whether this kernel gives a command a view of its own at all."""
 import functools
 import json
 import os
@@ -33,7 +33,8 @@ def hidden():
     the reports, the temporary folder (other runs' databases), and every project EAOS knows with its report, the run's
     own included (it sees its copy, never the working folder and its .env). The outermost ones only."""
     from ...core.project.places import home, outputs_root
-    folders = [Path.home(), home(), home() / 'projects', home() / 'studio', outputs_root(), Path('/tmp'), Path(tempfile.gettempdir())]  # nosec B108: hidden, never written
+    folders = [Path.home(), home(), home() / 'projects', home() / 'studio', outputs_root(),
+               Path('/tmp'), Path(tempfile.gettempdir())]  # nosec B108: hidden, never written
     from ...core.project.state import every
     folders += [Path(state[key]) for state in every() for key in ('project', 'outputs') if state.get(key)]
     real = {Path(os.path.realpath(folder)) for folder in folders if folder.is_dir()} - {Path('/')}
@@ -48,7 +49,8 @@ def _own(target, runtime):
     from ...core.project.places import workspace
     # a candidate copy (a batch, a milestone) has no workspace of its own: the project's is the one above its runtime
     from ...core.project.state import FILE, of_workspace
-    folder = next((p for p in (workspace(target), *Path(runtime).resolve().parents) if (p / FILE).is_file()), workspace(target))
+    folder = next((p for p in (workspace(target), *Path(runtime).resolve().parents) if (p / FILE).is_file()),
+                  workspace(target))
     try: report = (of_workspace(folder) or {}).get('outputs')
     except (OSError, ValueError): report = None
     return [Path(os.path.realpath(path)) for path in (folder, report, runtime) if path]
@@ -62,7 +64,8 @@ def mounts(masks, keeps):
     """The launcher's mounts: each of `masks` hidden, then each (path, read_only) of `keeps` shown again at its own name
     and at its real one, outermost first, so a path shown inside a hidden folder stays shown. A kept path is shown when
     a mask hides it, a read-only one always (to make it read-only); never one that holds a mask, which it would show."""
-    planned = [(mask, 'hide') for mask in masks] + [row for path, read_only in keeps for row in _shown(path, read_only, masks)]
+    planned = [(mask, 'hide') for mask in masks] \
+        + [row for path, read_only in keeps for row in _shown(path, read_only, masks)]
     planned.sort(key=lambda row: len(row[0].parts))
     return [[kind, str(target), *rest] for target, kind, *rest in planned]
 

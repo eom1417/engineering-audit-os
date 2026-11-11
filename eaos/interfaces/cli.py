@@ -1,5 +1,5 @@
-"""The eaos command: the guided journey (start, next, status...), the Studio, the MCP server, the tools, and the
-few commands a task card's acceptance check runs (facts, policy, decided, recheck)."""
+"""The eaos command: the guided journey (start, next, status...), the governance commands, the MCP server, the tools,
+and the few commands a task card's acceptance check runs (facts, policy, decided, recheck)."""
 from __future__ import annotations
 import argparse
 import json
@@ -8,7 +8,7 @@ import sys
 from .. import __version__
 from ..core.contracts.check_paths import PATHS
 from ..core.project.workspace import bounded_int, read
-from . import deep_checks
+from ..core.system.errors import noted
 
 
 def facts_command(args):
@@ -28,7 +28,8 @@ def audit_command(args):
                    **({'intake': args.intake} if args.intake else {}))
     result = read(out / 'report-result.json') if (out / 'report-result.json').is_file() else {}
     violations = result.get('output_spec_violations', ['the output contract was never checked'])
-    status = 'OUTPUT_SPEC_VIOLATED' if violations else 'REVIEW_REQUIRED' if manifest['status'] == 'COMPLETE' else manifest['status']
+    status = ('OUTPUT_SPEC_VIOLATED' if violations else 'REVIEW_REQUIRED' if manifest['status'] == 'COMPLETE'
+              else manifest['status'])
     _print_outcome(manifest, status, violations, out)
     _done_box(args, out, status)
     return 0 if status == 'REVIEW_REQUIRED' else 2
@@ -38,7 +39,8 @@ def _print_outcome(manifest, status, violations, out):
     """The check's outcome on stdout, as JSON: its status, each stage's, and what was not examined and why."""
     print(json.dumps({'status': status, 'stages': {name: row['status'] for name, row in manifest['stages'].items()},
                       'seconds': manifest['seconds'], 'output_spec_violations': violations,
-                      'not_examined': {name: row['reason'] for name, row in manifest['stages'].items() if row['status'] != 'ok'},
+                      'not_examined': {name: row['reason'] for name, row in manifest['stages'].items()
+                                       if row['status'] != 'ok'},
                       'manifest': str(out / 'run-manifest.json')}, ensure_ascii=False, indent=2))
 
 
@@ -60,9 +62,10 @@ def handover_hook(args):
         from ..journeys.handover import hook_context
         context = hook_context(folder)
         if context:
-            print(json.dumps({'hookSpecificOutput': {'hookEventName': 'SessionStart', 'additionalContext': context}}, ensure_ascii=False))
-    except Exception:                       # a broken hook would cost the person their session; say nothing instead
-        pass
+            print(json.dumps({'hookSpecificOutput': {'hookEventName': 'SessionStart', 'additionalContext': context}},
+                             ensure_ascii=False))
+    except Exception as error:              # a broken hook would cost the person their session; say nothing instead
+        noted('the session hook failed', error)
     return 0
 
 
@@ -74,27 +77,6 @@ def guided_command(args):
     done = guided_main(args)
     if args.command == 'status' and done == 0: govern.wake_queued(args.project)
     return done
-
-
-def studio_command(args):
-    if args.background: return studio_in_background(args)
-    from .studio_server.server import run_foreground
-    return run_foreground(args.project, port=args.port, show=not args.no_open, remote_origin=args.remote_origin)
-
-
-def studio_in_background(args):
-    """`eaos studio --background`: the project's Studio started (or found running), opened on "Preparing the tools"
-    while the tools the check needs are installing, its address printed, and back at once; the tools' install starts."""
-    from ..core import toolchain
-    from ..journeys.agent_tools import open_studio, state_of
-    project = state_of(args.project)['project']
-    toolchain.prepare(project)
-    opened = open_studio(project, show=not args.no_open, route='' if toolchain.ready(project) else '/tools')
-    if 'studio' not in opened:
-        print(opened.get('error'), opened.get('log'), sep='\n')
-        return 1
-    print(f"EAOS Studio: {opened['studio']}")
-    return 0
 
 
 def decided_command(args):
@@ -126,14 +108,17 @@ RULE_COMMANDS = ('rules_command', 'check_or_changed')                           
 
 
 def terminal(name):
-    """The governance command `name` of eaos/interfaces/terminal/commands.py (or interfaces/terminal/branches.py), imported when it runs."""
-    module = ('eaos.interfaces.terminal.branches' if name in BRANCH_COMMANDS else 'eaos.interfaces.terminal.rules' if name in RULE_COMMANDS
+    """The governance command `name` of eaos/interfaces/terminal/commands.py (or interfaces/terminal/branches.py),
+    imported when it runs."""
+    module = ('eaos.interfaces.terminal.branches' if name in BRANCH_COMMANDS
+              else 'eaos.interfaces.terminal.rules' if name in RULE_COMMANDS
               else 'eaos.interfaces.terminal.commands')
     return lambda args: getattr(__import__(module, fromlist=[name]), name)(args)
 
 
 def governance_commands(s):
-    """Full governance from a terminal, without the Studio (eaos/interfaces/terminal/commands.py over eaos/interfaces/govern.py, the Studio's own core)."""
+    """Full governance from a terminal (eaos/interfaces/terminal/commands.py over eaos/interfaces/govern.py and
+    the run engine)."""
     def command(name, text, func=None):
         q = s.add_parser(name, help=text)
         q.add_argument('--project', default='.')
@@ -143,7 +128,9 @@ def governance_commands(s):
     _run_commands(command)
     _card_commands(command)
     _rule_commands(command)
-    q = s.add_parser('govern', help='The headless host that starts this project\'s runs while no Studio runs (the commands start it)')
+    q = s.add_parser('govern',
+                     help='The headless host that starts this project\'s runs while no Studio runs '
+                          '(the commands start it)')
     q.add_argument('project'); q.add_argument('--answer'); q.add_argument('--option'); q.add_argument('--text')
     q.set_defaults(func=terminal('govern_host'))
 
@@ -151,48 +138,71 @@ def governance_commands(s):
 def _run_commands(command):
     """The check and the runs: start, follow, control, what waits for the person, the sign-in and the answer."""
     from .govern import CONTROLS
-    q = command('check', 'Check the project now, in the background: the time it takes first, then a new check (nothing in it changes)',
+    q = command('check', 'Check the project now, in the background: the time it takes first, then a new check '
+                         '(nothing in it changes)',
                 'check_or_changed')
     q.add_argument('--path', nargs='+', choices=sorted(PATHS), default=None, help='check only these paths')
     q.add_argument('--mode', choices=['normal', 'speed'], default=None)
-    q.add_argument('--assistant', choices=['claude', 'codex', 'none'], default=None, help='the AI the check uses, or none')
+    q.add_argument('--assistant', choices=['claude', 'codex', 'none'], default=None,
+                   help='the AI the check uses, or none')
     q.add_argument('--sign-in', choices=['hand', 'test_user', 'none'], default=None,
                    help='an app behind a sign-in: you sign in when the check asks, a test user, or none (kept)')
-    q.add_argument('--published', default=None, help='the published address, read signed in and read only, for this check')
-    q.add_argument('--run-app', action='store_true', help='run your app in an isolated copy (its pages, sign-in, speed); kept')
-    q.add_argument('--again-from', dest='again_from', metavar='STAGE', help='go on from this stage of the last check: it and the stages reading it run again')
+    q.add_argument('--published', default=None,
+                   help='the published address, read signed in and read only, for this check')
+    q.add_argument('--run-app', action='store_true',
+                   help='run your app in an isolated copy (its pages, sign-in, speed); kept')
+    q.add_argument('--again-from', dest='again_from', metavar='STAGE',
+                   help='go on from this stage of the last check: it and the stages reading it run again')
     q.add_argument('--watch', action='store_true', help='follow it here until it ends')
-    q.add_argument('--changed', action='store_true', help='check only what changed, now: your rules and the code laws on the changed files '
+    q.add_argument('--changed', action='store_true',
+                   help='check only what changed, now: your rules and the code laws on the changed files '
                    'and what depends on them, in seconds (no AI)')
     q.add_argument('--base', default=None, help='with --changed: what the change is measured from (default HEAD)')
     q.add_argument('--staged', action='store_true', help='with --changed: what is staged for the commit')
-    q.add_argument('--hook', action='store_true', help='with --changed: as the commit hook runs it (only the pinned rules refuse)')
-    command('watch', 'Follow a run live: its stages, the time left, the cost so far, and its questions').add_argument('run', nargs='?')
-    command('runs', 'The runs: running, queued and ended').add_argument('--all', action='store_true', help='also those already read')
-    for name in CONTROLS: command(name, f'{name.capitalize()} a run (the newest it applies to by default)', 'control').add_argument('run', nargs='?')
-    command('waiting', 'What waits for you: the questions of the runs and of the report, a branch to accept or undo, a sign-in')
-    q = command('sign-in', 'Sign in to your app while a check asks for it (a window, or a page of its own)', 'signing_in')
-    q.add_argument('--signed-out', action='store_true', help='go on without signing in'); q.add_argument('--forget', action='store_true', help='forget your sign-ins')
+    q.add_argument('--hook', action='store_true',
+                   help='with --changed: as the commit hook runs it (only the pinned rules refuse)')
+    (command('watch', 'Follow a run live: its stages, the time left, the cost so far, and its questions')
+     .add_argument('run', nargs='?'))
+    (command('runs', 'The runs: running, queued and ended')
+     .add_argument('--all', action='store_true', help='also those already read'))
+    for name in CONTROLS:
+        (command(name, f'{name.capitalize()} a run (the newest it applies to by default)', 'control')
+         .add_argument('run', nargs='?'))
+    command('waiting', 'What waits for you: the questions of the runs and of the report, a branch to accept or '
+                       'undo, a sign-in')
+    q = command('sign-in', 'Sign in to your app while a check asks for it (a window, or a page of its own)',
+                'signing_in')
+    q.add_argument('--signed-out', action='store_true', help='go on without signing in')
+    q.add_argument('--forget', action='store_true', help='forget your sign-ins')
     q = command('answer', 'Answer what waits for you: eaos answer <id> <option>')
-    q.add_argument('id'); q.add_argument('option', nargs='?'); q.add_argument('--text', default=None, help='your own answer instead of an option')
-    q.add_argument('--assistant', default=None, help='a report question: who reviews your answer (claude, codex, or handoff)')
+    q.add_argument('id')
+    q.add_argument('option', nargs='?')
+    q.add_argument('--text', default=None, help='your own answer instead of an option')
+    q.add_argument('--assistant', default=None,
+                   help='a report question: who reviews your answer (claude, codex, or handoff)')
 
 
 def _rule_commands(command):
     """The person's own rules (eaos/interfaces/terminal/rules.py)."""
-    q = command('rules', 'Your own rules for this project: say one, pin it for every change, guard it, unpin it', 'rules_command')
-    q.add_argument('action', nargs='?', default='list', choices=['list', 'add', 'pin', 'unpin', 'change', 'guard', 'approve', 'hook'])
+    q = command('rules', 'Your own rules for this project: say one, pin it for every change, guard it, unpin it',
+                'rules_command')
+    q.add_argument('action', nargs='?', default='list',
+                   choices=['list', 'add', 'pin', 'unpin', 'change', 'guard', 'approve', 'hook'])
     q.add_argument('id', nargs='?', help='the rule (R1…); for hook: on or off')
     q.add_argument('said', nargs='*', help='add: the rule in your words; change: its new words')
-    q.add_argument('--card', default=None, help='add: the rule holds for this card only'); q.add_argument('--pin', action='store_true', help='add: pinned at once')
+    q.add_argument('--card', default=None, help='add: the rule holds for this card only')
+    q.add_argument('--pin', action='store_true', help='add: pinned at once')
     q.add_argument('--yes', action='store_true')
-    q.add_argument('--write', action='store_true', help='guard: your AI assistant writes it once, proved on its examples')
-    q.add_argument('--pattern', default=None, help="guard: ast-grep's rule as JSON, e.g. '{\"pattern\": \"localStorage.setItem($K, $V)\"}'")
+    q.add_argument('--write', action='store_true',
+                   help='guard: your AI assistant writes it once, proved on its examples')
+    q.add_argument('--pattern', default=None,
+                   help="guard: ast-grep's rule as JSON, e.g. '{\"pattern\": \"localStorage.setItem($K, $V)\"}'")
     q.add_argument('--language', default=None); q.add_argument('--message', default=None)
     q.add_argument('--broken', action='append', help='guard: code that breaks the rule (it must be found)')
     q.add_argument('--kept', action='append', help='guard: code that keeps the rule (it must not be found)')
     q.add_argument('--test', default=None, help="guard: a command of your project's that fails when the rule is broken")
-    q.add_argument('--detectors', nargs='+', default=None, help="guard: EAOS's detectors that check it (copy, complex, real_data…)")
+    q.add_argument('--detectors', nargs='+', default=None,
+                   help="guard: EAOS's detectors that check it (copy, complex, real_data…)")
     q.add_argument('--none', default=None, metavar='WHY', help='guard: EAOS cannot guard it, and why')
     q.add_argument('--files', nargs='+', default=None, help='guard: the files (globs) it applies to')
 
@@ -200,30 +210,38 @@ def _rule_commands(command):
 def _card_commands(command):
     """The problems and the verbs on them, the branches, and the history."""
     from ..core.project.runs import contract
-    command('design', "What the screens are really made of: each part's looks, each kind's values, formats, libraries")
     q = command('problems', 'What the check found, most important first')
-    from ..analysis.presentation.model import AREAS, SEVERITIES
+    from ..core.contracts.card_areas import AREAS, SEVERITIES
     q.add_argument('--area', choices=AREAS, help="only this area, as the Studio's filter")
     q.add_argument('--severity', choices=SEVERITIES, help="only this severity, as the Studio's filter")
     q.add_argument('--kind', help='only this kind of problem (its pattern: dead_code, security_weakness, …)')
     q.add_argument('--where', help='only problems in paths containing this'); q.add_argument('--text')
-    q.add_argument('--fixable', action='store_true'); q.add_argument('--limit', type=int, default=30); q.add_argument('--offset', type=int, default=0)
-    command('problem', 'One problem whole: what, why, the evidence with its code, the change').add_argument('id')
+    q.add_argument('--fixable', action='store_true')
+    q.add_argument('--limit', type=int, default=30)
+    q.add_argument('--offset', type=int, default=0)
+    (command('problem', 'One problem whole: what, why, the evidence with its code, the change')
+     .add_argument('id'))
     for verb in contract()['verbs']:
-        q = command(verb['id'], f"{verb['label']['en']} these cards (a preview first): ids, or --group by=value", 'act')
-        q.add_argument('ids', nargs='*'); q.add_argument('--group', help='area=…, severity=…, component=…, gap=… or operation=…')
+        q = command(verb['id'], f"{verb['label']['en']} these cards (a preview first): ids, or --group by=value",
+                    'act')
+        q.add_argument('ids', nargs='*')
+        q.add_argument('--group', help='area=…, severity=…, component=…, gap=… or operation=…')
         q.add_argument('--assistant', default=None, help='claude, codex, or handoff (your assistant takes it)')
         q.add_argument('--yes', action='store_true', help='agree to what the preview shows')
-        if verb['changes_code']: q.add_argument('--auto-accept', action='store_true', help='accept it by itself when its checks pass')
+        if verb['changes_code']:
+            q.add_argument('--auto-accept', action='store_true', help='accept it by itself when its checks pass')
     q = command('branch', 'The branch EAOS checks and fixes: the list, or move to one')
     q.add_argument('name', nargs='?'); q.add_argument('--yes', action='store_true')
-    q = command('branches', 'Every branch, and merge, delete, protect, unprotect, clean up or restore one (a preview, then your yes)')
-    q.add_argument('op', nargs='?', default='list', choices=['list', 'merge', 'delete', 'protect', 'unprotect', 'cleanup', 'restore'])
+    q = command('branches', 'Every branch, and merge, delete, protect, unprotect, clean up or restore one '
+                            '(a preview, then your yes)')
+    q.add_argument('op', nargs='?', default='list',
+                   choices=['list', 'merge', 'delete', 'protect', 'unprotect', 'cleanup', 'restore'])
     q.add_argument('name', nargs='?'); q.add_argument('--into', default=None, help='merge: the branch to merge into')
     q.add_argument('--yes', action='store_true')
     q = command('compare', 'Two checks of the history side by side'); q.add_argument('first'); q.add_argument('second')
-    for name, text in (('history', 'Every check on record: the score, the open problems, closed of total'), ('usage', 'What the assistant used: '
-                       'tokens and cost, per check stage and per run'), ('projects', 'Every project EAOS knows on this computer')): command(name, text)
+    for name, text in (('history', 'Every check on record: the score, the open problems, closed of total'),
+                       ('usage', 'What the assistant used: '
+                       'tokens and cost, per check stage and per run')): command(name, text)
 
 
 def _guided_commands(s):
@@ -237,7 +255,8 @@ def _guided_commands(s):
                        ('undo', 'Throw the latest batch of fixes away (its branch, deleted)'),
                        ('show', 'Print what the check found, in plain words'),
                        ('do', 'Ask in your own words: eaos do "check my project"'),
-                       ('assistant', 'Teach your AI assistant (Claude Code, Codex) to use EAOS: eaos assistant install')):
+                       ('assistant', 'Teach your AI assistant (Claude Code, Codex) to use EAOS: '
+                                     'eaos assistant install')):
         q=s.add_parser(name,help=text)
         if name == 'do': q.add_argument('request',nargs='*')
         elif name == 'assistant': q.add_argument('action',nargs='?',choices=['install'],default='install')
@@ -246,21 +265,27 @@ def _guided_commands(s):
         q.add_argument('--lang',choices=['ar','en'],default=None)
         q.add_argument('--yes',action='store_true',help='answer yes to the question this step asks')
         if name == 'doctor': q.add_argument('--fix',action='store_true',help='install what is missing')
-        if name == 'clean': q.add_argument('--pictures',action='store_true',help="also delete the reports' screen pictures and the assistant's raw runs")
+        if name == 'clean':
+            q.add_argument('--pictures',action='store_true',
+                           help="also delete the reports' screen pictures and the assistant's raw runs")
         if name == 'start':
             q.add_argument('--no-watch',action='store_true',help='do not open the live map in the running Studio')
             q.add_argument('--assistant',choices=['claude','codex','none'],default=None,
-                           help='the AI assistant the check uses on this project (kept), or none for a check without AI')
+                           help='the AI assistant the check uses on this project (kept), or none for a check '
+                                'without AI')
             q.add_argument('--path',nargs='+',choices=sorted(PATHS),default=None,
                            help='check only these paths (eaos/pipeline/path_choice.py); the complete check by default')
-            q.add_argument('--mode',choices=['normal','speed'],default=None,help='speed: several assistants at once, faster but '
+            q.add_argument('--mode',choices=['normal','speed'],default=None,
+                           help='speed: several assistants at once, faster but '
                            'more tokens (kept for this project)')
         q.set_defaults(func=guided_command)
 
 
 def main(argv=None):
     from .command_groups import epilog
-    p=argparse.ArgumentParser(prog='eaos',description='Check a project with ready-made tools and your AI assistant, and fix it safely',
+    p=argparse.ArgumentParser(prog='eaos',
+                              description='Check a project with ready-made tools and your AI assistant, '
+                                          'and fix it safely',
                               epilog=epilog(),formatter_class=argparse.RawDescriptionHelpFormatter)
     p.add_argument('--version',action='version',version='EAOS '+__version__)
     s=p.add_subparsers(dest='command',required=True)
@@ -268,7 +293,6 @@ def main(argv=None):
     _session_commands(s)
     _pipeline_commands(s)
     governance_commands(s)
-    deep_checks.commands(s)
     args=p.parse_args(argv)
     args.words = list(sys.argv[1:] if argv is None else argv)
     try:
@@ -278,20 +302,15 @@ def main(argv=None):
 
 
 def _session_commands(s):
-    """The handover, the Studio and the MCP server."""
-    q=s.add_parser('handover',help='Where the work stopped, and what to tell another assistant to go on (after a usage limit)')
+    """The handover and the MCP server."""
+    q=s.add_parser('handover',
+                   help='Where the work stopped, and what to tell another assistant to go on (after a usage limit)')
     q.add_argument('project',nargs='?',default='.')
     q.add_argument('--lang',choices=['ar','en'],default=None)
-    q.add_argument('--hook',action='store_true',help='for an assistant\'s session-start hook (eaos assistant install sets it): '
+    q.add_argument('--hook',action='store_true',
+                   help='for an assistant\'s session-start hook (eaos assistant install sets it): '
                    'read its JSON on stdin and answer with the context to add')
     q.set_defaults(func=lambda args: handover_hook(args) if args.hook else guided_command(args))
-    q=s.add_parser('studio',help='Open the live EAOS Studio of this project in your browser (on this computer only)')
-    q.add_argument('project',nargs='?',default='.')
-    q.add_argument('--port',type=int,default=0,help='the port on 127.0.0.1 (default: a free one)')
-    q.add_argument('--no-open',action='store_true',help='print the address without opening the browser')
-    q.add_argument('--background',action='store_true',help='start it in the background, print its address and return')
-    q.add_argument('--remote-origin', help='one exact https://<project>--<port>.dev.example.com origin; keeps token and CSRF checks')
-    q.set_defaults(func=studio_command)
     q=s.add_parser('mcp',help='EAOS as MCP tools for an AI assistant (stdio); eaos assistant install registers it')
     q.set_defaults(func=lambda args: __import__('eaos.interfaces.mcp_server.govern', fromlist=['main']).main())
 
@@ -312,16 +331,20 @@ def _pipeline_commands(s):
     q.add_argument('--exclude',action='append',default=[])
     q.add_argument('--engines',nargs='*',default=None,metavar='ENGINE')
     q.add_argument('--run-app',default=None,metavar='FOLDER',
-                   help='run the app in an isolated copy under FOLDER during the check (your consent): setup, lock, screens, speed')
-    q.add_argument('--intake',default=None,metavar='FILE',help="the owner's answers to the intake questions: JSON {question id: answer}")
+                   help='run the app in an isolated copy under FOLDER during the check (your consent): '
+                   'setup, lock, screens, speed')
+    q.add_argument('--intake',default=None,metavar='FILE',
+                   help="the owner's answers to the intake questions: JSON {question id: answer}")
     q.add_argument('--only',action='append',default=[],metavar='STAGE')
     q.add_argument('--skip',action='append',default=[],metavar='STAGE')
     q.add_argument('--resume',action='store_true')
     q.set_defaults(func=audit_command)
-    q=s.add_parser('decided',help='Exit 0 once an observation carries a recorded decision (the acceptance of an investigation)')
+    q=s.add_parser('decided',
+                   help='Exit 0 once an observation carries a recorded decision (the acceptance of an investigation)')
     q.add_argument('report'); q.add_argument('uid')
     q.set_defaults(func=decided_command)
-    q=s.add_parser('recheck',help='Collect facts on a changed copy and let one claim\'s probe decide; exit 0 when the observation is gone')
+    q=s.add_parser('recheck',help='Collect facts on a changed copy and let one claim\'s probe decide; '
+                                  'exit 0 when the observation is gone')
     q.add_argument('root',nargs='?',default='.')
     q.add_argument('--spec',required=True,help='the probe as JSON: {"probe_type": ..., "specification": {...}}')
     q.set_defaults(func=recheck_command)

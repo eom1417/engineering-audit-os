@@ -1,4 +1,4 @@
-"""A rule's guard written once by the person's assistant (M16.2): asked one question with the rule's words and the
+"""A rule's guard written once by the person's assistant: asked one question with the rule's words and the
 project's languages, its answer proved on its own examples (eaos/analysis/rules/guards.py checked) before it is kept;
 one answer that fails its proof is asked again with the reason, and a rule no answer could guard is said so, never
 pretended. After this one ask, the guard runs free: no token is spent on it again."""
@@ -10,9 +10,11 @@ from ..analysis.rules import guards
 
 SCHEMA = {'type': 'object', 'additionalProperties': False, 'required': ['kind', 'why'],
           'properties': {'kind': {'enum': list(guards.KINDS)}, 'why': {'type': 'string'},
-                         'language': {'type': 'string'}, 'rule': {'type': 'string', 'description': "ast-grep's rule object, as JSON"},
+                         'language': {'type': 'string'}, 'rule': {'type': 'string', 'description': "ast-grep's rule "
+                                                                                                   "object, as JSON"},
                          'message': {'type': 'string'}, 'files': {'type': 'array', 'items': {'type': 'string'}},
-                         'broken': {'type': 'array', 'items': {'type': 'string'}}, 'kept': {'type': 'array', 'items': {'type': 'string'}},
+                         'broken': {'type': 'array', 'items': {'type': 'string'}},
+                         'kept': {'type': 'array', 'items': {'type': 'string'}},
                          'command': {'type': 'array', 'items': {'type': 'string'}},
                          'detectors': {'type': 'array', 'items': {'type': 'string'}}}}
 PROMPT = """A person gave this rule for their software project, in their own words:
@@ -31,13 +33,15 @@ The project's code is mostly: {languages}. Answer with one of:
 `why`: one sentence, in the rule's language, on what the check finds.{again}"""
 DETECTORS = ('copy (code copied word for word)', 'complex', 'size', 'security', 'dead (code nothing uses)',
              'real_data (personal or business data written in the code)', 'data_keeping (how data is saved and kept)',
-             'one_source (near copies, the look outside its tokens, screen patterns, ways of working)', 'layers (a boundary of the system)')
+             'one_source (near copies, the look outside its tokens, screen patterns, ways of '
+             'working)', 'layers (a boundary of the system)')
 
 
 def languages(project):
     """The project's three most common kinds of code file, by extension."""
     count = Counter(p.suffix.lower() for p in Path(project).rglob('*')
-                    if p.is_file() and p.suffix and not set(p.parts) & {'node_modules', '.git', '.venv', 'dist', 'build'})
+                    if p.is_file() and p.suffix and not set(p.parts) & {'node_modules', '.git', '.venv', 'dist',
+                                                                        'build'})
     known = {ext: lang for lang, ext in guards.EXTENSIONS.items()}
     return ', '.join(f'{known[ext]} ({n} files)' for ext, n in count.most_common(20) if ext in known) or 'unknown'
 
@@ -58,10 +62,12 @@ def write(rule, project, folder, adapters=None):
     from .assistant.headless import ask
     from .nodes.framework import pick
     adapter = pick(adapters)
-    if adapter is None: raise ValueError('no AI assistant is ready here to write the guard: write it yourself (eaos rules guard --help)')
+    if adapter is None: raise ValueError('no AI assistant is ready here to write the guard: write it yourself (eaos '
+                                         'rules guard --help)')
     again, cost = '', None
     for attempt in (1, 2):
-        prompt = PROMPT.format(words=rule['words'], languages=languages(project), extensions=', '.join(guards.EXTENSIONS),
+        prompt = PROMPT.format(words=rule['words'], languages=languages(project),
+                               extensions=', '.join(guards.EXTENSIONS),
                                detectors='; '.join(DETECTORS), again=again)
         answer = ask(adapter, prompt, SCHEMA, Path(folder) / f'ask-{attempt}', tier=tiers.tier_of('rule_guard'))
         cost = (cost or 0) + answer['cost_usd'] if answer.get('cost_usd') is not None else cost
@@ -69,4 +75,5 @@ def write(rule, project, folder, adapters=None):
         except ValueError as problem:
             again = f'\n\nYour last answer was refused: {problem}. Answer again.'
             failed = str(problem)
-    return guards.checked({'kind': 'none', 'why': f'two guards written for it failed their own examples ({failed})'}), cost
+    return guards.checked({'kind': 'none',
+                           'why': f'two guards written for it failed their own examples ({failed})'}), cost

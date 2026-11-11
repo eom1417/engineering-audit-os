@@ -1,7 +1,7 @@
-"""The browser agent (M5.2): one layer that drives a running app's browser towards a goal with the person's assistant,
-records each step with its picture, and replays the recorded steps with no assistant at all. Screen discovery uses it
-after the rules and the links (pipeline/runners/pages.py crawl): the screens behind buttons, tabs and welcomes are reached once
-by the assistant, then every later check reaches them again for free. M10's simulated users stand on the same layer.
+"""The browser agent: one layer that drives a running app's browser towards a goal with the person's assistant, records
+each step with its picture, and replays the recorded steps with no assistant at all. Screen discovery uses it after the
+rules and the links (pipeline/runners/pages.py crawl): the screens behind buttons, tabs and welcomes are reached once by
+the assistant, then every later check reaches them again for free.
 
     Browser(base, out, storage_state)   the browser (eaos/templates/screens/agent.mjs), a step at a time: .do(command)
     explore(browser, goal, provider)    steps chosen by the assistant until it is done or LIMITS end it: the record
@@ -10,8 +10,7 @@ by the assistant, then every later check reaches them again for free. M10's simu
 The steps name controls by role and name ({"role": "tab", "name": "Reports", "nth": 0}), never by a reference that
 lives one page only, so a replay finds them again; a step that deletes, pays, sends or signs out is refused in the
 browser itself. Open-source agents (browser-use, Stagehand) need a model key of their own, which EAOS never holds (it
-works through the person's assistant), and the Playwright MCP's steps are not replayable: this layer is EAOS's own
-(2026-10-25, CHANGELOG.md 0.0.77).
+works through the person's assistant), and the Playwright MCP's steps are not replayable: this layer is EAOS's own.
 """
 import json
 import select
@@ -50,12 +49,14 @@ class Browser:
         self._config.close()
         script = Path(__file__).resolve().parents[1] / 'templates/screens/agent.mjs'
         import os
-        self.process = subprocess.Popen(['node', str(script), self._config.name], stdin=subprocess.PIPE, stdout=subprocess.PIPE,
-                                        stderr=subprocess.DEVNULL, text=True, start_new_session=True,
+        self.process = subprocess.Popen(['node', str(script), self._config.name], stdin=subprocess.PIPE,
+                                        stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, text=True,
+                                        start_new_session=True,
                                         env={**os.environ, 'PLAYWRIGHT_BROWSERS_PATH': str(browsers())})
 
     def do(self, command):
-        """The page after one step ({ok, error?, path, title, text, controls, picture}); {ok: False} when it gave no answer."""
+        """The page after one step ({ok, error?, path, title, text, controls, picture}); {ok: False} when it
+        gave no answer."""
         try:
             self.process.stdin.write(json.dumps(command) + '\n')
             self.process.stdin.flush()
@@ -89,8 +90,10 @@ def step_command(step):
 
 def seen(page, steps):
     """The page now and the last steps, as an assistant reads them before choosing the next step."""
-    return {'steps_so_far': [{k: s.get(k) for k in ('action', 'target', 'value', 'landed', 'error')} for s in steps[-10:]],
-            'page_now': {k: page.get(k) for k in ('path', 'title', 'text', 'controls', 'error')}, 'picture': page.get('picture')}
+    return {'steps_so_far': [{k: s.get(k) for k in ('action', 'target', 'value', 'landed', 'error')}
+                             for s in steps[-10:]],
+            'page_now': {k: page.get(k) for k in ('path', 'title', 'text', 'controls', 'error')},
+            'picture': page.get('picture')}
 
 
 def _brief(page, steps, goal):
@@ -99,13 +102,15 @@ def _brief(page, steps, goal):
 
 
 def explore(browser, goal, provider, start='/'):
-    """{goal, steps: [{action, target, value, why, at, landed, picture, error?}], screens}: the steps the assistant chose
-    towards `goal` from `start`, until it said done, a step failed three times running, or STEPS or SECONDS ended it."""
+    """{goal, steps: [{action, target, value, why, at, landed, picture, error?}], screens}: the steps the assistant
+    chose towards `goal` from `start`, until it said done, a step failed three times running, or STEPS or SECONDS
+    ended it."""
     page, steps, failed, began = browser.do({'op': 'open', 'path': start}), [], 0, time.monotonic()
     screens = [page.get('path')] if page.get('ok') else []
     while len(steps) < STEPS and time.monotonic() - began < SECONDS and failed < 3:
         try: step = _next(browser, provider, page, steps, goal.format(seen=screens))
-        except Exception as problem: return _record(goal, start, steps, screens, f'the assistant could not go on: {problem}'[:300])
+        except Exception as problem:
+            return _record(goal, start, steps, screens, f'the assistant could not go on: {problem}'[:300])
         if step.get('action') == 'done': break
         if step.get('action') not in ('click', 'fill', 'press', 'open', 'back'):
             return _record(goal, start, steps, screens, f'the assistant answered no step: {json.dumps(step)[:200]}')
@@ -135,7 +140,8 @@ def _next(browser, provider, page, steps, goal):
 
 
 def _record(goal, start, steps, screens, stopped=''):
-    return {'goal': goal, 'start': start, 'steps': steps, 'screens': screens, **({'stopped': stopped} if stopped else {})}
+    return {'goal': goal, 'start': start, 'steps': steps, 'screens': screens,
+            **({'stopped': stopped} if stopped else {})}
 
 
 def replay(browser, record):

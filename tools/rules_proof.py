@@ -1,4 +1,4 @@
-"""The rules proof (M16.6): the person's own rules on a project that keeps breaking them, end to end, no token spent.
+"""The rules proof: the person's own rules on a project that keeps breaking them, end to end, no token spent.
 
 On a copy of the golden app, people's records are written in three files (the requirement the person keeps repeating:
 "the people's data lives only in the database") and a total is kept to two decimals by a test of the project's own.
@@ -34,9 +34,11 @@ WORDS = 'The people\'s data lives only in the database: never write names, phone
 RECORDS = {'contacts.js': 'contacts', 'team.js': 'team', 'seed.js': 'customers'}
 PEOPLE = "[\n  { name: 'Sara Ali', phone: '0551234567' },\n  { name: 'Omar Saleh', phone: '0559876543' },\n]"
 GUARD = {'kind': 'pattern', 'language': 'javascript', 'message': "people's data written in the code",
-         'rule': {'kind': 'object', 'has': {'kind': 'pair', 'has': {'field': 'key', 'regex': '^(name|phone|email)$'}}, 'inside': {'kind': 'array', 'stopBy': 'end'}},
+         'rule': {'kind': 'object', 'has': {'kind': 'pair', 'has': {'field': 'key', 'regex': '^(name|phone|email)$'}},
+                  'inside': {'kind': 'array', 'stopBy': 'end'}},
          'files': ['*.js'], 'examples': {'broken': ["const team = [{ name: 'Sara', phone: '055' }];"],
-                                         'kept': ["const pages = [{ path: '#/now', label: 'Now' }];", "const team = await db.all('team');"]}}
+                                         'kept': ["const pages = [{ path: '#/now', label: 'Now' }];",
+                                                  "const team = await db.all('team');"]}}
 TOTAL = "// A total as the screens show it.\nmodule.exports = amount => Number(amount).toFixed(2);\n"
 TOTAL_TEST = ("const test = require('node:test');\nconst assert = require('node:assert');\n"
               "test('a total keeps two decimals', () => assert.strictEqual(require('./total')(3), '3.00'));\n")
@@ -51,7 +53,8 @@ def made(folder):
     project = Path(folder) / 'app'
     shutil.copytree(ROOT / 'tests/fixtures/golden-app', project)
     for name, what in RECORDS.items():
-        (project / name).write_text(f'// The {what}, typed in while the page was built.\nmodule.exports = {PEOPLE};\n', encoding='utf-8')
+        (project / name).write_text(f'// The {what}, typed in while the page was built.\n'
+                                    f'module.exports = {PEOPLE};\n', encoding='utf-8')
     (project / 'total.js').write_text(TOTAL, encoding='utf-8')
     (project / 'total.test.js').write_text(TOTAL_TEST, encoding='utf-8')
     git(project.parent, 'init', '-q', str(project))
@@ -66,14 +69,17 @@ def said(project):
     again = person_rules.add(project, WORDS.replace(':', ',') + '!', 'terminal')
     total = person_rules.add(project, 'Every total keeps two decimals', 'terminal')
     tools.rule('guard', id=first['rule']['id'], guard=GUARD, project=str(project))
-    person_rules.guard(project, total['rule']['id'], {'kind': 'test', 'command': ['node', '--test', 'total.test.js'], 'files': ['total.js']})
+    person_rules.guard(project, total['rule']['id'],
+                       {'kind': 'test', 'command': ['node', '--test', 'total.test.js'], 'files': ['total.js']})
     return {'pinned': first['rule']['id'], 'again': again['repeat'], 'batch': total['rule']['id']}
 
 
 def checked(project):
     """Step 2: the check (the app run in its copy, no AI); the rule's card and its places."""
-    eaos = [sys.executable, '-m', 'eaos', 'check', '--run-app', '--assistant', 'none', '--lang', 'en', '--watch', '--project', str(project)]
-    subprocess.run(eaos, cwd=project, capture_output=True, text=True, timeout=3600, env={**os.environ, 'PYTHONPATH': str(ROOT)})
+    eaos = [sys.executable, '-m', 'eaos', 'check', '--run-app', '--assistant', 'none', '--lang', 'en',
+            '--watch', '--project', str(project)]
+    subprocess.run(eaos, cwd=project, capture_output=True, text=True, timeout=3600,
+                   env={**os.environ, 'PYTHONPATH': str(ROOT)})
     plan = json.loads((guided.report_of(guided.load(project)) / 'plan.json').read_text(encoding='utf-8'))
     return next((t for t in plan['tasks'] if t.get('pattern') == 'person_rule'), None)
 
@@ -86,12 +92,16 @@ def done(answer, project):
 
 def _database(name):
     """The sound fix of one file: its records read from the database the app passes in, nothing written in the code."""
-    return {'path': name, 'content': f"// The {RECORDS[name]}, read from the app's database.\nmodule.exports = db => db.all('{RECORDS[name]}');\n"}
+    return {'path': name,
+            'content': f"// The {RECORDS[name]}, read from the app's database.\n"
+                       f"module.exports = db => db.all('{RECORDS[name]}');\n"}
 
 
 EDITS = {
     'one place': [_database('contacts.js')],
-    'every place, the totals broken': [*map(_database, RECORDS), {'path': 'total.js', 'content': 'module.exports = amount => String(amount);\n'}],
+    'every place, the totals broken': [*map(_database, RECORDS),
+                                       {'path': 'total.js',
+                                        'content': 'module.exports = amount => String(amount);\n'}],
     'every place': [*map(_database, RECORDS)],
 }
 
@@ -100,13 +110,16 @@ def batch(project, card, rules):
     """Step 3: the batch, its edits as an assistant would send them, handed over and accepted."""
     state = guided.load(project)
     live_setup.authorize(guided.source(state), guided.runtime_of(state), 'rules proof')
-    ran = live_setup.setup(guided.source(state), guided.runtime_of(state), report=guided.report_of(state), provider=None)
-    state['setup'] = {'commit': guided.tip(state), 'ok': ran['ok'], 'attempts': ran['attempts'], 'limitations': ran['limitations']}
+    ran = live_setup.setup(guided.source(state), guided.runtime_of(state),
+                           report=guided.report_of(state), provider=None)
+    state['setup'] = {'commit': guided.tip(state), 'ok': ran['ok'], 'attempts': ran['attempts'],
+                      'limitations': ran['limitations']}
     guided.safety_run(state)
     opened = done(agent_tools.fix_start(project, cards=[card['id']]), project)
     if not opened.get('to_do'): raise SystemExit(f'rules proof: no batch opened: {opened}')
     told = [r['id'] for r in (opened.get('to_do') or [{}])[0].get('your_rules') or []]
-    edited = {name: done(agent_tools.fix_edit(card['id'], edits, project=project), project) for name, edits in EDITS.items()}
+    edited = {name: done(agent_tools.fix_edit(card['id'], edits, project=project), project)
+              for name, edits in EDITS.items()}
     finished = done(agent_tools.fix_finish(project), project)
     accepted = agent_tools.accept(project, person_agreed=True)
     return {'told': told, 'edited': edited, 'finished': finished, 'accepted': accepted.get('status')}
@@ -115,7 +128,8 @@ def batch(project, card, rules):
 def committed_again(project):
     """Step 4: the hook on, and a later commit that writes people's data in the code again: (refused, seconds, said)."""
     person_rules.hook(project, True, agreed=True)
-    (project / 'staff.js').write_text(f"// The staff, written in again.\nmodule.exports = {PEOPLE};\n", encoding='utf-8')
+    (project / 'staff.js').write_text(f"// The staff, written in again.\n"
+                                      f"module.exports = {PEOPLE};\n", encoding='utf-8')
     git(project, 'add', '-A')
     began = time.monotonic()
     commit = git(project, '-c', 'user.name=t', '-c', 'user.email=t@t', 'commit', '-qm', 'staff', check=False)
@@ -123,20 +137,27 @@ def committed_again(project):
 
 
 def kept_and_found(rules, card, told):
-    """What went wrong in steps 1-2: the rule said again made another, the card misses a place, the assistant was not told."""
+    """What went wrong in steps 1-2: the rule said again made another, the card misses a place, the assistant was not
+    told."""
     found = [] if rules['again'] == 1 else [f"the rule said again made another rule ({rules['again']})"]
-    if not card or sorted(p.split(':')[0] for p in card.get('paths') or []) != sorted(RECORDS): found.append(f'the card does not name the three places: {card}')
-    if sorted(told) != sorted([rules['pinned'], rules['batch']]): found.append(f'the assistant was not told both rules: {told}')
+    if not card or sorted(p.split(':')[0] for p in card.get('paths') or []) != sorted(RECORDS):
+        found.append(f'the card does not name the three places: {card}')
+    if sorted(told) != sorted([rules['pinned'], rules['batch']]):
+        found.append(f'the assistant was not told both rules: {told}')
     return found
 
 
 def held_and_refused(edited, accepted, again):
-    """What went wrong in steps 3-4: a partial fix or one that broke the other rule kept, the sound one not, the hook silent."""
+    """What went wrong in steps 3-4: a partial fix or one that broke the other rule kept, the sound one not, the hook
+    silent."""
     found = [] if edited['one place'].get('kept') is False else [f"a fix of one place was kept: {edited['one place']}"]
     if 'Every total keeps two decimals' not in str(edited['every place, the totals broken'].get('why')):
-        found.append(f"the fix that broke the totals was not refused by its rule: {edited['every place, the totals broken']}")
-    if edited['every place'].get('kept') is not True or accepted != 'accepted': found.append(f"the sound fix was not kept and taken in: {edited['every place']}, {accepted}")
-    if not again[0] or 'came back' not in again[2]: found.append(f'the later commit was not refused as a rule that came back: {again}')
+        found.append("the fix that broke the totals was not refused by its rule: "
+                     f"{edited['every place, the totals broken']}")
+    if edited['every place'].get('kept') is not True or accepted != 'accepted':
+        found.append(f"the sound fix was not kept and taken in: {edited['every place']}, {accepted}")
+    if not again[0] or 'came back' not in again[2]:
+        found.append(f'the later commit was not refused as a rule that came back: {again}')
     return found
 
 
@@ -146,22 +167,29 @@ def problems(rules, card, fixed, again):
 
 def said_back(fixed, listed, rules, again, card):
     """What the proof shows the reader: the card, the rules told, the refusals with their words, the hook's."""
-    print(json.dumps({'card': card and card['id'], 'told': fixed['told'], 'refused': {k: str(v.get('why'))[:160] for k, v in fixed['edited'].items() if v.get('kept') is False},
-                      'branch': (fixed.get('finished') or {}).get('branch'), 'batch_rule': listed[rules['batch']]['history'][-1],
-                      'hook': {'refused': again[0], 'seconds': again[1], 'said': again[2].strip()[-300:]}}, ensure_ascii=False, indent=1))
+    print(json.dumps({'card': card and card['id'], 'told': fixed['told'],
+                      'refused': {k: str(v.get('why'))[:160] for k, v in fixed['edited'].items()
+                                  if v.get('kept') is False},
+                      'branch': (fixed.get('finished') or {}).get('branch'),
+                      'batch_rule': listed[rules['batch']]['history'][-1],
+                      'hook': {'refused': again[0], 'seconds': again[1], 'said': again[2].strip()[-300:]}},
+                     ensure_ascii=False, indent=1))
 
 
 def main(folder):
     project = made(Path(folder).resolve())
     rules = said(project)
     card = checked(project)
-    fixed = batch(project, card, rules) if card else {'told': [], 'edited': {name: {} for name in EDITS}, 'accepted': None}
+    fixed = (batch(project, card, rules) if card
+             else {'told': [], 'edited': {name: {} for name in EDITS}, 'accepted': None})
     listed = {r['id']: r for r in person_rules.listing(project)['rules']}
     again = committed_again(project)
     found = problems(rules, card, fixed, again)
-    if listed[rules['batch']]['state'] != 'ended': found.append(f"the batch's rule did not stop with its batch: {listed[rules['batch']]}")
+    if listed[rules['batch']]['state'] != 'ended':
+        found.append(f"the batch's rule did not stop with its batch: {listed[rules['batch']]}")
     said_back(fixed, listed, rules, again, card)
-    print('rules proof: ' + ('; '.join(found) if found else 'every rule kept, guarded, found in all its places, fixed in one batch, '
+    print('rules proof: ' + ('; '.join(found) if found else
+                             'every rule kept, guarded, found in all its places, fixed in one batch, '
                              'the batch\'s rule ended with it, the pinned one held at the commit'))
     return 1 if found else 0
 

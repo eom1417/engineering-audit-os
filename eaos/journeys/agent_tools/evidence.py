@@ -22,23 +22,27 @@ def _claims(report):
     return {c['id']: c for c in _read(path).get('claims') or []} if path.is_file() else {}
 
 
-def findings(project=None, kind=None, path=None, text=None, fixable_only=False, limit=PAGE, offset=0, area=None, severity=None):  # limits: parameters -- the findings tool's arguments, one for one (MCP server and CLI)
+def findings(  # limits: parameters -- the findings tool's arguments, one for one (MCP server and CLI)
+             project=None, kind=None, path=None, text=None, fixable_only=False, limit=PAGE, offset=0, area=None,
+             severity=None):
     state = state_of(project)
     report, lang = _report(state), state.get('lang') or 'en'
     claims, rows = _claims(report), []
-    from ..fix.selection import cards_in      # area and severity as the Studio's filter reads them
+    from ..fix.selection import cards_in      # area and severity as the record filter reads them
     only = [cards_in(report / 'studio', by, value) for by, value in (('area', area), ('severity', severity)) if value]
     for task in _read(report / 'plan.json').get('tasks') or []:
         if not _wanted(task, kind, path, text, fixable_only) or any(task['id'] not in ids for ids in only): continue
         rows.append(_finding_row(task, claims.get(task.get('claim_id')) or {}, lang))
     rows.sort(key=lambda r: -(r['priority'] or 0))
     offset, limit = max(int(offset), 0), min(max(int(limit), 1), 200)
-    return {'total': len(rows), 'offset': offset, 'findings': rows[offset:offset + limit], 'more': offset + limit < len(rows)}
+    return {'total': len(rows), 'offset': offset, 'findings': rows[offset:offset + limit], 'more': offset
+            + limit < len(rows)}
 
 
 def _finding_row(task, claim, lang):
-    """One card as findings lists it, its title in the person's language (an engine's card was said in Arabic only)."""
-    return {'id': task['id'], 'title': title_of(task, lang), 'kind': task.get('pattern'), 'paths': (task.get('paths') or [])[:5],
+    """One card as findings lists it, its title in the person's language."""
+    return {'id': task['id'], 'title': title_of(task, lang), 'kind': task.get('pattern'), 'paths': (task.get('paths')
+        or [])[:5],
             'fixable_automatically': _ready(task), 'decision': (task.get('decision') or {}).get('kind'),
             'confidence': claim.get('confidence'), 'priority': task.get('priority')}
 
@@ -79,7 +83,7 @@ def _card_of(report, id):
 
 
 def _evidence(state, report, card, claim):
-    """The facts behind a card and its claim (up to EVIDENCE; shown six, an assistant missed the rest), with their code."""
+    """The facts behind a card and its claim (up to EVIDENCE), with their code."""
     from ...facts.store import by_id
     fact_ids = list(dict.fromkeys((claim.get('fact_ids') or []) + ((card.get('evidence') or {}).get('fact_ids') or [])))
     facts = by_id(report, fact_ids[:EVIDENCE])
@@ -90,7 +94,8 @@ def _evidence(state, report, card, claim):
 
 def _what_and_why(card, claim):
     """What a finding is, why it matters, and how it is proven gone."""
-    return {'id': card.get('id') or claim.get('id'), 'claim': claim.get('id'), 'title': card.get('title') or claim.get('statement'),
+    return {'id': card.get('id') or claim.get('id'), 'claim': claim.get('id'), 'title': card.get('title')
+            or claim.get('statement'),
             'kind': card.get('pattern'), 'confidence': claim.get('confidence'), 'paths': card.get('paths'),
             'impact': card.get('impact') or (claim.get('impact') or {}).get('scenario'), **_change(card, claim)}
 
@@ -98,9 +103,12 @@ def _what_and_why(card, claim):
 def _change(card, claim):
     """The rule a finding breaks, the code before and after its change, and how it is proven gone."""
     assessment = claim.get('assessment') or {}
-    return {'rule_broken': assessment.get('violated_invariant'), 'before': card.get('before') or assessment.get('before'),
-            'after': card.get('after') or assessment.get('after'), 'suggested_change': assessment.get('proposed_change'),
-            'how_it_is_proven_gone': proof(claim) or claim.get('falsifier') or ((card.get('evidence') or {}).get('falsifier'))}
+    return {'rule_broken': assessment.get('violated_invariant'), 'before': card.get('before')
+            or assessment.get('before'),
+            'after': card.get('after') or assessment.get('after'),
+            'suggested_change': assessment.get('proposed_change'),
+            'how_it_is_proven_gone': proof(claim) or claim.get('falsifier') or ((card.get('evidence')
+                or {}).get('falsifier'))}
 
 
 def _card_work(card):
@@ -110,7 +118,8 @@ def _card_work(card):
             'has_codemod': ((card.get('codemod') or {}).get('dry_run') or {}).get('files_changed', 0) > 0,
             'decision': card.get('decision', {}).get('kind') if card else None,
             'blockers': decision.get('blockers'),
-            'depends_on': card.get('prerequisites'), 'used_by': ((card.get('blast_radius') or {}).get('direct_dependents') or [])[:15]}
+            'depends_on': card.get('prerequisites'), 'used_by': ((card.get('blast_radius')
+                                                                  or {}).get('direct_dependents') or [])[:15]}
 
 
 def finding(id, project=None):
@@ -128,30 +137,38 @@ def structure(project=None):
     target = _read(report / 'target-architecture.json') if (report / 'target-architecture.json').is_file() else {}
     trim = lambda rows, n=40: (rows or [])[:n] if isinstance(rows, list) else rows
     cycles = [t['title'] for t in _read(report / 'plan.json').get('tasks') or [] if t.get('pattern') == 'import_cycle']
-    return {'current_components': trim(target.get('current_components')), 'target_components': trim(target.get('target_components')),
+    return {'current_components': trim(target.get('current_components')),
+            'target_components': trim(target.get('target_components')),
             'forbidden_edges': trim(target.get('forbidden_edges')), 'target_edges': trim(target.get('target_edges')),
             'decisions': trim(target.get('decisions'), 20), 'gaps': trim(target.get('gap_matrix'), 40),
             'import_cycles': cycles[:30], 'import_cycle_count': len(cycles), 'limits': target.get('limits'),
-            'documents': [str(report / name) for name in ('TARGET-ARCHITECTURE.md', 'CURRENT-STATE.md')
+            'documents': [str(report / name) for name in ('CURRENT-STATE.md',)
                           if (report / name).is_file()]}
 
 
 def design(project=None):
-    """What the project's screens are made of (design/inventory.json), pictures aside: how many looks per part, values per kind."""
+    """What the project's screens are made of (design/inventory.json), pictures aside: how many looks per part,
+    values per kind."""
     state = state_of(project)
-    drawn = _read(_report(state) / 'design' / 'inventory.json') if (_report(state) / 'design' / 'inventory.json').is_file() else None
-    if not drawn: return {'status': 'not_read', 'what_now': 'The screens were not read: the app must run in a check (run_setup, then audit).'}
-    return {'pages': drawn['pages'], 'components': {role: {'count': part['count'], 'looks': part['distinct']} for role, part in drawn['components'].items()},
-            'values': {kind: part['distinct'] for kind, part in drawn['values'].items()}, 'near_colours': drawn['near_colours'][:10],
+    drawn = _read(_report(state) / 'design' / 'inventory.json') if (_report(
+        state) / 'design' / 'inventory.json').is_file() else None
+    if not drawn: return {'status': 'not_read',
+                          'what_now': 'The screens were not read: the app must run in a check (run_setup, then audit).'}
+    return {'pages': drawn['pages'], 'components': {role: {'count': part['count'], 'looks': part['distinct']} for role,
+                                                    part in drawn['components'].items()},
+            'values': {kind: part['distinct'] for kind, part in drawn['values'].items()},
+            'near_colours': drawn['near_colours'][:10],
             'formats': drawn['formats'], 'libraries': drawn['libraries'], 'motion': drawn['motion']}
 
 
 def _milestone_row(m, tasks, whole, tried_card, where):
-    """One milestone with its cards (of `tasks`, by id): all of them when `whole`, else the first 25 and how many more."""
+    """One milestone with its cards (of `tasks`, by id): all of them when `whole`, else the first 25 and how many
+    more."""
     cards = [tasks[i] for i in m['tasks'] if i in tasks]
     shown = cards if whole else cards[:25]
     return {'id': m['id'], 'name': m.get('name'), 'goal': m.get('goal'), 'exit': m.get('exit'),
-            'cards': [{'id': c['id'], 'title': c.get('title'), 'kind': c.get('pattern'), 'fixable_automatically': _ready(c),
+            'cards': [{'id': c['id'], 'title': c.get('title'), 'kind': c.get('pattern'),
+                       'fixable_automatically': _ready(c),
                        'tried': tried_card(c), 'state': where.get(c['id'], 'open')} for c in shown],
             'more_cards': 0 if whole else max(0, len(cards) - 25)}
 
@@ -170,7 +187,8 @@ def plan(project=None, milestone=None):
     out = [_milestone_row(m, tasks, bool(milestone), lambda c: ids.get(c['id']) in tried, where)
            for m in data.get('milestones') or [] if not milestone or m['id'] == milestone]
     return {'milestones': out, 'progress': record.get('totals'),
-            'order': 'Fix in this order: milestone by milestone, the fixable cards first. Only these cards count as progress: '
+            'order': 'Fix in this order: milestone by milestone, the fixable cards first. Only these cards count as '
+                     'progress: '
                      'work outside the plan is not recorded anywhere.'}
 
 
@@ -180,8 +198,8 @@ def _card_states(record):
 
 
 def impact(target, project=None, depth=3):
-    """What changing a file or a symbol touches, from the check's facts: who imports it, the flows and entry points through
-    it, the tests that cover it, and the files that change with it in the history."""
+    """What changing a file or a symbol touches, from the check's facts: who imports it, the flows and entry points
+    through it, the tests that cover it, and the files that change with it in the history."""
     from ...analysis.maps.impact import LIMITS, assess
     result = assess(_report(state_of(project)), target, depth)
     return {**result, 'limits': LIMITS}
@@ -205,8 +223,10 @@ def tools_check(project=None, retry=False):
     rows = _tool_rows(files)
     wanted, later = _missing(rows)
     gate = toolchain.readiness(files or ())
-    return {'eaos': {'version': build_info.__version__, 'commit': build_info.commit()}, 'tools_folder': str(toolchain.home()),
-            'installed': sum(r['ok'] for r in rows), 'total': len(rows), 'tools': rows, 'installing': toolchain.installing(),
+    return {'eaos': {'version': build_info.__version__, 'commit': build_info.commit()},
+            'tools_folder': str(toolchain.home()),
+            'installed': sum(r['ok'] for r in rows), 'total': len(rows), 'tools': rows,
+            'installing': toolchain.installing(),
             'for_the_check': gate, 'missing_for_later_steps': later,
             'install': 'eaos tools install' if wanted or gate['failed'] else None}
 
@@ -217,14 +237,16 @@ def _tool_rows(files):
     rows = toolchain.doctor()['tools']
     rules = {t['name']: t for t in toolchain.registry()['tools']}
     for row in rows:
-        row['needed_here'] = None if files is None else toolchain.rule_applies(rules[row['name']].get('applies', 'all'), files)
+        row['needed_here'] = None if files is None else toolchain.rule_applies(rules[row['name']].get('applies', 'all'),
+            files)
         row['for_the_check'] = bool(rules[row['name']].get('check'))
     rows.sort(key=lambda r: (r['needed_here'] is False, not r['for_the_check'], r['ok'], r['name']))
     return rows
 
 
 def _missing(rows):
-    """(the tools not installed that could be and the project may need, the names of those the check does not wait for)."""
+    """(the tools not installed that could be and the project may need, the names of those the check does not wait
+    for)."""
     wanted = [r for r in rows if not r['ok'] and not r['unavailable'] and r['needed_here'] is not False]
     return wanted, [r['name'] for r in wanted if not r['for_the_check']]
 
@@ -233,16 +255,18 @@ def report_file(name='', project=None, offset=0, limit=20000):
     state = state_of(project)
     report = _report(state).resolve()
     if not name:
-        return {'files': sorted(str(p.relative_to(report)) for p in report.rglob('*') if p.is_file() and p.suffix in ('.md', '.json', '.txt'))[:400]}
+        return {'files': sorted(str(p.relative_to(report)) for p in report.rglob('*') if p.is_file()
+                                and p.suffix in ('.md', '.json', '.txt'))[:400]}
     path = (report / name).resolve()
     if report not in path.parents or not path.is_file(): raise ValueError(f'{name} is not a file of this report')
     text = path.read_text(encoding='utf-8', errors='replace')
     offset, limit = max(int(offset), 0), min(max(int(limit), 1000), 100000)
-    return {'file': str(path), 'size': len(text), 'offset': offset, 'text': text[offset:offset + limit], 'more': offset + limit < len(text)}
+    return {'file': str(path), 'size': len(text), 'offset': offset, 'text': text[offset:offset + limit], 'more': offset
+            + limit < len(text)}
 
 
 def open_report(project=None, show=True):
-    """REPORT.html, the four reports for people, rebuilt with the fixes so far and opened in the person's browser."""
+    """The reports for people and START-HERE.md, rebuilt with the fixes so far."""
     state = state_of(project)
     _report(state)
     guided.reconcile(state)
@@ -258,10 +282,14 @@ def open_report(project=None, show=True):
     return {'report_for_people': str(page), 'opened_in_browser': opened, 'outputs_folder': str(guided.outputs(state)),
             'built': made.get('built'), 'version': made.get('version'), 'report_errors': made.get('errors') or [],
             'checked_commit': made.get('scanned_commit'), 'stale': stale,
-            'what_now': 'Tell the person where it is' + ('' if opened else ' and how to open it (double-click the file)') + '.'
-                        + (' Some parts could not be built: tell the person which, plainly (report_errors).' if made.get('errors') else '')
-                        + (' The branch has moved on with new work since this check: say the report shows the code as it was '
-                           'then; a new check (audit with fresh=true) runs only when the person asks for it.' if stale else '')}
+            'what_now': 'Tell the person where it is' + ('' if opened
+                                                         else ' and how to open it (double-click the file)') + '.'
+                        + (' Some parts could not be built: tell the person which, plainly (report_errors).'
+                           if made.get('errors') else '')
+                        + (' The branch has moved on with new work since this check: say the report shows the code as '
+                           'it was '
+                           'then; a new check (audit with fresh=true) runs only when the person asks for it.' if stale
+                           else '')}
 
 
 def _stale(state, made):

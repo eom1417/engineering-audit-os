@@ -13,19 +13,21 @@ from pathlib import Path, PurePosixPath
 
 from ...core.contracts.artifact_rules import contracts, validate
 from ...core.system.clock import now
+from ...core.system.errors import noted
 
 def git(where, *args):
     return subprocess.run(['git', '-C', str(where), *args], capture_output=True, text=True)
 
 
 def set_aside(copy):
-    """Nothing EAOS finds where a new copy goes is deleted: it may hold the only trace of a change. An empty folder goes; the
-    rest moves beside it under a name of its own, where `eaos clean` judges it as any copy."""
+    """Nothing EAOS finds where a new copy goes is deleted: it may hold the only trace of a change. An empty folder
+    goes; the rest moves beside it under a name of its own, where `eaos clean` judges it as any copy."""
     copy = Path(copy)
     if copy.is_dir() and not copy.is_symlink() and not any(copy.iterdir()): return copy.rmdir()
     if not (copy.exists() or copy.is_symlink()): return None
     aside = None
-    while aside is None or aside.exists() or aside.is_symlink(): aside = copy.with_name(f'{copy.name}.left-{os.urandom(6).hex()}')
+    while aside is None or aside.exists() or aside.is_symlink():
+        aside = copy.with_name(f'{copy.name}.left-{os.urandom(6).hex()}')
     return copy.rename(aside)
 
 
@@ -38,14 +40,15 @@ def candidate(target, runtime, card_id):
     for args in (('clone', '--quiet', '--no-hardlinks', str(target), str(where)),):
         done = subprocess.run(['git', *args], capture_output=True, text=True)
         if done.returncode: raise RuntimeError(f'clone failed: {done.stderr[-300:]}')
-    if git(where, 'checkout', '--quiet', grant['commit']).returncode: raise RuntimeError('the authorised commit is not in the target')
+    if git(where, 'checkout', '--quiet', grant['commit']).returncode:
+        raise RuntimeError('the authorised commit is not in the target')
     git(where, 'checkout', '--quiet', '-b', f'eaos/{card_id.lower()}')
     return where
 
 
 def own_batch(target, runtime, name):
-    """A clone of the authorised commit for one batch (a wave of fixes, a batch of moves or of the context): (root, base).
-    PermissionError when the person's agreement does not cover the commit now."""
+    """A clone of the authorised commit for one batch (a wave of fixes, a batch of moves or of the context): (root,
+    base). PermissionError when the person's agreement does not cover the commit now."""
     from ...live.isolation.sandbox import head, refusal
     reason = refusal(Path(runtime) / 'authorization.json', 'S08', head(target))
     if reason: raise PermissionError(reason)
@@ -55,14 +58,15 @@ def own_batch(target, runtime, name):
 
 def commit_all(root, message, paths=None):
     """Everything the batch changed in the copy (only `paths` when given: never what a run left there), as EAOS. A
-    path a move took away is in neither the tree nor the index: named, git refused the whole add, and a move batch was
-    committed without its rewritten imports (M9.5: the app no longer started after the moves)."""
+    path a move took away is in neither the tree nor the index: naming it would make git refuse the whole add, and the
+    batch would lose its rewritten imports."""
     if paths is not None:      # forced: a batch's own path in a folder the project ignores (lib/, build/) is still its
         paths = [p for p in paths if (Path(root) / p).exists() or git(root, 'ls-files', '--', p).stdout.strip()]
         if not paths: raise RuntimeError('the batch left nothing to commit')
     added = git(root, 'add', '-A', *(['-f', '--', *paths] if paths is not None else []))
     if added.returncode: raise RuntimeError(f'git add failed: {added.stderr.strip()[-300:]}')
-    if git(root, '-c', 'user.name=EAOS', '-c', 'user.email=eaos@localhost', 'commit', '--quiet', '-m', message).returncode:
+    if git(root, '-c', 'user.name=EAOS', '-c', 'user.email=eaos@localhost', 'commit', '--quiet',
+           '-m', message).returncode:
         raise RuntimeError('the batch left nothing to commit')
 
 
@@ -73,7 +77,8 @@ def record_batch(batch, root, base, kept, refused):
     folder = Path(batch['runtime']) / kind / f'{kind}-{number}'
     folder.mkdir(parents=True, exist_ok=True)
     if kept: git(root, 'format-patch', '--quiet', '-o', str(folder), f'{base}..HEAD')
-    summary = {'batch': number, 'kind': kind, 'branch': batch.get('deliver_as') or f'eaos/{kind}-{number}', 'root': str(root),
+    summary = {'batch': number, 'kind': kind, 'branch': batch.get('deliver_as') or f'eaos/{kind}-{number}',
+               'root': str(root),
                'base': base, 'kept': kept, 'items': batch['items'], 'refused': refused, **(batch.get('extra') or {}),
                'at': now(),
                'stat': git(root, 'diff', '--shortstat', f'{base}..HEAD').stdout.strip() if kept else ''}
@@ -102,16 +107,19 @@ def _run_codemod(name, detail, root):
         if callable(step):
             step()
             continue
-        done = subprocess.run(step, cwd=root, capture_output=True, text=True, timeout=600)  # nosemgrep: python.lang.security.audit.dangerous-subprocess-use-audit -- a codemod's argv rebuilt from the report's facts, run in the candidate copy, no shell
+        # nosemgrep: python.lang.security.audit.dangerous-subprocess-use-audit -- a codemod's argv rebuilt from the report's facts, run in the candidate copy, no shell
+        done = subprocess.run(step, cwd=root, capture_output=True, text=True, timeout=600)
         # its own words (npm's ERESOLVE), never only its command line, which names this machine's paths
-        if done.returncode: raise RuntimeError(f"{' '.join([Path(step[0]).name, *map(str, step[1:2])])} exited {done.returncode}: {(done.stderr or done.stdout).strip()[-240:]}")
+        if done.returncode:
+            raise RuntimeError(f"{' '.join([Path(step[0]).name, *map(str, step[1:2])])} exited {done.returncode}: "
+                               f"{(done.stderr or done.stdout).strip()[-240:]}")
 
 
 def codemod_by_member(card, root, report):
     """A lock file card whose change failed whole, made again on the copy one package at a time: each package's upgrade
-    kept only when its steps pass and the dependency tree stays valid (_dependencies_broken). Second trial on real
-    projects: one package of 32 left the tree invalid, and the 31 sound upgrades were lost with it. (the facts of the
-    packages kept, {package@version: why it was left}); the kept changes are staged, for the card's one commit."""
+    kept only when its steps pass and the dependency tree stays valid (_dependencies_broken), so one bad package does
+    not lose the sound ones. Returns (the facts of the packages kept, {package@version: why it was left}); the kept
+    changes are staged, for the card's one commit."""
     detail, facts = _codemod_of(card, root, report)
     start, kept, left = git(root, 'rev-parse', 'HEAD').stdout.strip(), set(), {}
     for member in (detail or {}).get('group') or []:
@@ -123,7 +131,8 @@ def codemod_by_member(card, root, report):
 
 
 def _member_kept(name, member, root):
-    """'' when one package's upgrade ran and left the dependency tree valid, committed; else why not, the copy as before."""
+    """'' when one package's upgrade ran and left the dependency tree valid, committed; else why not, the copy as
+    before."""
     try:
         _run_codemod(name, member, root)
         commit_all(root, f"{name}: {member['package']}")
@@ -143,9 +152,9 @@ def surfaces(facts):
 
 
 def new_breakage(report, root, collected=None):
-    """What the change broke (eaos/analysis/repair/gates.py structure, against the report): a forbidden import, a file in no layer of the
-    project's policy, an import cycle, a broken reference of high severity, a boundary of the layers (M6); and any HTTP
-    endpoint or mount that is gone.
+    """What the change broke (eaos/analysis/repair/gates.py structure, against the report): a forbidden import, a file
+    in no layer of the project's policy, an import cycle, a broken reference of high severity, a boundary of the
+    layers; and any HTTP endpoint or mount that is gone.
     A fix that makes a problem disappear by deleting what users reach is not a fix. `collected` is a collection of facts
     on `root` the caller already made."""
     import tempfile
@@ -161,7 +170,8 @@ def new_breakage(report, root, collected=None):
         else: collect(root, out, ['syntax', 'resolve', 'graph', 'broken', 'domain', 'runtime', 'secrets', 'config']
                       + (['entrypoints'] if had is not None else []))
         broke = words(structure(report, out, policy)) + _layers_broken(report, root, out) + _dependencies_broken(root)
-        has = surfaces(json.loads((Path(out) / 'facts/entrypoints.json').read_text(encoding='utf-8'))['facts']) if had is not None else set()
+        has = (surfaces(json.loads((Path(out) / 'facts/entrypoints.json').read_text(encoding='utf-8'))['facts'])
+               if had is not None else set())
     if had is not None:
         broke += [f'the endpoint {method} {route} is gone' for method, route in sorted(had - has, key=str)]
     return broke
@@ -179,9 +189,9 @@ NPM_FILES = ('package.json', 'package-lock.json')
 
 def _dependencies_broken(root):
     """What the last commit broke in the dependency tree npm reads from a package.json and its lock (npm ls: no install,
-    no network, no script): a version out of the range its consumer asks, a lock behind its package.json. Trial on real
-    projects (2026-11-02): an upgrade that put a package out of a plugin's range was seen only once the install broke,
-    and the upgrades after it failed on it. npm only; a commit that changes neither file is not read."""
+    no network, no script): a version out of the range its consumer asks, a lock behind its package.json. An upgrade
+    that puts a package out of a plugin's range shows only once the install breaks, and the upgrades after it fail on
+    it. npm only; a commit that changes neither file is not read."""
     from ...engines.process import which
     npm, changed = which('npm'), git(root, 'diff', '--name-only', 'HEAD~1', 'HEAD').stdout.split('\n')
     folders = sorted({str(PurePosixPath(path).parent) for path in changed if PurePosixPath(path).name in NPM_FILES})
@@ -201,14 +211,16 @@ def _dependencies_broken(root):
 def _npm_problems(npm, folder):
     """The problems `npm ls` finds in a folder's package.json and lock, without the folder's path."""
     if not (folder / 'package.json').is_file(): return set()
-    done = subprocess.run([npm, 'ls', '--all', '--package-lock-only', '--json'], cwd=folder, capture_output=True, text=True, timeout=120)  # nosemgrep: python.lang.security.audit.dangerous-subprocess-use-audit -- npm at its path, a fixed list argv, reading the lock only (no install, no script)
+    # nosemgrep: python.lang.security.audit.dangerous-subprocess-use-audit -- npm at its path, a fixed list argv, reading the lock only (no install, no script)
+    done = subprocess.run([npm, 'ls', '--all', '--package-lock-only', '--json'], cwd=folder, capture_output=True,
+                          text=True, timeout=120)
     try: problems = json.loads(done.stdout).get('problems') or []
     except ValueError: return set()
     return {problem.replace(f'{folder.resolve()}/', '').replace(f'{folder}/', '') for problem in problems}
 
 
 # The engines that answer in seconds: they run on every change a batch makes (eaos/journeys/fix/waves edit_gates): the
-# security ones, and jscpd and ast-grep for one source per pattern (M15.9).
+# security ones, and jscpd and ast-grep for one source per pattern.
 GATE_ENGINES = ('bandit', 'gitleaks', 'jscpd', 'ast-grep')
 
 
@@ -227,10 +239,10 @@ def app_breakage(project, runtime, root, changed):
 
 def project_checks(target, runtime, stage, name, python=True):
     """[{argv, exit}] of the run profile's checks on target, installed in a sandbox copy (its install held to the lock,
-    `npm ci`, a row too), and its Python tests (the profile's checks run in the app's folder; a Python suite beside it is
-    the project's too; `python` false: the profile's alone); [] when there are none. Every command's output tail is kept
-    in runtime/checks-<name>-log.json. They see a copy of the run's database of their own: what setup wrote in it, never
-    what an earlier checks run wrote (a test writing a real row passed once, then failed on every later run)."""
+    `npm ci`, a row too), and its Python tests (the profile's checks run in the app's folder; a Python suite beside it
+    is the project's too; `python` false: the profile's alone); [] when there are none. Every command's output tail is
+    kept in runtime/checks-<name>-log.json. They see a copy of the run's database of their own: what setup wrote in it,
+    never what an earlier checks run wrote (a test writing a real row would pass once, then fail on every later run)."""
     from ...live.app.run import LiveRun, _unfrozen
     live = LiveRun(target, runtime, stage)
     live.throwaway = True
@@ -251,7 +263,7 @@ def project_checks(target, runtime, stage, name, python=True):
 def _check(live, target, argv, at_root):
     """One check's row on the run's copy. A check that changed the copy's committed files (a lint reaching `--write`)
     passes by fixing what it checks: the files are named in its row (`writes`) and put back for the next check, and its
-    exit is no gate (trial on real projects: a lint always passed so)."""
+    exit is no gate."""
     names = [name for name in git(target, 'ls-tree', '-r', '-z', '--name-only', live.commit).stdout.split('\0') if name]
     before = _stamps(live.sandbox.copy, names)
     from ...live.app.run import CHECKS_ENV
@@ -260,7 +272,8 @@ def _check(live, target, argv, at_root):
     after = _stamps(live.sandbox.copy, before)
     written = [name for name, stamp in before.items() if after.get(name) != stamp]
     if written:
-        files = subprocess.run(['git', '-C', str(target), 'archive', '--format=tar', live.commit, '--', *[f':(literal){name}' for name in written]],
+        files = subprocess.run(['git', '-C', str(target), 'archive', '--format=tar', live.commit, '--',
+                                *[f':(literal){name}' for name in written]],
                                capture_output=True, check=True).stdout
         subprocess.run(['tar', '-x', '-C', str(live.sandbox.copy)], input=files, check=True)
         row['writes'] = written
@@ -272,15 +285,17 @@ def _stamps(copy, names):
     stamps = {}
     for name in names:
         try: found = (Path(copy) / name).lstat()
-        except OSError: continue
+        except OSError as error:
+            noted('a file that is not there has no stamp', error)
+            continue
         stamps[name] = (found.st_size, found.st_mtime_ns)
     return stamps
 
 
 def original_checks(target, runtime):
     """The checks on the authorised commit, run once and kept beside the run (runtime/checks-original.json): read again
-    while the commit and the profile's install and checks are the same (a library's profile gained its tests, and the
-    failing result of before still said it had none, 2026-11-05)."""
+    while the commit and the profile's install and checks are the same; a profile that gained tests is run again, so a
+    stale result never says it has none."""
     from ...live.app.run import load_profile
     from ...live.isolation.sandbox import head
     path = Path(runtime) / 'runtime/checks-original.json'
@@ -297,13 +312,15 @@ def original_checks(target, runtime):
 
 TAP_FAILURE = re.compile(r'^\s*not ok \d+ - (.+?)(?:\s+#.*)?$', re.M)
 PYTHON_FAILURE = re.compile(r'^(?:(?:FAIL|ERROR): (\S+ \([^)]*\))|FAILED (\S+))', re.M)   # unittest, pytest -q
-JEST_FAILURE = re.compile(r'^\s*(?:\u25cf|FAIL\s+\S+\s+>)\s+(?!Console$)(.+?)\s*$', re.M)   # jest: "● Suite › name"; vitest: "FAIL file > name"
+# jest: "● Suite › name"; vitest: "FAIL file > name"
+JEST_FAILURE = re.compile(r'^\s*(?:\u25cf|FAIL\s+\S+\s+>)\s+(?!Console$)(.+?)\s*$', re.M)
 
 
 def failing(output):
     """The names of the failing tests a TAP reporter (node --test, tap...), unittest, pytest, jest or vitest printed:
     sorted, unique."""
-    return sorted(set(TAP_FAILURE.findall(output)) | set(JEST_FAILURE.findall(output)) | {a or b for a, b in PYTHON_FAILURE.findall(output)})
+    return sorted(set(TAP_FAILURE.findall(output)) | set(JEST_FAILURE.findall(output))
+                  | {a or b for a, b in PYTHON_FAILURE.findall(output)})
 
 
 def not_run(checks):

@@ -30,6 +30,7 @@ import threading
 import time
 
 from ...core.project.places import home
+from ...core.system.errors import noted
 from ...core.system.files import read_json
 from ...core.system.clock import now
 
@@ -42,13 +43,18 @@ QUESTION = 'Reply with the single word: ready'
 
 # What a failed call says, in the assistants' own words, and the problem it means (first match wins).
 PATTERNS = (
-    ('sign_in_expired', r'refresh token (?:was )?already (?:been )?used|refresh_token_reused|refresh token.{0,40}(?:expired|invalid|revoked)'),
-    ('not_signed_in', r'not logged in|please run /login|please log ?in|run `?codex login|invalid api key|authentication_error|unauthori[sz]ed|\b401\b'),
+    ('sign_in_expired',
+     r'refresh token (?:was )?already (?:been )?used|refresh_token_reused|refresh '
+     r'token.{0,40}(?:expired|invalid|revoked)'),
+    ('not_signed_in',
+     r'not logged in|please run /login|please log ?in|run `?codex login|invalid api '
+     r'key|authentication_error|unauthori[sz]ed|\b401\b'),
     ('limit', r'usage limit|rate limit|(?:session|weekly|daily|opus) limit|hit your (?:\w+ )?limit|limit reached|quota|'
               r'credit balance|too many requests|\b429\b'),
 )
 # When a spent limit comes back, as the assistant says it ("resets 7:10pm (UTC)", "try again at 5 PM").
-RESETS = re.compile(r'(?:resets?|try again)(?: at| in)? ([0-9][0-9:]*\s*(?:[ap]m\b|hours?\b|minutes?\b)?(?:\s*\([A-Za-z0-9+:-]+\))?)', re.IGNORECASE)
+RESETS = re.compile(r'(?:resets?|try again)(?: at| in)? '
+                    r'([0-9][0-9:]*\s*(?:[ap]m\b|hours?\b|minutes?\b)?(?:\s*\([A-Za-z0-9+:-]+\))?)', re.IGNORECASE)
 
 
 class NoAssistant:
@@ -88,7 +94,10 @@ def _run(argv, timeout, stdin=None, cwd=None):
     """(returncode, stdout, stderr) or (None, '', why) when it could not run or did not end in time: then its whole
     process group is ended, so a child it started cannot hold the probe."""
     try:
-        process = subprocess.Popen(argv, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, cwd=cwd,  # nosemgrep: python.lang.security.audit.dangerous-subprocess-use-audit -- the assistant's CLI as its adapter builds it, a list argv, no shell
+        # nosemgrep: python.lang.security.audit.dangerous-subprocess-use-audit -- the assistant's CLI as its adapter builds it, a list argv, no shell
+        process = subprocess.Popen(argv, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+                                   text=True,
+                                   cwd=cwd,
                                    start_new_session=(os.name == 'posix'))
     except (OSError, subprocess.SubprocessError) as problem:
         return None, '', type(problem).__name__
@@ -117,9 +126,11 @@ def _codex_status(path):
 
 
 def _claude_call(path, timeout):
-    """(answered, problem, what it said): the check's way of asking (no tool, no MCP server, nothing kept), on one word."""
+    """(answered, problem, what it said): the check's way of asking (no tool, no MCP server, nothing kept), on one
+    word."""
     with tempfile.TemporaryDirectory(prefix='eaos-probe-') as empty:
-        code, out, err = _run([*path, '-p', '--tools', '', '--strict-mcp-config', '--no-session-persistence', '--output-format', 'json',
+        code, out, err = _run([*path, '-p', '--tools', '', '--strict-mcp-config', '--no-session-persistence',
+                               '--output-format', 'json',
                                '--system-prompt', 'Answer in one word.', QUESTION], timeout, cwd=empty)
     if code is None: return False, 'no_answer' if err == 'timeout' else 'failed', ''
     try: envelope = json.loads(out.strip().splitlines()[-1]) if out.strip() else {}
@@ -135,11 +146,14 @@ def _answered(envelope):
 
 
 def _codex_call(path, timeout):
-    """(answered, problem, what it said): `codex exec` as the check's adapter runs it (read-only, in an empty folder, nothing kept)."""
+    """(answered, problem, what it said): `codex exec` as the check's adapter runs it (read-only, in an empty folder,
+    nothing kept)."""
     with tempfile.TemporaryDirectory(prefix='eaos-probe-') as empty:
         answer = os.path.join(empty, 'answer.txt')
-        code, out, err = _run([*path, 'exec', '--skip-git-repo-check', '--ephemeral', '--ignore-rules', '--ignore-user-config',
-                               '-s', 'read-only', '--color', 'never', '-C', empty, '-o', answer, '-'], timeout, stdin=QUESTION, cwd=empty)
+        code, out, err = _run([*path, 'exec', '--skip-git-repo-check', '--ephemeral', '--ignore-rules',
+                               '--ignore-user-config',
+                               '-s', 'read-only', '--color', 'never', '-C', empty, '-o', answer, '-'], timeout,
+                              stdin=QUESTION, cwd=empty)
         text = open(answer, encoding='utf-8').read() if os.path.exists(answer) else ''
     if code is None: return False, 'no_answer' if err == 'timeout' else 'failed', ''
     if code == 0 and text.strip(): return True, None, ''
@@ -162,7 +176,8 @@ def check(name, timeout=TIMEOUT, command=None):
         back = resets_at(said) if problem == 'limit' else None
         if back and row['reason']:
             row['resets'] = back
-            row['reason'] = {'ar': f"{row['reason']['ar']} يتجدد حدّه: {back}.", 'en': f"{row['reason']['en']} It resets: {back}."}
+            row['reason'] = {'ar': f"{row['reason']['ar']} يتجدد حدّه: {back}.",
+                             'en': f"{row['reason']['en']} It resets: {back}."}
         row['seconds'] = round(time.monotonic() - began, 1)
         return row
 
@@ -186,7 +201,8 @@ def _cache_file():
 
 def _key(name):
     """What decides an assistant's readiness here: where its command is and the environment its sign-in lives in."""
-    return json.dumps([name, shutil.which(name), *(os.environ.get(v) for v in ('HOME', 'CLAUDE_CONFIG_DIR', 'CODEX_HOME'))])
+    return json.dumps([name, shutil.which(name),
+                       *(os.environ.get(v) for v in ('HOME', 'CLAUDE_CONFIG_DIR', 'CODEX_HOME'))])
 
 
 def _read_cache():
@@ -218,8 +234,8 @@ def probe(name, fresh=False, timeout=TIMEOUT):
             temporary = path.with_suffix(f'.{os.getpid()}.tmp')
             temporary.write_text(json.dumps(saved, ensure_ascii=False, indent=1), encoding='utf-8')
             temporary.replace(path)
-    except OSError:
-        pass                                       # a read-only home: the answer still stands for this call
+    except OSError as error:                       # a read-only home: the answer still stands for this call
+        noted('the answer is not cached', error)
     return {**row, 'cached': False}
 
 
@@ -227,7 +243,8 @@ def probe_all(fresh=False, timeout=TIMEOUT, names=None):
     """Every assistant's readiness, probed side by side: [{...}] in the order EAOS prefers them."""
     names = [n for n in (names or NAMES) if n in NAMES]
     out = {}
-    threads = [threading.Thread(target=lambda n=n: out.__setitem__(n, probe(n, fresh, timeout)), daemon=True) for n in names]
+    threads = [threading.Thread(target=lambda n=n: out.__setitem__(n, probe(n, fresh, timeout)),
+                                daemon=True) for n in names]
     for thread in threads: thread.start()
     for thread in threads: thread.join()
     return [out[n] for n in names]

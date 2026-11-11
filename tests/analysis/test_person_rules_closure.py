@@ -1,6 +1,6 @@
-"""M16's closure (2026-10-29): four cases an owner's review named, each reproduced before its fix. A rule and its
-contradiction are never one rule; new words never keep an old guard as their protection; a commit is judged on what it
-holds (the index, deletions included); an assistant's test command never runs before the person approves it."""
+"""Four cases of the person's rules. A rule and its contradiction are never one rule; new words never keep an old
+guard as their protection; a commit is judged on what it holds (the index, deletions included); an assistant's test
+command never runs before the person approves it."""
 import os
 import subprocess
 import sys
@@ -37,7 +37,8 @@ class Closure(Workspace):
 
     def totals_rule(self):
         registry.add(self.project, 'Totals keep two decimals', 'terminal', scope={'kind': 'pinned'})
-        registry.guard(self.project, 'R1', guards.checked({'kind': 'test', 'command': ['node', 'check.js']}), 'person', 'terminal')
+        registry.guard(self.project, 'R1', guards.checked({'kind': 'test', 'command': ['node', 'check.js']}), 'person',
+                       'terminal')
         return registry.holding(self.project, {})
 
 
@@ -45,10 +46,12 @@ class Contradictions(Closure):
     def test_a_rule_and_its_contradiction_stay_two_rules_and_a_plain_repeat_is_one(self):
         apart = [('البيانات تحفظ في قاعدة البيانات فقط', 'البيانات لا تحفظ في قاعدة البيانات فقط'),
                  ('Data is saved in the database only', 'Data is never saved in the database only'),
-                 ('Prices come from the prices table on the admin pages', 'Prices come from the prices table on the public pages'),
+                 ('Prices come from the prices table on the admin pages',
+                  'Prices come from the prices table on the public pages'),
                  ('A page shows at most 20 rows', 'A page shows at most 50 rows')]
         for first, second in apart: self.assertFalse(registry.alike(first, second), (first, second))
-        same = [('البيانات تعيش في قاعدة البيانات بس، لا تكتب سجلات', 'البيانات تعيش في قاعدة البيانات بس! لا تكتب سجلات'),
+        same = [('البيانات تعيش في قاعدة البيانات بس، لا تكتب سجلات',
+                 'البيانات تعيش في قاعدة البيانات بس! لا تكتب سجلات'),
                 ('Never send the whole state on every save', 'never send the whole state on every save, please.')]
         for first, second in same: self.assertTrue(registry.alike(first, second), (first, second))
         registry.add(self.project, apart[0][0], 'chat')
@@ -64,7 +67,8 @@ class NewWords(Closure):
         registry.change(self.project, 'R1', words='Totals keep three decimals')
         rule = registry.find(registry.load(self.project), 'R1')
         self.assertEqual((rule['pending'], registry.in_force(rule)['kind']), ('words', 'none'))
-        self.assertEqual(rule['history'][-1]['was']['guard']['command'], ['node', 'check.js'], 'the earlier guard kept in its history')
+        self.assertEqual(rule['history'][-1]['was']['guard']['command'], ['node', 'check.js'],
+                         'the earlier guard kept in its history')
         (self.project / 'total.js').write_text(BROKEN)
         result = held.in_check(registry.holding(self.project, {}), self.project)[0]
         self.assertEqual((result['status'], result['waiting']), ('unguarded', 'words'), 'not run, never called held')
@@ -80,7 +84,8 @@ class WhatACommitHolds(Closure):
         git(self.project, 'add', 'total.js')
         (self.project / 'total.js').write_text(SOUND + '// fixed, not staged\n')
         self.assertTrue(changed.check(self.project, rules, staged=True, gates=False)['refused'])
-        self.assertEqual((self.project / 'total.js').read_text(), SOUND + '// fixed, not staged\n', 'the working tree untouched')
+        self.assertEqual((self.project / 'total.js').read_text(), SOUND + '// fixed, not staged\n',
+                         'the working tree untouched')
         (self.project / 'total.js').write_text(SOUND + '// tidy\n')
         git(self.project, 'add', 'total.js')
         (self.project / 'total.js').write_text(BROKEN)
@@ -93,8 +98,8 @@ class WhatACommitHolds(Closure):
         self.assertEqual((found['changed'], found['refused']), (['total.js'], True))
 
     def test_a_commit_from_a_linked_worktree_keeps_what_it_staged_and_is_checked_on_it(self):
-        # EAOS's own hook, 2026-11-03: a commit from a linked worktree came out empty. Git hands the hook the worktree's
-        # GIT_DIR and index; the check's apart checkout wrote the base commit into that index, and then read no change.
+        # A commit from a linked worktree: git hands the hook the worktree's GIT_DIR and index, and the check's apart
+        # checkout writes the base commit into that index, so the check must still read the change.
         rules = self.totals_rule()
         tree = Path(self.tmp) / 'lane'
         git(self.project, 'worktree', 'add', '-q', '-b', 'lane', str(tree))

@@ -1,7 +1,8 @@
 """JavaScript and TypeScript's part of a move (moves.py): every import, export-from, require, dynamic import and test
 mock (`vi.mock`, `jest.mock`) whose specifier names a moved file, or that a moved file writes, spelled again for the new
 places in the form it was written: relative stays relative and an alias (`@/`) stays an alias while the file is still
-under its folder; no extension, a folder's index, or the `.js` a TypeScript file writes for its `.ts`, kept as they were.
+under its folder; no extension, a folder's index, or the `.js` a TypeScript file writes for its `.ts`, kept as they
+were.
 A package name (`react`) is never touched; a bare specifier is the project's own only under tsconfig's `baseUrl`
 (`'src/lib/util'`), and only when it names a file of the project."""
 import posixpath
@@ -15,8 +16,8 @@ SPECIFIER = re.compile(r'''(?:\bfrom|\bimport|\brequire(?:\.resolve)?\s*\(|\bimp
 
 
 def aliases(read, known):
-    """The project's path aliases (tsconfig and jsconfig paths, vite's alias, `@/` for src/), as the resolver reads them,
-    and last each config's `baseUrl` (a bare specifier read from that folder)."""
+    """The project's path aliases (tsconfig and jsconfig paths, vite's alias, `@/` for src/), as the resolver reads
+    them, and last each config's `baseUrl` (a bare specifier read from that folder)."""
     class Reader:
         def text(self, path): return read(path)
     return js_aliases(Reader(), known) + [('', [folder]) for folder in _base_urls(read, known)]
@@ -78,7 +79,8 @@ def _alias_base(rest, folders, target):
 
 
 def _new_base(old, new, written):
-    """The new file written as the old one was: with its extension, without it, as its folder, or as the `.js` of a `.ts`."""
+    """The new file written as the old one was: with its extension, without it, as its folder, or as the `.js` of a
+    `.ts`."""
     if old == written: return new
     rest = old[len(written):]
     if rest.startswith('/'):                                   # a folder's index
@@ -96,7 +98,8 @@ def _stem(path):
 def _as_alias(spec, base, aliased):
     """`base` under the alias the specifier was written with while it is still under that alias's folder, else under
     another alias that holds it (`@lib/util` leaving lib/ becomes `@/core/util`); None when no alias does."""
-    written = next((row for row in aliased if spec == row[0].rstrip('/') or spec.startswith(row[0])), None)   # longest first
+    # the aliases come longest first
+    written = next((row for row in aliased if spec == row[0].rstrip('/') or spec.startswith(row[0])), None)
     written = [written] if written else []
     others = [row for row in aliased if row[0] and row not in written]
     return next((found for prefix, folders in written + others if (found := _under(prefix, folders, base))), None)

@@ -7,11 +7,11 @@ the person's own (bots' branches such as dependabot/ and EAOS's own eaos/ are no
 branch checked out is the one, without a question.
 
 Each branch keeps its own check, run, safety net, batches and ledger. The first branch worked on keeps the outputs
-folder's top (REPORT.html, technical/, fixes/); every other one has branches/<name>/ with the same parts.
+folder's top (technical/, fixes/); every other one has branches/<name>/ with the same parts.
 
-Which branches are protected from a merge is decided here for the Studio, MCP and the CLI alike (`policy`,
-`blocked_target`, M3.3): the remote's default branch, main and master, and the project's own policy (the Studio's
-Branches page writes it). This module reads git, the state and that policy only; it writes none of them.
+Which branches are protected from a merge is decided here for MCP and the CLI alike (`policy`,
+`blocked_target`): the remote's default branch, main and master, and the project's own policy (BranchControl
+writes it). This module reads git, the state and that policy only; it writes none of them.
 """
 import re
 import subprocess
@@ -22,13 +22,15 @@ NOT_THE_PERSONS = ('eaos/', 'dependabot/', 'renovate/', 'snyk-', 'greenkeeper/',
 # Branches kept only for the record: never a choice of where the work goes on.
 ARCHIVED = ('archive/', 'archived/')
 # What each branch keeps of its own in state.json; the others are the project's (consent, language, questions).
-KEYS = ('scanned', 'scanned_commit', 'scanned_with', 'scanned_branch', 'scanned_detached', 'scanned_dirty', 'setup', 'safety',
+KEYS = ('scanned', 'scanned_commit', 'scanned_with', 'scanned_branch', 'scanned_detached',
+        'scanned_dirty', 'setup', 'safety',
         'waves', 'open_wave', 'tried', 'applied')
-# EAOS's own commits (eaos/journeys/fix/waves.commit, guided.merge): code the person did not write, so a scan still holds after them.
+# EAOS's own commits (eaos/journeys/fix/waves.commit, guided.merge): code the person did not write, so a scan still
+# holds after them.
 EAOS_EMAIL = 'eaos@localhost'
 FILES_SHOWN = 50
 MAIN_NAMES = ('main', 'master')
-POLICY = 'branch-policy.json'       # in the project's runs folder (eaos/core/project/runs.py), as the Studio saves it
+POLICY = 'branch-policy.json'       # in the runs folder (eaos/core/project/runs.py), as the run engine saves it
 
 
 def _git(project, *args):
@@ -64,7 +66,8 @@ def checked_out(project):
 
 
 def default_branch(project):
-    """The branch the project treats as its main one: origin's HEAD, else main, else master, else the one checked out."""
+    """The branch the project treats as its main one: origin's HEAD, else main, else master, else the one checked
+    out."""
     done = _git(project, 'symbolic-ref', '--quiet', '--short', 'refs/remotes/origin/HEAD')
     if done.returncode == 0: return done.stdout.strip().split('/', 1)[-1]
     local = set(_git(project, 'for-each-ref', '--format=%(refname:short)', 'refs/heads').stdout.split())
@@ -72,11 +75,12 @@ def default_branch(project):
 
 
 def protected(project, name):
-    """Why `name` takes no fix directly ('' when it may): main and master, and the remote's default branch. The Studio
-    adds the project's own policy (eaos/interfaces/studio_actions/branches/ BranchControl.policy)."""
+    """Why `name` takes no fix directly ('' when it may): main and master, and the remote's default branch.
+    The project's own policy joins them (eaos/journeys/branches/ BranchControl.policy)."""
     if name in ('main', 'master'): return 'the main branch'
     done = _git(project, 'symbolic-ref', '--quiet', '--short', 'refs/remotes/origin/HEAD')
-    return "the remote's default branch" if done.returncode == 0 and done.stdout.strip().split('/', 1)[-1] == name else ''
+    return ("the remote's default branch" if done.returncode == 0
+            and done.stdout.strip().split('/', 1)[-1] == name else '')
 
 
 def _persons(name):
@@ -103,7 +107,8 @@ def inventory(project):
 
 def _refs(project, kind, pattern):
     """(name, tip, date, subject) of each branch under `pattern`; an origin branch named without its remote."""
-    listed = _git(project, 'for-each-ref', '--format=%(refname:short)%00%(objectname)%00%(committerdate:iso-strict)%00%(subject)', pattern)
+    listed = _git(project, 'for-each-ref',
+                  '--format=%(refname:short)%00%(objectname)%00%(committerdate:iso-strict)%00%(subject)', pattern)
     for line in listed.stdout.splitlines():
         name, tip, when, subject = (line.split('\x00') + ['', '', ''])[:4]
         if kind == 'origin': name = name.split('/', 1)[-1] if '/' in name else ''
@@ -123,8 +128,8 @@ def recommend(rows):
 
 
 def _a_choice(row):
-    """A branch worth asking about: the main one, the one checked out, or one with code of its own that is not kept only
-    for the record (archive/); a branch merged into main (nothing ahead of it) is main's code."""
+    """A branch worth asking about: the main one, the one checked out, or one with code of its own that is not kept
+    only for the record (archive/); a branch merged into main (nothing ahead of it) is main's code."""
     if row['main'] or row['checked_out']: return True
     return not row['name'].startswith(ARCHIVED) and row.get('ahead_of_main') != 0
 
@@ -134,7 +139,8 @@ def choice(project):
     branches are left out); else the question: the branches with what each is, and the recommendation."""
     rows = [row for row in inventory(project) if _a_choice(row)]
     if len({r['tip'] for r in rows}) <= 1: return None
-    return {'branches': rows, 'recommended': recommend(rows), 'main': next((r['name'] for r in rows if r['main']), None)}
+    return {'branches': rows, 'recommended': recommend(rows),
+            'main': next((r['name'] for r in rows if r['main']), None)}
 
 
 def dirty(folder):
@@ -167,7 +173,7 @@ def freshness(state, tip=None):
     """Whether the scan of the branch EAOS works on still holds, from git now: {state, reason, ...}.
 
     state: fresh (the branch is at the scanned commit, or only EAOS's own accepted fixes came after it); behind (N
-    commits and M files came after it, the files listed); rewritten (the scanned commit is no longer in the branch's
+    commits and M files came after it, the files listed); rewritten (the scanned commit is missing from the branch's
     history: a reset, a rebase or a force-push); dirty (at the scanned commit, with unsaved changes in the checkout);
     other_branch (the report is of another branch than the one EAOS works on now); unknown, with the reason
     (not_scanned, legacy_report, not_git, branch_missing). `tip` is the branch's commit now (guided.tip)."""
@@ -211,7 +217,8 @@ def _tip_now(state, project, detached):
 
 def _on_other_branch(state, out, detached):
     scanned_branch = state.get('scanned_branch')
-    return bool(out['recorded'] and not detached and scanned_branch and out['branch'] and scanned_branch != out['branch'])
+    return bool(out['recorded'] and not detached and scanned_branch and out['branch']
+                and scanned_branch != out['branch'])
 
 
 def _rewritten_since(project, scanned, tip):
@@ -225,14 +232,16 @@ def _what_came_after(project, scanned, tip):
     others = _commits_by_others(project, scanned, tip)
     count = _git(project, 'rev-list', '--count', f'{scanned}..{tip}').stdout.strip()
     files = _git(project, '-c', 'core.quotePath=false', 'diff', '--name-only', scanned, tip).stdout.splitlines()
-    return others, {'commits': int(count) if count.isdigit() else None, 'files': len(files), 'file_list': files[:FILES_SHOWN],
+    return others, {'commits': int(count) if count.isdigit() else None, 'files': len(files),
+                    'file_list': files[:FILES_SHOWN],
                     'truncated': len(files) > FILES_SHOWN, 'eaos_only': others == []}
 
 
 def _moved_on(project, scanned, tip, out):
     """The verdict when the branch is past the scanned commit; None when only EAOS's own fixes came after it."""
     if _git(project, 'merge-base', '--is-ancestor', scanned, tip).returncode:
-        return {**out, 'state': 'rewritten', 'reason': 'not_in_history', 'since_common': _rewritten_since(project, scanned, tip)}
+        return {**out, 'state': 'rewritten', 'reason': 'not_in_history',
+                'since_common': _rewritten_since(project, scanned, tip)}
     others, behind = _what_came_after(project, scanned, tip)
     out['behind'] = behind
     return {**out, 'state': 'behind'} if others != [] else None
@@ -246,18 +255,23 @@ def _dirty_verdict(project, detached, out):
     return {**out, 'state': 'dirty'} if changes and (changes['tracked'] or changes['untracked']) else None
 
 
-FRESH = {'fresh': ('الفحص حديث: لهذا الفرع عند آخر commit فيه.', 'The check is current: of this branch at its last commit.'),
-         'behind': ('الفحص قديم: جاء بعده {n} commit. افحص من جديد: eaos check', 'The check is behind: {n} commit(s) came after it. Check again: eaos check'),
+FRESH = {'fresh': ('الفحص حديث: لهذا الفرع عند آخر commit فيه.',
+                   'The check is current: of this branch at its last commit.'),
+         'behind': ('الفحص قديم: جاء بعده {n} commit. افحص من جديد: eaos check',
+                    'The check is behind: {n} commit(s) came after it. Check again: eaos check'),
          'not_scanned': ('ما انفحص بعد: eaos check', 'Not checked yet: eaos check'),
-         'other': ('الفحص ما يطابق الكود الحين ({n}). افحص من جديد: eaos check', 'The check is not of this code now ({n}). Check again: eaos check')}
+         'other': ('الفحص ما يطابق الكود الحين ({n}). افحص من جديد: eaos check',
+                   'The check is not of this code now ({n}). Check again: eaos check')}
 
 
 def fresh_line(state, lang):
     """Whether the check on record is of the code now, in one line (eaos/core/project/branches.py freshness)."""
     found = freshness(state)
-    key = found['state'] if found['state'] in ('fresh', 'behind') else 'not_scanned' if found.get('reason') == 'not_scanned' else 'other'
+    key = (found['state'] if found['state'] in ('fresh', 'behind') else 'not_scanned'
+           if found.get('reason') == 'not_scanned' else 'other')
     words = FRESH[key][0 if lang == 'ar' else 1]
-    return words.format(n=(found.get('behind') or {}).get('commits', '?') if key == 'behind' else found['state'] if found['state'] != 'unknown' else found.get('reason'))
+    return words.format(n=(found.get('behind') or {}).get('commits', '?') if key == 'behind'
+                        else found['state'] if found['state'] != 'unknown' else found.get('reason'))
 
 
 def _words(en, ar, code):
@@ -268,7 +282,8 @@ def remote_default(project):
     """{name, source}: a remote's HEAD when known; otherwise unknown (None), never guessed from a name."""
     for remote in sorted(_git(project, 'remote').stdout.split()):
         done = _git(project, 'symbolic-ref', '--quiet', '--short', f'refs/remotes/{remote}/HEAD')
-        if done.returncode == 0 and done.stdout.strip(): return {'name': done.stdout.strip().split('/', 1)[-1], 'source': f'{remote}/HEAD'}
+        if done.returncode == 0 and done.stdout.strip():
+            return {'name': done.stdout.strip().split('/', 1)[-1], 'source': f'{remote}/HEAD'}
     return {'name': None, 'source': None}
 
 
@@ -278,29 +293,31 @@ def is_eaos_itself(project):
 
 
 def policy(project, default=None):
-    """{protected: {name: reason}, saved: {...}}: the remote's default branch, main and master, every branch the project's
-    policy protects, minus the ones the owner explicitly unprotected; EAOS's own main always."""
+    """{protected: {name: reason}, saved: {...}}: the remote's default branch, main and master, every branch the
+    project's policy protects, minus the ones the person explicitly unprotected; EAOS's own main always."""
     from .places import workspace
 
     default = default or remote_default(project)
     saved = read_json(workspace(project) / 'runs' / POLICY, {}) or {}
     protected = {}
-    if default['name']: protected[default['name']] = _words(f"the default branch ({default['source']})", f"الفرع الافتراضي ({default['source']})", 'default')
+    if default['name']: protected[default['name']] = _words(f"the default branch ({default['source']})",
+        f"الفرع الافتراضي ({default['source']})", 'default')
     for name in MAIN_NAMES:
         protected.setdefault(name, _words('named main or master: protected unless the project policy says otherwise',
                                           'اسمه main أو master: محمي ما لم تقل سياسة المشروع غير ذلك', 'main_name'))
     for name in saved.get('protected') or []:
         protected[name] = _words('protected by this project\'s policy', 'محمي بسياسة هذا المشروع', 'policy')
     for name in saved.get('unprotected') or []: protected.pop(name, None)
-    if is_eaos_itself(project): protected['main'] = _words("EAOS's own main is the owner's mother copy: never changed from here",
-                                                            'main في EAOS نفسه هي النسخة الأم للمالك: لا تُغيَّر من هنا', 'eaos_main')
+    if is_eaos_itself(project): protected['main'] = _words(
+        "EAOS's own main is the owner's mother copy: never changed from here",
+        'main في EAOS نفسه هي النسخة الأم للمالك: لا تُغيَّر من هنا', 'eaos_main')
     return {'protected': protected, 'saved': saved}
 
 
 def blocked_target(project, name, protected=None, open_branch=None):
-    """Why nothing is merged into (or built on, or landed on) `name`, or None: a protected branch, except the branch open in
-    the project folder (`open_branch`) when only its name protects it (a project with main alone): accept merges there,
-    as it always did."""
+    """Why nothing is merged into (or built on, or landed on) `name`, or None: a protected branch, except the branch
+    open in the project folder (`open_branch`) when only its name protects it (a project with main alone): accept
+    merges there."""
     protected = policy(project)['protected'] if protected is None else protected
     reason = protected.get(name)
     open_branch = checked_out(project) if open_branch is None else open_branch

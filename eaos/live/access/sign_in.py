@@ -3,13 +3,16 @@ with, and the check waiting for the person to sign in by hand (docs/GUIDE.md "Si
 
     session(runtime)           <runtime>/session.json: the run's one browser session (Playwright storage state), made by
                                the seed script (a test user) or by the person on the sign-in page (by_hand); only its
-                               owner reads it, and nothing copies it into the report, a branch or what the assistant reads
-    from_code(report)          the sign-in the code shows (the surfaces of its `auth` feature, eaos/analysis/understanding/features.py)
-    from_pages(page)           the pages a probe (eaos/live/app/setup.py probe) saw sent to a sign-in, with where they went
+                               owner reads it, and nothing copies it into the report, a branch or what the assistant
+                               reads
+    from_code(report)          the sign-in the code shows (the surfaces of its `auth` feature,
+                               eaos/analysis/understanding/features.py)
+    from_pages(page)           the pages a probe (eaos/live/app/setup.py probe) saw sent to a sign-in, with where they
+                               went
     works(live, base, state)   whether `state` opens those pages signed in
     ask / asked / wait         the check asks the person to sign in (<workspace>/sign-in.json) and waits for them while
-                               the stages that open no page go on; the sign-in page (eaos/interfaces/studio_server/sign_in.py, the Studio's
-                               Waiting for you, `eaos sign-in`) answers it
+                               the stages that open no page go on; `eaos sign-in` (eaos/journeys/sign_in_window.py)
+                               answers it
     renew(live, base, state)   a session made by hand checked before use; the person asked again only when it expired
     forget(workspace)          the project's sessions removed (Forget my sign-in, eaos clean)
 """
@@ -24,11 +27,13 @@ from pathlib import Path
 from ...core.system.studio_access import THIS_COMPUTER
 from ...core.system.files import read_json
 from ...core.system.clock import now
+from ...core.system.errors import noted
 
 SESSION = 'session.json'                     # in the run's folder: the session of the app in its isolated copy
 PUBLISHED = 'published-session.json'         # in the project's workspace: the published address's, for one check only
 ASKED = 'sign-in.json'                       # in the project's workspace: the check waits for the person to sign in
-WAIT = int(os.environ.get('EAOS_SIGN_IN_WAIT') or 900)   # seconds the check waits for the person before going on signed out
+# seconds the check waits for the person before going on signed out
+WAIT = int(os.environ.get('EAOS_SIGN_IN_WAIT') or 900)
 SIGNED_IN, SIGNED_OUT = 'signed_in', 'signed_out'
 
 
@@ -52,8 +57,9 @@ def by_hand(state):
 
 
 def seeding(state):
-    """The file a seed script signs in to: the run's session itself, or, the person's being theirs, a copy of it that
-    the script switches into each view (eaos/live/access/test_users.py BY_HAND); the caller removes the copy after the seed."""
+    """The file a seed script signs in to: the run's session itself, or, the person's being theirs, a copy of it
+    that the script switches into each view (eaos/live/access/test_users.py BY_HAND); the caller removes the copy
+    after the seed."""
     if not by_hand(state): return state
     copy = state.with_name('.seeded.json')
     shutil.copyfile(state, copy)
@@ -68,8 +74,9 @@ def mark(state):
 
 
 def from_code(report):
-    """The routes of the code's sign-in feature (eaos/analysis/understanding/features.py groups login, signin, auth... as `auth`),
-    and any route of another feature that is a sign-in itself (the detection baseline's /api/login, grouped as `api`)."""
+    """The routes of the code's sign-in feature (eaos/analysis/understanding/features.py groups login, signin,
+    auth... as `auth`), and any route of another feature that is a sign-in itself (the detection baseline's
+    /api/login, grouped as `api`)."""
     from ..app.setup import SIGN_IN_PAGE
     features = (read_json(Path(report) / 'features.json') or {}).get('features') or []
     routes = [s for f in features for s in f.get('surfaces') or [] if f.get('name') == 'auth' or SIGN_IN_PAGE.search(s)]
@@ -87,7 +94,8 @@ def page_of(page, base):
     """The sign-in page the probe's pages were sent to, at `base` (the app's address this run), else `base` itself."""
     from urllib.parse import urlsplit
     from ..app.setup import signed_out
-    sent = next((row.get('url') for row in ([page, *(page.get('others') or [])] if page else []) if signed_out(row) and row.get('url')), None)
+    sent = next((row.get('url') for row in ([page, *(page.get('others') or [])] if page else [])
+                 if signed_out(row) and row.get('url')), None)
     if not sent: return base
     parts = urlsplit(sent)
     return base.rstrip('/') + parts.path + (f'?{parts.query}' if parts.query else '')
@@ -103,11 +111,14 @@ def works(live, base, state, report=None):
 
 # ---------------------------------------------------------------- the check asks, the person answers
 
-def ask(workspace, base, state, why, log=None, mail=None, published=False):  # limits: parameters -- the fields of the one question the person reads, each named
+def ask(workspace, base, state, why, log=None, mail=None,
+        published=False):  # limits: parameters -- the fields of the one question the person reads, each named
     """The check asks the person to sign in to the app at `base`; the browser of the sign-in page saves to `state`."""
     now = datetime.now(timezone.utc)
-    _write(Path(workspace) / ASKED, {'asked': now.isoformat(timespec='seconds'), 'until': (now + timedelta(seconds=WAIT)).isoformat(timespec='seconds'),
-                                     'base': base, 'session': str(state), 'why': why, 'log': str(log) if log else None,
+    _write(Path(workspace) / ASKED, {'asked': now.isoformat(timespec='seconds'),
+                                     'until': (now + timedelta(seconds=WAIT)).isoformat(timespec='seconds'),
+                                     'base': base, 'session': str(state), 'why': why,
+                                     'log': str(log) if log else None,
                                      'mail': mail, 'published': published, 'state': 'waiting'})
 
 
@@ -118,7 +129,7 @@ def tell(workspace, **said):
 
 
 def asked(workspace):
-    """What the check asks the person now, or None (nothing asked, answered, or no longer waited for)."""
+    """What the check asks the person now, or None (nothing asked, answered, or not waited for)."""
     record = read_json(Path(workspace) / ASKED)
     if not record or record.get('state') != 'waiting' or record['until'] < now(): return None
     return record
@@ -139,8 +150,8 @@ def wait(workspace, seconds=None):
     from ...core import progress
     from ...core.system.process import check_cancelled
     path, end = Path(workspace) / ASKED, time.monotonic() + (WAIT if seconds is None else seconds)
-    progress.step('your sign-in', 0, 1, 'waiting', reason='waiting for you to sign in to the app: the Studio\'s Waiting for you, '
-                  'or eaos sign-in', reason_code='sign_in_waiting')
+    progress.step('your sign-in', 0, 1, 'waiting', reason='waiting for you to sign in to the app: '
+                  'the Studio\'s Waiting for you, or eaos sign-in', reason_code='sign_in_waiting')
     try:
         while time.monotonic() < end:
             check_cancelled()
@@ -181,8 +192,9 @@ def codes(record, lines=40):
     """What the app sent the person while they sign in: the last lines of its own output, and the mail it sent to the
     run's mail catcher (Mailpit), newest first. Nothing typed on the sign-in page is ever kept."""
     said = []
-    try: said = Path(record['log']).read_text(encoding='utf-8', errors='replace').splitlines()[-lines:] if record.get('log') else []
-    except OSError: pass
+    try: said = (Path(record['log']).read_text(encoding='utf-8', errors='replace').splitlines()[-lines:]
+                 if record.get('log') else [])
+    except OSError as error: noted('an app log that cannot be read shows no output', error)
     return {'output': [line for line in said if line.strip()], 'mail': _mail(record.get('mail'))}
 
 
@@ -194,8 +206,10 @@ def _mail(address):
         with opened(f'{address}/api/v1/messages?limit=5', timeout=3) as response: listed = json.loads(response.read())
         found = []
         for row in listed.get('messages') or []:
-            with opened(f"{address}/api/v1/message/{row['ID']}", timeout=3) as response: whole = json.loads(response.read())
-            found.append({'to': ', '.join(t.get('Address', '') for t in whole.get('To') or []), 'subject': whole.get('Subject'),
+            with opened(f"{address}/api/v1/message/{row['ID']}", timeout=3) as response:
+                whole = json.loads(response.read())
+            found.append({'to': ', '.join(t.get('Address', '') for t in whole.get('To') or []),
+                          'subject': whole.get('Subject'),
                           'text': (whole.get('Text') or '')[:2000], 'at': row.get('Created')})
         return found
     except (OSError, ValueError, KeyError):
@@ -223,5 +237,6 @@ def step(state, otherwise):
     """For the assistant's status while a job runs: ('sign_in', why) when the check waits for the person to sign in,
     else `otherwise`."""
     if not asked(state['workspace']): return otherwise
-    return ('sign_in', 'the check waits for the person to sign in to their app: tell them to open Waiting for you in the Studio, '
-                       'or to run eaos sign-in in a terminal; the stages that open no page go on meanwhile')
+    return ('sign_in', 'the check waits for the person to sign in to their app: tell them to open Waiting for you '
+                       'in the Studio, or to run eaos sign-in in a terminal; '
+                       'the stages that open no page go on meanwhile')

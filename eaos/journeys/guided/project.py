@@ -12,7 +12,7 @@ from pathlib import Path
 from ...core.project import branches, state as project_state
 from ...core.project.state import runtime_of
 from ..fix import waves
-from ...core.project.places import outputs_root, second_name
+from ...core.project.places import outputs_root
 from ...core.system.files import read_json
 from ...core.system.clock import now, stamp
 
@@ -20,12 +20,11 @@ from ...core.system.clock import now, stamp
 OUTPUTS_README = {
     'ar': """# مخرجات EAOS لمشروع «{name}»
 
-افتح **REPORT.html**: تقرير واحد بكلام بسيط (ملخص المشروع، والفجوات والمخاطر، وخريطة البنية، والخطة والتقدم).
+افتح **technical/START-HERE.md**: الصفحة الأولى بكلام بسيط (ما وُجد، وما يصلحه EAOS وحده، والخطة).
 
 | المجلد | ما فيه |
 | --- | --- |
-| `REPORT.html` | التقرير للقراءة: افتحه في المتصفح |
-| `technical/` | التقرير الفني الكامل، لمساعدك الذكي وللمطوّرين. لا تحتاج أن تفتحه |
+| `technical/` | التقرير الكامل: START-HERE.md أولًا، والباقي لمساعدك الذكي وللمطوّرين |
 | `fixes/` | كل دفعة إصلاحات: ما تغيّر وما لم ينجح، والفرع الذي وُضعت فيه |
 | `logs/` | سجلات تقنية، لمن يساعدك إذا ظهرت مشكلة |
 
@@ -33,12 +32,11 @@ OUTPUTS_README = {
 """,
     'en': """# EAOS outputs for «{name}»
 
-Open **REPORT.html**: one report in plain words (project summary, gaps and risks, structure map, plan and progress).
+Open **technical/START-HERE.md**: the first page in plain words (what was found, what EAOS fixes alone, the plan).
 
 | Folder | What is in it |
 | --- | --- |
-| `REPORT.html` | The report to read: open it in your browser |
-| `technical/` | The full technical report, for your AI assistant and developers. You do not need to open it |
+| `technical/` | The full report: START-HERE.md first, the rest for your AI assistant and developers |
 | `fixes/` | Every batch of fixes: what changed, what did not pass, and the branch it is on |
 | `logs/` | Technical logs, for whoever helps you if something goes wrong |
 
@@ -54,7 +52,8 @@ def outputs(state):
     else:
         name = Path(state['project']).name
         folder, number = outputs_root() / name, 1
-        while (folder / '.eaos-project').is_file() and (folder / '.eaos-project').read_text(encoding='utf-8').strip() != state['project']:
+        while ((folder / '.eaos-project').is_file()
+               and (folder / '.eaos-project').read_text(encoding='utf-8').strip() != state['project']):
             number += 1
             folder = outputs_root() / f'{name}-{number}'
         state['outputs'] = str(folder)
@@ -63,13 +62,15 @@ def outputs(state):
     readme = folder / 'README.md'
     if not readme.is_file():
         lang = state.get('lang') if state.get('lang') in OUTPUTS_README else 'en'
-        readme.write_text(OUTPUTS_README[lang].format(name=Path(state['project']).name, project=state['project']), encoding='utf-8')
+        readme.write_text(OUTPUTS_README[lang].format(name=Path(state['project']).name, project=state['project']),
+                          encoding='utf-8')
     return folder
 
 
 def save(state):
-    """The state written (eaos/core/project/state.py): the open batch drawn first (it stamps the state), and only once it is
-    written the removals of what this save closed, so a failed write loses no copy of a batch still open on disk."""
+    """The state written (eaos/core/project/state.py): the open batch drawn first (it stamps the state), and only
+    once it is written the removals of what this save closed, so a failed write loses no copy of a batch still open
+    on disk."""
     before = project_state.of_workspace(state['workspace'])
     waves.draw(state, runtime_of(state))
     project_state.write(state)
@@ -78,9 +79,10 @@ def save(state):
 
 @contextmanager
 def fresh(state):
-    """`state` itself made what is on disk now, under the state's lock: what comes after a slow read saves on this, not over
-    what was written meanwhile. Taken after the jobs' lock, never nested, and let go before any report is rebuilt. A state on
-    disk that does not read or is gone stops it (LookupError): nothing in memory is ever saved over it."""
+    """`state` itself made what is on disk now, under the state's lock: what comes after a slow read saves on this,
+    not over what was written meanwhile. Taken after the jobs' lock, never nested, and let go before any report is
+    rebuilt. A state on disk that does not read or is gone stops it (LookupError): nothing in memory is ever saved
+    over it."""
     folder = Path(state['workspace'])
     folder.mkdir(parents=True, exist_ok=True)
     with open(folder / 'state.lock', 'a') as lock:
@@ -111,15 +113,16 @@ def log_failure(where, problem):
     logs = Path(where) / 'logs'
     logs.mkdir(parents=True, exist_ok=True)
     path = logs / f"{stamp('%Y%m%d-%H%M%S')}.log"
-    path.write_text(''.join(traceback.format_exception(type(problem), problem, problem.__traceback__)), encoding='utf-8')
+    path.write_text(''.join(traceback.format_exception(type(problem), problem, problem.__traceback__)),
+                    encoding='utf-8')
     return path
 
 
 # ---------------------------------------------------------------- the steps `next` walks through
 
 def report_of(state):
-    """The technical report, in the branch's part of the outputs folder (eaos/core/project/branches.home); one an older EAOS left
-    in the workspace is moved there once."""
+    """The technical report, in the branch's part of the outputs folder (eaos/core/project/branches.home); one an
+    older EAOS left in the workspace is moved there once."""
     outputs(state)
     report = branches.home(state) / 'technical'
     old = Path(state['workspace']) / 'report'
@@ -128,12 +131,12 @@ def report_of(state):
 
 
 def branch_links(state):
-    """The branch this report is for, and every other branch with a report, as paths from this one's REPORT.html."""
+    """The branch this report is for, and every other branch with a report, as paths from this one's folder."""
     if not state.get('branch'): return None
     here = branches.home(state)
     others = []
     for name in sorted({state.get('home_branch'), *(state.get('by_branch') or {})} - {state['branch'], None}):
-        page = branches.home({**state, 'branch': name}) / 'REPORT.html'
+        page = branches.home({**state, 'branch': name}) / 'technical' / 'START-HERE.md'
         if page.is_file(): others.append({'name': name, 'href': os.path.relpath(page, here)})
     return {'name': state['branch'], 'main': branches.default_branch(state['project']), 'others': others}
 
@@ -146,19 +149,19 @@ RESUME = []
 
 
 def report_stamp(state):
-    """What the last REPORT.html of the branch was made from: {version, commit, digest, built, scanned_commit (the project
+    """What the last report of the branch was made from: {version, commit, digest, built, scanned_commit (the project
     commit the check read), errors}; {} when none."""
     return read_json(branches.home(state) / '.report.json', {})
 
 
 def publish(state, lang=None, event=None):
-    """REPORT.html in the branch's outputs folder, rebuilt from the ledger (eaos/core/project/ledger.py) so that it shows what is in
-    the person's branch now, stamped with the EAOS that made it. Nothing here fails in silence: a part that cannot be
-    built is named on the page, in .report.json beside it and in logs/, and the rest of the page is still made. It is
-    never a reason for a step to fail: without it, the technical report is still there."""
+    """The report's parts and its records (studio/) rebuilt from the ledger (eaos/core/project/ledger.py) so that they
+    show what is in the person's branch now, stamped in .report.json in the branch's outputs folder with the EAOS that
+    made them; returns the report's START-HERE.md. Nothing here fails in silence: a part that cannot be built is named
+    in .report.json and in logs/. It is never a reason for a step to fail."""
     from ...core.system.version_info import stamp
     report, home_folder = report_of(state), branches.home(state)
-    target, made = home_folder / 'REPORT.html', now()
+    made = now()
     errors, progress = [], {'waves': state.get('waves') or []}
 
     def part(name, build):
@@ -172,50 +175,25 @@ def publish(state, lang=None, event=None):
     part('branch', lambda: branch_links(state))
     for name, build in REPORT_PARTS.items(): part(name, lambda build=build: build(state))
     progress.update(eaos=stamp(made), report_errors=errors)
-    _studio_data(state, report, lang, progress, errors)
-    _human_page(state, report, lang, progress, errors)
-    page = report / 'human' / 'index.html'
+    _records(state, report, lang, progress, errors)
     home_folder.mkdir(parents=True, exist_ok=True)
-    if page.is_file(): second_name(page, target)
     (home_folder / '.report.json').write_text(json.dumps({**stamp(made), 'scanned_commit': state.get('scanned_commit'),
-                                                         'errors': errors}, ensure_ascii=False, indent=1) + '\n', encoding='utf-8')
-    return target if target.is_file() else report / 'START-HERE.md'
+                                                         'errors': errors}, ensure_ascii=False, indent=1) + '\n',
+                                              encoding='utf-8')
+    return report / 'START-HERE.md'
 
 
-def _studio_data(state, report, lang, progress, errors):
-    """The Studio's data, from the same ledger as the page (eaos/report/studio/export.py); what failed added to `errors`."""
+def _records(state, report, lang, progress, errors):
+    """The check's records under studio/ (eaos/report/records/write.py), from the same ledger; what failed added to
+    `errors`."""
     try:
-        from ...report.studio.export import export as studio
+        from ...report.records.write import write
         errors += [f"studio {e['section']}: {e['error']}"[:300]
-                   for e in studio(report, lang or state.get('lang') or 'en', Path(state['project']).name, state['project'],
-                                   progress, state)['errors']]
+                   for e in write(report, lang or state.get('lang') or 'en', state['project'],
+                                  progress, state)['errors']]
     except Exception as problem:
         errors.append(f'studio: {type(problem).__name__}: {problem}'[:300])
         log_failure(outputs(state), problem)
-
-
-def _human_page(state, report, lang, progress, errors):
-    """The page for people (human/index.html); what failed added to `errors`, and when the page itself could not be
-    made, a page that says so in its place."""
-    try:
-        from ...report.human_report import write
-        write(report, lang or state.get('lang') or 'en', Path(state['project']).name, progress=progress)
-        errors += [f"{e.get('section')}: {e.get('error')}"[:300] for e in read_json(report / 'human/errors.json', [])]
-    except Exception as problem:            # the page itself could not be made: say so on it, never leave the old one
-        errors.append(f'page: {type(problem).__name__}: {problem}'[:300])
-        log_failure(outputs(state), problem)
-        _failed_page(state, report, errors)
-
-
-def _failed_page(state, report, errors):
-    """human/index.html when the page could not be built: the errors, and where the logs are."""
-    page = report / 'human' / 'index.html'
-    page.parent.mkdir(parents=True, exist_ok=True)
-    import html
-    page.write_text('<!doctype html><meta charset="utf-8"><title>EAOS</title><body style="font:16px system-ui;padding:32px">'
-                    '<h1>تعذّر بناء التقرير · The report could not be built</h1><ul>'
-                    + ''.join(f'<li>{html.escape(e)}</li>' for e in errors)
-                    + f'</ul><p>{html.escape(str(outputs(state) / "logs"))}</p></body>', encoding='utf-8')
 
 
 def publish_fixes(state, wave):
@@ -241,25 +219,28 @@ SUMMARY_WORDS = {'ar': {'batch': 'الدفعة', 'branch': 'الفرع في مش
                         'fixed': 'ما أُصلح', 'failed': 'ما لم ينجح، ولماذا',
                         'patches': 'ملفات .patch هنا هي التغييرات نفسها، واحدًا لكل إصلاح.'},
                  'en': {'batch': 'Batch', 'branch': 'The branch in your project: `{branch}`',
-                        'nothing': 'No fix passed, so nothing changed in your project.', 'changes': 'The changes: {stat}',
+                        'nothing': 'No fix passed, so nothing changed in your project.',
+                        'changes': 'The changes: {stat}',
                         'fixed': 'Fixed', 'failed': 'Not fixed, and why',
                         'patches': 'The .patch files here are the changes themselves, one per fix.'}}
 
 
 def scan_done(state):
     manifest = report_of(state) / 'run-manifest.json'
-    return manifest.is_file() and json.loads(manifest.read_text(encoding='utf-8')).get('status') in ('COMPLETE', 'PARTIAL', 'INCOMPLETE') \
-        and (report_of(state) / 'START-HERE.md').is_file()
+    return (manifest.is_file()
+            and json.loads(manifest.read_text(encoding='utf-8')).get('status') in ('COMPLETE', 'PARTIAL', 'INCOMPLETE')
+            and (report_of(state) / 'START-HERE.md').is_file())
 
 
-# How a way of working other than fixing rebuilds its page for people: {'build': eaos.journeys.build_from_plan.blueprint.publish}, registered
-# by that module itself, so that this one does not import it.
+# How a way of working other than fixing rebuilds its page for people:
+# {'build': eaos.journeys.build_from_plan.blueprint.publish}, registered by that module itself, so that this one
+# does not import it.
 PUBLISHERS = {}
 
 
 def same_code(state, commit, head=None):
-    """`head` holds the code of `commit` plus EAOS's own fixes only (every commit between them made by EAOS, and merges):
-    a check, a run and a safety net made at `commit` still hold, and a merged batch costs no new check."""
+    """`head` holds the code of `commit` plus EAOS's own fixes only (every commit between them made by EAOS, and
+    merges): a check, a run and a safety net made at `commit` still hold, and a merged batch costs no new check."""
     if not commit: return False                 # before reading the head: a folder without git has no commit to compare
     head = head or _commit(state)
     if commit == head: return True
@@ -279,11 +260,13 @@ def tip(state):
 
 
 def source(state, commit=None):
-    """A folder whose checkout is the branch EAOS works on, for everything that reads or runs the original: the project
-    itself when that branch is checked out there, else EAOS's own copy beside state.json at the branch's last commit, or
-    at `commit` (the checked one, a check going on: eaos/pipeline/run.py again); the project's checkout is never switched."""
+    """A folder whose checkout is the branch EAOS works on, for everything that reads or runs the original: the
+    project itself when that branch is checked out there, else EAOS's own copy beside state.json at the branch's last
+    commit, or at `commit` (the checked one, a check going on: eaos/pipeline/run.py again); the project's checkout is
+    never switched."""
     branch = state.get('branch')
-    if not branch or (branches.checked_out(state['project']) == branch and commit in (None, tip(state))): return Path(state['project'])
+    if not branch or (branches.checked_out(state['project']) == branch
+                      and commit in (None, tip(state))): return Path(state['project'])
     copy = Path(state['workspace']) / ('checkout' + branches.suffix(state))
     if not (copy / '.git').is_dir():
         shutil.rmtree(copy, ignore_errors=True)
@@ -305,9 +288,11 @@ def _git(project, *args):
 
 
 def _commit(state):
-    if _git(state['project'], 'rev-parse', '--git-dir').returncode: raise RuntimeError(f"{state['project']}: fatal: not a git repository")
+    if _git(state['project'], 'rev-parse', '--git-dir').returncode:
+        raise RuntimeError(f"{state['project']}: fatal: not a git repository")
     commit = tip(state)
-    if not commit: raise RuntimeError(f"{state['project']}: the branch {state.get('branch') or 'checked out'} has no commit")
+    if not commit:
+        raise RuntimeError(f"{state['project']}: the branch {state.get('branch') or 'checked out'} has no commit")
     return commit
 
 
@@ -319,13 +304,13 @@ def _saved_note(state):
 
 
 def set_up(state, head=None):
-    """The app's run is set up for the code at `head` (the branch's last commit): that commit, or it plus EAOS's own merged
-    fixes. One judgement for the CLI's steps and MCP's status (M3.3)."""
+    """The app's run is set up for the code at `head` (the branch's last commit): that commit, or it plus EAOS's
+    own merged fixes. One judgement for the CLI's steps and MCP's status."""
     return same_code(state, (state.get('setup') or {}).get('commit'), _commit(state) if head is None else head)
 
 
 def safety_holds(state, head=None):
-    """The safety net was recorded on the code at `head`, so a batch may change it: one judgement for both (M3.3)."""
+    """The safety net was recorded on the code at `head`, so a batch may change it: one judgement for both."""
     return same_code(state, (state.get('safety') or {}).get('commit'), _commit(state) if head is None else head)
 
 

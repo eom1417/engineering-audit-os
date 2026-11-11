@@ -2,7 +2,7 @@
 
 A Fix run is the EAOS fix prompt limited to the selected cards; Verify, Explain and Plan only read. Every prompt says
 the same three things: change code only through the EAOS tools, never take the person's decisions (accept, undo,
-the branch, the run consent), and ask the person with one `eaos-question` block, which the Studio shows in its inbox.
+the branch, the run consent), and ask the person with one `eaos-question` block, which EAOS shows in the person's inbox.
 """
 import json
 import re
@@ -11,100 +11,117 @@ from ...core.language.check import NAMES
 
 QUESTION = re.compile(r'```eaos-question\s*\n(.*?)\n\s*```', re.S)
 
-ASK = ('When you need the person (their agreement to run the app, a choice only they can make), end your turn with exactly '
-       'one block, and stop; you will be resumed with their answer:\n'
+ASK = ('When you need the person (their agreement to run the app, a choice only they can make), end your turn with '
+       'exactly one block, and stop; you will be resumed with their answer:\n'
        '```eaos-question\n'
        '{"text": {"en": "<the question>", "ar": "<the question in Arabic>"}, "options": [{"id": "<short id>", "label": '
        '{"en": "<label>", "ar": "<label in Arabic>"}}], "recommendation": "<option id>"}\n'
        '```\n'
-       'When an option means closing the open batch of fixes (fix_abandon), give it "action": "fix_abandon": the Studio '
-       'closes the batch itself when the person picks it, before you go on. '
-       'Never answer for the person. Do not call accept, undo or choose_branch: the person decides those in the Studio. '
-       'If a tool you need is refused or is not among your tools, never ask the person to change permissions, settings or '
-       'files: that is never theirs to do. Say plainly which step of the Studio does it (for example "Run the app safely") '
-       'and end your turn.')
+       'When an option means closing the open batch of fixes (fix_abandon), give it "action": "fix_abandon": the '
+       'Studio closes the batch itself when the person picks it, before you go on. '
+       'Never answer for the person. Do not call accept, undo or choose_branch: the person decides those in the '
+       'Studio. If a tool you need is refused or is not among your tools, never ask the person to change permissions, '
+       'settings or files: that is never theirs to do. Say plainly which step of the Studio does it (for example "Run '
+       'the app safely") and end your turn.')
 # Where the person gave an answer, in both languages: the words that resume the assistant and the run's own event.
-WHERE = {'studio': {'en': 'in the Studio', 'ar': 'في الاستوديو'}, 'terminal': {'en': 'in the terminal', 'ar': 'في الطرفية'}}
-ACTS = ('fix_abandon',)                    # what an answer may make the Studio do itself (eaos/interfaces/studio_actions/runs.py)
+WHERE = {'studio': {'en': 'in the Studio', 'ar': 'في الاستوديو'},
+         'terminal': {'en': 'in the terminal', 'ar': 'في الطرفية'}}
+ACTS = ('fix_abandon',)                    # what an answer may make EAOS do itself (eaos/journeys/runs/runs.py)
 
 # How a card is changed, in a Fix and in a lane beside it.
-EDIT = ('fix_edit, keeping the code laws of the EAOS instructions (least code, one home for every rule, nothing dead), to the '
-        "card's files and to what it asks: a change to any other file is kept only with fix_edit's beyond_why, why each "
+EDIT = ('fix_edit, keeping the code laws of the EAOS instructions (least code, one home for every rule, nothing dead), '
+        'to the '
+        "card's files and to what it asks: a change to any other file is kept only with fix_edit's beyond_why, why "
+        "each "
         'such file must change')
 
 VERBS = {
-    'fix': ('Use the eaos tools to fix these cards of this project safely, end to end, without coming back between steps. '
-            'Follow `status`: audit if it says so, then run_setup, run_try until the app runs, safety_net, then fix_start with '
-            'exactly these cards, and for each card: finding and fix_read, then ' + EDIT + '. A card you cannot fix (its change '
-            'keeps failing the checks, or no safe change exists) gets fix_skip with its reason, and you go on with the next '
-            'card: one card never stops the batch. Try every card yourself first: why an earlier batch skipped it is no '
-            'reason now (EAOS\'s checks change), so skip only after your own change was refused. When every card was tried, call fix_finish, even if some were skipped; if it '
-            'asks for a repair (the changes fail the checks together), repair on top with fix_edit card="REPAIR" and call it '
-            'again. If '
-            'status says fix_abandon (a batch that cannot be closed), call it and start again. Change code only with fix_edit: '
-            'never write a file yourself. Add the why with `note` after each card. At the end, tell the person in plain words '
-            'what was fixed, what was skipped and why, and on which branch; they accept or undo it in the Studio. If nothing '
-            'was kept, say so plainly: never say it is done.'),
-    'verify': ('Use the eaos tools to verify these cards: read each with `finding`, look at the code it points at (Read, '
-               'Grep), and decide whether the problem is still there, already gone, or a false alarm, with the evidence. '
-               'Record each verdict with `note` (card set). Change nothing.'),
-    'explain': ('Use the eaos tools to explain these cards to the person: for each, with `finding` and `impact`, say what is '
-                'wrong, why it matters to them, and what fixing it would change, in plain words with no jargon. Change nothing.'),
-    'plan': ('Use the eaos tools to plan these cards: read them (`finding`, `impact`, `plan`, `structure`), then propose an '
-             'order of batches, what waits for what, and the risk of each batch, in plain words. Record the plan with `note`. '
-             'Change nothing.'),
+    'fix': ('Use the eaos tools to fix these cards of this project safely, end to end, without coming back between '
+            'steps. Follow `status`: audit if it says so, then run_setup, run_try until the app runs, safety_net, then '
+            'fix_start with '
+            'exactly these cards, and for each card: finding and fix_read, '
+            'then ' + EDIT + '. A card you cannot fix (its change '
+            'keeps failing the checks, or no safe change exists) gets fix_skip with its reason, and you go on with the '
+            'next card: one card never stops the batch. Try every card yourself first: why an earlier batch skipped it '
+            'is no reason now (EAOS\'s checks change), so skip only after your own change was refused. When every card '
+            'was tried, call fix_finish, even if some were skipped; if it asks for a repair (the changes fail the '
+            'checks together), repair on top with fix_edit card="REPAIR" and call it again. If '
+            'status says fix_abandon (a batch that cannot be closed), call it and start again. Change code only with '
+            'fix_edit: never write a file yourself. Add the why with `note` after each card. At the end, tell the '
+            'person in plain words what was fixed, what was skipped and why, and on which branch; they accept or undo '
+            'it in the Studio. If nothing was kept, say so plainly: never say it is done.'),
+    'verify': ('Use the eaos tools to verify these cards: read each with `finding`, look at the code it points at '
+               '(Read, Grep), and decide whether the problem is still there, already gone, or a false alarm, with the '
+               'evidence. Record each verdict with `note` (card set). Change nothing.'),
+    'explain': ('Use the eaos tools to explain these cards to the person: for each, with `finding` and `impact`, say '
+                'what is wrong, why it matters to them, and what fixing it would change, in plain words with no '
+                'jargon. Change nothing.'),
+    'plan': ('Use the eaos tools to plan these cards: read them (`finding`, `impact`, `plan`, `structure`), then '
+             'propose an order of batches, what waits for what, and the risk of each batch, in plain words. Record the '
+             'plan with `note`. Change nothing.'),
 }
 
-# A Fix run started beside the first one in speed mode (eaos/interfaces/studio_actions/lane_assistants.py): its lane of the batch only.
-LANE = ('Use the eaos tools to fix these cards of the batch another assistant of the EAOS Studio opened: you are one of several '
-        'assistants fixing it at the same time, each its own cards and files. For each card: finding and fix_read, then '
-        + EDIT + '. A card you cannot fix (its change keeps failing the checks, or no safe change exists) gets fix_skip with its reason; when '
-        'fix_edit answers that another assistant is changing one of its files, leave the card (it is fixed at the end) and go '
-        'on with the next one. Never ask the person anything, the batch waits on no question of yours: a card that needs '
-        'their choice gets fix_skip with that question as its reason. Never call fix_start, fix_finish or fix_abandon: the '
-        'first assistant hands the batch over. '
-        'Change code only with fix_edit: never write a file yourself. Add the why with `note` after each card. At the end, '
-        'tell the person in plain words what you fixed and what you left, and why.')
+# A Fix run started beside the first one in speed mode (eaos/journeys/runs/lane_assistants.py): its lane of
+# the batch only.
+LANE = ('Use the eaos tools to fix these cards of the batch another assistant of the EAOS Studio opened: you are one '
+        'of several assistants fixing it at the same time, each its own cards and files. For each card: finding and '
+        'fix_read, then '
+        + EDIT + '. A card you cannot fix (its change keeps failing the checks, or no safe change exists) gets '
+                 'fix_skip with its reason; when '
+        'fix_edit answers that another assistant is changing one of its files, leave the card (it is fixed at the end) '
+        'and go on with the next one. Never ask the person anything, the batch waits on no question of yours: a card '
+        'that needs their choice gets fix_skip with that question as its reason. Never call fix_start, fix_finish or '
+        'fix_abandon: the first assistant hands the batch over. '
+        'Change code only with fix_edit: never write a file yourself. Add the why with `note` after each card. At the '
+        'end, tell the person in plain words what you fixed and what you left, and why.')
 
 # A step whose answer leads straight on, done through to where the person decides.
-CHAINS = {'blueprint_start': 'then do what its answer says through to blueprint_design (the spec, blueprint_spec until it '
-                             'is complete, asking the person only real choices), always with the same project; stop there: the '
-                             'person reads the blueprint and agrees to build it (build_start).',
+CHAINS = {'blueprint_start': 'then do what its answer says through to blueprint_design (the spec, blueprint_spec until '
+                             'it is complete, asking the person only real choices), always with the same project; stop '
+                             'there: the person reads the blueprint and agrees to build it (build_start).',
           'build_start': 'the person agreed to build by starting this step in the Studio, so call build_start with '
-                         'person_agreed=true. Build the whole product, milestone after milestone, without asking again: every '
-                         'card of the open milestone with build_read and build_edit, in order (build_skip with the reason only for a '
-                         'card that cannot pass its gates), then build_finish; fix first what its `look` found, then build_start '
-                         'the next one, through to the last. Stop when build_finish says every milestone is built, or on a real '
-                         'product question: tell the person what was built and that the last branch waits for their decision.',
-          'extend_start': 'then write the spec and call extend_plan until it fits the project, always with the same project, '
-                          'asking the person only real choices; stop there: the person reads what will be added and agrees to '
-                          'build it (fix_start with its cards).'}
+                         'person_agreed=true. Build the whole product, milestone after milestone, without asking '
+                         'again: every card of the open milestone with build_read and build_edit, in order (build_skip '
+                         'with the reason only for a card that cannot pass its gates), then build_finish; fix first '
+                         'what its `look` found, then build_start the next one, through to the last. Stop when '
+                         'build_finish says every milestone is built, or on a real product question: tell the person '
+                         'what was built and that the last branch waits for their decision.',
+          'extend_start': 'then write the spec and call extend_plan until it fits the project, always with the same '
+                          'project, asking the person only real choices; stop there: the person reads what will be '
+                          'added and agrees to build it (fix_start with its cards).'}
 
 
-def build(verb, cards, project, lang='ar', action=None, inputs=None, labels=None, where=None, lane=None):  # limits: parameters -- a run's request, each part by name, from a run record or a preview
+def build(verb, cards, project, lang='ar', action=None, inputs=None, labels=None, where=None,
+          lane=None):  # limits: parameters -- a run's request, each part by name, from a run record or a preview
     """The prompt of a run: a verb over cards, or one assistant action with its inputs (and, for a Fix, where the person
     chose to build and deliver it, with how many assistants fix it at once; `lane`: a Fix run beside the first one)."""
     if verb: task = _over_cards(verb, cards, where, lane)
     else:
         label = (labels or {}).get(action, {}).get('en', action)
-        shown = {k: v for k, v in (inputs or {}).items() if v is not None and not (k == 'project' and v == str(project))}
+        shown = {k: v for k,
+                 v in (inputs or {}).items() if v is not None and not (k == 'project' and v == str(project))}
         task = (f'Use the eaos tools for this one step of the EAOS way: {label} (the `{action}` tool)'
                 + (f', with these inputs from the person: {json.dumps(shown, ensure_ascii=False)}' if shown else '')
                 + '. Call `status` first; ' + CHAINS.get(action, 'do what the step needs and no more.'))
-    return (f'{task}\n\nThe project is the current folder ({project.name}). This request comes from the EAOS Studio, where the '
-            f'person follows every step. {ASK}\n{_written_in(lang)}: the person reads them live in the Studio.')
+    return (f'{task}\n\nThe project is the current folder ({project.name}). This request comes from the EAOS Studio, '
+            f'where the person follows every step. {ASK}\n'
+            f'{_written_in(lang)}: the person reads them live in the Studio.')
 
 
 def _written_in(lang):
     """The language every message of a session is written in, said when it starts and again when it resumes."""
-    return (f"Write every message in {NAMES.get(lang, NAMES['en'])}, the short notes between tools too, and every reason or "
+    return (f"Write every message in {NAMES.get(lang,
+                                                NAMES['en'])}, the short notes between tools too, and every reason or "
             "summary you give EAOS's tools (fix_skip's reason, fix_edit's summary): the person reads them")
 
 
 def _over_cards(verb, cards, where, lane):
-    """A verb's task over its cards; a Fix's says where its batch opens, a lane's (beside the first assistant) opens none."""
-    listed = '\n'.join(f"- {card['id']}: {card.get('title') or ''} ({', '.join(card.get('paths') or [])})".rstrip(' ()') for card in cards)
-    task = f"{LANE if lane else VERBS[verb]}\n\nThe cards ({len(cards)}):\n{listed}\nCard ids for the tools: {json.dumps([c['id'] for c in cards])}"
+    """A verb's task over its cards; a Fix's says where its batch opens, a lane's (beside the first assistant) opens
+    none."""
+    listed = '\n'.join(f"- {card['id']}: {card.get('title') or ''} ({', '.join(card.get('paths') or [])})".rstrip(' ()')
+                       for card in cards)
+    task = (f"{LANE if lane else VERBS[verb]}\n\nThe cards ({len(cards)}):\n{listed}\n"
+            f"Card ids for the tools: {json.dumps([c['id'] for c in cards])}")
     return task + _opened(where) if verb == 'fix' and where and not lane else task
 
 
@@ -113,8 +130,8 @@ def _opened(where):
     together = f", assistants={where['assistants']}" if where.get('assistants', 1) > 1 else ''
     return (f"\nThe person chose where this batch goes: call fix_start with base={json.dumps(where['base'])}, "
             f"base_commit={json.dumps(where['base_commit'])}, deliver_as={json.dumps(where['deliver_as'])}, "
-            f"merge_into={json.dumps(where['merge_into'])}{together}. If it answers base_moved, stop and tell the person the "
-            'branch moved: they preview the fix again.')
+            f"merge_into={json.dumps(where['merge_into'])}{together}. If it answers base_moved, stop and tell "
+            'the person the branch moved: they preview the fix again.')
 
 
 def done(result):
@@ -149,8 +166,9 @@ def binding(record, question):
 def picked(record, question, option, text):
     """The option an answer takes: the one pressed; for a direct step's question answered in words, the option they name
     (its id or a label), else the recommended one: those words act, never handed to an assistant that may be the very
-    thing not answering (the check's "your assistant is not answering" came back after every answer)."""
-    if option is not None or record.get('mode') != 'direct' or question.get('why') == 'run consent': return option   # an explicit yes only
+    thing not answering."""
+    # an explicit yes only
+    if option is not None or record.get('mode') != 'direct' or question.get('why') == 'run consent': return option
     said = (text or '').casefold()
     for option in question.get('options') or []:
         if _named(option, said): return option['id']
@@ -159,20 +177,25 @@ def picked(record, question, option, text):
 
 def _named(option, said):
     """Whether the person's words (casefolded) name an option: its id or one of its labels."""
-    return option['id'].casefold() in said or any(label and label.casefold() in said for label in (option.get('label') or {}).values())
+    return option['id'].casefold() in said or any(label and label.casefold() in said
+                                                  for label in (option.get('label') or {}).values())
 
 
-def answer(question, option, text, lang='ar', done=None, via='studio'):  # limits: parameters -- the person's answer as it came: the question, option, words and where, and what EAOS did for it
+def answer(question, option, text, lang='ar', done=None,
+           via='studio'):  # limits: parameters -- the person's answer as it came: the question, option, words and where, and what EAOS did for it
     """The words that resume a session with the person's answer, said where they gave it (`via`: WHERE), and what EAOS
     already did for it."""
     chosen = _chosen(question, option)
     said = (chosen or {}).get('label', {}).get(lang) or (chosen or {}).get('label', {}).get('en') or option or ''
     if option is None:      # their own words are their answer, whatever options were offered
         parts = [f"The person answered {WHERE[via]['en']} in their own words, choosing none of your options: {text}. "
-                 'This is their answer: act on it as they said it, and ask again only if it leaves the choice truly open.']
+                 'This is their answer: act on it as they said it, and ask again only if it leaves the choice truly '
+                 'open.']
     else:
-        parts = [f"The person answered {WHERE[via]['en']}: {said} (option \"{option}\")"] + ([f'They added: {text}'] if text else [])
-    if done: parts.append(f'EAOS already ran {done[0]} for this answer; its result: {json.dumps(done[1], ensure_ascii=False)[:1500]}.')
+        parts = [f"The person answered {WHERE[via]['en']}: {said} (option \"{option}\")"] + (
+            [f'They added: {text}'] if text else [])
+    if done: parts.append(f'EAOS already ran {done[0]} for this answer; its result: {json.dumps(done[1],
+        ensure_ascii=False)[:1500]}.')
     parts.append(f'Go on from where you stopped. {_written_in(lang)}.')
     return ' '.join(parts)
 
@@ -185,7 +208,8 @@ def _both(words):
 
 
 def _option(index, option):
-    """One option normalised: its id, its label in both languages, and the EAOS action it means; None when unreadable."""
+    """One option normalised: its id, its label in both languages, and the EAOS action it means; None when
+    unreadable."""
     if isinstance(option, str): option = {'id': f'o{index + 1}', 'label': option}
     if not isinstance(option, dict): return None
     return {'id': str(option.get('id') or f'o{index + 1}'), 'label': _both(option.get('label') or option.get('id')),
@@ -230,12 +254,15 @@ def assistant_question(payload):
     found = payload.get('assistant') or {}
     reason = found.get('reason') or {}
     name = found.get('name') or 'Your assistant'
-    return {'text': {'en': f"The check did not start: {name} is not answering. {reason.get('en') or found.get('code') or ''} "
+    return {'text': {'en': f"The check did not start: {name} is not answering. "
+                           f"{reason.get('en') or found.get('code') or ''} "
                            'Fix it and check again, or start this check without AI (the report says why).',
-                     'ar': f"ما بدأ الفحص: {name} ما يرد. {reason.get('ar') or reason.get('en') or found.get('code') or ''} "
+                     'ar': f"ما بدأ الفحص: {name} ما يرد. "
+                           f"{reason.get('ar') or reason.get('en') or found.get('code') or ''} "
                            'صلّحه وأعد الفحص، أو ابدأ هذا الفحص بدون ذكاء (التقرير يذكر السبب).'},
             'options': [{'id': 'retry', 'label': {'en': 'I fixed it: check again', 'ar': 'صلّحته: افحص من جديد'}},
-                        {'id': 'without_ai', 'label': {'en': 'Start this check without AI', 'ar': 'ابدأ هذا الفحص بدون ذكاء'}}],
+                        {'id': 'without_ai',
+                         'label': {'en': 'Start this check without AI', 'ar': 'ابدأ هذا الفحص بدون ذكاء'}}],
             'recommendation': 'retry', 'why': 'assistant'}
 
 
@@ -245,10 +272,12 @@ def branch_question(payload):
     options = [_branch_option(row) for row in payload.get('branches') or [] if row.get('name')]
     recommended = payload.get('recommended')
     recommended = recommended.get('name') if isinstance(recommended, dict) else recommended
-    return {'text': {'en': 'Which branch should EAOS check and fix? The check, the fixes, the progress and every merge will follow '
-                           'that branch. Your checkout is not switched.',
-                     'ar': 'أي فرع يفحصه EAOS ويصلحه؟ الفحص والإصلاحات والتقدم وكل دمج تتبع هذا الفرع. نسختك الحالية لا تتغير.'},
-            'options': options, 'recommendation': recommended if recommended in {o['id'] for o in options} else None, 'why': 'branch'}
+    return {'text': {'en': 'Which branch should EAOS check and fix? The check, the fixes, the progress and every merge '
+                           'will follow that branch. Your checkout is not switched.',
+                     'ar': 'أي فرع يفحصه EAOS ويصلحه؟ الفحص والإصلاحات والتقدم وكل دمج تتبع هذا الفرع. نسختك الحالية '
+                           'لا تتغير.'},
+            'options': options, 'recommendation': recommended if recommended in {o['id'] for o in options} else None,
+            'why': 'branch'}
 
 
 def _branch_option(row):
@@ -261,7 +290,8 @@ def _branch_option(row):
 
 # the Arabic of the reasons a run changes state for (a failure's own reason stays in its English line and its data)
 WHY_AR = {'the assistant handoff': 'تسليمه لمساعدك', 'a question': 'سؤال', 'nothing changed': 'لم يتغيّر شيء',
-          'you stopped it': 'أوقفته أنت', 'taken': 'بدأ', 'resumed': 'استؤنف', 'answered': 'جاوبت', 'tried again': 'يُعاد',
+          'you stopped '
+          'it': 'أوقفته أنت', 'taken': 'بدأ', 'resumed': 'استؤنف', 'answered': 'جاوبت', 'tried again': 'يُعاد',
           'the server restarted': 'أُعيد تشغيل الخادم'}
 
 

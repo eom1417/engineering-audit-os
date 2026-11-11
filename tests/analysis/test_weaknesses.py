@@ -3,10 +3,8 @@ import json
 import tempfile
 import unittest
 from pathlib import Path
-from unittest import mock
 
 from eaos.analysis.assessments import weaknesses
-from eaos.engines.security import codeql
 from eaos.analysis.claims.probe_queries import run_graph_query
 
 
@@ -22,7 +20,7 @@ def sets(*facts, observed=('semgrep', 'bandit', 'gitleaks')):
 
 class WeaknessTests(unittest.TestCase):
     def test_every_finding_reaches_a_card_and_two_engines_on_one_line_corroborate(self):
-        # EAOS on itself, 2026-10-14: 82 Semgrep security findings, none a card, the security score 100.
+        # Security findings each reach a card; none leaves the security score at 100.
         found = sets(fact('A', 'semgrep', 'app/db.py', 10, 'sql', ['CWE-89']),
                      fact('B', 'bandit', 'app/db.py', 11, 'B608', ['CWE-89']),
                      fact('C', 'semgrep', 'app/run.py', 5, 'exec', ['CWE-78']),
@@ -31,7 +29,8 @@ class WeaknessTests(unittest.TestCase):
                      fact('F', 'bandit', 'tests/test_db.py', 3, 'B608', ['CWE-89']),
                      fact('G', 'gitleaks', 'tests/test_keys.py', 3, 'aws-key', kind='secret'))
         made = []
-        weaknesses.claims(found, lambda *args, **extra: made.append((args[2], extra['fact_ids'], extra['render']['params']['place'])), None)
+        weaknesses.claims(found, lambda *args, **extra: made.append((args[2], extra['fact_ids'],
+                                                                     extra['render']['params']['place'])), None)
         self.assertEqual(sorted(made), sorted([
             ('LIKELY', ['A', 'B'], 'app/db.py'),               # agreed: same file, a line apart
             ('HYPOTHESIS', ['C'], 'app/run.py'),               # alone: the triage reads the code
@@ -40,7 +39,7 @@ class WeaknessTests(unittest.TestCase):
         ]))
 
     def test_a_weak_hash_in_a_file_using_hmac_is_a_question_not_an_agreed_weakness(self):
-        # itsdangerous, M17.3 (2026-11-05): Semgrep and Bandit agreed on SHA-1, the default digest of its HMAC signer.
+        # Semgrep and Bandit agree on SHA-1, the default digest of an HMAC signer.
         found = sets(fact('A', 'semgrep', 'src/signer.py', 45, 'insecure-hash-algorithm-sha1', ['CWE-327']),
                      fact('B', 'bandit', 'src/signer.py', 45, 'B324', ['CWE-327']))
         with tempfile.TemporaryDirectory() as tmp:
@@ -55,7 +54,8 @@ class WeaknessTests(unittest.TestCase):
             self.assertIn('HMAC', made[0][1])
 
     def test_a_card_is_never_passed_by_an_engine_that_did_not_run(self):
-        spec = {'query': 'weakness_present', 'labels': ['CWE-89'], 'paths': ['app/db.py'], 'engines': ['semgrep', 'bandit']}
+        spec = {'query': 'weakness_present', 'labels': ['CWE-89'], 'paths': ['app/db.py'], 'engines': ['semgrep',
+            'bandit']}
         self.assertEqual(run_graph_query(spec, sets(observed=('bandit',)))[0], 'INCONCLUSIVE')
         self.assertEqual(run_graph_query(spec, sets())[0], 'REFUTED')
         with tempfile.TemporaryDirectory() as tmp:
@@ -67,11 +67,13 @@ class WeaknessTests(unittest.TestCase):
             self.assertEqual(weaknesses.new(before, after, {'app/other.py'}), [])
 
     def test_a_comment_hides_only_a_weakness_the_project_already_had_and_is_never_a_card(self):
-        # A fix that brought an unsafe call with `# nosemgrep: rule -- why` passed the gate; a justified finding is no card.
+        # A fix that brought an unsafe call with `# nosemgrep: rule -- why` passed the gate; a justified finding is no
+        # card.
         justified = {**fact('J', 'semgrep', 'app/db.py', 11, 'sql', ['CWE-89']), 'kind': 'engine_finding_justified'}
         with tempfile.TemporaryDirectory() as tmp:
             had, before, after = Path(tmp, 'had'), Path(tmp, 'before'), Path(tmp, 'after')
-            for folder, rows in ((had, [fact('A', 'semgrep', 'app/db.py', 10, 'sql')]), (before, []), (after, [justified])):
+            for folder, rows in ((had, [fact('A', 'semgrep', 'app/db.py', 10, 'sql')]), (before, []), (after,
+                [justified])):
                 (folder / 'facts').mkdir(parents=True)
                 (folder / 'facts/external.json').write_text(json.dumps(sets(*rows)['external']))
             self.assertEqual(weaknesses.new(before, after, {'app/db.py'}), [('semgrep', 'sql', 'app/db.py')])
@@ -79,12 +81,3 @@ class WeaknessTests(unittest.TestCase):
         made = []
         weaknesses.claims(sets(justified), lambda *args, **extra: made.append(args), None)
         self.assertEqual(made, [])
-
-    def test_codeql_runs_only_on_open_source_code_public_on_github(self):
-        with tempfile.TemporaryDirectory() as tmp:
-            self.assertFalse(codeql.allowed(tmp)[0])
-            Path(tmp, 'LICENSE').write_text('MIT License\n\nPermission is hereby granted, free of charge, to any person')
-            with mock.patch.object(codeql, 'public_repository', return_value=None):
-                self.assertFalse(codeql.allowed(tmp)[0])
-            with mock.patch.object(codeql, 'public_repository', return_value='owner/app'):
-                self.assertEqual(codeql.allowed(tmp), (True, 'MIT license, public on GitHub.com as owner/app'))

@@ -10,7 +10,7 @@
 - history.py: the last runs of each flow, kept whole;
 - reasons.py: the person's words for each `reason_code` (eaos/data/errors.json -> reasons).
 
-The events are declared in eaos/data/schemas/progress.json; the time left is eaos/pipeline/estimate.py's.
+The events are declared in eaos/data/schemas/progress.json.
 """
 from .context import count, current, step, using
 from .flow import Flow, Stage, begin, current_flow, end, skip, stage

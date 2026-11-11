@@ -1,11 +1,10 @@
 """A size or complexity measure becomes work only with a sign of harm.
 
-Two judges of another model read 40 of a second round's cards blind (M17.3, 2026-11-05): 30 were sizes and branch
-counts, every one true, and all but one not worth fixing. A flat switch over three drivers, a protocol endpoint kept
-in one file, a constructor of independent `isset` lines: the count is real, the harm is not. The one they kept nested
-eight deep. So a function past the limit is a card when it nests deep or its file keeps being fixed; a module past the
-line limit when its file keeps being fixed. Otherwise the claim is retained, with the measure and the reason, never a
-card a batch spends a fix on.
+A size or branch count is true but rarely worth a fix on its own: a flat switch over three drivers, a protocol
+endpoint kept in one file, a constructor of independent `isset` lines. The count is real, the harm is not. So a
+function past the limit is a card when it nests deep or its file keeps being fixed; a module past the line limit when
+its file keeps being fixed. Otherwise the claim is retained, with the measure and the reason, never a card a batch
+spends a fix on.
 """
 DEEP = 6            # blocks open at the deepest line, the body counted: five inside, past ESLint's max-depth of four
 FIXED_OFTEN = 3     # commits named as fixes that changed the file

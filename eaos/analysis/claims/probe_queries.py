@@ -1,8 +1,8 @@
-"""The graph queries a probe asks again (eaos/analysis/claims/probes.py decide_probe): each over the current snapshot's fact
-sets, inconclusive when the facts it reads, or the engines it names, are not there.
+"""The graph queries a probe asks again (eaos/analysis/claims/probes.py decide_probe): each over the current snapshot's
+fact sets, inconclusive when the facts it reads, or the engines it names, are not there.
 """
-from . import from_experience as experience_claims, from_layers as layer_claims, from_logic_flaws as logic_claims, from_repository as repository_claims
-from . import from_keeping as keeping_claims, from_old_engines as old_engine_claims, from_real_data as real_data_claims
+from . import from_layers as layer_claims, from_repository as repository_claims
+from . import from_old_engines as old_engine_claims, from_real_data as real_data_claims
 from . import from_one_source as one_source_claims, from_rules as rule_claims
 from ..assessments import weaknesses
 
@@ -11,14 +11,14 @@ from ..assessments import weaknesses
 # refuting a claim because the evidence was not loaded is the worst failure this tool can make.
 QUERY_REQUIRES = {
     'cycle_present': 'graph', 'flow_has_unresolved_steps': 'flows', 'no_code_dependency': 'graph',
-    'metric_threshold': 'metrics', 'module_size': 'metrics', 'mutable_global_present': 'domain', 'external_write_present': 'domain',
+    'metric_threshold': 'metrics', 'module_size': 'metrics', 'mutable_global_present': 'domain',
+    'external_write_present': 'domain',
     'policy_violation_present': 'graph', 'redundancy_present': 'redundancy',
-    'engine_cluster_present': 'external', 'load_blocker_present': 'load_model',
+    'engine_cluster_present': 'external',
     'dead_code_present': 'deadcode', 'broken_code_present': 'broken', 'vulnerable_dependency_present': 'external',
     'weakness_present': 'external', 'boundary_finding_present': 'boundaries',
-    'repository_finding_present': 'repository', 'logic_flaw_present': 'logic_flaws',
-    'experience_difficulty_present': 'experience', 'real_data_present': 'external',
-    'old_engine_present': 'syntax', 'data_keeping_present': 'external', 'one_source_present': 'patterns', 'rule_broken': 'rule',
+    'repository_finding_present': 'repository', 'real_data_present': 'external',
+    'old_engine_present': 'syntax', 'one_source_present': 'syntax', 'rule_broken': 'rule',
 }
 
 
@@ -28,7 +28,8 @@ def _verdict(holds, confirmed, refuted):
 
 def _graph_nodes(sets):
     """{file: the files it imports} of the resolved graph."""
-    return {fact['location']['path']: set(fact['value']['depends_on']) for fact in sets['graph']['facts'] if fact['kind'] == 'graph_node'}
+    return {fact['location']['path']: set(fact['value']['depends_on'])
+            for fact in sets['graph']['facts'] if fact['kind'] == 'graph_node'}
 
 
 def _cycle_present(specification, sets):
@@ -37,26 +38,10 @@ def _cycle_present(specification, sets):
 
 
 def _flow_unresolved(specification, sets):
-    flow = next((fact['value'] for fact in sets['flows']['facts'] if fact['value']['flow_id'] == specification['flow_id']), None)
+    flow = next((fact['value'] for fact in sets['flows']['facts']
+                 if fact['value']['flow_id'] == specification['flow_id']), None)
     if flow is None: return 'INCONCLUSIVE', 'flow not present in this snapshot'
     return _verdict(flow['unresolved_steps'], f"{flow['unresolved_steps']} unresolved steps", 'all steps resolve now')
-
-
-def _same_blocker(blocker, specification):
-    # A recheck of a changed copy names the entry by its path and route: an entry fact's id changes with its file.
-    if 'entry_path' in specification:
-        same = (blocker['path'], blocker['route']) == (specification['entry_path'], specification.get('entry_route'))
-    else:
-        same = blocker['entry_point'] == specification['entry_point']
-    return same and blocker['question'] == specification['question']
-
-
-def _load_blocker(specification, sets):
-    # Re-derive the blocker from the load model: the claim is about what the questions answer.
-    from ..readiness.load_projection import blockers
-    found = next((blocker for blocker in blockers(sets['load_model']) if _same_blocker(blocker, specification)), None)
-    if found: return 'CONFIRMED', f"{found['question']} still answers {found['value']!r}"
-    return 'REFUTED', 'the question no longer answers that way for this entry point'
 
 
 def _vulnerable(specification, sets):
@@ -72,38 +57,43 @@ def _vulnerable(specification, sets):
 def _at_place(facts, specification):
     """The first fact at the specification's path and symbol with its rule; None when there is none."""
     wanted = (specification['path'], specification.get('symbol'), specification['rule'])
-    return next((fact for fact in facts if (fact['location'].get('path'), fact['location'].get('symbol'), fact['value'].get('rule')) == wanted), None)
+    return next((fact for fact in facts
+                 if (fact['location'].get('path'), fact['location'].get('symbol'),
+                     fact['value'].get('rule')) == wanted), None)
 
 
 def _broken(specification, sets):
     fact = _at_place(sets['broken']['facts'], specification)
-    return ('CONFIRMED', fact['value']['message']) if fact else ('REFUTED', 'the reference resolves in the current snapshot')
+    return (('CONFIRMED', fact['value']['message']) if fact
+            else ('REFUTED', 'the reference resolves in the current snapshot'))
 
 
 def _dead(specification, sets):
     # The detector is deterministic: running it again over this snapshot is the probe.
     fact = _at_place(sets['deadcode']['facts'], specification)
-    return ('CONFIRMED', fact['value']['message']) if fact else ('REFUTED', 'the candidate is reached or referenced in the current snapshot')
+    return (('CONFIRMED', fact['value']['message']) if fact
+            else ('REFUTED', 'the candidate is reached or referenced in the current snapshot'))
 
 
 def _finish_line(targets, sets):
     """A claim with a finish line (eaos/analysis/repair/finish_line.py): confirmed while one of its targets stands."""
     from ..repair.finish_line import left, said
     still = left(targets, sets)
-    return ('CONFIRMED', 'still to clear: ' + '; '.join(map(said, still))) if still else ('REFUTED', 'every target is cleared')
+    return (('CONFIRMED', 'still to clear: ' + '; '.join(map(said, still))) if still
+            else ('REFUTED', 'every target is cleared'))
 
 
 def _engine_cluster(specification, sets):
     # Re-running the engines is the probe: the claim is about what they report, so it is settled
     # by asking them again, not by re-reading a graph we built ourselves. Only the claim's engines count, and of a
-    # measured kind only a finding past its threshold (correlate._standing): any engine's finding anywhere in the file,
-    # even one under its limit, refused every simplification of the functions the card names (EAOS, 2026-10-15). A claim
-    # made since carries its finish line (eaos/analysis/repair/finish_line.py) and is judged by it alone.
+    # measured kind only a finding past its threshold (correlate._standing). A claim carrying its finish line
+    # (eaos/analysis/repair/finish_line.py) is judged by that line alone.
     if specification.get('targets'): return _finish_line(specification['targets'], sets)
     from .correlate import clusters
     for cluster in (c for c in clusters(sets) if c['place'] == specification['place']):
         named = set(specification.get('engines') or ())
-        still = [s for s in cluster.get('standing', {}).get(specification['kind'], []) if not named or s.split(':')[0] in named]
+        still = [s for s in cluster.get('standing', {}).get(specification['kind'], [])
+                 if not named or s.split(':')[0] in named]
         if still: return 'CONFIRMED', 'still reported: ' + '; '.join(still[:12])
         return 'REFUTED', 'no engine of the claim reports this kind past its threshold here any more'
     return 'REFUTED', 'no engine reports anything at this place any more'
@@ -114,9 +104,10 @@ def _metric(specification, sets):
             if fact['location'].get('symbol') == specification['symbol']
             and fact['location']['path'] == specification['path']]
     if not rows: return 'INCONCLUSIVE', 'the symbol is no longer present under that name'
-    value = rows[0]['value']          # the code laws' count (eaos/facts/code/metrics.py); its branches in older facts
+    value = rows[0]['value']          # the code laws' count (facts/code/metrics.py); a fact may carry it as branches
     measured = value.get('complexity') or value['branches']
-    return _verdict(measured > specification['max_branches'], f"complexity {measured}, limit {specification['max_branches']}",
+    return _verdict(measured > specification['max_branches'],
+                    f"complexity {measured}, limit {specification['max_branches']}",
                     f"complexity {measured}, now within the limit of {specification['max_branches']}")
 
 
@@ -172,15 +163,15 @@ def _no_dependency(specification, sets):
 
 # How each query decides, over the current snapshot's fact sets.
 QUERIES = {
-    'cycle_present': _cycle_present, 'flow_has_unresolved_steps': _flow_unresolved, 'load_blocker_present': _load_blocker,
+    'cycle_present': _cycle_present, 'flow_has_unresolved_steps': _flow_unresolved,
     'vulnerable_dependency_present': _vulnerable, 'broken_code_present': _broken, 'dead_code_present': _dead,
-    'engine_cluster_present': _engine_cluster, 'weakness_present': weaknesses.present, 'metric_threshold': _metric, 'module_size': _module_size, 'mutable_global_present': _mutable,
+    'engine_cluster_present': _engine_cluster, 'weakness_present': weaknesses.present,
+    'metric_threshold': _metric, 'module_size': _module_size, 'mutable_global_present': _mutable,
     'external_write_present': _external_write, 'policy_violation_present': _policy,
     'redundancy_present': _redundancy,
     'no_code_dependency': _no_dependency, 'boundary_finding_present': layer_claims.present,
-    'repository_finding_present': repository_claims.present, 'logic_flaw_present': logic_claims.present,
-    'experience_difficulty_present': experience_claims.present, 'real_data_present': real_data_claims.present,
-    'old_engine_present': old_engine_claims.present, 'data_keeping_present': keeping_claims.present,
+    'repository_finding_present': repository_claims.present, 'real_data_present': real_data_claims.present,
+    'old_engine_present': old_engine_claims.present,
     'one_source_present': one_source_claims.present, 'rule_broken': rule_claims.present,
 }
 

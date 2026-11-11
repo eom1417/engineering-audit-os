@@ -1,11 +1,10 @@
 """The test users of a check, made by the person's assistant on the app as it runs in its isolated copy (the stage
-`session`, eaos/pipeline/runners/sign_in.py): the assistant writes the seed script that signs a user in, and a session in
-each view of the code (eaos/live/access/roles.py): a user of that kind, switched into it when the view is entered by a switch within
-one sign-in. EAOS runs it on the running app and tells what is still lacking, until every session opens its view's own
-pages (never the app's page for an address it does not have) or SECONDS pass. Then the person is asked to sign in by
-hand; when they did, the script only switches their session into each view a switch enters. Each try takes seconds:
-the app is never installed or started again for it.
-"""
+`session`, eaos/pipeline/runners/sign_in.py): the assistant writes the seed script that signs a user in, and a session
+in each view of the code (eaos/live/access/roles.py): a user of that kind, switched into it when the view is entered by
+a switch within one sign-in. EAOS runs it on the running app and tells what is still lacking, until every session opens
+its view's own pages (never the app's page for an address it does not have) or SECONDS pass. Then the person is asked to
+sign in by hand; when they did, the script only switches their session into each view a switch enters. Each try takes
+seconds: the app is never installed or started again for it. """
 import json
 import re
 import time
@@ -15,8 +14,9 @@ from ..app.assist import _excerpt
 from ..app.run import kinds_folder
 from .roles import NOWHERE, about_users, add, claim, nowhere_of, opened, pages_of, proven, prove, read, way_in
 from ..app.profile import apply, safe
+from ...core.system.errors import noted
 
-SECONDS = 300                 # one round of tries; ROUNDS of them at most: fifteen minutes, as before
+SECONDS = 300                 # one round of tries; ROUNDS of them at most: fifteen minutes
 ROUNDS = 3
 PAGES = 150                   # the pages of the code each session is tried on, the views' own first
 
@@ -49,8 +49,9 @@ user, a page left from a removed feature), "unreachable": [{"page", "why", "evid
 end with one JSON line of the fixture values it created ({"E2E_PROFILEID": "..."}). Every address is http://127.0.0.1
 or localhost; nothing deploys or reaches a hosted service."""
 # When the person signed in themselves: their session is theirs alone, the script only switches it into each view.
-BY_HAND = ('The person signed in themselves: EAOS_STORAGE_STATE holds a copy of their session. Never sign in, sign up or '
-           'make a user: open that state, switch it into each view listed, and save each to EAOS_SESSIONS_DIR/<id>.json.')
+BY_HAND = ('The person signed in themselves: EAOS_STORAGE_STATE holds a copy of their session. Never sign in, sign up '
+           'or make a user: open that state, switch it into each view listed, and save each '
+           'to EAOS_SESSIONS_DIR/<id>.json.')
 
 
 def views(report, hand):
@@ -64,14 +65,15 @@ def lacking(live, base, state, report, hand=False):
     from .sign_in import works
     if not works(live, base, state, report):
         return 'the browser state saved to EAOS_STORAGE_STATE does not open the app: its pages are sent to the sign-in'
-    missing = [view for view in views(report, hand) if not _opens(live, base, kinds_folder(state) / f"{view['id']}.json", view['pages'])]
+    missing = [view for view in views(report, hand)
+               if not _opens(live, base, kinds_folder(state) / f"{view['id']}.json", view['pages'])]
     if missing:
-        return ('these views have no session that opens their own pages (a page showing what the app shows for an address '
-                'it does not have is not opened: the session is not in that view): ' + json.dumps(missing))
+        return ('these views have no session that opens their own pages (a page showing what the app shows for an '
+                'address it does not have is not opened: the session is not in that view): ' + json.dumps(missing))
     alone = unreached(live, base, state, report)
-    return ('these pages of the code open with no session (each shows the app\'s "not found", a refusal or the sign-in): '
-            'grant the run\'s own user what they need (every role and seat) and add the view that is missing, or answer '
-            'each "unreachable" with the line that proves it. Their files:\n'
+    return ('these pages of the code open with no session (each shows the app\'s "not found", a refusal or the '
+            'sign-in): grant the run\'s own user what they need (every role and seat) and add the view that is '
+            'missing, or answer each "unreachable" with the line that proves it. Their files:\n'
             + _sources(live.sandbox.copy, alone)) if alone else ''
 
 
@@ -93,7 +95,8 @@ def unreached(live, base, state, report):
 def _reached_with(live, base, session, pages, state):
     """The pages of `pages` a session reaches (_reached), probed with NOWHERE last; none without pages or a session."""
     from ..app.setup import probe
-    page = probe(live, base, session, None, pages + [NOWHERE]) if pages and (session.is_file() or session == state) else {}
+    page = (probe(live, base, session, None, pages + [NOWHERE])
+            if pages and (session.is_file() or session == state) else {})
     nowhere = nowhere_of(page)
     return {row.get('path') for row in (page.get('others') or [])[:-1] if _reached(row, nowhere)}
 
@@ -103,7 +106,8 @@ def _tried(report):
     sign-in, a page that signs out or deletes, or one proved unreachable; PAGES at most."""
     from ..app.setup import LEAVES, SIGN_IN_PAGE
     owned, gone = [page for view in read(report) for page in view['pages']], proven(report)
-    return [page for page in dict.fromkeys(owned + pages_of(report)) if not page.startswith('/api/') and page not in gone
+    return [page for page in dict.fromkeys(owned + pages_of(report))
+            if not page.startswith('/api/') and page not in gone
             and not re.search(LEAVES, page, re.I) and not SIGN_IN_PAGE.search(page)][:PAGES]
 
 
@@ -115,8 +119,8 @@ def _reached(row, nowhere):
     from ..app.setup import SIGN_IN_PAGE
     path, landed = row.get('path') or '/', urlsplit(row.get('url') or '').path.rstrip('/') or '/'
     if opened(row, nowhere): return True
-    return 200 <= (row.get('status') or 0) < 400 and landed.startswith(path.rstrip('/') + '/') and not row.get('password') \
-        and not SIGN_IN_PAGE.search(landed) \
+    return 200 <= (row.get('status') or 0) < 400 and landed.startswith(path.rstrip('/') + '/') \
+        and not row.get('password') and not SIGN_IN_PAGE.search(landed) \
         and opened({**row, 'password': 0}, nowhere, landed)
 
 
@@ -144,15 +148,15 @@ def _opens(live, base, session, pages):
 def make(project, trial, provider):
     """The assistant's seed script, run on the running app and told what is still lacking, round by round (ROUNDS at
     most): a round that ends with something lacking goes back to the node that owns the views and the way in, the
-    reading of the code (eaos/live/access/roles.py find), with what lacks, and the next round goes on with its answer. What is still
-    lacking ('' when every session works). `trial`: what the script is tried on (Trial)."""
+    reading of the code (eaos/live/access/roles.py find), with what lacks, and the next round goes on with its
+    answer. What is still lacking ('' when every session works). `trial`: what the script is tried on (Trial)."""
     from .roles import find
     wrong = lacking(*trial)
     for again in range(ROUNDS):
         if not wrong: break
         if again:
             try: find(project, trial.report, provider, wrong)
-            except ValueError: pass                # an answer with no real line: the views stay as they were
+            except ValueError as error: noted('an answer with no real line leaves the views as they were', error)
         wrong = _round(project, trial, provider, wrong)
     return wrong
 
@@ -168,19 +172,23 @@ class Trial(NamedTuple):
 
 
 def _round(project, trial, provider, wrong):
-    """One round of make: the assistant told what lacks until nothing does, SECONDS pass or the same lack comes twice."""
+    """One round of make: the assistant told what lacks until nothing does, SECONDS pass or the same lack comes
+    twice."""
     live, report = trial.live, trial.report
     end = time.monotonic() + SECONDS
     messages = _told(project, live, report, trial.hand)
     tried = []
-    while wrong and time.monotonic() < end and tried[-2:] != [wrong, wrong]:    # twice the same lack: nothing more comes
+    # twice the same lack: nothing more comes
+    while wrong and time.monotonic() < end and tried[-2:] != [wrong, wrong]:
         tried.append(wrong)
         messages.append({'role': 'user', 'content': 'What is still lacking: ' + wrong})
         answer, _ = provider.complete(messages, stage='session', reads=live.sandbox.copy, deep=True)
         answer = answer.get('result') or answer
-        refused = add(report, project, answer.get('views') or []) + prove(report, project, answer.get('unreachable') or [])
+        refused = (add(report, project, answer.get('views') or [])
+                   + prove(report, project, answer.get('unreachable') or []))
         script = answer.get('seed_script') or _today(live)        # a verdict alone keeps the script
-        messages.append({'role': 'assistant', 'content': json.dumps({k: answer.get(k) for k in ('seed_script', 'views', 'unreachable')})})
+        messages.append({'role': 'assistant',
+                         'content': json.dumps({k: answer.get(k) for k in ('seed_script', 'views', 'unreachable')})})
         wrong = ('these were not kept: ' + '; '.join(refused) + '. ' if refused else '') + _try(trial, script)
     return wrong
 

@@ -11,17 +11,19 @@
                                              (/items/1 and /items/2, #/tasks/TASK-001 and #/tasks/TASK-004, a list
                                              and its ?filter=) are one page: they are pictured and measured once.
 
-Lighthouse on every crawled route took 28 minutes on EAOS's own Studio (76 routes, most of them the same template
-with other data); a page's speed and accessibility are its template's.
+Lighthouse on every crawled route is slow, and most routes are one template with other data; a page's speed and
+accessibility are its template's.
 """
 import re
 from pathlib import Path
 
 from .audit import _node, lighthouse, missing, toolchain
+from ...core.system.errors import noted
 
 MEASURED = 10                   # pages Lighthouse measures in one crawl
 PUBLISHED_ROUTES, PUBLISHED_MEASURED = 40, 3    # a published site is read gently: a few pages opened, fewer measured
-CRAWL_SECONDS, CRAWL_MARGIN = 1800, 300   # the crawl stops opening pages 5 minutes before its timeout, keeping what it found
+# the crawl stops opening pages 5 minutes before its timeout, keeping what it found
+CRAWL_SECONDS, CRAWL_MARGIN = 1800, 300
 SIBLINGS = 5                    # this many sibling pages under one parent are one template (/blog/<slug>)
 DATA = re.compile(r'\d|%|[()~:@.,;=+]')   # a path segment that carries data: a number, an encoded or punctuated name
 
@@ -40,13 +42,14 @@ def _parts(path):
 def templates(paths, declared=()):
     """{path: template}. A segment after the first that carries data (a number, an encoded or punctuated name) is a
     parameter (:id); so is the last segment of pages that share a parent with SIBLINGS or more other last pages
-    (/#/flows/cli, /#/flows/main, ...), unless the code `declared` the page as one of its own (LocalLibrary's
-    /catalog/books and /catalog/authors were pictured as one). The query is dropped: a filtered list is the list."""
+    (/#/flows/cli, /#/flows/main, ...), unless the code `declared` the page as one of its own (/catalog/books and
+    /catalog/authors are two pages, not one template). The query is dropped: a filtered list is the list."""
     split = {path: _parts(path) for path in paths}
     marked = {path: (prefix, [':id' if i and DATA.search(s) else s for i, s in enumerate(segments)])
               for path, (prefix, segments) in split.items()}
     leaves, named = _leaves(split, marked), {_plain(path) for path in declared}
-    return {path: _plain(path) if _plain(path) in named else _template(prefix, segments, leaves) for path, (prefix, segments) in marked.items()}
+    return {path: _plain(path) if _plain(path) in named else _template(prefix, segments, leaves)
+            for path, (prefix, segments) in marked.items()}
 
 
 def _plain(path):
@@ -66,7 +69,8 @@ def _leaves(split, marked):
 
 
 def _has_pages_under(prefix, segments, shapes):
-    return any(other[0] == prefix and len(other[1]) > len(segments) and other[1][:len(segments)] == tuple(segments) for other in shapes)
+    return any(other[0] == prefix and len(other[1]) > len(segments)
+               and other[1][:len(segments)] == tuple(segments) for other in shapes)
 
 
 def _template(prefix, segments, leaves):
@@ -87,7 +91,7 @@ def distinct(paths, declared=()):
 
 # A screen address the code itself names: '#/now', '/#/plan/today' in a string, as a hash-routed app writes its menu and
 # its redirects. The crawl opens these too, so a screen behind a welcome, a button or a slow first load is still found
-# (an SPA: the app opened on #/onboarding, its tab bar never showed, and the crawl found one page).
+# (an SPA opened on #/onboarding may never show its tab bar, and the crawl would find one page).
 HASH_ROUTE = re.compile(r'''["'`]/?#(/[A-Za-z0-9_-]+(?:/[A-Za-z0-9_-]+)*)/?["'`]''')
 CODE = ('.ts', '.tsx', '.js', '.jsx', '.mjs', '.vue', '.svelte', '.html')
 # In a file that routes by the hash (its own table, a HashRouter), a plain '/now' is a screen too; never an /api call.
@@ -97,13 +101,15 @@ PATH = re.compile(r'''["'`](/(?!api\b)[a-z][a-z0-9_-]*(?:/[a-z0-9_-]+)*)["'`]'''
 
 def code_routes(root, most=100):
     """['/#/now', '/about', ...]: the screens the project names, in the order first met, `most` at most: the hash routes
-    its code names (in an app that routes by the hash, every plain '/now' of its code is one: CoreUI's menu lives in a
-    file of its own, and its form pages were never opened), then the pages its files make (file_routes)."""
+    its code names (in an app that routes by the hash, every plain '/now' of its code is one: a menu kept in a file of
+    its own names pages no link reaches), then the pages its files make (file_routes)."""
     from .file_routes import file_routes
     texts = list(_code_texts(root))
     hashed = any(HASH_ROUTER.search(text) for text in texts)
     found = {}
-    for text in texts: found.update(dict.fromkeys('/#' + route for route in HASH_ROUTE.findall(text) + (PATH.findall(text) if hashed else [])))
+    for text in texts:
+        found.update(dict.fromkeys('/#' + route for route in HASH_ROUTE.findall(text)
+                                   + (PATH.findall(text) if hashed else [])))
     found.update(dict.fromkeys(as_screen(route, hashed) for route in file_routes(root)))
     return list(found)[:most]
 
@@ -113,7 +119,9 @@ def _code_texts(root):
     for row in inventory(root)['files']:
         if not row['path'].endswith(CODE): continue
         try: yield (Path(root) / row['path']).read_text(encoding='utf-8', errors='replace')
-        except OSError: continue
+        except OSError as error:
+            noted('a file that cannot be read has no text', error)
+            continue
 
 
 def hash_routed(root):
@@ -126,7 +134,8 @@ def as_screen(route, hashed):
     return '/#' + route if hashed and route.startswith('/') and '#' not in route else route
 
 
-def discover(base, max_routes=200, storage_state=None, read_only=False, seeds=(), coverage=None):  # limits: parameters -- the crawl's options, each a keyword with its default
+def discover(base,  # limits: parameters -- the crawl's options, each a keyword with its default
+             max_routes=200, storage_state=None, read_only=False, seeds=(), coverage=None):
     """(routes, error): every page of the app reached from `base` by its links, [{path, depth, status}], within half an
     hour. Signed in (`storage_state`), a link that would sign out, delete or change (lock_specs.LEAVES) is never
     followed; `read_only` (a published address) sends nothing but GET; `coverage`: a file for the JavaScript the pages
@@ -134,7 +143,8 @@ def discover(base, max_routes=200, storage_state=None, read_only=False, seeds=()
     from ..behavior.specs import LEAVES
     absent = missing('playwright')
     if absent: return None, absent
-    config = {'base': base, 'max_routes': max_routes, 'modules': {'playwright': str(toolchain.home() / 'node/node_modules')},
+    config = {'base': base, 'max_routes': max_routes,
+              'modules': {'playwright': str(toolchain.home() / 'node/node_modules')},
               'read_only': read_only, 'seeds': list(seeds), 'budget_ms': (CRAWL_SECONDS - CRAWL_MARGIN) * 1000}
     if storage_state: config.update(storage_state=str(storage_state), leaves=LEAVES)
     if coverage: config['coverage'] = str(coverage)
@@ -144,7 +154,8 @@ def discover(base, max_routes=200, storage_state=None, read_only=False, seeds=()
 
 def _measure(row, base, out, number, storage_state):
     """Lighthouse on one page: its scores into the row, else why it could not be measured."""
-    speed = lighthouse(base.rstrip('/') + row['path'], out=out / 'lighthouse' / f'{number:02d}', storage_state=storage_state)
+    speed = lighthouse(base.rstrip('/') + row['path'], out=out / 'lighthouse' / f'{number:02d}',
+                       storage_state=storage_state)
     if speed.get('status') != 'observed':
         row['reason'] = speed.get('reason')
         return
@@ -159,7 +170,8 @@ def crawl(base, out, max_routes=200, measured=MEASURED, **way):
     if read_only: max_routes, measured = min(max_routes, PUBLISHED_ROUTES), min(measured, PUBLISHED_MEASURED)
     routes, error = discover(base, max_routes, **way)
     if routes is None:
-        return {'status': 'unavailable' if error and error.startswith(('not installed', 'Node.js')) else 'error', 'reason': error, 'routes': []}
+        return {'status': 'unavailable' if error and error.startswith(('not installed', 'Node.js')) else 'error',
+                'reason': error, 'routes': []}
     routes = [r for r in routes if r.get('status') == 'observed']
     if not routes: return {'status': 'error', 'reason': 'the crawl opened no page of the app', 'routes': []}
     # a published site: Lighthouse cannot be held to reading only, so it loads the pages as any visitor, signed out

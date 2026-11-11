@@ -1,20 +1,24 @@
-"""One source of business rules (M6.8): the rules of a write compared between the browser and the server.
+"""One source of business rules: the rules of a write compared between the browser and the server.
 
 A number's limits the browser checks before it sends a write (zod or yup: `quantity: z.number().int().min(1).max(10)`)
 must also hold where the write lands: the server's handler of that endpoint, or, when the browser writes to Supabase
 itself, a check constraint of the table. When neither checks it, anyone who sends the request without the screen sets
-any value: the server trusts the client. And a money value (a price, a total, a discount) the screen computes and sends to
-be saved is a business calculation inside the UI.
+any value: the server trusts the client. And a money value (a price, a total, a discount) the screen computes and sends
+to be saved is a business calculation inside the UI.
 """
 import re
 
-LIMITED = re.compile(r'(?P<field>\w+)\s*:\s*(?:z|zod|yup|Yup)\.(?:coerce\.)?number\(\)(?P<chain>(?:\s*\.\s*\w+\([^()]*\))+)')
-LIMIT_CALL = re.compile(r'\.(min|max|int|integer|positive|negative|nonnegative|nonpositive|lt|gt|lte|gte|moreThan|lessThan)\(')
-FETCH = re.compile(r'''(?:fetch|axios\.(?P<verb>post|put|patch|delete)|api\.(?P<verb2>post|put|patch|delete))\(\s*[`'"](?P<url>/[^`'"?]*)''')
+LIMITED = re.compile(r'(?P<field>\w+)\s*:\s*(?:z|zod|yup|Yup)\.(?:coerce\.)?number\(\)'
+                     r'(?P<chain>(?:\s*\.\s*\w+\([^()]*\))+)')
+LIMIT_CALL = re.compile(r'\.(min|max|int|integer|positive|negative|nonnegative|nonpositive|lt|gt|lte|gte|'
+                        r'moreThan|lessThan)\(')
+FETCH = re.compile(r'''(?:fetch|axios\.(?P<verb>post|put|patch|delete)|api\.(?P<verb2>post|put|patch|delete))\('''
+                   r'''\s*[`'"](?P<url>/[^`'"?]*)''')
 FETCH_METHOD = re.compile(r'''method\s*:\s*['"`](?P<method>POST|PUT|PATCH|DELETE)['"`]''', re.I)
 SUPABASE_WRITE = re.compile(r'''\.from\(\s*['"`](?P<table>[\w.]+)['"`]\s*\)\s*\.\s*(?:insert|update|upsert)\b''')
 COMPARISON = r'(?:\s*[<>]=?|\s*\)\s*[<>]|\.(?:min|max|lt|gt|lte|gte|between)\b)'
-MONEY = re.compile(r'(?:const|let|var)\s+(?P<name>\w*(?:price|total|amount|subtotal|discount|tax|fee|cost)\w*)\s*=\s*[^;\n]*[*+\-/]\s*[\w(]', re.I)
+MONEY = re.compile(r'(?:const|let|var)\s+(?P<name>\w*(?:price|total|amount|subtotal|discount|tax|fee|cost)\w*)\s*'
+                   r'=\s*[^;\n]*[*+\-/]\s*[\w(]', re.I)
 SPREAD = re.compile(r'\.\.\.\s*(?:req\.body|request\.body|body|data|payload|input)\b')
 
 
@@ -45,7 +49,8 @@ def _server_checks(field, row, project):
     never reads the field and does not store the whole body."""
     text = '\n'.join(project.lines(row['path'])[row['line'] - 1:row['end']])
     if row['validation']: return True
-    if re.search(r'\b' + re.escape(field) + r'\b' + COMPARISON, text) or re.search(r'[<>]=?\s*\w*\.?' + re.escape(field) + r'\b', text):
+    if re.search(r'\b' + re.escape(field) + r'\b' + COMPARISON, text) \
+            or re.search(r'[<>]=?\s*\w*\.?' + re.escape(field) + r'\b', text):
         return True
     return False if re.search(r'\b' + re.escape(field) + r'\b', text) or SPREAD.search(text) else None
 
@@ -77,13 +82,15 @@ def _browser_only(project, path, endpoints):
     text = project.text(path)
     writes = _writes(text)
     rules = [{'field': field, 'limits': limits, 'path': path, 'line': line} for field, limits, line in _limits(text)]
-    return [found for rule in rules for write in writes for found in [_breach(project, rule, write, endpoints)] if found]
+    return [found for rule in rules for write in writes
+            for found in [_breach(project, rule, write, endpoints)] if found]
 
 
 def _finding(rule, route, at):
     """`rule`: the browser's limit {field, limits, path, line}; `at`: where the write lands unchecked {path, line}."""
     where = f"{rule['path']}:{rule['line']}"
-    return {'rule': 'browser-only-rule', 'path': at['path'], 'line': at['line'], 'evidence': f"{where} {rule['limits']}",
+    return {'rule': 'browser-only-rule', 'path': at['path'], 'line': at['line'],
+            'evidence': f"{where} {rule['limits']}",
             'params': {'field': rule['field'], 'route': route, 'path': at['path'], 'where': where}}
 
 
@@ -93,7 +100,8 @@ def _calculations(project, path):
     found = []
     for match in MONEY.finditer(text):
         name = match.group('name')
-        if re.search(r'\b' + re.escape(name) + r'\b', text[match.end():]) and re.search(r'body|insert|update|upsert', text[match.end():]):
+        if re.search(r'\b' + re.escape(name) + r'\b', text[match.end():]) \
+                and re.search(r'body|insert|update|upsert', text[match.end():]):
             found.append({'rule': 'ui-calculation', 'path': path, 'line': text.count('\n', 0, match.start()) + 1,
                           'evidence': match.group(0).strip()[:160], 'params': {'what': name, 'path': path}})
     return found

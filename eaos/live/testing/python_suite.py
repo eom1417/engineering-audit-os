@@ -1,14 +1,12 @@
 """Which command runs a Python project's own tests from its root (verify.py `python_tests`, read by the coverage stage
 and every batch gate): pytest when the project configures it; else unittest on tests/, on the folders of it that are
 packages too; else the root's tests.py and test_*.py modules by name. A test under a folder unittest cannot enter, or
-under a dependency's folder (node_modules, an environment), is none of the project's. M9.5: the move gate proved
-nothing of a small app keeping its tests at its root; M9.3: EAOS's own check found no suite once its tests were by
-layer."""
+under a dependency's folder (node_modules, an environment), is none of the project's."""
 import sys
 from pathlib import Path
 
-# The interpreter running EAOS is the one sure to exist with the runtime extra: a bare `python` on PATH lost all
-# execution evidence where only `python3` ships.
+# The interpreter running EAOS is the one sure to exist with the runtime extra: a bare `python` on PATH may be missing
+# where only `python3` ships.
 INTERPRETER = sys.executable or 'python3'
 DEFAULT_COMMANDS = [[INTERPRETER, '-m', 'pytest', '-q'], [INTERPRETER, '-m', 'unittest', 'discover', '-s', 'tests']]
 NOT_THE_PROJECTS = {'node_modules', '.venv', 'venv', 'env', 'site-packages', '__pycache__'}
@@ -29,12 +27,14 @@ def _in_tests(root):
     for found in tests.rglob('test_*.py'):
         between = found.relative_to(tests).parts[:-1]
         if NOT_THE_PROJECTS & set(between) or any(part.startswith('.') for part in between): continue
-        if all((tests.joinpath(*between[:depth]) / '__init__.py').is_file() for depth in range(1, len(between) + 1)): return True
+        if all((tests.joinpath(*between[:depth]) / '__init__.py').is_file()
+               for depth in range(1, len(between) + 1)): return True
     return False
 
 
 def _at_root(root):
-    """The root's test modules by name (tests, test_x): named, so nothing else of the project is imported to find them."""
+    """The root's test modules by name (tests, test_x): named, so nothing else of the project is imported to find
+    them."""
     return [p.stem for p in sorted([*root.glob('test_*.py'), *root.glob('tests.py')]) if p.is_file()]
 
 

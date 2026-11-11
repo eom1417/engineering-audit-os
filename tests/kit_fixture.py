@@ -14,14 +14,17 @@ def build(root, stack='js'):
     root = Path(root)
     project, report = root / 'project', root / 'report'
     if stack == 'js':
-        write(project / 'package.json', {'name': 'demo', 'scripts': {'build': 'vite build', 'preview': 'vite preview', 'test': 'vitest run'}})
+        write(project / 'package.json', {'name': 'demo', 'scripts': {
+            'build': 'vite build', 'preview': 'vite preview', 'test': 'vitest run'}})
         write(project / 'bun.lock', '')
         write(project / 'tsconfig.json', '{}')
-        write(project / 'src/pages/Home.tsx', "import { get } from '../lib/Api';\nexport const Home = () => get('/x');\n")
+        write(project / 'src/pages/Home.tsx',
+              "import { get } from '../lib/Api';\nexport const Home = () => get('/x');\n")
         write(project / 'src/lib/Api.ts', 'export const get = (u: string) => fetch(u);\n')
         write(project / 'src/lib/format.ts', "import { get } from './Api';\nexport const f = get;\n")
         reference = 'react-vite-spa-rest'
-        write(report / 'facts/data.json', {'facts': [{'kind': 'data_access', 'value': {'client': 'supabase'}, 'location': {'path': 'src/lib/Api.ts'}}]})
+        write(report / 'facts/data.json', {'facts': [
+            {'kind': 'data_access', 'value': {'client': 'supabase'}, 'location': {'path': 'src/lib/Api.ts'}}]})
     else:
         write(project / 'pyproject.toml', '[project]\nname = "demo"\ndependencies = ["streamlit"]\n')
         write(project / 'run_app.py', 'import views.main\n')
@@ -31,10 +34,12 @@ def build(root, stack='js'):
         write(project / 'services/prices.py', 'def price():\n    return 1\n')
         write(project / 'tests/test_x.py', 'def test_x():\n    assert True\n')
         reference = 'python-desktop'
-    write(report / 'dossier.json', {'provenance': {'target': str(project), 'tool_version': '3.0.0', 'generated_at': 'now'}, 'claims': []})
+    write(report / 'dossier.json', {
+        'provenance': {'target': str(project), 'tool_version': '3.0.0', 'generated_at': 'now'}, 'claims': []})
     write(report / 'target-architecture.json', {'reference': reference, 'target_components': [
         {'name': 'pages', 'layer': 'pages', 'files': 1, 'responsibility': 'screens'},
-        {'name': 'api-client', 'layer': 'api-client', 'files': 1, 'responsibility': 'the only code that knows endpoints'}]})
+        {'name': 'api-client', 'layer': 'api-client', 'files': 1,
+         'responsibility': 'the only code that knows endpoints'}]})
     write(report / 'intake.json', {'run_command': 'bun run preview' if stack == 'js' else None, 'questions': [
         {'id': 'hosting', 'answer': 'Vercel'}], 'scenarios': [
         {'id': 'QS-001', 'kind': 'load', 'stimulus': '100 users', 'response': 'answered in time', 'source': 'default',
@@ -46,7 +51,7 @@ def build(root, stack='js'):
     write(report / 'features.json', {'features': [
         {'name': 'home', 'critical': True, 'surfaces': ['/', '/health']},
         {'name': 'admin', 'critical': False, 'surfaces': ['/admin']}]})
-    for name in ('CURRENT-STATE.md', 'TARGET-STATE.md', 'GAP-AND-STRATEGY.md', 'EXECUTION-PLAN.md'):
+    for name in ('CURRENT-STATE.md', 'EXECUTION-PLAN.md'):
         write(report / name, f'# {name[:-3]}\n\nSee [the run](RUN.md), [the first decision](adr/ADR-001.md) '
                              f'and [the guide](EXECUTION-GUIDE.md).\n')
     write(report / 'RUN.md', '# Run\n\nBack to [the plan](EXECUTION-PLAN.md).\n')

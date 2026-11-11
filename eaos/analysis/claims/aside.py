@@ -1,6 +1,5 @@
 """The claims the ledger sets aside: one breaking an epistemic rule (no evidence, an unknown fact) is kept out with its
-reason and named in the report, the others go on; one builder's slip no longer stops the whole check (excalidraw,
-2026-11-04)."""
+reason and named in the report, and the others go on; one builder's slip does not stop the whole check."""
 from .ledger import _claim_errors, detector_of
 
 

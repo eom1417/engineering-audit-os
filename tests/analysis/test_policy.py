@@ -50,7 +50,8 @@ class PolicyTests(unittest.TestCase):
     def test_the_check_reports_the_honest_status(self):
         # A file outside every layer is unchecked: reporting OK would call unexamined code safe.
         cases = [(False, False, False, 'OK', 0, None), (False, True, False, 'INCOMPLETE', 0, 'app/__init__.py'),
-                 (True, True, False, 'VIOLATED', 1, None), (True, False, False, 'VIOLATED', 1, 'without the model path'),
+                 (True, True, False, 'VIOLATED', 1, None), (True, False, False, 'VIOLATED', 1,
+                                                            'without the model path'),
                  (False, False, True, 'NO_POLICY', 0, 'eaos policy init')]
         for violating, drop_core, remove, status, violations, shown in cases:
             with self.subTest(status=status, drop_core=drop_core), tempfile.TemporaryDirectory() as tmp:

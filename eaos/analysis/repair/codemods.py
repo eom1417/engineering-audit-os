@@ -13,8 +13,8 @@ The mechanical families (eaos/rules/codemods.json) and their tools:
                                     install once. uv: one `uv lock --upgrade-package pkg==fixed` per lock file,
                                     every package of the card in it; go and cargo: eaos/analysis/repair/lock_tools.py
 Each card gets codemod {tool, command, dry_run {exit, files_changed}}. The dry run is the real command on a
-copy made by eaos.live.testing.verify.isolated_copy; files_changed counts files added, removed or modified there. A tool
-that changes nothing did nothing, and says so with files_changed 0. The project is never written.
+copy made by eaos.live.testing.verify.isolated_copy; files_changed counts files added, removed or modified there. A
+tool that changes nothing did nothing, and says so with files_changed 0. The project is never written.
 """
 import ast
 import json
@@ -30,15 +30,17 @@ from ...core import progress
 from ...core.system.files import read_json
 from .actions_upgrade import action_card, bump
 from .lock_tools import LOCK_TOOLS
+from ...core.system.errors import noted
 
 RULES = Path(__file__).resolve().parents[2] / 'rules/codemods.json'
 TRANSFORM = Path(__file__).resolve().parents[2] / 'templates/codemods/remove-declaration.cjs'
-LANGUAGES = {'.py': 'python', '.js': 'javascript', '.jsx': 'javascript', '.ts': 'typescript', '.tsx': 'tsx', '.mjs': 'javascript'}
+LANGUAGES = {'.py': 'python', '.js': 'javascript', '.jsx': 'javascript', '.ts': 'typescript', '.tsx': 'tsx',
+             '.mjs': 'javascript'}
 
 
 def _stats(root):
-    """{path: (size, mtime_ns)} of every project file; tool caches (node_modules/.cache and the like) are not the project.
-    A stat is cheap where reading every file is not: a large project dry-runs hundreds of cards."""
+    """{path: (size, mtime_ns)} of every project file; tool caches (node_modules/.cache and the like) are not the
+    project. A stat is cheap where reading every file is not: a large project dry-runs hundreds of cards."""
     import os
     from ...core.project.workspace import SKIP_DIRS
     root, found = Path(root), {}
@@ -47,7 +49,9 @@ def _stats(root):
         for name in names:
             path = Path(base) / name
             try: stat = path.stat()
-            except OSError: continue
+            except OSError as error:
+                noted('a file that vanished or cannot be read is left out of the listing', error)
+                continue
             found[path.relative_to(root).as_posix()] = (stat.st_size, stat.st_mtime_ns)
     return found
 
@@ -100,7 +104,8 @@ def binary(tool):
 NPM_FLAGS = ['--package-lock-only', '--ignore-scripts', '--no-audit', '--no-fund', '--loglevel=error']
 # Each package.json manager's (command that sets one dependency, flags that write only the lock and run no script of the
 # project, the flag naming the folder). bun keeps a dev dependency in devDependencies and reads npm's overrides keys.
-LOCK_ONLY = {'npm': ('install', NPM_FLAGS, '--prefix'), 'bun': ('add', ['--lockfile-only', '--ignore-scripts'], '--cwd')}
+LOCK_ONLY = {'npm': ('install', NPM_FLAGS, '--prefix'),
+             'bun': ('add', ['--lockfile-only', '--ignore-scripts'], '--cwd')}
 
 
 def _manifest_steps(detail, executable, copy):
@@ -127,7 +132,8 @@ def _override(manifest, key, fixed):
     data = json.loads(text)
     data.setdefault('overrides', {})[key] = fixed
     indent = re.search(r'\n([ \t]+)"', text)
-    manifest.write_text(json.dumps(data, indent=indent[1] if indent else 2, ensure_ascii=False) + '\n', encoding='utf-8')
+    manifest.write_text(json.dumps(data, indent=indent[1] if indent else 2, ensure_ascii=False) + '\n',
+                        encoding='utf-8')
 
 
 def _commands(card, copy):
@@ -140,7 +146,8 @@ def _commands(card, copy):
                  f"python-ast remove {detail['symbol']} from {detail['path']}")]
     if kind == 'jscodeshift':
         found = binary('jscodeshift')
-        return [([found, '-t', str(TRANSFORM), '--parser=tsx', f"--name={detail['symbol']}", detail['path']], None)] if found else None
+        return [([found, '-t', str(TRANSFORM), '--parser=tsx', f"--name={detail['symbol']}",
+                  detail['path']], None)] if found else None
     if kind in (*LOCK_ONLY, *LOCK_TOOLS, 'uv', 'actions'): return _upgrade_steps(detail, copy)
     return None
 
@@ -149,7 +156,9 @@ def _upgrade_steps(card, copy):
     """The steps of an upgrade card, one package's or a lock file card's, by its lock file's tool."""
     members, executable = card.get('group') or [card], binary(card['kind']) or card['kind']
     if card['kind'] in LOCK_TOOLS: return LOCK_TOOLS[card['kind']](members, executable, copy)
-    if card['kind'] == 'actions': return [(partial(bump, copy, m['package'], m['fixed']), f"uses: {m['package']}@{m['fixed']}") for m in members]
+    if card['kind'] == 'actions':
+        return [(partial(bump, copy, m['package'], m['fixed']), f"uses: {m['package']}@{m['fixed']}")
+                for m in members]
     return _uv_steps(members, executable) if card['kind'] == 'uv' else _group_steps(members, executable, copy)
 
 
@@ -179,7 +188,8 @@ def _run_step(step, description, copy):
     import os
     done = subprocess.run(step, cwd=copy, capture_output=True, text=True, timeout=600,  # nosemgrep: python.lang.security.audit.dangerous-subprocess-use-audit -- a codemod's argv built here (jscodeshift, npm --ignore-scripts), run in an isolated copy, no shell
                           env={**os.environ, 'BABEL_DISABLE_CACHE': '1'})
-    return done.returncode, shlex.join([Path(step[0]).name, *step[1:]]).replace(str(TRANSFORM), 'eaos/templates/codemods/remove-declaration.cjs')
+    return done.returncode, shlex.join([Path(step[0]).name, *step[1:]]).replace(
+        str(TRANSFORM), 'eaos/templates/codemods/remove-declaration.cjs')
 
 
 def _run_steps(steps, copy):
@@ -229,7 +239,8 @@ def card_for(task, facts_by_id, target):
 
 
 def _upgrades_card(facts, target):
-    """A lock file card's packages each get their own change, and the card passes or fails whole; one package: its own."""
+    """A lock file card's packages each get their own change, and the card passes or fails whole; one package: its
+    own."""
     members = [action_card(fact) or _upgrade_card(fact, target) for fact in facts]
     if not members or None in members: return None
     return members[0] if len(members) == 1 else {'kind': members[0]['kind'], 'group': _past_vulnerable(members)}
@@ -275,9 +286,11 @@ def _upgrade_card(fact, target):
     lock = PurePosixPath(fact['location'].get('path') or 'package-lock.json')
     kind, folder = _upgrade_tools().get(lock.name), str(lock.parent)
     if not kind or not fixed or not (Path(target) / lock).is_file(): return None
-    if kind not in LOCK_ONLY: return {'kind': kind, 'package': package, 'version': version, 'fixed': fixed, 'folder': folder}
+    if kind not in LOCK_ONLY: return {'kind': kind, 'package': package, 'version': version, 'fixed': fixed,
+                                      'folder': folder}
     folders = _upgrade_folders(target, lock, package, version)
-    return {'kind': kind, 'package': package, 'version': version, 'fixed': fixed, 'direct': _direct_in(target, folder, package), 'folder': folder,
+    return {'kind': kind, 'package': package, 'version': version, 'fixed': fixed,
+            'direct': _direct_in(target, folder, package), 'folder': folder,
             'folders': [(where, _direct_in(target, where, package)) for where in folders]}
 
 
@@ -287,7 +300,8 @@ def _upgrade_tools():
 
 
 def _upgrade_folders(target, lock, package, version):
-    """The folder of the lock file the scanner read, then the others holding the same version, each with a package.json."""
+    """The folder of the lock file the scanner read, then the others holding the same version, each with a
+    package.json."""
     # The same vulnerable version in another lock file of the project (a server/ beside the app) is the same
     # problem: the card's acceptance scans the whole project, so every such lock file is upgraded with it (npm's).
     others = _lock_folders_with(target, package, version) if lock.name == 'package-lock.json' else []
@@ -301,7 +315,8 @@ def _lock_folders_with(target, package, version):
     for lock in sorted(Path(target).rglob('package-lock.json')):
         if 'node_modules' in lock.parts: continue
         packages = read_json(lock, {}).get('packages') or {}
-        if any(key.split('node_modules/')[-1] == package and (row or {}).get('version') == version for key, row in packages.items()):
+        if any(key.split('node_modules/')[-1] == package and (row or {}).get('version') == version
+               for key, row in packages.items()):
             found.append(str(PurePosixPath(lock.relative_to(target).as_posix()).parent))
     return found
 
@@ -312,14 +327,17 @@ MANAGERS = {'package-lock.json': ('npm', 'npm install {package}@{fixed}'), 'bun.
             'bun.lockb': ('bun', 'bun update {package}'), 'pnpm-lock.yaml': ('pnpm', 'pnpm update {package}'),
             'yarn.lock': ('yarn', 'yarn up {package}'), 'uv.lock': ('uv', 'uv lock --upgrade-package {package}'),
             'poetry.lock': ('poetry', 'poetry update {package}'), 'Pipfile.lock': ('pipenv', 'pipenv update {package}'),
-            'go.mod': ('go', 'go get {package}@v{fixed} && go mod tidy'), 'go.sum': ('go', 'go get {package}@v{fixed} && go mod tidy'),
+            'go.mod': ('go', 'go get {package}@v{fixed} && go mod tidy'),
+            'go.sum': ('go', 'go get {package}@v{fixed} && go mod tidy'),
             'Cargo.lock': ('cargo', 'cargo update -p {package} --precise {fixed}'),
-            'Gemfile.lock': ('bundle', 'bundle update {package}'), 'composer.lock': ('composer', 'composer update {package}')}
+            'Gemfile.lock': ('bundle', 'bundle update {package}'),
+            'composer.lock': ('composer', 'composer update {package}')}
 
 
 def manual_upgrade(path, package, fixed):
-    """Why a batch cannot move `package` in the lock file at `path`, as {'why', 'tool', 'lock', 'command'}; None when it
-    can, or when the site is no lock file (a requirements.txt is a text edit). 'lock' is a component no lock file names."""
+    """Why a batch cannot move `package` in the lock file at `path`, as {'why', 'tool', 'lock', 'command'}; None when
+    it can, or when the site is no lock file (a requirements.txt is a text edit). 'lock' is a component no lock file
+    names."""
     lock = PurePosixPath(path).name
     if lock == 'sbom.cdx.json': return {'why': 'lock', 'tool': '', 'lock': lock, 'command': ''}
     if lock not in MANAGERS: return None
@@ -349,8 +367,8 @@ def attach(tasks, out, target):
     from ...live.testing.verify import isolated_copy
     holder = Path(tempfile.mkdtemp(prefix='eaos-codemod-'))
     try:
-        # One copy for the whole run, put back after every card: a copy per card on a large project was
-        # hundreds of full copies, and none of them was ever removed.
+        # One copy for the whole run, put back after every card: a copy per card on a large project would be
+        # hundreds of full copies.
         return _try_cards(cards, target, isolated_copy(Path(target), holder / 'project'))
     finally:
         shutil.rmtree(holder, ignore_errors=True)

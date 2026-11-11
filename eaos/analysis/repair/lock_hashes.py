@@ -1,7 +1,7 @@
 """Every integrity hash a change adds to a lock file, checked against the registry it names: a hash written by hand is
-refused. An assistant bumped a package in an npm lock and wrote four hashes "from memory"; two were wrong, so `npm ci`
-failed there, and the batch's checks had passed it (a stranger's mobile app, 2026-11-04). npm's package-lock.json and
-npm-shrinkwrap.json (`dist.integrity` of the registry's version record), uv.lock (PyPI's sha256 of each file)."""
+refused. A wrong hash makes `npm ci` fail while the batch's own checks still pass, which is what an assistant gets by
+writing the hashes of a bumped package "from memory". npm's package-lock.json and npm-shrinkwrap.json
+(`dist.integrity` of the registry's version record), uv.lock (PyPI's sha256 of each file)."""
 import json
 import re
 from pathlib import Path
@@ -14,8 +14,8 @@ TARBALL = re.compile(r'^(https?://.+?)/((?:@[^/]+/)?([^/]+))/-/\3-(.+)\.tgz$')
 
 
 def wrong(root, changed):
-    """What is wrong with the hashes the last commit of the copy `root` added, one line each: only the hashes that change
-    wrote are asked for, against the lock file's text in the commit before it."""
+    """What is wrong with the hashes the last commit of the copy `root` added, one line each: only the hashes that
+    change wrote are asked for, against the lock file's text in the commit before it."""
     found = []
     for path in changed:
         name, file = Path(path).name, Path(root) / path
@@ -60,7 +60,8 @@ def _checked(added, npm):
         record, what = records[key], pair[0] if npm else pair[2]
         if record is None: said.append(f'the hash of {what} could not be checked against its registry')
         elif (_npm_hash(record) != pair[1]) if npm else (_pypi_sha(record, pair[2]) != pair[3]):
-            said.append(f'the hash of {what} is not the one its registry publishes: a lock file is written by its own tool, never by hand')
+            said.append(f'the hash of {what} is not the one its registry publishes: '
+                        'a lock file is written by its own tool, never by hand')
     return said
 
 

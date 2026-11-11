@@ -9,6 +9,7 @@ import unittest
 from pathlib import Path
 from unittest import mock
 
+from needs import needs
 from eaos.core import toolchain
 from eaos.live.screens import audit
 from shared_fixture import TemporaryWorkspace
@@ -30,13 +31,14 @@ BROWSER_MISSING = audit.missing('playwright', 'axe-core')
 LIGHTHOUSE_MISSING = audit.missing('playwright', 'lighthouse')
 
 
-@unittest.skipIf(BROWSER_MISSING, f'screen tools not installed: {BROWSER_MISSING}')
+@needs(BROWSER_MISSING and f'screen tools not installed: {BROWSER_MISSING}')
 class PageAuditTests(TemporaryWorkspace):
     @classmethod
     def setUpClass(cls):
         cls.out = cls.workspace().name
         # A hash route names its picture (#/problems), as the Studio's screens are reached
-        cls.result = audit.page_audit([url(name) + ('#/problems/open' if name == 'clean' else '') for name in PAGES], out=cls.out)
+        cls.result = audit.page_audit([url(name) + ('#/problems/open' if name == 'clean' else '')
+                                       for name in PAGES], out=cls.out)
 
     def observed(self, name):
         return [row for row in rows_of(self.result, name) if row['status'] == 'observed']
@@ -49,13 +51,15 @@ class PageAuditTests(TemporaryWorkspace):
         self.assertEqual((self.result['tools']['playwright'], self.result['tools']['axe-core']), ('1.63.0', '4.13.0'))
         rows = self.observed('clean')
         self.assertEqual(rows[0]['axe']['version'], '4.13.0')
-        self.assertEqual(sorted((r['variant'], r['viewport']) for r in rows), sorted(('default', s['name']) for s in audit.VIEWPORTS))
+        self.assertEqual(sorted((r['variant'], r['viewport']) for r in rows),
+                         sorted(('default', s['name']) for s in audit.VIEWPORTS))
         self.assertEqual([r['failures'] for r in rows], [[]] * 3)
-        # The self-check pictured every page light and dark (308 pictures); one theme, the app's own, by default
+        # By default one theme, the app's own, is pictured, not every page in light and dark.
         self.assertEqual(len(self.result['rows']), len(PAGES) * len(audit.VIEWPORTS))
         phone = self.phone('clean')
         self.assertEqual((phone['mobile'], phone['layout_width']), (True, 390), 'a phone is emulated')
-        self.assertEqual((phone['overflow_element_count'], phone['scroll_width']), (0, 390), 'a data-scroll-x scroller is not overflow')
+        self.assertEqual((phone['overflow_element_count'], phone['scroll_width']), (0, 390),
+                         'a data-scroll-x scroller is not overflow')
         self.assertEqual(phone['truncated_count'], 0)
         self.assertGreater(phone['page_height'], 300)
         self.assertEqual(audit.failures(phone, height_budget=2), [])
@@ -67,10 +71,12 @@ class PageAuditTests(TemporaryWorkspace):
 
     def test_layout_faults_fail_where_they_happen_and_only_there(self):
         overflow = {r['viewport']: r for r in self.observed('overflow')}
-        self.assertTrue(any(f.startswith('overflow:') for f in overflow['phone']['failures']), overflow['phone']['failures'])
+        self.assertTrue(any(f.startswith('overflow:') for f in overflow['phone']['failures']),
+                        overflow['phone']['failures'])
         self.assertGreater(overflow['phone']['scroll_width'], 390)
         self.assertEqual(overflow['desktop']['failures'], [])
-        # Under mobile emulation an overflowing page widens innerWidth to its content; the gate judges the configured 390.
+        # Under mobile emulation an overflowing page widens innerWidth to its content; the gate judges
+        # the configured 390.
         self.assertEqual((overflow['phone']['layout_width'], overflow['phone']['inner_width']), (716, 390))
         self.assertTrue(overflow['phone']['failures'][0].startswith('layout_width: the page laid out 716px'))
         meta = {r['viewport']: r for r in self.observed('no-viewport-meta')}
@@ -98,7 +104,7 @@ class PageAuditTests(TemporaryWorkspace):
             self.assertTrue(any(f.startswith('truncation: 2 ') for f in row['failures']), row['failures'])
 
 
-@unittest.skipIf(BROWSER_MISSING, f'screen tools not installed: {BROWSER_MISSING}')
+@needs(BROWSER_MISSING and f'screen tools not installed: {BROWSER_MISSING}')
 class PageStateTests(unittest.TestCase):
     """Language, theme, actions and the subset of a page: the page measured in the state a person reaches."""
 
@@ -108,38 +114,50 @@ class PageStateTests(unittest.TestCase):
         self.assertEqual(list(rows), ['ar-light', 'en-light', 'ar-dark', 'en-dark'])
         self.assertEqual((rows['ar-dark']['storage'], rows['ar-dark']['query'], rows['ar-dark']['color_scheme']),
                          ({'studio-lang': 'ar'}, {'theme': 'dark'}, 'dark'))
-        self.assertEqual([(v['name'], v['storage'], v['query'], v['color_scheme']) for v in audit.variants(theme_key='t', theme_param='t')],
+        self.assertEqual([(v['name'], v['storage'], v['query'], v['color_scheme'])
+                          for v in audit.variants(theme_key='t', theme_param='t')],
                          [('default', {}, {}, 'light')], "by default nothing is set: the app's own theme")
         # The theme kept in a key's JSON object (the EAOS Studio's "eaos.report.studio"): merged in, so dark is pictured
-        in_json = audit.variants(lang_key='studio-lang', theme_key='studio', theme_field='theme', themes=('light', 'dark'))
-        self.assertEqual({v['name']: v['storage'] for v in in_json}['ar-dark'], {'studio-lang': 'ar', 'studio': {'theme': 'dark'}})
-        self.assertEqual(audit.variants(lang_key='p', lang_field='lang', theme_key='p', theme_field='theme', themes=('dark',))[-1]['storage'],
+        in_json = audit.variants(lang_key='studio-lang', theme_key='studio', theme_field='theme',
+                                 themes=('light', 'dark'))
+        self.assertEqual({v['name']: v['storage'] for v in in_json}['ar-dark'],
+                         {'studio-lang': 'ar', 'studio': {'theme': 'dark'}})
+        self.assertEqual(audit.variants(lang_key='p', lang_field='lang', theme_key='p', theme_field='theme',
+                                        themes=('dark',))[-1]['storage'],
                          {'p': {'lang': 'en', 'theme': 'dark'}})
         result = audit.page_audit([url('bilingual')], viewports=audit.VIEWPORTS[:1], page_variants=in_json)
         found = {r['variant']: r for r in result['rows']}
         self.assertEqual((found['ar-dark']['lang'], found['ar-dark']['dir']), ('ar', 'rtl'))
         self.assertEqual((found['en-light']['lang'], found['en-light']['dir']), ('en', 'ltr'))
-        self.assertEqual((found['ar-dark']['root_attributes']['data-theme'], found['en-light']['root_attributes']['data-theme']), ('dark', 'light'))
+        self.assertEqual((found['ar-dark']['root_attributes']['data-theme'],
+                          found['en-light']['root_attributes']['data-theme']), ('dark', 'light'))
         self.assertEqual([r['failures'] for r in found.values()], [[]] * 4)
 
-    def test_an_opened_state_fails_on_what_the_action_revealed_a_page_keeps_to_its_subset_and_reaches_nothing_else(self):
+    def test_an_opened_state_fails_on_what_the_action_revealed_a_page_keeps_to_its_subset_and_reaches_nothing_else(
+            self):
         phone, one = audit.VIEWPORTS[:1], audit.variants(themes=('light',))
-        page = {'url': url('opened'), 'name': 'opened', 'actions': [{'click': '#open', 'wait': 100}], 'height_budget': 0.1}
+        page = {'url': url('opened'), 'name': 'opened', 'actions': [{'click': '#open', 'wait': 100}],
+                'height_budget': 0.1}
         result = audit.page_audit([url('opened'), page], viewports=phone, page_variants=one)
-        self.assertEqual(next(r for r in result['rows'] if r['page'] is None)['failures'], [], 'the page as loaded passes')
+        self.assertEqual(next(r for r in result['rows'] if r['page'] is None)['failures'], [],
+                         'the page as loaded passes')
         opened = next(r for r in result['rows'] if r['page'] == 'opened')
         self.assertEqual(opened['page_errors'], ['opened with an error'])
         self.assertEqual([s.split(' > ')[-1] for s in opened['arabic_tracking']], ['p.tracked'])
         self.assertEqual(opened['root_attributes'], {'lang': 'ar', 'dir': 'rtl'})
-        self.assertLessEqual({'overflow', 'arabic_tracking', 'script_errors', 'height'}, {f.split(':')[0] for f in opened['failures']})
-        subset = audit.page_audit([{'url': url('clean'), 'name': 'clean', 'viewports': ['phone'], 'variants': ['dark']}],
+        self.assertLessEqual({'overflow', 'arabic_tracking', 'script_errors', 'height'},
+                             {f.split(':')[0] for f in opened['failures']})
+        subset = audit.page_audit([{'url': url('clean'), 'name': 'clean', 'viewports': ['phone'],
+                                    'variants': ['dark']}],
                                   page_variants=audit.variants(themes=('light', 'dark')))
         self.assertEqual([(r['viewport'], r['variant']) for r in subset['rows']], [('phone', 'dark')])
         with tempfile.TemporaryDirectory() as folder:
             page = Path(folder) / 'remote.html'
             page.write_text('<!doctype html><html lang="en"><head><title>t</title></head><body><main><h1>t</h1>'
-                            '<img src="https://example.invalid/pixel.png" alt="pixel"></main></body></html>', encoding='utf-8')
-            result = audit.page_audit([page.as_uri()], viewports=audit.VIEWPORTS[:1], page_variants=audit.variants(themes=('light',)))
+                            '<img src="https://example.invalid/pixel.png" alt="pixel">'
+                            '</main></body></html>', encoding='utf-8')
+            result = audit.page_audit([page.as_uri()], viewports=audit.VIEWPORTS[:1],
+                                      page_variants=audit.variants(themes=('light',)))
         self.assertEqual(result['rows'][0]['blocked_requests'], ['https://example.invalid/pixel.png'])
 
 class ServeAndLighthouseTests(unittest.TestCase):
@@ -155,7 +173,7 @@ class ServeAndLighthouseTests(unittest.TestCase):
                 self.assertEqual(answer.read(), body)
         self.assertEqual(body, (FIXTURES / 'clean.html').read_bytes())
 
-    @unittest.skipIf(LIGHTHOUSE_MISSING, f'lighthouse not installed: {LIGHTHOUSE_MISSING}')
+    @needs(LIGHTHOUSE_MISSING and f'lighthouse not installed: {LIGHTHOUSE_MISSING}')
     def test_mobile_scores_lcp_and_cls_of_a_local_page(self):
         with audit.serve(FIXTURES) as base:
             found = audit.lighthouse(base + 'unlabelled.html')
@@ -179,33 +197,42 @@ class ServeAndLighthouseTests(unittest.TestCase):
 
 class DistinctPagesTests(unittest.TestCase):
     def test_pages_of_one_template_with_other_data_are_pictured_once(self):
-        # The self-check pictured 77 routes of the Studio, 8 task pages and 8 flow pages among them, each light and dark
+        # a hash-routed app has many routes (task pages, flow pages); pages of one template are pictured once, not each
+        # in light and dark
         from eaos.live.screens.crawl import distinct
-        crawled = ['/', '/#/', '/#/problems', '/#/problems?severity=low', '/#/tasks/TASK-001', '/#/tasks/TASK-004',
-                   '/#/plans/fix', '/#/plans/fix/M01', '/#/plans/fix/M02', '/#/system/f/eaos%2Fplan.py%23confirm',
-                   '/#/system/functions', '/#/system/paths', '/#/system/pipeline', '/#/history', '/#/history/e8fb378a06cc',
-                   '/#/change', '/#/change/gaps', '/#/change/ideal', '/about#team', '/items/1', '/items/2', '/index.html']
-        crawled += [f'/#/flows/{name}' for name in ('cli', 'main', 'root-shell', 'codex-adapter-main', 'contracts-main')]
-        crawled += [f'/#/change/gaps/{name}' for name in ('eaos', 'eaos%2Fstudio', '(root)', 'eaos%2Ffacts', 'eaos%2Fengines')]
+        crawled = ['/', '/#/', '/#/problems', '/#/problems?severity=low', '/#/tasks/TASK-001',
+                   '/#/tasks/TASK-004', '/#/plans/fix', '/#/plans/fix/M01', '/#/plans/fix/M02',
+                   '/#/system/f/eaos%2Fplan.py%23confirm', '/#/system/functions', '/#/system/paths',
+                   '/#/system/pipeline', '/#/history', '/#/history/e8fb378a06cc',
+                   '/#/change', '/#/change/gaps', '/#/change/ideal', '/about#team', '/items/1', '/items/2',
+                   '/index.html']
+        crawled += [f'/#/flows/{name}'
+                    for name in ('cli', 'main', 'root-shell', 'codex-adapter-main', 'contracts-main')]
+        crawled += [f'/#/change/gaps/{name}'
+                    for name in ('eaos', 'eaos%2Fstudio', '(root)', 'eaos%2Ffacts', 'eaos%2Fengines')]
         found = distinct(crawled)
-        self.assertEqual(list(found), ['/', '/#/problems', '/#/tasks/:id', '/#/plans/fix', '/#/plans/fix/:id', '/#/system/f/:id',
-                                       '/#/system/functions', '/#/system/paths', '/#/system/pipeline', '/#/history', '/#/history/:id',
-                                       '/#/change', '/#/change/gaps', '/#/change/ideal', '/about', '/items/:id', '/#/flows/:id',
-                                       '/#/change/gaps/:id'])
-        self.assertEqual((found['/'], found['/#/tasks/:id'][0], len(found['/#/flows/:id'])), (['/', '/#/', '/index.html'], '/#/tasks/TASK-001', 5))
+        self.assertEqual(list(found), ['/', '/#/problems', '/#/tasks/:id', '/#/plans/fix', '/#/plans/fix/:id',
+                                       '/#/system/f/:id', '/#/system/functions', '/#/system/paths',
+                                       '/#/system/pipeline', '/#/history', '/#/history/:id', '/#/change',
+                                       '/#/change/gaps', '/#/change/ideal', '/about', '/items/:id',
+                                       '/#/flows/:id', '/#/change/gaps/:id'])
+        self.assertEqual((found['/'], found['/#/tasks/:id'][0], len(found['/#/flows/:id'])),
+                         (['/', '/#/', '/index.html'], '/#/tasks/TASK-001', 5))
 
 
 class FailureRuleTests(unittest.TestCase):
     def row(self, **change):
-        row = {'status': 'observed', 'url': 'http://127.0.0.1/p.html', 'width': 390, 'inner_width': 390, 'scroll_width': 390,
-               'overflow_element_count': 0, 'scroll': {'x': 0, 'y': 0}, 'small_target_count': 0, 'axe': {'violations': []}}
+        row = {'status': 'observed', 'url': 'http://127.0.0.1/p.html', 'width': 390, 'inner_width': 390,
+               'scroll_width': 390, 'overflow_element_count': 0, 'scroll': {'x': 0, 'y': 0},
+               'small_target_count': 0, 'axe': {'violations': []}}
         return {**row, **change}
 
     def test_what_fails_a_row_and_what_does_not_and_a_variant_the_page_did_not_apply_says_how(self):
         minor = [{'id': 'region', 'impact': 'moderate', 'nodes': 1}, {'id': 'x', 'impact': 'minor', 'nodes': 1}]
         wide = {'width': 768, 'inner_width': 768, 'scroll_width': 768}
         passing = (({'axe': {'violations': minor}}, None), ({'layout_width': 390}, None),
-                   ({'url': 'http://127.0.0.1/p.html#details', 'scroll': {'x': 0, 'y': 300}}, None),     # an anchor may open scrolled
+                   # an anchor may open scrolled
+                   ({'url': 'http://127.0.0.1/p.html#details', 'scroll': {'x': 0, 'y': 300}}, None),
                    ({'url': 'http://127.0.0.1/index.html#/problems'}, None),
                    ({**wide, 'small_target_count': 2}, None),
                    ({'height': 844, 'page_height': 1600}, 2), ({'height': 844, 'page_height': 1800}, None),
@@ -216,7 +243,9 @@ class FailureRuleTests(unittest.TestCase):
         failing = (({'axe': {'violations': [{'id': 'label', 'impact': 'serious', 'nodes': 2}]}}, 'axe:', None),
                    ({'layout_width': 980}, 'layout_width:', None),
                    ({'scroll': {'x': -120, 'y': 0}}, 'initial_scroll:', None),
-                   ({'url': 'http://127.0.0.1/index.html#/problems', 'scroll': {'x': 0, 'y': 300}}, 'initial_scroll:', None),  # a hash route
+                   # a hash route
+                   ({'url': 'http://127.0.0.1/index.html#/problems', 'scroll': {'x': 0, 'y': 300}},
+                    'initial_scroll:', None),
                    ({'small_target_count': 2}, 'targets:', None),
                    ({'height': 844, 'page_height': 1800}, 'height:', 2),
                    ({'arabic_tracking_count': 1, 'arabic_tracking': ['p.x']}, 'arabic_tracking:', None),
@@ -230,7 +259,8 @@ class FailureRuleTests(unittest.TestCase):
         right = {'dir': 'rtl', 'root_attributes': {'lang': 'ar', 'dir': 'rtl', 'data-theme': 'dark'}}
         self.assertEqual(audit.failures(self.row(expect=expect, **right)), [])
         wrong = audit.failures(self.row(expect=expect, dir='ltr', root_attributes={'lang': 'en', 'data-theme': 'dark'}))
-        self.assertEqual(wrong, ["variant: the page did not apply it: dir='ltr' (expected 'rtl'), lang='en' (expected 'ar')"])
+        self.assertEqual(wrong, [
+            "variant: the page did not apply it: dir='ltr' (expected 'rtl'), lang='en' (expected 'ar')"])
 
 if __name__ == '__main__':
     unittest.main()

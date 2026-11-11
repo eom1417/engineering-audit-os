@@ -2,10 +2,10 @@
 
 A project may commit what its build makes (EAOS ships its built Studio in eaos/data/studio, and a test checks it is
 built from today's source). A batch that changes that source then fails the project's checks together, though every
-change is right, and the assistant cannot run the build from its edits (EAOS on itself, 2026-10-13: four sound Studio
-fixes were about to be left out for it). So when the batch's changes touch the app the run profile builds, its
-build runs in a sandbox copy of the batch, and every file it changed that git keeps comes back as one commit on top.
-A build that fails changes nothing here: the project's own checks then say why.
+change is right, and the assistant cannot run the build from its edits: sound fixes would be left out for it. So when
+the batch's changes touch the app the run profile builds, its build runs in a sandbox copy of the batch, and every
+file it changed that git keeps comes back as one commit on top. A build that fails changes nothing here: the
+project's own checks then say why.
 """
 import subprocess
 from pathlib import Path
@@ -23,7 +23,8 @@ def regenerate(root, runtime, base, number):
     try:
         profile = load_profile(runtime)
         build = (profile.get('baseline') or {}).get('build') or profile.get('build')
-        if not build or not git(root, 'diff', '--name-only', f'{base}..HEAD', '--', profile.get('app') or '.').stdout.strip(): return None
+        if not build or not git(root, 'diff', '--name-only', f'{base}..HEAD', '--',
+                                profile.get('app') or '.').stdout.strip(): return None
         live = LiveRun(root, runtime, 'S09', mode='baseline')
     except AuthorizationError: return None                  # the app may not run here: nothing to build it with
     try:
@@ -40,18 +41,18 @@ def regenerate(root, runtime, base, number):
 
 
 def keep_guide(root, report, project, number, base):
-    """The project's extension guide (M18.3) brought up to date as one commit on top of the batch, from the check's own
-    read, only when the project held one at `base` and the batch moved or removed a path it names; else None. A fix batch
-    never writes a guide or a context file the project did not have: a guide is made by the context batch, on a branch of
-    its own (DECISIONS "Repository craft"; on five real projects every fix branch carried three files the person never
-    asked for). A batch never fails for its guide."""
+    """The project's extension guide brought up to date as one commit on top of the batch, from the check's own read,
+    only when the project held one at `base` and the batch moved or removed a path it names; else None. A fix batch
+    never writes a guide or a context file the project did not have: a guide is made by the context batch, on a branch
+    of its own, so a fix branch never carries files the person never asked for. A batch never fails for its guide."""
     from .waves import commit
     from ...analysis.repair import project_guide
     path = project_guide.existing(root, base)
     if not path or not _moved_named(root, base, path): return None
     drawn = project_guide.drawn_from_report(root, report, project)
     if not drawn or not project_guide.refresh(root, path, drawn, Path(project).name): return None
-    try: return commit(root, {'id': 'EXTENDING', 'title': 'Update the extension guide for the moved files', 'key': f'extending-{number}'})
+    try: return commit(root, {'id': 'EXTENDING', 'title': 'Update the extension guide for the moved files',
+                              'key': f'extending-{number}'})
     except RuntimeError: return None
 
 
@@ -65,12 +66,14 @@ def _moved_named(root, base, path):
 
 def _bring_back(root, copy):
     """Every file the build changed in `copy` that git keeps in `root`, written there; tracked files it removed,
-    removed. The copy started as exactly the tracked files of `root`'s commit (eaos/live/isolation/sandbox.py committed_copy)."""
+    removed. The copy started as exactly the tracked files of `root`'s commit (eaos/live/isolation/sandbox.py
+    committed_copy)."""
     tracked = set(git(root, 'ls-files').stdout.splitlines())
     made = _files(copy)
     ignored = set(subprocess.run(['git', '-C', str(root), 'check-ignore', '--stdin'], input='\n'.join(made),
                                  capture_output=True, text=True).stdout.splitlines())
-    changed = [rel for rel in made if rel not in ignored and (rel not in tracked or (root / rel).read_bytes() != (copy / rel).read_bytes())]
+    changed = [rel for rel in made if rel not in ignored
+               and (rel not in tracked or (root / rel).read_bytes() != (copy / rel).read_bytes())]
     for rel in changed:
         (root / rel).parent.mkdir(parents=True, exist_ok=True)
         (root / rel).write_bytes((copy / rel).read_bytes())
@@ -81,4 +84,5 @@ def _bring_back(root, copy):
 
 def _files(copy):
     """Every file of `copy`, relative to it, outside node_modules and .git."""
-    return [str(p.relative_to(copy)) for p in copy.rglob('*') if p.is_file() and not {'node_modules', '.git'} & set(p.relative_to(copy).parts)]
+    return [str(p.relative_to(copy)) for p in copy.rglob('*')
+            if p.is_file() and not {'node_modules', '.git'} & set(p.relative_to(copy).parts)]

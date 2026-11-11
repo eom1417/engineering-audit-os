@@ -1,12 +1,13 @@
 """Endpoints the framework detectors do not name: a Node server written on node:http alone, Next.js server actions and
-Supabase edge functions. Each is a way into the program a person's browser reaches (M6.4)."""
+Supabase edge functions. Each is a way into the program a person's browser reaches."""
 import re
 
 LANGUAGES = ('javascript', 'typescript', 'tsx')
 NODE_SERVER = re.compile(r'\b(?:http|https)\.createServer\s*\(|\bcreateServer\s*\(')
-# `if (url.pathname === '/api/x' && req.method === 'POST') return handler(req, res);`, or `.startsWith('/api/x/')`: a route
-# followed by the rest of its path, a parameter.
-PATHNAME = re.compile(r'''\b(?:url\.pathname|pathname|req\.url|request\.url)\s*(?:===?\s*(?P<q>['"`])(?P<route>/[^'"`]*)(?P=q)'''
+# `if (url.pathname === '/api/x' && req.method === 'POST') return handler(req, res);`, or `.startsWith('/api/x/')`: a
+# route followed by the rest of its path, a parameter.
+PATHNAME = re.compile(r'''\b(?:url\.pathname|pathname|req\.url|request\.url)\s*'''
+                      r'''(?:===?\s*(?P<q>['"`])(?P<route>/[^'"`]*)(?P=q)'''
                       r'''|\.startsWith\(\s*(?P<p>['"`])(?P<prefix>/[^'"`]*)(?P=p)\s*\))''')
 METHOD = re.compile(r'''\b(?:req|request)\.method\s*===?\s*['"`](?P<method>GET|POST|PUT|PATCH|DELETE)['"`]''')
 CALLED = re.compile(r'\breturn\s+(?:await\s+)?(?P<name>[A-Za-z_$][\w$]*)\s*\(\s*(?:req|request)\b')
@@ -31,7 +32,8 @@ def _node_routes(context):
 
 
 def directive(text):
-    """The file's 'use client' or 'use server' directive ('client', 'server'), read after its leading comments; or None."""
+    """The file's 'use client' or 'use server' directive ('client', 'server'), read after its leading comments; or
+    None."""
     rest = text.lstrip()
     while rest.startswith(('//', '/*')):
         end = rest.find('\n') if rest.startswith('//') else rest.find('*/') + 1
@@ -45,16 +47,17 @@ def directive(text):
 def _server_actions(context):
     """Every exported async function of a 'use server' file is an action the browser calls with a POST."""
     if directive(context.text) != 'server': return []
-    return [{'surface': 'http', 'route': f"action:{match.group('name')}", 'http_method': 'POST', 'handler': match.group('name'),
-             'framework': 'nextjs_action', 'line': context.line_of(match.start())} for match in ACTION.finditer(context.text)]
+    return [{'surface': 'http', 'route': f"action:{match.group('name')}", 'http_method': 'POST',
+             'handler': match.group('name'), 'framework': 'nextjs_action',
+             'line': context.line_of(match.start())} for match in ACTION.finditer(context.text)]
 
 
 def _edge_function(context):
     match = EDGE.search(context.rel)
     if not match or not EDGE_SERVE.search(context.text): return []
     line = context.line_of(EDGE_SERVE.search(context.text).start())
-    return [{'surface': 'http', 'route': f"/functions/v1/{match.group('name')}", 'http_method': 'ANY', 'handler': match.group('name'),
-             'framework': 'supabase_edge', 'line': line}]
+    return [{'surface': 'http', 'route': f"/functions/v1/{match.group('name')}", 'http_method': 'ANY',
+             'handler': match.group('name'), 'framework': 'supabase_edge', 'line': line}]
 
 
 def detect(context):

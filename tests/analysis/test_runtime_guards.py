@@ -1,5 +1,6 @@
 """A multi-runtime font binding is not server code merely because its guarded Node implementation uses argv."""
 import unittest
+from needs import needs
 from eaos.analysis.layers.placement import _written
 from eaos.facts.code.syntax import parser_for
 
@@ -17,13 +18,15 @@ else { document.currentScript; }
 '''
 
 
-@unittest.skipUnless(parser_for('typescript'), 'TypeScript parser unavailable')
+@needs('' if parser_for('typescript') else 'TypeScript parser unavailable')
 class RuntimeGuardTests(unittest.TestCase):
     def test_only_the_proven_node_branch_is_excluded_from_text_evidence(self):
         self.assertEqual(_written('binding.ts', RUNTIME), {'browser'})
         for text in (RUNTIME + '\nprocess.argv;',
                      RUNTIME.replace('!ENVIRONMENT_IS_WEB', 'ENVIRONMENT_IS_WEB'),
-                     RUNTIME.replace('if (ENVIRONMENT_IS_NODE)', 'ENVIRONMENT_IS_NODE = true; if (ENVIRONMENT_IS_NODE)'),
-                     RUNTIME.replace('else { document.currentScript; }', 'else { document.currentScript; process.argv; }'),
+                     RUNTIME.replace('if (ENVIRONMENT_IS_NODE)', 'ENVIRONMENT_IS_NODE = true; if '
+                                     '(ENVIRONMENT_IS_NODE)'),
+                     RUNTIME.replace('else { document.currentScript; }', 'else { document.currentScript; process.argv; '
+                                     '}'),
                      RUNTIME.replace('if (ENVIRONMENT_IS_NODE)', 'if (!ENVIRONMENT_IS_NODE)')):
             with self.subTest(text=text): self.assertIn('node', _written('binding.ts', text))

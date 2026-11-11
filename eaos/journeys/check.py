@@ -1,7 +1,7 @@
-"""A check of a project, one implementation for the CLI (`eaos start`, `eaos next`), MCP (`audit`) and the Studio (its audit
-run calls MCP's): the code it reads and that code's provenance taken first, the pipeline and the remedies that need no
-person, START-HERE.md even when composing did not run, then the state stamped, its stale batch retired, the pages
-published and the state saved (M3.3: the CLI had its own copy, without the remedies or the tools' fingerprint).
+"""A check of a project, one implementation for the CLI (`eaos start`, `eaos next`), MCP (`audit`) and the Studio
+(its audit run calls MCP's): the code it reads and that code's provenance taken first, the pipeline and the remedies
+that need no person, START-HERE.md even when composing did not run, then the state stamped, its stale batch retired,
+the pages published and the state saved.
 """
 from pathlib import Path
 
@@ -15,8 +15,9 @@ from ..core.system.clock import now
 
 
 def run(state, options, again_from=None, go_on=False):
-    """(the check's manifest, the state saved after it, the page people read). `options`: eaos/journeys/check_choices.py options. `again_from`:
-    the last check goes on from that stage, on the code it checked; `go_on`: a check that did not end goes on."""
+    """(the check's manifest, the state saved after it, the page people read). `options`:
+    eaos/journeys/check_choices.py options. `again_from`: the last check goes on from that stage, on the code it
+    checked; `go_on`: a check that did not end goes on."""
     out = report_of(state)
     code = source(state, state.get('scanned_commit') if again_from else None)
     # taken before the check reads: a commit made meanwhile is not in it

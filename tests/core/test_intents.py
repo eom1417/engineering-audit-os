@@ -1,5 +1,5 @@
-"""The assistant understands plain requests (NS9.T5): the intent table, `eaos do`, the skill it installs, and the
-MCP tools. X6 is read from tests/fixtures/intents.json."""
+"""The assistant understands plain requests: the intent table, `eaos do`, the skill it installs, and the MCP tools. The
+accuracy of the table is read from tests/fixtures/intents.json."""
 import io
 import json
 import unittest
@@ -17,7 +17,7 @@ SETS = ('cases', 'held_out', 'untuned')
 
 
 def accuracy():
-    """{set: (right, total)} of the intent table on every set of requests in the fixture (X6)."""
+    """{set: (right, total)} of the intent table on every set of requests in the fixture."""
     data = json.loads(FIXTURE.read_text(encoding='utf-8'))
     found = {}
     for name in SETS:
@@ -81,7 +81,8 @@ class AssistantInstallTests(unittest.TestCase):
         self.assertIn('Say yes for them', agents)
         config = (home / '.codex/config.toml').read_text()
         self.assertEqual((config.count('[mcp_servers.eaos]'), config.startswith('model = "x"')), (1, True))
-        self.assertFalse(any('mcp' in c.args[0] and 'add' in c.args[0] for c in run.call_args_list), 'already registered: not added twice')
+        self.assertFalse(any('mcp' in c.args[0] and 'add' in c.args[0] for c in run.call_args_list), 'already '
+                         'registered: not added twice')
         self.assertIn('menu', skill)
         codex_skill = (home / '.codex/skills/eaos/SKILL.md').read_text()           # $eaos in Codex
         front = codex_skill.split('---')[1].strip().splitlines()
@@ -105,13 +106,15 @@ class AssistantInstallTests(unittest.TestCase):
         for path in (home / '.claude/settings.json', home / '.codex/hooks.json'):
             data = json.loads(path.read_text())
             commands = [h['command'] for g in data['hooks']['SessionStart'] for h in g['hooks']]
-            self.assertEqual(sum('handover --hook' in c for c in commands), 1, f'{path}: once, however often it is installed')
+            self.assertEqual(sum('handover --hook' in c for c in commands), 1,
+                             f'{path}: once, however often it is installed')
         claude = json.loads((home / '.claude/settings.json').read_text())
         self.assertEqual((claude['model'], claude['hooks']['Stop']), ('opus', mine['hooks']['Stop']))
         self.assertIn('echo hi', [h['command'] for g in claude['hooks']['SessionStart'] for h in g['hooks']])
         (home / '.codex/hooks.json').write_text('{broken')
         self.assertIsNone(assistant_setup.add_session_hook(home / '.codex/hooks.json'))
-        self.assertEqual((home / '.codex/hooks.json').read_text(), '{broken', "a file the person broke is left as it is")
+        self.assertEqual((home / '.codex/hooks.json').read_text(), '{broken', "a file the person broke is left as it "
+                         "is")
 
 
 if __name__ == '__main__':

@@ -1,4 +1,4 @@
-"""The diff-scoped check (M16.7): on a change, before it lands, the guards of the person's rules and EAOS's fast gates
+"""The diff-scoped check: on a change, before it lands, the guards of the person's rules and EAOS's fast gates
 over the files it touches and the files that depend on them (the import graph), each rule's smallest check that
 suffices: a pattern reads the changed files (only there can the change write a new match), a test bound to files runs
 only when the change or a file importing it reaches them (the graph is read for it alone), a detector reads only what
@@ -10,7 +10,8 @@ read; under one without it); a full check stays for the release.
     changed(project, base, staged)   the files a change touches: the staged ones (a commit), else those that differ
                                      from `base` (HEAD by default) in the working tree, new files included
     reached(project, paths)          those files and every file that imports them, further and further (bounded)
-    check(...)                       {changed, reached, rules: what each rule found, laws: what the gates found, refused}
+    check(...)                       {changed, reached, rules: what each rule found, laws: what the gates found,
+                                     refused}
 """
 import shutil
 import subprocess
@@ -21,8 +22,10 @@ from pathlib import Path
 from . import held
 from ...core.project import rules as registry
 
-REACH = 300                 # files followed through the import graph at most: past it, the change is wide and a full check reads it
-GATE_ENGINES = ('jscpd', 'ast-grep', 'bandit', 'gitleaks')      # the gates' engines that answer in seconds (eaos/journeys/fix/execute.py)
+# files followed through the import graph at most: past it, the change is wide and a full check reads it
+REACH = 300
+# the gates' engines that answer in seconds (eaos/journeys/fix/execute.py)
+GATE_ENGINES = ('jscpd', 'ast-grep', 'bandit', 'gitleaks')
 
 
 def _git(project, *args):
@@ -31,9 +34,11 @@ def _git(project, *args):
 
 def changed(project, base=None, staged=False):
     # a deletion is a change (a test may need the file), a rename the deletion of one name and the addition of another
-    if staged: names = _git(project, 'diff', '--cached', '--name-only', '--no-renames', '--diff-filter=ACMD').stdout.split('\n')
+    if staged: names = _git(project, 'diff', '--cached', '--name-only', '--no-renames',
+                            '--diff-filter=ACMD').stdout.split('\n')
     else:
-        names = _git(project, 'diff', '--name-only', '--no-renames', '--diff-filter=ACMD', base or 'HEAD').stdout.split('\n')
+        names = _git(project, 'diff', '--name-only', '--no-renames', '--diff-filter=ACMD',
+                     base or 'HEAD').stdout.split('\n')
         names += _git(project, 'ls-files', '--others', '--exclude-standard').stdout.split('\n')
     return sorted({n for n in names if n.strip()})
 
@@ -54,7 +59,8 @@ def _graph(project):
 
 
 def reached(project, paths, graph=None):
-    """`paths` and the files that import any of them, directly or not, up to REACH files: (files, whether it stopped)."""
+    """`paths` and the files that import any of them, directly or not, up to REACH files: (files, whether it
+    stopped)."""
     graph = _graph(project) if graph is None else graph
     importers = {}
     for source, targets in graph.items():
@@ -70,8 +76,8 @@ def reached(project, paths, graph=None):
 
 def snapshot(project, paths, folder, revision=None):
     """`paths` written into `folder` as they are in the index (revision ':'), at `revision`, or in the working tree
-    (None); a file not there (new, or deleted) is left out, the folder made all the same (a commit of new files alone has
-    an empty before)."""
+    (None); a file not there (new, or deleted) is left out, the folder made all the same (a commit of new files alone
+    has an empty before)."""
     Path(folder).mkdir(parents=True, exist_ok=True)
     for path in paths:
         target = Path(folder) / path
@@ -81,7 +87,8 @@ def snapshot(project, paths, folder, revision=None):
             target.parent.mkdir(parents=True, exist_ok=True)
             shutil.copyfile(source, target)
             continue
-        shown = subprocess.run(['git', '-C', str(project), 'show', f'{revision}{path}' if revision == ':' else f'{revision}:{path}'],
+        shown = subprocess.run(['git', '-C', str(project), 'show',
+                                f'{revision}{path}' if revision == ':' else f'{revision}:{path}'],
                                capture_output=True)
         if shown.returncode: continue
         target.parent.mkdir(parents=True, exist_ok=True)
@@ -92,7 +99,8 @@ def _digests(folder, path):
     """The six-line windows of one file (EAOS's own measure of code copied word for word, facts/code/metrics)."""
     from ...facts.code.metrics import windows_of
     file = Path(folder) / path
-    return {key for key, _ in windows_of(path, file.read_text(encoding='utf-8', errors='replace').splitlines())} if file.is_file() else set()
+    return ({key for key, _ in windows_of(path, file.read_text(encoding='utf-8', errors='replace').splitlines())}
+            if file.is_file() else set())
 
 
 def sources(project, after, paths):
@@ -136,7 +144,8 @@ def _held(project, rules, change, since, gates):
         after, before = _sides(project, paths, since, scratch)
         # the code laws read the changed files and the files they hold six lines of (a copy and its source), never
         # their importers, which are for the rules' guards
-        problems = laws(*reversed(_sides(project, paths + sources(project, after, paths), since, Path(scratch) / 'laws')), paths) if gates else []
+        problems = (laws(*reversed(_sides(project, paths + sources(project, after, paths), since,
+                                          Path(scratch) / 'laws')), paths) if gates else [])
         tested = [r for r in rules if (registry.in_force(r) or {}).get('kind') == 'test']
         results = held.on_change([r for r in rules if r not in tested], after, paths, before, held.found_of(problems))
         results += _tested(project, tested, files, since)
@@ -150,7 +159,10 @@ def _tested(project, rules, files, since):
     base, staged = since
     with held.at_commit(project, base or 'HEAD') as earlier, held.at_commit(project, 'HEAD', index=True) as index:
         tree = index() if staged and held.unstaged(project) else project
-        if tree is None: return [held.row(r, {'status': 'not_run', 'places': [], 'said': 'the staged code could not be checked out apart', 'seconds': 0}) for r in rules]
+        if tree is None:
+            return [held.row(r, {'status': 'not_run', 'places': [],
+                                 'said': 'the staged code could not be checked out apart', 'seconds': 0})
+                    for r in rules]
         return held.on_change(rules, tree, files, earlier)
 
 

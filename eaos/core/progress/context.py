@@ -6,7 +6,7 @@ Code anywhere below it then calls
     progress.count('codemod trial', 37, 156)          # a counted loop: 37 of 156 done
     progress.step('semgrep', 3, 21, 'running')         # one named item of a list the stage walks through
 
-Outside a run both are no-ops, so every existing caller and test stays as it was, and a failure of the stepper is
+Outside a run both are no-ops, so callers and tests that run no stepper are unaffected, and a failure of the stepper is
 swallowed: reporting where a stage is never changes what the stage does.
 
 The stepper lives in a `contextvars.ContextVar`: a thread started inside the stage does not see it unless it was
@@ -14,6 +14,7 @@ started with `contextvars.copy_context().run`, which is the only way a worker th
 """
 from contextlib import contextmanager
 from contextvars import ContextVar
+from ..system.errors import noted
 
 RUNNING = 'running'
 _current = ContextVar('eaos_progress_stepper', default=None)
@@ -34,14 +35,16 @@ def using(stepper):
         _current.reset(token)
 
 
-def step(name, done, total, status=RUNNING, seconds=None, reason='', reason_code='', artifact=''):  # limits: parameters -- the fields of one step line (ProgressLog.stepper)
+def step(name, done, total, status=RUNNING, seconds=None, reason='', reason_code='',
+         artifact=''):  # limits: parameters -- the fields of one step line (ProgressLog.stepper)
     """One named item of the stage: `done` of `total` items of the stage are finished; `artifact` is what it produced
     (a path relative to the flow's folder). No-op outside a run."""
     stepper = _current.get()
     if stepper is None: return
-    try: stepper(name, done, total, status, seconds, reason, reason_code=reason_code, **({'artifact': artifact} if artifact else {}))
-    except Exception:                                   # reporting where a stage is must not change what it does
-        pass
+    try: stepper(name, done, total, status, seconds, reason, reason_code=reason_code,
+                 **({'artifact': artifact} if artifact else {}))
+    except Exception as error:                          # reporting where a stage is must not change what it does
+        noted('a step line that could not be written', error)
 
 
 def bounded(done, total):
@@ -52,11 +55,12 @@ def bounded(done, total):
 
 def count(name, done, total):
     """A counted loop inside the current stage: `done` of `total`. The step is `ok` exactly when done reaches total,
-    and done is held between 0 and total, so a counted step that ends ok ends with done == total. No-op outside a run."""
+    and done is held between 0 and total, so a counted step that ends ok ends with done == total.
+    No-op outside a run."""
     stepper = _current.get()
     if stepper is None: return
     try:
         done, total = bounded(done, total)
         stepper(name, done, total, 'ok' if done >= total else RUNNING, kind='count')
-    except Exception:
-        pass
+    except Exception as error:
+        noted('a count line that could not be written: reporting must not change what the stage does', error)

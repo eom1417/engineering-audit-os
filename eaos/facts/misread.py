@@ -1,9 +1,8 @@
 """An engine's function measure longer than the function is a misreading, set aside.
 
-Lizard measured excalidraw's `drawElementOnCanvas` at 729 code lines and a complexity of 110 (2026-11-04); the function
-runs 263 lines (EAOS's own metrics, the syntax tree's span). Lizard had read the functions after it as part of it, and
-the figure reached a card as evidence, where a judge of M17.3 found it false. An engine names a function by its first
-line only; EAOS's span of the function holding that line says how long it can be.
+An engine can measure a function as longer than it is, for example when it reads the functions after it as part of
+it; such a figure would reach a card as false evidence. An engine names a function by its first line only; EAOS's
+span of the function holding that line (from the syntax tree) says how long it can be.
 """
 SLACK = 1.1     # a signature or decorator line counted on one side only
 
@@ -18,7 +17,8 @@ def _spans(metrics):
 
 
 def _length(fact):
-    return next((m.get('value') for m in (fact.get('value') or {}).get('measurements') or [] if m.get('name') == 'nloc'), None)
+    return next((m.get('value') for m in (fact.get('value') or {}).get('measurements') or []
+                 if m.get('name') == 'nloc'), None)
 
 
 def _too_long(fact, spans):
@@ -32,5 +32,6 @@ def _too_long(fact, spans):
 def set_aside(facts, metrics):
     """(the facts kept, how many complexity measures were set aside as longer than their function)."""
     spans = _spans(metrics)
-    kept = [fact for fact in facts if not ((fact.get('value') or {}).get('kind') == 'complexity' and _too_long(fact, spans))]
+    kept = [fact for fact in facts
+            if not ((fact.get('value') or {}).get('kind') == 'complexity' and _too_long(fact, spans))]
     return kept, len(facts) - len(kept)

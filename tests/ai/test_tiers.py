@@ -1,4 +1,4 @@
-"""Model tiers (M9.1, eaos/ai/assistant/tiers.py): each stage asks on its tier, a cheaper tier that fails or would close
+"""Model tiers (eaos/ai/assistant/tiers.py): each stage asks on its tier, a cheaper tier that fails or would close
 something is asked again a tier up, and each assistant is told its tier's model or effort."""
 import os
 import tempfile
@@ -8,7 +8,6 @@ from unittest import mock
 
 from eaos.ai import nodes
 from eaos.ai.assistant import headless as adapters, tiers
-from eaos.ai.ideal import prompts as ideal_prompts
 from tests.ai.test_ai_nodes import Answer, _nodes_report, decision
 
 
@@ -27,43 +26,27 @@ class Tiered(Answer):
 
 class Stages(unittest.TestCase):
     def test_each_stage_has_its_tier_and_the_speed_mode_lowers_only_the_standard_ones(self):
-        self.assertEqual([tiers.tier_of(s) for s in ('card_triage', 'plan_orderer', 'ideal_planner', 'a_new_stage')],
+        self.assertEqual([tiers.tier_of(s) for s in ('card_triage', 'plan_orderer', 'fix_reviewer', 'a_new_stage')],
                          ['light', 'standard', 'deep', 'deep'])
-        self.assertEqual([tiers.tier_of(s, 'speed') for s in ('plan_orderer', 'ideal_planner')], ['light', 'deep'])
-        with mock.patch.dict(os.environ, {'EAOS_TIER_IDEAL_PLANNER': 'standard'}):
-            self.assertEqual(tiers.tier_of('ideal_planner'), 'standard')
-        with mock.patch.dict(os.environ, {'EAOS_TIER_IDEAL_PLANNER': 'cheap'}), self.assertRaises(ValueError):
-            tiers.tier_of('ideal_planner')
+        self.assertEqual([tiers.tier_of(s, 'speed') for s in ('plan_orderer', 'fix_reviewer')], ['light', 'deep'])
+        with mock.patch.dict(os.environ, {'EAOS_TIER_FIX_REVIEWER': 'standard'}):
+            self.assertEqual(tiers.tier_of('fix_reviewer'), 'standard')
+        with mock.patch.dict(os.environ, {'EAOS_TIER_FIX_REVIEWER': 'cheap'}), self.assertRaises(ValueError):
+            tiers.tier_of('fix_reviewer')
         self.assertEqual([tiers.up(t) for t in tiers.TIERS], ['standard', 'deep', None])
-
-    def test_the_experiences_calls_pass_the_flags_of_their_tiers(self):
-        # The provider reads no stage name (eaos/ai/assistant/command.py): each experience call's small/deep flags are its tier.
-        import re
-        flags = {'light': 'small=True', 'deep': 'deep=True'}
-        calls = [(m.group(0), m.group(1)) for path in Path('eaos').rglob('*.py')
-                 for m in re.finditer(r"provider\.complete\((?:[^\n]*\n)?[^\n]*?stage='(experience_\w+)'[^\n]*", path.read_text(encoding='utf-8'))]
-        self.assertEqual({stage for _, stage in calls}, {s for s in tiers.STAGES if s.startswith('experience_')})
-        for call, stage in calls:
-            with self.subTest(stage):
-                for tier, flag in flags.items(): self.assertEqual(flag in call, tiers.tier_of(stage) == tier, call)
 
     def test_each_assistant_is_told_its_tiers_model_or_effort(self):
         with mock.patch.dict(os.environ, {}, clear=False) as env:
             env.pop('EAOS_CLAUDE_MODEL', None)
             claude = adapters.ClaudeCode(command=['claude'])
             self.assertEqual(claude.ask_argv({}, Path('.'), (), 'light')[-4:-2], ['--model', 'haiku'])
-            self.assertNotIn('--model', claude.ask_argv({}, Path('.'), (), 'deep'), "the deep tier is the person's own model")
+            self.assertNotIn('--model', claude.ask_argv({}, Path('.'), (), 'deep'),
+                             "the deep tier is the person's own model")
             with mock.patch.dict(os.environ, {'EAOS_CLAUDE_MODEL_STANDARD': 'opus'}):
                 self.assertIn('opus', claude.ask_argv({}, Path('.'), (), 'standard'))
         with tempfile.TemporaryDirectory() as folder:
             argv = adapters.Codex(command=['codex']).ask_argv({}, Path(folder), (), 'light')
             self.assertIn('model_reasoning_effort="low"', argv)
-
-    def test_the_ideal_critique_is_held_short_so_its_answer_parses_the_first_time(self):
-        # EAOS on itself (2026-10-22): an unbounded critique wrote 60 KB that broke as JSON twice, three minutes lost.
-        missed = ideal_prompts.CRITIQUE_SCHEMA['properties']['critique']['properties']['missed']
-        self.assertEqual(missed['maxItems'], ideal_prompts.NOTES)
-        self.assertIn(f'under {ideal_prompts.NOTE_CHARS} characters', ideal_prompts.prompt_critique({'project': {'language': 'en'}}, {}))
 
 
 class Escalation(unittest.TestCase):
@@ -78,7 +61,8 @@ class Escalation(unittest.TestCase):
     def test_a_card_the_light_tier_would_set_aside_is_judged_again_on_the_deep_tier(self):
         def make(tier):
             if tier == 'light': return {'summary': '', 'decisions': [decision('TASK-001', 'reject', ['TASK-001'])]}
-            return {'summary': '', 'decisions': [decision('TASK-001', 'confirm', ['TASK-001'], detail={'harmed': 'the app users'})]}
+            return {'summary': '',
+                    'decisions': [decision('TASK-001', 'confirm', ['TASK-001'], detail={'harmed': 'the app users'})]}
         launcher = Tiered(make)
         record = self.triage(launcher)
         self.assertEqual(launcher.tiers[0], 'light')
@@ -87,7 +71,7 @@ class Escalation(unittest.TestCase):
                          'a cheaper model never closes a card alone')
 
     def test_the_deep_tier_is_asked_only_about_what_the_cheaper_one_would_close(self):
-        # EAOS on itself (2026-10-30): 28 rejects of 211 cards asked all 211 again on the deep tier, 4 of triage's 10 minutes
+        # Only the cards a cheaper tier rejected are asked again on the deep tier, not every card.
         asked = []
         confirm = lambda card: decision(card, 'confirm', [card], detail={'harmed': 'the app users'})
 
@@ -97,7 +81,8 @@ class Escalation(unittest.TestCase):
                 return super().__call__(name, prompt, schema)
 
         def make(tier):
-            if tier == 'light': return {'summary': '', 'decisions': [decision('TASK-001', 'reject', ['TASK-001']), confirm('TASK-002'), confirm('TASK-003')]}
+            if tier == 'light': return {'summary': '', 'decisions': [decision('TASK-001', 'reject', ['TASK-001']),
+                                                                     confirm('TASK-002'), confirm('TASK-003')]}
             return {'summary': '', 'decisions': [confirm('TASK-001')]}
         record = self.triage(Recording(make))
         self.assertEqual(asked[-1], ('deep', ['TASK-001']))
@@ -107,16 +92,20 @@ class Escalation(unittest.TestCase):
     def test_a_tier_that_fails_is_asked_again_one_tier_up_before_the_rules_decide(self):
         def make(tier):
             if tier == 'light': raise ValueError('not the asked JSON')
-            return {'summary': '', 'decisions': [decision('TASK-001', 'confirm', ['TASK-001'], detail={'harmed': 'the app users'})]}
+            return {'summary': '',
+                    'decisions': [decision('TASK-001', 'confirm', ['TASK-001'], detail={'harmed': 'the app users'})]}
         record = self.triage(Tiered(make))
-        self.assertEqual((record['method'], record['tier'], record['escalated']['from']), ('model', 'standard', 'light'))
+        self.assertEqual((record['method'], record['tier'], record['escalated']['from']),
+                         ('model', 'standard', 'light'))
 
     def test_a_tier_reached_after_a_failure_still_never_closes_alone(self):
-        # the review of M9.1: light failed, standard answered "reject", and the reject stood without the deep tier
+        # A reject from a cheaper tier does not stand without the deep tier: light failed, standard answered "reject",
+        # and the deep tier decides.
         def make(tier):
             if tier == 'light': raise ValueError('not the asked JSON')
             choice = 'confirm' if tier == 'deep' else 'reject'
-            return {'summary': '', 'decisions': [decision('TASK-001', choice, ['TASK-001'], detail={'harmed': 'the app users'})]}
+            return {'summary': '',
+                    'decisions': [decision('TASK-001', choice, ['TASK-001'], detail={'harmed': 'the app users'})]}
         launcher = Tiered(make)
         record = self.triage(launcher)
         self.assertEqual((launcher.tiers[:3], record['tier']), (['light', 'standard', 'deep'], 'deep'))

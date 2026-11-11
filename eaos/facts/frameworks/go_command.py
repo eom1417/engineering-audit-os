@@ -46,7 +46,8 @@ def detect(context):
             # The body of this case starts just after the colon.
             tail = body[case.end():len(body)]
             method_match = METHOD_CALL.search(tail)
-            handler = method_match.group('method').lower() if method_match and method_match.group('method').lower() == name else name
+            handler = (method_match.group('method').lower() if method_match
+                       and method_match.group('method').lower() == name else name)
             # Prefer the receiver method when its lower-case name matches the case.
             if method_match:
                 # Use the actual method name (capitalised) so it matches the symbol map.

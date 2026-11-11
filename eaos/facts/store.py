@@ -2,9 +2,8 @@
 byte-identical.
 
 A field every fact of a set holds with one same value (its extractor, version and limitations) is written once beside
-them (`fact_fields`) and put back on read: it was half of each set's bytes. A reader asks for the facts it needs (of a
-kind, by id, or one set) and only the sets that can hold them are read: every caller used to read all of them, 280 MB
-on EAOS, often several times per stage.
+them (`fact_fields`) and put back on read, which halves each set's bytes. A reader asks for the facts it needs (of a
+kind, by id, or one set) and only the sets that can hold them are read, so no caller loads every set.
 """
 from collections.abc import Mapping
 import json
@@ -12,6 +11,7 @@ from pathlib import Path
 from . import SCHEMA_VERSION, digest
 from ..core.system.files import read_json
 from ..core.system.clock import now
+from ..core.system.errors import noted
 
 SHARED = ('extractor', 'extractor_version', 'limitations')
 
@@ -45,7 +45,8 @@ def write_set(out, name, extractor, version, limitations, result):  # limits: pa
 def _shared(facts):
     """The SHARED fields every fact holds with the first fact's value."""
     first = facts[0] if facts else {}
-    return {key: first[key] for key in SHARED if key in first and all(fact.get(key, ...) == first[key] for fact in facts)}
+    return {key: first[key] for key in SHARED
+            if key in first and all(fact.get(key, ...) == first[key] for fact in facts)}
 
 
 def read_set(out, name):
@@ -80,7 +81,8 @@ class Sets(Mapping):
 
 def _holding(out, kinds):
     """The sets that can hold a fact of `kinds`: those the index lists with one, and any it does not describe."""
-    index = {row['set']: row.get('kinds') for row in (read_json(Path(out) / 'facts/index.json') or {}).get('sets') or []}
+    index = {row['set']: row.get('kinds')
+             for row in (read_json(Path(out) / 'facts/index.json') or {}).get('sets') or []}
     return [name for name in Sets(out) if index.get(name) is None or set(index[name]) & set(kinds)]
 
 
@@ -90,7 +92,9 @@ def facts(out, *kinds):
     rows = []
     for name in (_holding(out, kinds) if kinds else Sets(out)):
         try: rows += [row for row in read_set(out, name).get('facts') or [] if isinstance(row, dict)]
-        except (OSError, ValueError): continue
+        except (OSError, ValueError) as error:
+            noted('a set that does not read is skipped', error)
+            continue
     return [row for row in rows if not kinds or row.get('kind') in kinds]
 
 
@@ -100,7 +104,9 @@ def by_id(out, ids):
     for name in sorted(Sets(out), key=lambda name: (Path(out) / 'facts' / f'{name}.json').stat().st_size):
         if wanted <= found.keys(): break
         try: rows = read_set(out, name).get('facts') or []
-        except (OSError, ValueError): continue
+        except (OSError, ValueError) as error:
+            noted('a set that does not read holds none of the ids', error)
+            continue
         found.update((row['id'], row) for row in rows if isinstance(row, dict) and row.get('id') in wanted)
     return found
 

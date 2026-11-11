@@ -18,9 +18,10 @@ ENV_SAFE = {'.env.example', '.env.sample', '.env.template', '.env.test'}
 # A literal string that looks like a JWT: three base64url segments separated by dots.
 JWT = re.compile(r'\beyJ[A-Za-z0-9_-]+\.eyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\b')
 # PEM private keys (PEM-encoded RSA/ECDSA/OpenSSH/PGP).
-PEM_BLOCK = re.compile(r'-----BEGIN ((?:RSA |EC |DSA |OPENSSH |PGP |ENCRYPTED )?PRIVATE KEY)-----(.*?)(?:-----END \1-----|$)', re.S)
+PEM_BLOCK = re.compile(r'-----BEGIN ((?:RSA |EC |DSA |OPENSSH |PGP |ENCRYPTED )?PRIVATE KEY)-----(.*?)(?:-----END '
+                       r'\1-----|$)', re.S)
 # The shortest real private key (an EC P-256 key) carries well over 100 base64 characters. A block with less is a
-# marker a test or a scanner rule uses to talk about keys (a full-stack app: "-----BEGIN PRIVATE KEY-----\nMIIE\n..."),
+# marker a test or a scanner rule uses to talk about keys ("-----BEGIN PRIVATE KEY-----\nMIIE\n..."),
 # decided from the payload like every other severity here, never from the file's name or folder.
 PEM_MIN_BODY = 100
 # Common third-party secret prefixes.
@@ -114,7 +115,8 @@ def collect(source):
     findings = []
     for item in source.inventory['files']:
         kind = _kind_of(item['path'])
-        text = None if kind is None else source.text(item['path']) if item.get('capture') == 'hashed' else _read_text(source, item['path'])
+        text = (None if kind is None else source.text(item['path']) if item.get('capture') == 'hashed'
+                else _read_text(source, item['path']))
         if text is not None: findings += _file_findings(item['path'], text, kind)
     return findings
 
@@ -132,7 +134,8 @@ def run(target, source, **options):
     summary = {'credentials': len(facts_list),
                'by_severity': {severity: severities[severity] for severity in ('public', 'secret', 'unknown')},
                'by_family': dict(Counter(record['key_family'] for record in findings)),
-               'interpretation': 'A credential is reported with the severity its payload declares, not by its filename.'}
+               'interpretation': 'A credential is reported with the severity its payload declares, not by its '
+                                 'filename.'}
     return {'facts': facts_list, 'summary': summary, 'available': True,
             'input_sha': digest(';'.join(sorted(record['path'] for record in findings)).encode('utf-8')),
             'reason': None}

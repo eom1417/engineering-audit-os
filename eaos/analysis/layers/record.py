@@ -1,4 +1,5 @@
-"""The record of a project's layers (layers.json) and its `boundaries` fact set: written, summed up, amended by the live part."""
+"""The record of a project's layers (layers.json) and its `boundaries` fact set: written, summed up, amended by the
+live part."""
 import json
 from pathlib import Path
 
@@ -40,12 +41,14 @@ def _counted(drawn):
 
 
 def _declared(target, counts):
-    """The layers the project declares in eaos.policy.json, each with what its rules forbid it: rows are placed by them."""
+    """The layers the project declares in eaos.policy.json, each with what its rules forbid it: rows are placed by
+    them."""
     policy = read_json(Path(target) / 'eaos.policy.json') or {}
     names = list(policy.get('layers') or ())
     return [{'name': name, 'role': None, 'responsibility': None, 'files': counts.get(name, 0),
              'allowed': [other for other in names if other != name and allowed(policy, name, other)],
-             'denied': [other for other in names if other != name and not allowed(policy, name, other)]} for name in names]
+             'denied': [other for other in names if other != name and not allowed(policy, name, other)]}
+             for name in names]
 
 
 def _layers(drawn, target):
@@ -53,7 +56,8 @@ def _layers(drawn, target):
     if drawn['declared_policy']: return _declared(target, counts)
     reference = drawn['reference'] or {'layers': []}
     return [{'name': layer['name'], 'role': layer.get('role'), 'responsibility': layer.get('responsibility'),
-             'allowed': layer.get('allowed_dependencies') or [], 'files': counts.get(layer['name'], 0)} for layer in reference['layers']]
+             'allowed': layer.get('allowed_dependencies') or [], 'files': counts.get(layer['name'], 0)}
+             for layer in reference['layers']]
 
 
 def read(path):
@@ -69,11 +73,14 @@ def check(target, out, verification=None):
     table = endpoints.table(project)
     guarded, asked = endpoints.judged(table)
     sides = {row['path']: row['side'] for row in drawn['rows']}
-    shipped, held, infra = browser.check(project, drawn['rows']), data.check(project, sides), operations.infrastructure(project, drawn)
+    shipped, held, infra = (browser.check(project, drawn['rows']), data.check(project, sides),
+                            operations.infrastructure(project, drawn))
     tested = operations.tests(project, drawn, table, verification)
-    found = breaches + shipped['findings'] + guarded + held['findings'] + rules_split.check(project, drawn['rows'], table) \
+    found = breaches + shipped['findings'] + guarded + held['findings'] \
+        + rules_split.check(project, drawn['rows'], table) \
         + operations.operations_findings(infra) + tested['findings']
-    return {'schema_version': 1, 'type': drawn['type'], 'declared_policy': drawn['declared_policy'], 'layers': _layers(drawn, target),
+    return {'schema_version': 1, 'type': drawn['type'], 'declared_policy': drawn['declared_policy'],
+            'layers': _layers(drawn, target),
             'map': [{k: row[k] for k in ('path', 'layer', 'side', 'confidence', 'reason')} for row in drawn['rows']],
             'gaps': drawn['gaps'], 'endpoints': table, 'tables': held['tables'], 'built': shipped['built'],
             'operations': infra, 'tests': {k: v for k, v in tested.items() if k != 'findings'},
@@ -82,7 +89,8 @@ def check(target, out, verification=None):
 
 def summary(record):
     """Per boundary, its findings by severity, and the critical ones (high) first."""
-    by = {name: {s: sum(1 for f in record['findings'] if f['boundary'] == name and f['severity'] == s) for s in SEVERITIES}
+    by = {name: {s: sum(1 for f in record['findings'] if f['boundary'] == name and f['severity'] == s)
+                 for s in SEVERITIES}
           for name in BOUNDARIES}
     return {'boundaries': by, 'findings': len(record['findings']), 'questions': len(record['questions']),
             'critical': [f['en'] for f in record['findings'] if f['severity'] == 'high'][:10],
@@ -96,9 +104,12 @@ def facts_of(record):
 
 
 def _facts(record):
-    sha = digest(json.dumps([f['rule'] + str(f.get('path')) + str(f.get('line')) for f in record['findings']]).encode('utf-8'))
-    return sha, [make('boundary_finding', NAME, VERSION, sha, {'path': f.get('path') or '*', 'start_line': f.get('line')},
-                      {key: f[key] for key in ('rule', 'boundary', 'severity', 'params', 'evidence', 'en', 'ar', 'fix_en', 'fix_ar', 'live')},
+    sha = digest(json.dumps([f['rule'] + str(f.get('path')) + str(f.get('line'))
+                             for f in record['findings']]).encode('utf-8'))
+    return sha, [make('boundary_finding', NAME, VERSION, sha,
+                      {'path': f.get('path') or '*', 'start_line': f.get('line')},
+                      {key: f[key] for key in ('rule', 'boundary', 'severity', 'params', 'evidence', 'en', 'ar',
+                                               'fix_en', 'fix_ar', 'live')},
                       limitations=LIMITATIONS) for f in record['findings']]
 
 
@@ -107,8 +118,10 @@ def write(out, record):
     record['summary'] = summary(record)
     (out / RECORD).write_text(json.dumps(record, ensure_ascii=False, indent=1) + '\n', encoding='utf-8')
     sha, facts = _facts(record)
-    asked = [{'question': q['question'], 'question_ar': q['question_ar'], 'path': q['path']} for q in record['questions'][:30]]
-    write_set(out, NAME, NAME, VERSION, LIMITATIONS, {'facts': facts, 'input_sha': sha, 'summary': {**record['summary'], 'asked': asked}})
+    asked = [{'question': q['question'], 'question_ar': q['question_ar'], 'path': q['path']}
+             for q in record['questions'][:30]]
+    write_set(out, NAME, NAME, VERSION, LIMITATIONS,
+              {'facts': facts, 'input_sha': sha, 'summary': {**record['summary'], 'asked': asked}})
     return record['summary']
 
 
@@ -140,13 +153,15 @@ def introduced(before, after):
     """The sentences of the static findings `after` has and `before` had not: the boundaries a change broke, the gate a
     fix batch is judged by beside the project's own policy (eaos/journeys/fix/execute.py new_breakage)."""
     had = {_key(f) for f in before.get('findings') or [] if not f.get('live')}
-    return [f"the change broke a boundary: {f['en']}" for f in after['findings'] if f['boundary'] in GATED and _key(f) not in had]
+    return [f"the change broke a boundary: {f['en']}" for f in after['findings']
+            if f['boundary'] in GATED and _key(f) not in had]
 
 
 def amend(out, live):
     """Join the live part's findings and what it measured to the record and the fact set."""
     record = read(Path(out) / RECORD)
     if record is None: return None
-    record['findings'] = [f for f in record['findings'] if not f.get('live')] + [_said(row, live=True) for row in live['findings']]
+    record['findings'] = [f for f in record['findings'] if not f.get('live')] \
+        + [_said(row, live=True) for row in live['findings']]
     record['live'] = {key: value for key, value in live.items() if key != 'findings'}
     return write(out, record)

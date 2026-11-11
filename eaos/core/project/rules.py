@@ -1,4 +1,4 @@
-"""The person's own rules (M16): every requirement they state, kept in their words with where and when it was said and
+"""The person's own rules: every requirement they state, kept in their words with where and when it was said and
 its scope, in one record per project (<workspace>/rules.json, eaos/core/project/places.py), never inside the project.
 
 A rule is not forever by default: it holds for the work it was said for (its scope: a card, or a batch of fixes) and
@@ -48,7 +48,8 @@ def load(project):
     """The project's rules record: {'rules': [...], 'next': the next number, 'context': the files EAOS made for the
     pinned rules, 'hook': {'made': whether EAOS made the hook file}}."""
     record = read_json(path(project)) or {}
-    return {**record, 'rules': record.get('rules') or [], 'next': record.get('next') or len(record.get('rules') or []) + 1}
+    return {**record, 'rules': record.get('rules') or [],
+            'next': record.get('next') or len(record.get('rules') or []) + 1}
 
 
 @contextlib.contextmanager
@@ -89,7 +90,8 @@ def _plain(text):
 # Words whose presence or absence never changes what a rule asks (a courtesy, an article): two sayings that differ only
 # by these, case and punctuation are one rule. Any other difference (a negation, a number, a named page or table) may
 # change its meaning, so the two stay apart: never merged silently.
-FILLER = {'the', 'a', 'an', 'please', 'really', 'just', 'also', 'so', 'pls', 'kindly', 'لو', 'سمحت', 'فضلك', 'يا', 'ترى',
+FILLER = {'the', 'a', 'an', 'please', 'really', 'just', 'also', 'so', 'pls', 'kindly',
+          'لو', 'سمحت', 'فضلك', 'يا', 'ترى',
           'تكفى', 'رجاء', 'رجاءا'}
 
 
@@ -111,7 +113,8 @@ def alike(first, second):
     return bool(a and b) and not (a ^ b) - FILLER
 
 
-def _history(rule, what, by, door, why=None, was=None):  # limits: parameters -- a history entry's own fields, each kept as given
+def _history(rule, what, by, door, why=None, was=None):
+    # limits: parameters -- a history entry's own fields, each kept as given
     rule['history'].append({'at': now(), 'what': what, 'by': by, 'door': door,
                             **({'why': str(why)[:500]} if why else {}), **({'was': was} if was is not None else {})})
 
@@ -124,7 +127,8 @@ def _checked(words, door, scope):
     return words[:MAX_WORDS]
 
 
-def add(project, words, door, by='person', where=None, scope=None):  # limits: parameters -- a saying's own fields (its words, door, who, where, scope), as every door gives them
+def add(project, words, door, by='person', where=None, scope=None):
+    # limits: parameters -- a saying's own fields (its words, door, who, where, scope), as every door gives them
     """A rule said: kept in the person's words, with when, where and through which door; its scope the card or batch
     it was said for (`scope`), else pinned when asked. The same requirement said again is the rule it already is: said
     once more, back in scope, never a second rule; one alike in words only (`near`) is a rule of its own that names
@@ -150,7 +154,8 @@ def add(project, words, door, by='person', where=None, scope=None):  # limits: p
         return rule, 0
 
 
-def change(project, ident, by='person', door='terminal', why=None, words=None, scope=None):  # limits: parameters -- what a person changes of a rule, each a keyword of the four doors
+def change(project, ident, by='person', door='terminal', why=None, words=None, scope=None):
+    # limits: parameters -- what a person changes of a rule, each a keyword of the four doors
     """A rule changed in its words or scope (pinned, unpinned to the work in hand), its history keeping what it was."""
     with changing(project) as record:
         rule = find(record, ident)
@@ -159,7 +164,8 @@ def change(project, ident, by='person', door='terminal', why=None, words=None, s
         if scope is not None:
             if scope['kind'] not in SCOPES: raise ValueError(f"unknown scope {scope['kind']}")
             rule['scope'], rule['state'] = dict(scope), 'active'
-        what = 'pinned' if scope and scope['kind'] == 'pinned' else 'unpinned' if scope and was['scope']['kind'] == 'pinned' else 'changed'
+        what = ('pinned' if scope and scope['kind'] == 'pinned'
+                else 'unpinned' if scope and was['scope']['kind'] == 'pinned' else 'changed')
         _history(rule, what, by, door, why, was)
         return rule
 
@@ -195,17 +201,21 @@ def guard(project, ident, written, by, door):
 
 
 def confirm(project, ident, by='person', door='terminal'):
-    """The person's word on a pending guard: its command approved, or the guard kept as matching the rule's new words."""
+    """The person's word on a pending guard: its command approved, or the guard kept as matching the rule's new
+    words."""
     with changing(project) as record:
         rule = find(record, ident)
-        if not rule.get('guard') or not rule.get('pending'): raise ValueError(f'{ident} has no guard waiting for your word')
+        if not rule.get('guard') or not rule.get('pending'):
+            raise ValueError(f'{ident} has no guard waiting for your word')
         was = {'pending': rule['pending']}
         rule['pending'] = None
-        _history(rule, 'guard approved' if was['pending'] == 'approval' else 'guard kept for the new words', by, door, was=was)
+        _history(rule, 'guard approved' if was['pending'] == 'approval' else 'guard kept for the new words',
+                 by, door, was=was)
         return rule
 
 
-PENDING = {'words': 'its guard was written for its earlier words: it waits until a guard is written for these, or you keep it',
+PENDING = {'words': 'its guard was written for its earlier words: it waits until a guard is written for these, '
+           'or you keep it',
            'approval': 'its test command was proposed by an assistant: it never runs until you approve it'}
 
 
@@ -223,10 +233,12 @@ def broke(project, ident, where, places, commit=None):
     rule's break count, this one included."""
     with changing(project) as record:
         rule = find(record, ident)
-        if rule['breaks'] and rule['breaks'][-1]['where'] == where and rule['breaks'][-1]['places'] == list(places)[:40]:
+        if (rule['breaks'] and rule['breaks'][-1]['where'] == where
+                and rule['breaks'][-1]['places'] == list(places)[:40]):
             return rule['broken']                    # the same check read again (a stage run once more)
         rule['broken'] = rule.get('broken', 0) + 1
-        if (rule.get('held') or {}).get('after_break'): rule['returns'] = rule.get('returns', 0) + 1     # it held, and broke again
+        # it held, and broke again
+        if (rule.get('held') or {}).get('after_break'): rule['returns'] = rule.get('returns', 0) + 1
         if rule.get('held'): rule['held']['after_break'] = False
         rule['breaks'] = (rule['breaks'] + [{'at': now(), 'where': where, 'places': list(places)[:40],
                                              **({'commit': commit} if commit else {})}])[-MAX_BREAKS:]
@@ -240,7 +252,7 @@ def held(project, ident, where):
 
 
 def came_back(rule):
-    """The times the rule was broken again after it had held (M16.5: "it came back <n> times")."""
+    """The times the rule was broken again after it had held ("it came back <n> times")."""
     return rule.get('returns', 0)
 
 
@@ -272,7 +284,8 @@ def _card_open(state, card):
 
 
 def _in_batch(state, card, batch):
-    return batch is not None and any(int(w.get('number') or 0) == int(batch) and card in (w.get('cards') or []) for w in _waves(state))
+    return batch is not None and any(int(w.get('number') or 0) == int(batch) and card in (w.get('cards') or [])
+                                     for w in _waves(state))
 
 
 def settle(project, state):
@@ -282,11 +295,13 @@ def settle(project, state):
     with changing(project) as record:
         for rule in record['rules']:
             scope = rule['scope']
-            if rule['state'] == 'active' and scope['kind'] == 'batch' and scope.get('ref') is None and (state or {}).get('open_wave'):
+            if (rule['state'] == 'active' and scope['kind'] == 'batch' and scope.get('ref') is None
+                    and (state or {}).get('open_wave')):
                 scope['ref'] = state['open_wave']['number']
             if rule['state'] == 'active' and not in_scope(rule, state):
                 rule['state'] = 'ended'
-                why = f"its card {scope['ref']} landed" if scope['kind'] == 'card' else f"its batch {scope['ref']} is over"
+                why = (f"its card {scope['ref']} landed" if scope['kind'] == 'card'
+                       else f"its batch {scope['ref']} is over")
                 _history(rule, 'ended', 'eaos', 'eaos', why, {'scope': scope, 'state': 'active'})
                 ended.append(rule)
     return ended

@@ -78,105 +78,6 @@
   },
   "what_now": "str"
  },
- "empty:mcp:branch_view": {
-  "base": "str",
-  "base_tip": "str",
-  "branches": {
-   "[]": {
-    "compare": "dict",
-    "id": "str",
-    "kind": "str",
-    "last_commit": "str",
-    "name": "str",
-    "ownership": "dict",
-    "protected": "dict",
-    "ref": "str",
-    "remote": "null",
-    "remote_as_of": "null",
-    "roles": "array",
-    "runs": "array",
-    "subject": "str",
-    "tip": "str",
-    "tracking": "null",
-    "upstream": "null",
-    "work": "bool",
-    "worktree": "dict"
-   }
-  },
-  "checked_at": "str",
-  "context": {
-   "analysis": {
-    "branch": "str",
-    "detached": "bool",
-    "selected": "bool",
-    "tip": "str"
-   },
-   "checkout": {
-    "branch": "str",
-    "commit": "str",
-    "detached": "bool",
-    "unborn": "bool"
-   },
-   "dirty": {
-    "tracked": "int",
-    "untracked": "int"
-   },
-   "report": {
-    "at": "null",
-    "branch": "null",
-    "commit": "null",
-    "detached": "null",
-    "recorded": "bool"
-   },
-   "scan": {
-    "at": "null",
-    "branch": "null",
-    "commit": "null"
-   }
-  },
-  "default": {
-   "name": "null",
-   "source": "null"
-  },
-  "git": "bool",
-  "has_origin": "bool",
-  "head": {
-   "branch": "str",
-   "commit": "str",
-   "detached": "bool",
-   "unborn": "bool"
-  },
-  "last_fetch": "null",
-  "missing_linked": "array",
-  "project": "str",
-  "protected": {
-   "main": {
-    "ar": "str",
-    "code": "str",
-    "en": "str"
-   },
-   "master": {
-    "ar": "str",
-    "code": "str",
-    "en": "str"
-   }
-  },
-  "recovery": "array",
-  "remotes": "array",
-  "truncated": "bool",
-  "worktrees": {
-   "[]": {
-    "branch": "str",
-    "current": "bool",
-    "detached": "bool",
-    "dirty": "dict",
-    "head": "str",
-    "locked": "bool",
-    "path": "str",
-    "prunable": "bool"
-   }
-  }
- },
  "empty:mcp:branches": {
   "branches": {
    "[]": {
@@ -201,9 +102,6 @@
   },
   "working_branch": "str"
  },
- "empty:mcp:build_read": {
-  "error": "str"
- },
  "empty:mcp:context_propose": {
   "archive": "array",
   "archive_file": "str",
@@ -218,83 +116,6 @@
   "tokens_after": "int",
   "tokens_before": "int",
   "what_now": "str"
- },
- "empty:mcp:design": {
-  "error": "str"
- },
- "empty:mcp:design_brief": {
-  "components": {
-   "add": "str",
-   "init": "str",
-   "rtl": "str"
-  },
-  "current": "null",
-  "description": "str",
-  "fonts": {
-   "arabic": {
-    "[]": "dict"
-   },
-   "install": "str"
-  },
-  "schema_version": "int",
-  "sources": {
-   "anthropic-skills": {
-    "install": "str",
-    "missing": "bool",
-    "offers": "str"
-   },
-   "awesome-design-md": {
-    "install": "str",
-    "missing": "bool",
-    "offers": "str"
-   },
-   "tweakcn-themes": {
-    "install": "str",
-    "missing": "bool",
-    "offers": "str"
-   },
-   "ui-ux-pro-max": {
-    "install": "str",
-    "missing": "bool",
-    "offers": "str"
-   }
-  },
-  "standard": {
-   "[]": "str"
-  },
-  "suggestion": "null",
-  "what_now": "str"
- },
- "empty:mcp:design_propose": {
-  "files": "array",
-  "home": "null",
-  "merges": "array",
-  "refused": "str",
-  "tokens": "int",
-  "uses": {},
-  "what_now": "str",
-  "you_can_agree": "array"
- },
- "empty:mcp:experience": {
-  "calls": "null",
-  "difficulties": {
-   "ranked": "array",
-   "rejected": "array"
-  },
-  "missing": {
-   "[]": "str"
-  },
-  "not_covered": "array",
-  "personas": "array",
-  "ran": "bool",
-  "replays": {
-   "red": "array",
-   "summary": {}
-  },
-  "seconds": "null",
-  "tickets": "array",
-  "time": "array",
-  "version": "int"
  },
  "empty:mcp:finding": {
   "error": "str"
@@ -330,19 +151,6 @@
  },
  "empty:mcp:plan": {
   "error": "str"
- },
- "empty:mcp:projects": {
-  "projects": {
-   "[]": {
-    "checked": "null",
-    "current": "bool",
-    "name": "str",
-    "path": "str",
-    "score": "null",
-    "studio": "bool",
-    "workspace": "str"
-   }
-  }
  },
  "empty:mcp:report_file": {
   "error": "str"
@@ -412,44 +220,8 @@
  "empty:writing:act": {
   "error": "str"
  },
- "empty:writing:build_edit": {
-  "error": "str"
- },
- "empty:writing:build_finish": {
-  "error": "str"
- },
- "empty:writing:build_skip": {
-  "error": "str"
- },
- "empty:writing:build_start": {
-  "status": "str",
-  "what_now": "str"
- },
  "empty:writing:context_make": {
   "ask_the_person": "str",
-  "status": "str",
-  "what_now": "str"
- },
- "empty:writing:design_choose": {
-  "error": "str"
- },
- "empty:writing:design_make": {
-  "ask_the_person": "str",
-  "status": "str",
-  "what_now": "str"
- },
- "empty:writing:extend_plan": {
-  "problems": {
-   "[]": "str"
-  },
-  "questions": {
-   "[]": {
-    "id": "str",
-    "kind": "str",
-    "recommendation": "str",
-    "text": "str"
-   }
-  },
   "status": "str",
   "what_now": "str"
  },
@@ -469,9 +241,6 @@
   "ask_the_person": "str",
   "status": "str",
   "what_now": "str"
- },
- "empty:writing:reorder": {
-  "queue": "array"
  },
  "empty:writing:safety_net": {
   "status": "str",
@@ -539,105 +308,6 @@
   },
   "what_now": "str"
  },
- "saved-0.0.90:mcp:branch_view": {
-  "base": "str",
-  "base_tip": "str",
-  "branches": {
-   "[]": {
-    "compare": "dict",
-    "id": "str",
-    "kind": "str",
-    "last_commit": "str",
-    "name": "str",
-    "ownership": "dict",
-    "protected": "dict",
-    "ref": "str",
-    "remote": "null",
-    "remote_as_of": "null",
-    "roles": "array",
-    "runs": "array",
-    "subject": "str",
-    "tip": "str",
-    "tracking": "null",
-    "upstream": "null",
-    "work": "bool",
-    "worktree": "dict"
-   }
-  },
-  "checked_at": "str",
-  "context": {
-   "analysis": {
-    "branch": "str",
-    "detached": "bool",
-    "selected": "bool",
-    "tip": "str"
-   },
-   "checkout": {
-    "branch": "str",
-    "commit": "str",
-    "detached": "bool",
-    "unborn": "bool"
-   },
-   "dirty": {
-    "tracked": "int",
-    "untracked": "int"
-   },
-   "report": {
-    "at": "str",
-    "branch": "str",
-    "commit": "str",
-    "detached": "bool",
-    "recorded": "bool"
-   },
-   "scan": {
-    "at": "str",
-    "branch": "str",
-    "commit": "str"
-   }
-  },
-  "default": {
-   "name": "null",
-   "source": "null"
-  },
-  "git": "bool",
-  "has_origin": "bool",
-  "head": {
-   "branch": "str",
-   "commit": "str",
-   "detached": "bool",
-   "unborn": "bool"
-  },
-  "last_fetch": "null",
-  "missing_linked": "array",
-  "project": "str",
-  "protected": {
-   "main": {
-    "ar": "str",
-    "code": "str",
-    "en": "str"
-   },
-   "master": {
-    "ar": "str",
-    "code": "str",
-    "en": "str"
-   }
-  },
-  "recovery": "array",
-  "remotes": "array",
-  "truncated": "bool",
-  "worktrees": {
-   "[]": {
-    "branch": "str",
-    "current": "bool",
-    "detached": "bool",
-    "dirty": "dict",
-    "head": "str",
-    "locked": "bool",
-    "path": "str",
-    "prunable": "bool"
-   }
-  }
- },
  "saved-0.0.90:mcp:branches": {
   "branches": {
    "[]": {
@@ -662,9 +332,6 @@
   },
   "working_branch": "str"
  },
- "saved-0.0.90:mcp:build_read": {
-  "error": "str"
- },
  "saved-0.0.90:mcp:context_propose": {
   "archive": "array",
   "archive_file": "str",
@@ -688,84 +355,6 @@
   "tokens_after": "int",
   "tokens_before": "int",
   "what_now": "str"
- },
- "saved-0.0.90:mcp:design": {
-  "status": "str",
-  "what_now": "str"
- },
- "saved-0.0.90:mcp:design_brief": {
-  "components": {
-   "add": "str",
-   "init": "str",
-   "rtl": "str"
-  },
-  "current": "null",
-  "description": "str",
-  "fonts": {
-   "arabic": {
-    "[]": "dict"
-   },
-   "install": "str"
-  },
-  "schema_version": "int",
-  "sources": {
-   "anthropic-skills": {
-    "install": "str",
-    "missing": "bool",
-    "offers": "str"
-   },
-   "awesome-design-md": {
-    "install": "str",
-    "missing": "bool",
-    "offers": "str"
-   },
-   "tweakcn-themes": {
-    "install": "str",
-    "missing": "bool",
-    "offers": "str"
-   },
-   "ui-ux-pro-max": {
-    "install": "str",
-    "missing": "bool",
-    "offers": "str"
-   }
-  },
-  "standard": {
-   "[]": "str"
-  },
-  "suggestion": "null",
-  "what_now": "str"
- },
- "saved-0.0.90:mcp:design_propose": {
-  "files": "array",
-  "home": "null",
-  "merges": "array",
-  "refused": "str",
-  "tokens": "int",
-  "uses": {},
-  "what_now": "str",
-  "you_can_agree": "array"
- },
- "saved-0.0.90:mcp:experience": {
-  "calls": "null",
-  "difficulties": {
-   "ranked": "array",
-   "rejected": "array"
-  },
-  "missing": {
-   "[]": "str"
-  },
-  "not_covered": "array",
-  "personas": "array",
-  "ran": "bool",
-  "replays": {
-   "red": "array",
-   "summary": {}
-  },
-  "seconds": "null",
-  "tickets": "array",
-  "time": "array",
-  "version": "int"
  },
  "saved-0.0.90:mcp:finding": {
   "after": "str",
@@ -961,19 +550,6 @@
    "resolved": "int",
    "skipped": "int",
    "total": "int"
-  }
- },
- "saved-0.0.90:mcp:projects": {
-  "projects": {
-   "[]": {
-    "checked": "str",
-    "current": "bool",
-    "name": "str",
-    "path": "str",
-    "score": "float",
-    "studio": "bool",
-    "workspace": "str"
-   }
   }
  },
  "saved-0.0.90:mcp:report_file": {

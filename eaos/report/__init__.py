@@ -1,1 +1,1 @@
-"""What people read: REPORT.html, the few documents, and the data the Studio reads."""
+"""What people read: START-HERE.md and the few documents."""

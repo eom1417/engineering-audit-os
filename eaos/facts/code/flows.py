@@ -10,11 +10,11 @@ from .. import digest, make
 
 BUILTINS = set(dir(builtins)) | {'console', 'print', 'require', 'super', 'len', 'range'}
 # The globals every JavaScript runtime defines: a call to one leaves the codebase, it is not a gap in the trace.
-JS_GLOBALS = {'Array', 'Boolean', 'Date', 'Error', 'JSON', 'Map', 'Math', 'Number', 'Object', 'Promise', 'Reflect', 'RegExp',
-              'Set', 'String', 'Symbol', 'URL', 'URLSearchParams', 'WeakMap', 'WeakSet', 'atob', 'btoa', 'clearInterval',
-              'clearTimeout', 'decodeURI', 'decodeURIComponent', 'encodeURI', 'encodeURIComponent', 'isFinite', 'isNaN',
-              'parseFloat', 'parseInt', 'queueMicrotask', 'requestAnimationFrame', 'cancelAnimationFrame', 'setInterval',
-              'setTimeout', 'structuredClone'}
+JS_GLOBALS = {'Array', 'Boolean', 'Date', 'Error', 'JSON', 'Map', 'Math', 'Number', 'Object', 'Promise',
+              'Reflect', 'RegExp', 'Set', 'String', 'Symbol', 'URL', 'URLSearchParams', 'WeakMap', 'WeakSet', 'atob',
+              'btoa', 'clearInterval', 'clearTimeout', 'decodeURI', 'decodeURIComponent', 'encodeURI',
+              'encodeURIComponent', 'isFinite', 'isNaN', 'parseFloat', 'parseInt', 'queueMicrotask',
+              'requestAnimationFrame', 'cancelAnimationFrame', 'setInterval', 'setTimeout', 'structuredClone'}
 JS_SUFFIXES = ('.js', '.jsx', '.mjs', '.cjs', '.ts', '.tsx', '.mts', '.cts')
 
 NAME = 'flows'
@@ -120,10 +120,12 @@ def _resolve_handler(handler, path, index, calls=None):
 def _module_start(handler, path, by_file, calls):
     # A script page (Streamlit) is its module: the flow starts at the calls made at the top level.
     if handler == '<module>': return {'path': path, 'symbol': None, 'name': '<module>'}
-    # A script that runs a file of the repository (`node scripts/ship.mjs`, `python -m pkg.tool`) starts at its top level.
+    # A script that runs a file of the repository (`node scripts/ship.mjs`, `python -m pkg.tool`) starts at its top
+    # level.
     if not handler.endswith(('.py',) + JS_SUFFIXES): return None
     for candidate in (handler, handler[:-3] + '/__main__.py' if handler.endswith('.py') else None):
-        if candidate in by_file or (candidate, None) in (calls or {}): return {'path': candidate, 'symbol': None, 'name': '<module>'}
+        if candidate in by_file or (candidate, None) in (calls or {}):
+            return {'path': candidate, 'symbol': None, 'name': '<module>'}
     return None
 
 
@@ -216,7 +218,9 @@ def trace(entry, index, calls, env_by_file):
 
 def _touched(steps, path):
     """The files a trace passes through, the entry point's own included, sorted."""
-    return sorted({step['from_path'] for step in steps} | {step['to_path'] for step in steps if step['to_path']} | ({path} if path else set()))
+    return sorted({step['from_path'] for step in steps}
+                  | {step['to_path'] for step in steps if step['to_path']}
+                  | ({path} if path else set()))
 
 
 def external_name_index(import_facts, edge_facts):
@@ -250,7 +254,8 @@ SURFACE_ORDER = {'http': 0, 'page': 0, 'job': 1, 'queue': 2, 'cli': 3, 'containe
 def _ranked(entry_points):
     # Routes declared inside a test suite are fixtures for the tests, not the product's own surface.
     return sorted([f for f in entry_points or [] if f['value'].get('handler') and f['value'].get('category') != 'test'],
-                  key=lambda f: (SURFACE_ORDER.get(f['value']['surface'], 9), str(f['value']['route']), f['location']['path']))
+                  key=lambda f: (SURFACE_ORDER.get(f['value']['surface'], 9), str(f['value']['route']),
+                                 f['location']['path']))
 
 
 def _one_per_handler(ranked):
@@ -293,7 +298,8 @@ def _summary(facts, ranked, deduplicated, entry_points):
             'unresolved_steps': sum(f['value']['unresolved_steps'] for f in facts),
             'steps_by_resolution': _by_resolution(facts),
             'max_depth': MAX_DEPTH, 'max_steps_per_flow': MAX_STEPS,
-            'interpretation': 'Statically traced paths. Unresolved steps mark where the trace stopped, not where execution stops.'}
+            'interpretation': 'Statically traced paths. Unresolved steps mark where the trace stopped, '
+                              'not where execution stops.'}
 
 
 def _by_resolution(facts):

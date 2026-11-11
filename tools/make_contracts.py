@@ -1,15 +1,13 @@
 """Write eaos/data/schemas/artifacts/*.schema.json: the contract of every artifact EAOS writes.
 
-The schemas are generated from this file (the report's artifacts) and the Studio's beside it (contracts_studio.py,
-contracts_maps.py, contracts_ai.py, written with contract_shapes.py); edit there, then run python tools/make_contracts.py.
+The schemas are generated from this file (the report's artifacts) and contracts_ai.py beside it (one AI node's run),
+written with contract_shapes.py; edit there, then run python tools/make_contracts.py.
 """
 import json
 from pathlib import Path
 
 from contract_shapes import B, I, N, NI, NN, NS, S, STAGE, arr, enum, obj
-from contracts_ai import AI_NODE, PROVENANCE
-from contracts_maps import STUDIO_V2
-from contracts_studio import DEFS, SECTIONS, SECTIONS_V2, STUDIO, STUDIO_REVISION
+from contracts_ai import AI_NODE
 
 OUT = Path(__file__).resolve().parent.parent / 'eaos/data/schemas/artifacts'
 
@@ -37,16 +35,6 @@ CONTRACTS = {
                          'churn': NI, 'authors': NI, 'last_changed': NS, 'fan_in': NI, 'fan_out': NI,
                          'coverage': NN, 'missing': arr(obj({'field': S, 'reason': S}))},
                         ['path', 'language', 'loc', 'complexity_max', 'churn', 'fan_in', 'missing']), 1)})),
- 'debt-register': ('debt-register.json', 'NS18.T2', 'The technical debt register. high and critical need two witnesses from different tools, or one deterministic witness.',
-  obj({'schema_version': {'const': 1}, 'formula': S,
-       'items': arr(obj({'id': {'type': 'string', 'pattern': '^DEBT-[0-9]{3}$'}, 'title': S,
-                         'category': enum('security', 'reliability', 'maintainability', 'architecture', 'data', 'supply_chain', 'dead_code'),
-                         'severity': enum('low', 'medium', 'high', 'critical'),
-                         'witnesses': arr(obj({'tool': S, 'finding_id': S, 'kind': enum('heuristic', 'deterministic', 'probe')}), 1),
-                         'files': arr(S), 'hotspot': {'type': ['object', 'null']}, 'impact': S, 'recommendation': S,
-                         'claim_id': NS},
-                        ['id', 'title', 'category', 'severity', 'witnesses', 'files', 'impact', 'recommendation']))},
-      ['schema_version', 'formula', 'items'])),
  'behavior-lock-plan': ('behavior-lock/plan.json', 'NS15.T1', 'Which spec locks which feature. `path` is relative to behavior-lock/.',
   obj({'schema_version': {'const': 1},
        'specs': arr(obj({'feature': S, 'tool': enum('playwright', 'schemathesis', 'pact', 'approvaltests'),
@@ -90,18 +78,7 @@ CONTRACTS = {
                                       'target_component': NS}, ['relation', 'reason']))}, [])),
 }
 CONTRACTS['ai-node'] = AI_NODE
-# The sections that draw a target, and the ideal view whose provenance they carry (eaos/ai/ideal/planner.py SECTION_VIEWS).
-TARGET_SECTIONS = ('system', 'story', 'plans', 'gaps', 'operations', 'paths', 'journeys', 'data_paths', 'infra', 'pipeline')
-for _sections in (STUDIO, STUDIO_V2):
-    for _name in TARGET_SECTIONS:
-        if _name in _sections: _sections[_name][1]['properties']['provenance'] = PROVENANCE
-DEFS_V2 = {**DEFS, 'touch': obj({'kind': enum('table', 'file', 'env', 'network', 'store', 'storage'), 'name': S}, ['kind', 'name'])}
-for _name, (_description, _schema) in STUDIO.items():
-    _schema = {**_schema, '$defs': DEFS}
-    if _name == 'manifest': _schema['x-sections'] = list(SECTIONS) + list(SECTIONS_V2)
-    CONTRACTS[f'studio-{_name}'] = (f'studio/{_name}.json', 'NS36', _description, _schema)
-for _name, (_description, _schema) in STUDIO_V2.items():
-    CONTRACTS[f'studio-{_name}'] = (f'studio/{_name}.json', 'NS46', _description, {**_schema, '$defs': DEFS_V2, 'x-revision': STUDIO_REVISION})
+
 
 def texts():
     """{file name: its text}: every schema as this file makes it (tests/guards/test_artifact_contract.py holds the

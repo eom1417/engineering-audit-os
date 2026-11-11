@@ -1,4 +1,4 @@
-"""The boundaries between layers, enforced by default (M6.2): each layer of the reference type may use only the layers its
+"""The boundaries between layers, enforced by default: each layer of the reference type may use only the layers its
 `allowed_dependencies` name. Every resolved import between two placed files is checked (a type-only import is not one:
 the compiler erases it); a breach is a finding at the import's line naming the boundary it breaks, and a breach where
 either file's placement is a low-confidence guess is a question. When the project declares its own eaos.policy.json,
@@ -41,8 +41,10 @@ def _question(source, target, one, other):
 
 def _breach(project, layer_map, one, other):
     source, target = one['path'], other['path']
-    return {'rule': 'layer-breach', 'path': source, 'line': _import_line(project, source, target), 'evidence': f'{source} → {target}',
-            'params': {'path': source, 'to': target, 'from_layer': one['layer'], 'to_layer': other['layer'], 'type': layer_map['type']}}
+    return {'rule': 'layer-breach', 'path': source, 'line': _import_line(project, source, target),
+            'evidence': f'{source} → {target}',
+            'params': {'path': source, 'to': target, 'from_layer': one['layer'], 'to_layer': other['layer'],
+                       'type': layer_map['type']}}
 
 
 def _crossings(project, may, placed):
@@ -60,7 +62,8 @@ def check(project, layer_map):
     if checked is None: return [], []
     findings, questions = [], []
     for one, other in _crossings(project, *checked):
-        if LOW in (one['confidence'], other['confidence']): questions.append(_question(one['path'], other['path'], one, other))
+        if LOW in (one['confidence'], other['confidence']):
+            questions.append(_question(one['path'], other['path'], one, other))
         else: findings.append(_breach(project, layer_map, one, other))
     return findings, questions
 
@@ -78,8 +81,9 @@ def _files_by_layer(rows, may):
 
 
 def rules(layer_map):
-    """dependency-cruiser's `forbidden` rules for the layer map: one per layer whose files may not reach another layer's,
-    type-only imports allowed, and browser code reaching server code. [] when no reference type placed the files."""
+    """dependency-cruiser's `forbidden` rules for the layer map: one per layer whose files may not reach another
+    layer's, type-only imports allowed, and browser code reaching server code. [] when no reference type placed the
+    files."""
     checked = _checked(layer_map)
     if checked is None: return []
     may = checked[0]
@@ -88,14 +92,18 @@ def rules(layer_map):
     for layer, paths in sorted(files.items()):
         barred = sorted({path for other, others in files.items() if other not in may[layer] for path in others})
         if barred:
-            found.append({'name': f'eaos-layer-{layer}', 'severity': 'error', 'comment': f'{layer} may use only {", ".join(sorted(may[layer]))}',
-                          'from': {'path': _regex(paths)}, 'to': {'path': _regex(barred), 'dependencyTypesNot': ['type-only']}})
+            found.append({'name': f'eaos-layer-{layer}', 'severity': 'error',
+                          'comment': f'{layer} may use only {", ".join(sorted(may[layer]))}',
+                          'from': {'path': _regex(paths)},
+                          'to': {'path': _regex(barred), 'dependencyTypesNot': ['type-only']}})
     return found + _browser_reach(layer_map['rows'])
 
 
 def _server_own(row):
-    """A file whose own code is the server's (a 'use server' file excepted: the browser calls a server action by design)."""
-    return row['side'] == 'server' and bool({'endpoint', 'data', 'node'} & set(row['marks'])) and 'server' not in row['marks']
+    """A file whose own code is the server's (a 'use server' file excepted: the browser calls a server action by
+    design)."""
+    return (row['side'] == 'server' and bool({'endpoint', 'data', 'node'} & set(row['marks']))
+            and 'server' not in row['marks'])
 
 
 def _browser_reach(rows):

@@ -1,11 +1,12 @@
-"""Code reached but never run (M13.2): what ran of the project while EAOS ran its tests, its server and its pages
+"""Code reached but never run: what ran of the project while EAOS ran its tests, its server and its pages
 (eaos/live/testing/ran.py, <out>/live/ran-*.json), read against its own functions (the `syntax` facts).
 
-A function is never run when its file was measured (some run read it: a function of it ran, or its lines did) and no run
-ran it: neither its name among the functions a run ran (Node, the browser) nor any line of its body (Coverage.py). A
-module is never run when an entry point reaches it (the graph), runs of its language were measured, and none read
-it. Each is a suspect, not a verdict: a screen no page opened, an error no test raised, run nowhere here. What ran around
-it is said: the functions of its file that ran, and for a module, the modules that import it that ran.
+A function is never run when its file was measured (some run read it: a function of it ran, or its lines did) and no
+run ran it: neither its name among the functions a run ran (Node, the browser) nor any line of its body
+(Coverage.py). A module is never run when an entry point reaches it (the graph), runs of its language were measured,
+and none read it. Each is a suspect, not a verdict: a screen no page opened, an error no test raised, run nowhere
+here. What ran around it is said: the functions of its file that ran, and for a module, the modules that import it
+that ran.
 """
 from pathlib import Path, PurePosixPath
 
@@ -13,7 +14,8 @@ from ...core.contracts.vocabulary import classify
 from ...core.system.files import read_json
 
 KINDS = ('tests', 'server', 'browser')
-FAMILIES = {'.py': 'python', '.js': 'js', '.jsx': 'js', '.mjs': 'js', '.cjs': 'js', '.ts': 'js', '.tsx': 'js', '.vue': 'js', '.svelte': 'js'}
+FAMILIES = {'.py': 'python', '.js': 'js', '.jsx': 'js', '.mjs': 'js', '.cjs': 'js', '.ts': 'js', '.tsx': 'js',
+            '.vue': 'js', '.svelte': 'js'}
 AROUND = 4
 
 
@@ -46,8 +48,10 @@ def functions(sets):
     """The project's own functions: [{path, name, line, end_line}]."""
     facts = [f for f in (sets.get('syntax') or {}).get('facts', []) if f['kind'] == 'symbol']
     owners = {(f['location']['path'], f['value']['name']) for f in facts if f['value'].get('kind') == 'function'}
-    return [{'path': f['location']['path'], 'name': f['value']['name'], 'line': f['location']['start_line'],
-             'end_line': f['location'].get('end_line') or f['location']['start_line']} for f in facts if _own_function(f, owners)]
+    return [{'path': f['location']['path'], 'name': f['value']['name'],
+             'line': f['location']['start_line'],
+             'end_line': f['location'].get('end_line') or f['location']['start_line']}
+            for f in facts if _own_function(f, owners)]
 
 
 def did_run(function, row):
@@ -77,7 +81,8 @@ def _graph(sets):
     nodes = [f for f in (sets.get('graph') or {}).get('facts', []) if f['kind'] == 'graph_node']
     importers = {}
     for node in nodes:
-        for target in node['value'].get('depends_on') or []: importers.setdefault(target, []).append(node['location']['path'])
+        for target in node['value'].get('depends_on') or []: importers.setdefault(target,
+                                                                                  []).append(node['location']['path'])
     return nodes, importers
 
 
@@ -93,10 +98,12 @@ def never_run_modules(sets, found):
     the modules importing it that ran."""
     files, (nodes, importers) = ran_files(found), _graph(sets)
     families = {_family(path) for path in files} - {None}
-    return [{'path': node['location']['path'], 'around': sorted(p for p in importers.get(node['location']['path'], []) if p in files)[:AROUND]}
+    return [{'path': node['location']['path'],
+             'around': sorted(p for p in importers.get(node['location']['path'], []) if p in files)[:AROUND]}
             for node in sorted(nodes, key=lambda n: n['location']['path']) if _unread(node, files, families)]
 
 
 def measured(found):
     """What was measured, in words: the runs that read code, and those that said why they read none."""
-    return {kind: ('read' if record.get('files') else record.get('reason') or 'nothing read') for kind, record in found.items()}
+    return {kind: ('read' if record.get('files') else record.get('reason') or 'nothing read') for kind,
+            record in found.items()}

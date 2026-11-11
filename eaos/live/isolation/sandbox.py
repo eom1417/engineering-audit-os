@@ -1,24 +1,23 @@
-"""Run a project's own code: only with the owner's authorization, in a copy, without secrets.
+"""Run a project's own code: only with authorization, in a copy, without secrets.
 
-The execution stages (S05's run half, S08-S14) need the project running. Nothing here starts before
+The execution stages need the project running. Nothing here starts before
 refusal() finds nothing wrong with authorization.json: it must keep its contract, not be expired, name
 the stage, and, when a target is given, name the commit the target is at. The project itself is never
 touched: every command runs in a copy of the authorised commit (committed_copy: never the working folder,
 and never a .env file), as its own process group, with
-an environment of PATH, a temporary HOME and TMPDIR, LANG, and the names the owner listed in env_allow. A Python
+an environment of PATH, a temporary HOME and TMPDIR, LANG, and the names listed in env_allow. A Python
 command runs in the run's own virtual environment (made at its first one), first on PATH: what a Python app installs
 lands there and goes with the run, never in EAOS's own environment, whose python is the one PATH finds.
 
 A run's copy, HOME and TMPDIR share one folder, held (flock) while the run lives: dispose() removes it, and the next
 run removes any folder no live run holds, so a check stopped or killed midway leaves nothing behind for long.
 
-Where the kernel allows it, every command sees the disk as its own run only (eaos/live/isolation/disk.py, live/isolation/view.py): the person's HOME,
-EAOS's home, the reports, the temporary folder and every project EAOS knows are hidden, its copy, the paths it is
-given and the tools (read-only) are shown, so one project's code never reads another's state, sign-in or database.
-A command runs with no network, so a test suite cannot reach anything outside. A started service must answer the
-host, so it keeps the network; that, and every other thing this sandbox could not isolate, is written to
-sandbox-run.json -> limitations, never implied.
-"""
+Where the kernel allows it, every command sees the disk as its own run only (eaos/live/isolation/disk.py,
+live/isolation/view.py): the person's HOME, EAOS's home, the reports, the temporary folder and every project EAOS knows
+are hidden, its copy, the paths it is given and the tools (read-only) are shown, so one project's code never reads
+another's state, sign-in or database. A command runs with no network, so a test suite cannot reach anything outside. A
+started service must answer the host, so it keeps the network; that, and every other thing this sandbox could not
+isolate, is written to sandbox-run.json -> limitations, never implied. """
 import fcntl
 import json
 import os
@@ -38,12 +37,14 @@ from ...core.system.web import opened
 from .disk import _launcher, _own, _view_refusal, _within, hidden, mounts, named
 from ...core.system.files import read_json
 from . import service_log
+from ...core.system.errors import noted
 
-PYTHON = ('python', 'python3', 'pip', 'pip3', 'uv', 'poetry', 'uvicorn', 'gunicorn')     # also what a run profile may start with
+# also what a run profile may start with
+PYTHON = ('python', 'python3', 'pip', 'pip3', 'uv', 'poetry', 'uvicorn', 'gunicorn')
 
 
 class AuthorizationError(Exception):
-    """The owner's authorization does not allow this run."""
+    """The authorization does not allow this run."""
 
 
 EXECUTION_STAGES = ('S08', 'S09', 'S10', 'S11', 'S12', 'S13', 'S14')
@@ -52,9 +53,9 @@ EXECUTION_STAGES = ('S08', 'S09', 'S10', 'S11', 'S12', 'S13', 'S14')
 def refusal(path, stage, commit=None, target=None):
     """Why authorization.json at `path` does not allow `stage` (at `commit`), or '' when it does.
 
-    From S08 on, the project runs as changed by EAOS: a candidate committed on top of the granted commit. Such a
+    For a stage that runs the project as changed by EAOS, a candidate committed on top of the granted commit. Such a
     commit is allowed when `target` is a checkout in which the granted commit is its ancestor; any other commit,
-    or the same one in a repository without that history, is refused as before."""
+    or the same one in a repository without that history, is refused."""
     from ...core.contracts.artifact_rules import contracts, validate
     path = Path(path)
     if not path.is_file(): return f'authorization: {path} is missing; the owner writes it (docs/MASTER-BLUEPRINT.md, section 10)'
@@ -92,14 +93,14 @@ def head(target):
     return done.stdout.strip() if done.returncode == 0 else ''
 
 
-# A .env file holds the owner's real values (a production database, live keys). The copy never carries one:
+# A .env file holds a person's real values (a production database, live keys). The copy never carries one:
 # the run's values come from the run profile, generated for it. Examples and templates hold no secret.
 ENV_EXAMPLES = ('.example', '.sample', '.template', '.dist', '.defaults')
 
 
 def committed_copy(target, commit, destination):
     """The project exactly as committed at `commit`, without any .env file: not the working folder, whose
-    unsaved edits and ignored files (a real .env first of all) are not what the owner authorised."""
+    unsaved edits and ignored files (a real .env first of all) are not what was authorised."""
     destination.mkdir(parents=True)
     archive = subprocess.run(['git', '-C', str(target), 'archive', '--format=tar', commit], capture_output=True)
     if archive.returncode: raise AuthorizationError(f'could not read commit {commit[:12]}: {archive.stderr.decode()[-200:]}')
@@ -162,7 +163,8 @@ def _listens(port, group):
         try:
             if os.getpgid(pid) == group and any(os.readlink(f'/proc/{pid}/fd/{fd}') in sockets for fd in os.listdir(f'/proc/{pid}/fd')):
                 return True
-        except OSError:
+        except OSError as error:
+            noted('a process that ended or is not ours holds no socket of the service', error)
             continue
     return False
 
@@ -212,7 +214,7 @@ class Sandbox:
         self._record()
 
     def environment(self, extra=None, argv=None):
-        """PATH, a temporary HOME and TMPDIR, LANG, the names the owner allowed, and `extra`: values the run itself chose
+        """PATH, a temporary HOME and TMPDIR, LANG, the names allowed, and `extra`: values the run itself chose
         (a local database address, tool locations), never taken from this process's environment. TMPDIR keeps what
         the project's own tests and tools write to a temporary folder inside the run's, removed with it. A Python
         command (`argv`), and every command after one, finds the run's own virtual environment first."""
@@ -228,9 +230,9 @@ class Sandbox:
         return env
 
     def caches(self):
-        """Where the run's package managers cache (pip, npm, cargo, composer, and what follows XDG): inside TMPDIR, removed with the run,
-        even when the profile moves HOME to a folder that stays (EAOS on itself: 160 MB of npm and pip caches kept). Go's
-        module cache is read-only unless -modcacherw (a run would leave it), and Go never downloads another toolchain."""
+        """Where the run's package managers cache (pip, npm, cargo, composer, and what follows XDG): inside
+        TMPDIR, removed with the run, even when the profile moves HOME to a folder that stays. Go's module cache
+        is read-only unless -modcacherw (a run would leave it), and Go never downloads another toolchain."""
         cache = str(self.tmp / 'cache')
         return {'XDG_CACHE_HOME': cache, 'PIP_CACHE_DIR': cache + '/pip', 'npm_config_cache': cache + '/npm',
                 'GOMODCACHE': cache + '/go', 'GOFLAGS': '-modcacherw', 'GOTOOLCHAIN': 'local',
@@ -264,7 +266,8 @@ class Sandbox:
         return [*_launcher({'offline': not network, 'cwd': str(cwd), 'mounts': mounts(self.masks, keeps)}), *argv], self.folder
 
     def run(self, argv, timeout=60, network=False, cwd=None, env=None):
-        """(exit code, stdout, stderr) of argv run in the copy (or `cwd` inside it); with no network unless `network`."""
+        """(exit code, stdout, stderr) of argv run in the copy (or `cwd` inside it); with no network unless
+        `network`."""
         argv = [str(part) for part in argv]
         self._note(argv, network)
         environment = self.environment(env, argv)
@@ -287,10 +290,10 @@ class Sandbox:
         return process.returncode, out, err
 
     def start(self, argv, health, timeout=30, cwd=None, env=None):
-        """Start a service in the copy and return once `health` (http://127.0.0.1:<port><path>) answers 200, refuses (4xx)
-        or fails with its own error (500: a first page that needs a database the run cannot give): it is up and decided,
-        and what it refuses or fails is the next step's evidence, not minutes of waiting; from the service itself
-        (_listens): another program answering on that port does not count."""
+        """Start a service in the copy and return once `health` (http://127.0.0.1:<port><path>) answers 200,
+        refuses (4xx) or fails with its own error (500: a first page that needs a database the run cannot give):
+        it is up and decided, and what it refuses or fails is the next step's evidence, not minutes of waiting;
+        from the service itself (_listens): another program answering on that port does not count."""
         argv = [str(part) for part in argv]
         self.limitations.append(f"network not isolated for the started service: {' '.join(argv)[:120]}")
         log = open(self.workdir / f'service-{len(self.started)}.log', 'w', encoding='utf-8')
@@ -315,8 +318,8 @@ class Sandbox:
     @staticmethod
     def _kill(process):
         """Terminate the whole process group, then kill what is left; return once no process of it is left, so none
-        still writes into a folder about to be read or removed (a bundler's workers wrote their coverage after their
-        leader ended, into a run folder being removed)."""
+        still writes into a folder about to be read or removed (a bundler's workers may write their coverage after their
+        leader ended)."""
         try:
             os.killpg(process.pid, signal.SIGTERM)
             process.wait(timeout=5)
@@ -341,7 +344,7 @@ class Sandbox:
 
     def dispose(self):
         """Stop what runs and remove the run's folder (copy, HOME, TMPDIR): a run leaves its records, not its disk.
-        (A lock run's copy with installed packages is 600 MB; three runs had kept 1.9 GB.)"""
+        (A lock run's copy with installed packages is about 600 MB.)"""
         self.stop()
         shutil.rmtree(self.folder, ignore_errors=True)
         self._held.close()
@@ -380,7 +383,7 @@ def _size(folder):
 
 def _sweep(workdir):
     """Remove every folder in `workdir` no live run holds: what a run stopped or killed before dispose() left (a
-    sandbox folder holds nothing but runs; 170 of them had kept 6.2 GB). The bytes freed."""
+    sandbox folder holds nothing but runs). The bytes freed."""
     freed = 0
     for folder in (entry for entry in workdir.iterdir() if entry.is_dir()):
         try:
@@ -388,7 +391,8 @@ def _sweep(workdir):
                 fcntl.flock(held, fcntl.LOCK_EX | fcntl.LOCK_NB)
                 freed += _size(folder)
                 shutil.rmtree(folder, ignore_errors=True)
-        except BlockingIOError:
+        except BlockingIOError as error:
+            noted('a folder still held by a run is not removed', error)
             continue
         except OSError:
             freed += _size(folder)

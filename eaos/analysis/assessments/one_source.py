@@ -1,9 +1,7 @@
-"""One source per pattern (M15), sorted into findings: near copies of code (jscpd's pairs joined into clusters), the
-ways of working written by hand (ast-grep's idiom records, eaos/rules/ast-grep/rules/idioms.yml), the element trees
-repeated across the screens and the look written outside its tokens file (the patterns fact set,
-eaos/facts/duplication/patterns.py; the style census of the pictured pages, one_source_look.py).
+"""One source per pattern, sorted into findings: near copies of code (jscpd's pairs joined into clusters) and the
+ways of working written by hand (ast-grep's idiom records, eaos/rules/ast-grep/rules/idioms.yml).
 
-Each finding: {kind, place, line, severity, evidence: {...}} as in data_keeping.py, its evidence naming every place,
+Each finding: {kind, place, line, severity, evidence: {...}}, its evidence naming every place,
 the source (the most complete copy, or the home the project's own layout gives: an existing components/ui, lib, hooks,
 utils or middleware folder, else the layer's own) and what differs. `numbers(sets)` are the four numbers of the law
 (eaos/core/contracts/code_laws.py), the same tools/quality.py records for EAOS.
@@ -13,20 +11,24 @@ from collections import Counter
 from pathlib import PurePosixPath
 
 from ...core.contracts.code_laws import NEAR_COPY, PATTERN_REPEATS
-from ...facts.duplication.element_trees import PRIMITIVES
 from ...facts.engine_findings import engine_records
-from ..design.findings import findings as design_findings
-from . import one_source_evidence, one_source_look
+from . import one_source_evidence
+from .weaknesses import observed
 
+# The folders of a project's shared UI primitives: copies there are the primitives themselves.
+PRIMITIVES = re.compile(r'(^|/)(components/ui|ui/primitives|primitives)/')
 TEST = re.compile(r'(^|/)(tests?|__tests__|spec|e2e)(/|$)|[._-](test|spec)\.[a-z]+$')
 # What is written alike on purpose or by a tool, never a copy to give one home: generated migrations and types, a
 # framework's twin entry points, examples and documentation pages that show each variant whole.
-ASIDE = re.compile(r'(^|/)(migrations|alembic|docs?|examples?|demos?|stories|storybook|showcase)(/|$)|\.stories\.|\.generated\.|\.gen\.|'
+ASIDE = re.compile(r'(^|/)(migrations|alembic|docs?|examples?|demos?|stories|storybook|showcase)(/|$)'
+                   r'|\.stories\.|\.generated\.|\.gen\.|'
                    r'(^|/)(asgi|wsgi)\.py$|(^|/)integrations/supabase/types\.ts$|(^|/)database\.types\.ts$')
 NEARBY = 3            # two records of one idiom this close in one file are one place (one statement's lines)
 # The kind of home each idiom calls for, by the folders a project already names it with.
-HOMES = {'hook': ('hooks', 'composables', 'lib', 'utils'), 'helper': ('lib', 'utils', 'helpers', 'shared', 'common', 'core'),
-         'middleware': ('middleware', 'middlewares', 'lib', 'utils'), 'component': ('components/ui', 'components', 'ui')}
+HOMES = {'hook': ('hooks', 'composables', 'lib', 'utils'),
+         'helper': ('lib', 'utils', 'helpers', 'shared', 'common', 'core'),
+         'middleware': ('middleware', 'middlewares', 'lib', 'utils'),
+         'component': ('components/ui', 'components', 'ui')}
 IDIOM_HOME = {'request_state': 'hook', 'popup_close': 'component', 'drag_drop': 'hook', 'route_guard': 'middleware'}
 
 
@@ -63,7 +65,8 @@ def _pairs(sets):
     for fact in engine_records(sets, 'near_copy'):
         value = fact['value']
         if not _kept(fact): continue
-        yield {'first': {'path': fact['location']['path'], 'line': fact['location'].get('line'), 'end_line': value.get('end_line')},
+        yield {'first': {'path': fact['location']['path'], 'line': fact['location'].get('line'),
+                         'end_line': value.get('end_line')},
                'second': value.get('other') or {}, 'kind': value.get('kind'), 'similarity': value.get('similarity'),
                'lines': value.get('lines') or 0, 'digest': value.get('digest'), 'fact_id': fact['id']}
 
@@ -75,7 +78,8 @@ def _cluster(members, pairs):
     similar = [p['similarity'] for p in pairs if p['similarity']]
     return _finding('near_copy', path, start, 'medium' if len(members) >= 3 or end - start >= 15 else 'low',
                     copies=len(members), lines=end - start + 1, kinds=sorted({p['kind'] for p in pairs}),
-                    similarity=min(similar, default=1.0), places=[{'path': p, 'line': s, 'end_line': e} for p, s, e in members],
+                    similarity=min(similar, default=1.0),
+                    places=[{'path': p, 'line': s, 'end_line': e} for p, s, e in members],
                     home=f'{path}:{start}', fact_ids=[p['fact_id'] for p in pairs][:20],
                     digests=sorted({p['digest'] for p in pairs if p['digest']}))
 
@@ -86,10 +90,12 @@ def _apart(start, end, other):
 
 
 def _kept(fact):
-    """Whether a pair is worth a home: alike as the law says, NEAR_COPY's lines or more, two places, neither set aside."""
+    """Whether a pair is worth a home: alike as the law says, NEAR_COPY's lines or more, two places, neither set
+    aside."""
     value, path = fact['value'], fact['location']['path']
     other = value.get('other') or {}
-    alike = value.get('lines', 0) >= NEAR_COPY['min_lines'] and (value.get('similarity') or 1.0) >= NEAR_COPY['similarity']
+    alike = value.get('lines',
+                      0) >= NEAR_COPY['min_lines'] and (value.get('similarity') or 1.0) >= NEAR_COPY['similarity']
     two = path != other.get('path') or _apart(fact['location'].get('line', 0), value.get('end_line'), other)
     return alike and two and not any(ASIDE.search(where) for where in (path, other.get('path') or ''))
 
@@ -148,22 +154,11 @@ def idioms(sets, folders):
     for (form, _), records in sorted(by_form.items()):
         places = _places(records)
         if len(places) < PATTERN_REPEATS or _the_home(places): continue
-        found.append(_finding('idiom', places[0]['path'], places[0]['line'], 'medium' if form == 'route_guard' else 'low',
+        found.append(_finding('idiom', places[0]['path'], places[0]['line'],
+                              'medium' if form == 'route_guard' else 'low',
                               form=form, count=len(places), places=places[:40],
-                              home=home_for(IDIOM_HOME.get(form, 'helper'), places, folders), fact_ids=[p['fact_id'] for p in places][:20]))
-    return found
-
-
-def ui_patterns(facts, folders):
-    """One finding per element tree repeated PATTERN_REPEATS times or more."""
-    found = []
-    for fact in facts:
-        if fact['kind'] != 'ui_pattern': continue
-        members = [m for m in fact['value']['members'] if not ASIDE.search(m['path'])]
-        if len(members) < PATTERN_REPEATS: continue
-        found.append(_finding('ui_pattern', members[0]['path'], members[0]['line'], 'low', tag=members[0]['tag'],
-                              count=len(members), elements=members[0]['elements'], similarity=fact['value']['similarity'],
-                              places=members[:40], home=home_for('component', members, folders), fact_id=fact['id']))
+                              home=home_for(IDIOM_HOME.get(form, 'helper'), places, folders),
+                              fact_ids=[p['fact_id'] for p in places][:20]))
     return found
 
 
@@ -173,16 +168,17 @@ def _finding(kind, place, line, severity, **evidence):
 
 def folders_of(sets):
     """Every folder of the project the facts name a file in."""
-    paths = {f['location'].get('path') for name in ('syntax', 'patterns') for f in (sets.get(name) or {}).get('facts', [])}
-    return {parent.as_posix() for path in paths if path for parent in PurePosixPath(path).parents if parent.as_posix() != '.'}
+    paths = {f['location'].get('path') for f in (sets.get('syntax') or {}).get('facts', [])}
+    return {parent.as_posix() for path in paths if path
+            for parent in PurePosixPath(path).parents if parent.as_posix() != '.'}
 
 
 def _gated(out, sets, folders):
-    """(the near copies and screen patterns that earn a card, the others: likenesses said as notes), by the three
+    """(the near copies that earn a card, the others: likenesses said as notes), by the three
     conditions (one_source_evidence.gate), each with its evidence."""
     layers, history = one_source_evidence.layers_of(out), one_source_evidence.history_of(sets)
     cards, notes = [], []
-    for finding in near_copies(sets) + ui_patterns((sets.get('patterns') or {}).get('facts') or [], folders):
+    for finding in near_copies(sets):
         card, finding['evidence']['why'] = one_source_evidence.gate(finding, layers, history)
         (cards if card else notes).append(finding)
     return cards, notes
@@ -191,28 +187,23 @@ def _gated(out, sets, folders):
 def findings(out, sets, root=None):
     """Every finding of one source per pattern, and what was not read (a tool that did not run)."""
     folders = folders_of(sets)
-    look = one_source_look.finding((sets.get('patterns') or {}).get('facts') or [], out)
-    return _gated(out, sets, folders)[0] + idioms(sets, folders) + ([look] if look else []) + design_findings(out), unmeasured(sets)
+    return _gated(out, sets, folders)[0] + idioms(sets, folders), unmeasured(sets)
 
 
 def likenesses(out, sets):
-    """The near copies and screen patterns alike in shape only, missing a condition: notes for the report, never cards."""
+    """The near copies alike in shape only, missing a condition: notes for the report, never cards."""
     return _gated(out, sets, folders_of(sets))[1]
 
 
 def unmeasured(sets):
-    """What could not be read: near copies without jscpd, the ways of working without ast-grep, the rest without the source."""
-    from .weaknesses import observed
+    """What could not be read: near copies without jscpd, the ways of working without ast-grep."""
     ran = observed(sets)
-    return [name for name, missing in (('near_copy', 'jscpd' not in ran), ('idiom', 'ast-grep' not in ran),
-                                       ('ui_pattern', 'patterns' not in sets), ('look', 'patterns' not in sets)) if missing]
+    return [name for name, missing in (('near_copy', 'jscpd' not in ran), ('idiom', 'ast-grep' not in ran)) if missing]
 
 
 def numbers(sets, out=None):
-    """The four numbers of the law: near copies (clusters), the look's values written outside the tokens file, UI
-    patterns and idioms repeated; each counted as tools/quality.py records it for EAOS."""
+    """The numbers of the law: near copies (clusters) and idioms repeated; each counted as tools/quality.py records it
+    for EAOS."""
     found, _ = findings(out, sets)
     count = Counter(f['kind'] for f in found)
-    written = sum(f['value']['count'] for f in (sets.get('patterns') or {}).get('facts') or [] if f['kind'] == 'look_value')
-    return {'near_copies': count['near_copy'], 'look': written,
-            'ui_patterns': count['ui_pattern'], 'idioms': count['idiom']}
+    return {'near_copies': count['near_copy'], 'idioms': count['idiom']}

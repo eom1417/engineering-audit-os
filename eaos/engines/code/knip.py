@@ -29,14 +29,16 @@ COUNTED = ('devDependencies', 'optionalPeerDependencies', 'binaries', 'unlisted'
 
 
 def capabilities():
-    return [Capability('dead_code', 'knip.files', granularity=FILE), Capability('dead_code', 'knip.exports', granularity=SYMBOL),
+    return [Capability('dead_code', 'knip.files', granularity=FILE),
+            Capability('dead_code', 'knip.exports', granularity=SYMBOL),
             Capability('unused_dependency', 'knip.dependencies', granularity=FILE)]
 
 
 def plugins(binary):
     """Every plugin the installed knip knows, read from its own package (bin/knip.js -> dist/plugins/<name>)."""
     folder = Path(os.path.realpath(binary)).parent.parent / 'dist' / 'plugins'
-    return sorted(p.name for p in folder.iterdir() if p.is_dir() and not p.name.startswith('_')) if folder.is_dir() else []
+    return (sorted(p.name for p in folder.iterdir() if p.is_dir() and not p.name.startswith('_'))
+            if folder.is_dir() else [])
 
 
 def configuration(names, exclude=()):
@@ -62,7 +64,8 @@ def _issue_findings(issue, found):
                                 f'unused file `{name}`: no entry file reaches it', raw_ref=f'{NAME}/knip.json'))
     for field, label in EXPORTS.items():
         for item in issue.get(field) or []:
-            findings.append(finding(NAME, found, field, 'dead_code', subject('symbol', f"{path}:{item['name']}", path, item.get('line')),
+            findings.append(finding(NAME, found, field, 'dead_code',
+                                    subject('symbol', f"{path}:{item['name']}", path, item.get('line')),
                                     f"unused {label} `{item['name']}` in {path}", raw_ref=f'{NAME}/knip.json'))
     for item in issue.get('dependencies') or []:
         findings.append(finding(NAME, found, 'dependencies', 'unused_dependency',
@@ -94,6 +97,7 @@ def analyze(target, workdir, exclude, formats, found):
     return Report(NAME, found, PINNED, OBSERVED, seconds=seconds, raw=str(output), findings=findings,
                   coverage={'status': 'observed', 'findings_by_rule': dict(sorted(by_rule.items())),
                             'counted_not_reported': counted, 'plugins': f'all {len(names)} switched off',
-                            'entry': list(ENTRY), 'tool_errors': [line for line in error.splitlines() if line.startswith('ERROR')][:5]},
+                            'entry': list(ENTRY),
+                            'tool_errors': [line for line in error.splitlines() if line.startswith('ERROR')][:5]},
                   evaluated={'dead_code': {'status': 'observed', 'granularity': SYMBOL},
                              'unused_dependency': {'status': 'observed', 'granularity': FILE}})

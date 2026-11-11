@@ -1,7 +1,8 @@
-"""Reading what EAOS and the projects keep in files: the one JSON reader every layer calls, and the one reader of JSON lines
-(M15.3)."""
+"""Reading what EAOS and the projects keep in files: the one JSON reader every layer calls, and the one reader of JSON
+lines."""
 import json
 from pathlib import Path
+from .errors import noted
 
 try: import tomllib     # the one home of reading TOML: every module takes it from here
 except ModuleNotFoundError: import tomli as tomllib     # Python 3.10, which pyproject.toml declares  # noqa: F401
@@ -19,6 +20,6 @@ def json_rows(raw):
     rows = []
     for line in text.splitlines():
         try: row = json.loads(line)
-        except ValueError: continue
+        except ValueError as error: noted('a line that is not JSON is left out', error); continue
         if isinstance(row, dict): rows.append(row)
     return rows

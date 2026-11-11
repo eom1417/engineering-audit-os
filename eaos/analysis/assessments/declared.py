@@ -11,10 +11,12 @@ import re
 from pathlib import Path, PurePosixPath
 
 from ...core.system.files import read_json, tomllib
-from ...engines.security.syft import REQUIREMENT
 
 GO_REQUIRE = re.compile(r'^\s*(?:require\s+)?([\w.~/-]+\.[\w.~/-]+)\s+v\d\S*\s*(//\s*indirect)?', re.M)
-JSON_SCOPES = {'dependencies': 'prod', 'optionalDependencies': 'prod', 'peerDependencies': 'prod', 'devDependencies': 'dev'}
+# A requirement line (requirements.txt): its name, extras and version specifier.
+REQUIREMENT = re.compile(r'^\s*([A-Za-z0-9][A-Za-z0-9._-]*)\s*(\[[^\]]*\])?\s*([^;#]*)')
+JSON_SCOPES = {'dependencies': 'prod', 'optionalDependencies': 'prod', 'peerDependencies': 'prod',
+               'devDependencies': 'dev'}
 
 
 def normal(name):
@@ -64,16 +66,20 @@ def _package_json(manifest):
 
 
 def _requirements(lines):
-    return [match.group(1) for match in map(REQUIREMENT.match, (line for line in lines if isinstance(line, str))) if match]
+    return [match.group(1) for match in map(REQUIREMENT.match,
+                                            (line for line in lines if isinstance(line, str))) if match]
 
 
 def _joined(table):
-    """Every entry of a table of lists (extras, dependency groups), or of a table of tables' `dependencies` (Poetry's groups)."""
-    return [entry for value in table.values() for entry in (value.get('dependencies') or {} if isinstance(value, dict) else value)]
+    """Every entry of a table of lists (extras, dependency groups), or of a table of tables' `dependencies` (Poetry's
+    groups)."""
+    return [entry for value in table.values() for entry in (value.get('dependencies') or {} if isinstance(value,
+        dict) else value)]
 
 
 def _pyproject(data):
     project, poetry = _table(data, 'project'), _table(data, 'tool', 'poetry')
     prod = _requirements(list(project.get('dependencies') or []) + _joined(_table(project, 'optional-dependencies')))
     dev = _requirements(_joined(_table(data, 'dependency-groups'))) + _joined(_table(poetry, 'group'))
-    return [('prod', prod + list(_table(poetry, 'dependencies'))), ('dev', dev + list(_table(poetry, 'dev-dependencies')))]
+    return [('prod', prod + list(_table(poetry, 'dependencies'))),
+            ('dev', dev + list(_table(poetry, 'dev-dependencies')))]

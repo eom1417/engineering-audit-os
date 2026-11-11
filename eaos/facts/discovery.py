@@ -19,8 +19,11 @@ def python_observations(text):
         elif isinstance(n,ast.Import):
             imports.extend({'module':a.name,'names':[],'level':0,'line':n.lineno} for a in n.names)
         elif isinstance(n,ast.ImportFrom):
-            imports.append({'module':n.module or '', 'names':[a.name for a in n.names], 'level':n.level,'line':n.lineno})
-    return {'parser':'python_ast','symbols':symbols,'imports':imports,'limitations':['Syntax only; imports inside conditions are not proof of runtime execution. Dynamic imports and runtime wiring require agent review.']}
+            imports.append({'module':n.module or '', 'names':[a.name for a in n.names], 'level':n.level,
+                            'line':n.lineno})
+    return {'parser':'python_ast','symbols':symbols,'imports':imports,
+            'limitations':['Syntax only; imports inside conditions are not proof of runtime execution. Dynamic imports '
+                           'and runtime wiring require agent review.']}
 
 def observe_text(path,text):
     if Path(path).suffix=='.py':return python_observations(text)
@@ -29,16 +32,26 @@ def observe_text(path,text):
         if not isinstance(obj,dict):raise ValueError('Manifest must be an object')
         # Retain names only: scripts, URLs and package configuration may contain credentials.
         names=lambda key:sorted(obj.get(key,{})) if isinstance(obj.get(key),dict) else []
-        return {'parser':'package_json','dependency_names':names('dependencies'),'dev_dependency_names':names('devDependencies'),'script_names':names('scripts'),'limitations':['Scripts not executed or copied. Workspace membership, versions and build behavior require review.']}
+        return {'parser':'package_json','dependency_names':names('dependencies'),
+                'dev_dependency_names':names('devDependencies'),'script_names':names('scripts'),
+                'limitations':['Scripts not executed or copied. Workspace membership, versions and build behavior '
+                               'require review.']}
     if Path(path).suffix in {'.js','.jsx','.ts','.tsx','.mjs','.cjs'}:
         # Lexical hints deliberately never promoted to confirmed graph edges.
         patterns=r'''(?:\bfrom\s*|\bimport\s*|\brequire\s*\(\s*|\bimport\s*\(\s*)["']([^"'\r\n]+)["']'''
-        return {'parser':'js_ts_lexical_hints','imports':[{'module':m.group(1),'line':text.count('\n',0,m.start())+1,'status':'HYPOTHESIS'} for m in re.finditer(patterns,text)],'limitations':['Not an AST parser. Comments, strings, aliases, exports and framework routing can produce false positives or omissions.']}
-    return {'parser':'inventory_only','limitations':['No language parser available. Agent must read this surface; no automatic pass.']}
+        return {'parser':'js_ts_lexical_hints','imports':[{'module':m.group(1),'line':text.count('\n',0,m.start())+1,
+                                                           'status':'HYPOTHESIS'} for m in re.finditer(patterns,text)],
+                                                           'limitations': [
+                                                               'Not an AST parser. Comments, strings, aliases, exports '
+                                                               'and framework routing can produce false positives '
+                                                               'or omissions.']}
+    return {'parser':'inventory_only',
+            'limitations':['No language parser available. Agent must read this surface; no automatic pass.']}
 
 def _observe_file(target,item):
     """One inventory file's row: what was observed in it, or why it was not read."""
-    rel=item['path'];row={'path':rel,'category':classify(rel),'sha256':item['sha256'],'capture':item['capture'],'parse_status':'NOT_PARSED','observations':{}}
+    rel=item['path'];row={'path':rel,'category':classify(rel),'sha256':item['sha256'],'capture':item['capture'],
+                          'parse_status':'NOT_PARSED','observations':{}}
     if item['capture']!='hashed' or row['category'] not in {'source','test','manifest'}:return row
     try:
         raw=safe_file(target,rel).read_bytes()
@@ -56,7 +69,13 @@ def scan(path):
     if not fresh(state,inv)[0]:raise ValueError('Snapshot changed or incomplete; create a new run before discovery')
     records=[_observe_file(Path(state['target']),item) for item in inv['files']]
     if not fresh(state,inv)[0]:raise ValueError('Snapshot changed during scan; observations discarded')
-    result={'schema_version':1,'revision':state['revision'],'created_at':now('auto'),'files':records,'counts':dict(Counter(r['parse_status'] for r in records)), 'limitations':['Static observations only. No architecture, responsibility or finding is inferred automatically.','Unsupported and blocked files remain in the review denominator.','Filename-based secret exclusion is not a comprehensive secret scanner. Do not upload unreviewed source packets.']}
+    result={'schema_version':1,'revision':state['revision'],'created_at':now('auto'),'files':records,
+            'counts':dict(Counter(r['parse_status'] for r in records)),
+            'limitations': [
+                'Static observations only. No architecture, responsibility or finding is inferred automatically.',
+                'Unsupported and blocked files remain in the review denominator.',
+                'Filename-based secret exclusion is not a comprehensive secret scanner. '
+                'Do not upload unreviewed source packets.']}
     write(run/'discovery.json',result)
     return result
 

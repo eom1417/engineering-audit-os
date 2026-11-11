@@ -1,4 +1,4 @@
-"""The `rules` stage (M16.3): every rule of the person's that holds now, its guard run on the checked code; rules.json
+"""The `rules` stage: every rule of the person's that holds now, its guard run on the checked code; rules.json
 says each one held, broken where, or not guarded and why. A detector's guard is read with the claims, from what the
 other detectors found (eaos/analysis/claims/from_rules.py)."""
 from ..stages import SkipStage

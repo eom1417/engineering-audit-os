@@ -1,7 +1,6 @@
 """One owner for the class-scoped temporary directory every fact test needs.
 
-Seventeen test classes carried the same `tearDownClass` body. The tool found it, this is the
-canonical home it proposed, and removing the copies is what closing that finding means.
+The canonical home of the `tearDownClass` body that test classes would otherwise each carry.
 """
 import atexit
 import os
@@ -17,7 +16,7 @@ os.environ.setdefault('EAOS_DETECTOR_VERDICTS', '')
 
 def scratch(prefix=None):
     """A temporary folder removed when the test run ends, for a fixture built outside a test's own setUp (a repository,
-    a report): the suite leaves nothing in the temporary folder (one run had left 111 folders, and over weeks 24,000)."""
+    a report): the suite leaves nothing in the temporary folder."""
     folder = tempfile.mkdtemp(prefix=prefix)
     atexit.register(shutil.rmtree, folder, True)
     return folder

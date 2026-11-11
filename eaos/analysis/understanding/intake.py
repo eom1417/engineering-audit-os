@@ -1,14 +1,14 @@
-"""What the owner must protect and where they are going, asked once, with a declared default for every gap.
+"""What the person must protect and where they are going, asked once, with a declared default for every gap.
 
 What must not break, how many users are coming, whether personal data is held: none of it can be read from
-the code with certainty. The questions are fixed (eaos/rules/intake-questions.json). The owner answers
+the code with certainty. The questions are fixed (eaos/rules/intake-questions.json). The person answers
 them in a JSON file of {id: answer} (`eaos audit --intake FILE`); a question they did not answer takes its
 default, marked `default`, with the reason written next to it. Some defaults are read from the project
 itself (the critical features, personal data, hosting), each citing where.
 
 The answers become numbered quality scenarios (stimulus, response, measure) that k6, Toxiproxy and the
 SLOs are later held to. Every scenario names the question it came from and whether its number was the
-owner's answer or a default, so no threshold appears without a source. intake.json keeps the contract
+person's answer or a default, so no threshold appears without a source. intake.json keeps the contract
 schemas/artifacts/intake.schema.json; engagement.json reads its scenarios from there.
 """
 import json
@@ -19,9 +19,11 @@ from ...core.system.files import read_json
 
 QUESTIONS = Path(__file__).resolve().parents[2] / 'rules/intake-questions.json'
 # Fields that identify a person wherever they appear, and fields that do so only on a person entity.
-PERSONAL = re.compile(r'\b(e_?mail|phone(?:_?number)?|telefone|celular|mobile|cpf|cnpj|ssn|national_id)\b\s*[?]?\s*[:\s]', re.I)
+PERSONAL = re.compile(r'\b(e_?mail|phone(?:_?number)?|telefone|celular|mobile|cpf|cnpj|ssn|national_id)\b'
+                      r'\s*[?]?\s*[:\s]', re.I)
 NAMED = re.compile(r'\b(name|full_?name|first_?name|last_?name|nome)\b\s*[?]?\s*[:\s]', re.I)
-PERSON = re.compile(r'user|profile|customer|client|member|employee|driver|operator|person|patient|student|contact', re.I)
+PERSON = re.compile(r'user|profile|customer|client|member|employee|driver|operator|person|patient|'
+                    r'student|contact', re.I)
 END = re.compile(r'^\s*(\);|\}|class\s|create\s|export\s|interface\s|type\s)', re.I)
 BLOCK = 60
 # A JavaScript project's package manager, by its lock (bun's text lock and its older binary one); npm without one.
@@ -74,7 +76,8 @@ def critical_features(out):
     record = read_json(Path(out) / 'features.json')
     if record is None: return [], 'features.json is absent'
     names = [feature['name'] for feature in record.get('features') or [] if feature.get('critical')]
-    return names, f'{len(names)} of {len(record.get("features") or [])} features are on a critical path in features.json'
+    return names, (f'{len(names)} of {len(record.get("features") or [])} features are on a critical '
+                   f'path in features.json')
 
 
 def run_command(target):
@@ -98,7 +101,8 @@ def scenarios(rows):
     by_id = {row['id']: row for row in rows}
     found = []
 
-    def add(kind, question, stimulus, response, metric, threshold, unit):  # limits: parameters -- a quality scenario's fields
+    def add(kind, question, stimulus, response, metric, threshold,
+            unit):  # limits: parameters -- a quality scenario's fields
         row = by_id[question]
         found.append({'id': f'QS-{len(found) + 1:03d}', 'kind': kind, 'stimulus': stimulus, 'response': response,
                       'measure': {'metric': metric, 'threshold': threshold, 'unit': unit},
@@ -120,7 +124,7 @@ def scenarios(rows):
 
 
 def build(target, out, answers=None):
-    """The intake record for one project: the owner's answers where given, declared defaults elsewhere."""
+    """The intake record for one project: the person's answers where given, declared defaults elsewhere."""
     answers = answers or {}
     derived = defaults(target, out)
     rows = []
@@ -139,10 +143,11 @@ def build(target, out, answers=None):
 
 
 def read_answers(path):
-    """The owner's answers file: a JSON object {question id: answer}."""
+    """The person's answers file: a JSON object {question id: answer}."""
     if not path: return {}
     data = json.loads(Path(path).read_text(encoding='utf-8'))
-    if not isinstance(data, dict): raise ValueError(f'{path}: the answers file is a JSON object {{question id: answer}}')
+    if not isinstance(data, dict): raise ValueError(f'{path}: the answers file is a JSON object '
+        f'{{question id: answer}}')
     return data
 
 

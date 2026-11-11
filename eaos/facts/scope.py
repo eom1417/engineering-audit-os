@@ -67,12 +67,13 @@ def vendored_patterns():
 def git_ignored(target):
     """What the project's own .gitignore keeps out of its repository: build outputs, local data, copies.
 
-    A snapshot handed over as an archive carries them (a full-stack app shipped release/, dist/ and .data/ beside
-    its source, 756 files, and release/ is a second copy of the server). They are not the project's code,
+    A snapshot handed over as an archive carries them (release/, dist/ and .data/ beside the source, where release/
+    can be a second copy of the server). They are not the project's code,
     so analysing them counts every duplicate and dead symbol twice. Empty when the target is not a git
     repository or git is absent: then nothing is excluded on this ground."""
     try:
-        done = subprocess.run(['git', '-C', str(target), 'ls-files', '--others', '--ignored', '--exclude-standard', '--directory'],
+        done = subprocess.run(['git', '-C', str(target), 'ls-files', '--others', '--ignored', '--exclude-standard',
+                               '--directory'],
                               capture_output=True, text=True, timeout=120)
     except (OSError, subprocess.TimeoutExpired):
         return []
@@ -92,7 +93,8 @@ def exclusion_reasons(target, path=None):
             reasons.setdefault(pattern, 'vendored directory name; opt in via analysis.include_vendored=true')
     for pattern in GENERATED:
         reasons.setdefault(pattern, GENERATED_REASON)
-    reasons.setdefault('(long lines)', 'a script or stylesheet with a line of over 1000 characters: ' + GENERATED_REASON)
+    reasons.setdefault('(long lines)',
+                       'a script or stylesheet with a line of over 1000 characters: ' + GENERATED_REASON)
     for pattern in git_ignored(target):
         reasons.setdefault(pattern, "ignored by the project's .gitignore: not part of its repository")
     return reasons

@@ -1,13 +1,16 @@
-"""EAOS keeps the oldest Python it declares (pyproject.toml, requires-python): no syntax or module newer than that in what it ships."""
+"""EAOS keeps the oldest Python it declares (pyproject.toml, requires-python): no syntax or module newer than that in
+what it ships."""
 import ast
 import io
 import sys
 import tokenize
 import unittest
+from needs import needs
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
-SHIPPED = [path for path in (ROOT / 'eaos').rglob('*.py') if path.relative_to(ROOT).parts[1] not in ('templates', 'rules')]
+SHIPPED = [path for path in (ROOT / 'eaos').rglob('*.py') if path.relative_to(ROOT).parts[1] not in ('templates',
+    'rules')]
 HOME_OF_TOML = ROOT / 'eaos/core/system/files.py'
 
 
@@ -26,9 +29,10 @@ def _reused_quotes(text):
 
 
 class TheOldestPythonDeclared(unittest.TestCase):
-    @unittest.skipUnless(sys.version_info >= (3, 12), 'only Python 3.12 reads such an f-string to find it')
+    @needs('' if sys.version_info >= (3, 12) else 'only Python 3.12 reads such an f-string to find it', tool=False)
     def test_no_f_string_reuses_its_own_quote(self):
-        found = {str(path.relative_to(ROOT)): lines for path in SHIPPED if (lines := _reused_quotes(path.read_text(encoding='utf-8')))}
+        found = {str(path.relative_to(ROOT)): lines for path in SHIPPED
+                 if (lines := _reused_quotes(path.read_text(encoding='utf-8')))}
         self.assertEqual(found, {})
 
     def test_toml_is_read_through_its_one_home_which_works_on_every_declared_python(self):

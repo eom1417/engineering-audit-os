@@ -1,22 +1,23 @@
 """The plan orderer: the order and grouping of the plan's steps, planned by the assistant.
 
-It reads the rules' plan (eaos/analysis/planning/cards.py: milestones, waves and each card's prerequisites), what the card triage decided
-(a rejected card is set aside, a doubtful one waits for its probe), the planned ideal's own order when there is one,
-and the pipeline-gap planner's steps, then decides "reorder" (with its steps), "keep" or "ask". A planning node: a
-critique pass reviews the draft. The check refuses an order that puts a card before one of its prerequisites, names a
-card twice or names one the plan does not hold; a card the order leaves out is placed after it, in the rules' order.
+It reads the rules' plan (eaos/analysis/planning/cards.py: milestones, waves and each card's prerequisites), what the
+card triage decided (a rejected card is set aside, a doubtful one waits for its probe), then decides "reorder" (with its
+steps), "keep" or "ask". A planning node: a critique pass reviews the draft. The check refuses an order that puts a card
+before one of its prerequisites, names a card twice or names one the plan does not hold; a card the order leaves out is
+placed after it, in the rules' order.
 The proposal is written to nodes/plan_orderer/order.json; the plan itself is never changed by it.
 """
 import json
 from pathlib import Path
 
 from . import framework as core
-from ..ideal import planner as ideal
+from . import evidence
 
 VERSION = '1'
 LIMIT = {'tasks': 300}
 _STEP = {'type': 'object', 'additionalProperties': False, 'required': ['id', 'title', 'tasks', 'why'],
-         'properties': {'id': {'type': 'string'}, 'title': {'type': 'string'}, 'tasks': {'type': 'array', 'items': {'type': 'string'}},
+         'properties': {'id': {'type': 'string'}, 'title': {'type': 'string'},
+                        'tasks': {'type': 'array', 'items': {'type': 'string'}},
                         'why': {'type': 'string'}}}
 DETAIL = {'type': 'object', 'additionalProperties': False, 'required': ['steps'],
           'properties': {'steps': {'type': 'array', 'items': _STEP}}}
@@ -27,8 +28,7 @@ can follow one after the other, every prerequisite kept.
 WHAT YOU ARE GIVEN
 `tasks`: every open card with its id, title, kind, paths, prerequisites, milestone, wave and `triage` (what the card
 triage decided: confirm, doubt, reject, or null when it did not run). `milestones`: their goals and cards. `rules`: how
-the rules order the plan (RULE-plan-order). `ideal_order`: the planned ideal's order, when there is one.
-`pipeline_steps`: the steps that close the pipeline's gaps.
+the rules order the plan (RULE-plan-order).
 
 WHAT TO RETURN
 One decision, subject "plan": "reorder" with `detail.steps` (in the order to do them; each step an id, a title, the
@@ -50,37 +50,31 @@ def _triage(report):
     return {v['card']: v['decision'] for v in body.get('verdicts') or [] if isinstance(v, dict) and v.get('card')}
 
 
-def _gap_steps(report):
-    body = core.load(Path(report) / 'nodes/pipeline_gap_planner/plan.json', {}) or {}
-    return [s for s in body.get('steps') or [] if isinstance(s, dict) and s.get('decision') in ('plan', 'rules only')][:40]
-
-
 def _open_tasks(report, plan):
     """The plan's tasks not done yet, up to the limit."""
-    done = {c['id'] for c in ideal._cards(report) if c.get('state') in ('done', 'resolved')}
-    return [t for t in plan.get('tasks') or [] if isinstance(t, dict) and t.get('id') and t['id'] not in done][:LIMIT['tasks']]
+    done = {c['id'] for c in evidence.cards(report) if c.get('state') in ('done', 'resolved')}
+    return [t for t in plan.get('tasks') or []
+            if isinstance(t, dict) and t.get('id') and t['id'] not in done][:LIMIT['tasks']]
 
 
 def _task_rows(plan, tasks, triage):
-    """Each task as the node reads it: what it is, what it waits for, where the rules placed it, the triage's verdict."""
+    """Each task as the node reads it: what it is, what it waits for, where the rules placed it, the triage's
+    verdict."""
     wave, milestone = _places(plan)
-    return [{'id': t['id'], 'title': core.short(t.get('title'), 160), 'kind': t.get('kind'), 'paths': (t.get('paths') or [])[:2],
-             'prerequisites': [p for p in t.get('prerequisites') or [] if isinstance(p, str)], 'milestone': milestone.get(t['id']),
+    return [{'id': t['id'], 'title': core.short(t.get('title'), 160), 'kind': t.get('kind'),
+             'paths': (t.get('paths') or [])[:2],
+             'prerequisites': [p for p in t.get('prerequisites') or [] if isinstance(p, str)],
+             'milestone': milestone.get(t['id']),
              'wave': wave.get(t['id']), 'triage': triage.get(t['id'])} for t in tasks]
 
 
 def _places(plan):
     """({task: wave}, {task: milestone}): where the rules placed each task."""
-    wave = {task: i + 1 for i, row in enumerate(plan.get('waves') or []) for task in (row if isinstance(row, list) else [])}
-    milestone = {task: m.get('id') for m in plan.get('milestones') or [] if isinstance(m, dict) for task in m.get('tasks') or []}
+    wave = {task: i + 1 for i,
+            row in enumerate(plan.get('waves') or []) for task in (row if isinstance(row, list) else [])}
+    milestone = {task: m.get('id') for m in plan.get('milestones') or []
+                 if isinstance(m, dict) for task in m.get('tasks') or []}
     return wave, milestone
-
-
-def _ideal_order(report):
-    """The first elements of the plan order the planned ideal holds; [] when the ideal is not planned."""
-    record, state = ideal.current(report)
-    order = (((record or {}).get('ideal') or {}).get('views') or {}).get('plan_order') if state == 'planned' else None
-    return [{k: e.get(k) for k in ('id', 'title', 'detail', 'cites')} for e in (order or {}).get('elements') or []][:40]
 
 
 def inputs(report, project=None, lang='en', **_):
@@ -91,8 +85,7 @@ def inputs(report, project=None, lang='en', **_):
     return {'lang': lang, 'tasks': _task_rows(plan, tasks, _triage(report)),
             'milestones': [{'id': m.get('id'), 'goal': core.short(m.get('goal'), 200), 'tasks': m.get('tasks') or []}
                            for m in plan.get('milestones') or [] if isinstance(m, dict)],
-            'rules': {'RULE-plan-order': ideal.rules(report).get('RULE-plan-order')},
-            'ideal_order': _ideal_order(report), 'pipeline_steps': _gap_steps(report)}
+            'rules': {'RULE-plan-order': evidence.rules(report).get('RULE-plan-order')}}
 
 
 def subjects(data):
@@ -100,7 +93,7 @@ def subjects(data):
 
 
 def known(report, data):
-    return ideal.known_ids(report) | {s['gap'] for s in data['pipeline_steps'] if s.get('gap')}
+    return evidence.known_ids(report)
 
 
 def rules_steps(data):
@@ -110,14 +103,18 @@ def rules_steps(data):
     for task in sorted(data['tasks'], key=lambda t: (order.get(t['milestone'], 99), t['wave'] or 99, t['id'])):
         if task['triage'] == 'reject': continue
         key = (task['milestone'], task['wave'])
-        steps.setdefault(key, {'id': f"{task['milestone'] or 'M?'}-W{task['wave'] or '?'}", 'title': f"{task['milestone'] or 'M?'}, wave {task['wave'] or '?'}",
-                               'tasks': [], 'why': "The rules' order: the milestone, then the wave."})['tasks'].append(task['id'])
+        steps.setdefault(key,
+                         {'id': f"{task['milestone'] or 'M?'}-W{task['wave'] or '?'}",
+                          'title': f"{task['milestone'] or 'M?'}, wave {task['wave'] or '?'}",
+                               'tasks': [], 'why': "The rules' order: the milestone, then the "
+                                                   "wave."})['tasks'].append(task['id'])
     return list(steps.values())
 
 
 def rules(data):
     ids = [t['id'] for t in data['tasks']][:20]
-    return {'plan': (ids + ['RULE-plan-order'], "The rules' order: milestones, prerequisites and the files each card touches.", 0.6,
+    return {'plan': (ids + ['RULE-plan-order'],
+                     "The rules' order: milestones, prerequisites and the files each card touches.", 0.6,
                      {'steps': rules_steps(data)})}
 
 
@@ -172,6 +169,8 @@ def finish(report, record, data):
     folder = core.folder_of(report, record['node'])
     folder.mkdir(parents=True, exist_ok=True)
     (folder / 'order.json').write_text(json.dumps({'schema_version': 1, 'at': record['at'], 'method': record['method'],
-                                                   'decision': decision['decision'], 'source': decision['source'], 'steps': steps,
-                                                   'set_aside': rejected, 'why': decision['why']}, ensure_ascii=False, indent=1) + '\n',
+                                                   'decision': decision['decision'], 'source': decision['source'],
+                                                   'steps': steps,
+                                                   'set_aside': rejected, 'why': decision['why']}, ensure_ascii=False,
+                                                  indent=1) + '\n',
                                        encoding='utf-8')
