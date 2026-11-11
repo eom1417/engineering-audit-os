@@ -52,7 +52,7 @@ class LeftoverTests(unittest.TestCase):
 
     def test_source_named_or_placed_as_build_output_beside_imported_source_or_under_src_is_source(self):
         # A build_info.py beside the modules it is imported with, and a Java package named `target`, are source.
-        files = ['eaos/core/system/build_info.py', 'eaos/kernel/system/launch.py', 'src/main/java/app/target/Plan.java',
+        files = ['eaos/kernel/system/build_info.py', 'eaos/kernel/system/launch.py', 'src/main/java/app/target/Plan.java',
                  'target/classes/app/Plan.class', 'build_notes.txt', 'dist/bundle.js']
         imported = [{'kind': 'module_edge', 'value': {'to_path': 'eaos/kernel/system/launch.py'},
                      'location': {'path': 'eaos/doors/cli.py', 'start_line': 1}}]

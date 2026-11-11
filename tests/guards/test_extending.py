@@ -28,7 +28,7 @@ class Extending(unittest.TestCase):
         notices = (ROOT / 'THIRD_PARTY_NOTICES.md').read_text(encoding='utf-8')
         for name, adapter in ADAPTERS.items():
             with self.subTest(engine=name):
-                self.assertTrue(Path(adapter.__file__).is_relative_to(ROOT / 'eaos' / 'engines'),
+                self.assertTrue(Path(adapter.__file__).is_relative_to(ROOT / 'eaos' / 'features' / 'engines' / 'adapters'),
                                 'an adapter in eaos/features/engines/adapters/')
                 self.assertTrue(name in UNSAMPLED or (ROOT / 'tests' / 'contracts' / f'{name}.json').is_file(),
                                 'a pinned sample')
