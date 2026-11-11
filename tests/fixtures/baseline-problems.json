@@ -233,7 +233,8 @@
    "kinds": [
     "to localstorage in one value"
    ],
-   "found": "card"
+   "found": "missed",
+   "why_missed": "its detector left the package with the frozen code (decision D2: data keeping, the look)"
   },
   {
    "id": "whole-state-request",
@@ -243,7 +244,8 @@
    "kinds": [
     "in one request to save it"
    ],
-   "found": "card"
+   "found": "missed",
+   "why_missed": "its detector left the package with the frozen code (decision D2: data keeping, the look)"
   },
   {
    "id": "saved-before-answer",
@@ -253,7 +255,8 @@
    "kinds": [
     "without reading the server"
    ],
-   "found": "card"
+   "found": "missed",
+   "why_missed": "its detector left the package with the frozen code (decision D2: data keeping, the look)"
   },
   {
    "id": "queue-over-quota",
@@ -263,7 +266,8 @@
    "kinds": [
     "never trimmed"
    ],
-   "found": "card"
+   "found": "missed",
+   "why_missed": "its detector left the package with the frozen code (decision D2: data keeping, the look)"
   },
   {
    "id": "base64-logos",
@@ -273,7 +277,8 @@
    "kinds": [
     "pictures into the database"
    ],
-   "found": "card"
+   "found": "missed",
+   "why_missed": "its detector left the package with the frozen code (decision D2: data keeping, the look)"
   },
   {
    "id": "backup-skips-tables",
@@ -282,7 +287,8 @@
    "kinds": [
     "are not in it"
    ],
-   "found": "card"
+   "found": "missed",
+   "why_missed": "its detector left the package with the frozen code (decision D2: data keeping, the look)"
   },
   {
    "id": "page-resends-everything",
@@ -291,7 +297,8 @@
    "kinds": [
     "the whole collection"
    ],
-   "found": "card"
+   "found": "missed",
+   "why_missed": "its detector left the package with the frozen code (decision D2: data keeping, the look)"
   },
   {
    "id": "near-copy-one-line",
@@ -318,7 +325,8 @@
    "kinds": [
     "same <div> structure"
    ],
-   "found": "card"
+   "found": "missed",
+   "why_missed": "its detector left the package with the frozen code (decision D2: data keeping, the look)"
   },
   {
    "id": "colour-off-a-shade",
@@ -327,7 +335,8 @@
    "kinds": [
     "color"
    ],
-   "found": "card"
+   "found": "missed",
+   "why_missed": "its detector left the package with the frozen code (decision D2: data keeping, the look)"
   },
   {
    "id": "sizes-off-the-scale",
@@ -336,7 +345,8 @@
    "kinds": [
     "font_size"
    ],
-   "found": "card"
+   "found": "missed",
+   "why_missed": "its detector left the package with the frozen code (decision D2: data keeping, the look)"
   },
   {
    "id": "date-three-ways",

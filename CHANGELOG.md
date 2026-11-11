@@ -12,6 +12,10 @@ contract lock accepted 54 breaks (`tests/fixtures/contract/accepted-breaks.json`
   `design_choose`, `design_make`, `design_propose`, `experience`, `extend_plan`, `extend_start`, `logic_flaws`,
   `open_studio`, `project_map`, `projects`, `reorder`, `replan_ideal`, `sign_in_forget`.
 - The recorded answers of those tools no longer answer (24 entries for an empty home and a 0.0.90 home).
+- The golden trial's detection baseline: 25 of 35 planted problems, the 10 others (the whole state saved at once,
+  a queue never trimmed, pictures in the database, a partial backup, a page resending everything; a pop-up written
+  three times, colours a shade apart, sizes off the scale) recorded as missed: their detectors, data keeping and the
+  look, left with the frozen code. The problems stay planted in the app.
 
 After the second round's rerun (owner, 2026-11-05).
 
