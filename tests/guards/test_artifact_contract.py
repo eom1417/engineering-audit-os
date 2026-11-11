@@ -9,9 +9,9 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from eaos.core.contracts import artifacts as contract
-from eaos.core.contracts.document_rules import BUDGETS, validate
-from eaos.pipeline.stages import BY_NAME as STAGE_BY_NAME, STAGES
+from eaos.features.plan.analysis import artifacts as contract
+from eaos.features.plan.analysis.document_rules import BUDGETS, validate
+from eaos.features.check.journey.stages import BY_NAME as STAGE_BY_NAME, STAGES
 
 
 class DeclarationTests(unittest.TestCase):
@@ -166,11 +166,11 @@ class RecordTwinTests(unittest.TestCase):
     """R14: a document a model cannot act on is a dead end, and silence is not an answer."""
 
     def test_every_declared_document_has_a_record_twin_or_says_why_not(self):
-        from eaos.core.contracts.document_rules import documents_without_a_record_twin
+        from eaos.features.plan.analysis.document_rules import documents_without_a_record_twin
         self.assertEqual(documents_without_a_record_twin(), [])
         # The mutation the rule exists to catch: a new document added with neither field set.
-        from eaos.core.contracts import document_rules as rules
-        from eaos.core.contracts.artifacts import Artifact, DOCUMENT
+        from eaos.features.plan.analysis import document_rules as rules
+        from eaos.features.plan.analysis.artifacts import Artifact, DOCUMENT
         silent = Artifact('NEW-THING.md', 'compose', DOCUMENT, 'a document nobody can act on', 99, 120)
         original = dict(rules.BY_NAME)
         try:
@@ -192,7 +192,7 @@ class RecordTwinTests(unittest.TestCase):
 
     def test_a_named_record_twin_is_itself_a_declared_artifact(self):
         # Pointing at a file nobody writes would satisfy the letter of R14 and none of its point.
-        from eaos.core.contracts.artifacts import ARTIFACTS, BY_NAME, DOCUMENT
+        from eaos.features.plan.analysis.artifacts import ARTIFACTS, BY_NAME, DOCUMENT
         for artifact in ARTIFACTS:
             if artifact.kind != DOCUMENT or not artifact.record:
                 continue

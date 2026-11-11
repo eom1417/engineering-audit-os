@@ -2,8 +2,8 @@
 from pathlib import Path
 import tempfile
 import unittest
-from eaos.facts.run import collect
-from eaos.facts.store import read_set
+from eaos.kernel.facts.run import collect
+from eaos.kernel.facts.store import read_set
 
 # (body, hypothesis kind, callees expected for that kind)
 CASES = [

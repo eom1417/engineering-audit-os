@@ -9,8 +9,8 @@ from unittest import mock
 
 from tests.shared_fixture import Workspace
 
-from eaos.journeys.fix import selection
-from eaos.report.records import cards, evidence, model, write
+from eaos.features.guided.journey import selection
+from eaos.features.report.interface.records import cards, evidence, model, write
 
 
 def task(number, pattern, kind='remediate', **extra):
@@ -107,7 +107,7 @@ class Evidence(unittest.TestCase):
                   'value': {'kind': 'complexity', 'message': 'complex'}},
                  {'id': 'F2', 'kind': 'engine_finding', 'location': {'path': 'src/a.ts'},
                   'value': {'kind': 'secret', 'sites': [{'path': 'src/a.ts', 'line': 3}]}}]
-        from eaos.facts.store import write_set
+        from eaos.kernel.facts.store import write_set
         with tempfile.TemporaryDirectory() as report:
             write_set(report, 'external', 'external', '1', [], {'facts': facts, 'input_sha': 'sha'})
             rows = {f['id']: f for f in evidence.evidence(report, {'F1', 'F2'}, self.source)}

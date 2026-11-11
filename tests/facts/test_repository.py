@@ -4,8 +4,8 @@ import subprocess
 import unittest
 from pathlib import Path
 
-from eaos.facts.repository import read
-from eaos.facts.source import Source
+from eaos.features.only_code.facts import read
+from eaos.kernel.facts.source import Source
 from shared_fixture import scratch
 
 

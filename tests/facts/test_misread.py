@@ -1,7 +1,7 @@
 """An engine's function measure longer than the function EAOS measured is set aside."""
 import unittest
 
-from eaos.facts.misread import set_aside
+from eaos.features.engines.facts.misread import set_aside
 
 
 def lizard(line, nloc):

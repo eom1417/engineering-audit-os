@@ -1,7 +1,7 @@
 """Every card sized, owned by one section, and in exactly one milestone, in the blueprint's order."""
 import unittest
 
-from eaos.analysis.planning.roadmap import effort, milestones, section, sections
+from eaos.features.plan.analysis.roadmap import effort, milestones, section, sections
 
 
 def task(tid, pattern, paths=('src/a.ts',), priority=1.0, **extra):
@@ -14,7 +14,7 @@ class RoadmapTests(unittest.TestCase):
         # Size needs both measures small: one file with 129 dependents (the self-audit's core/project/workspace.py)
         # is large.
         self.assertEqual(effort(['a', 'b', 'c'], 20)[0], 'M')
-        self.assertEqual(effort(['eaos/core/project/workspace.py'], 129)[0], 'L')
+        self.assertEqual(effort(['eaos/kernel/project/workspace.py'], 129)[0], 'L')
         self.assertEqual(effort([str(i) for i in range(9)], 21)[0], 'L')
         cases = [(task('1', 'upgrade_dependency', ['package-lock.json']), 'security'),
                  (task('2', 'generic', ['.github/workflows/ci.yml']), 'infrastructure'),
@@ -22,7 +22,7 @@ class RoadmapTests(unittest.TestCase):
                  (task('4', 'generic', ['src/server/x.ts']), 'backend'),
                  (task('5', 'trace_gap'), 'quality'), (task('6', 'hotspot'), 'frontend'),
                  # No default section: a Python module is back end, a card with no file is general.
-                 (task('7', 'hotspot', ['eaos/facts/defects/secrets.py']), 'backend'), (task('8', 'generic', []),
+                 (task('7', 'hotspot', ['eaos/features/defects/facts/secrets.py']), 'backend'), (task('8', 'generic', []),
                      'general'),
                  (task('9', 'hotspot', ['studio/src/App.tsx']), 'frontend')]
         for card, expected in cases:

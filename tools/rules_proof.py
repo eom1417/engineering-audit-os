@@ -24,10 +24,11 @@ from pathlib import Path
 
 os.environ['EAOS_HEADLESS'] = '1'
 
-from eaos.journeys import agent_tools, guided  # noqa: E402
-from eaos.live.app import setup as live_setup  # noqa: E402
-from eaos.interfaces import rules as person_rules  # noqa: E402
-from eaos.interfaces.mcp_server import rules as tools  # noqa: E402
+from eaos.features.guided.interface import agent_tools
+from eaos.features.guided import journey as guided  # noqa: E402
+from eaos.features.app_run.adapters.app import setup as live_setup  # noqa: E402
+from eaos.doors import rules as person_rules  # noqa: E402
+from eaos.doors.mcp_server import rules as tools  # noqa: E402
 
 ROOT = Path(__file__).resolve().parents[1]
 WORDS = 'The people\'s data lives only in the database: never write names, phones or e-mails in the code'

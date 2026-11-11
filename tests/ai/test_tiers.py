@@ -1,4 +1,4 @@
-"""Model tiers (eaos/ai/assistant/tiers.py): each stage asks on its tier, a cheaper tier that fails or would close
+"""Model tiers (eaos/features/assistant/adapters/tiers.py): each stage asks on its tier, a cheaper tier that fails or would close
 something is asked again a tier up, and each assistant is told its tier's model or effort."""
 import os
 import tempfile
@@ -6,8 +6,8 @@ import unittest
 from pathlib import Path
 from unittest import mock
 
-from eaos.ai import nodes
-from eaos.ai.assistant import headless as adapters, tiers
+from eaos.features.ai_review import analysis as nodes
+from eaos.features.assistant.adapters import headless as adapters, tiers
 from tests.ai.test_ai_nodes import Answer, _nodes_report, decision
 
 

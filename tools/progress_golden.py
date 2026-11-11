@@ -4,7 +4,7 @@
         copy a real run's progress file to tests/fixtures/progress/<name>.jsonl; the host becomes `golden-host`,
         every process number a small fixed one, and every path under <folder> starts with `/golden` instead
     python tools/progress_golden.py expect
-        write tests/fixtures/progress/<name>.fold.json = the Python fold (eaos/core/progress/fold.py) of every golden
+        write tests/fixtures/progress/<name>.fold.json = the Python fold (eaos/kernel/progress/fold.py) of every golden
         file
     python tools/progress_golden.py check
         exit 1 when a committed .fold.json differs from the fold of its golden file
@@ -47,7 +47,7 @@ def lines(path):
 
 
 def folded(path):
-    from eaos.core.progress import fold
+    from eaos.kernel.progress import fold
     return json.dumps(fold(lines(path)), ensure_ascii=False, indent=1, sort_keys=True) + '\n'
 
 

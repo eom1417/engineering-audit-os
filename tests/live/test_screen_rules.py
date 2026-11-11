@@ -4,8 +4,8 @@ import json
 import unittest
 from pathlib import Path
 
-from eaos.live.screens.crawl import code_routes, distinct
-from eaos.live.screens.file_routes import file_routes
+from eaos.features.app_run.adapters.screens.crawl import code_routes, distinct
+from eaos.features.app_run.adapters.screens.file_routes import file_routes
 from shared_fixture import scratch
 
 
@@ -72,7 +72,7 @@ class VisitorTests(unittest.TestCase):
         # a signed-in check must not turn /auth/login and /auth/register into the home page: the visitor sees them as
         # they are
         from unittest import mock
-        from eaos.pipeline.runners import pages
+        from eaos.features.check.journey.runners import pages
         out = Path(scratch())
         state = out / 'session.json'
         state.write_text('{}')
@@ -94,7 +94,7 @@ class VisitorTests(unittest.TestCase):
 class NotFoundTests(unittest.TestCase):
     def test_pages_that_answered_404_are_named_as_not_measured(self):
         # an Express app mounts its router under /api in another file: its pages are opened with that prefix
-        from eaos.pipeline.runners import pages
+        from eaos.features.check.journey.runners import pages
         rows = [{'url': 'http://h/', 'http': 200}, {'url': 'http://h/user', 'http': 404},
                 {'url': 'http://h/user', 'http': 404}]
         said = pages._not_found(rows)
@@ -108,8 +108,8 @@ class ApiTests(unittest.TestCase):
         # An Express API's first page answers JSON: it is not pictured as a page, since the phone width and the missing
         # <title> of a JSON answer would become a card no fix could pass.
         from unittest import mock
-        from eaos.pipeline.runners import pages
-        from eaos.pipeline.stages import SkipStage
+        from eaos.features.check.journey.runners import pages
+        from eaos.features.check.journey.stages import SkipStage
         out = Path(scratch())
         (out / 'facts').mkdir()
         (out / 'live').mkdir()
@@ -118,7 +118,7 @@ class ApiTests(unittest.TestCase):
         context = mock.MagicMock(out=out)
         for text, api in (('{"status":"API is running on /api"}', True), ('<html>Welcome</html>', False)):
             (out / 'live/setup.json').write_text(json.dumps({'page': {'path': '/', 'status': 200, 'text': text}}))
-            with mock.patch('eaos.pipeline.runners.live_app.sessions', side_effect=RuntimeError('opened')):
+            with mock.patch('eaos.features.check.journey.runners.live_app.sessions', side_effect=RuntimeError('opened')):
                 with self.assertRaises(SkipStage if api else RuntimeError) as raised:
                     pages.screens(context)
             if api: self.assertEqual(raised.exception.code, 'api_only')

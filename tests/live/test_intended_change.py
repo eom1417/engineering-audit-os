@@ -6,8 +6,8 @@ from pathlib import Path
 
 from shared_fixture import Workspace
 
-from eaos.live.behavior.intended import for_pass, only_added, restore_intended, screens_of
-from eaos.live.behavior.lock import spec_statuses
+from eaos.features.behaviour_lock.analysis.intended import for_pass, only_added, restore_intended, screens_of
+from eaos.features.behaviour_lock.analysis.lock import spec_statuses
 
 PAGES = {'root': 'Flaskr Register Log In Posts Hello world',
          'auth-register': 'Flaskr Register Log In Register Username Password'}
@@ -72,7 +72,7 @@ class IntendedChangeTests(Workspace):
 
     def test_the_batch_declares_the_screens_and_a_design_card_with_a_declaration_is_no_longer_free_on_every_screen(
             self):
-        from eaos.journeys.fix.waves.batch import declared_screens, intended_screens
+        from eaos.features.fix.journey.waves.batch import declared_screens, intended_screens
         self.assertEqual(intended_screens([NAV, {'id': 'TASK-1'}]), {'*': frozenset({'About'})})
         design = {'design': {'findings': [{'page': '/'}]}}
         self.assertEqual(declared_screens([design]), {'*'})

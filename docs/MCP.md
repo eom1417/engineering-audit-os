@@ -34,7 +34,7 @@ The server itself is `eaos mcp`, speaking MCP over stdio. Any MCP client can sta
 answer carries instructions that tell the assistant the whole way, in order, and what to ask the person.
 
 **The menu.** Typing `/eaos` alone in Claude Code (or `$eaos` in Codex) shows the `menu` tool's options: only those that
-make sense for the project now, the recommended one first, in pages of four (`eaos/interfaces/menu.py`). Claude Code
+make sense for the project now, the recommended one first, in pages of four (`eaos/doors/menu.py`). Claude Code
 shows them as a choice like `/model`; Codex as a numbered list. The server also offers prompts, which Claude Code lists
 as `/mcp__eaos__<name>`: `audit`, `fix`, `status`, `continue`, `report`, `tasks`, `ask` (takes the question) and
 `tools`.
@@ -135,9 +135,9 @@ as `/mcp__eaos__<name>`: `audit`, `fix`, `status`, `continue`, `report`, `tasks`
 ## Governance
 
 `runs`, `waiting`, `act`, `history` and `branch_change` give an assistant the run queue, the questions, the verbs on
-cards, the history and branch control (`eaos/interfaces/mcp_server/govern.py`); only `eaos mcp` registers them. They
+cards, the history and branch control (`eaos/doors/mcp_server/govern.py`); only `eaos mcp` registers them. They
 and the terminal's commands (`eaos check`, `eaos runs`, `eaos waiting`, ...) call the same core
-(`eaos/interfaces/govern.py`, on the run engine of `eaos/journeys/runs/`), so no rule is written twice and a run is the
+(`eaos/doors/govern.py`, on the run engine of `eaos/features/studio/journey/runs/`), so no rule is written twice and a run is the
 same run in the terminal and in the assistant. A host without HTTP (`eaos govern`) starts on demand and leaves two
 minutes after the queue is empty.
 
@@ -170,8 +170,8 @@ A fix reaches the person only as a branch, and only through its gates:
 1. **At each edit** (`fix_edit`): the card's problem is gone; no endpoint gone; no new forbidden import, import cycle,
    broken reference or broken layer boundary; nothing added against the code laws (copies, dead code, complexity,
    size, security, the repository's tidiness); the app's own quick checks still pass when its files changed
-   (`eaos/analysis/repair/gates.py`); and no rule of the person's that holds for the card is broken by what the edit
-   brought (`eaos/analysis/rules/held.py`). A failing edit is taken back with its reason, in the person's words for a rule.
+   (`eaos/features/fix/analysis/gates.py`); and no rule of the person's that holds for the card is broken by what the edit
+   brought (`eaos/features/rules/analysis/held.py`). A failing edit is taken back with its reason, in the person's words for a rule.
 2. **At the batch** (`fix_finish`): every kept change together through the project's own checks (tests, typecheck,
    lint; a check that rewrites the project's files instead of checking them, a lint reaching `--write`, is no gate and
    is named at the hand-over), Semgrep once over the kept changes (Gitleaks already read each edit), and the behaviour lock,
@@ -181,12 +181,12 @@ A fix reaches the person only as a branch, and only through its gates:
 
 ## Continuity: honest progress, merges that close the loop, hand-over between assistants
 
-- **The ledger** (`eaos/core/project/ledger.py`): each card has a stable key (its kind, files and words, without
+- **The ledger** (`eaos/kernel/project/ledger.py`): each card has a stable key (its kind, files and words, without
   numbers), because every check numbers its cards again. Every EAOS commit carries `EAOS-Card: <key>`, so what was
   merged is read from the person's branch itself, whoever merged it and however. A card is open, in a batch, on a
   branch waiting for a decision, done (merged), gone in a later check, or needs a decision. The report reads the
   progress from the ledger alone and never counts a waiting branch as done.
-- **Merging** (`eaos/journeys/guided/batches.py`, `merge` and `reconcile`): `accept` merges (fast-forward, else a clean
+- **Merging** (`eaos/features/guided/journey/batches.py`, `merge` and `reconcile`): `accept` merges (fast-forward, else a clean
   merge; a conflict is aborted, so nothing changes), deletes the branch and rebuilds the report. `status`, `menu` and
   `plan` reconcile with git on every call and remove no branch: a branch merged by hand is recorded, and what writes next
   (`fix_start`, `accept`, `undo`, `open_report`, the next `eaos next`) removes it; a branch deleted
@@ -195,7 +195,7 @@ A fix reaches the person only as a branch, and only through its gates:
   answer `stale_batch` and change nothing, and their jobs look again before applying a change or handing it over. A batch
   with a kept change goes on when the code moves on: its merge says the rest. A save removes only what it closes, once
   the state is written; what an older EAOS, a failed removal or a crash left stays. `eaos clean` removes such a copy only
-  when it is proved to hold nothing, no ignored file included (`eaos/journeys/guided/copies.py`), and names the ones it keeps,
+  when it is proved to hold nothing, no ignored file included (`eaos/features/guided/journey/copies.py`), and names the ones it keeps,
   with why, for the person to remove by hand; it does not touch old patches or bisection logs. A copy found where a new
   one goes is never deleted: it moves aside as `<name>.left-<id>`. After merging EAOS's own fixes, no new check or run is
   needed.
@@ -203,7 +203,7 @@ A fix reaches the person only as a branch, and only through its gates:
   by (`jobs.alone`), on the state read there, and never wait on it. When a job holds the project the tools answer
   `status: busy` with `error` and `what_now` and change nothing, `fix_abandon` also when a run is queued; `eaos clean` keeps
   that project's files and names them. That lock is never nested, nor taken inside a job or inside `lanes.changing`.
-- **Hand-over** (`eaos/journeys/handover.py`): the MCP server writes every call to `journal.jsonl` (when, which
+- **Hand-over** (`eaos/features/guided/journey/handover.py`): the MCP server writes every call to `journal.jsonl` (when, which
   assistant, which tool, which card, the result), `note` adds the reason, and `HANDOVER.md` is rewritten after every
   step. The next assistant calls `status` and finds `handover`: the open work and what is left of it, what the person
   answered, the last steps and notes, and how to continue.
@@ -211,12 +211,12 @@ A fix reaches the person only as a branch, and only through its gates:
   open in the folder (or the repository it is in), a new session starts already knowing the last step and who did
   it, the batch and what is kept and left, and the card in progress. "Continue" alone is enough. The person sees the
   same with `eaos handover`.
-- **Branches** (`eaos/core/project/branches.py`): when the project has several of the person's branches with
+- **Branches** (`eaos/kernel/project/branches.py`): when the project has several of the person's branches with
   different code, `status` asks which one first (recommending the one furthest ahead of the main branch) and no check
   starts before the answer. The check, the run and the isolated copies read EAOS's own copy of that branch when it is
   not the one checked out, so the person's checkout never switches. Each branch keeps its own check, ledger, batches
   and report.
-- **A report that never hides a failure** (`eaos/journeys/guided/project.py`, `publish`): a part that could not be
+- **A report that never hides a failure** (`eaos/features/guided/journey/project.py`, `publish`): a part that could not be
   built is named with its reason at the top of the page, in `.report.json` and in `logs/`; every page is stamped with
-  the EAOS version, commit and build time (`eaos/core/system/version_info.py`), and `status` rebuilds at once a page an
+  the EAOS version, commit and build time (`eaos/kernel/system/version_info.py`), and `status` rebuilds at once a page an
   older EAOS made.

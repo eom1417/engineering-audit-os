@@ -13,11 +13,11 @@ from unittest import mock
 from shared_fixture import Workspace
 
 from needs import need
-from eaos.engines.code import ast_grep, knip, lizard
-from eaos.engines import tool
-from eaos.engines.contract import OBSERVED, UNAVAILABLE
-from eaos.engines.process import run, which
-from eaos.engines.tool import version_of
+from eaos.features.engines.adapters.code import ast_grep, knip, lizard
+from eaos.features.engines.adapters import tool
+from eaos.features.engines.adapters.contract import OBSERVED, UNAVAILABLE
+from eaos.features.engines.adapters.process import run, which
+from eaos.features.engines.adapters.tool import version_of
 
 CONTRACTS = Path(__file__).resolve().parents[1] / 'contracts'
 FIXTURE = Path(__file__).resolve().parents[1] / 'fixtures/code_engines'
@@ -48,7 +48,7 @@ class EveryEngineTests(Workspace):
                 self.assertEqual((report.findings, report.metrics), ([], []))
         # An adapter reads its own version when the binary prints none.
         with mock.patch.object(tool, 'version', return_value=None), \
-                mock.patch('eaos.core.toolchain.applies', return_value=(True, 'javascript')):
+                mock.patch('eaos.kernel.toolchain.applies', return_value=(True, 'javascript')):
             self.assertIsNone(tool.declined('knip', 'knip', self.tmp, probe=lambda: knip.PINNED))
             self.assertEqual(tool.declined('knip', 'knip', self.tmp, probe=lambda: None).status, UNAVAILABLE)
 

@@ -1,11 +1,11 @@
-"""Branch control (eaos/journeys/branches/, eaos/core/project/branches.py freshness): deleting, cleaning up, and scan
+"""Branch control (eaos/features/studio/journey/branches/, eaos/kernel/project/branches.py freshness): deleting, cleaning up, and scan
 freshness on real temporary git repositories."""
 import json
 import subprocess
 import unittest
-from eaos.core.project import branches as reading
-from eaos.journeys import guided
-from eaos.core.project import state as project_state
+from eaos.kernel.project import branches as reading
+from eaos.features.guided import journey as guided
+from eaos.kernel.project import state as project_state
 from tests.interfaces._studio_branches_fixture import Repo, commit, git
 
 

@@ -1,4 +1,4 @@
-"""/eaos alone (eaos/interfaces/menu.py): only the options that make sense now, the recommended one first, at most four
+"""/eaos alone (eaos/doors/menu.py): only the options that make sense now, the recommended one first, at most four
 to a page."""
 import os
 import tempfile
@@ -6,7 +6,7 @@ import unittest
 from pathlib import Path
 from unittest import mock
 
-from eaos.interfaces import menu as m
+from eaos.doors import menu as m
 from interfaces.test_mcp import git_project
 
 CHECKED = {'project': '/p', 'branch': 'main', 'checked': True, 'progress': {'closed': 3, 'total': 10, 'percent': 30.0},
@@ -14,7 +14,7 @@ CHECKED = {'project': '/p', 'branch': 'main', 'checked': True, 'progress': {'clo
 
 
 def offer(answer, lang='ar'):
-    with mock.patch.object(m, '_status', return_value=answer), mock.patch('eaos.core.project.state.looks_like_project',
+    with mock.patch.object(m, '_status', return_value=answer), mock.patch('eaos.kernel.project.state.looks_like_project',
                                                                           return_value=True):
         return m.menu(tempfile.gettempdir(), lang)
 
@@ -74,7 +74,7 @@ class Words(unittest.TestCase):
     def test_every_option_says_what_to_do_once_chosen_through_real_mcp_tools(self):
         import asyncio
         import re
-        from eaos.interfaces.mcp_server.server import build
+        from eaos.doors.mcp_server.server import build
         registered = {tool.name for tool in asyncio.run(build().list_tools())}
         for key in m.OPTIONS:
             self.assertIn(key, m.DESCRIBE)

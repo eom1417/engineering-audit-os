@@ -5,7 +5,7 @@ import tempfile
 import unittest
 from pathlib import Path
 from unittest import mock
-from eaos.analysis.repair import lock_hashes
+from eaos.features.defects.analysis import lock_hashes
 
 URL = 'https://registry.npmjs.org/{0}/-/{1}-{2}.tgz'
 

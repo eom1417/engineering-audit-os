@@ -33,14 +33,14 @@ tools/quality.sh                 # every code law, about a minute; refuses any n
 `tests/guards/test_code_limits.py` enforces what can be measured in EAOS itself: no module over 400 lines, no function
 over cyclomatic complexity 10 or 50 lines, none over 5 parameters unless its `def` line says why
 (`# limits: parameters -- <why>`); no function written twice, no pyflakes finding. (600 lines and 15 are the limits
-EAOS holds the projects it checks to: `eaos/core/contracts/code_laws.py`.) The laws in full: `docs/STANDARDS.md`.
+EAOS holds the projects it checks to: `eaos/kernel/contracts/code_laws.py`.) The laws in full: `docs/STANDARDS.md`.
 
 ## The rules of the codebase
 
 - **A new Python module goes in the folder of its job** (`docs/ARCHITECTURE.md` §4); a layer imports only the layers
   under it (`import-linter`, the layers contract in `pyproject.toml`).
 - **Every text a person reads exists in English and in Arabic**, added to both at once.
-- **A new report document is declared in `eaos/core/contracts/artifacts.py`**, with its owner, purpose and line budget.
+- **A new report document is declared in `eaos/features/plan/analysis/artifacts.py`**, with its owner, purpose and line budget.
 - **A test is added only when it reproduces a real failure**, one test per real behaviour.
 - **Never write a path of one machine in code**: `tests/guards/test_platforms.py` fails if you do.
 

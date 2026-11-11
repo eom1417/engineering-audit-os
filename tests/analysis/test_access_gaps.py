@@ -1,9 +1,9 @@
 """A Supabase table without row-level security, or with a write policy that checks nothing, is a confirmed finding of
-the data layer (eaos/analysis/layers/data.py), a card with the reference's fix."""
+the data layer (eaos/features/layers/analysis/data.py), a card with the reference's fix."""
 import json
 from pathlib import Path
 
-from eaos.pipeline import execute
+from eaos.features.check.journey import execute
 from shared_fixture import TemporaryWorkspace
 
 MIGRATION = '''

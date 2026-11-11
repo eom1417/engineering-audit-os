@@ -4,7 +4,7 @@ import unittest
 from pathlib import Path
 from unittest import mock
 
-from eaos.core.language import bilingual
+from eaos.kernel.language import bilingual
 from shared_fixture import scratch
 
 

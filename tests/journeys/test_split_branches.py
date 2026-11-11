@@ -1,4 +1,4 @@
-"""A batch handed over as branches a reviewer can merge one by one (eaos/journeys/fix/split.py): beside the whole
+"""A batch handed over as branches a reviewer can merge one by one (eaos/features/fix/journey/split.py): beside the whole
 branch, one branch per kind of card, made from the base with only that kind's commits; a kind that does not stand alone
 is named, not made; undo removes them with the batch's branch."""
 import json
@@ -8,7 +8,7 @@ import unittest
 from pathlib import Path
 from unittest import mock
 
-from eaos.journeys.fix import split
+from eaos.features.fix.journey import split
 from shared_fixture import scratch
 
 
@@ -45,7 +45,7 @@ def files(project, branch):
     return sorted(git(project, 'ls-tree', '--name-only', branch).split())
 
 
-PASSING = mock.patch('eaos.journeys.fix.split.batch_acceptance',
+PASSING = mock.patch('eaos.features.fix.journey.split.batch_acceptance',
                      side_effect=lambda report, cards, root, **_: {c['id']: 0 for c in cards})
 
 
@@ -83,7 +83,8 @@ class SplitTests(unittest.TestCase):
         self.assertEqual(split.split((report, runtime, project), wave, summary), {})
 
     def test_undo_removes_the_branches_the_batch_was_split_into(self):
-        from eaos.journeys import agent_tools, guided
+        from eaos.features.guided.interface import agent_tools
+        from eaos.features.guided import journey as guided
         project, report, runtime, wave, summary = batch([
             ('T1', 'upgrade_dependency', 'requirements.txt', 'fastapi==1\n'),
             ('T2', 'design_review', 'site.css', 'a {}\n')])

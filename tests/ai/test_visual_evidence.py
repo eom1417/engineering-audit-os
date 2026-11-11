@@ -5,7 +5,7 @@ from pathlib import Path
 from unittest import mock
 
 
-from eaos.live.screens import crawl
+from eaos.features.app_run.adapters.screens import crawl
 
 class Crawl(unittest.TestCase):
     def test_every_page_is_found_and_lighthouse_measures_the_entry_and_each_distinct_template_ten_at_most(self):

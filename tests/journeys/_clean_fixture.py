@@ -7,9 +7,9 @@ import tempfile
 import unittest
 from pathlib import Path
 from unittest import mock
-from eaos.core.project import state as project_state
-from eaos.interfaces import cli
-from eaos.journeys import agent_tools
+from eaos.kernel.project import state as project_state
+from eaos.doors import cli
+from eaos.features.guided.interface import agent_tools
 UNIQUE = 'written nowhere else\n'
 
 

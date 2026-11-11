@@ -3,7 +3,7 @@ import json
 import tempfile
 import unittest
 from pathlib import Path
-from eaos.journeys.agent_tools.project import _stopped
+from eaos.features.guided.interface.agent_tools.project import _stopped
 
 
 class StoppedCheckTests(unittest.TestCase):

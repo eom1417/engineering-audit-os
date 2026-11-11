@@ -4,8 +4,8 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from eaos.facts.domain.model import sql_access, table_key
-from eaos.facts.run import collect
+from eaos.features.code_reading.facts.domain.model import sql_access, table_key
+from eaos.kernel.facts.run import collect
 
 POLICY = 'CREATE POLICY "own rows" ON public.accounts FOR SELECT TO authenticated USING (auth.uid() = owner);'
 

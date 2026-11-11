@@ -1,5 +1,5 @@
-"""The evidence stages of the program's aspects (eaos/analysis/understanding/aspects.py): the architecture map's digest
-(eaos/analysis/maps/code_map.py), the capped journeys (eaos/live/behavior/lock.py) and the suite's health."""
+"""The evidence stages of the program's aspects (eaos/features/plan/analysis/understanding/aspects.py): the architecture map's digest
+(eaos/features/code_reading/analysis/code_map.py), the capped journeys (eaos/features/behaviour_lock/analysis/lock.py) and the suite's health."""
 import json
 import subprocess
 import sys
@@ -19,7 +19,7 @@ def _write(path, record):
 
 class Evidence(Workspace):
     def test_the_facts_are_read_into_hotspots_and_clusters(self):
-        from eaos.analysis.maps.code_map import digest
+        from eaos.features.code_reading.analysis.code_map import digest
         out = Path(self.tmp)
         metric = lambda path, branches, lines: {'kind': 'metric', 'location': {'path': path},
                                                 'value': {'scope': 'file', 'branches': branches, 'code_lines': lines}}
@@ -46,12 +46,12 @@ class Evidence(Workspace):
         self.assertGreater(found['modularity'], 0.3)
         # the stage writes it into a report with no architecture folder yet
         from types import SimpleNamespace
-        from eaos.pipeline.runners.by_rules import architecture
+        from eaos.features.check.journey.runners.by_rules import architecture
         self.assertEqual(architecture(SimpleNamespace(out=out)), {'hotspots': 2, 'clusters': 2})
         self.assertEqual(json.loads((out / 'architecture/map.json').read_text())['digest'], found)
 
     def test_journeys_stay_light_on_disk(self):
-        from eaos.live.behavior import lock as behavior_lock
+        from eaos.features.behaviour_lock.analysis import lock as behavior_lock
         folder = Path(self.tmp)
         (folder / 'rrweb').mkdir()
         (folder / 'traces').mkdir()
@@ -73,7 +73,7 @@ class SuiteHealth(unittest.TestCase):
     def test_the_suites_redundant_and_slowest_tests_are_measured_by_coverage_and_the_runners_report(self):
         """The suite's redundant and slowest tests are measured: coverage contexts name a test that runs no line of its
         own, and the runner's report gives each test's time."""
-        from eaos.live.testing.verify import COVERAGERC, suite_health
+        from eaos.features.app_run.adapters.testing.verify import COVERAGERC, suite_health
         with tempfile.TemporaryDirectory() as folder:
             app = Path(folder)
             (app / 'price.py').write_text('def price(n):\n    if n > 10:\n        return n * 2\n    return n\n')

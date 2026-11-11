@@ -9,8 +9,9 @@ from unittest import mock
 
 from tests.shared_fixture import Workspace
 
-from eaos.analysis.rules import changed, guards, held
-from eaos.core.project import rules as registry
+from eaos.features.fix.analysis import changed
+from eaos.features.rules.analysis import guards, held
+from eaos.features.rules.facts import rules as registry
 
 SOUND, BROKEN = 'module.exports = a => Number(a).toFixed(2);\n', 'module.exports = a => String(a);\n'
 CHECK = "const t = require('./total'); if (t(3) !== '3.00') { console.log('total.js:1 wrong'); process.exit(1); }\n"
@@ -113,7 +114,7 @@ class WhatACommitHolds(Closure):
 
 class AssistantsCommands(Closure):
     def test_a_test_command_an_assistant_proposes_never_runs_before_the_person_approves_it(self):
-        from eaos.interfaces.mcp_server import rules as tools
+        from eaos.doors.mcp_server import rules as tools
         marker = Path(self.tmp) / 'ran'
         registry.add(self.project, 'Totals keep two decimals', 'mcp', scope={'kind': 'pinned'})
         command = [sys.executable, '-c', f"open({str(marker)!r}, 'w').write('x')"]

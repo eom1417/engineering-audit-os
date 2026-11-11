@@ -21,8 +21,9 @@ from pathlib import Path
 
 os.environ['EAOS_HEADLESS'] = '1'           # no Studio opens for the batch
 
-from eaos.journeys import agent_tools, guided  # noqa: E402
-from eaos.live.app import setup as live_setup  # noqa: E402
+from eaos.features.guided.interface import agent_tools
+from eaos.features.guided import journey as guided  # noqa: E402
+from eaos.features.app_run.adapters.app import setup as live_setup  # noqa: E402
 
 SOUND = 'legacy.js'
 COPIED = 'invoice.js'            # the near copies' card is found by this place

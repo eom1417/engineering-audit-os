@@ -16,7 +16,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 sys.path[:0] = [str(ROOT), str(ROOT / 'tools')]   # this folder too: PYTHONSAFEPATH leaves it out
 import code_limits  # noqa: E402  (beside this file)
-from eaos import engines  # noqa: E402
+from eaos.features.engines import adapters as engines  # noqa: E402
 
 BASELINE = ROOT / 'tools' / 'quality.json'
 ENGINES = ('jscpd', 'ast-grep', 'semgrep', 'gitleaks')
@@ -29,7 +29,7 @@ CODE = ('python', 'javascript', 'css')  # what jscpd compares: the code, not dat
 def engine_counts(workdir):
     """({'engine:rule': findings}, [engines that did not run], the engines' records as fact sets)
     over the repository."""
-    from eaos.facts.engine_findings import metric_facts
+    from eaos.features.engines.facts.engine_findings import metric_facts
     manifest = engines.analyze(ROOT, workdir, exclude=EXCLUDE, only=ENGINES, formats=CODE)
     failed = [f'{name} did not run: {row["status"]} {row["reason"]}'.strip()
               for name, row in manifest['coverage'].items() if row['status'] != 'observed']
@@ -40,9 +40,9 @@ def engine_counts(workdir):
 
 def one_source_counts(workdir, sets):
     """{'one_source:<number>': count}: the numbers of the law of one source per pattern (docs/STANDARDS.md §1) by the
-    detectors every check runs (eaos/analysis/assessments/one_source.py): near copies and ways of working repeated."""
-    from eaos.analysis.assessments.one_source import numbers
-    from eaos.facts.run import collect
+    detectors every check runs (eaos/features/one_source/analysis/one_source.py): near copies and ways of working repeated."""
+    from eaos.features.one_source.analysis.one_source import numbers
+    from eaos.kernel.facts.run import collect
     collect(ROOT, workdir, ['history'], exclude=EXCLUDE)
     for name in ('history',):
         sets[name] = json.loads((Path(workdir) / 'facts' / f'{name}.json').read_text(encoding='utf-8'))
@@ -50,10 +50,10 @@ def one_source_counts(workdir, sets):
 
 
 def dead_counts(workdir):
-    """{'deadcode:rule': findings} of EAOS's own dead-code detector (eaos/facts/dead_code/detect.py) over the Python
+    """{'deadcode:rule': findings} of EAOS's own dead-code detector (eaos/features/dead_code/facts/detect.py) over the Python
     code, the one every check runs. A name called only through dispatch is read as used. tools/ is EAOS's code too:
     what only it reads still counts as read."""
-    from eaos.facts.run import collect
+    from eaos.kernel.facts.run import collect
     collect(ROOT, workdir, ['syntax', 'resolve', 'entrypoints', 'deadcode'],
             exclude=tuple(e for e in EXCLUDE if e != 'tools'))
     facts = json.loads((Path(workdir) / 'facts' / 'deadcode.json').read_text(encoding='utf-8'))['facts']
@@ -65,8 +65,8 @@ def repository_craft():
     """EAOS by its own repository rules (eaos/rules/repository-craft.json): a crowded folder, a vague name, a family of
     files, a document naming a path that is gone, a machine's detail in a published file, an assistant's context too
     heavy or said twice; none is allowed."""
-    from eaos.facts.repository import read
-    from eaos.facts.source import Source
+    from eaos.features.only_code.facts import read
+    from eaos.kernel.facts.source import Source
     return [f"repository: {f['rule']} {f['path']}" for f in read.findings(Source(ROOT), [], ROOT)]
 
 

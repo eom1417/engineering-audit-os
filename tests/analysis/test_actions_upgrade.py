@@ -4,7 +4,7 @@ import tempfile
 import unittest
 from pathlib import Path
 from unittest import mock
-from eaos.analysis.repair import actions_upgrade
+from eaos.features.defects.analysis import actions_upgrade
 
 FLOW = '''jobs:
   publish:

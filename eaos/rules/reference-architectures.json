@@ -1631,5 +1631,5 @@
    ]
   }
  ],
- "about_roles": "Each layer's role says what kind of code it holds, so a file its path does not place is placed by what it imports (eaos/analysis/layers/placement.py): screen (what people see), endpoint (what answers a request), logic (the rules), data (what reaches the database), client (the browser's calls to the server), shared (libraries and settings every layer may use), entry (a command or a program's start)."
+ "about_roles": "Each layer's role says what kind of code it holds, so a file its path does not place is placed by what it imports (eaos/features/layers/analysis/placement.py): screen (what people see), endpoint (what answers a request), logic (the rules), data (what reaches the database), client (the browser's calls to the server), shared (libraries and settings every layer may use), entry (a command or a program's start)."
 }

@@ -7,7 +7,7 @@ from pathlib import Path
 from unittest import mock
 
 from needs import needs
-from eaos.core.system import local_db
+from eaos.features.app_run.adapters import local_db
 
 
 @needs('' if os.name == 'posix' and os.geteuid() == 0 else 'the dedicated account exists under root only', tool=False)

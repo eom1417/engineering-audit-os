@@ -1,11 +1,11 @@
 """The links a front end writes from one screen to another are navigation facts
-(eaos/facts/frameworks/js_navigation.py)."""
+(eaos/features/code_reading/facts/frameworks/js_navigation.py)."""
 import tempfile
 import unittest
 from pathlib import Path
 
-from eaos.facts.code.entrypoints import Context
-from eaos.facts.frameworks import js_navigation
+from eaos.features.code_reading.facts.code.entrypoints import Context
+from eaos.features.code_reading.facts.frameworks import js_navigation
 
 
 def links(rel, text):
@@ -47,8 +47,8 @@ class NavigationTests(unittest.TestCase):
                                               'window.location.href = "mailto:a@b.c";\n<Link to="#top" />\n'), [])
 
     def test_the_entrypoints_run_writes_navigation_facts_beside_the_routes(self):
-        from eaos.facts.code import entrypoints
-        from eaos.facts.source import Source
+        from eaos.features.code_reading.facts.code import entrypoints
+        from eaos.kernel.facts.source import Source
         with tempfile.TemporaryDirectory() as folder:
             root = Path(folder)
             (root / 'src').mkdir()

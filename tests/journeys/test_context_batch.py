@@ -9,10 +9,11 @@ from pathlib import Path
 from unittest import mock
 
 from analysis.test_context_trim import FILES
-from eaos.core.project import state as project_state
-from eaos.journeys import agent_tools, guided
-from eaos.journeys.agent_tools import tidying
-from eaos.journeys.fix import context_batch
+from eaos.kernel.project import state as project_state
+from eaos.features.guided.interface import agent_tools
+from eaos.features.guided import journey as guided
+from eaos.features.guided.interface.agent_tools import tidying
+from eaos.features.tidy.journey import context_batch
 
 
 def git(root, *argv):
@@ -25,7 +26,7 @@ class ContextBatchTests(unittest.TestCase):
         self.tmp = tempfile.TemporaryDirectory()
         self.addCleanup(self.tmp.cleanup)
         for patch in (mock.patch.dict(os.environ, {'EAOS_HOME': str(Path(self.tmp.name) / 'home')}),
-                      mock.patch('eaos.live.isolation.sandbox.refusal', return_value=''),
+                      mock.patch('eaos.features.app_run.adapters.isolation.sandbox.refusal', return_value=''),
                       mock.patch.object(guided, 'publish')):
             patch.start()
             self.addCleanup(patch.stop)

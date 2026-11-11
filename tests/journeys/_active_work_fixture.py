@@ -2,9 +2,9 @@
 import os
 import threading
 from unittest import mock
-from eaos.core.project import jobs, state as project_state
-from eaos.journeys import guided
-from eaos.journeys.agent_tools import fixing
+from eaos.kernel.project import jobs, state as project_state
+from eaos.features.guided import journey as guided
+from eaos.features.guided.interface.agent_tools import fixing
 from tests.journeys.test_stale_batch_changes import Batch, EDIT
 UNIQUE = 'written nowhere else\n'
 SECONDS = 20

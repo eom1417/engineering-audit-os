@@ -6,8 +6,9 @@ import subprocess
 import unittest
 from pathlib import Path
 from unittest import mock
-from eaos.journeys import agent_tools, guided
-from eaos.core.project import jobs
+from eaos.features.guided.interface import agent_tools
+from eaos.features.guided import journey as guided
+from eaos.kernel.project import jobs
 ROOT = Path(__file__).resolve().parents[2]
 from tests.interfaces._mcp_fixture import Home, git_project, wave_branch
 
@@ -19,7 +20,7 @@ class JobTests(Home):
         patcher.start(); self.addCleanup(patcher.stop)
 
     def test_work_sent_while_other_work_runs_waits_its_turn(self):
-        # the assistants of one batch (eaos/journeys/fix/lanes.py) send their changes at once: one is checked at a time
+        # the assistants of one batch (eaos/features/fix/journey/lanes.py) send their changes at once: one is checked at a time
         import threading
         state = {'project': str(self.project)}
         first = agent_tools._start('fix_edit', state, {}, seconds=0)
@@ -65,7 +66,7 @@ class JobTests(Home):
 
     def test_where_studios_are_services_a_job_is_one_too_so_the_assistant_s_session_cannot_end_it(self):
         # a remote server ends an assistant's session with everything it started, a batch's hand-over among it
-        from eaos.core.system import launch
+        from eaos.kernel.system import launch
         with mock.patch.object(launch, 'durable', return_value=True), \
                 mock.patch.object(launch, 'as_unit',
                                   return_value=True) as unit, mock.patch.object(launch, 'unit_pid', return_value=4321):
@@ -102,14 +103,14 @@ class QuestionTests(Home):
     """The person's questions about their code: impact, ask and tools_check."""
 
     def call(self, name, arguments):
-        from eaos.interfaces.mcp_server.server import build
+        from eaos.doors.mcp_server.server import build
         os.chdir(self.project)
         self.addCleanup(os.chdir, ROOT)
         return json.loads(asyncio.run(build().call_tool(name, arguments)).content[0].text)
 
     def test_questions_wait_for_a_check_then_answer_from_its_facts(self):
         import shutil
-        from eaos.analysis.understanding.dossier import assemble
+        from eaos.features.plan.analysis.dossier import assemble
         self.assertIn('audit', self.call('impact', {'target': 'src/a.js'})['error'])
         self.assertIn('audit', self.call('ask', {'question': 'pricing'})['error'])
         project = Path(self.tmp.name) / 'polyglot'
@@ -137,12 +138,12 @@ class QuestionTests(Home):
 
 class PersonOnly(Home):
     """What only the person decides, from a terminal and from the governance tools: refused without their word, and
-    refused inside a run even with it (eaos/interfaces/govern.py, eaos/interfaces/terminal/commands.py,
-    eaos/interfaces/mcp_server/govern.py)."""
+    refused inside a run even with it (eaos/doors/govern.py, eaos/doors/terminal/commands.py,
+    eaos/doors/mcp_server/govern.py)."""
 
     def setUp(self):
         super().setUp()
-        from eaos.interfaces import govern
+        from eaos.doors import govern
         govern._core.cache_clear()
         self.addCleanup(govern._core.cache_clear)
         wave_branch(self.project)
@@ -153,7 +154,7 @@ class PersonOnly(Home):
     def eaos(self, *argv, studio_run=False):
         """(exit, printed) of one eaos command, nobody at the terminal."""
         import contextlib, io
-        from eaos.interfaces import cli
+        from eaos.doors import cli
         env = {'EAOS_STUDIO_RUN': 'r1'} if studio_run else {}
         with contextlib.redirect_stdout(io.StringIO()) as printed, mock.patch.dict(os.environ, env), \
                 mock.patch('sys.stdin.isatty', return_value=False):
@@ -172,7 +173,7 @@ class PersonOnly(Home):
         self.assertEqual(self.eaos('accept', str(self.project), '--yes', studio_run=True)[0], 3)
         self.assertEqual(self.eaos('undo', str(self.project), '--yes', studio_run=True)[0], 3)
         with mock.patch('sys.stdin.isatty', return_value=True), mock.patch('builtins.input', side_effect=EOFError):
-            from eaos.interfaces import cli
+            from eaos.doors import cli
             self.assertEqual(cli.main(['accept', str(self.project), '--lang', 'en']), 5,
                              'the input ended: a no, never a traceback')
         self.assertEqual(agent_tools.undo(str(self.project))['status'], 'needs_agreement',
@@ -183,8 +184,8 @@ class PersonOnly(Home):
         self.assertFalse(self.has('eaos/wave-1'))
 
     def test_branch_changes_answers_and_a_fix_that_accepts_itself_need_the_persons_word_and_never_in_a_studio_run(self):
-        from eaos.interfaces import govern
-        from eaos.interfaces.mcp_server import govern as mcp_govern
+        from eaos.doors import govern
+        from eaos.doors.mcp_server import govern as mcp_govern
         subprocess.run(['git', '-C', str(self.project), 'branch', 'feature'], check=True)
         for argv in (('branch', 'eaos/wave-1', '--yes'), ('branches', 'delete', 'feature', '--yes'),
                      ('answer', 'q1', 'yes'),
@@ -229,7 +230,7 @@ class PersonOnly(Home):
         answered.assert_called_once()
 
     def test_the_mcp_wait_follows_a_job_of_the_project_it_names(self):
-        from eaos.interfaces.mcp_server import server as mcp_server
+        from eaos.doors.mcp_server import server as mcp_server
         with mock.patch.object(agent_tools, 'wait', return_value={'status': 'running'}) as waited:
             mcp_server.functions()['wait'](job='audit-1', seconds=0, project=str(self.project))
         waited.assert_called_once_with('audit-1', 0, str(self.project))

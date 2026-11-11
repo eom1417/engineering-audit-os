@@ -1,6 +1,6 @@
 # Old engines still wired in (M13.1): a switch fixed to one value at a module's top (`const USE_OLD = false`,
 # `USE_OLD = False`) and every `if` that reads a name alone or negated, with its body's lines. Records, not verdicts:
-# eaos/analysis/assessments/old_engines.py joins them, keeps a switch nothing changes, and names the functions only the
+# eaos/features/dead_code/analysis/old_engines.py joins them, keeps a switch nothing changes, and names the functions only the
 # branch it closes calls.
 id: eaos.flag.constant
 language: JavaScript

@@ -9,9 +9,9 @@ from pathlib import Path
 from unittest import mock
 
 from needs import need
-from eaos.live.app import assist as live_assist, setup as live_setup, profile as run_profile
-from eaos.live.app.run import LiveRun, load_profile
-from eaos.live.isolation.sandbox import AuthorizationError
+from eaos.features.app_run.adapters.app import assist as live_assist, setup as live_setup, profile as run_profile
+from eaos.features.app_run.adapters.app.run import LiveRun, load_profile
+from eaos.features.app_run.adapters.isolation.sandbox import AuthorizationError
 from shared_fixture import scratch
 
 
@@ -118,10 +118,10 @@ class ProposalTests(unittest.TestCase):
     def test_a_go_app_runs_on_the_computers_go_and_its_module_cache_goes_with_the_run(self):
         # A Go API's proposals `go mod download` and `go run .` are safe, and the prompt names go.
         self.assertEqual(run_profile.safe({'install': [['go', 'mod', 'download']], 'start': ['go', 'run', '.']}), [])
-        from eaos.live.app.assist import ASSIST_SYSTEM
+        from eaos.features.app_run.adapters.app.assist import ASSIST_SYSTEM
         self.assertIn(run_profile.SAID, ASSIST_SYSTEM)
         from types import SimpleNamespace
-        from eaos.live.isolation.sandbox import Sandbox
+        from eaos.features.app_run.adapters.isolation.sandbox import Sandbox
         caches = Sandbox.caches(SimpleNamespace(tmp=Path('run')))
         self.assertEqual((caches['GOFLAGS'], caches['GOTOOLCHAIN']), ('-modcacherw', 'local'))
 
@@ -155,7 +155,7 @@ class ProposalTests(unittest.TestCase):
         self.assertEqual(profile['baseline']['env'],
                          {'APP_URL': 'https://127.0.0.1:5', 'DATABASE_URL': '{database_url}'})
         self.assertEqual(profile['baseline']['build'], [['npm', 'run', 'build:server']])
-        with mock.patch('eaos.live.app.run.Sandbox'), mock.patch('eaos.live.app.run.head', return_value='c'):
+        with mock.patch('eaos.features.app_run.adapters.app.run.Sandbox'), mock.patch('eaos.features.app_run.adapters.app.run.head', return_value='c'):
             self.assertEqual(LiveRun('p', runtime, 'S05', mode='baseline').profile['seed'], [],
                              'the load test signs nobody in')
             self.assertEqual(LiveRun('p', runtime, 'S05').profile['seed'][0][0], 'node')
@@ -314,7 +314,7 @@ class RunEnvironmentTests(unittest.TestCase):
                         {'database': {'kind': 'postgres', 'name': 'app'}, 'env': {'DATABASE_URL': '{database_url}', 'NODE_ENV': 'development'}}):
             live = bare_run(runtime=Path(scratch()), profile=profile)
             with mock.patch.dict(os.environ, {'DATABASE_URL': 'postgres://owner@production.example/live', 'OWNER_SECRET_TOKEN': 'x'}), \
-                    mock.patch('eaos.core.system.local_db.LocalPostgres') as database:
+                    mock.patch('eaos.features.app_run.adapters.local_db.LocalPostgres') as database:
                 database.return_value.create.return_value = 'postgresql://postgres@127.0.0.1:5/app'
                 extra = live.run_env()
             self.assertEqual(extra['DATABASE_URL'], 'postgresql://postgres@127.0.0.1:5/app')
@@ -329,7 +329,7 @@ class RunEnvironmentTests(unittest.TestCase):
             self.assertIn('signed in', live.seed_output)
 
     def test_a_database_of_the_runs_own_on_loopback_even_deep_in_a_home_and_gone_once_its_runtime_is(self):
-        from eaos.core.system.local_db import LocalPostgres, binaries
+        from eaos.features.app_run.adapters.local_db import LocalPostgres, binaries
         need(self, 'no PostgreSQL binaries' if binaries() is None else '')
         holder = tempfile.TemporaryDirectory()
         deep = Path(holder.name) / ('.eaos/projects/chief-fellow-ops-spec-2b5adcc3/' + 'runtime/' * 6)
@@ -352,7 +352,7 @@ class RunEnvironmentTests(unittest.TestCase):
 
     def test_a_run_leaving_the_database_never_stops_it_under_another_run(self):
         # the project's tests must not stop the server when they end, under the app the page stages are opening
-        from eaos.core.system.local_db import LocalPostgres, binaries
+        from eaos.features.app_run.adapters.local_db import LocalPostgres, binaries
         need(self, 'no PostgreSQL binaries' if binaries() is None else '')
         with tempfile.TemporaryDirectory() as runtime:
             pages, tests = LocalPostgres(runtime), LocalPostgres(runtime)
@@ -376,8 +376,8 @@ class HashRouteProbeTests(unittest.TestCase):
         # A same-page navigation (/#/system...) gives a null answer; the probe must not read it as status 0, or the app
         # "did not start" and every live stage of the check stands still.
         import http.server, subprocess, threading, functools
-        from eaos.live.screens import audit
-        from eaos.core.toolchain import browsers, home
+        from eaos.features.app_run.adapters.screens import audit
+        from eaos.kernel.toolchain import browsers, home
         need(self, audit.missing('playwright'))
         with tempfile.TemporaryDirectory() as folder:
             Path(folder, 'index.html').write_text(

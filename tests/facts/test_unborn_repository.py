@@ -8,8 +8,8 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from eaos.facts.code import history
-from eaos.interfaces import cli
+from eaos.features.code_reading.facts.code import history
+from eaos.doors import cli
 
 
 class NoCommitYet(unittest.TestCase):

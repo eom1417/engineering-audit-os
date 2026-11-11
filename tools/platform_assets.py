@@ -5,7 +5,7 @@
 For each `release` tool, the release named by its pinned version is read from the GitHub API; the asset for
 each platform (linux-x86_64, darwin-arm64, darwin-x86_64) is chosen by name, downloaded, its sha256 computed,
 and, for an archive, the member that is the tool found inside it. A platform with no asset is left out and
-eaos/core/toolchain/pins.py says so instead of installing a binary that cannot run. The Linux pin already in the file
+eaos/kernel/toolchain/pins.py says so instead of installing a binary that cannot run. The Linux pin already in the file
 stays as it is.
 """
 import hashlib
@@ -19,7 +19,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
-from eaos.core.system.web import opened  # noqa: E402
+from eaos.kernel.system.web import opened  # noqa: E402
 REGISTRY = ROOT / 'eaos/data/toolchain.json'
 WORDS = {'darwin-arm64': (r'(darwin|macos|mac|apple)', r'(arm64|aarch64|universal|_all)'),
          'darwin-x86_64': (r'(darwin|macos|mac|apple)', r'(x86_64|amd64|x64|64bit|64-bit|universal|_all)(?!.*arm)')}

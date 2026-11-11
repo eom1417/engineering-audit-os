@@ -8,13 +8,14 @@ import time
 import unittest
 from pathlib import Path
 from unittest import mock
-from eaos.core.contracts import artifact_rules as artifact_contracts
-from eaos.core.language.check import foreign_texts
-from eaos.ai.assistant.command import Provider
-from eaos.ai import nodes
-from eaos.ai.assistant import headless as adapters
-from eaos.ai.nodes import framework as core, triage
-from eaos.core.system import process as provider
+from eaos.kernel.contracts import artifact_rules as artifact_contracts
+from eaos.kernel.language.check import foreign_texts
+from eaos.features.assistant.adapters.command import Provider
+from eaos.features.ai_review import analysis as nodes
+from eaos.features.assistant.adapters import headless as adapters
+from eaos.features.assistant.analysis import framework as core
+from eaos.features.ai_review.analysis import triage
+from eaos.kernel.system import process as provider
 from tests.ai._ai_nodes_fixture import Answer, FAKE_CLAUDE, _NodeLauncher, _fill, _ideal_report, decision
 
 
@@ -168,7 +169,7 @@ class Framework(Base):
 
 
     def test_speed_mode_asks_the_batches_side_by_side_and_a_failed_batch_leaves_only_its_cards_to_the_rules(self):
-        from eaos.pipeline.schedule import Assistants
+        from eaos.features.check.journey.schedule import Assistants
         cards = json.loads((self.report / 'studio/cards.json').read_text(encoding='utf-8'))
         cards['cards'] += [dict(cards['cards'][0], id=f'TASK-{n:03d}') for n in range(10, 10 + 3 * triage.BATCH)]
         (self.report / 'studio/cards.json').write_text(json.dumps(cards), encoding='utf-8')
@@ -195,8 +196,8 @@ class Framework(Base):
         # The unanswered batch makes the stage and the check partial, and is the only one asked again: the answered
         # cards keep their verdicts.
         from types import SimpleNamespace
-        from eaos.pipeline.runners import by_assistant as ai_runners
-        from eaos.pipeline import run
+        from eaos.features.check.journey.runners import by_assistant as ai_runners
+        from eaos.features.check.journey import run
         self.assertEqual((record['batches']['asked'], record['batches']['failed']), (4, 1))
         lost = ai_runners._partly(SimpleNamespace(provider=None), record['batches'])['assistant_lost']
         self.assertEqual((lost['answered'], lost['asked']), (3, 4))

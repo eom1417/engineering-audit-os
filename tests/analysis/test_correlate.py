@@ -6,8 +6,8 @@ cluster nor lends it a second engine; and a claim about one kind cites only the 
 """
 import unittest
 
-from eaos.analysis.claims import ledger as claims, correlate
-from eaos.analysis.planning.ranking import claim_paths
+from eaos.features.claims.analysis import ledger as claims, correlate
+from eaos.features.plan.analysis.ranking import claim_paths
 
 
 def finding(fact_id, engine, kind, subject_kind, paths):

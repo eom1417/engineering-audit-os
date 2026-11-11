@@ -3,7 +3,7 @@ import json
 from pathlib import Path
 import tempfile
 import unittest
-from eaos.facts.run import collect
+from eaos.kernel.facts.run import collect
 
 FIXTURE = Path(__file__).resolve().parents[1] / 'fixtures/polyglot'
 
@@ -50,8 +50,8 @@ class ResolveTests(unittest.TestCase):
         self.assertEqual(len(edge['value']['candidates']), 2)
 
     def test_an_engine_resolved_edge_keeps_its_engine_name_and_is_counted_apart(self):
-        from eaos.facts.code.resolve import run as resolve_run, make, digest
-        from eaos.facts.source import Source
+        from eaos.features.code_reading.facts.code.resolve import run as resolve_run, make, digest
+        from eaos.kernel.facts.source import Source
         with tempfile.TemporaryDirectory() as tmp:
             repo = Path(tmp) / 'repo'; repo.mkdir()
             (repo / 'a.go').write_text('package a\n')
@@ -112,8 +112,8 @@ class GoResolutionTests(unittest.TestCase):
         self.assertEqual(data['summary']['by_resolution']['UNRESOLVED'], 0)
 
     def test_real_ambiguity_across_folders_stays_ambiguous(self):
-        from eaos.facts.code import resolve as resolve_mod
-        from eaos.facts.source import Source
+        from eaos.features.code_reading.facts.code import resolve as resolve_mod
+        from eaos.kernel.facts.source import Source
         with tempfile.TemporaryDirectory() as tmp:
             repo = Path(tmp) / 'repo'
             for folder in ('one', 'two', 'three'):

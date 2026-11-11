@@ -1,7 +1,7 @@
 """The app's own HTTP back end, seen through the client it calls it with."""
 import unittest
 
-from eaos.facts.frameworks import http_access
+from eaos.features.code_reading.facts.frameworks import http_access
 
 API = 'import axios from "axios";\nexport const api = axios.create({ baseURL: import.meta.env.VITE_API_URL });\n'
 USER = ('import { api } from "@/lib/Api";\nconst DRIVERS_ENDPOINT = "/drivers";\n'
@@ -26,7 +26,7 @@ class HttpAccessTests(unittest.TestCase):
 
     def test_a_browser_call_through_a_client_named_api_is_not_a_server_route(self):
         from types import SimpleNamespace
-        from eaos.facts.frameworks import js_web
+        from eaos.features.code_reading.facts.frameworks import js_web
         def routes(text):
             context = SimpleNamespace(text=text, rel='src/x.ts', line_of=lambda i: text[:i].count('\n') + 1,
                                       symbol_at=lambda line: None, prepared={})

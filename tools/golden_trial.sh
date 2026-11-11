@@ -27,8 +27,8 @@ bad = {s: (manifest['stages'][s]['status'], manifest['stages'][s].get('reason'))
 start = next(Path(sys.argv[1]).rglob('START-HERE.md'), None)
 if not (start and (start.parent / 'RUN.md').is_file()): sys.exit('golden trial failed: no RUN.md beside the report')
 if bad: sys.exit(f'golden trial failed: {bad}')
-from eaos.journeys import guided
-from eaos.live.app import setup as live_setup
+from eaos.features.guided import journey as guided
+from eaos.features.app_run.adapters.app import setup as live_setup
 state = guided.load(Path(sys.argv[2]).resolve())
 live_setup.authorize(guided.source(state), guided.runtime_of(state), 'golden')       # run_setup, as the fix flow starts
 ran = live_setup.setup(guided.source(state), guided.runtime_of(state), report=guided.report_of(state), provider=None)
@@ -36,7 +36,7 @@ state['setup'] = {'commit': guided.tip(state), 'ok': ran['ok'], 'attempts': ran[
 safety = guided.safety_run(state)
 # the random about screen, alone, is refused: the other screens are locked
 if safety.get('passed') != safety.get('screens', 0) - 1 or 'about' not in str(safety.get('skipped')): sys.exit(f"golden trial failed: the safety net recorded {safety.get('screens')} screens, {safety.get('passed')} passed: {safety.get('skipped')}")
-from eaos.journeys import agent_tools
+from eaos.features.guided.interface import agent_tools
 if (refused := agent_tools._no_safety_net(guided.load(Path(sys.argv[2]).resolve()))): sys.exit(f'golden trial failed: no fix batch would open: {refused}')
 print(f"golden trial: a fix batch opens, every stage that runs the app ended ok, the report for people opens, the safety net recorded {safety['passed']} screens")
 PY
@@ -46,7 +46,7 @@ cp -r "$HERE/tests/fixtures/baseline-app" "$W/baseline"
 # (eaos/data/detector-verdicts.json); this trial shows them, so the fix proof below merges one of them (M15.7).
 "$(dirname "$EAOS")/python" - "$W/verdicts.json" <<'PY'
 import json, sys
-from eaos.analysis.claims.ledger import VERDICTS
+from eaos.features.claims.analysis.ledger import VERDICTS
 verdicts = json.loads(VERDICTS.read_text(encoding='utf-8'))
 verdicts['hidden'] = {name: why for name, why in verdicts['hidden'].items() if not name.startswith('one_source:')}
 open(sys.argv[1], 'w', encoding='utf-8').write(json.dumps(verdicts))

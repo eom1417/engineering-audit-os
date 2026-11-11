@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "about": "The recipes of a project's extension guide (eaos/analysis/understanding/extending.py): how a file of each kind is told by its path. `grows`: 'added' when a new one is a new file (read from the commits that added one), 'changed' when it is a change of a file that is there. `from`: a set the layer record knows it by. Only what a project has gets a recipe.",
+  "about": "The recipes of a project's extension guide (eaos/features/plan/analysis/understanding/extending.py): how a file of each kind is told by its path. `grows`: 'added' when a new one is a new file (read from the commits that added one), 'changed' when it is a change of a file that is there. `from`: a set the layer record knows it by. Only what a project has gets a recipe.",
   "kinds": [
     {"id": "page", "title": "A page", "grows": "added", "paths": ["(^|/)(pages?|routes?|views?|screens?|templates)/.*\\.(tsx|jsx|vue|svelte|astro|html|dart)$", "(^|/)app/(.*/)?(page|layout)\\.\\w+$", "(^|/)\\+page\\.svelte$"], "not": ["(^|/)(pages/api|components?|e?mails?)/"]},
     {"id": "endpoint", "title": "An endpoint", "grows": "added", "from": "endpoints", "paths": ["(^|/)(api|controllers?|handlers?|endpoints?)/.*\\.\\w+$", "(^|/)route\\.(ts|js)$", "(^|/)(urls|views|routes)\\.py$"]},

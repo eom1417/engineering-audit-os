@@ -14,16 +14,16 @@ structure, fixed in the same milestone), the time.
 ## Recipes
 
 ### An engine (an external analyzer)
-- **Read:** `eaos/engines/code/knip.py` (an adapter), `eaos/engines/contract.py`, `eaos/engines/run.py`,
+- **Read:** `eaos/features/engines/adapters/code/knip.py` (an adapter), `eaos/features/engines/adapters/contract.py`, `eaos/features/engines/adapters/run.py`,
   `eaos/data/toolchain.json` (knip's entry and `jobs`), `tests/engines/test_engine_contracts.py`.
 - **Touch, in order:** (1) the registry entry in `eaos/data/toolchain.json`: pinned version, sha256 per platform
   (`python tools/platform_assets.py` fills them), `check: engines`, `applies`, and its `jobs`: the job it is primary
   for, or the part it alone gives beside the primary (`tests/core/test_tool_jobs.py`); (2) the adapter
-  `eaos/engines/<security|code>/<name>.py` with `NAME`, `PINNED`, `capabilities()` and `analyze()`, its findings in
-  the shared kinds of `contract.py`; (3) its line in `_BY_NAME` of `eaos/engines/run.py`; (4) a pinned sample of its real
+  `eaos/features/engines/adapters/<security|code>/<name>.py` with `NAME`, `PINNED`, `capabilities()` and `analyze()`, its findings in
+  the shared kinds of `contract.py`; (3) its line in `_BY_NAME` of `eaos/features/engines/adapters/run.py`; (4) a pinned sample of its real
   output, `tests/contracts/<name>.json`; (5) its licence in `upstreams/licenses/<name>-LICENSE` and its row in
   `THIRD_PARTY_NOTICES.md`. A tool that writes SARIF needs no adapter: its entry declares `engine` and its rules map
-  in `eaos/rules/sarif-rules.json` (`eaos/engines/sarif.py`).
+  in `eaos/rules/sarif-rules.json` (`eaos/features/engines/adapters/sarif.py`).
 - **Test:** `tests/engines/test_engine_contracts.py` and `tests/engines/test_adapters.py`; then the planted case it
   finds in the detection baseline (the recipe below).
 - **Before adding:** it earns its place by the five criteria of the maintainers' plan (unique on the planted cases and
@@ -34,25 +34,25 @@ structure, fixed in the same milestone), the time.
 
 ### An ast-grep rule
 - **Read:** `eaos/rules/ast-grep/rules/saving.yml`, its examples `eaos/rules/ast-grep/rule-tests/saving-test.yml`,
-  `eaos/engines/code/ast_grep.py`.
+  `eaos/features/engines/adapters/code/ast_grep.py`.
 - **Touch:** the rule in `eaos/rules/ast-grep/rules/<family>.yml` (a `kind` in its metadata makes it a finding,
   otherwise a record later stages read); its valid and invalid examples in `eaos/rules/ast-grep/rule-tests/`.
 - **Test:** `tests/engines/test_code_engines.py` (every rule has its examples, proved by `ast-grep test`); the reader
   of its records, if any.
 
 ### A detector and its card
-- **Read:** `eaos/analysis/assessments/real_data.py` and `eaos/analysis/claims/from_real_data.py` (a detector and its claims),
-  `eaos/core/contracts/card_kinds.py`, `eaos/analysis/claims/ledger.py`, `eaos/analysis/claims/probe_queries.py`.
+- **Read:** `eaos/features/only_code/analysis/real_data.py` and `eaos/features/claims/analysis/from_real_data.py` (a detector and its claims),
+  `eaos/kernel/contracts/card_kinds.py`, `eaos/features/claims/analysis/ledger.py`, `eaos/features/claims/analysis/probe_queries.py`.
 - **Touch, in order:** (1) the fact: a `facts/<folder>/` module, an engine, a rule or a live stage that records what is
-  there; (2) the assessment `eaos/analysis/assessments/<kind>.py` that sorts it on evidence; (3) the claims module
-  `eaos/analysis/claims/from_<kind>.py`, joined in the ledger's `BUILDERS` (a fact's claims, in numbering order) or
-  `eaos/analysis/claims/from_runs.py` (what the runs of the copy left), its `present` in `QUERIES` and the fact set it reads in `QUERY_REQUIRES` of
-  `probe_queries.py`; (4) **the kind's one row in `eaos/core/contracts/card_kinds.py`**: its detector, whether it is its own
+  there; (2) the assessment `eaos/features/<feature>/analysis/<kind>.py` that sorts it on evidence; (3) the claims module
+  `eaos/features/claims/analysis/from_<kind>.py`, joined in the ledger's `BUILDERS` (a fact's claims, in numbering order) or
+  `eaos/features/claims/analysis/from_runs.py` (what the runs of the copy left), its `present` in `QUERIES` and the fact set it reads in `QUERY_REQUIRES` of
+  `probe_queries.py`; (4) **the kind's one row in `eaos/kernel/contracts/card_kinds.py`**: its detector, whether it is its own
   pattern, carries its own fix, its own words and its own debt category; a key not there is refused when a claim is built, and
-  no other file repeats these; (5) the words: a sentence in `TEMPLATES` of `eaos/core/language/words.py` unless it carries its own,
-  the kind in `eaos/data/words.json` `kinds`, the card's area and severity in `eaos/core/contracts/card_areas.py` `PATTERNS`;
-  (6) the remediation in `eaos/analysis/repair/remediation.py`: its `PATTERNS` and `cost_of_inaction`, its query in
-  `QUERY_PATTERNS`; (7) the check paths that run it, `eaos/core/contracts/check_paths.py`; (8) its planted case and an example
+  no other file repeats these; (5) the words: a sentence in `TEMPLATES` of `eaos/kernel/language/words.py` unless it carries its own,
+  the kind in `eaos/data/words.json` `kinds`, the card's area and severity in `eaos/kernel/contracts/card_areas.py` `PATTERNS`;
+  (6) the remediation in `eaos/kernel/remedy/remediation.py`: its `PATTERNS` and `cost_of_inaction`, its query in
+  `QUERY_PATTERNS`; (7) the check paths that run it, `eaos/kernel/contracts/check_paths.py`; (8) its planted case and an example
   that must stay (the recipe below).
 - **Precision:** `eaos/data/detector-verdicts.json` holds what was measured. A detector under its bar in `hidden` is kept
   aside, never shown; one in `shown` is shown; **one in neither is shown too, counted as not measured yet** in START-HERE,
@@ -61,17 +61,17 @@ structure, fixed in the same milestone), the time.
   baseline.
 
 ### A codemod family
-- **Read:** `eaos/analysis/repair/codemods.py` (`MECHANICAL`, `card_for`), `eaos/templates/codemods/remove-declaration.cjs`,
-  `eaos/journeys/fix/execute.py` (`run_codemod`).
+- **Read:** `eaos/features/defects/analysis/codemods.py` (`MECHANICAL`, `card_for`), `eaos/templates/codemods/remove-declaration.cjs`,
+  `eaos/features/fix/journey/execute.py` (`run_codemod`).
 - **Touch:** the transform in `eaos/templates/codemods/<name>.cjs` (jscodeshift); its card in `codemods.py`; the pattern
   in `MECHANICAL` when no assistant is needed.
 - **Test:** `tests/analysis/test_codemods.py`: the change lands on the copy only and leaves what it should not touch.
 
 ### A stage or a loop, or a change of the stages' order
-- **Read:** `eaos/pipeline/stages.py`, `eaos/pipeline/loops.py`, `eaos/pipeline/runners/rules.py` (a stage's runner in
-  a module of its own), `eaos/core/contracts/artifacts.py`.
+- **Read:** `eaos/features/check/journey/stages.py`, `eaos/features/check/journey/loops.py`, `eaos/features/check/journey/runners/rules.py` (a stage's runner in
+  a module of its own), `eaos/features/plan/analysis/artifacts.py`.
 - **Touch, in order:** (1) the `Stage(...)` declaration: what it `requires`, `reads`, `produces`, its necessity and its
-  `absent_when`; (2) its loop in `loops.py`; (3) its runner in `eaos/pipeline/runners/` and its line in
+  `absent_when`; (2) its loop in `loops.py`; (3) its runner in `eaos/features/check/journey/runners/` and its line in
   `by_rules.RUNNERS`; (4) its words in `eaos/data/words.json` `stages` (title, does, doing); (5) its artifact in
   `artifacts.py`; (6) the check paths that run it. Changing the order is a change of `requires`/`reads` only; then
   verify the paths and the golden trial (a stage that reads another must wait for it).
@@ -79,30 +79,30 @@ structure, fixed in the same milestone), the time.
   report with none of its folders yet.
 
 ### A check path
-- **Read:** `eaos/core/contracts/check_paths.py`, `eaos/pipeline/path_choice.py`, `docs/ARCHITECTURE.md` §5.
+- **Read:** `eaos/kernel/contracts/check_paths.py`, `eaos/features/check/journey/path_choice.py`, `docs/ARCHITECTURE.md` §5.
 - **Touch:** the path in `check_paths.py` (its stages, kinds, engines, patterns); its words in `eaos/data/words.json`
   `paths`; its row in `docs/ARCHITECTURE.md` §5.
 - **Test:** `tests/pipeline/test_check_paths.py`.
 
 ### An AI node or a model tier
-- **Read:** `eaos/ai/nodes/pipeline.py` (`NODES`), `eaos/ai/nodes/framework.py`, `eaos/ai/nodes/triage.py` (a node),
-  `eaos/ai/assistant/tiers.py` (`STAGES`).
-- **Touch:** the node module in `eaos/ai/nodes/`, its `Node(...)` in `NODES` (what it consumes and produces), its tier in
+- **Read:** `eaos/features/ai_review/analysis/pipeline.py` (`NODES`), `eaos/features/assistant/analysis/framework.py`, `eaos/features/ai_review/analysis/triage.py` (a node),
+  `eaos/features/assistant/adapters/tiers.py` (`STAGES`).
+- **Touch:** the node module in `eaos/features/ai_review/analysis/`, its `Node(...)` in `NODES` (what it consumes and produces), its tier in
   `tiers.py` `STAGES`. The rules decide first; a node judges only what they leave in doubt, and its cost is said.
 - **Test:** `tests/ai/test_ai_nodes.py`, `tests/ai/test_tiers.py`, with a fake assistant (no token).
 
 ### An interface: a CLI command, an MCP tool
-- **Read:** `eaos/interfaces/rules.py` (one journey behind both doors), `eaos/interfaces/command_groups.py`,
-  `eaos/interfaces/mcp_server/server.py`, `eaos/interfaces/mcp_server/rules.py`.
-- **Touch, in order:** (1) the journey it calls, in `eaos/journeys/` (a door holds no logic); (2) the command in
-  `command_groups.py`; (3) the MCP tool in `eaos/interfaces/mcp_server/`; (4) `docs/MCP.md` and `docs/REFERENCE.md`;
+- **Read:** `eaos/doors/rules.py` (one journey behind both doors), `eaos/doors/command_groups.py`,
+  `eaos/doors/mcp_server/server.py`, `eaos/doors/mcp_server/rules.py`.
+- **Touch, in order:** (1) the journey it calls, in `eaos/features/<feature>/journey/` (a door holds no logic); (2) the command in
+  `command_groups.py`; (3) the MCP tool in `eaos/doors/mcp_server/`; (4) `docs/MCP.md` and `docs/REFERENCE.md`;
   (5) `python tools/public_contract/lock.py --record`, and a writing tool's row in `tools/public_contract/capture.py`
   (`EMPTY_WRITING` or `WRITING_ELSEWHERE`).
 - **Test:** `tests/guards/test_public_contract.py`, and the door's own test (`tests/interfaces/test_cli.py`,
   `tests/interfaces/test_mcp.py`).
 
 ### A word
-- **Read:** `eaos/data/words.json`, `eaos/core/language/words.py`.
+- **Read:** `eaos/data/words.json`, `eaos/kernel/language/words.py`.
 - **Touch:** every form beside the others in `words.json` (Arabic and English); a sentence composed with values stays
   beside its code instead.
 - **Test:** `tests/core/test_bilingual.py`, `tests/guards/test_extending.py` (every stage has its words).

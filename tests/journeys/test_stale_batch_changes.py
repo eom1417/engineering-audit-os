@@ -7,13 +7,14 @@ import subprocess
 from pathlib import Path
 from unittest import mock
 
-from eaos.core.project import jobs, state as project_state
-from eaos.interfaces.mcp_server.govern import every
-from eaos.interfaces.mcp_server.server import build
-from eaos.journeys import agent_tools, guided
-from eaos.journeys.agent_tools import fixing
-from eaos.journeys.fix import finish as batch_finish, lanes
-from eaos.journeys.fix.waves import batch as batch_steps, commit as eaos_commit, plan as read_plan
+from eaos.kernel.project import jobs, state as project_state
+from eaos.doors.mcp_server.govern import every
+from eaos.doors.mcp_server.server import build
+from eaos.features.guided.interface import agent_tools
+from eaos.features.guided import journey as guided
+from eaos.features.guided.interface.agent_tools import fixing
+from eaos.features.fix.journey import finish as batch_finish, lanes
+from eaos.features.fix.journey.waves import batch as batch_steps, commit as eaos_commit, plan as read_plan
 from tests.interfaces.test_read_only_tools import _called
 from tests.journeys.test_continuity import Base, FIRST, git
 
@@ -140,7 +141,7 @@ class WhatItsJobsSee(Batch):
         self.person_commits()
         guided.save(project_state.load(self.project))
         before = self.everything()
-        with mock.patch('eaos.journeys.fix.waves.edit_gates') as checked:
+        with mock.patch('eaos.features.fix.journey.waves.edit_gates') as checked:
             self.assertRefused(self.edit_job())
         checked.assert_not_called()
         self.assertEqual(self.everything(), before)
@@ -150,7 +151,7 @@ class WhatItsJobsSee(Batch):
         def moved_meanwhile(*_):
             self.person_commits()
             return [], 0, None
-        with mock.patch('eaos.journeys.fix.waves.edit_gates', side_effect=moved_meanwhile):
+        with mock.patch('eaos.features.fix.journey.waves.edit_gates', side_effect=moved_meanwhile):
             self.assertRefused(self.edit_job())
         wave = project_state.load(self.project)['open_wave']
         self.assertEqual((wave['kept'], git(self.copy, 'rev-parse', 'HEAD')), ({}, head),
@@ -169,7 +170,7 @@ class WhatItsJobsSee(Batch):
         self.person_commits()
         guided.save(project_state.load(self.project))
         before = self.everything()
-        with mock.patch('eaos.journeys.fix.waves.finish_batch') as finishing:
+        with mock.patch('eaos.features.fix.journey.waves.finish_batch') as finishing:
             self.assertRefused(batch_finish.finish_job(self.where, {}, lambda *_: None))
         finishing.assert_not_called()
         self.assertEqual(self.everything(), before)
@@ -192,9 +193,9 @@ class WhatItsJobsSee(Batch):
         with mock.patch.object(batch_steps, '_through_gates', side_effect=through_the_gates), \
                 mock.patch.object(batch_steps, '_declare'), \
                 mock.patch.object(batch_steps, '_new_truth'), \
-                mock.patch('eaos.journeys.fix.regenerate.regenerate'), \
-                mock.patch('eaos.journeys.fix.regenerate.keep_guide'), \
-                mock.patch('eaos.journeys.fix.waves.apply') as handing:
+                mock.patch('eaos.features.fix.journey.regenerate.regenerate'), \
+                mock.patch('eaos.features.fix.journey.regenerate.keep_guide'), \
+                mock.patch('eaos.features.fix.journey.waves.apply') as handing:
             self.assertRefused(batch_finish.finish_job(self.where, {}, lambda *_: None))
         handing.assert_not_called()
         state = project_state.load(self.project)
@@ -241,7 +242,7 @@ class WithSeveralAssistants(Batch):
 
 class WhatStillWorks(Batch):
     def test_a_batch_that_fits_keeps_an_edit(self):
-        with mock.patch('eaos.journeys.fix.waves.edit_gates', return_value=([], 0, None)), \
+        with mock.patch('eaos.features.fix.journey.waves.edit_gates', return_value=([], 0, None)), \
                 mock.patch.object(jobs, 'fixing', return_value=True):
             answer = fixing._fix_edit_job(self.where, {'card': 'TASK-001', 'edits': EDIT, 'summary': 'a fix'},
                                           lambda *_: None)
@@ -269,7 +270,7 @@ class WhatStillWorks(Batch):
             self.assertEqual(agent_tools.fix_skip('TASK-002', 'no safe change', self.where)['skipped'], True)
             self.assertEqual(agent_tools.fix_finish(self.where), {'job': 'j'})
         self.assertEqual(started.call_count, 2)
-        with mock.patch('eaos.journeys.fix.waves.edit_gates', return_value=([], 0, None)), \
+        with mock.patch('eaos.features.fix.journey.waves.edit_gates', return_value=([], 0, None)), \
                 mock.patch.object(jobs, 'fixing', return_value=True):
             state = project_state.load(self.project)
             state['open_wave']['failed'] = {}

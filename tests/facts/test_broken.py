@@ -4,8 +4,8 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from eaos.facts.defects import broken
-from eaos.facts.run import collect
+from eaos.features.defects.facts import broken
+from eaos.kernel.facts.run import collect
 
 
 class BrokenCodeTests(unittest.TestCase):

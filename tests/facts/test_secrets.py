@@ -5,7 +5,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from eaos.facts.defects.secrets import _classify_jwt, _decode_jwt_role, _classify_text, collect, run
+from eaos.features.defects.facts.secrets import _classify_jwt, _decode_jwt_role, _classify_text, collect, run
 
 
 def _jwt_with_role(role):
@@ -72,7 +72,7 @@ class SecretTests(unittest.TestCase):
         self.assertNotIn(token, json.dumps(result['facts'], ensure_ascii=False))
 
     def test_a_secrets_file_is_never_read_but_code_named_after_secrets_is(self):
-        from eaos.core.project.workspace import SENSITIVE
+        from eaos.kernel.project.workspace import SENSITIVE
         for name in ('secrets.json', 'app-secrets.yaml', 'google-credentials.json', 'credentials', '.env.local', 'id_rsa'):
             self.assertTrue(SENSITIVE.search(name), name)
         for name in ('adminSecrets.ts', 'credentialsForm.tsx', 'secrets.ts'):

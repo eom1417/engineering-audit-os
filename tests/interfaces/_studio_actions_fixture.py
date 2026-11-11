@@ -10,11 +10,11 @@ from unittest import mock
 ROOT = Path(__file__).resolve().parents[2]
 FIXTURES = ROOT / 'tests/fixtures/studio/actions'
 FAKE = FIXTURES / 'fake_assistant.py'
-from eaos.interfaces import runs as actions  # noqa: E402
+from eaos.doors import runs as actions  # noqa: E402
 from tests.shared_fixture import Workspace  # noqa: E402
-from eaos.ai.assistant import headless as adapters
-from eaos.core.system.errors import noted
-from eaos.journeys.runs import resume
+from eaos.features.assistant.adapters import headless as adapters
+from eaos.kernel.system.errors import noted
+from eaos.features.studio.journey.runs import resume
 
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -119,5 +119,5 @@ def until(condition, seconds):
 
 
 def alive(pid):
-    from eaos.journeys.runs.lane_assistants import alive
+    from eaos.features.studio.journey.runs.lane_assistants import alive
     return alive(pid)

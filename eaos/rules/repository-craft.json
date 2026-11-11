@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "about": "What a repository read as an engineer reads it shows (eaos/facts/repository/, M7.8 and M7.9): every threshold here is data, the owner's to change. Findings are low severity and never raise the risk grade.",
+  "about": "What a repository read as an engineer reads it shows (eaos/features/only_code/facts/, M7.8 and M7.9): every threshold here is data, the owner's to change. Findings are low severity and never raise the risk grade.",
   "source_ext": [
     ".py",
     ".js",

@@ -638,7 +638,7 @@
         "files": 1,
         "dependents": 0
       },
-      "effort_confidence": "A rule on the files it touches and its dependents (eaos/analysis/planning/roadmap.py), not a measured duration.",
+      "effort_confidence": "A rule on the files it touches and its dependents (eaos/features/plan/analysis/roadmap.py), not a measured duration.",
       "invariants": [
         {
           "invariant": "Product code is reached from a production entry point, or named by something that is.",
@@ -803,7 +803,7 @@
         "files": 1,
         "dependents": 0
       },
-      "effort_confidence": "A rule on the files it touches and its dependents (eaos/analysis/planning/roadmap.py), not a measured duration.",
+      "effort_confidence": "A rule on the files it touches and its dependents (eaos/features/plan/analysis/roadmap.py), not a measured duration.",
       "invariants": [
         {
           "invariant": "Product code is reached from a production entry point, or named by something that is.",
@@ -968,7 +968,7 @@
         "files": 1,
         "dependents": 0
       },
-      "effort_confidence": "A rule on the files it touches and its dependents (eaos/analysis/planning/roadmap.py), not a measured duration.",
+      "effort_confidence": "A rule on the files it touches and its dependents (eaos/features/plan/analysis/roadmap.py), not a measured duration.",
       "invariants": [
         {
           "invariant": "Product code is reached from a production entry point, or named by something that is.",

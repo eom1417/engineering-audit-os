@@ -2,7 +2,7 @@
 import subprocess
 import sys
 import unittest
-from eaos.core.system.process import run_command
+from eaos.kernel.system.process import run_command
 
 
 class TimeoutTests(unittest.TestCase):

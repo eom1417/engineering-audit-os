@@ -1,6 +1,6 @@
 # AI in the pipeline
 
-Where the person's own assistant (Claude Code or Codex, `eaos/ai/__init__.py`) makes EAOS's outcome better, and how
+Where the person's own assistant (Claude Code or Codex, `eaos/features/assistant/interface/__init__.py`) makes EAOS's outcome better, and how
 each use is bounded. The rules stay the baseline everywhere: the assistant adds to them and never replaces them, and a
 check without an assistant runs the same way on the rules alone.
 
@@ -14,20 +14,20 @@ check without an assistant runs the same way on the rules alone.
    because of AI.
 4. **Time to do it well, never a cut-off.** An AI step takes the time and money the work needs; both are recorded and
    shown, never used to stop it. Only the person's stop ends it, or a hang: an assistant silent for 20 minutes is
-   ended as stuck (`eaos/core/system/process.py` `STUCK`, reason `ai_stuck`). A check stopped during an AI step resumes
+   ended as stuck (`eaos/kernel/system/process.py` `STUCK`, reason `ai_stuck`). A check stopped during an AI step resumes
    at that step. Speed comes from clear prompts (the goal, the exact evidence, the output schema, what a good answer
    is, what not to do), not from limits.
 5. **The project's text is untrusted data.** Code, pages and documents reach every prompt marked as data, never as
-   instructions (`eaos/core/contracts/untrusted.py`).
+   instructions (`eaos/kernel/contracts/untrusted.py`).
 6. **On by default, never silently off.** The check uses the person's assistant unless they said no (`use_assistant`,
    kept in the project's state; the MCP `audit` passes it). Before a check starts, the assistant is asked for one word
-   (`eaos/ai/assistant/readiness.py`); when it does not answer, the check does not start and the reason and its fix
+   (`eaos/features/assistant/adapters/readiness.py`); when it does not answer, the check does not start and the reason and its fix
    are said, with the choice to start without AI (`without_ai`). An assistant that stops answering during the check
    gives its reason on the live map and in the report. `EAOS_ASSISTANT=none` turns every assistant off on a computer.
 
 ## Model tiers: a cheaper model never closes anything alone
 
-Each stage asks on a tier, set as data in `eaos/ai/assistant/tiers.py`:
+Each stage asks on a tier, set as data in `eaos/features/assistant/adapters/tiers.py`:
 
 | Tier | Claude Code | Codex | Stages |
 | --- | --- | --- | --- |
@@ -43,7 +43,7 @@ Each stage asks on a tier, set as data in `eaos/ai/assistant/tiers.py`:
 
 ## Where the assistant decides in a check
 
-A check is 27 stages (`eaos/pipeline/stages.py`). It gathers the evidence first, lets the tools propose, lets the
+A check is 27 stages (`eaos/features/check/journey/stages.py`). It gathers the evidence first, lets the tools propose, lets the
 assistant decide with them, applies the decisions through deterministic guards, and writes the reports last.
 
 | Stage | Kind | What it decides |
@@ -51,7 +51,7 @@ assistant decide with them, applies the decisions through deterministic guards, 
 | `facts` … `probe` | rules | The evidence and measures, static (`engines`, `layers`) and live once the person agreed to run the app; claims settled mechanically. Two AI stages sit among them, and the screens' exploration: |
 | `roles` | AI | The app's kinds of users, each with the code that makes it one and its pages, so the app is opened as each |
 | `session` | AI | Test users signed in on the running copy, one per kind of user; else the person signs in by hand |
-| `crawl` | AI, then rules | The screens behind buttons, tabs and welcomes reached once by the assistant (`eaos/live/agent.py`), then replayed without it in every later check |
+| `crawl` | AI, then rules | The screens behind buttons, tabs and welcomes reached once by the assistant (`eaos/features/app_run/adapters/agent.py`), then replayed without it in every later check |
 | `plan` | rules | The candidate cards |
 | `triage` | AI | Each candidate card confirmed, doubted or rejected on its own evidence, with why |
 | `cards` | guard | The verdicts applied once: a rejected card leaves the plan and its claim is refuted; a doubted security card waits for a person and is never fixed automatically, any other doubted card closes as not proven, listed apart in `cards.json` `doubted` with why |
@@ -67,7 +67,7 @@ the AI stages say `no_provider`, the guards keep every card (`rule_only`), and t
 
 ## The triage and the strict judge
 
-The triage (`eaos/ai/nodes/triage.py`, node `card_triage`) reads every open card in batches of 40, each with up to 4 of
+The triage (`eaos/features/ai_review/analysis/triage.py`, node `card_triage`) reads every open card in batches of 40, each with up to 4 of
 its facts (those carrying a measurement first) and a short excerpt of the code at each fact's line, and decides:
 
 - **confirm** when the evidence shows the problem. A confirm is strict: it names who the problem harms and how
@@ -87,11 +87,11 @@ A verdict that cites neither the card nor one of its facts falls back to the rul
 
 | Step | What AI adds | Bounds | Where |
 | --- | --- | --- | --- |
-| Running the app | How to start an unfamiliar app when detection fails | Proposals are tried in an isolated copy and refused when unsafe | `eaos/live/app/setup.py`, MCP `run_try` |
-| Fixes | Writing the change a card asks for | Every gate and the behaviour lock judge each change; it reaches the project only as a branch | `eaos/journeys/agent_tools/` |
-| A rule's guard | Writing once the machine guard of a rule the person stated | Proved on the rule's own examples before it is kept; a rule no answer could guard is said so | `eaos/ai/rule_guard.py` |
-| Fix review | Each card of a batch: accept, retry or ask, after reading the diff and the checks (deep tier) | A card the gates failed is never accepted; "accept" is a recommendation, the person still decides | `eaos/ai/nodes/fix_reviewer.py` |
-| AI nodes on demand | The nodes above run again on the latest check | Same citation check and rules fallback per node; started by the person | MCP `run_nodes`, `eaos/ai/nodes/` |
+| Running the app | How to start an unfamiliar app when detection fails | Proposals are tried in an isolated copy and refused when unsafe | `eaos/features/app_run/adapters/app/setup.py`, MCP `run_try` |
+| Fixes | Writing the change a card asks for | Every gate and the behaviour lock judge each change; it reaches the project only as a branch | `eaos/features/guided/interface/agent_tools/` |
+| A rule's guard | Writing once the machine guard of a rule the person stated | Proved on the rule's own examples before it is kept; a rule no answer could guard is said so | `eaos/features/rules/analysis/rule_guard.py` |
+| Fix review | Each card of a batch: accept, retry or ask, after reading the diff and the checks (deep tier) | A card the gates failed is never accepted; "accept" is a recommendation, the person still decides | `eaos/features/ai_review/analysis/fix_reviewer.py` |
+| AI nodes on demand | The nodes above run again on the latest check | Same citation check and rules fallback per node; started by the person | MCP `run_nodes`, `eaos/features/ai_review/analysis/` |
 
 ## Where AI adds nothing
 

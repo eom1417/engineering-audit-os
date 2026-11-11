@@ -11,7 +11,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[2]
 SHIPPED = [path for path in (ROOT / 'eaos').rglob('*.py') if path.relative_to(ROOT).parts[1] not in ('templates',
     'rules')]
-HOME_OF_TOML = ROOT / 'eaos/core/system/files.py'
+HOME_OF_TOML = ROOT / 'eaos/kernel/system/files.py'
 
 
 def _reused_quotes(text):

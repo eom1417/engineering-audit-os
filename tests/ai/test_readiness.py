@@ -1,4 +1,4 @@
-"""Which assistant EAOS uses (eaos/ai), and its readiness probe (eaos/ai/assistant/readiness.py) against fake `claude`
+"""Which assistant EAOS uses (eaos/features/assistant), and its readiness probe (eaos/features/assistant/adapters/readiness.py) against fake `claude`
 and `codex` commands that behave like the real ones in each state: ready, signed out, the sign-in expired, a usage
 limit, silent, not installed."""
 import json
@@ -10,7 +10,7 @@ import unittest
 from pathlib import Path
 from unittest import mock
 
-from eaos.ai.assistant import readiness
+from eaos.features.assistant.adapters import readiness
 
 CLAUDE = r'''#!/bin/sh
 echo "claude $*" >> "$FAKE_LOG"
@@ -186,13 +186,13 @@ class Probe(unittest.TestCase):
 
 class Choice(unittest.TestCase):
     def test_the_installed_assistant_is_used_and_none_means_none(self):
-        import eaos.ai as assistants
+        import eaos.features.assistant.interface as assistants
         with mock.patch.object(assistants.shutil, 'which', side_effect=lambda n: '/bin/codex' if n == 'codex'
                                else None), \
                 mock.patch.dict(os.environ, {'EAOS_ASSISTANT': ''}):
             name, provider = assistants.provider()
         self.assertEqual(name, 'codex')
-        self.assertIn('eaos.ai.assistant.codex_adapter', provider.config['argv'])
+        self.assertIn('eaos.features.assistant.adapters.codex_adapter', provider.config['argv'])
         with mock.patch.object(assistants.shutil, 'which', return_value=None):
             self.assertEqual(assistants.provider(), (None, None))
         with (mock.patch.object(assistants.shutil, 'which', return_value='/bin/x'),
@@ -200,7 +200,7 @@ class Choice(unittest.TestCase):
             self.assertEqual(assistants.provider(), (None, None), '`none` turns every assistant off')
 
     def test_codex_reads_only_what_eaos_sends_changes_nothing_and_needs_no_key(self):
-        from eaos.ai.assistant import codex_adapter
+        from eaos.features.assistant.adapters import codex_adapter
 
         def fake(argv, **kwargs):
             Path(argv[argv.index('-o') + 1]).write_text('{"action": "final"}')

@@ -6,8 +6,8 @@ import tempfile
 import unittest
 from pathlib import Path
 from unittest import mock
-from eaos.journeys.fix import waves
-from eaos.journeys.fix.waves import batch as wave_batch
+from eaos.features.fix.journey import waves
+from eaos.features.fix.journey.waves import batch as wave_batch
 from shared_fixture import scratch
 from tests.journeys._waves_fixture import commit_file, git, repository
 
@@ -15,7 +15,7 @@ from tests.journeys._waves_fixture import commit_file, git, repository
 class OrderTests(unittest.TestCase):
     def test_a_batch_with_a_design_card_may_change_any_screens_look_but_not_its_errors(self):
         # A design card's shared change shows on pages its finding never named; only an error on them fails it.
-        from eaos.live.behavior.lock import _declared
+        from eaos.features.behaviour_lock.analysis.lock import _declared
         self.assertEqual(waves.declared_screens([{'design': {'findings': [{'page': '/library'}]}}, {}]), {'*'})
         self.assertEqual(waves.declared_screens([{'id': 'TASK-1'}]), set(),
                          'a batch of code changes keeps every screen locked')
@@ -57,7 +57,7 @@ class OrderTests(unittest.TestCase):
         batch = {'root': root, 'base': base, 'report': root, 'say': lambda *_: None, 'regenerate': lambda r: None}
         failed = {}
         found = [('semgrep', 'insecure-innerhtml', 'page.js')]
-        with mock.patch('eaos.facts.run.collect'), mock.patch('eaos.analysis.assessments.weaknesses.new',
+        with mock.patch('eaos.kernel.facts.run.collect'), mock.patch('eaos.features.defects.analysis.weaknesses.new',
                                                               return_value=found):
             kept = wave_batch._secure(batch, {'T1': sound, 'T2': unsafe}, failed, [])
         self.assertEqual(list(kept), ['T1'])
@@ -87,9 +87,9 @@ class OrderTests(unittest.TestCase):
                                          '.']}
         sets = {'deadcode': {'facts': [{'location': {'path': 'src/a.ts', 'symbol': 'still'},
                                         'value': {'rule': 'unused-symbol'}}]}}
-        with mock.patch('eaos.facts.run.collect') as collect, mock.patch('eaos.facts.run.read_available',
+        with mock.patch('eaos.kernel.facts.run.collect') as collect, mock.patch('eaos.kernel.facts.run.read_available',
                                                                          return_value=sets), \
-                mock.patch('eaos.analysis.claims.probes.decide_probe', return_value=('REFUTED', 'gone')):
+                mock.patch('eaos.features.claims.analysis.probes.decide_probe', return_value=('REFUTED', 'gone')):
             exits = wave_batch.batch_acceptance(scratch(), [dead_card, gone_card, probe_card], scratch())
         self.assertEqual(collect.call_count, 1)
         self.assertEqual(exits, {'D': 0, 'G': 1, 'P': 0})
@@ -113,8 +113,8 @@ class OrderTests(unittest.TestCase):
         card = {'id': 'L', 'verify_command': ['eaos', 'recheck', '--spec', json.dumps(spec), '.']}
         shown = {'location': {'path': 'web/Orders.jsx'}, 'value': {'rule': 'ui-database', 'params': {}}}
         for facts, exit in (([], 0), ([shown], 1)):
-            with mock.patch('eaos.facts.run.collect'), mock.patch('eaos.facts.run.read_available', return_value={}), \
-                    mock.patch('eaos.analysis.layers.check'), mock.patch('eaos.analysis.layers.facts_of',
+            with mock.patch('eaos.kernel.facts.run.collect'), mock.patch('eaos.kernel.facts.run.read_available', return_value={}), \
+                    mock.patch('eaos.features.layers.analysis.check'), mock.patch('eaos.features.layers.analysis.facts_of',
                                                                          return_value=facts):
                 self.assertEqual(wave_batch.batch_acceptance(scratch(), [card], scratch()), {'L': exit})
 
@@ -127,8 +127,8 @@ class OrderTests(unittest.TestCase):
         for code, runtime, exit in ((0, 'runtime', 0), (1, 'runtime', 1), (127, 'runtime', 2), (0, None, 2)):
             rows = [{'argv': ['npm', 'run', 'lint'], 'exit': 0, 'failing': []},
                     {'argv': ['npm', 'run', 'test'], 'exit': code, 'failing': []}]
-            with mock.patch('eaos.facts.run.collect'), mock.patch('eaos.facts.run.read_available', return_value={}), \
-                    mock.patch('eaos.journeys.fix.execute.project_checks', return_value=rows):
+            with mock.patch('eaos.kernel.facts.run.collect'), mock.patch('eaos.kernel.facts.run.read_available', return_value={}), \
+                    mock.patch('eaos.features.fix.journey.execute.project_checks', return_value=rows):
                 self.assertEqual(wave_batch.batch_acceptance(scratch(), [card], scratch(), runtime=runtime),
                                  {'T': exit}, (code, runtime))
 
@@ -257,8 +257,8 @@ class FinishTests(unittest.TestCase):
                                side_effect=lambda report, cards, root, **_: {c['id']: 0 for c in cards}), \
                 mock.patch.object(wave_batch, 'original_checks',
                                   return_value=[]), mock.patch.object(wave_batch, 'gates', side_effect=live_page), \
-                mock.patch('eaos.live.behavior.lock.verify_lock') as control, \
-                mock.patch('eaos.live.behavior.lock.failing_tests', return_value={'problems'}):
+                mock.patch('eaos.features.behaviour_lock.analysis.lock.verify_lock') as control, \
+                mock.patch('eaos.features.behaviour_lock.analysis.lock.failing_tests', return_value={'problems'}):
             summary = waves.finish_batch(report, project, runtime, wave(root, base, kept), lock=True)
         self.assertEqual((summary['kept'], summary['failed']), (['T1', 'T2'], {}))
         self.assertEqual(control.call_args.args[3].name, 'wave-1-control', 'checked once on the base alone')
@@ -270,7 +270,7 @@ class RegenerateTests(unittest.TestCase):
     def test_what_the_build_makes_from_the_batchs_source_comes_back_as_one_commit_and_nothing_ignored(self):
         # A fix that changes the build's source makes the shipped build differ from it; the rebuilt build is committed,
         # so sound fixes are not left out of the batch for it.
-        from eaos.journeys.fix import regenerate
+        from eaos.features.fix.journey import regenerate
         root, runtime = repository(), Path(scratch())
         (root / 'app').mkdir(); (root / 'shipped').mkdir()
         commit_file(root, 'app/src.ts', 'one')

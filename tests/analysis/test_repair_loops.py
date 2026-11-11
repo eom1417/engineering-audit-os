@@ -4,7 +4,7 @@ import json
 import unittest
 from pathlib import Path
 
-from eaos.analysis.repair import gates
+from eaos.features.fix.analysis import gates
 from shared_fixture import scratch
 
 

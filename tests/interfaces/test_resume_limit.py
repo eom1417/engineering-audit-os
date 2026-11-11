@@ -4,8 +4,8 @@ assistant only when it answers now (an assistant that says it is signed in but i
 import unittest
 from unittest import mock
 from datetime import datetime, timezone
-from eaos.ai.assistant import readiness
-from eaos.journeys.runs import resume
+from eaos.features.assistant.adapters import readiness
+from eaos.features.studio.journey.runs import resume
 
 SAID = "You've hit your session limit · resets 7:40am (UTC)"
 
@@ -33,12 +33,12 @@ class ResumeLimitTests(unittest.TestCase):
     def test_a_stopped_batch_with_nothing_kept_gives_its_cards_back(self):
         manager = mock.Mock(project='/p')
         abandon = mock.Mock(return_value={'status': 'abandoned', 'batch': 1, 'cards': ['TASK-1', 'TASK-2']})
-        with mock.patch('eaos.core.project.state.load', return_value={'open_wave': {'kept': {}}}), \
-                mock.patch('eaos.journeys.agent_tools.fix_abandon', abandon):
+        with mock.patch('eaos.kernel.project.state.load', return_value={'open_wave': {'kept': {}}}), \
+                mock.patch('eaos.features.guided.interface.agent_tools.fix_abandon', abandon):
             resume.release(manager, 'r1')
         abandon.assert_called_once_with('/p')
-        with mock.patch('eaos.core.project.state.load', return_value={'open_wave': {'kept': {'TASK-1': 'abc'}}}), \
-                mock.patch('eaos.journeys.agent_tools.fix_abandon', abandon):
+        with mock.patch('eaos.kernel.project.state.load', return_value={'open_wave': {'kept': {'TASK-1': 'abc'}}}), \
+                mock.patch('eaos.features.guided.interface.agent_tools.fix_abandon', abandon):
             resume.release(manager, 'r1')
         abandon.assert_called_once()        # a batch with a kept change stays, for Retry
 

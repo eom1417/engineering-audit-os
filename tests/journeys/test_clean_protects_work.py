@@ -6,7 +6,7 @@ import os
 import shutil
 from pathlib import Path
 from unittest import mock
-from eaos.core.project import jobs, state as project_state
+from eaos.kernel.project import jobs, state as project_state
 from tests.journeys._clean_fixture import Clean, UNIQUE, git
 
 

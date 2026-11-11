@@ -4,7 +4,7 @@ from pathlib import Path
 import shutil
 import tempfile
 import unittest
-from eaos.facts.run import collect
+from eaos.kernel.facts.run import collect
 
 FIXTURE = Path(__file__).resolve().parents[1] / 'fixtures/polyglot'
 SETS = ['syntax', 'resolve', 'entrypoints', 'config', 'metrics', 'history', 'graph']
@@ -39,9 +39,9 @@ class GraphTests(unittest.TestCase):
             'b.py']])
 
     def test_engine_resolved_edges_are_labelled_and_counted_apart_from_our_own(self):
-        from eaos.facts.code.resolve import make as fact_make, digest, run as resolve_run
-        from eaos.facts.source import Source
-        from eaos.facts.code.graph import run as graph_run
+        from eaos.features.code_reading.facts.code.resolve import make as fact_make, digest, run as resolve_run
+        from eaos.kernel.facts.source import Source
+        from eaos.features.code_reading.facts.code.graph import run as graph_run
         with tempfile.TemporaryDirectory() as tmp:
             repo = Path(tmp) / 'repo'; repo.mkdir()
             for name in 'abc':
@@ -68,8 +68,8 @@ class AttentionBudgetTests(unittest.TestCase):
     """The declared attention budget must defer files visibly, never silently."""
 
     def test_deferred_files_are_recorded_as_omissions(self):
-        from eaos.core.project.repo_context import Context
-        from eaos.core.project.workspace import inventory, write
+        from eaos.kernel.project.repo_context import Context
+        from eaos.kernel.project.workspace import inventory, write
         with tempfile.TemporaryDirectory() as tmp:
             target, run = Path(tmp) / 'target', Path(tmp) / 'run'
             shutil.copytree(FIXTURE, target); run.mkdir()

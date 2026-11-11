@@ -1,5 +1,5 @@
 """The tools in the order they are needed: the check waits for the tools it needs on the project
-(eaos/core/toolchain/runs.py), a tool that failed stops it unless the person starts without it, and the report
+(eaos/kernel/toolchain/runs.py), a tool that failed stops it unless the person starts without it, and the report
 records that it did."""
 import os
 import subprocess
@@ -10,10 +10,11 @@ from argparse import Namespace
 from pathlib import Path
 from unittest import mock
 
-from eaos.journeys import agent_tools, guided
-from eaos.core.project import jobs
-from eaos.core import toolchain
-from eaos.report.documents import run as run_report
+from eaos.features.guided.interface import agent_tools
+from eaos.features.guided import journey as guided
+from eaos.kernel.project import jobs
+from eaos.kernel import toolchain
+from eaos.features.report.interface.documents import run as run_report
 
 READY = {'needed': ['semgrep'], 'pending': [], 'failed': {}, 'ready': True}
 FAILED = {'needed': ['semgrep'], 'pending': [], 'failed': {'semgrep': 'no network'}, 'ready': False}
@@ -49,7 +50,7 @@ class Entry(Project):
         self.assertEqual(start.call_args.args[2], {'without_tools': True})
         # The check job waits, and a failed tool stops it unless the person starts without it.
         with mock.patch.object(toolchain, 'wait_for_check', return_value=FAILED) as waited, \
-                mock.patch('eaos.journeys.check.check', side_effect=RuntimeError('the check ran')) as check:
+                mock.patch('eaos.features.guided.journey.check.check', side_effect=RuntimeError('the check ran')) as check:
             with self.assertRaises(guided.ToolsMissing) as stopped:
                 agent_tools._audit_job(str(self.project), {}, None)
             self.assertIn('semgrep: no network', str(stopped.exception))
@@ -68,7 +69,7 @@ class Terminal(unittest.TestCase):
 
     def scan(self, gate, yes):
         args = Namespace(yes=yes)
-        checking = guided.checking         # the check's step (eaos/journeys/guided/checking.py)
+        checking = guided.checking         # the check's step (eaos/features/guided/journey/checking.py)
         with mock.patch.object(toolchain, 'wait_for_check', return_value=gate), mock.patch.object(checking, 'save'), \
                 mock.patch.object(checking, 'say'), mock.patch.object(checking, 'box') as box, \
                 mock.patch.object(sys.stdin, 'isatty', return_value=False), \

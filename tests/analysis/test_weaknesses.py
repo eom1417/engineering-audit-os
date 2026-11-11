@@ -4,8 +4,8 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from eaos.analysis.assessments import weaknesses
-from eaos.analysis.claims.probe_queries import run_graph_query
+from eaos.features.defects.analysis import weaknesses
+from eaos.features.claims.analysis.probe_queries import run_graph_query
 
 
 def fact(id_, engine, path, line, rule, cwe=(), kind='vulnerability', severity='high', confidence=None):

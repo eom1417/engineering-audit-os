@@ -1,6 +1,6 @@
 """Every path of EAOS that its code, tools and living references name exists: a reader follows it and lands on the file.
 
-A path left behind by a move (`eaos/journeys/guided.py` after guided became a package) would send a reader, or an
+A path left behind by a move (`eaos/features/guided/journey.py` after guided became a package) would send a reader, or an
 assistant, to a file that does not exist.
 """
 import re

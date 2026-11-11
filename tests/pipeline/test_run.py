@@ -4,12 +4,12 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from eaos import pipeline
-from eaos.pipeline import STAGES, SkipStage, again, check, execute, resume
-from eaos.pipeline.run import MANIFEST
-from eaos.pipeline import loops, stages as module
-from eaos.pipeline.stages import OPTIONAL, REQUIRED, Stage
-from eaos.pipeline.run import CHECKPOINT, FAILED, NOT_REACHED, OK, SKIPPED, UNAVAILABLE
+from eaos.features.check import journey as pipeline
+from eaos.features.check.journey import STAGES, SkipStage, again, check, execute, resume
+from eaos.features.check.journey.run import MANIFEST
+from eaos.features.check.journey import loops, stages as module
+from eaos.features.check.journey.stages import OPTIONAL, REQUIRED, Stage
+from eaos.features.check.journey.run import CHECKPOINT, FAILED, NOT_REACHED, OK, SKIPPED, UNAVAILABLE
 from shared_fixture import scratch
 
 # The stages of the optional loops a check runs only when the person switches them on (`try_layers`: the `layers` path).
@@ -125,7 +125,7 @@ class ExecutionTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as directory:     # the lost stage keeps its earlier time for the estimate
             execute('.', directory, runners=fake_runners())
             execute('.', directory, runners=fake_runners(triage=lost))
-            from eaos.core.progress.log import previous_seconds
+            from eaos.kernel.progress.log import previous_seconds
             self.assertIn('triage', previous_seconds(directory))
         manifest, _ = self._run(only=['facts'], runners=fake_runners())
         self.assertEqual(manifest['stages']['facts']['status'], OK)
@@ -134,7 +134,7 @@ class ExecutionTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as directory, self.assertRaises(ValueError):
             execute('.', directory, only=['nonexistent'], runners=fake_runners())
         with self.assertRaises(ValueError):
-            execute('.', 'eaos/pipeline', runners=fake_runners())
+            execute('.', 'eaos/features/check/journey', runners=fake_runners())
 
 
 class ResumeTests(unittest.TestCase):
@@ -214,7 +214,7 @@ class ResumeTests(unittest.TestCase):
 
 
 class LoopTests(unittest.TestCase):
-    """The check runs as loops (eaos/pipeline/loops.py): a loop judges its exit when its stages ended, runs what it
+    """The check runs as loops (eaos/features/check/journey/loops.py): a loop judges its exit when its stages ended, runs what it
     broke again while its rounds last, and an optional loop runs only when the check switches it on."""
 
     def test_a_broken_app_stage_runs_again_and_no_other_loop_builds_on_the_broken_round(self):
@@ -259,7 +259,7 @@ class LoopTests(unittest.TestCase):
         self.assertIn('🔴', (Path(directory) / 'RUN.md').read_text(encoding='utf-8').split('##')[0])
 
     def test_an_optional_loop_runs_only_when_the_check_switches_it_on(self):
-        from eaos.pipeline.path_choice import resolve
+        from eaos.features.check.journey.path_choice import resolve
         declared, loops.LOOPS = loops.LOOPS, (*loops.LOOPS, loops.Loop('try', ('translate',), switch='look'))
         try:
             self.assertEqual(resolve(['complete', 'look'])['paths'], ['complete', 'look'])
@@ -268,7 +268,7 @@ class LoopTests(unittest.TestCase):
             manifest = execute('.', scratch(), runners=fake_runners(), paths=['complete', 'look'])
             self.assertEqual(manifest['stages']['translate']['status'], OK)
             # asked for by the person (`eaos check --path complete layers`): the option reaches the run
-            from eaos.pipeline.run import check
+            from eaos.features.check.journey.run import check
             manifest = check('.', scratch(), runners=fake_runners(), paths=['complete', 'look'])
             self.assertEqual(manifest['stages']['translate']['status'], OK)
         finally:

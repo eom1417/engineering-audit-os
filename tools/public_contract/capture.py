@@ -3,7 +3,7 @@ they answer on an empty project and on a saved one, and that reading a saved pro
 
 tools/public_contract/lock.py runs this in a process of its own, with a home, a PATH and an environment of its own, so a
 machine's tools and accounts never change the answer; alone it means nothing. No product code is changed or called
-for its private parts: the parser is taken where `eaos.interfaces.cli.main` parses, the tools from `list_tools`.
+for its private parts: the parser is taken where `eaos.doors.cli.main` parses, the tools from `list_tools`.
 `--save-project` freezes a real check of tests/fixtures/saved-project/project under the running version's folder.
 """
 import argparse
@@ -92,18 +92,18 @@ class _Parsed(Exception):
 def cli_declared():
     """Every command with its arguments, taken where main() parses, so nothing runs and nothing in the CLI has to
     change."""
-    from eaos.interfaces import cli
+    from eaos.doors import cli
 
     def taken(parser, *_, **__): raise _Parsed(parser)
     with mock.patch.object(argparse.ArgumentParser, 'parse_args', taken):
         try: cli.main([])
         except _Parsed as parsed: return _walk(parsed.parser, [], {})
-    raise RuntimeError('eaos.interfaces.cli.main never parsed')
+    raise RuntimeError('eaos.doors.cli.main never parsed')
 
 
 def server():
-    from eaos.interfaces.mcp_server.govern import every
-    from eaos.interfaces.mcp_server.server import build
+    from eaos.doors.mcp_server.govern import every
+    from eaos.doors.mcp_server.server import build
     return build(every)
 
 
@@ -132,7 +132,7 @@ def answer(mcp, name, arguments):
 
 def command(argv, missing):
     """A CLI line's exit code and whether it said anything; the words are not the contract."""
-    from eaos.interfaces import cli
+    from eaos.doors import cli
     out, err = io.StringIO(), io.StringIO()
     words = [str(missing) if word == '{missing}' else word for word in argv]
     with contextlib.redirect_stdout(out), contextlib.redirect_stderr(err):
@@ -199,7 +199,7 @@ def _copy_filled(source, target, values):
 def saved_behaviour(mcp, frozen, scratch):
     """A project a past version saved, read by this one: every reading tool and CLI line, and its state left as it
     was."""
-    from eaos.core.project.places import workspace
+    from eaos.kernel.project.places import workspace
     project = new_project(scratch / frozen.name / 'shop')
     os.chdir(project)
     room, output = workspace(project), Path(os.environ['EAOS_OUTPUT']) / frozen.name
@@ -239,11 +239,12 @@ def capture(scratch):
 def save_project(scratch):
     """A real check of the frozen project, no assistant and no external tool, kept under this version's folder."""
     from eaos import __version__
-    from eaos.core.project.places import workspace
-    from eaos.core.system.version_info import digest
-    from eaos.journeys import agent_tools, guided
-    from eaos.pipeline.runners import by_rules
-    from eaos.pipeline.stages import SkipStage
+    from eaos.kernel.project.places import workspace
+    from eaos.kernel.system.version_info import digest
+    from eaos.features.guided.interface import agent_tools
+    from eaos.features.guided import journey as guided
+    from eaos.features.check.journey.runners import by_rules
+    from eaos.features.check.journey.stages import SkipStage
 
     def no_engines(context): raise SkipStage('the frozen project runs no external tool', code='engines_not_requested')
     project = new_project(scratch / 'shop')

@@ -3,7 +3,7 @@ import json
 from pathlib import Path
 import tempfile
 import unittest
-from eaos.facts.run import collect
+from eaos.kernel.facts.run import collect
 
 FIXTURE = Path(__file__).resolve().parents[1] / 'fixtures/polyglot'
 
@@ -111,7 +111,8 @@ class RuntimeFactTests(unittest.TestCase):
         self.assertEqual(runtime_facts({'a.py': 'def f():\n    return 1 + 1\n'}, 'resilience_policy'), [])
 
     def test_a_detector_that_cannot_tell_answers_unknown_never_false(self):
-        from eaos.facts.runtime.operations import _has_timeout, _detect_resilience_for_integration as detect
+        from eaos.features.code_reading.facts.runtime.operations import (_has_timeout,
+                                                                         _detect_resilience_for_integration as detect)
         # The timeout detector is file-scoped and says so.
         self.assertTrue(_has_timeout('client = Client(timeout=30)\n\n\ndef fetch():\n    return client.get(url)\n'))
         self.assertFalse(_has_timeout('import requests\nrequests.get(url)\n'))
@@ -193,7 +194,7 @@ class RuntimeFactTests(unittest.TestCase):
             self.assertEqual(runtime_facts({'a.py': body}, 'connection_pool'), [])
 
     def test_go_package_state_is_mutable_only_when_it_is_a_variable(self):
-        from eaos.facts.domain.model import go_mutable_globals
+        from eaos.features.code_reading.facts.domain.model import go_mutable_globals
         positive = ('package api\nimport "sync"\nvar mu sync.RWMutex\nvar count int\n'
                     'func Add() { mu.Lock(); count++; mu.Unlock() }\n')
         self.assertEqual({row[0] for row in go_mutable_globals(positive)}, {'mu', 'count'})
@@ -201,7 +202,7 @@ class RuntimeFactTests(unittest.TestCase):
                          [])
 
     def test_two_collections_of_the_same_tree_are_byte_identical(self):
-        from eaos.facts.runtime.operations import KINDS
+        from eaos.features.code_reading.facts.runtime.operations import KINDS
         self.assertEqual(list(KINDS), sorted(KINDS), 'summary key order must not depend on set iteration')
         written = []
         for _ in range(2):

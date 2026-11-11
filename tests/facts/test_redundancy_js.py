@@ -1,7 +1,7 @@
 """Redundant data work in JavaScript and TypeScript, judged from the recorded loops, calls and data accesses."""
 from shared_fixture import Workspace
 
-from eaos.facts.duplication.redundancy import _index_js, _js_redundancies
+from eaos.features.one_source.facts.redundancy import _index_js, _js_redundancies
 
 PATH = 'src/services/orders.ts'
 
@@ -60,7 +60,7 @@ class JsRedundancyTests(Workspace):
 
     def test_without_the_facts_a_typescript_file_is_blocked_not_clean(self):
         from unittest import mock
-        from eaos.facts.duplication import redundancy
+        from eaos.features.one_source.facts import redundancy
         source = mock.Mock()
         source.readable.return_value = [{'path': 'a.ts'}]
         source.text.return_value = 'export const a = 1;\n'

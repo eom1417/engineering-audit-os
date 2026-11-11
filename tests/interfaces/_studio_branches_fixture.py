@@ -2,7 +2,7 @@
 import os
 import subprocess
 from pathlib import Path
-from eaos.interfaces import runs as actions
+from eaos.doors import runs as actions
 from tests.shared_fixture import Workspace
 
 

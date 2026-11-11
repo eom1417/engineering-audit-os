@@ -1,4 +1,4 @@
-"""Fixes in waves: the expensive gates once per batch (eaos/journeys/fix/waves/ finish_batch, behind the MCP
+"""Fixes in waves: the expensive gates once per batch (eaos/features/fix/journey/waves/ finish_batch, behind the MCP
 fix_finish): the code laws and the Python suite."""
 import json
 import unittest
@@ -9,7 +9,7 @@ from shared_fixture import scratch
 
 class CodeLawsGateTests(unittest.TestCase):
     def test_a_change_that_copies_leaves_dead_code_or_adds_complexity_is_refused_and_a_partial_split_is_kept(self):
-        from eaos.analysis.repair.gates import debt, words
+        from eaos.features.fix.analysis.gates import debt, words
         new_debt = lambda before, after, paths: words(debt(before, after, paths))
 
         def facts(folder, functions, clones=(), dead=()):
@@ -41,7 +41,7 @@ class CodeLawsGateTests(unittest.TestCase):
     def test_a_module_past_the_line_limit_or_outside_the_declared_layers_is_refused_on_the_card(self):
         # A new module in no declared layer, or a module grown past its limit, is refused on the card, not found only
         # when all the changes meet in the project's own suite.
-        from eaos.analysis.repair import gates
+        from eaos.features.fix.analysis import gates
 
         def lines(folder, sizes):
             (Path(folder) / 'facts').mkdir(parents=True, exist_ok=True)
@@ -66,20 +66,20 @@ class PythonSuiteGateTests(unittest.TestCase):
     def test_a_change_to_the_apps_files_runs_the_apps_checks_on_the_card_itself(self):
         # An unused import in an app's folder breaks its type check and build: the app's checks run on the card itself,
         # not only when the changes meet.
-        from eaos.journeys.fix import execute
+        from eaos.features.fix.journey import execute
         typecheck = {'argv': ['npm', 'run', 'typecheck'], 'exit': 0, 'failing': []}
-        with mock.patch('eaos.live.app.run.load_profile', return_value={'app': 'studio'}), \
+        with mock.patch('eaos.features.app_run.adapters.app.run.load_profile', return_value={'app': 'studio'}), \
                 mock.patch.object(execute, 'original_checks', return_value=[typecheck]), \
                 mock.patch.object(execute, 'project_checks', return_value=[{**typecheck, 'exit': 2}]) as ran:
-            self.assertEqual(execute.app_breakage('project', 'runtime', 'copy', ['eaos/analysis/planning/cards.py']),
+            self.assertEqual(execute.app_breakage('project', 'runtime', 'copy', ['eaos/features/plan/analysis/cards.py']),
                              [])
             self.assertEqual(execute.app_breakage('project', 'runtime', 'copy', ['studio/src/x.tsx']),
                              ["the app's own check failed: npm run typecheck"])
         self.assertEqual(ran.call_args.kwargs, {'python': False}, 'the whole Python suite stays for the batch')
 
     def test_a_python_suite_beside_the_app_is_a_gate_and_only_its_new_failures_count(self):
-        from eaos.journeys.fix.execute import failing, regressions
-        from eaos.live.testing.verify import python_tests
+        from eaos.features.fix.journey.execute import failing, regressions
+        from eaos.features.app_run.adapters.testing.verify import python_tests
         root = Path(scratch())
         self.assertEqual(python_tests(root), [], 'no tests/ folder, no command')
         small = Path(scratch())
@@ -111,7 +111,7 @@ class PythonSuiteGateTests(unittest.TestCase):
 
     def test_a_jest_suite_already_failing_counts_its_new_failures(self):
         # the test gate must read jest output, not only TAP, unittest and pytest, so a new jest failure is counted
-        from eaos.journeys.fix.execute import failing, regressions
+        from eaos.features.fix.journey.execute import failing, regressions
         old = ('FAIL api src/tests/services/auth.service.test.ts\n'
                '  \u25cf AuthService \u203a login \u203a should throw an error\n\n'
                '    expect(received).rejects.toThrow()\n\n  \u25cf Console\n\n    console.log\n'
@@ -129,7 +129,7 @@ class PythonSuiteGateTests(unittest.TestCase):
     def test_a_check_that_cannot_run_here_is_named_never_silent(self):
         # a check that exits 127 (program not found) on the original and on every gate is no gate; it is named, not
         # silent
-        from eaos.journeys.fix.execute import not_run
+        from eaos.features.fix.journey.execute import not_run
         rows = [{'argv': ['bun', 'run', 'lint'], 'exit': 127, 'failing': []},
                 {'argv': ['bun', 'run', 'test'], 'exit': 127, 'failing': []},
                 {'argv': ['npm', 'test'], 'exit': 1, 'failing': []}]
@@ -137,7 +137,7 @@ class PythonSuiteGateTests(unittest.TestCase):
 
     def test_the_files_a_card_changed_beyond_its_own_are_named(self):
         # a card kept with changes to files beyond its own must name them to the person
-        from eaos.journeys.fix.finish import beyond
+        from eaos.features.fix.journey.finish import beyond
         own = 'frontend/src/components/Admin/AddUser.tsx'
         others = [f'frontend/src/components/{name}.tsx' for name in (
             'Admin/DeleteUser', 'Admin/EditUser', 'Admin/UserFormFields', 'Common/DeleteDialog', 'Common/FormDialog',

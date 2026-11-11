@@ -3,7 +3,7 @@ import json
 import unittest
 from pathlib import Path
 
-from eaos.live.app import setup as live_setup
+from eaos.features.app_run.adapters.app import setup as live_setup
 from shared_fixture import scratch
 
 
@@ -75,7 +75,7 @@ class PythonStackTests(unittest.TestCase):
 
     def test_flask_lists_its_own_pages_with_their_blueprint_prefixes(self):
         from types import SimpleNamespace
-        from eaos.live.app.detect_python import served_pages
+        from eaos.features.app_run.adapters.app.detect_python import served_pages
         routes = ('Endpoint     Methods    Rule\n-----------  ---------  ----------------\n'
                   'auth.login   GET, POST  /auth/login\napi.get_user  GET        /api/users/<int:id>\n'
                   'main.edit    POST       /edit\nstatic       GET        /static/<path:filename>\n')
@@ -128,8 +128,8 @@ class PagesAloneTests(unittest.TestCase):
     def test_a_site_of_pages_alone_is_a_project_to_check(self):
         # a static app with its script inside its index.html has a source file: the check must run the app, not say "no
         # source file"
-        from eaos.pipeline.runners import by_rules as runners
-        from eaos.pipeline.stage_run import Context
+        from eaos.features.check.journey.runners import by_rules as runners
+        from eaos.features.check.journey.stage_run import Context
         site = project({'index.html': '<button onclick="location.hash=\'#/a\'">A</button>'})
         import subprocess
         for argv in (['init', '-q'], ['add', '.'],

@@ -4,8 +4,8 @@ from pathlib import Path
 import tempfile
 import unittest
 from shared_fixture import TemporaryWorkspace
-from eaos.facts.run import collect
-from eaos.facts.store import read_set
+from eaos.kernel.facts.run import collect
+from eaos.kernel.facts.store import read_set
 
 FIXTURE = Path(__file__).resolve().parents[1] / 'fixtures/polyglot'
 SETS = ['syntax', 'resolve', 'entrypoints', 'config', 'metrics', 'domain', 'graph', 'flows']
@@ -103,7 +103,7 @@ class FlowTests(unittest.TestCase):
         self.assertEqual(summary['entry_points_without_traceable_handler'], 1)
 
     def test_a_repeated_callee_is_recorded_once_and_the_trace_reaches_the_call_behind_it(self):
-        from eaos.facts.code import flows
+        from eaos.features.code_reading.facts.code import flows
         page = {'path': 'src/Page.tsx', 'symbol': 'Page', 'name': 'Page', 'start': 1, 'end': 90, 'kind': 'function'}
         load = {'path': 'src/api.ts', 'symbol': 'load', 'name': 'load', 'start': 1, 'end': 5, 'kind': 'function'}
         by_file, by_name = {'src/Page.tsx': [page], 'src/api.ts': [load]}, {'Page': [page], 'load': [load]}
@@ -157,8 +157,8 @@ class DomainTests(unittest.TestCase):
 
 class DossierClaimTests(unittest.TestCase):
     def test_runtime_state_and_cross_module_writes_become_claims_with_probes(self):
-        from eaos.analysis.understanding.dossier import assemble
-        from eaos.analysis.claims import probes
+        from eaos.features.plan.analysis.dossier import assemble
+        from eaos.features.claims.analysis import probes
         with tempfile.TemporaryDirectory() as tmp:
             repo = Path(tmp) / 'repo'; repo.mkdir()
             (repo / 'settings.py').write_text('LIMIT = 10\n')
@@ -174,7 +174,7 @@ class DossierClaimTests(unittest.TestCase):
         self.assertTrue(all(claim['confidence'] == 'CONFIRMED' for claim in claims))
 
     def test_the_most_complex_function_is_a_hotspot_even_when_its_file_is_not_top_ranked(self):
-        from eaos.analysis.understanding.dossier import assemble
+        from eaos.features.plan.analysis.dossier import assemble
         with tempfile.TemporaryDirectory() as tmp:
             repo = Path(tmp) / 'repo'; repo.mkdir()
             branches = '\n'.join(f'    if value == {n}:\n        return {n}' for n in range(80))

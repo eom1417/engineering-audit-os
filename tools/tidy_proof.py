@@ -30,7 +30,7 @@ sys.path[:0] = [str(ROOT), str(ROOT / 'tools')]
 os.environ['EAOS_HEADLESS'] = '1'
 from dev_paths import CORPUS  # noqa: E402
 import corpus  # noqa: E402
-from eaos.core.system.errors import noted  # noqa: E402
+from eaos.kernel.system.errors import noted  # noqa: E402
 
 EAOS = Path(sys.executable).parent / 'eaos'
 
@@ -107,8 +107,8 @@ def git(cwd, *argv):
 
 def check(app, folder):
     """The app fetched at its commit, checked, set up and its screens recorded: the guided state."""
-    from eaos.journeys import guided
-    from eaos.live.app import setup as live_setup
+    from eaos.features.guided import journey as guided
+    from eaos.features.app_run.adapters.app import setup as live_setup
     corpus.fetch(app, folder)
     # --run-app is the person's agreement to run the app in a copy (as tools/corpus.py checks): the run is set up
     run([EAOS, 'check', '--path', 'look', '--run-app', '--assistant', 'none', '--lang', 'en', '--watch'],
@@ -126,8 +126,8 @@ def check(app, folder):
 
 def batches(state):
     """{moves: {proposed, made, merged, refused, mapping, root}, context: {...}}: both batches through their gates."""
-    from eaos.journeys import guided
-    from eaos.journeys.fix import move_batch
+    from eaos.features.guided import journey as guided
+    from eaos.features.tidy.journey import move_batch
     target, runtime, report = guided.source(state), guided.runtime_of(state), guided.report_of(state)
     drawn = move_batch.proposal(report, target)
     makeable = [m for m in drawn['moves'] if not m['refused']]
@@ -147,7 +147,7 @@ def batches(state):
 
 def trimmed(target, runtime):
     """The context batch: what its proposal saves, merged or refused, and its patch when merged."""
-    from eaos.journeys.fix import context_batch
+    from eaos.features.tidy.journey import context_batch
     trim = context_batch.proposal(target)
     context = {'files': trim['files'], 'tokens_before': trim['tokens_before'], 'tokens_after': trim['tokens_after'],
                'merged': False, 'refused': [], 'patch': None}
@@ -159,7 +159,7 @@ def trimmed(target, runtime):
 
 def exports(folder, state, made):
     """Two clean trees (git archive, nothing a run left): `before` at the pinned commit, `after` with both batches."""
-    from eaos.journeys import guided
+    from eaos.features.guided import journey as guided
     source = guided.source(state)
     trees = {}
     for name, repo in (('before', source), ('after', made['moves']['root'] if made['moves']['merged'] else source)):
@@ -256,7 +256,7 @@ def score(name, trees, mapping, model, folder):
 def unproven(scratch, model):
     """The moves a gate could not prove (a project with no test it can run), made anyway on the clean export of
     `before`, for the question score only: what the layout alone changes for a reader. Never handed over."""
-    from eaos.analysis.repair import moves
+    from eaos.features.tidy.analysis import moves
     results = json.loads((scratch / 'tidy-proof.json').read_text(encoding='utf-8'))
     for name, done in results.items():
         made = done['moves']['made']

@@ -1,1 +1,1 @@
-"""Tests of eaos/facts: every extractor on its fixture."""
+"""Tests of the facts: every extractor on its fixture."""

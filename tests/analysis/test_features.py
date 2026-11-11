@@ -6,8 +6,8 @@ measurement reading it back) lives in tests/test_audit_pipeline.py and the contr
 """
 import unittest
 
-from eaos.analysis.understanding import features
-from eaos.analysis.understanding.features import build, _feature_name, _is_critical
+from eaos.features.plan.analysis.understanding import features
+from eaos.features.plan.analysis.understanding.features import build, _feature_name, _is_critical
 
 
 def entry_point(route, surface='page', framework=None, handler=None, path=None,
@@ -75,7 +75,7 @@ class BuildTests(unittest.TestCase):
         self.assertEqual([name for name in found if name.startswith('cli:')], ['cli:manage.py'])
         accounted = {eid for f in result['features'] for eid in f['evidence']} | set(result['unassigned_surfaces'])
         self.assertTrue({'F1', 'F2', 'F3', 'F-CLI-1'} <= accounted)
-        from eaos.core.contracts.artifact_rules import contracts, validate
+        from eaos.kernel.contracts.artifact_rules import contracts, validate
         self.assertEqual(validate(result, contracts()['features']), [])
 
     def test_a_cli_groups_by_subcommand_and_its_scripts_tools_and_web_root_are_not_features(self):
@@ -84,15 +84,15 @@ class BuildTests(unittest.TestCase):
         cli = lambda route, path, framework='argparse': entry_point(route, surface='cli', framework=framework,
                                                                     path=path,
                                                                      fact_id=f'C-{route}-{path}')
-        facts = [cli('eaos', 'eaos/interfaces/cli.py'), cli('check', 'eaos/interfaces/cli.py'), cli('fix',
-            'eaos/interfaces/cli.py'),
-                 cli('eaos', 'pyproject.toml', 'console_script'), cli('plan', 'eaos/analysis/planning/cards.py',
+        facts = [cli('eaos', 'eaos/doors/cli.py'), cli('check', 'eaos/doors/cli.py'), cli('fix',
+            'eaos/doors/cli.py'),
+                 cli('eaos', 'pyproject.toml', 'console_script'), cli('plan', 'eaos/features/plan/analysis/cards.py',
                                                                       'python_script'),
                  cli('sbom', 'tools/sbom.py', 'python_script'), cli('shot', 'scripts/shot.py', 'python_script'),
                  entry_point('/', path='studio/src/App.tsx', fact_id='P1')]
         result = build(facts)
         self.assertEqual({f['name'] for f in result['features']}, {'cli:eaos', 'cli:check', 'cli:fix', 'studio'})
-        self.assertEqual(set(result['unassigned_surfaces']), {'eaos/analysis/planning/cards.py', 'tools/sbom.py',
+        self.assertEqual(set(result['unassigned_surfaces']), {'eaos/features/plan/analysis/cards.py', 'tools/sbom.py',
                                                               'scripts/shot.py'})
         # A web app's `/` is its home; a program made only of scripts keeps them.
         self.assertEqual({f['name'] for f in build([entry_point('/', path='src/routes/index.tsx'),

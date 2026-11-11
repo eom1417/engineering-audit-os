@@ -7,11 +7,12 @@ from unittest import mock
 
 from shared_fixture import Workspace
 
-from eaos.analysis.repair import moves, project_guide
-from eaos.analysis.understanding import extending
-from eaos.facts.code.history import additions
-from eaos.facts.repository import craft
-from eaos.facts.repository.catalog import limits
+from eaos.features.tidy.analysis import moves
+from eaos.features.plan.analysis import project_guide
+from eaos.features.plan.analysis.understanding import extending
+from eaos.features.code_reading.facts.code.history import additions
+from eaos.features.only_code.facts import craft
+from eaos.features.only_code.facts.catalog import limits
 
 
 def git(root, *argv):
@@ -133,7 +134,7 @@ class ProjectGuideTests(Workspace):
         self.assertEqual(craft.no_guide(many, {*many, 'docs/EXTENDING.md'}, rules), [])
 
     def test_a_project_that_declares_its_layers_is_mapped_by_them_and_says_what_each_must_not_use(self):
-        from eaos.analysis.layers import record
+        from eaos.features.layers.analysis import record
         root = Path(self.tmp) / 'declared'
         root.mkdir()
         (root / 'eaos.policy.json').write_text(json.dumps({'layers': {'core': ['core/**'], 'web': ['web/**']},
@@ -176,7 +177,7 @@ class ProjectGuideTests(Workspace):
             self.assertIn(said, text)
 
     def test_a_fix_batch_never_writes_a_guide_or_a_context_file_the_project_did_not_have(self):
-        from eaos.journeys.fix.regenerate import keep_guide
+        from eaos.features.fix.journey.regenerate import keep_guide
         root = self.repo()
         base = git(root, 'rev-parse', 'HEAD').strip()
         self.commit(root, {'src/pages/Home.tsx': 'fixed'}, 'a fix')
@@ -186,7 +187,7 @@ class ProjectGuideTests(Workspace):
         for made in ('AGENTS.md', 'CLAUDE.md', 'docs/EXTENDING.md'): self.assertFalse((root / made).exists(), made)
 
     def test_a_fix_batch_updates_an_existing_guide_only_when_it_moved_a_path_the_guide_names(self):
-        from eaos.journeys.fix.regenerate import keep_guide
+        from eaos.features.fix.journey.regenerate import keep_guide
         root = self.repo()
         report = Path(self.tmp) / 'report'
         with mock.patch.object(project_guide, 'pinned_ids', return_value=[]):

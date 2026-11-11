@@ -119,7 +119,7 @@ run), against the M2 numbers. The machine was quiet, so the time is comparable t
 - **Architecture**: GitNexus reports 10 import cycles (`eaos/ai/nodes`, `core/language/markup.py`, `report/human_report/html.py`)
   that import-linter's layers and the dependency-cruiser pass: lazy imports inside functions; settled in M4.6 (all six GitNexus's misreading).
 - The cards' titles of agreeing engines were stored in Arabic and printed so in an English check: stored in English
-  since this measure (`eaos/analysis/claims/ledger.py`), the reports render them from the template in the reader's language.
+  since this measure (`eaos/features/claims/analysis/ledger.py`), the reports render them from the template in the reader's language.
 
 ## After M4: 0.0.76 (2026-10-24)
 

@@ -5,11 +5,12 @@ import fcntl
 import os
 import unittest
 from unittest import mock
-from eaos.core.project import jobs, state as project_state
-from eaos.journeys import agent_tools, guided
-from eaos.journeys.agent_tools import fixing
-from eaos.journeys.fix import lanes
-from eaos.live.app import setup as live_setup
+from eaos.kernel.project import jobs, state as project_state
+from eaos.features.guided.interface import agent_tools
+from eaos.features.guided import journey as guided
+from eaos.features.guided.interface.agent_tools import fixing
+from eaos.features.fix.journey import lanes
+from eaos.features.app_run.adapters.app import setup as live_setup
 from tests.journeys.test_continuity import git
 from tests.journeys.test_stale_batch_changes import EDIT
 from tests.journeys._active_work_fixture import Paused, SECONDS, UNIQUE, Work, _job

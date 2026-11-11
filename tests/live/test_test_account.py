@@ -1,4 +1,4 @@
-"""A test account by rules (eaos/live/access/test_account.py): the app's own sign-up and sign-in pages filled as a
+"""A test account by rules (eaos/features/app_run/adapters/access/test_account.py): the app's own sign-up and sign-in pages filled as a
 person fills them, with no assistant."""
 import json
 import os
@@ -13,8 +13,8 @@ from unittest import mock
 from urllib.parse import parse_qs
 
 from needs import needs
-from eaos.live.access import test_account
-from eaos.live.screens.audit import missing
+from eaos.features.app_run.adapters.access import test_account
+from eaos.features.app_run.adapters.screens.audit import missing
 
 FORM = ('<html><body><form method="post"><input name="username"><input name="email" type="email">'
         '<input name="password" type="password"><input name="password2" type="password">'
@@ -57,7 +57,7 @@ class App(BaseHTTPRequestHandler):
 class TestAccountTests(unittest.TestCase):
     @needs(missing('playwright') and 'EAOS Playwright is not installed')
     def test_the_rules_sign_up_then_sign_in_and_a_wrong_password_says_what_it_tried(self):
-        from eaos.core.toolchain import home
+        from eaos.kernel.toolchain import home
         server = ThreadingHTTPServer(('127.0.0.1', 0), App)
         threading.Thread(target=server.serve_forever, daemon=True).start()
         base = f'http://127.0.0.1:{server.server_port}'

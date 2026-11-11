@@ -6,9 +6,9 @@ import unittest
 from pathlib import Path
 from unittest import mock
 
-from eaos.analysis.claims.ledger import VERDICTS
-from eaos.analysis.repair import one_source_gate as gate
-from eaos.facts.code import metrics
+from eaos.features.claims.analysis.ledger import VERDICTS
+from eaos.features.fix.analysis import one_source_gate as gate
+from eaos.features.code_reading.facts.code import metrics
 from shared_fixture import scratch
 
 M15 = ('one_source:near_copy', 'one_source:idiom:request_state', 'one_source:idiom:json_read', 'one_source:ui_pattern',

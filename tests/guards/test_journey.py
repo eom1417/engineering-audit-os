@@ -13,13 +13,14 @@ import unittest
 from pathlib import Path
 from unittest import mock
 
-from eaos.journeys import agent_tools, guided
-from eaos.journeys.fix import finish as batch_finish
-from eaos.core.project import ledger
-from eaos.live.app import setup as live_setup
-from eaos.pipeline.runners import by_rules as runners
-from eaos.pipeline.stages import SkipStage
-from eaos.core.project import state as project_state
+from eaos.features.guided.interface import agent_tools
+from eaos.features.guided import journey as guided
+from eaos.features.fix.journey import finish as batch_finish
+from eaos.kernel.project import ledger
+from eaos.features.app_run.adapters.app import setup as live_setup
+from eaos.features.check.journey.runners import by_rules as runners
+from eaos.features.check.journey.stages import SkipStage
+from eaos.kernel.project import state as project_state
 
 FILES = {
     'pyproject.toml': '[project]\nname = "shop"\nversion = "0.1.0"\n[project.scripts]\nshop = "app.main:run"\n',
@@ -55,9 +56,9 @@ class Journey(unittest.TestCase):
                                       {'EAOS_HOME': str(Path(self.tmp.name) / 'home'), 'EAOS_ASSISTANT': 'none'}),
                       mock.patch.dict(runners.RUNNERS, engines=no_engines, architecture=no_engines),
                       mock.patch.object(guided, 'tools_for_check', return_value={}),
-                      mock.patch('eaos.journeys.fix.waves.batch.original_checks', return_value={}),
-                      mock.patch('eaos.journeys.fix.waves.batch.gates', side_effect=project_checks),
-                      mock.patch('eaos.journeys.fix.waves.batch._against_control', return_value=False)):
+                      mock.patch('eaos.features.fix.journey.waves.batch.original_checks', return_value={}),
+                      mock.patch('eaos.features.fix.journey.waves.batch.gates', side_effect=project_checks),
+                      mock.patch('eaos.features.fix.journey.waves.batch._against_control', return_value=False)):
             patch.start()
             self.addCleanup(patch.stop)
         os.environ.pop('EAOS_DETECTOR_VERDICTS', None)      # the product's own detector verdicts, as a person gets them
@@ -75,7 +76,7 @@ class Journey(unittest.TestCase):
         return agent_tools._audit_job(self.where, {}, None)
 
     def ready_cards(self):
-        from eaos.journeys.fix.waves import ready_cards
+        from eaos.features.fix.journey.waves import ready_cards
         return ready_cards(guided.report_of(project_state.load(self.project)))
 
     def ready(self):

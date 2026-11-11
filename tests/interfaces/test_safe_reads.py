@@ -8,11 +8,12 @@ import shutil
 import subprocess
 from pathlib import Path
 
-from eaos.core.project import state as project_state
-from eaos.interfaces import cli
-from eaos.interfaces.mcp_server.server import functions
-from eaos.interfaces import runs as actions
-from eaos.journeys import agent_tools, guided
+from eaos.kernel.project import state as project_state
+from eaos.doors import cli
+from eaos.doors.mcp_server.server import functions
+from eaos.doors import runs as actions
+from eaos.features.guided.interface import agent_tools
+from eaos.features.guided import journey as guided
 from tests.interfaces.test_read_only_tools import Home, _called, _files
 
 BATCH = 'eaos/main/wave-1'

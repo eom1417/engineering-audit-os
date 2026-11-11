@@ -6,13 +6,14 @@ import time
 import unittest
 from pathlib import Path
 from unittest import mock
-from eaos.core.project import jobs, state as project_state
-from eaos.interfaces import runs as actions
-from eaos.interfaces.mcp_server.server import functions
-from eaos.journeys import agent_tools, guided
-from eaos.journeys.agent_tools import fixing
-from eaos.journeys.fix import finish as batch_finish, lanes
-from eaos.journeys.fix.waves import batch as batch_steps
+from eaos.kernel.project import jobs, state as project_state
+from eaos.doors import runs as actions
+from eaos.doors.mcp_server.server import functions
+from eaos.features.guided.interface import agent_tools
+from eaos.features.guided import journey as guided
+from eaos.features.guided.interface.agent_tools import fixing
+from eaos.features.fix.journey import finish as batch_finish, lanes
+from eaos.features.fix.journey.waves import batch as batch_steps
 from tests.journeys.test_continuity import git
 from tests.journeys.test_stale_batch_changes import EDIT
 from tests.journeys._active_work_fixture import Paused, SECONDS, Work, _job
@@ -22,7 +23,7 @@ class AbandoningDuringAJob(Work):
     def test_a_running_edit_keeps_its_copy_and_ends_and_the_batch_closes_after(self):
         _job(self.project)
         worker = Paused(self.edit_job)
-        with mock.patch('eaos.journeys.fix.waves.edit_gates', worker.at(([], 0, None))):
+        with mock.patch('eaos.features.fix.journey.waves.edit_gates', worker.at(([], 0, None))):
             worker.start()
             self.assertTrue(worker.reached.wait(SECONDS))
             began = time.monotonic()
@@ -47,8 +48,8 @@ class AbandoningDuringAJob(Work):
                    mock.patch.object(batch_steps, '_secure', side_effect=lambda b, kept, *_: kept),
                    mock.patch.object(batch_steps, '_through_gates', side_effect=lambda b, kept, *_: worker.at(kept)()),
                    mock.patch.object(batch_steps, '_declare'), mock.patch.object(batch_steps, '_new_truth'),
-                   mock.patch('eaos.journeys.fix.regenerate.regenerate'),
-                   mock.patch('eaos.journeys.fix.regenerate.keep_guide')]
+                   mock.patch('eaos.features.fix.journey.regenerate.regenerate'),
+                   mock.patch('eaos.features.fix.journey.regenerate.keep_guide')]
         for patch in patches:
             patch.start()
             self.addCleanup(patch.stop)
@@ -150,7 +151,7 @@ class AnEditCutShort(Work):
     def test_the_next_edit_is_not_checked_over_a_commit_left_by_a_stop(self):
         def stopped(*_):
             raise KeyboardInterrupt
-        with mock.patch('eaos.journeys.fix.waves.edit_gates', stopped), self.assertRaises(KeyboardInterrupt):
+        with mock.patch('eaos.features.fix.journey.waves.edit_gates', stopped), self.assertRaises(KeyboardInterrupt):
             self.edit_job()
         self.assertEqual((self.copy / 'src/a.js').read_text().splitlines()[0], 'export const a = 2;',
                          'what the stop left')
@@ -158,7 +159,7 @@ class AnEditCutShort(Work):
         def gates(*_):
             seen.append((self.copy / 'src/a.js').read_text().splitlines()[0])
             return [], 0, None
-        with mock.patch('eaos.journeys.fix.waves.edit_gates', gates):
+        with mock.patch('eaos.features.fix.journey.waves.edit_gates', gates):
             fixing._fix_edit_job(self.where,
                                  {'card': 'TASK-002', 'edits': [{'path': 'src/n.js', 'content': 'x\n'}], 'summary': '',
                                   'beyond_why': 'a file beside the card, on purpose'}, lambda *_: None)
@@ -168,7 +169,7 @@ class AnEditCutShort(Work):
     def test_a_kill_between_the_write_and_the_commit_leaves_nothing_behind(self):
         (self.copy / 'src/a.js').write_text('half written\n')
         (self.copy / 'src/new.js').write_text('half written\n')
-        with mock.patch('eaos.journeys.fix.waves.edit_gates', return_value=([], 0, None)):
+        with mock.patch('eaos.features.fix.journey.waves.edit_gates', return_value=([], 0, None)):
             self.assertTrue(self.edit_job()['kept'])
         self.assertFalse((self.copy / 'src/new.js').exists())
 
@@ -176,7 +177,7 @@ class AnEditCutShort(Work):
         self.keep_one()
         git(self.copy, '-c', 'user.name=a', '-c', 'user.email=a@b', 'commit', '-q', '--amend', '-m',
             'rebuilt by the hand-over')
-        with mock.patch('eaos.journeys.fix.waves.edit_gates', return_value=([], 0, None)):
+        with mock.patch('eaos.features.fix.journey.waves.edit_gates', return_value=([], 0, None)):
             fixing._fix_edit_job(self.where,
                                  {'card': 'TASK-002', 'edits': [{'path': 'src/n.js', 'content': 'x\n'}], 'summary': '',
                                   'beyond_why': 'a file beside the card, on purpose'}, lambda *_: None)
@@ -185,7 +186,7 @@ class AnEditCutShort(Work):
     def test_what_is_kept_stays_when_the_next_edit_starts(self):
         self.keep_one()
         kept = self.wave()['kept']['TASK-001']
-        with mock.patch('eaos.journeys.fix.waves.edit_gates', return_value=([], 0, None)):
+        with mock.patch('eaos.features.fix.journey.waves.edit_gates', return_value=([], 0, None)):
             self.assertTrue(fixing._fix_edit_job(self.where,
                                                  {'card': 'TASK-002', 'edits': [{'path': 'src/n.js', 'content': 'x\n'}],
                                                   'summary': '', 'beyond_why': 'a file beside the card, on purpose'},

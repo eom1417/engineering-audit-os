@@ -4,15 +4,15 @@ from pathlib import Path
 import tempfile
 import unittest
 from shared_fixture import TemporaryWorkspace
-from eaos.analysis.claims import ledger
-from eaos.analysis.repair import review as card_review
-from eaos.analysis.planning import cards as plan_module
-from eaos.core.contracts.document import Document
-from eaos.core.contracts.document_rules import validate
-from eaos.analysis.understanding.dossier import assemble
-from eaos.analysis.planning.cards import build, waves
-from eaos.analysis.planning.documents import waves_document
-from eaos.analysis.repair.remediation import PATTERNS, _ENGINE_CLUSTER_KINDS, classify, cost_of_inaction, pattern_for
+from eaos.features.claims.analysis import ledger
+from eaos.features.plan.analysis import review as card_review
+from eaos.features.plan.analysis import cards as plan_module
+from eaos.kernel.contracts.document import Document
+from eaos.features.plan.analysis.document_rules import validate
+from eaos.features.plan.analysis.dossier import assemble
+from eaos.features.plan.analysis.cards import build, waves
+from eaos.features.plan.analysis.documents import waves_document
+from eaos.kernel.remedy.remediation import PATTERNS, _ENGINE_CLUSTER_KINDS, classify, cost_of_inaction, pattern_for
 
 FIXTURE = Path(__file__).resolve().parents[1] / 'fixtures/polyglot'
 NOTHING = 'لا نفعل شيئًا'
@@ -58,8 +58,8 @@ class TaskCardTests(TemporaryWorkspace):
     def test_design_cards_merge_one_page_and_title_rank_on_the_code_scale_and_read_in_their_own_words(self):
         # Design cards of one title reached by two routes (`/` and `/#/`) must merge by page, and rank on the code scale
         # rather than at a fixed 0.4 above every code claim; private mutable state reads as "changed by several parts".
-        from eaos.core.language import plain
-        from eaos.core.contracts.card_areas import classify
+        from eaos.kernel.language import plain
+        from eaos.kernel.contracts.card_areas import classify
         def finding(page, severity, image):
             return {'title': 'Crowded header', 'kind': 'crowding', 'severity': severity, 'page': page,
                     'viewport': 'phone',
@@ -191,7 +191,7 @@ class ResolutionTests(unittest.TestCase):
         fixed = tasks[fix]
         self.assertEqual((fixed['kind'], fixed['decision']['readiness'], fixed['change']),
                          ('remediate', 'ready', 'Define `process` before api.py uses it'))
-        from eaos.core.contracts.decisions import task_errors
+        from eaos.kernel.contracts.decisions import task_errors
         self.assertEqual(task_errors(fixed), [])
         self.assertEqual(record['owner'], [asked[-1]], 'the most severe question stays the owner\'s')
         self.assertEqual((tasks[asked[-1]]['decision']['readiness'], tasks[asked[-1]]['resolution']['question']),

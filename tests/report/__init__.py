@@ -1,1 +1,1 @@
-"""Tests of eaos/report: the documents people read."""
+"""Tests of the report: the documents people read."""

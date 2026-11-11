@@ -1,8 +1,8 @@
 """Module state private to its module has an owner: a decision for a person, not a ready repair."""
 import unittest
 
-from eaos.analysis.claims.ledger import from_facts
-from eaos.facts.domain.model import encapsulated
+from eaos.features.claims.analysis.ledger import from_facts
+from eaos.features.code_reading.facts.domain.model import encapsulated
 
 
 class EncapsulationTests(unittest.TestCase):

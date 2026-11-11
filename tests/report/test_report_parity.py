@@ -6,9 +6,9 @@ import unittest
 import shared_fixture  # noqa: F401  (runs without measured detector verdicts)
 from pathlib import Path
 
-from eaos.core.contracts.artifacts import DOCUMENTS
-from eaos.core.language.words import FALSIFIERS, IMPACTS, TEMPLATES, falsifier_of, statement_of
-from eaos.pipeline import execute
+from eaos.features.plan.analysis.artifacts import DOCUMENTS
+from eaos.kernel.language.words import FALSIFIERS, IMPACTS, TEMPLATES, falsifier_of, statement_of
+from eaos.features.check.journey import execute
 from shared_fixture import scratch
 
 FIXTURE = Path(__file__).resolve().parents[1] / 'fixtures/sustainability'

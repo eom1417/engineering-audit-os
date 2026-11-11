@@ -401,13 +401,13 @@ Now:
   lines. A switch counts only when nothing changes it (no other assignment, no module state seen changing) and the
   branch reads it in its own file or one importing it by name. The branch it closes is the body, or what follows it
   (its else, or the rest of its function when the body returns). A function is an old engine when every call to it is
-  in a closed branch and no other line names it (`eaos/analysis/assessments/old_engines.py`, EAOS's own call graph).
-- **What ran** (`eaos/live/testing/ran.py`, `live/ran-tests.json`, `ran-server.json`, `ran-browser.json`): the
+  in a closed branch and no other line names it (`eaos/features/dead_code/analysis/old_engines.py`, EAOS's own call graph).
+- **What ran** (`eaos/features/app_run/adapters/testing/ran.py`, `live/ran-tests.json`, `ran-server.json`, `ran-browser.json`): the
   project's own functions and lines run by its tests (Coverage.py, Node's V8 coverage), by its server while the pages
   were opened (Node's V8 coverage, with a preload so a stopped server still writes it; Coverage.py for a Python server
   whose interpreter has it, saved on SIGTERM) and in the browser (Chromium's JS coverage during the crawl, by the
   address a development server serves). The raw coverage is removed once read.
-- **Code never run** (`eaos/analysis/assessments/never_run.py`): a function of a file that ran that no run ran, and a
+- **Code never run** (`eaos/features/dead_code/analysis/never_run.py`): a function of a file that ran that no run ran, and a
   module an entry point reaches that no run read, each a suspect with what ran around it: one card each for the
   whole project, for the judge.
 - **Two engines doing one job**: two functions (or modules) in one place whose names are one name a marker apart
@@ -439,7 +439,7 @@ month's numbers and a default administrator written as code; EAOS had no check f
 - **ast-grep rules for tables written as code** (`eaos/rules/ast-grep/rules/data-tables.yml`, JavaScript, TypeScript,
   TSX, Python, each with its examples): arrays of three records or more, maps keyed by dates or months; and JSON a
   module of the product imports, read from the resolved graph.
-- **Each one sorted on its evidence** (`eaos/analysis/assessments/real_data.py`): a table holding a personal value that
+- **Each one sorted on its evidence** (`eaos/features/only_code/analysis/real_data.py`): a table holding a personal value that
   is no placeholder is personal; one whose records carry two words of a domain (salary, price, date...) or keyed by
   dates holds the program's records; one word of a domain is doubtful and only that goes to the judge (the card
   triage); the program's own configuration (routes, menus, options) is nothing. Outside a table, a record of two kinds
@@ -537,7 +537,7 @@ intended change, a queue a question held, and move proposals that cost a reader 
 M9, intelligence, cost and the final proof. Every stage asked the person's strongest model, the ideal's critique wrote
 60 KB that broke as JSON twice (three minutes lost on EAOS's own check), and no journey had been run end to end on a
 real app with a real assistant since the layout. Now:
-- **Model tiers** (M9.1, `eaos/ai/assistant/tiers.py`): each stage asks on its tier, as data: a card's first triage
+- **Model tiers** (M9.1, `eaos/features/assistant/adapters/tiers.py`): each stage asks on its tier, as data: a card's first triage
   and a translation on the light one (Claude Code's haiku, Codex's low effort), the gap planner, the plan's order and
   the visual review on the standard one (sonnet, medium), the ideal and the fix review on the deep one (the person's
   own model, high); the check's speed mode lowers standard to light; `EAOS_TIER_<STAGE>` and
@@ -806,7 +806,7 @@ M1, the disk and outputs diet: EAOS's check of itself left 873 MB in its runtime
 - **The outputs without duplicates**: the syntax cache moved to the runtime (63 MB), the Studio's data written once
   (no `.js` twins), engine findings once in `engines.json`, `REPORT.html` a second name of the page, compact facts,
   translations of documents that are gone cleared (1,070 of 1,214 files).
-- **One lazy facts reader** (`eaos/facts/store.py`): a caller reads only the sets that can hold what it asks; seven
+- **One lazy facts reader** (`eaos/kernel/facts/store.py`): a caller reads only the sets that can hold what it asks; seven
   copies of "read every set" (280 MB per call on EAOS) are gone; a field every fact of a set repeats is written once.
   EAOS's facts: 281 to about 74 MB.
 - **Documents from 27 to 8** (START-HERE, the four reports, TARGET-ARCHITECTURE, RUN, the index; PLAN/ and adr/ for
@@ -947,7 +947,7 @@ EAOS has a number that may only get better.
   ask again (`no_provider`, `ai_partial`), a stage that must be ok first (`no_features`, `no_pages`, `no_load_scenario`
   after the crawl), or the person alone (`no_run_consent`, `app_not_running`). After every check the remedies that
   need no person are applied, rules first, and their stages run again once the change is proven, up to three rounds,
-  a reason tried once (`eaos/pipeline/remedies.py`; `run.again` takes several stages). The manifest keeps what was
+  a reason tried once (`eaos/features/check/journey/remedies.py`; `run.again` takes several stages). The manifest keeps what was
   done (`remedies`), the Status page lists the stages that did not run with their reason in the person's language and
   what EAOS did about it, and the stage board tells "not applicable here" from a failure by its glyph.
 
@@ -1537,7 +1537,7 @@ EAOS has a number that may only get better.
   "Redo this stage and what depends on it" and, when tools failed in it, "Run the tools that failed again". It runs on
   the very commit that was checked, the stage and every stage reading what it makes run again (a stage now declares
   what it reads besides what it waits for: the load model reads the engines), and the rest is kept as it was
-  (`audit again_from=<stage> engines=[...]`, `eaos/pipeline/run.py again`). A tool run again alone joins the other
+  (`audit again_from=<stage> engines=[...]`, `eaos/features/check/journey/run.py again`). A tool run again alone joins the other
   tools' results of the same check instead of replacing them.
 - **A tool that fails is said, never read as clean**: CodeQL failed on EAOS's Python in a 1 h 46 min check while the
   engines stage said ok. The stage now names the tools that failed, the check is PARTIAL, and its result says

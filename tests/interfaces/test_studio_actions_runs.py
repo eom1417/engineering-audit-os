@@ -1,4 +1,4 @@
-"""The run engine (eaos/journeys/runs): runs end to end with a fake assistant
+"""The run engine (eaos/features/studio/journey/runs): runs end to end with a fake assistant
 (tests/fixtures/studio/actions/fake_assistant.py)."""
 import json
 import os
@@ -6,10 +6,10 @@ import time
 import unittest
 from pathlib import Path
 from unittest import mock
-from eaos.ai.assistant import headless as adapters, prompts
-from eaos.journeys.runs import resume
-from eaos.core.project import runs as store
-from eaos.core.project import state as project_state
+from eaos.features.assistant.adapters import headless as adapters, prompts
+from eaos.features.studio.journey.runs import resume
+from eaos.kernel.project import runs as store
+from eaos.kernel.project import state as project_state
 from tests.interfaces._studio_actions_fixture import Base, alive, until
 
 
@@ -103,7 +103,7 @@ class Runs(Base):
         os.environ['FAKE_MODE'] = 'crash_once'
         wave = {'open_wave': {'number': 1, 'cards': ['TASK-001', 'TASK-002'], 'kept': {'TASK-001': 'abc'},
                               'failed': {}}}
-        with mock.patch('eaos.core.project.state.load', return_value=wave):
+        with mock.patch('eaos.kernel.project.state.load', return_value=wave):
             run = self.start('fix', cards=('TASK-001', 'TASK-002'))
             self.app.wait(run, ('done', 'failed'), 30)
         events = self.app.store.events(run)
@@ -118,8 +118,9 @@ class Runs(Base):
                          ' '.join(str(e['data'].get('reason')) for e in events if e['kind'] == 'error'))
 
     def test_a_fix_in_speed_mode_starts_an_assistant_per_lane_beside_its_own_and_gets_back_what_one_left(self):
-        from eaos.journeys import agent_tools, guided
-        from eaos.journeys.runs import lane_assistants as helpers
+        from eaos.features.guided.interface import agent_tools
+        from eaos.features.guided import journey as guided
+        from eaos.features.studio.journey.runs import lane_assistants as helpers
         state = agent_tools.state_of(str(self.project))
         state['open_wave'] = {'number': 1, 'cards': ['TASK-001', 'TASK-002', 'TASK-004'], 'kept': {}, 'failed': {},
                               'lanes': [['TASK-001'], ['TASK-002'], ['TASK-004']], 'claims': {}, 'helpers': {},

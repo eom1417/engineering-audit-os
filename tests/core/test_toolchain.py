@@ -11,9 +11,9 @@ from pathlib import Path
 from unittest import mock
 
 from shared_fixture import Workspace
-from eaos.core import progress, toolchain
-from eaos.engines import ADAPTERS
-from eaos.pipeline.stages import ORDER, STAGES, _built_on
+from eaos.kernel import progress, toolchain
+from eaos.features.engines.adapters import ADAPTERS
+from eaos.features.check.journey.stages import ORDER, STAGES, _built_on
 
 
 def tool(name, version, url, sha):
@@ -147,7 +147,7 @@ class ToolEnvironment(unittest.TestCase):
     def test_a_python_tool_installs_with_its_companions_and_runs_without_the_pythonpath_of_eaos(self):
         # A pip tool is installed with its companions even when EAOS carries them itself (Semgrep needs attrs), and its
         # version check imports the tool's own modules, not EAOS's (Semgrep's mcp 1, not EAOS's mcp 2).
-        from eaos.engines import process
+        from eaos.features.engines.adapters import process
         tool = {'name': 'semgrep', 'version': '1.0.0', 'binary': 'semgrep', 'install': {'method': 'pip',
             'package': 'semgrep'}}
         done = mock.Mock(returncode=0, stdout='1.0.0', stderr='')
@@ -279,8 +279,8 @@ class AddedTools(ToolchainBase):
     def test_a_tool_the_person_adds_is_pinned_agreed_installed_and_runs_as_an_engine_with_no_python(self):
         # The assistant can find a tool it lacks (GitHub) and add it, safely.
         from unittest import mock
-        from eaos.core.toolchain import catalog as tools_catalog
-        from eaos.engines import sarif
+        from eaos.kernel.toolchain import catalog as tools_catalog
+        from eaos.features.engines.adapters import sarif
         self.write()
         entry = {**tool('fake', '1.2.3', self.archive.as_uri(), self.sha), 'license': 'MIT',
                  'repository': 'https://github.com/o/fake',

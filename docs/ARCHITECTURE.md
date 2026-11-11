@@ -128,7 +128,7 @@ contract in `pyproject.toml`, run by `tools/quality.sh`, with no exception):
 
 ## 3. The pipeline as loops
 
-Stages stay declared as data (`eaos/pipeline/stages.py`: what each needs, produces, reads). Each stage belongs to a
+Stages stay declared as data (`eaos/features/check/journey/stages.py`: what each needs, produces, reads). Each stage belongs to a
 loop; a loop runs until its exit condition holds or its rounds are spent, then acts as declared. Reordering the
 pipeline, or turning a step into a loop, is a change of data, never of code.
 
@@ -136,7 +136,7 @@ pipeline, or turning a step into a loop, is a change of data, never of code.
 Loop(name, stages, needs=(...), max_rounds=N, on_fail='explain' | 'escalate' | 'stop', switch='<check path>')
 ```
 
-`eaos/pipeline/loops.py` is the declaration: every stage of `stages.py` in one loop, the stages' order the loops'
+`eaos/features/check/journey/loops.py` is the declaration: every stage of `stages.py` in one loop, the stages' order the loops'
 order. A loop's exit: `met` (every stage ok or absent with its reason), `explained` (a stage of `needs` absent with its
 reason) or `not_met` (a stage broke). Not met, it runs its broken stages again while its rounds last
 (`pipeline/rounds.py`), hiding what it broke from the other loops until then; then `explain`, `escalate` or `stop`.
@@ -208,7 +208,7 @@ Which files to read and touch, in order, for each kind of addition: `docs/EXTEND
 - `technical/layers.json`: the system in layers, what START-HERE's layers section reads; its findings are also the
   `boundaries` fact set the claims make cards of.
 - `technical/`: records later stages read. Caches never live here. A run removes the documents a check no longer
-  writes (`eaos/pipeline/run.py` RETIRED).
+  writes (`eaos/features/check/journey/run.py` RETIRED).
 - `runtime/` in the project's folder of EAOS's home (`~/.eaos/projects/<project>-<id>/`): working copies, caches, batch
   copies, bounded by a retention rule.
 

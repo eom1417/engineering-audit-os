@@ -4,7 +4,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from eaos.core.system.web import opened
+from eaos.kernel.system.web import opened
 
 
 class OnlyTheWeb(unittest.TestCase):

@@ -5,10 +5,10 @@ import os
 import unittest
 from pathlib import Path
 from unittest import mock
-from eaos.ai import nodes
-from eaos.ai.nodes import framework as core
+from eaos.features.ai_review import analysis as nodes
+from eaos.features.assistant.analysis import framework as core
 ROOT = Path(__file__).resolve().parents[2]
-from eaos.core.system import process as provider
+from eaos.kernel.system import process as provider
 from tests.ai._ai_nodes_fixture import Answer, decision
 from tests.ai.test_ai_nodes import Base
 
@@ -70,8 +70,8 @@ class RunFromTheEngine(Base):
         self.project.mkdir()
 
     def test_the_nodes_run_and_end_with_their_summary(self):
-        from eaos.interfaces import runs as actions
-        from eaos.journeys.fix import selection
+        from eaos.doors import runs as actions
+        from eaos.features.guided.journey import selection
         patch = mock.patch.object(selection, 'studio_folder', return_value=self.report / 'studio')
         patch.start()
         self.addCleanup(patch.stop)
@@ -82,7 +82,7 @@ class RunFromTheEngine(Base):
         contract = json.loads((ROOT / 'docs/studio-actions.json').read_text(encoding='utf-8'))
         action = next(a for a in contract['actions'] if a['id'] == 'run_nodes')
         self.assertTrue(action['needs_assistant'] and not action['changes_code'] and action['tool'] == 'run_nodes')
-        with mock.patch('eaos.journeys.guided.publish'), mock.patch('eaos.core.project.state.load', return_value={}):
+        with mock.patch('eaos.features.guided.journey.publish'), mock.patch('eaos.kernel.project.state.load', return_value={}):
             status, body = app.handle('POST', '/api/runs', headers,
                                       {'action': 'run_nodes', 'inputs': {'nodes': ['card_triage', 'plan_orderer']}})
             self.assertEqual(status, 200, body)
@@ -98,16 +98,16 @@ class AnyNodeAnyTime(unittest.TestCase):
         # Every node can be re-run at any time, also by an assistant, so every node is in the list.
         import json
         from pathlib import Path
-        from eaos.interfaces.mcp_server import node_jobs
-        from eaos.ai import nodes
+        from eaos.doors.mcp_server import node_jobs
+        from eaos.features.ai_review import analysis as nodes
         contract = json.loads((Path(__file__).resolve().parents[2] / 'docs/studio-actions.json').read_text())
         action = next(a for a in contract['actions'] if a['id'] == 'run_nodes')
         self.assertEqual(set(action['inputs']['properties']['nodes']['items']['enum']), {n.name for n in nodes.NODES})
-        with mock.patch('eaos.journeys.agent_tools._start',
+        with mock.patch('eaos.features.guided.interface.agent_tools._start',
                         return_value={'job': 'j1', 'status': 'started'}) as started, \
-                mock.patch('eaos.journeys.agent_tools.state_of', return_value={'project': '/p'}):
+                mock.patch('eaos.features.guided.interface.agent_tools.state_of', return_value={'project': '/p'}):
             self.assertEqual(node_jobs.start('/p', ['plan_orderer'])['job'], 'j1')
-        self.assertEqual(started.call_args.kwargs['runner'], 'eaos.interfaces.mcp_server.node_jobs')
+        self.assertEqual(started.call_args.kwargs['runner'], 'eaos.doors.mcp_server.node_jobs')
         self.assertIn('run_nodes', node_jobs.JOBS)
 
 

@@ -1,4 +1,4 @@
-"""A parallel check finds exactly what one stage at a time finds (eaos/pipeline/schedule.py).
+"""A parallel check finds exactly what one stage at a time finds (eaos/features/check/journey/schedule.py).
 
 That holds only while every stage waits for what it reads: a read of another stage's artifact that its declaration
 does not name (stages.WAITS) runs right today only because of the order, and races once stages run side by side. The
@@ -20,10 +20,10 @@ from pathlib import Path
 from concurrent.futures import ThreadPoolExecutor
 from unittest import mock
 
-from eaos.pipeline.runners import by_assistant as ai_runners, by_rules as stage_runners
-from eaos.pipeline.run import execute
-from eaos.pipeline.schedule import assistants, forecast, ready_stages, run_ready
-from eaos.pipeline.stages import BY_NAME, ORDER, STAGES, WAITS
+from eaos.features.check.journey.runners import by_assistant as ai_runners, by_rules as stage_runners
+from eaos.features.check.journey.run import execute
+from eaos.features.check.journey.schedule import assistants, forecast, ready_stages, run_ready
+from eaos.features.check.journey.stages import BY_NAME, ORDER, STAGES, WAITS
 
 FIXTURE = Path(__file__).parents[1] / 'fixtures/polyglot'
 STAMPS = ('created_at', 'produced_at', 'ran_at', '"out"', 'generated_at')       # when and where, never what was found
@@ -101,7 +101,7 @@ class ParallelCheckTests(unittest.TestCase):
 
     def test_every_stage_is_in_one_part_of_the_check_and_a_part_keeps_the_declared_order(self):
         # the progress view draws the stages in layers of their real waits, not of their `requires` alone
-        from eaos.pipeline.stages import PHASES, ORDER
+        from eaos.features.check.journey.stages import PHASES, ORDER
         named = [name for names in PHASES.values() for name in names]
         self.assertEqual(sorted(named), sorted(ORDER), 'each stage in exactly one part')
         self.assertTrue(all(list(names) == sorted(names, key=ORDER.index) for names in PHASES.values()))
@@ -158,7 +158,7 @@ class ProgressTests(unittest.TestCase):
     def test_the_progress_names_a_stage_still_running_never_one_that_ended(self):
         # measure, started beside the sign-in, ends in 0.03 s, and the sign-in that runs on must be named, so the
         # progress line never names a stage that ended.
-        from eaos.pipeline import stage_run
+        from eaos.features.check.journey import stage_run
         said, log, folder = [], mock.Mock(enabled=False), tempfile.TemporaryDirectory()
         self.addCleanup(folder.cleanup)
         run = {'context': {}, 'log': log, 'results': {}, 'progress': lambda *step: said.append(step),
@@ -180,7 +180,7 @@ class ReadyStagesTests(unittest.TestCase):
         self.assertIn('plan', WAITS['triage'], 'the triage reads the plan')
 
     def test_speed_uses_available_container_memory_and_leaves_room_for_the_app(self):
-        from eaos.core.system.resources import capacity
+        from eaos.kernel.system.resources import capacity
         gb = 2 ** 30
         files = {'/sys/fs/cgroup/cpu.max': '200000 100000', '/sys/fs/cgroup/memory.max': str(4 * gb),
                  '/sys/fs/cgroup/memory.current': str(gb),
@@ -195,7 +195,7 @@ class ReadyStagesTests(unittest.TestCase):
             self.assertEqual(assistants('speed').count, 1, 'low available memory never adds assistants')
 
     def test_a_computer_without_room_runs_one_stage_and_one_assistant_at_a_time_and_is_never_stuck(self):
-        from eaos.pipeline import schedule
+        from eaos.features.check.journey import schedule
         def most(room, run):
             state, guard = {'now': 0, 'most': 0, 'ran': 0}, threading.Lock()
             def work(name):
@@ -217,8 +217,8 @@ class ReadyStagesTests(unittest.TestCase):
         self.assertEqual(most(True, answers)[0], 3)
 
     def test_stopping_one_stage_interrupts_the_commands_running_beside_it_and_their_children(self):
-        from eaos.core.system.process import run_command
-        from eaos.live.app.setup import free_port
+        from eaos.kernel.system.process import run_command
+        from eaos.features.app_run.adapters.app.setup import free_port
         import urllib.request
         port = free_port()
         code = ('import subprocess,sys,time,urllib.request\nfrom pathlib import Path\n'
@@ -237,7 +237,7 @@ class ReadyStagesTests(unittest.TestCase):
                     self.assertTrue(ready.exists(), 'the sibling command started before the stop')
                     raise KeyboardInterrupt()
             began = time.monotonic()
-            with self.assertRaises(KeyboardInterrupt), mock.patch('eaos.pipeline.schedule.room', return_value=True):
+            with self.assertRaises(KeyboardInterrupt), mock.patch('eaos.features.check.journey.schedule.room', return_value=True):
                 run_ready(ORDER, start)
             self.assertLess(time.monotonic() - began, 5, 'a stop does not wait for the 120-second command')
             with self.assertRaises(OSError): urllib.request.urlopen(f'http://127.0.0.1:{port}', timeout=1)

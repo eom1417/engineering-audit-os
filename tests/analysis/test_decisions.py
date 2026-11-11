@@ -4,11 +4,11 @@ from pathlib import Path
 import tempfile
 import unittest
 
-from eaos.analysis.claims.ledger import from_facts
-from eaos.core.contracts.decisions import check_errors, decide
-from eaos.facts.run import collect
-from eaos.analysis.assessments.policy import build_assessment
-from eaos.analysis.target_state.policy import FILENAME as POLICY_FILENAME, check as check_policy
+from eaos.features.claims.analysis.ledger import from_facts
+from eaos.kernel.contracts.decisions import check_errors, decide
+from eaos.kernel.facts.run import collect
+from eaos.features.layers.analysis.policy import build_assessment
+from eaos.features.layers.analysis.target_state.policy import FILENAME as POLICY_FILENAME, check as check_policy
 
 SETS = ['syntax', 'resolve', 'entrypoints', 'config', 'metrics', 'domain', 'history', 'graph', 'flows']
 

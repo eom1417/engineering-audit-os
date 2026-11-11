@@ -1,4 +1,4 @@
-"""The progress contract: eaos/core/progress/ and eaos/data/schemas/progress.json.
+"""The progress contract: eaos/kernel/progress/ and eaos/data/schemas/progress.json.
 
 What every flow's progress file promises its readers, each promise a test:
 - every event written validates against the versioned schema;
@@ -14,10 +14,10 @@ ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / 'tests'))
 sys.path.insert(0, str(ROOT / 'tools'))
 import jsonschema  # noqa: E402
-from eaos.core import progress  # noqa: E402
-from eaos.pipeline import STAGES, SkipStage, execute, resume  # noqa: E402
-from eaos.pipeline.stages import ORDER  # noqa: E402
-from eaos.core.progress import log as writer  # noqa: E402
+from eaos.kernel import progress  # noqa: E402
+from eaos.features.check.journey import STAGES, SkipStage, execute, resume  # noqa: E402
+from eaos.features.check.journey.stages import ORDER  # noqa: E402
+from eaos.kernel.progress import log as writer  # noqa: E402
 from shared_fixture import scratch  # noqa: E402
 from tests.core._progress_fixture import Clock, GOLDEN, SCHEMA, check_rows, counting_runners, ends, invalid, project
 
@@ -120,7 +120,7 @@ class OneEndPerStage(unittest.TestCase):
         self.assertEqual(rows[-1]['status'], 'ERROR')
         self.assertEqual({r['stage']: r['status'] for r in rows if r['event'] == 'stage.ended'}['features'], 'failed')
         from unittest import mock
-        with mock.patch('eaos.pipeline.run._manifest', side_effect=RuntimeError('disk full')):
+        with mock.patch('eaos.features.check.journey.run._manifest', side_effect=RuntimeError('disk full')):
             rows, raised, _ = check_rows(runners=counting_runners())
         self.assertIsInstance(raised, RuntimeError)
         self.assert_one_end_each(rows)

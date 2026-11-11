@@ -1,11 +1,11 @@
 """A production build that serves only its pages is refused before its baseline is accepted
-(eaos/live/app/page_server.py)."""
+(eaos/features/app_run/adapters/app/page_server.py)."""
 import threading
 import unittest
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from unittest import mock
 
-from eaos.live.app import page_server
+from eaos.features.app_run.adapters.app import page_server
 
 
 class PageServer(unittest.TestCase):

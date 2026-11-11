@@ -1,1 +1,1 @@
-"""Tests of eaos/pipeline: stages, paths, parallel runs and remedies."""
+"""Tests of eaos/features/check/journey: stages, paths, parallel runs and remedies."""

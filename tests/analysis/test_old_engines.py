@@ -3,12 +3,12 @@ import json
 import unittest
 from pathlib import Path
 
-from eaos.analysis.assessments import never_run, old_engines
-from eaos.analysis.claims import from_old_engines
-from eaos.engines.code import ast_grep
-from eaos.facts.run import collect, read_available
-from eaos.live.testing import ran
-from eaos.engines.tool import version_of
+from eaos.features.dead_code.analysis import never_run, old_engines
+from eaos.features.claims.analysis import from_old_engines
+from eaos.features.engines.adapters.code import ast_grep
+from eaos.kernel.facts.run import collect, read_available
+from eaos.features.app_run.adapters.testing import ran
+from eaos.features.engines.adapters.tool import version_of
 from shared_fixture import scratch
 
 APP = {

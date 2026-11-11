@@ -1,1 +1,1 @@
-"""Tests of eaos/analysis: claims, judgements, the plan, the target and the layers."""
+"""Tests of the analyses: claims, judgements, the plan, the target and the layers."""

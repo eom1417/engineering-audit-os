@@ -7,8 +7,8 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from eaos.core import toolchain
-from eaos.live.behavior.look_oracle import compare, judged
+from eaos.kernel import toolchain
+from eaos.features.behaviour_lock.analysis.look_oracle import compare, judged
 
 LOOK = Path(__file__).resolve().parents[2] / 'eaos' / 'templates' / 'screens' / 'look.cjs'
 PAGE = """<!doctype html><style>{tokens}

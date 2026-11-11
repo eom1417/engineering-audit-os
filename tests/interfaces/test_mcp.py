@@ -7,10 +7,11 @@ import sys
 import unittest
 from pathlib import Path
 from unittest import mock
-from eaos.journeys import agent_tools, guided
-from eaos.journeys.fix import finish as batch_finish, lanes
-from eaos.core.project import jobs
-from eaos.core.project import state as project_state
+from eaos.features.guided.interface import agent_tools
+from eaos.features.guided import journey as guided
+from eaos.features.fix.journey import finish as batch_finish, lanes
+from eaos.kernel.project import jobs
+from eaos.kernel.project import state as project_state
 ROOT = Path(__file__).resolve().parents[2]
 from tests.interfaces._mcp_fixture import Home, git_project, wave_branch
 
@@ -59,7 +60,7 @@ class ServerTests(Home):
         self.assertTrue(noted['noted'])
         self.assertEqual(after['handover']['notes'][-1]['by'], 'Codex')
         self.assertEqual([s['tool'] for s in after['handover']['last_steps']], ['choose_branch', 'note'])
-        from eaos.interfaces.mcp_server.server import _answer
+        from eaos.doors.mcp_server.server import _answer
         empty = Path(self.tmp.name) / 'empty'                 # no project file and no repository under it
         empty.mkdir()
         answer = json.loads(_answer(lambda: agent_tools.status(str(empty)))())
@@ -70,7 +71,7 @@ class ServerTests(Home):
 class ToolTests(Home):
     def test_every_answer_in_a_studio_run_carries_the_persons_language(self):
         # Every answer in a run of the run engine carries the person's language, so all notes are written in it.
-        from eaos.interfaces.mcp_server import server as mcp_server
+        from eaos.doors.mcp_server import server as mcp_server
         def status(project=None): return {'next': 'audit'}
         with mock.patch.dict(os.environ, {'EAOS_STUDIO_LANG': 'ar'}):
             self.assertTrue(json.loads(mcp_server._answer(status)(str(self.project)))['notes_language']
@@ -79,7 +80,7 @@ class ToolTests(Home):
                          'outside a Studio run, nothing')
 
     def test_the_assistant_way_never_calls_a_model_itself(self):
-        source = ''.join(path.read_text() for path in sorted((ROOT / 'eaos/journeys/agent_tools').glob('*.py')))
+        source = ''.join(path.read_text() for path in sorted((ROOT / 'eaos/features/guided/interface/agent_tools').glob('*.py')))
         for call in ('import provider', 'provider()', '.complete('):
             self.assertNotIn(call, source)
 
@@ -143,10 +144,10 @@ class ToolTests(Home):
         state['open_wave'] = {'number': 1, 'root': str(copy), 'base': base, 'cards': ['TASK-001', 'TASK-002'],
                               'kept': {}, 'failed': {}, 'tools': {}}
         guided.save(state)
-        with mock.patch('eaos.facts.run.collect'), \
-             mock.patch('eaos.journeys.fix.execute.new_breakage',
+        with mock.patch('eaos.kernel.facts.run.collect'), \
+             mock.patch('eaos.features.fix.journey.execute.new_breakage',
                         side_effect=[[], ['src/b.js: import of a file that is gone']]), \
-             mock.patch('eaos.journeys.fix.waves.batch.batch_acceptance', return_value={'TASK-001': 0, 'TASK-002': 0}):
+             mock.patch('eaos.features.fix.journey.waves.batch.batch_acceptance', return_value={'TASK-001': 0, 'TASK-002': 0}):
             kept = agent_tools._fix_edit_job(str(self.project), {'card': 'TASK-001', 'edits': [
                 {'path': 'src/a.js', 'find': 'a = 1', 'replace': 'a = 3'}]}, lambda *_: None)
             broke = agent_tools._fix_edit_job(str(self.project), {'card': 'TASK-002', 'edits': [
@@ -163,9 +164,9 @@ class ToolTests(Home):
         agent_tools.fix_skip('TASK-002', 'needs a product decision', str(self.project))
         self.assertEqual(project_state.load(self.project)['open_wave']['failed']['TASK-002'],
                          'skipped: needs a product decision')
-        with mock.patch('eaos.journeys.fix.waves.batch.batch_acceptance', return_value={'TASK-001': 0}), \
-                mock.patch('eaos.journeys.fix.waves.batch.original_checks',
-                           return_value=[]), mock.patch('eaos.journeys.fix.waves.batch.gates', return_value=''):
+        with mock.patch('eaos.features.fix.journey.waves.batch.batch_acceptance', return_value={'TASK-001': 0}), \
+                mock.patch('eaos.features.fix.journey.waves.batch.original_checks',
+                           return_value=[]), mock.patch('eaos.features.fix.journey.waves.batch.gates', return_value=''):
             done = batch_finish.finish_job(str(self.project), {}, lambda *_: None)
         self.assertEqual((done['branch'], done['kept']), ('eaos/wave-1', ['TASK-001']))
         self.assertIn('a = 3', guided._git(self.project, 'show', 'eaos/wave-1:src/a.js').stdout,
@@ -200,9 +201,9 @@ class ToolTests(Home):
         edit = lambda **more: agent_tools._fix_edit_job(str(self.project),
                                                         {'card': 'TASK-001', 'edits': edits,
                                                          'summary': 'Split the dialog', **more}, lambda *_: None)
-        with mock.patch('eaos.facts.run.collect'), mock.patch('eaos.journeys.fix.execute.new_breakage',
+        with mock.patch('eaos.kernel.facts.run.collect'), mock.patch('eaos.features.fix.journey.execute.new_breakage',
                                                               return_value=[]), \
-                mock.patch('eaos.journeys.fix.waves.batch.batch_acceptance', return_value={'TASK-001': 0}):
+                mock.patch('eaos.features.fix.journey.waves.batch.batch_acceptance', return_value={'TASK-001': 0}):
             refused = edit()
             self.assertEqual((refused['kept'], refused['beyond_the_card']), (False, ['src/b.js']))
             self.assertIn('beyond_why', refused['what_now'])
@@ -250,9 +251,9 @@ class ToolTests(Home):
         with as_first, mock.patch.object(lanes, 'WAIT', 0):
             self.assertEqual(lanes.mine(project_state.load(self.project)['open_wave'], list(tasks)),
                              ['TASK-001', 'TASK-002', 'TASK-003'])
-            with mock.patch('eaos.facts.run.collect'), \
-                    mock.patch('eaos.journeys.fix.execute.new_breakage', return_value=[]), \
-                    mock.patch('eaos.journeys.fix.waves.batch.batch_acceptance', return_value={'TASK-001': 0}):
+            with mock.patch('eaos.kernel.facts.run.collect'), \
+                    mock.patch('eaos.features.fix.journey.execute.new_breakage', return_value=[]), \
+                    mock.patch('eaos.features.fix.journey.waves.batch.batch_acceptance', return_value={'TASK-001': 0}):
                 kept = agent_tools._fix_edit_job(str(self.project), {'card': 'TASK-001', 'edits': [
                     {'path': 'src/a.js', 'find': 'a = 1', 'replace': 'a = 3'}]}, lambda *_: None)
             self.assertEqual(kept['left'], ['TASK-003'], 'its own: the card left for the end comes with fix_finish')
@@ -335,7 +336,7 @@ class OutputsTests(Home):
         self.assertEqual(page, guided.report_of(state) / 'START-HERE.md')
         self.assertIn('broken: RuntimeError: broken record', guided.report_stamp(state)['errors'])
         self.assertTrue(list((guided.outputs(state) / 'logs').glob('*.log')))
-        from eaos.core.system.version_info import digest
+        from eaos.kernel.system.version_info import digest
         guided.publish(state)
         made = guided.report_stamp(state)
         self.assertEqual((made['digest'], made['version'], made['errors']),

@@ -4,8 +4,9 @@ from pathlib import Path
 
 from shared_fixture import Workspace
 
-from eaos.analysis.target_state.references import by_id
-from eaos.analysis.target_state.projection import disposition, forbidden, infrastructure, moves, place, project
+from eaos.features.layers.analysis.target_state.references import by_id
+from eaos.features.layers.analysis.target_state.projection import (disposition, forbidden, infrastructure, moves, place,
+                                                                   project)
 
 RULES = json.loads((Path(__file__).resolve().parents[2] / 'eaos/rules/disposition-rules.json').read_text())
 REFERENCE = by_id('react-tanstack-start-supabase')

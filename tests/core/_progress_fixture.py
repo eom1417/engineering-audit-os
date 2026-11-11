@@ -6,8 +6,8 @@ ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / 'tests'))
 sys.path.insert(0, str(ROOT / 'tools'))
 import jsonschema  # noqa: E402
-from eaos.core import progress  # noqa: E402
-from eaos.pipeline import execute  # noqa: E402
+from eaos.kernel import progress  # noqa: E402
+from eaos.features.check.journey import execute  # noqa: E402
 from pipeline.test_run import fake_runners  # noqa: E402
 from shared_fixture import scratch  # noqa: E402
 FIXTURES = ROOT / 'tests/fixtures/progress'

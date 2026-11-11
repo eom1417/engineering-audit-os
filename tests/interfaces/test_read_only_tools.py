@@ -9,12 +9,14 @@ import unittest
 from pathlib import Path
 from unittest import mock
 
-from eaos.core.project import state as project_state
-from eaos.interfaces.mcp_server.govern import every
-from eaos.interfaces.mcp_server.server import build, reading as read_only
-from eaos.journeys import agent_tools, guided, handover
-from eaos.pipeline.runners import by_rules
-from eaos.pipeline.stages import SkipStage
+from eaos.kernel.project import state as project_state
+from eaos.doors.mcp_server.govern import every
+from eaos.doors.mcp_server.server import build, reading as read_only
+from eaos.features.guided.interface import agent_tools
+from eaos.features.guided import journey as guided
+from eaos.features.guided.journey import handover
+from eaos.features.check.journey.runners import by_rules
+from eaos.features.check.journey.stages import SkipStage
 
 
 def _no_engines(context):
@@ -102,7 +104,7 @@ class OpeningTheReport(Home):
                 self.assertFalse(_tool(self.server, name).annotations.destructive_hint, 'it removes nothing')
 
     def test_the_run_engine_still_answers_them_at_once(self):
-        from eaos.interfaces.runs import reading_tools
+        from eaos.doors.runs import reading_tools
         for name in ('status', 'menu', 'plan'):
             with self.subTest(tool=name):
                 self.assertIn(name, reading_tools())
@@ -143,7 +145,7 @@ class AskingWhereTheProjectIs(Home):
         subprocess.run(['git', '-C', str(self.project), '-c', 'user.name=t', '-c', 'user.email=t@t', 'commit', '-qm',
                         'more'], check=True, capture_output=True)
         subprocess.run(['git', '-C', str(self.project), 'checkout', '-q', 'main'], check=True, capture_output=True)
-        with mock.patch('eaos.journeys.agent_tools.where.ANSWER_SECONDS', 0):
+        with mock.patch('eaos.features.guided.interface.agent_tools.where.ANSWER_SECONDS', 0):
             self.assertEqual(_called(self.server, 'choose_branch', branch='feature', person_said='feature',
                                      project=str(self.project))['status'], 'needs_the_person')
             self.assertEqual(_called(self.server, 'status', project=str(self.project))['status'], 'needs_branch')

@@ -11,8 +11,8 @@ ROOT = Path(__file__).resolve().parents[2]
 
 class Consistency(unittest.TestCase):
     def test_every_stop_code_has_words_and_every_copied_command_and_node_exists(self):
-        from eaos.pipeline.stages import ORDER
-        from eaos.ai.nodes import NODES
+        from eaos.features.check.journey.stages import ORDER
+        from eaos.features.ai_review.analysis import NODES
         reasons = json.loads((ROOT / 'eaos/data/errors.json').read_text())['reasons']
         codes = {m for p in (ROOT / 'eaos').rglob('*.py')
                  for m in re.findall(r"SkipStage\([^)]*?code=['\"]([a-z_]+)['\"]", p.read_text(), re.S)}
@@ -30,8 +30,8 @@ class Consistency(unittest.TestCase):
         """The CLI, MCP and the sandbox read state.json through its one module."""
         readers = sorted(str(p.relative_to(ROOT)) for p in (ROOT / 'eaos').rglob('*.py')
                          if re.search(r"""['"]state\.json['"]""",
-                                      p.read_text()) and p != ROOT / 'eaos/core/project/state.py')
-        self.assertEqual(readers, [], 'state.json named outside eaos/core/project/state.py')
+                                      p.read_text()) and p != ROOT / 'eaos/kernel/project/state.py')
+        self.assertEqual(readers, [], 'state.json named outside eaos/kernel/project/state.py')
 
 
 if __name__ == '__main__':

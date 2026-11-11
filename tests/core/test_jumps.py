@@ -4,7 +4,7 @@ import subprocess
 import tempfile
 import unittest
 from pathlib import Path
-from eaos.core.project.jumps import big_jumps
+from eaos.features.fix.journey.jumps import big_jumps
 
 
 def lock(versions):

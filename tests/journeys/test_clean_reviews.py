@@ -5,9 +5,9 @@ import json
 import os
 from pathlib import Path
 from unittest import mock
-from eaos.core.project import jobs, state as project_state
-from eaos.interfaces import cli
-from eaos.journeys.guided import copies
+from eaos.kernel.project import jobs, state as project_state
+from eaos.doors import cli
+from eaos.features.guided.journey import copies
 from tests.journeys._clean_fixture import Clean, UNIQUE, git
 
 

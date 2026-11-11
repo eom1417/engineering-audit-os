@@ -57,7 +57,7 @@ def run(project, out, progress_on, engines):
     env = {**os.environ, 'PYTHONSAFEPATH': '1'}
     if progress_on: env.pop('EAOS_PROGRESS', None)
     else: env['EAOS_PROGRESS'] = 'off'
-    code = ('import sys\nfrom eaos.pipeline import execute\n'
+    code = ('import sys\nfrom eaos.features.check.journey import execute\n'
             f'm = execute({str(project)!r}, {str(out)!r}, language="ar", engines={[] if engines else None!r})\n'
             'print(m["status"])\n')
     began = time.monotonic()
