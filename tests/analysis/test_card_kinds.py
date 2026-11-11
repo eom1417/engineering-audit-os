@@ -1,15 +1,16 @@
-"""One definition of each card kind (eaos/core/contracts/card_kinds.py): a kind nobody registered is refused when a
+"""One definition of each card kind (eaos/kernel/contracts/card_kinds.py): a kind nobody registered is refused when a
 claim is built, so it can never reach a person as a generic card with its detector and its own fix lost."""
 import ast
 import unittest
 from pathlib import Path
 from unittest import mock
 
-from eaos.analysis.claims import ledger
-from eaos.core.contracts.card_areas import PATTERNS as AREAS
-from eaos.analysis.repair import one_source_gate, remediation
-from eaos.core.contracts.card_kinds import KINDS
-from eaos.core.language.words import TEMPLATES, statement_of
+from eaos.features.claims.analysis import ledger
+from eaos.kernel.contracts.card_areas import PATTERNS as AREAS
+from eaos.features.fix.analysis import one_source_gate
+from eaos.kernel.remedy import remediation
+from eaos.kernel.contracts.card_kinds import KINDS
+from eaos.kernel.language.words import TEMPLATES, statement_of
 
 ROOT = Path(__file__).resolve().parents[2]
 # Written out here, not read from the table: a row that loses its field must disagree with something.

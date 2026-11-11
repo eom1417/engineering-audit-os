@@ -10,8 +10,8 @@ from pathlib import Path
 from unittest import mock
 
 from needs import needs
-from eaos.core import toolchain
-from eaos.live.screens import audit
+from eaos.kernel import toolchain
+from eaos.features.app_run.adapters.screens import audit
 from shared_fixture import TemporaryWorkspace
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -199,7 +199,7 @@ class DistinctPagesTests(unittest.TestCase):
     def test_pages_of_one_template_with_other_data_are_pictured_once(self):
         # a hash-routed app has many routes (task pages, flow pages); pages of one template are pictured once, not each
         # in light and dark
-        from eaos.live.screens.crawl import distinct
+        from eaos.features.app_run.adapters.screens.crawl import distinct
         crawled = ['/', '/#/', '/#/problems', '/#/problems?severity=low', '/#/tasks/TASK-001',
                    '/#/tasks/TASK-004', '/#/plans/fix', '/#/plans/fix/M01', '/#/plans/fix/M02',
                    '/#/system/f/eaos%2Fplan.py%23confirm', '/#/system/functions', '/#/system/paths',

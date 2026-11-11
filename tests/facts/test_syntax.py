@@ -4,8 +4,8 @@ from pathlib import Path
 import tempfile
 import unittest
 from needs import need
-from eaos.facts.code import syntax
-from eaos.facts.run import collect
+from eaos.features.code_reading.facts.code import syntax
+from eaos.kernel.facts.run import collect
 
 FIXTURE = Path(__file__).resolve().parents[1] / 'fixtures/polyglot'
 

@@ -1,5 +1,5 @@
-# Ways of working written by hand (M15.6): records, not verdicts (eaos/analysis/assessments/one_source.py decides). An
-# idiom written PATTERN_REPEATS times or more (eaos/core/contracts/code_laws.py), in one way or several, is one card:
+# Ways of working written by hand (M15.6): records, not verdicts (eaos/features/one_source/analysis/one_source.py decides). An
+# idiom written PATTERN_REPEATS times or more (eaos/kernel/contracts/code_laws.py), in one way or several, is one card:
 # one helper, hook or middleware. A helper that holds the idiom once, called from everywhere, records it once.
 # ast-grep binds a rule to one language: each idiom is written once per language it reads.
 ---

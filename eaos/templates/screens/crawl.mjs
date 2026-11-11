@@ -1,7 +1,7 @@
 // EAOS crawl: every page of a running app, found by following its links and pressing its moving buttons, through the
 // pinned Playwright.
 //
-// Run by eaos/live/screens/crawl.py as a separate process:  node crawl.mjs <config.json>
+// Run by eaos/features/app_run/adapters/screens/crawl.py as a separate process:  node crawl.mjs <config.json>
 // The config names the Playwright module folder, the app's base URL and the most pages to open. Each page is opened
 // once, breadth first from the base, and the links it shows are read after it settles; nothing is measured here (the
 // heavy Lighthouse audit runs on a few distinct pages only, in crawl.py). A hash-routed app (#/problems) is followed
@@ -10,7 +10,7 @@
 // nothing but GET through.
 // The result is one JSON object on stdout: {routes: [{path, depth, status}]}. With config.coverage (a file), the
 // JavaScript each page ran is written there, every script's functions with whether any page ran them (M13.2,
-// eaos/live/testing/ran.py browser).
+// eaos/features/app_run/adapters/testing/ran.py browser).
 import { writeFileSync } from 'node:fs';
 import { configured } from './pinned.mjs';
 

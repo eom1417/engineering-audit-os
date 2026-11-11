@@ -8,7 +8,7 @@ from pathlib import Path
 from unittest import mock
 
 from needs import need
-from eaos.core import toolchain
+from eaos.kernel import toolchain
 
 ROOT = Path(__file__).resolve().parents[2]
 
@@ -39,7 +39,7 @@ class PlatformTests(unittest.TestCase):
         with mock.patch.dict('os.environ', {'EAOS_ENGINE_TOOLS': ''}):
             self.assertEqual(toolchain.home(), Path.home() / '.eaos/tools')
         # `eaos tools install` and the engines that run the tools read the same folder.
-        from eaos.engines import process
+        from eaos.features.engines.adapters import process
         with tempfile.TemporaryDirectory() as tmp:
             binary = Path(tmp) / 'bin/pinned-only-tool'
             binary.parent.mkdir()
@@ -137,8 +137,8 @@ class InstalledPackageTests(unittest.TestCase):
                                    '--quiet',
                                    '--no-deps', str(ROOT)], capture_output=True, text=True)
             need(self, 'pip could not build the package here: ' + done.stderr[-200:] if done.returncode else '', False)
-            probe = ('import json, eaos.core.toolchain.pins as t, eaos.journeys.guided as g,'
-                     ' eaos.core.contracts.artifact_rules as a;'
+            probe = ('import json, eaos.kernel.toolchain.pins as t, eaos.features.guided.journey as g,'
+                     ' eaos.kernel.contracts.artifact_rules as a;'
                      'assert "site-packages" in str(t.REGISTRY), t.REGISTRY; print(len(t.registry()["tools"]));'
                      'from pathlib import Path; import eaos;'
                      'g.catalog(); a.contracts()')

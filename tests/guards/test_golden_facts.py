@@ -8,8 +8,8 @@ import shutil
 import tempfile
 import unittest
 from shared_fixture import TemporaryWorkspace
-from eaos.facts.run import collect
-from eaos.facts.store import read_set
+from eaos.kernel.facts.run import collect
+from eaos.kernel.facts.store import read_set
 
 ROOT = Path(__file__).resolve().parents[1]
 FIXTURE = ROOT / 'fixtures/polyglot'
@@ -27,7 +27,7 @@ class GoldenFactTests(TemporaryWorkspace):
 
 
     def test_every_shipped_extractor_matches_its_golden_snapshot(self):
-        from eaos.facts.run import EXTRACTORS
+        from eaos.kernel.facts.run import EXTRACTORS
         self.assertEqual(set(SETS) | {'history'}, set(EXTRACTORS),
                          'A new extractor needs a golden snapshot or an explicit reason to be excluded')
         for name in SETS:
@@ -61,7 +61,7 @@ class StoreTests(unittest.TestCase):
     def test_a_set_reads_back_as_made_and_a_kind_is_read_from_the_sets_holding_it_only(self):
         # The fields every fact repeats are held once per set, not in every fact, so a reader reads only the sets
         # holding its kind.
-        from eaos.facts import make, store
+        from eaos.kernel.facts import make, store
         with tempfile.TemporaryDirectory() as out:
             rows = [make('symbol', 'syntax', '3', 'sha', {'path': f'a{i}.py'}, {'n': i}, limitations=['syntax only'])
                     for i in range(3)]

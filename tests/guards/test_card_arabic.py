@@ -5,8 +5,8 @@ import json
 import re
 import unittest
 from pathlib import Path
-from eaos.core.language.words import impact_of
-from eaos.facts.repository.catalog import RULES
+from eaos.kernel.language.words import impact_of
+from eaos.features.only_code.facts.catalog import RULES
 
 ARABIC = re.compile('[؀-ۿ]')
 SAVED = Path(__file__).resolve().parents[1] / 'fixtures/saved-project/0.0.90/output/technical/dossier.json'
@@ -29,7 +29,7 @@ class CardArabicTests(unittest.TestCase):
         self.assertEqual(english, [])
 
     def test_an_upgrade_with_no_fixed_version_asks_to_replace_the_package(self):
-        from eaos.core.language.words import statement_of
+        from eaos.kernel.language.words import statement_of
         claim = {'render': {'key': 'vulnerable_dependency',
                             'params': {'package': 'bincode', 'installed': '1.3.3', 'count': 1,
                                                                        'ids': 'RUSTSEC-2025-0141', 'severity': 'medium',

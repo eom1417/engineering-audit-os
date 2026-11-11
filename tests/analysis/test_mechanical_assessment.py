@@ -6,10 +6,10 @@ from pathlib import Path
 
 from shared_fixture import Workspace
 
-from eaos.core.contracts.decisions import decide
-from eaos.analysis.understanding.engagement import DEFAULT_RULES
-from eaos.analysis.assessments.mechanical import FAMILIES, build_assessment, family
-from eaos.pipeline import execute
+from eaos.kernel.contracts.decisions import decide
+from eaos.kernel.remedy.engagement import DEFAULT_RULES
+from eaos.features.claims.analysis.mechanical import FAMILIES, build_assessment, family
+from eaos.features.check.journey import execute
 
 ROOT = Path(__file__).resolve().parents[2]
 DEFINED = [{'path': 'app/prices.py', 'line': 1}, {'path': 'app/report.py', 'line': 1}]

@@ -4,7 +4,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from eaos.facts.run import collect
+from eaos.kernel.facts.run import collect
 
 SETS = ['syntax', 'resolve', 'entrypoints', 'deadcode']
 
@@ -42,10 +42,10 @@ APP['pkg/app.py'] += 'import importlib\nmod = importlib.import_module("pkg.loade
 
 class DeadCodeTests(unittest.TestCase):
     def test_each_engine_way_of_naming_a_candidate_is_read_and_a_module_is_judged_by_eaos_reachability(self):
-        from eaos.facts.dead_code.detect import _candidate_name, _verdict
+        from eaos.features.dead_code.facts.detect import _candidate_name, _verdict
         named = lambda path, symbol, message='': _candidate_name({'message': message}, {'path': path, 'symbol': symbol})
         # As vulture, knip and enola write them (a vulture finding is read as `py:act`).
-        self.assertEqual(named('eaos/interfaces/terminal/commands.py', 'eaos/interfaces/terminal/commands.py:act'),
+        self.assertEqual(named('eaos/doors/terminal/commands.py', 'eaos/doors/terminal/commands.py:act'),
                          'act')
         self.assertEqual(named('src/routes.js', 'src/routes.js:routes'), 'routes')
         self.assertEqual(named('src/app/[slug]/page.tsx', 'src/app/[slug].generateMetadata'), 'generateMetadata')
@@ -165,7 +165,7 @@ class DeadCodeTests(unittest.TestCase):
         verdicts = {f['location']['symbol']: f['value']['adjudication']['verdict']
                     for f in data['facts'] if f['value']['rule'] == 'unreachable-module'}
         self.assertEqual(verdicts, {'src/lost.js': 'confirmed', 'scripts/by-hand.mjs': 'review'})
-        from eaos.analysis.claims import ledger as claims
+        from eaos.features.claims.analysis import ledger as claims
         rendered = {row['render']['params']['subject']: (row['render']['key'],
                                                          row['confidence'])
                     for row in claims.from_facts({'deadcode': data})}

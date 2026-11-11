@@ -39,7 +39,7 @@ All run on the app's isolated copy on the person's computer, with a database of 
 | `mailpit` ([Mailpit](https://github.com/axllent/mailpit)) | Ralph Slooten | MIT | catches the e-mail the app sends from its copy | kept |
 | `jscodeshift` ([jscodeshift](https://github.com/facebook/jscodeshift)) | Meta Platforms, Inc. and affiliates | MIT | runs the codemods of mechanical cards on an isolated copy; it parses code, never runs it | kept |
 | `axe-core` ([axe-core](https://github.com/dequelabs/axe-core) and [@axe-core/playwright](https://github.com/dequelabs/axe-core-npm)) | Deque Systems, Inc. | MPL-2.0 | injected unmodified into the page under test, which MPL-2.0 permits without further obligation; WCAG violations read as JSON | kept |
-| `lighthouse` ([Lighthouse](https://github.com/GoogleChrome/lighthouse)) | Google LLC | Apache-2.0 | mobile JSON report of one address read (`eaos/live/screens/audit.py`) | kept |
+| `lighthouse` ([Lighthouse](https://github.com/GoogleChrome/lighthouse)) | Google LLC | Apache-2.0 | mobile JSON report of one address read (`eaos/features/app_run/adapters/screens/audit.py`) | kept |
 | `rrweb` ([rrweb](https://github.com/rrweb-io/rrweb) and rrweb-player) | rrweb contributors | MIT | recorder injected unmodified into each page a journey opens; its events kept as JSON for the assistant and a later replay with rrweb-player from local files | kept |
 
 ### Design sources

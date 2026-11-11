@@ -1,10 +1,10 @@
-"""The kinds of users of an app (eaos/live/access/roles.py): read from its code with real evidence, each opened as
+"""The kinds of users of an app (eaos/features/app_run/adapters/access/roles.py): read from its code with real evidence, each opened as
 itself, and the coverage saying which kinds a check saw and who opened another kind's page."""
 import tempfile
 import unittest
 from pathlib import Path
 
-from eaos.live.access import roles
+from eaos.features.app_run.adapters.access import roles
 
 KINDS = [{'id': 'admin', 'name': 'Administrator', 'pages': ['/admin', '/admin/users']},
          {'id': 'support', 'name': 'Support', 'pages': ['/support']},
@@ -105,7 +105,7 @@ class Roles(unittest.TestCase):
         # a view the code's reading missed (such as a program's pages) is added from the running app,
         # or only the other views' pages are pictured
         from unittest import mock
-        from eaos.live.access import test_users
+        from eaos.features.app_run.adapters.access import test_users
         with tempfile.TemporaryDirectory() as target, tempfile.TemporaryDirectory() as out:
             (Path(target) / 'workplace.js').write_text('one\ntwo\nthree\n')
             roles._write(out, [{'id': 'support', 'enter': 'account', 'evidence': 'workplace.js:1',
@@ -131,7 +131,7 @@ class Roles(unittest.TestCase):
     def test_every_page_no_session_opens_is_either_owned_by_the_view_that_opens_it_or_proved_unreachable(self):
         # pages of a view must not be skipped silently, and a page a session found must not go to the wrong view
         from unittest import mock
-        from eaos.live.access import test_users
+        from eaos.features.app_run.adapters.access import test_users
         with tempfile.TemporaryDirectory() as target, tempfile.TemporaryDirectory() as out:
             (Path(target) / 'routes.js').write_text('one\ntwo\n')
             roles._write(out, [{'id': 'program', 'enter': 'switch', 'evidence': 'routes.js:1', 'pages': ['/rota']}])
@@ -152,7 +152,7 @@ class Roles(unittest.TestCase):
     def test_a_lack_on_the_running_app_goes_back_to_the_reading_which_adds_views_and_never_drops_one(self):
         # a loop back to the node that owns the views, until every page opens
         from unittest import mock
-        from eaos.live.access import test_users
+        from eaos.features.app_run.adapters.access import test_users
         with tempfile.TemporaryDirectory() as target, tempfile.TemporaryDirectory() as out:
             (Path(target) / 'routes.js').write_text('one\ntwo\nthree\n')
             roles._write(out, [{'id': 'support', 'enter': 'account', 'evidence': 'routes.js:1', 'pages': ['/cases']}],
@@ -172,7 +172,7 @@ class Roles(unittest.TestCase):
         with mock.patch.object(test_users, 'lacking', return_value='/rota'), \
                 mock.patch.object(test_users, '_round', side_effect=lambda *a: rounds.append('round') or (
                     '/rota' if rounds.count('round') < 3 else '')), \
-                mock.patch('eaos.live.access.roles.find', side_effect=lambda *a: rounds.append(('find', a[3]))):
+                mock.patch('eaos.features.app_run.adapters.access.roles.find', side_effect=lambda *a: rounds.append(('find', a[3]))):
             self.assertEqual(test_users.make('p', test_users.Trial(None, 'b', 's', 'r', False), 'provider'), '')
         self.assertEqual(rounds, ['round', ('find', '/rota'), 'round', ('find', '/rota'), 'round'])
         nowhere = roles.nowhere_of({'text': 'Home', 'others': [{'text': '404'}]})

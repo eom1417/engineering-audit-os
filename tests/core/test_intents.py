@@ -8,8 +8,8 @@ from contextlib import redirect_stdout
 from pathlib import Path
 from unittest import mock
 
-from eaos.journeys import guided
-from eaos.core.language import intents
+from eaos.features.guided import journey as guided
+from eaos.features.guided.journey import intents
 from shared_fixture import scratch
 
 FIXTURE = Path(__file__).resolve().parents[1] / 'fixtures/intents.json'
@@ -64,7 +64,7 @@ class DoTests(unittest.TestCase):
 
 class AssistantInstallTests(unittest.TestCase):
     def test_both_assistants_learn_eaos_and_only_eaos_part_of_their_files_changes(self):
-        from eaos.ai.assistant import setup as assistant_setup
+        from eaos.features.assistant.adapters import setup as assistant_setup
         home = Path(scratch())
         (home / '.codex').mkdir()
         (home / '.codex/AGENTS.md').write_text('# my own rules\nbe kind\n')
@@ -93,7 +93,7 @@ class AssistantInstallTests(unittest.TestCase):
 
     def test_both_assistants_get_the_session_start_hook_once_beside_the_persons_own(self):
         import json
-        from eaos.ai.assistant import setup as assistant_setup
+        from eaos.features.assistant.adapters import setup as assistant_setup
         home = Path(scratch())
         (home / '.claude').mkdir()
         mine = {'model': 'opus', 'hooks': {'SessionStart': [{'hooks': [{'type': 'command', 'command': 'echo hi'}]}],

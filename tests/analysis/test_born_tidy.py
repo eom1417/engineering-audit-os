@@ -4,8 +4,8 @@ from pathlib import Path
 
 from shared_fixture import Workspace
 
-from eaos.analysis.repair.gates import debt, tidy
-from eaos.facts.run import collect
+from eaos.features.fix.analysis.gates import debt, tidy
+from eaos.kernel.facts.run import collect
 
 APP = {**{f'src/part{n}.py': f'PART = {n}\n' for n in range(4)}, 'src/main.py': 'from src import part0\n'}
 FAMILY = {f'src/pipeline_{name}.py': f'STEP = "{name}"\n' for name in ('read', 'clean', 'load', 'save')}

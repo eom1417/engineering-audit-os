@@ -6,10 +6,10 @@ import json
 from pathlib import Path
 import tempfile
 import unittest
-from eaos.core.system.errors import noted
-from eaos.interfaces import cli
-from eaos.interfaces.command_groups import GROUPS
-from eaos.pipeline import resume
+from eaos.kernel.system.errors import noted
+from eaos.doors import cli
+from eaos.doors.command_groups import GROUPS
+from eaos.features.check.journey import resume
 
 
 def commands():

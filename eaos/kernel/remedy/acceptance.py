@@ -1,0 +1,123 @@
+"""Run explicitly authorized behavioral checks against a revision-bound candidate.
+
+This is a process runner, not a sandbox. Stored commands never authorize themselves.
+"""
+import hashlib
+from pathlib import Path
+import subprocess
+import tempfile
+import os
+import signal
+import sys
+from ..contracts.decisions import check_errors
+from ..system.errors import noted
+
+
+SKIPPED = {'.git', '.venv', '__pycache__', 'node_modules'}
+_FINGERPRINTS = {}
+
+
+def recheck(prefix, test, engines=()):
+    """The argv of a card's check, bound to `cwd='.'` (the changed copy): its facts collected into a private folder
+    (with `engines`), then `test`, Python lines that read them under `tmp` and exit 0 only when the candidate is
+    gone."""
+    asked = ''.join(f', {word!r}' for word in ('--engines', *engines)) if engines else ''
+    code = ("import json, subprocess, sys, tempfile\n"
+            f"holder = tempfile.TemporaryDirectory(prefix={prefix!r}); tmp = holder.name\n"
+            f"r = subprocess.run([sys.executable, '-m', 'eaos', 'facts', '.', '--out', tmp{asked}])\n"
+            "if r.returncode: sys.exit(r.returncode)\n" + test)
+    return [sys.executable, '-B', '-c', code]
+
+
+def _files(root):
+    """Every file under root, sorted, with the skipped directories pruned rather than walked and filtered."""
+    found = []
+    for base, directories, names in os.walk(root):
+        directories[:] = sorted(d for d in directories if d not in SKIPPED)
+        found += [Path(base) / name for name in names]
+    return sorted(found, key=lambda path: path.relative_to(root).parts)
+
+
+def fingerprint(root, cached=True):
+    """sha256 over every file's path and content. Assessments bind hundreds of checks to one revision, so with
+    `cached` the digest is reused while no file's size or modification time has moved; the acceptance runner,
+    which compares before and after a command, always reads every byte (cached=False)."""
+    root = Path(root).resolve()
+    files = _files(root)
+    signature = None
+    if cached:
+        stats = []
+        for path in files:
+            try: stat = path.lstat()
+            except OSError as error:
+                noted('a file that vanished or cannot be read is left out of the signature', error)
+                continue
+            stats.append((path.relative_to(root).as_posix(), stat.st_size, stat.st_mtime_ns, path.is_symlink()))
+        signature = hash(tuple(stats))
+        known = _FINGERPRINTS.get(str(root))
+        if known and known[0] == signature: return known[1]
+    digest = hashlib.sha256()
+    for path in files:
+        rel = path.relative_to(root)
+        if path.is_symlink():
+            digest.update(str(rel).encode() + b'->' + str(path.readlink()).encode())
+        elif path.is_file():
+            digest.update(str(rel).encode() + b'\0' + hashlib.sha256(path.read_bytes()).digest())
+    value = digest.hexdigest()
+    if cached: _FINGERPRINTS[str(root)] = (signature, value)
+    return value
+
+
+def _refusal(check, execute, target):
+    """Why a well-formed check may not run here, or None."""
+    if check['kind'] == 'human': return 'Human review required; a command cannot decide this rubric.'
+    if not execute: return 'Explicit execution authorization required.'
+    if not Path(target).is_dir(): return 'Candidate directory missing.'
+    return None
+
+
+def _exit_code(argv, cwd, stdout, stderr, timeout):
+    """Run argv in its own process group: its exit code, or None once the timeout terminated the whole group."""
+    process = subprocess.Popen(argv, cwd=cwd, stdout=stdout, stderr=stderr, start_new_session=(os.name == 'posix'))  # nosemgrep: python.lang.security.audit.dangerous-subprocess-use-audit -- the project's own declared command, a list argv, run in its isolated copy with the person's consent, no shell
+    try:
+        return process.wait(timeout=timeout)
+    except subprocess.TimeoutExpired:
+        if os.name == 'posix': os.killpg(process.pid, signal.SIGKILL)
+        else: process.kill()
+        process.wait()
+        return None
+
+
+def run(check, target, *, execute=False, timeout=60):
+    errors = check_errors(check)
+    result = {'check_id': check.get('id') if isinstance(check, dict) else None,
+              'status': 'blocked', 'executed': False, 'errors': errors}
+    if errors: return result
+    refusal = _refusal(check, execute, target)
+    if refusal: return {**result, 'errors': [refusal]}
+    target = Path(target).resolve()
+    before = fingerprint(target, cached=False)
+    result['candidate_sha256'] = before
+    if before != check['source_revision']:
+        return {**result, 'errors': ['Candidate revision differs from the reviewed check binding.']}
+    from ..project.repo_context import redact
+    with tempfile.TemporaryFile() as stdout, tempfile.TemporaryFile() as stderr:
+        try:
+            code = _exit_code(check['argv'], target, stdout, stderr, timeout)
+        except OSError:
+            return {**result, 'errors': ['Command unavailable.']}
+        if code is None: return {**result, 'executed': True, 'errors': ['Command timed out; process group terminated.']}
+        stdout.seek(0); stderr.seek(0)
+        # Redact full bounded text; do not slice inside a multiline credential.
+        output, error = stdout.read(120001), stderr.read(120001)
+        if max(len(output), len(error)) > 120000:
+            return {**result, 'executed': True, 'status': 'inconclusive', 'errors': ['Output exceeded capture budget.']}
+        result.update(executed=True, exit_code=code,
+                      stdout=redact(output.decode('utf-8', errors='replace')),
+                      stderr=redact(error.decode('utf-8', errors='replace')))
+    after = fingerprint(target, cached=False)
+    result['after_sha256'] = after
+    if before != after:
+        return {**result, 'status': 'inconclusive',
+                'errors': ['Check changed the candidate; review and rebind before acceptance.']}
+    return {**result, 'status': 'pass' if code == check['expected_exit'] else 'fail'}

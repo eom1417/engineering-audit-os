@@ -10,7 +10,7 @@ import eaos
 from tests.shared_fixture import Workspace
 
 CODE = Path(eaos.__file__).resolve().parent
-ASK = 'from eaos.core.system.version_info import commit; print(commit())'
+ASK = 'from eaos.kernel.system.version_info import commit; print(commit())'
 
 
 def git(*args, cwd):

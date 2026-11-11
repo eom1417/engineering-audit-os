@@ -5,11 +5,11 @@ import unittest
 from pathlib import Path
 
 from needs import need
-from eaos.analysis.assessments import real_data
-from eaos.analysis.claims import from_real_data
-from eaos.engines.code import ast_grep
-from eaos.engines.security import presidio
-from eaos.engines.tool import version_of
+from eaos.features.only_code.analysis import real_data
+from eaos.features.claims.analysis import from_real_data
+from eaos.features.engines.adapters.code import ast_grep
+from eaos.features.engines.adapters.security import presidio
+from eaos.features.engines.adapters.tool import version_of
 from shared_fixture import scratch
 
 BASELINE = Path(__file__).resolve().parents[1] / 'fixtures/baseline-app'

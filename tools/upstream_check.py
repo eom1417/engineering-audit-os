@@ -13,7 +13,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
-from eaos.core.system.web import opened  # noqa: E402
+from eaos.kernel.system.web import opened  # noqa: E402
 
 REPOSITORIES = {
     'reforge': 'LyleMi/Reforge',
@@ -22,7 +22,7 @@ REPOSITORIES = {
 
 
 def pinned():
-    from eaos.engines import ADAPTERS
+    from eaos.features.engines.adapters import ADAPTERS
     return {name: adapter.PINNED for name, adapter in sorted(ADAPTERS.items())}
 
 
@@ -34,7 +34,7 @@ def contracts_pass():
 
 
 def installed():
-    from eaos.engines import ADAPTERS
+    from eaos.features.engines.adapters import ADAPTERS
     return {name: adapter.version() for name, adapter in sorted(ADAPTERS.items())}
 
 

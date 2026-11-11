@@ -4,7 +4,7 @@ from pathlib import Path
 import tempfile
 import unittest
 from shared_fixture import TemporaryWorkspace
-from eaos.facts.run import collect
+from eaos.kernel.facts.run import collect
 
 FIXTURE = Path(__file__).resolve().parents[1] / 'fixtures/polyglot'
 

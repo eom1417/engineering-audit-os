@@ -10,9 +10,9 @@ from unittest import mock
 from shared_fixture import Workspace
 
 from analysis.test_moves import FAMILY, SHOP
-from eaos.facts.run import collect
-from eaos.analysis.repair import move_gate
-from eaos.journeys.fix import move_batch
+from eaos.kernel.facts.run import collect
+from eaos.features.tidy.analysis import move_gate
+from eaos.features.tidy.journey import move_batch
 
 DYNAMIC = ('\n\nclass Dynamic(unittest.TestCase):\n    def test_by_name(self):\n        import importlib\n'
            "        self.assertTrue(importlib.import_module('shop.' + 'pipeline_run').go)\n")
@@ -49,13 +49,13 @@ class MoveBatchTests(Workspace):
         runtime.mkdir(exist_ok=True)
         report.mkdir(exist_ok=True)
         (runtime / 'authorization.json').write_text(json.dumps({'commit': git(root, 'rev-parse', 'HEAD')}))
-        with mock.patch('eaos.live.isolation.sandbox.refusal', return_value=''), \
+        with mock.patch('eaos.features.app_run.adapters.isolation.sandbox.refusal', return_value=''), \
                 mock.patch.object(move_batch, 'named_checks', checks), \
                 mock.patch.object(move_batch, 'new_breakage', return_value=[]):
             return move_batch.make({'report': report, 'target': root, 'runtime': runtime, 'number': 1, 'moves': chosen})
 
     def test_a_batch_commits_its_own_paths_even_in_an_ignored_folder_and_never_everything(self):
-        from eaos.journeys.fix.execute import commit_all
+        from eaos.features.fix.journey.execute import commit_all
         root = self.project({'.gitignore': 'lib/\n', 'a.py': 'x = 1\n'})
         git(root, 'mv', 'a.py', 'b.py')
         (root / 'lib').mkdir()
@@ -117,7 +117,7 @@ class MoveBatchTests(Workspace):
         self.assertEqual({m['id'] for m in drawn['moves']}, {move_batch.move_id(m) for m in drawn['moves']},
                          'an id names its two places')
         self.assertEqual(drawn['limits'], [], 'a project that publishes no package')
-        from eaos.journeys.agent_tools.tidying import _not_chosen
+        from eaos.features.guided.interface.agent_tools.tidying import _not_chosen
         rows = {m['id']: m for m in drawn['moves']}
         self.assertIn('no longer proposed', _not_chosen(['MOVE-gone'], rows, [])['error'])
         (root / 'pyproject.toml').write_text('[project]\nname = "shop"\n')

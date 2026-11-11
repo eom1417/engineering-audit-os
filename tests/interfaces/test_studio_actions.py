@@ -1,4 +1,4 @@
-"""The run engine (eaos/journeys/runs, wired by eaos/interfaces/runs.py): the contract, the event log, and the
+"""The run engine (eaos/features/studio/journey/runs, wired by eaos/doors/runs.py): the contract, the event log, and the
 adapters on real recorded streams."""
 import json
 import os
@@ -8,9 +8,9 @@ import tempfile
 import unittest
 from pathlib import Path
 from unittest import mock
-from eaos.interfaces import runs as actions  # noqa: E402
-from eaos.ai.assistant import headless as adapters, prompts
-from eaos.core.project import runs as store
+from eaos.doors import runs as actions  # noqa: E402
+from eaos.features.assistant.adapters import headless as adapters, prompts
+from eaos.kernel.project import runs as store
 from tests.interfaces._studio_actions_fixture import FAKE, FIXTURES, ROOT
 
 
@@ -18,7 +18,7 @@ class Contract(unittest.TestCase):
     def test_the_packaged_contract_is_the_documented_one_names_every_tool_and_every_endpoint_is_routed(self):
         self.assertEqual((ROOT / 'docs/studio-actions.json').read_bytes(),
                          (ROOT / 'eaos/data/studio-actions.json').read_bytes())
-        from eaos.interfaces.mcp_server import server as mcp_server
+        from eaos.doors.mcp_server import server as mcp_server
         data = store.contract()
         names = {action['id'] for action in data['actions'] if action['tool']}
         self.assertEqual(set(mcp_server.functions()), names)
@@ -53,7 +53,7 @@ class Contract(unittest.TestCase):
     def test_every_tool_status_can_name_next_is_allowed_to_the_fix_verb(self):
         """status offers fix_abandon, so a fix run is allowed it and a stuck batch can be closed."""
         import inspect
-        from eaos.journeys.agent_tools import where
+        from eaos.features.guided.interface.agent_tools import where
         source = ''.join(inspect.getsource(f)
                          for f in (where.status, where._next_step, where._batch_step, where._setup_step))
         named = set()

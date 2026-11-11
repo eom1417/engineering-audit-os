@@ -10,52 +10,52 @@
    "evidence": {
     "fact": null,
     "line": 57,
-    "path": "eaos/pipeline/run.py",
+    "path": "eaos/features/check/journey/run.py",
     "text": "for stage in STAGES:"
    },
-   "id": "eaos/pipeline/stages.py:STAGES:loop",
+   "id": "eaos/features/check/journey/stages.py:STAGES:loop",
    "kind": "loop",
-   "pipeline": "eaos/pipeline/stages.py:STAGES",
-   "stage": "eaos/pipeline/stages.py:STAGES/facts"
+   "pipeline": "eaos/features/check/journey/stages.py:STAGES",
+   "stage": "eaos/features/check/journey/stages.py:STAGES/facts"
   },
   {
    "condition": "stage.name in completed",
    "evidence": {
     "fact": null,
     "line": 58,
-    "path": "eaos/pipeline/run.py",
+    "path": "eaos/features/check/journey/run.py",
     "text": "if stage.name in completed:"
    },
-   "id": "eaos/pipeline/stages.py:STAGES:skip:58",
+   "id": "eaos/features/check/journey/stages.py:STAGES:skip:58",
    "kind": "conditional_skip",
-   "pipeline": "eaos/pipeline/stages.py:STAGES",
-   "stage": "eaos/pipeline/stages.py:STAGES/facts"
+   "pipeline": "eaos/features/check/journey/stages.py:STAGES",
+   "stage": "eaos/features/check/journey/stages.py:STAGES/facts"
   },
   {
    "condition": "stage.name not in requested",
    "evidence": {
     "fact": null,
     "line": 61,
-    "path": "eaos/pipeline/run.py",
+    "path": "eaos/features/check/journey/run.py",
     "text": "if stage.name not in requested:"
    },
-   "id": "eaos/pipeline/stages.py:STAGES:skip:61",
+   "id": "eaos/features/check/journey/stages.py:STAGES:skip:61",
    "kind": "conditional_skip",
-   "pipeline": "eaos/pipeline/stages.py:STAGES",
-   "stage": "eaos/pipeline/stages.py:STAGES/facts"
+   "pipeline": "eaos/features/check/journey/stages.py:STAGES",
+   "stage": "eaos/features/check/journey/stages.py:STAGES/facts"
   },
   {
    "condition": "stage.name in blocked",
    "evidence": {
     "fact": null,
     "line": 66,
-    "path": "eaos/pipeline/run.py",
+    "path": "eaos/features/check/journey/run.py",
     "text": "if stage.name in blocked:"
    },
-   "id": "eaos/pipeline/stages.py:STAGES:skip:66",
+   "id": "eaos/features/check/journey/stages.py:STAGES:skip:66",
    "kind": "conditional_skip",
-   "pipeline": "eaos/pipeline/stages.py:STAGES",
-   "stage": "eaos/pipeline/stages.py:STAGES/facts"
+   "pipeline": "eaos/features/check/journey/stages.py:STAGES",
+   "stage": "eaos/features/check/journey/stages.py:STAGES/facts"
   },
   {
    "condition": "NODES",
@@ -101,13 +101,13 @@
    "evidence": {
     "fact": null,
     "line": 100,
-    "path": "eaos/facts/run.py",
+    "path": "eaos/kernel/facts/run.py",
     "text": "for name in names:"
    },
-   "id": "eaos/facts/run.py:collect:loop",
+   "id": "eaos/kernel/facts/run.py:collect:loop",
    "kind": "loop",
-   "pipeline": "eaos/facts/run.py:collect",
-   "stage": "eaos/facts/run.py:collect/EXTRACTORS"
+   "pipeline": "eaos/kernel/facts/run.py:collect",
+   "stage": "eaos/kernel/facts/run.py:collect/EXTRACTORS"
   }
  ],
  "counts": {
@@ -242,15 +242,15 @@
    "evidence": {
     "fact": null,
     "line": 31,
-    "path": "eaos/pipeline/stages.py",
+    "path": "eaos/features/check/journey/stages.py",
     "text": "Stage('features', produces=('features.json', 'FEATURES.md'), requires=('facts',),"
    },
-   "from": "eaos/pipeline/stages.py:STAGES/facts",
-   "id": "eaos/pipeline/stages.py:STAGES/facts->features",
+   "from": "eaos/features/check/journey/stages.py:STAGES/facts",
+   "id": "eaos/features/check/journey/stages.py:STAGES/facts->features",
    "kind": "data",
    "matched_by": "declared",
-   "pipeline": "eaos/pipeline/stages.py:STAGES",
-   "to": "eaos/pipeline/stages.py:STAGES/features"
+   "pipeline": "eaos/features/check/journey/stages.py:STAGES",
+   "to": "eaos/features/check/journey/stages.py:STAGES/features"
   },
   {
    "condition": null,
@@ -264,15 +264,15 @@
    "evidence": {
     "fact": null,
     "line": 33,
-    "path": "eaos/pipeline/stages.py",
+    "path": "eaos/features/check/journey/stages.py",
     "text": "Stage('lock', produces=('behavior-lock/plan.json',), requires=('features',), necessity=OPTIONAL,"
    },
-   "from": "eaos/pipeline/stages.py:STAGES/features",
-   "id": "eaos/pipeline/stages.py:STAGES/features->lock",
+   "from": "eaos/features/check/journey/stages.py:STAGES/features",
+   "id": "eaos/features/check/journey/stages.py:STAGES/features->lock",
    "kind": "data",
    "matched_by": "declared",
-   "pipeline": "eaos/pipeline/stages.py:STAGES",
-   "to": "eaos/pipeline/stages.py:STAGES/lock"
+   "pipeline": "eaos/features/check/journey/stages.py:STAGES",
+   "to": "eaos/features/check/journey/stages.py:STAGES/lock"
   },
   {
    "condition": null,
@@ -286,15 +286,15 @@
    "evidence": {
     "fact": null,
     "line": 36,
-    "path": "eaos/pipeline/stages.py",
+    "path": "eaos/features/check/journey/stages.py",
     "text": "Stage('intake', produces=('intake.json',), requires=('features',),"
    },
-   "from": "eaos/pipeline/stages.py:STAGES/features",
-   "id": "eaos/pipeline/stages.py:STAGES/features->intake",
+   "from": "eaos/features/check/journey/stages.py:STAGES/features",
+   "id": "eaos/features/check/journey/stages.py:STAGES/features->intake",
    "kind": "data",
    "matched_by": "declared",
-   "pipeline": "eaos/pipeline/stages.py:STAGES",
-   "to": "eaos/pipeline/stages.py:STAGES/intake"
+   "pipeline": "eaos/features/check/journey/stages.py:STAGES",
+   "to": "eaos/features/check/journey/stages.py:STAGES/intake"
   },
   {
    "condition": null,
@@ -307,15 +307,15 @@
    "evidence": {
     "fact": null,
     "line": 38,
-    "path": "eaos/pipeline/stages.py",
+    "path": "eaos/features/check/journey/stages.py",
     "text": "Stage('engines', produces=('facts/external.json', 'ENGINES.md'), requires=('facts',), necessity=OPTIONAL,"
    },
-   "from": "eaos/pipeline/stages.py:STAGES/facts",
-   "id": "eaos/pipeline/stages.py:STAGES/facts->engines",
+   "from": "eaos/features/check/journey/stages.py:STAGES/facts",
+   "id": "eaos/features/check/journey/stages.py:STAGES/facts->engines",
    "kind": "data",
    "matched_by": "declared",
-   "pipeline": "eaos/pipeline/stages.py:STAGES",
-   "to": "eaos/pipeline/stages.py:STAGES/engines"
+   "pipeline": "eaos/features/check/journey/stages.py:STAGES",
+   "to": "eaos/features/check/journey/stages.py:STAGES/engines"
   },
   {
    "condition": null,
@@ -328,15 +328,15 @@
    "evidence": {
     "fact": null,
     "line": 41,
-    "path": "eaos/pipeline/stages.py",
+    "path": "eaos/features/check/journey/stages.py",
     "text": "Stage('verify', produces=('verification.json',), requires=('facts',), necessity=OPTIONAL,"
    },
-   "from": "eaos/pipeline/stages.py:STAGES/facts",
-   "id": "eaos/pipeline/stages.py:STAGES/facts->verify",
+   "from": "eaos/features/check/journey/stages.py:STAGES/facts",
+   "id": "eaos/features/check/journey/stages.py:STAGES/facts->verify",
    "kind": "data",
    "matched_by": "declared",
-   "pipeline": "eaos/pipeline/stages.py:STAGES",
-   "to": "eaos/pipeline/stages.py:STAGES/verify"
+   "pipeline": "eaos/features/check/journey/stages.py:STAGES",
+   "to": "eaos/features/check/journey/stages.py:STAGES/verify"
   },
   {
    "condition": null,
@@ -349,15 +349,15 @@
    "evidence": {
     "fact": null,
     "line": 44,
-    "path": "eaos/pipeline/stages.py",
+    "path": "eaos/features/check/journey/stages.py",
     "text": "Stage('measure', produces=('measurements.json', 'MEASUREMENTS.md'), requires=('facts',),"
    },
-   "from": "eaos/pipeline/stages.py:STAGES/facts",
-   "id": "eaos/pipeline/stages.py:STAGES/facts->measure",
+   "from": "eaos/features/check/journey/stages.py:STAGES/facts",
+   "id": "eaos/features/check/journey/stages.py:STAGES/facts->measure",
    "kind": "data",
    "matched_by": "declared",
-   "pipeline": "eaos/pipeline/stages.py:STAGES",
-   "to": "eaos/pipeline/stages.py:STAGES/measure"
+   "pipeline": "eaos/features/check/journey/stages.py:STAGES",
+   "to": "eaos/features/check/journey/stages.py:STAGES/measure"
   },
   {
    "condition": null,
@@ -370,15 +370,15 @@
    "evidence": {
     "fact": null,
     "line": 46,
-    "path": "eaos/pipeline/stages.py",
+    "path": "eaos/features/check/journey/stages.py",
     "text": "Stage('policy', produces=('facts/policy.json', 'POLICY.md'), requires=('facts',), necessity=OPTIONAL,"
    },
-   "from": "eaos/pipeline/stages.py:STAGES/facts",
-   "id": "eaos/pipeline/stages.py:STAGES/facts->policy",
+   "from": "eaos/features/check/journey/stages.py:STAGES/facts",
+   "id": "eaos/features/check/journey/stages.py:STAGES/facts->policy",
    "kind": "data",
    "matched_by": "declared",
-   "pipeline": "eaos/pipeline/stages.py:STAGES",
-   "to": "eaos/pipeline/stages.py:STAGES/policy"
+   "pipeline": "eaos/features/check/journey/stages.py:STAGES",
+   "to": "eaos/features/check/journey/stages.py:STAGES/policy"
   },
   {
    "condition": null,
@@ -391,15 +391,15 @@
    "evidence": {
     "fact": null,
     "line": 49,
-    "path": "eaos/pipeline/stages.py",
+    "path": "eaos/features/check/journey/stages.py",
     "text": "Stage('load', produces=('load-model.json', 'LOAD-MODEL.md'), requires=('facts',),"
    },
-   "from": "eaos/pipeline/stages.py:STAGES/facts",
-   "id": "eaos/pipeline/stages.py:STAGES/facts->load",
+   "from": "eaos/features/check/journey/stages.py:STAGES/facts",
+   "id": "eaos/features/check/journey/stages.py:STAGES/facts->load",
    "kind": "data",
    "matched_by": "declared",
-   "pipeline": "eaos/pipeline/stages.py:STAGES",
-   "to": "eaos/pipeline/stages.py:STAGES/load"
+   "pipeline": "eaos/features/check/journey/stages.py:STAGES",
+   "to": "eaos/features/check/journey/stages.py:STAGES/load"
   },
   {
    "condition": null,
@@ -412,15 +412,15 @@
    "evidence": {
     "fact": null,
     "line": 51,
-    "path": "eaos/pipeline/stages.py",
+    "path": "eaos/features/check/journey/stages.py",
     "text": "Stage('claims', produces=('dossier.json', 'DECISION-BRIEF.md', 'README.md'), requires=('facts', 'load'),"
    },
-   "from": "eaos/pipeline/stages.py:STAGES/facts",
-   "id": "eaos/pipeline/stages.py:STAGES/facts->claims",
+   "from": "eaos/features/check/journey/stages.py:STAGES/facts",
+   "id": "eaos/features/check/journey/stages.py:STAGES/facts->claims",
    "kind": "data",
    "matched_by": "declared",
-   "pipeline": "eaos/pipeline/stages.py:STAGES",
-   "to": "eaos/pipeline/stages.py:STAGES/claims"
+   "pipeline": "eaos/features/check/journey/stages.py:STAGES",
+   "to": "eaos/features/check/journey/stages.py:STAGES/claims"
   },
   {
    "condition": null,
@@ -434,15 +434,15 @@
    "evidence": {
     "fact": null,
     "line": 51,
-    "path": "eaos/pipeline/stages.py",
+    "path": "eaos/features/check/journey/stages.py",
     "text": "Stage('claims', produces=('dossier.json', 'DECISION-BRIEF.md', 'README.md'), requires=('facts', 'load'),"
    },
-   "from": "eaos/pipeline/stages.py:STAGES/load",
-   "id": "eaos/pipeline/stages.py:STAGES/load->claims",
+   "from": "eaos/features/check/journey/stages.py:STAGES/load",
+   "id": "eaos/features/check/journey/stages.py:STAGES/load->claims",
    "kind": "data",
    "matched_by": "declared",
-   "pipeline": "eaos/pipeline/stages.py:STAGES",
-   "to": "eaos/pipeline/stages.py:STAGES/claims"
+   "pipeline": "eaos/features/check/journey/stages.py:STAGES",
+   "to": "eaos/features/check/journey/stages.py:STAGES/claims"
   },
   {
    "condition": null,
@@ -457,15 +457,15 @@
    "evidence": {
     "fact": null,
     "line": 53,
-    "path": "eaos/pipeline/stages.py",
+    "path": "eaos/features/check/journey/stages.py",
     "text": "Stage('probe', produces=('probes.json',), requires=('claims',),"
    },
-   "from": "eaos/pipeline/stages.py:STAGES/claims",
-   "id": "eaos/pipeline/stages.py:STAGES/claims->probe",
+   "from": "eaos/features/check/journey/stages.py:STAGES/claims",
+   "id": "eaos/features/check/journey/stages.py:STAGES/claims->probe",
    "kind": "data",
    "matched_by": "declared",
-   "pipeline": "eaos/pipeline/stages.py:STAGES",
-   "to": "eaos/pipeline/stages.py:STAGES/probe"
+   "pipeline": "eaos/features/check/journey/stages.py:STAGES",
+   "to": "eaos/features/check/journey/stages.py:STAGES/probe"
   },
   {
    "condition": null,
@@ -480,15 +480,15 @@
    "evidence": {
     "fact": null,
     "line": 55,
-    "path": "eaos/pipeline/stages.py",
+    "path": "eaos/features/check/journey/stages.py",
     "text": "Stage('semantic', produces=('SEMANTIC.md',), requires=('claims',), necessity=OPTIONAL,"
    },
-   "from": "eaos/pipeline/stages.py:STAGES/claims",
-   "id": "eaos/pipeline/stages.py:STAGES/claims->semantic",
+   "from": "eaos/features/check/journey/stages.py:STAGES/claims",
+   "id": "eaos/features/check/journey/stages.py:STAGES/claims->semantic",
    "kind": "data",
    "matched_by": "declared",
-   "pipeline": "eaos/pipeline/stages.py:STAGES",
-   "to": "eaos/pipeline/stages.py:STAGES/semantic"
+   "pipeline": "eaos/features/check/journey/stages.py:STAGES",
+   "to": "eaos/features/check/journey/stages.py:STAGES/semantic"
   },
   {
    "condition": null,
@@ -503,15 +503,15 @@
    "evidence": {
     "fact": null,
     "line": 58,
-    "path": "eaos/pipeline/stages.py",
+    "path": "eaos/features/check/journey/stages.py",
     "text": "Stage('sustainability', produces=('SUSTAINABILITY.md', 'sustainability.json'), requires=('claims',),"
    },
-   "from": "eaos/pipeline/stages.py:STAGES/claims",
-   "id": "eaos/pipeline/stages.py:STAGES/claims->sustainability",
+   "from": "eaos/features/check/journey/stages.py:STAGES/claims",
+   "id": "eaos/features/check/journey/stages.py:STAGES/claims->sustainability",
    "kind": "data",
    "matched_by": "declared",
-   "pipeline": "eaos/pipeline/stages.py:STAGES",
-   "to": "eaos/pipeline/stages.py:STAGES/sustainability"
+   "pipeline": "eaos/features/check/journey/stages.py:STAGES",
+   "to": "eaos/features/check/journey/stages.py:STAGES/sustainability"
   },
   {
    "condition": null,
@@ -525,15 +525,15 @@
    "evidence": {
     "fact": null,
     "line": 60,
-    "path": "eaos/pipeline/stages.py",
+    "path": "eaos/features/check/journey/stages.py",
     "text": "Stage('transform', produces=('transform-plan.md', 'transform-plan.json'), requires=('sustainability',),"
    },
-   "from": "eaos/pipeline/stages.py:STAGES/sustainability",
-   "id": "eaos/pipeline/stages.py:STAGES/sustainability->transform",
+   "from": "eaos/features/check/journey/stages.py:STAGES/sustainability",
+   "id": "eaos/features/check/journey/stages.py:STAGES/sustainability->transform",
    "kind": "data",
    "matched_by": "declared",
-   "pipeline": "eaos/pipeline/stages.py:STAGES",
-   "to": "eaos/pipeline/stages.py:STAGES/transform"
+   "pipeline": "eaos/features/check/journey/stages.py:STAGES",
+   "to": "eaos/features/check/journey/stages.py:STAGES/transform"
   },
   {
    "condition": null,
@@ -546,15 +546,15 @@
    "evidence": {
     "fact": null,
     "line": 62,
-    "path": "eaos/pipeline/stages.py",
+    "path": "eaos/features/check/journey/stages.py",
     "text": "Stage('plan', produces=('plan.json', 'PLAN/WAVES.md'), requires=('probe',),"
    },
-   "from": "eaos/pipeline/stages.py:STAGES/probe",
-   "id": "eaos/pipeline/stages.py:STAGES/probe->plan",
+   "from": "eaos/features/check/journey/stages.py:STAGES/probe",
+   "id": "eaos/features/check/journey/stages.py:STAGES/probe->plan",
    "kind": "data",
    "matched_by": "declared",
-   "pipeline": "eaos/pipeline/stages.py:STAGES",
-   "to": "eaos/pipeline/stages.py:STAGES/plan"
+   "pipeline": "eaos/features/check/journey/stages.py:STAGES",
+   "to": "eaos/features/check/journey/stages.py:STAGES/plan"
   },
   {
    "condition": null,
@@ -568,15 +568,15 @@
    "evidence": {
     "fact": null,
     "line": 64,
-    "path": "eaos/pipeline/stages.py",
+    "path": "eaos/features/check/journey/stages.py",
     "text": "Stage('target', produces=('TARGET-ARCHITECTURE.md', 'target-architecture.json'), requires=('plan', 'transform'),"
    },
-   "from": "eaos/pipeline/stages.py:STAGES/plan",
-   "id": "eaos/pipeline/stages.py:STAGES/plan->target",
+   "from": "eaos/features/check/journey/stages.py:STAGES/plan",
+   "id": "eaos/features/check/journey/stages.py:STAGES/plan->target",
    "kind": "data",
    "matched_by": "declared",
-   "pipeline": "eaos/pipeline/stages.py:STAGES",
-   "to": "eaos/pipeline/stages.py:STAGES/target"
+   "pipeline": "eaos/features/check/journey/stages.py:STAGES",
+   "to": "eaos/features/check/journey/stages.py:STAGES/target"
   },
   {
    "condition": null,
@@ -590,15 +590,15 @@
    "evidence": {
     "fact": null,
     "line": 64,
-    "path": "eaos/pipeline/stages.py",
+    "path": "eaos/features/check/journey/stages.py",
     "text": "Stage('target', produces=('TARGET-ARCHITECTURE.md', 'target-architecture.json'), requires=('plan', 'transform'),"
    },
-   "from": "eaos/pipeline/stages.py:STAGES/transform",
-   "id": "eaos/pipeline/stages.py:STAGES/transform->target",
+   "from": "eaos/features/check/journey/stages.py:STAGES/transform",
+   "id": "eaos/features/check/journey/stages.py:STAGES/transform->target",
    "kind": "data",
    "matched_by": "declared",
-   "pipeline": "eaos/pipeline/stages.py:STAGES",
-   "to": "eaos/pipeline/stages.py:STAGES/target"
+   "pipeline": "eaos/features/check/journey/stages.py:STAGES",
+   "to": "eaos/features/check/journey/stages.py:STAGES/target"
   },
   {
    "condition": null,
@@ -612,15 +612,15 @@
    "evidence": {
     "fact": null,
     "line": 66,
-    "path": "eaos/pipeline/stages.py",
+    "path": "eaos/features/check/journey/stages.py",
     "text": "Stage('reports', produces=('CURRENT-STATE.md', 'TARGET-STATE.md', 'GAP-AND-STRATEGY.md', 'EXECUTION-PLAN.md', 'reports.json'),"
    },
-   "from": "eaos/pipeline/stages.py:STAGES/plan",
-   "id": "eaos/pipeline/stages.py:STAGES/plan->reports",
+   "from": "eaos/features/check/journey/stages.py:STAGES/plan",
+   "id": "eaos/features/check/journey/stages.py:STAGES/plan->reports",
    "kind": "data",
    "matched_by": "declared",
-   "pipeline": "eaos/pipeline/stages.py:STAGES",
-   "to": "eaos/pipeline/stages.py:STAGES/reports"
+   "pipeline": "eaos/features/check/journey/stages.py:STAGES",
+   "to": "eaos/features/check/journey/stages.py:STAGES/reports"
   },
   {
    "condition": null,
@@ -634,15 +634,15 @@
    "evidence": {
     "fact": null,
     "line": 66,
-    "path": "eaos/pipeline/stages.py",
+    "path": "eaos/features/check/journey/stages.py",
     "text": "Stage('reports', produces=('CURRENT-STATE.md', 'TARGET-STATE.md', 'GAP-AND-STRATEGY.md', 'EXECUTION-PLAN.md', 'reports.json'),"
    },
-   "from": "eaos/pipeline/stages.py:STAGES/target",
-   "id": "eaos/pipeline/stages.py:STAGES/target->reports",
+   "from": "eaos/features/check/journey/stages.py:STAGES/target",
+   "id": "eaos/features/check/journey/stages.py:STAGES/target->reports",
    "kind": "data",
    "matched_by": "declared",
-   "pipeline": "eaos/pipeline/stages.py:STAGES",
-   "to": "eaos/pipeline/stages.py:STAGES/reports"
+   "pipeline": "eaos/features/check/journey/stages.py:STAGES",
+   "to": "eaos/features/check/journey/stages.py:STAGES/reports"
   },
   {
    "condition": null,
@@ -657,15 +657,15 @@
    "evidence": {
     "fact": null,
     "line": 69,
-    "path": "eaos/pipeline/stages.py",
+    "path": "eaos/features/check/journey/stages.py",
     "text": "Stage('quality', produces=('report-quality.json',), requires=('reports',), necessity=OPTIONAL,"
    },
-   "from": "eaos/pipeline/stages.py:STAGES/reports",
-   "id": "eaos/pipeline/stages.py:STAGES/reports->quality",
+   "from": "eaos/features/check/journey/stages.py:STAGES/reports",
+   "id": "eaos/features/check/journey/stages.py:STAGES/reports->quality",
    "kind": "data",
    "matched_by": "declared",
-   "pipeline": "eaos/pipeline/stages.py:STAGES",
-   "to": "eaos/pipeline/stages.py:STAGES/quality"
+   "pipeline": "eaos/features/check/journey/stages.py:STAGES",
+   "to": "eaos/features/check/journey/stages.py:STAGES/quality"
   },
   {
    "condition": null,
@@ -680,15 +680,15 @@
    "evidence": {
     "fact": null,
     "line": 72,
-    "path": "eaos/pipeline/stages.py",
+    "path": "eaos/features/check/journey/stages.py",
     "text": "Stage('pdf', produces=('EXECUTIVE.pdf',), requires=('reports',), necessity=OPTIONAL,"
    },
-   "from": "eaos/pipeline/stages.py:STAGES/reports",
-   "id": "eaos/pipeline/stages.py:STAGES/reports->pdf",
+   "from": "eaos/features/check/journey/stages.py:STAGES/reports",
+   "id": "eaos/features/check/journey/stages.py:STAGES/reports->pdf",
    "kind": "data",
    "matched_by": "declared",
-   "pipeline": "eaos/pipeline/stages.py:STAGES",
-   "to": "eaos/pipeline/stages.py:STAGES/pdf"
+   "pipeline": "eaos/features/check/journey/stages.py:STAGES",
+   "to": "eaos/features/check/journey/stages.py:STAGES/pdf"
   },
   {
    "condition": null,
@@ -702,15 +702,15 @@
    "evidence": {
     "fact": null,
     "line": 75,
-    "path": "eaos/pipeline/stages.py",
+    "path": "eaos/features/check/journey/stages.py",
     "text": "Stage('execution_guide', produces=('EXECUTION-GUIDE.md',), requires=('plan', 'transform', 'load'),"
    },
-   "from": "eaos/pipeline/stages.py:STAGES/plan",
-   "id": "eaos/pipeline/stages.py:STAGES/plan->execution_guide",
+   "from": "eaos/features/check/journey/stages.py:STAGES/plan",
+   "id": "eaos/features/check/journey/stages.py:STAGES/plan->execution_guide",
    "kind": "data",
    "matched_by": "declared",
-   "pipeline": "eaos/pipeline/stages.py:STAGES",
-   "to": "eaos/pipeline/stages.py:STAGES/execution_guide"
+   "pipeline": "eaos/features/check/journey/stages.py:STAGES",
+   "to": "eaos/features/check/journey/stages.py:STAGES/execution_guide"
   },
   {
    "condition": null,
@@ -724,15 +724,15 @@
    "evidence": {
     "fact": null,
     "line": 75,
-    "path": "eaos/pipeline/stages.py",
+    "path": "eaos/features/check/journey/stages.py",
     "text": "Stage('execution_guide', produces=('EXECUTION-GUIDE.md',), requires=('plan', 'transform', 'load'),"
    },
-   "from": "eaos/pipeline/stages.py:STAGES/transform",
-   "id": "eaos/pipeline/stages.py:STAGES/transform->execution_guide",
+   "from": "eaos/features/check/journey/stages.py:STAGES/transform",
+   "id": "eaos/features/check/journey/stages.py:STAGES/transform->execution_guide",
    "kind": "data",
    "matched_by": "declared",
-   "pipeline": "eaos/pipeline/stages.py:STAGES",
-   "to": "eaos/pipeline/stages.py:STAGES/execution_guide"
+   "pipeline": "eaos/features/check/journey/stages.py:STAGES",
+   "to": "eaos/features/check/journey/stages.py:STAGES/execution_guide"
   },
   {
    "condition": null,
@@ -746,15 +746,15 @@
    "evidence": {
     "fact": null,
     "line": 75,
-    "path": "eaos/pipeline/stages.py",
+    "path": "eaos/features/check/journey/stages.py",
     "text": "Stage('execution_guide', produces=('EXECUTION-GUIDE.md',), requires=('plan', 'transform', 'load'),"
    },
-   "from": "eaos/pipeline/stages.py:STAGES/load",
-   "id": "eaos/pipeline/stages.py:STAGES/load->execution_guide",
+   "from": "eaos/features/check/journey/stages.py:STAGES/load",
+   "id": "eaos/features/check/journey/stages.py:STAGES/load->execution_guide",
    "kind": "data",
    "matched_by": "declared",
-   "pipeline": "eaos/pipeline/stages.py:STAGES",
-   "to": "eaos/pipeline/stages.py:STAGES/execution_guide"
+   "pipeline": "eaos/features/check/journey/stages.py:STAGES",
+   "to": "eaos/features/check/journey/stages.py:STAGES/execution_guide"
   },
   {
    "condition": null,
@@ -768,15 +768,15 @@
    "evidence": {
     "fact": null,
     "line": 77,
-    "path": "eaos/pipeline/stages.py",
+    "path": "eaos/features/check/journey/stages.py",
     "text": "Stage('executive', produces=('EXECUTIVE.md',), requires=('sustainability',),"
    },
-   "from": "eaos/pipeline/stages.py:STAGES/sustainability",
-   "id": "eaos/pipeline/stages.py:STAGES/sustainability->executive",
+   "from": "eaos/features/check/journey/stages.py:STAGES/sustainability",
+   "id": "eaos/features/check/journey/stages.py:STAGES/sustainability->executive",
    "kind": "data",
    "matched_by": "declared",
-   "pipeline": "eaos/pipeline/stages.py:STAGES",
-   "to": "eaos/pipeline/stages.py:STAGES/executive"
+   "pipeline": "eaos/features/check/journey/stages.py:STAGES",
+   "to": "eaos/features/check/journey/stages.py:STAGES/executive"
   },
   {
    "condition": null,
@@ -790,15 +790,15 @@
    "evidence": {
     "fact": null,
     "line": 79,
-    "path": "eaos/pipeline/stages.py",
+    "path": "eaos/features/check/journey/stages.py",
     "text": "Stage('compose', produces=('PRODUCT-REPORT.md', 'BLOCKERS.md', 'START-HERE.md', 'human/index.html'), requires=('plan', 'target', 'executive'),"
    },
-   "from": "eaos/pipeline/stages.py:STAGES/plan",
-   "id": "eaos/pipeline/stages.py:STAGES/plan->compose",
+   "from": "eaos/features/check/journey/stages.py:STAGES/plan",
+   "id": "eaos/features/check/journey/stages.py:STAGES/plan->compose",
    "kind": "data",
    "matched_by": "declared",
-   "pipeline": "eaos/pipeline/stages.py:STAGES",
-   "to": "eaos/pipeline/stages.py:STAGES/compose"
+   "pipeline": "eaos/features/check/journey/stages.py:STAGES",
+   "to": "eaos/features/check/journey/stages.py:STAGES/compose"
   },
   {
    "condition": null,
@@ -812,15 +812,15 @@
    "evidence": {
     "fact": null,
     "line": 79,
-    "path": "eaos/pipeline/stages.py",
+    "path": "eaos/features/check/journey/stages.py",
     "text": "Stage('compose', produces=('PRODUCT-REPORT.md', 'BLOCKERS.md', 'START-HERE.md', 'human/index.html'), requires=('plan', 'target', 'executive'),"
    },
-   "from": "eaos/pipeline/stages.py:STAGES/target",
-   "id": "eaos/pipeline/stages.py:STAGES/target->compose",
+   "from": "eaos/features/check/journey/stages.py:STAGES/target",
+   "id": "eaos/features/check/journey/stages.py:STAGES/target->compose",
    "kind": "data",
    "matched_by": "declared",
-   "pipeline": "eaos/pipeline/stages.py:STAGES",
-   "to": "eaos/pipeline/stages.py:STAGES/compose"
+   "pipeline": "eaos/features/check/journey/stages.py:STAGES",
+   "to": "eaos/features/check/journey/stages.py:STAGES/compose"
   },
   {
    "condition": null,
@@ -833,15 +833,15 @@
    "evidence": {
     "fact": null,
     "line": 79,
-    "path": "eaos/pipeline/stages.py",
+    "path": "eaos/features/check/journey/stages.py",
     "text": "Stage('compose', produces=('PRODUCT-REPORT.md', 'BLOCKERS.md', 'START-HERE.md', 'human/index.html'), requires=('plan', 'target', 'executive'),"
    },
-   "from": "eaos/pipeline/stages.py:STAGES/executive",
-   "id": "eaos/pipeline/stages.py:STAGES/executive->compose",
+   "from": "eaos/features/check/journey/stages.py:STAGES/executive",
+   "id": "eaos/features/check/journey/stages.py:STAGES/executive->compose",
    "kind": "data",
    "matched_by": "declared",
-   "pipeline": "eaos/pipeline/stages.py:STAGES",
-   "to": "eaos/pipeline/stages.py:STAGES/compose"
+   "pipeline": "eaos/features/check/journey/stages.py:STAGES",
+   "to": "eaos/features/check/journey/stages.py:STAGES/compose"
   },
   {
    "condition": null,
@@ -856,15 +856,15 @@
    "evidence": {
     "fact": null,
     "line": 81,
-    "path": "eaos/pipeline/stages.py",
+    "path": "eaos/features/check/journey/stages.py",
     "text": "Stage('bundles', produces=('bundles/manifest.json', 'CANONICAL-HOMES.md', 'canonical-homes.json',"
    },
-   "from": "eaos/pipeline/stages.py:STAGES/compose",
-   "id": "eaos/pipeline/stages.py:STAGES/compose->bundles",
+   "from": "eaos/features/check/journey/stages.py:STAGES/compose",
+   "id": "eaos/features/check/journey/stages.py:STAGES/compose->bundles",
    "kind": "data",
    "matched_by": "declared",
-   "pipeline": "eaos/pipeline/stages.py:STAGES",
-   "to": "eaos/pipeline/stages.py:STAGES/bundles"
+   "pipeline": "eaos/features/check/journey/stages.py:STAGES",
+   "to": "eaos/features/check/journey/stages.py:STAGES/bundles"
   },
   {
    "condition": null,
@@ -879,15 +879,15 @@
    "evidence": {
     "fact": null,
     "line": 86,
-    "path": "eaos/pipeline/stages.py",
+    "path": "eaos/features/check/journey/stages.py",
     "text": "Stage('emit', produces=('handover/README.md', 'handover/validation.json'), requires=('compose',), necessity=OPTIONAL,"
    },
-   "from": "eaos/pipeline/stages.py:STAGES/compose",
-   "id": "eaos/pipeline/stages.py:STAGES/compose->emit",
+   "from": "eaos/features/check/journey/stages.py:STAGES/compose",
+   "id": "eaos/features/check/journey/stages.py:STAGES/compose->emit",
    "kind": "data",
    "matched_by": "declared",
-   "pipeline": "eaos/pipeline/stages.py:STAGES",
-   "to": "eaos/pipeline/stages.py:STAGES/emit"
+   "pipeline": "eaos/features/check/journey/stages.py:STAGES",
+   "to": "eaos/features/check/journey/stages.py:STAGES/emit"
   },
   {
    "condition": null,
@@ -902,15 +902,15 @@
    "evidence": {
     "fact": null,
     "line": 89,
-    "path": "eaos/pipeline/stages.py",
+    "path": "eaos/features/check/journey/stages.py",
     "text": "Stage('site', produces=('index.html',), requires=('compose',), necessity=OPTIONAL,"
    },
-   "from": "eaos/pipeline/stages.py:STAGES/compose",
-   "id": "eaos/pipeline/stages.py:STAGES/compose->site",
+   "from": "eaos/features/check/journey/stages.py:STAGES/compose",
+   "id": "eaos/features/check/journey/stages.py:STAGES/compose->site",
    "kind": "data",
    "matched_by": "declared",
-   "pipeline": "eaos/pipeline/stages.py:STAGES",
-   "to": "eaos/pipeline/stages.py:STAGES/site"
+   "pipeline": "eaos/features/check/journey/stages.py:STAGES",
+   "to": "eaos/features/check/journey/stages.py:STAGES/site"
   },
   {
    "condition": null,
@@ -925,15 +925,15 @@
    "evidence": {
     "fact": null,
     "line": 92,
-    "path": "eaos/pipeline/stages.py",
+    "path": "eaos/features/check/journey/stages.py",
     "text": "Stage('validate', produces=('report-result.json', 'RUN.md'), requires=('compose',),"
    },
-   "from": "eaos/pipeline/stages.py:STAGES/compose",
-   "id": "eaos/pipeline/stages.py:STAGES/compose->validate",
+   "from": "eaos/features/check/journey/stages.py:STAGES/compose",
+   "id": "eaos/features/check/journey/stages.py:STAGES/compose->validate",
    "kind": "data",
    "matched_by": "declared",
-   "pipeline": "eaos/pipeline/stages.py:STAGES",
-   "to": "eaos/pipeline/stages.py:STAGES/validate"
+   "pipeline": "eaos/features/check/journey/stages.py:STAGES",
+   "to": "eaos/features/check/journey/stages.py:STAGES/validate"
   },
   {
    "condition": null,
@@ -1125,15 +1125,15 @@
    "evidence": {
     "fact": null,
     "line": 107,
-    "path": "eaos/facts/run.py",
+    "path": "eaos/kernel/facts/run.py",
     "text": "result = module.run(target, source, imports=[f for f in produced.get('syntax', []) if f['kind'] == 'import_edge'] or None,"
    },
-   "from": "eaos/facts/run.py:collect/syntax",
-   "id": "eaos/facts/run.py:collect/syntax->resolve",
+   "from": "eaos/kernel/facts/run.py:collect/syntax",
+   "id": "eaos/kernel/facts/run.py:collect/syntax->resolve",
    "kind": "data",
    "matched_by": "value",
-   "pipeline": "eaos/facts/run.py:collect",
-   "to": "eaos/facts/run.py:collect/resolve"
+   "pipeline": "eaos/kernel/facts/run.py:collect",
+   "to": "eaos/kernel/facts/run.py:collect/resolve"
   },
   {
    "condition": "name == 'redundancy'",
@@ -1146,15 +1146,15 @@
    "evidence": {
     "fact": null,
     "line": 110,
-    "path": "eaos/facts/run.py",
+    "path": "eaos/kernel/facts/run.py",
     "text": "structure=produced.get('structure'), entrypoints=produced.get('entrypoints'))"
    },
-   "from": "eaos/facts/run.py:collect/structure",
-   "id": "eaos/facts/run.py:collect/structure->redundancy",
+   "from": "eaos/kernel/facts/run.py:collect/structure",
+   "id": "eaos/kernel/facts/run.py:collect/structure->redundancy",
    "kind": "data",
    "matched_by": "value",
-   "pipeline": "eaos/facts/run.py:collect",
-   "to": "eaos/facts/run.py:collect/redundancy"
+   "pipeline": "eaos/kernel/facts/run.py:collect",
+   "to": "eaos/kernel/facts/run.py:collect/redundancy"
   },
   {
    "condition": "name == 'redundancy'",
@@ -1167,15 +1167,15 @@
    "evidence": {
     "fact": null,
     "line": 110,
-    "path": "eaos/facts/run.py",
+    "path": "eaos/kernel/facts/run.py",
     "text": "structure=produced.get('structure'), entrypoints=produced.get('entrypoints'))"
    },
-   "from": "eaos/facts/run.py:collect/entrypoints",
-   "id": "eaos/facts/run.py:collect/entrypoints->redundancy",
+   "from": "eaos/kernel/facts/run.py:collect/entrypoints",
+   "id": "eaos/kernel/facts/run.py:collect/entrypoints->redundancy",
    "kind": "data",
    "matched_by": "value",
-   "pipeline": "eaos/facts/run.py:collect",
-   "to": "eaos/facts/run.py:collect/redundancy"
+   "pipeline": "eaos/kernel/facts/run.py:collect",
+   "to": "eaos/kernel/facts/run.py:collect/redundancy"
   },
   {
    "condition": "name == 'redundancy'",
@@ -1188,15 +1188,15 @@
    "evidence": {
     "fact": null,
     "line": 109,
-    "path": "eaos/facts/run.py",
+    "path": "eaos/kernel/facts/run.py",
     "text": "elif name == 'redundancy': result = module.run(target, source, symbols=[f for f in produced.get('syntax', []) if f['kind'] == 'symbol'] or None,"
    },
-   "from": "eaos/facts/run.py:collect/syntax",
-   "id": "eaos/facts/run.py:collect/syntax->redundancy",
+   "from": "eaos/kernel/facts/run.py:collect/syntax",
+   "id": "eaos/kernel/facts/run.py:collect/syntax->redundancy",
    "kind": "data",
    "matched_by": "value",
-   "pipeline": "eaos/facts/run.py:collect",
-   "to": "eaos/facts/run.py:collect/redundancy"
+   "pipeline": "eaos/kernel/facts/run.py:collect",
+   "to": "eaos/kernel/facts/run.py:collect/redundancy"
   },
   {
    "condition": "name in {'structure', 'fingerprint', 'sequences', 'runtime'}",
@@ -1209,15 +1209,15 @@
    "evidence": {
     "fact": null,
     "line": 111,
-    "path": "eaos/facts/run.py",
+    "path": "eaos/kernel/facts/run.py",
     "text": "elif name in {'structure', 'fingerprint', 'sequences', 'runtime'}: result = module.run(target, source, symbols=[f for f in produced.get('syntax', []) if f['kind"
    },
-   "from": "eaos/facts/run.py:collect/syntax",
-   "id": "eaos/facts/run.py:collect/syntax->structure",
+   "from": "eaos/kernel/facts/run.py:collect/syntax",
+   "id": "eaos/kernel/facts/run.py:collect/syntax->structure",
    "kind": "data",
    "matched_by": "value",
-   "pipeline": "eaos/facts/run.py:collect",
-   "to": "eaos/facts/run.py:collect/structure"
+   "pipeline": "eaos/kernel/facts/run.py:collect",
+   "to": "eaos/kernel/facts/run.py:collect/structure"
   },
   {
    "condition": "name in {'structure', 'fingerprint', 'sequences', 'runtime'}",
@@ -1230,15 +1230,15 @@
    "evidence": {
     "fact": null,
     "line": 111,
-    "path": "eaos/facts/run.py",
+    "path": "eaos/kernel/facts/run.py",
     "text": "elif name in {'structure', 'fingerprint', 'sequences', 'runtime'}: result = module.run(target, source, symbols=[f for f in produced.get('syntax', []) if f['kind"
    },
-   "from": "eaos/facts/run.py:collect/syntax",
-   "id": "eaos/facts/run.py:collect/syntax->fingerprint",
+   "from": "eaos/kernel/facts/run.py:collect/syntax",
+   "id": "eaos/kernel/facts/run.py:collect/syntax->fingerprint",
    "kind": "data",
    "matched_by": "value",
-   "pipeline": "eaos/facts/run.py:collect",
-   "to": "eaos/facts/run.py:collect/fingerprint"
+   "pipeline": "eaos/kernel/facts/run.py:collect",
+   "to": "eaos/kernel/facts/run.py:collect/fingerprint"
   },
   {
    "condition": "name in {'structure', 'fingerprint', 'sequences', 'runtime'}",
@@ -1251,15 +1251,15 @@
    "evidence": {
     "fact": null,
     "line": 111,
-    "path": "eaos/facts/run.py",
+    "path": "eaos/kernel/facts/run.py",
     "text": "elif name in {'structure', 'fingerprint', 'sequences', 'runtime'}: result = module.run(target, source, symbols=[f for f in produced.get('syntax', []) if f['kind"
    },
-   "from": "eaos/facts/run.py:collect/syntax",
-   "id": "eaos/facts/run.py:collect/syntax->sequences",
+   "from": "eaos/kernel/facts/run.py:collect/syntax",
+   "id": "eaos/kernel/facts/run.py:collect/syntax->sequences",
    "kind": "data",
    "matched_by": "value",
-   "pipeline": "eaos/facts/run.py:collect",
-   "to": "eaos/facts/run.py:collect/sequences"
+   "pipeline": "eaos/kernel/facts/run.py:collect",
+   "to": "eaos/kernel/facts/run.py:collect/sequences"
   },
   {
    "condition": "name in {'structure', 'fingerprint', 'sequences', 'runtime'}",
@@ -1272,15 +1272,15 @@
    "evidence": {
     "fact": null,
     "line": 111,
-    "path": "eaos/facts/run.py",
+    "path": "eaos/kernel/facts/run.py",
     "text": "elif name in {'structure', 'fingerprint', 'sequences', 'runtime'}: result = module.run(target, source, symbols=[f for f in produced.get('syntax', []) if f['kind"
    },
-   "from": "eaos/facts/run.py:collect/syntax",
-   "id": "eaos/facts/run.py:collect/syntax->runtime",
+   "from": "eaos/kernel/facts/run.py:collect/syntax",
+   "id": "eaos/kernel/facts/run.py:collect/syntax->runtime",
    "kind": "data",
    "matched_by": "value",
-   "pipeline": "eaos/facts/run.py:collect",
-   "to": "eaos/facts/run.py:collect/runtime"
+   "pipeline": "eaos/kernel/facts/run.py:collect",
+   "to": "eaos/kernel/facts/run.py:collect/runtime"
   },
   {
    "condition": "name in {'entrypoints', 'metrics'}",
@@ -1293,15 +1293,15 @@
    "evidence": {
     "fact": null,
     "line": 112,
-    "path": "eaos/facts/run.py",
+    "path": "eaos/kernel/facts/run.py",
     "text": "elif name in {'entrypoints', 'metrics'}: result = module.run(target, source, symbols=[f for f in produced.get('syntax', []) if f['kind'] == 'symbol'] or None)"
    },
-   "from": "eaos/facts/run.py:collect/syntax",
-   "id": "eaos/facts/run.py:collect/syntax->entrypoints",
+   "from": "eaos/kernel/facts/run.py:collect/syntax",
+   "id": "eaos/kernel/facts/run.py:collect/syntax->entrypoints",
    "kind": "data",
    "matched_by": "value",
-   "pipeline": "eaos/facts/run.py:collect",
-   "to": "eaos/facts/run.py:collect/entrypoints"
+   "pipeline": "eaos/kernel/facts/run.py:collect",
+   "to": "eaos/kernel/facts/run.py:collect/entrypoints"
   },
   {
    "condition": "name in {'entrypoints', 'metrics'}",
@@ -1314,15 +1314,15 @@
    "evidence": {
     "fact": null,
     "line": 112,
-    "path": "eaos/facts/run.py",
+    "path": "eaos/kernel/facts/run.py",
     "text": "elif name in {'entrypoints', 'metrics'}: result = module.run(target, source, symbols=[f for f in produced.get('syntax', []) if f['kind'] == 'symbol'] or None)"
    },
-   "from": "eaos/facts/run.py:collect/syntax",
-   "id": "eaos/facts/run.py:collect/syntax->metrics",
+   "from": "eaos/kernel/facts/run.py:collect/syntax",
+   "id": "eaos/kernel/facts/run.py:collect/syntax->metrics",
    "kind": "data",
    "matched_by": "value",
-   "pipeline": "eaos/facts/run.py:collect",
-   "to": "eaos/facts/run.py:collect/metrics"
+   "pipeline": "eaos/kernel/facts/run.py:collect",
+   "to": "eaos/kernel/facts/run.py:collect/metrics"
   },
   {
    "condition": "name == 'flows'",
@@ -1335,15 +1335,15 @@
    "evidence": {
     "fact": null,
     "line": 115,
-    "path": "eaos/facts/run.py",
+    "path": "eaos/kernel/facts/run.py",
     "text": "edges=produced.get('resolve', []), entry_points=produced.get('entrypoints', []), env=produced.get('config', []),"
    },
-   "from": "eaos/facts/run.py:collect/resolve",
-   "id": "eaos/facts/run.py:collect/resolve->flows",
+   "from": "eaos/kernel/facts/run.py:collect/resolve",
+   "id": "eaos/kernel/facts/run.py:collect/resolve->flows",
    "kind": "data",
    "matched_by": "value",
-   "pipeline": "eaos/facts/run.py:collect",
-   "to": "eaos/facts/run.py:collect/flows"
+   "pipeline": "eaos/kernel/facts/run.py:collect",
+   "to": "eaos/kernel/facts/run.py:collect/flows"
   },
   {
    "condition": "name == 'flows'",
@@ -1356,15 +1356,15 @@
    "evidence": {
     "fact": null,
     "line": 115,
-    "path": "eaos/facts/run.py",
+    "path": "eaos/kernel/facts/run.py",
     "text": "edges=produced.get('resolve', []), entry_points=produced.get('entrypoints', []), env=produced.get('config', []),"
    },
-   "from": "eaos/facts/run.py:collect/entrypoints",
-   "id": "eaos/facts/run.py:collect/entrypoints->flows",
+   "from": "eaos/kernel/facts/run.py:collect/entrypoints",
+   "id": "eaos/kernel/facts/run.py:collect/entrypoints->flows",
    "kind": "data",
    "matched_by": "value",
-   "pipeline": "eaos/facts/run.py:collect",
-   "to": "eaos/facts/run.py:collect/flows"
+   "pipeline": "eaos/kernel/facts/run.py:collect",
+   "to": "eaos/kernel/facts/run.py:collect/flows"
   },
   {
    "condition": "name == 'flows'",
@@ -1377,15 +1377,15 @@
    "evidence": {
     "fact": null,
     "line": 115,
-    "path": "eaos/facts/run.py",
+    "path": "eaos/kernel/facts/run.py",
     "text": "edges=produced.get('resolve', []), entry_points=produced.get('entrypoints', []), env=produced.get('config', []),"
    },
-   "from": "eaos/facts/run.py:collect/config",
-   "id": "eaos/facts/run.py:collect/config->flows",
+   "from": "eaos/kernel/facts/run.py:collect/config",
+   "id": "eaos/kernel/facts/run.py:collect/config->flows",
    "kind": "data",
    "matched_by": "value",
-   "pipeline": "eaos/facts/run.py:collect",
-   "to": "eaos/facts/run.py:collect/flows"
+   "pipeline": "eaos/kernel/facts/run.py:collect",
+   "to": "eaos/kernel/facts/run.py:collect/flows"
   },
   {
    "condition": "name == 'flows'",
@@ -1398,15 +1398,15 @@
    "evidence": {
     "fact": null,
     "line": 113,
-    "path": "eaos/facts/run.py",
+    "path": "eaos/kernel/facts/run.py",
     "text": "elif name == 'flows': result = module.run(target, source, symbols=[f for f in produced.get('syntax', []) if f['kind'] == 'symbol'],"
    },
-   "from": "eaos/facts/run.py:collect/syntax",
-   "id": "eaos/facts/run.py:collect/syntax->flows",
+   "from": "eaos/kernel/facts/run.py:collect/syntax",
+   "id": "eaos/kernel/facts/run.py:collect/syntax->flows",
    "kind": "data",
    "matched_by": "value",
-   "pipeline": "eaos/facts/run.py:collect",
-   "to": "eaos/facts/run.py:collect/flows"
+   "pipeline": "eaos/kernel/facts/run.py:collect",
+   "to": "eaos/kernel/facts/run.py:collect/flows"
   },
   {
    "condition": "name == 'graph'",
@@ -1419,15 +1419,15 @@
    "evidence": {
     "fact": null,
     "line": 117,
-    "path": "eaos/facts/run.py",
+    "path": "eaos/kernel/facts/run.py",
     "text": "elif name == 'graph': result = module.run(target, source, edges=produced.get('resolve', []), entry_points=produced.get('entrypoints', []), metrics=produced.get("
    },
-   "from": "eaos/facts/run.py:collect/resolve",
-   "id": "eaos/facts/run.py:collect/resolve->graph",
+   "from": "eaos/kernel/facts/run.py:collect/resolve",
+   "id": "eaos/kernel/facts/run.py:collect/resolve->graph",
    "kind": "data",
    "matched_by": "value",
-   "pipeline": "eaos/facts/run.py:collect",
-   "to": "eaos/facts/run.py:collect/graph"
+   "pipeline": "eaos/kernel/facts/run.py:collect",
+   "to": "eaos/kernel/facts/run.py:collect/graph"
   },
   {
    "condition": "name == 'graph'",
@@ -1440,15 +1440,15 @@
    "evidence": {
     "fact": null,
     "line": 117,
-    "path": "eaos/facts/run.py",
+    "path": "eaos/kernel/facts/run.py",
     "text": "elif name == 'graph': result = module.run(target, source, edges=produced.get('resolve', []), entry_points=produced.get('entrypoints', []), metrics=produced.get("
    },
-   "from": "eaos/facts/run.py:collect/entrypoints",
-   "id": "eaos/facts/run.py:collect/entrypoints->graph",
+   "from": "eaos/kernel/facts/run.py:collect/entrypoints",
+   "id": "eaos/kernel/facts/run.py:collect/entrypoints->graph",
    "kind": "data",
    "matched_by": "value",
-   "pipeline": "eaos/facts/run.py:collect",
-   "to": "eaos/facts/run.py:collect/graph"
+   "pipeline": "eaos/kernel/facts/run.py:collect",
+   "to": "eaos/kernel/facts/run.py:collect/graph"
   },
   {
    "condition": "name == 'graph'",
@@ -1461,15 +1461,15 @@
    "evidence": {
     "fact": null,
     "line": 117,
-    "path": "eaos/facts/run.py",
+    "path": "eaos/kernel/facts/run.py",
     "text": "elif name == 'graph': result = module.run(target, source, edges=produced.get('resolve', []), entry_points=produced.get('entrypoints', []), metrics=produced.get("
    },
-   "from": "eaos/facts/run.py:collect/metrics",
-   "id": "eaos/facts/run.py:collect/metrics->graph",
+   "from": "eaos/kernel/facts/run.py:collect/metrics",
+   "id": "eaos/kernel/facts/run.py:collect/metrics->graph",
    "kind": "data",
    "matched_by": "value",
-   "pipeline": "eaos/facts/run.py:collect",
-   "to": "eaos/facts/run.py:collect/graph"
+   "pipeline": "eaos/kernel/facts/run.py:collect",
+   "to": "eaos/kernel/facts/run.py:collect/graph"
   },
   {
    "condition": "name == 'graph'",
@@ -1482,15 +1482,15 @@
    "evidence": {
     "fact": null,
     "line": 117,
-    "path": "eaos/facts/run.py",
+    "path": "eaos/kernel/facts/run.py",
     "text": "elif name == 'graph': result = module.run(target, source, edges=produced.get('resolve', []), entry_points=produced.get('entrypoints', []), metrics=produced.get("
    },
-   "from": "eaos/facts/run.py:collect/history",
-   "id": "eaos/facts/run.py:collect/history->graph",
+   "from": "eaos/kernel/facts/run.py:collect/history",
+   "id": "eaos/kernel/facts/run.py:collect/history->graph",
    "kind": "data",
    "matched_by": "value",
-   "pipeline": "eaos/facts/run.py:collect",
-   "to": "eaos/facts/run.py:collect/graph"
+   "pipeline": "eaos/kernel/facts/run.py:collect",
+   "to": "eaos/kernel/facts/run.py:collect/graph"
   },
   {
    "condition": "name == 'leftovers'",
@@ -1503,15 +1503,15 @@
    "evidence": {
     "fact": null,
     "line": 119,
-    "path": "eaos/facts/run.py",
+    "path": "eaos/kernel/facts/run.py",
     "text": "elif name == 'leftovers': result = module.run(target, source, resolve_facts=produced.get('resolve', []))"
    },
-   "from": "eaos/facts/run.py:collect/resolve",
-   "id": "eaos/facts/run.py:collect/resolve->leftovers",
+   "from": "eaos/kernel/facts/run.py:collect/resolve",
+   "id": "eaos/kernel/facts/run.py:collect/resolve->leftovers",
    "kind": "data",
    "matched_by": "value",
-   "pipeline": "eaos/facts/run.py:collect",
-   "to": "eaos/facts/run.py:collect/leftovers"
+   "pipeline": "eaos/kernel/facts/run.py:collect",
+   "to": "eaos/kernel/facts/run.py:collect/leftovers"
   },
   {
    "condition": "name == 'broken'",
@@ -1524,15 +1524,15 @@
    "evidence": {
     "fact": null,
     "line": 121,
-    "path": "eaos/facts/run.py",
+    "path": "eaos/kernel/facts/run.py",
     "text": "elif name == 'broken': result = module.run(target, source, resolved=produced.get('resolve', []))"
    },
-   "from": "eaos/facts/run.py:collect/resolve",
-   "id": "eaos/facts/run.py:collect/resolve->broken",
+   "from": "eaos/kernel/facts/run.py:collect/resolve",
+   "id": "eaos/kernel/facts/run.py:collect/resolve->broken",
    "kind": "data",
    "matched_by": "value",
-   "pipeline": "eaos/facts/run.py:collect",
-   "to": "eaos/facts/run.py:collect/broken"
+   "pipeline": "eaos/kernel/facts/run.py:collect",
+   "to": "eaos/kernel/facts/run.py:collect/broken"
   },
   {
    "condition": "name == 'deadcode'",
@@ -1545,15 +1545,15 @@
    "evidence": {
     "fact": null,
     "line": 123,
-    "path": "eaos/facts/run.py",
+    "path": "eaos/kernel/facts/run.py",
     "text": "resolved=produced.get('resolve', []), entry_points=produced.get('entrypoints', []))"
    },
-   "from": "eaos/facts/run.py:collect/resolve",
-   "id": "eaos/facts/run.py:collect/resolve->deadcode",
+   "from": "eaos/kernel/facts/run.py:collect/resolve",
+   "id": "eaos/kernel/facts/run.py:collect/resolve->deadcode",
    "kind": "data",
    "matched_by": "value",
-   "pipeline": "eaos/facts/run.py:collect",
-   "to": "eaos/facts/run.py:collect/deadcode"
+   "pipeline": "eaos/kernel/facts/run.py:collect",
+   "to": "eaos/kernel/facts/run.py:collect/deadcode"
   },
   {
    "condition": "name == 'deadcode'",
@@ -1566,15 +1566,15 @@
    "evidence": {
     "fact": null,
     "line": 123,
-    "path": "eaos/facts/run.py",
+    "path": "eaos/kernel/facts/run.py",
     "text": "resolved=produced.get('resolve', []), entry_points=produced.get('entrypoints', []))"
    },
-   "from": "eaos/facts/run.py:collect/entrypoints",
-   "id": "eaos/facts/run.py:collect/entrypoints->deadcode",
+   "from": "eaos/kernel/facts/run.py:collect/entrypoints",
+   "id": "eaos/kernel/facts/run.py:collect/entrypoints->deadcode",
    "kind": "data",
    "matched_by": "value",
-   "pipeline": "eaos/facts/run.py:collect",
-   "to": "eaos/facts/run.py:collect/deadcode"
+   "pipeline": "eaos/kernel/facts/run.py:collect",
+   "to": "eaos/kernel/facts/run.py:collect/deadcode"
   },
   {
    "condition": "name == 'deadcode'",
@@ -1587,15 +1587,15 @@
    "evidence": {
     "fact": null,
     "line": 122,
-    "path": "eaos/facts/run.py",
+    "path": "eaos/kernel/facts/run.py",
     "text": "elif name == 'deadcode': result = module.run(target, source, symbols=[f for f in produced.get('syntax', []) if f['kind'] == 'symbol'],"
    },
-   "from": "eaos/facts/run.py:collect/syntax",
-   "id": "eaos/facts/run.py:collect/syntax->deadcode",
+   "from": "eaos/kernel/facts/run.py:collect/syntax",
+   "id": "eaos/kernel/facts/run.py:collect/syntax->deadcode",
    "kind": "data",
    "matched_by": "value",
-   "pipeline": "eaos/facts/run.py:collect",
-   "to": "eaos/facts/run.py:collect/deadcode"
+   "pipeline": "eaos/kernel/facts/run.py:collect",
+   "to": "eaos/kernel/facts/run.py:collect/deadcode"
   },
   {
    "condition": null,
@@ -1794,13 +1794,13 @@
    "evidence": {
     "fact": null,
     "line": 61,
-    "path": "eaos/pipeline/run.py",
+    "path": "eaos/features/check/journey/run.py",
     "text": "if stage.name not in requested:"
    },
    "from": "*",
-   "id": "eaos/pipeline/stages.py:STAGES:error:0",
+   "id": "eaos/features/check/journey/stages.py:STAGES:error:0",
    "kind": "skip",
-   "pipeline": "eaos/pipeline/stages.py:STAGES",
+   "pipeline": "eaos/features/check/journey/stages.py:STAGES",
    "to": "skipped"
   },
   {
@@ -1808,13 +1808,13 @@
    "evidence": {
     "fact": null,
     "line": 66,
-    "path": "eaos/pipeline/run.py",
+    "path": "eaos/features/check/journey/run.py",
     "text": "if stage.name in blocked:"
    },
    "from": "*",
-   "id": "eaos/pipeline/stages.py:STAGES:error:1",
+   "id": "eaos/features/check/journey/stages.py:STAGES:error:1",
    "kind": "block",
-   "pipeline": "eaos/pipeline/stages.py:STAGES",
+   "pipeline": "eaos/features/check/journey/stages.py:STAGES",
    "to": "not_reached"
   },
   {
@@ -1822,13 +1822,13 @@
    "evidence": {
     "fact": null,
     "line": 125,
-    "path": "eaos/pipeline/run.py",
+    "path": "eaos/features/check/journey/run.py",
     "text": "if runner is None:"
    },
    "from": "*",
-   "id": "eaos/pipeline/stages.py:STAGES:error:2",
+   "id": "eaos/features/check/journey/stages.py:STAGES:error:2",
    "kind": "fail",
-   "pipeline": "eaos/pipeline/stages.py:STAGES",
+   "pipeline": "eaos/features/check/journey/stages.py:STAGES",
    "to": "failed"
   },
   {
@@ -1836,13 +1836,13 @@
    "evidence": {
     "fact": null,
     "line": 137,
-    "path": "eaos/pipeline/run.py",
+    "path": "eaos/features/check/journey/run.py",
     "text": "if missing:"
    },
    "from": "*",
-   "id": "eaos/pipeline/stages.py:STAGES:error:3",
+   "id": "eaos/features/check/journey/stages.py:STAGES:error:3",
    "kind": "fail",
-   "pipeline": "eaos/pipeline/stages.py:STAGES",
+   "pipeline": "eaos/features/check/journey/stages.py:STAGES",
    "to": "failed"
   },
   {
@@ -1850,13 +1850,13 @@
    "evidence": {
     "fact": null,
     "line": 130,
-    "path": "eaos/pipeline/run.py",
+    "path": "eaos/features/check/journey/run.py",
     "text": "except SkipStage as reason:"
    },
    "from": "*",
-   "id": "eaos/pipeline/stages.py:STAGES:error:4",
+   "id": "eaos/features/check/journey/stages.py:STAGES:error:4",
    "kind": "skip",
-   "pipeline": "eaos/pipeline/stages.py:STAGES",
+   "pipeline": "eaos/features/check/journey/stages.py:STAGES",
    "to": "unavailable"
   },
   {
@@ -1864,13 +1864,13 @@
    "evidence": {
     "fact": null,
     "line": 132,
-    "path": "eaos/pipeline/run.py",
+    "path": "eaos/features/check/journey/run.py",
     "text": "except Exception as problem:                       # one stage must not decide the fate of the rest"
    },
    "from": "*",
-   "id": "eaos/pipeline/stages.py:STAGES:error:5",
+   "id": "eaos/features/check/journey/stages.py:STAGES:error:5",
    "kind": "catch",
-   "pipeline": "eaos/pipeline/stages.py:STAGES",
+   "pipeline": "eaos/features/check/journey/stages.py:STAGES",
    "to": "failed"
   },
   {
@@ -1898,7 +1898,7 @@
   {
    "fact": null,
    "line": 29,
-   "path": "eaos/pipeline/stages.py",
+   "path": "eaos/features/check/journey/stages.py",
    "text": "STAGES = ("
   },
   {
@@ -1910,7 +1910,7 @@
   {
    "fact": null,
    "line": 10,
-   "path": "eaos/facts/run.py",
+   "path": "eaos/kernel/facts/run.py",
    "text": "EXTRACTORS = {'history': history, 'syntax': syntax, 'structure': structure, 'resolve': resolve, 'entrypoints': entrypoints,"
   },
   {
@@ -1930,15 +1930,15 @@
     "path": "eaos/pipeline/runners.py",
     "text": "context['collected'] = collect(context.target, context.out, None, source=context['source'],"
    },
-   "id": "eaos/pipeline/stages.py:STAGES:ctx:collected",
+   "id": "eaos/features/check/journey/stages.py:STAGES:ctx:collected",
    "kind": "side_channel",
    "name": "context['collected']",
-   "pipeline": "eaos/pipeline/stages.py:STAGES",
+   "pipeline": "eaos/features/check/journey/stages.py:STAGES",
    "stages": [
-    "eaos/pipeline/stages.py:STAGES/facts",
-    "eaos/pipeline/stages.py:STAGES/features",
-    "eaos/pipeline/stages.py:STAGES/engines",
-    "eaos/pipeline/stages.py:STAGES/claims"
+    "eaos/features/check/journey/stages.py:STAGES/facts",
+    "eaos/features/check/journey/stages.py:STAGES/features",
+    "eaos/features/check/journey/stages.py:STAGES/engines",
+    "eaos/features/check/journey/stages.py:STAGES/claims"
    ]
   },
   {
@@ -1949,12 +1949,12 @@
     "path": "eaos/pipeline/runners.py",
     "text": "context['dossier_status'] = result['status']"
    },
-   "id": "eaos/pipeline/stages.py:STAGES:ctx:dossier_status",
+   "id": "eaos/features/check/journey/stages.py:STAGES:ctx:dossier_status",
    "kind": "unread_output",
    "name": "context['dossier_status']",
-   "pipeline": "eaos/pipeline/stages.py:STAGES",
+   "pipeline": "eaos/features/check/journey/stages.py:STAGES",
    "stages": [
-    "eaos/pipeline/stages.py:STAGES/claims"
+    "eaos/features/check/journey/stages.py:STAGES/claims"
    ]
   },
   {
@@ -1965,14 +1965,14 @@
     "path": "eaos/pipeline/runners.py",
     "text": "context['exclude'] = sorted({*context.exclude, *declared_exclusions(context.target)})"
    },
-   "id": "eaos/pipeline/stages.py:STAGES:ctx:exclude",
+   "id": "eaos/features/check/journey/stages.py:STAGES:ctx:exclude",
    "kind": "side_channel",
    "name": "context['exclude']",
-   "pipeline": "eaos/pipeline/stages.py:STAGES",
+   "pipeline": "eaos/features/check/journey/stages.py:STAGES",
    "stages": [
-    "eaos/pipeline/stages.py:STAGES/facts",
-    "eaos/pipeline/stages.py:STAGES/engines",
-    "eaos/pipeline/stages.py:STAGES/claims"
+    "eaos/features/check/journey/stages.py:STAGES/facts",
+    "eaos/features/check/journey/stages.py:STAGES/engines",
+    "eaos/features/check/journey/stages.py:STAGES/claims"
    ]
   },
   {
@@ -1983,13 +1983,13 @@
     "path": "eaos/pipeline/runners.py",
     "text": "context['source'] = Source(context.target, exclude=context['exclude'],"
    },
-   "id": "eaos/pipeline/stages.py:STAGES:ctx:source",
+   "id": "eaos/features/check/journey/stages.py:STAGES:ctx:source",
    "kind": "side_channel",
    "name": "context['source']",
-   "pipeline": "eaos/pipeline/stages.py:STAGES",
+   "pipeline": "eaos/features/check/journey/stages.py:STAGES",
    "stages": [
-    "eaos/pipeline/stages.py:STAGES/facts",
-    "eaos/pipeline/stages.py:STAGES/engines"
+    "eaos/features/check/journey/stages.py:STAGES/facts",
+    "eaos/features/check/journey/stages.py:STAGES/engines"
    ]
   }
  ],
@@ -2163,51 +2163,51 @@
    "entry": {
     "fact": null,
     "line": 34,
-    "path": "eaos/pipeline/run.py",
+    "path": "eaos/features/check/journey/run.py",
     "text": "def execute(target, out, *, only=(), skip=(), language='ar', exclude=(), engines=None, provider=None,"
    },
    "evidence": [
     {
      "fact": null,
      "line": 29,
-     "path": "eaos/pipeline/stages.py",
+     "path": "eaos/features/check/journey/stages.py",
      "text": "STAGES = ("
     }
    ],
-   "id": "eaos/pipeline/stages.py:STAGES",
+   "id": "eaos/features/check/journey/stages.py:STAGES",
    "kind": "declared_dag",
    "parent": null,
    "role": "product",
    "stages": [
-    "eaos/pipeline/stages.py:STAGES/facts",
-    "eaos/pipeline/stages.py:STAGES/features",
-    "eaos/pipeline/stages.py:STAGES/lock",
-    "eaos/pipeline/stages.py:STAGES/intake",
-    "eaos/pipeline/stages.py:STAGES/engines",
-    "eaos/pipeline/stages.py:STAGES/verify",
-    "eaos/pipeline/stages.py:STAGES/measure",
-    "eaos/pipeline/stages.py:STAGES/policy",
-    "eaos/pipeline/stages.py:STAGES/load",
-    "eaos/pipeline/stages.py:STAGES/claims",
-    "eaos/pipeline/stages.py:STAGES/probe",
-    "eaos/pipeline/stages.py:STAGES/semantic",
-    "eaos/pipeline/stages.py:STAGES/sustainability",
-    "eaos/pipeline/stages.py:STAGES/transform",
-    "eaos/pipeline/stages.py:STAGES/plan",
-    "eaos/pipeline/stages.py:STAGES/target",
-    "eaos/pipeline/stages.py:STAGES/reports",
-    "eaos/pipeline/stages.py:STAGES/quality",
-    "eaos/pipeline/stages.py:STAGES/pdf",
-    "eaos/pipeline/stages.py:STAGES/execution_guide",
-    "eaos/pipeline/stages.py:STAGES/executive",
-    "eaos/pipeline/stages.py:STAGES/compose",
-    "eaos/pipeline/stages.py:STAGES/bundles",
-    "eaos/pipeline/stages.py:STAGES/emit",
-    "eaos/pipeline/stages.py:STAGES/site",
-    "eaos/pipeline/stages.py:STAGES/validate",
-    "eaos/pipeline/stages.py:STAGES/RUNNERS"
+    "eaos/features/check/journey/stages.py:STAGES/facts",
+    "eaos/features/check/journey/stages.py:STAGES/features",
+    "eaos/features/check/journey/stages.py:STAGES/lock",
+    "eaos/features/check/journey/stages.py:STAGES/intake",
+    "eaos/features/check/journey/stages.py:STAGES/engines",
+    "eaos/features/check/journey/stages.py:STAGES/verify",
+    "eaos/features/check/journey/stages.py:STAGES/measure",
+    "eaos/features/check/journey/stages.py:STAGES/policy",
+    "eaos/features/check/journey/stages.py:STAGES/load",
+    "eaos/features/check/journey/stages.py:STAGES/claims",
+    "eaos/features/check/journey/stages.py:STAGES/probe",
+    "eaos/features/check/journey/stages.py:STAGES/semantic",
+    "eaos/features/check/journey/stages.py:STAGES/sustainability",
+    "eaos/features/check/journey/stages.py:STAGES/transform",
+    "eaos/features/check/journey/stages.py:STAGES/plan",
+    "eaos/features/check/journey/stages.py:STAGES/target",
+    "eaos/features/check/journey/stages.py:STAGES/reports",
+    "eaos/features/check/journey/stages.py:STAGES/quality",
+    "eaos/features/check/journey/stages.py:STAGES/pdf",
+    "eaos/features/check/journey/stages.py:STAGES/execution_guide",
+    "eaos/features/check/journey/stages.py:STAGES/executive",
+    "eaos/features/check/journey/stages.py:STAGES/compose",
+    "eaos/features/check/journey/stages.py:STAGES/bundles",
+    "eaos/features/check/journey/stages.py:STAGES/emit",
+    "eaos/features/check/journey/stages.py:STAGES/site",
+    "eaos/features/check/journey/stages.py:STAGES/validate",
+    "eaos/features/check/journey/stages.py:STAGES/RUNNERS"
    ],
-   "title": "STAGES (eaos/pipeline/stages.py)"
+   "title": "STAGES (eaos/features/check/journey/stages.py)"
   },
   {
    "confidence": 0.95,
@@ -2270,51 +2270,51 @@
    "entry": {
     "fact": null,
     "line": 80,
-    "path": "eaos/facts/run.py",
+    "path": "eaos/kernel/facts/run.py",
     "text": "def collect(target, out, selected=None, max_commits=2000, max_files=100000, max_bytes=2_000_000, source=None,"
    },
    "evidence": [
     {
      "fact": null,
      "line": 10,
-     "path": "eaos/facts/run.py",
+     "path": "eaos/kernel/facts/run.py",
      "text": "EXTRACTORS = {'history': history, 'syntax': syntax, 'structure': structure, 'resolve': resolve, 'entrypoints': entrypoints,"
     },
     {
      "fact": null,
      "line": 100,
-     "path": "eaos/facts/run.py",
+     "path": "eaos/kernel/facts/run.py",
      "text": "for name in names:"
     }
    ],
-   "id": "eaos/facts/run.py:collect",
+   "id": "eaos/kernel/facts/run.py:collect",
    "kind": "registry_loop",
    "parent": null,
    "role": "product",
    "stages": [
-    "eaos/facts/run.py:collect/syntax",
-    "eaos/facts/run.py:collect/resolve",
-    "eaos/facts/run.py:collect/structure",
-    "eaos/facts/run.py:collect/fingerprint",
-    "eaos/facts/run.py:collect/sequences",
-    "eaos/facts/run.py:collect/runtime",
-    "eaos/facts/run.py:collect/entrypoints",
-    "eaos/facts/run.py:collect/redundancy",
-    "eaos/facts/run.py:collect/config",
-    "eaos/facts/run.py:collect/metrics",
-    "eaos/facts/run.py:collect/domain",
-    "eaos/facts/run.py:collect/history",
-    "eaos/facts/run.py:collect/graph",
-    "eaos/facts/run.py:collect/flows",
-    "eaos/facts/run.py:collect/leftovers",
-    "eaos/facts/run.py:collect/deadcode",
-    "eaos/facts/run.py:collect/broken",
-    "eaos/facts/run.py:collect/secrets",
-    "eaos/facts/run.py:collect/pipeline",
-    "eaos/facts/run.py:collect/EXTRACTORS",
-    "eaos/facts/run.py:collect/if-name"
+    "eaos/kernel/facts/run.py:collect/syntax",
+    "eaos/kernel/facts/run.py:collect/resolve",
+    "eaos/kernel/facts/run.py:collect/structure",
+    "eaos/kernel/facts/run.py:collect/fingerprint",
+    "eaos/kernel/facts/run.py:collect/sequences",
+    "eaos/kernel/facts/run.py:collect/runtime",
+    "eaos/kernel/facts/run.py:collect/entrypoints",
+    "eaos/kernel/facts/run.py:collect/redundancy",
+    "eaos/kernel/facts/run.py:collect/config",
+    "eaos/kernel/facts/run.py:collect/metrics",
+    "eaos/kernel/facts/run.py:collect/domain",
+    "eaos/kernel/facts/run.py:collect/history",
+    "eaos/kernel/facts/run.py:collect/graph",
+    "eaos/kernel/facts/run.py:collect/flows",
+    "eaos/kernel/facts/run.py:collect/leftovers",
+    "eaos/kernel/facts/run.py:collect/deadcode",
+    "eaos/kernel/facts/run.py:collect/broken",
+    "eaos/kernel/facts/run.py:collect/secrets",
+    "eaos/kernel/facts/run.py:collect/pipeline",
+    "eaos/kernel/facts/run.py:collect/EXTRACTORS",
+    "eaos/kernel/facts/run.py:collect/if-name"
    ],
-   "title": "EXTRACTORS (eaos/facts/run.py)"
+   "title": "EXTRACTORS (eaos/kernel/facts/run.py)"
   },
   {
    "confidence": 0.8,
@@ -2403,7 +2403,7 @@
       "path": "eaos/pipeline/runners.py",
       "text": "RUNNERS = {'facts': facts, 'features': features, 'intake': intake, 'measure': measure, 'lock': lock, 'reports': reports, 'quality': quality, 'pdf': pdf, 'engine"
      },
-     "to": "eaos/pipeline/stages.py:STAGES/facts"
+     "to": "eaos/features/check/journey/stages.py:STAGES/facts"
     },
     {
      "condition": "features",
@@ -2413,7 +2413,7 @@
       "path": "eaos/pipeline/runners.py",
       "text": "RUNNERS = {'facts': facts, 'features': features, 'intake': intake, 'measure': measure, 'lock': lock, 'reports': reports, 'quality': quality, 'pdf': pdf, 'engine"
      },
-     "to": "eaos/pipeline/stages.py:STAGES/features"
+     "to": "eaos/features/check/journey/stages.py:STAGES/features"
     },
     {
      "condition": "intake",
@@ -2423,7 +2423,7 @@
       "path": "eaos/pipeline/runners.py",
       "text": "RUNNERS = {'facts': facts, 'features': features, 'intake': intake, 'measure': measure, 'lock': lock, 'reports': reports, 'quality': quality, 'pdf': pdf, 'engine"
      },
-     "to": "eaos/pipeline/stages.py:STAGES/intake"
+     "to": "eaos/features/check/journey/stages.py:STAGES/intake"
     },
     {
      "condition": "measure",
@@ -2433,7 +2433,7 @@
       "path": "eaos/pipeline/runners.py",
       "text": "RUNNERS = {'facts': facts, 'features': features, 'intake': intake, 'measure': measure, 'lock': lock, 'reports': reports, 'quality': quality, 'pdf': pdf, 'engine"
      },
-     "to": "eaos/pipeline/stages.py:STAGES/measure"
+     "to": "eaos/features/check/journey/stages.py:STAGES/measure"
     },
     {
      "condition": "lock",
@@ -2443,7 +2443,7 @@
       "path": "eaos/pipeline/runners.py",
       "text": "RUNNERS = {'facts': facts, 'features': features, 'intake': intake, 'measure': measure, 'lock': lock, 'reports': reports, 'quality': quality, 'pdf': pdf, 'engine"
      },
-     "to": "eaos/pipeline/stages.py:STAGES/lock"
+     "to": "eaos/features/check/journey/stages.py:STAGES/lock"
     },
     {
      "condition": "reports",
@@ -2453,7 +2453,7 @@
       "path": "eaos/pipeline/runners.py",
       "text": "RUNNERS = {'facts': facts, 'features': features, 'intake': intake, 'measure': measure, 'lock': lock, 'reports': reports, 'quality': quality, 'pdf': pdf, 'engine"
      },
-     "to": "eaos/pipeline/stages.py:STAGES/reports"
+     "to": "eaos/features/check/journey/stages.py:STAGES/reports"
     },
     {
      "condition": "quality",
@@ -2463,7 +2463,7 @@
       "path": "eaos/pipeline/runners.py",
       "text": "RUNNERS = {'facts': facts, 'features': features, 'intake': intake, 'measure': measure, 'lock': lock, 'reports': reports, 'quality': quality, 'pdf': pdf, 'engine"
      },
-     "to": "eaos/pipeline/stages.py:STAGES/quality"
+     "to": "eaos/features/check/journey/stages.py:STAGES/quality"
     },
     {
      "condition": "pdf",
@@ -2473,7 +2473,7 @@
       "path": "eaos/pipeline/runners.py",
       "text": "RUNNERS = {'facts': facts, 'features': features, 'intake': intake, 'measure': measure, 'lock': lock, 'reports': reports, 'quality': quality, 'pdf': pdf, 'engine"
      },
-     "to": "eaos/pipeline/stages.py:STAGES/pdf"
+     "to": "eaos/features/check/journey/stages.py:STAGES/pdf"
     },
     {
      "condition": "engines",
@@ -2483,7 +2483,7 @@
       "path": "eaos/pipeline/runners.py",
       "text": "RUNNERS = {'facts': facts, 'features': features, 'intake': intake, 'measure': measure, 'lock': lock, 'reports': reports, 'quality': quality, 'pdf': pdf, 'engine"
      },
-     "to": "eaos/pipeline/stages.py:STAGES/engines"
+     "to": "eaos/features/check/journey/stages.py:STAGES/engines"
     },
     {
      "condition": "verify",
@@ -2493,7 +2493,7 @@
       "path": "eaos/pipeline/runners.py",
       "text": "RUNNERS = {'facts': facts, 'features': features, 'intake': intake, 'measure': measure, 'lock': lock, 'reports': reports, 'quality': quality, 'pdf': pdf, 'engine"
      },
-     "to": "eaos/pipeline/stages.py:STAGES/verify"
+     "to": "eaos/features/check/journey/stages.py:STAGES/verify"
     },
     {
      "condition": "policy",
@@ -2503,7 +2503,7 @@
       "path": "eaos/pipeline/runners.py",
       "text": "RUNNERS = {'facts': facts, 'features': features, 'intake': intake, 'measure': measure, 'lock': lock, 'reports': reports, 'quality': quality, 'pdf': pdf, 'engine"
      },
-     "to": "eaos/pipeline/stages.py:STAGES/policy"
+     "to": "eaos/features/check/journey/stages.py:STAGES/policy"
     },
     {
      "condition": "claims",
@@ -2513,7 +2513,7 @@
       "path": "eaos/pipeline/runners.py",
       "text": "RUNNERS = {'facts': facts, 'features': features, 'intake': intake, 'measure': measure, 'lock': lock, 'reports': reports, 'quality': quality, 'pdf': pdf, 'engine"
      },
-     "to": "eaos/pipeline/stages.py:STAGES/claims"
+     "to": "eaos/features/check/journey/stages.py:STAGES/claims"
     },
     {
      "condition": "probe",
@@ -2523,7 +2523,7 @@
       "path": "eaos/pipeline/runners.py",
       "text": "'probe': probe, 'load': load, 'semantic': semantic, 'sustainability': sustainability,"
      },
-     "to": "eaos/pipeline/stages.py:STAGES/probe"
+     "to": "eaos/features/check/journey/stages.py:STAGES/probe"
     },
     {
      "condition": "load",
@@ -2533,7 +2533,7 @@
       "path": "eaos/pipeline/runners.py",
       "text": "'probe': probe, 'load': load, 'semantic': semantic, 'sustainability': sustainability,"
      },
-     "to": "eaos/pipeline/stages.py:STAGES/load"
+     "to": "eaos/features/check/journey/stages.py:STAGES/load"
     },
     {
      "condition": "semantic",
@@ -2543,7 +2543,7 @@
       "path": "eaos/pipeline/runners.py",
       "text": "'probe': probe, 'load': load, 'semantic': semantic, 'sustainability': sustainability,"
      },
-     "to": "eaos/pipeline/stages.py:STAGES/semantic"
+     "to": "eaos/features/check/journey/stages.py:STAGES/semantic"
     },
     {
      "condition": "sustainability",
@@ -2553,7 +2553,7 @@
       "path": "eaos/pipeline/runners.py",
       "text": "'probe': probe, 'load': load, 'semantic': semantic, 'sustainability': sustainability,"
      },
-     "to": "eaos/pipeline/stages.py:STAGES/sustainability"
+     "to": "eaos/features/check/journey/stages.py:STAGES/sustainability"
     },
     {
      "condition": "transform",
@@ -2563,7 +2563,7 @@
       "path": "eaos/pipeline/runners.py",
       "text": "'transform': transform, 'plan': plan, 'execution_guide': execution_guide,"
      },
-     "to": "eaos/pipeline/stages.py:STAGES/transform"
+     "to": "eaos/features/check/journey/stages.py:STAGES/transform"
     },
     {
      "condition": "plan",
@@ -2573,7 +2573,7 @@
       "path": "eaos/pipeline/runners.py",
       "text": "'transform': transform, 'plan': plan, 'execution_guide': execution_guide,"
      },
-     "to": "eaos/pipeline/stages.py:STAGES/plan"
+     "to": "eaos/features/check/journey/stages.py:STAGES/plan"
     },
     {
      "condition": "execution_guide",
@@ -2583,7 +2583,7 @@
       "path": "eaos/pipeline/runners.py",
       "text": "'transform': transform, 'plan': plan, 'execution_guide': execution_guide,"
      },
-     "to": "eaos/pipeline/stages.py:STAGES/execution_guide"
+     "to": "eaos/features/check/journey/stages.py:STAGES/execution_guide"
     },
     {
      "condition": "compose",
@@ -2593,7 +2593,7 @@
       "path": "eaos/pipeline/runners.py",
       "text": "'compose': compose, 'emit': emit, 'site': site, 'validate': validate}"
      },
-     "to": "eaos/pipeline/stages.py:STAGES/compose"
+     "to": "eaos/features/check/journey/stages.py:STAGES/compose"
     },
     {
      "condition": "emit",
@@ -2603,7 +2603,7 @@
       "path": "eaos/pipeline/runners.py",
       "text": "'compose': compose, 'emit': emit, 'site': site, 'validate': validate}"
      },
-     "to": "eaos/pipeline/stages.py:STAGES/emit"
+     "to": "eaos/features/check/journey/stages.py:STAGES/emit"
     },
     {
      "condition": "site",
@@ -2613,7 +2613,7 @@
       "path": "eaos/pipeline/runners.py",
       "text": "'compose': compose, 'emit': emit, 'site': site, 'validate': validate}"
      },
-     "to": "eaos/pipeline/stages.py:STAGES/site"
+     "to": "eaos/features/check/journey/stages.py:STAGES/site"
     },
     {
      "condition": "validate",
@@ -2623,7 +2623,7 @@
       "path": "eaos/pipeline/runners.py",
       "text": "'compose': compose, 'emit': emit, 'site': site, 'validate': validate}"
      },
-     "to": "eaos/pipeline/stages.py:STAGES/validate"
+     "to": "eaos/features/check/journey/stages.py:STAGES/validate"
     },
     {
      "condition": "target",
@@ -2633,7 +2633,7 @@
       "path": "eaos/pipeline/runners.py",
       "text": "RUNNERS.update(target=target, executive=executive, bundles=bundles)"
      },
-     "to": "eaos/pipeline/stages.py:STAGES/target"
+     "to": "eaos/features/check/journey/stages.py:STAGES/target"
     },
     {
      "condition": "executive",
@@ -2643,7 +2643,7 @@
       "path": "eaos/pipeline/runners.py",
       "text": "RUNNERS.update(target=target, executive=executive, bundles=bundles)"
      },
-     "to": "eaos/pipeline/stages.py:STAGES/executive"
+     "to": "eaos/features/check/journey/stages.py:STAGES/executive"
     },
     {
      "condition": "bundles",
@@ -2653,21 +2653,21 @@
       "path": "eaos/pipeline/runners.py",
       "text": "RUNNERS.update(target=target, executive=executive, bundles=bundles)"
      },
-     "to": "eaos/pipeline/stages.py:STAGES/bundles"
+     "to": "eaos/features/check/journey/stages.py:STAGES/bundles"
     }
    ],
    "default": "failed",
    "entry": {
     "fact": null,
     "line": 124,
-    "path": "eaos/pipeline/run.py",
+    "path": "eaos/features/check/journey/run.py",
     "text": "runner = runners.get(stage.name)"
    },
-   "id": "eaos/pipeline/stages.py:STAGES:RUNNERS",
+   "id": "eaos/features/check/journey/stages.py:STAGES:RUNNERS",
    "kind": "registry",
    "on": "stage name",
-   "pipeline": "eaos/pipeline/stages.py:STAGES",
-   "stage": "eaos/pipeline/stages.py:STAGES/RUNNERS",
+   "pipeline": "eaos/features/check/journey/stages.py:STAGES",
+   "stage": "eaos/features/check/journey/stages.py:STAGES/RUNNERS",
    "table": "RUNNERS",
    "total": true,
    "unhandled": []
@@ -3033,204 +3033,204 @@
      "evidence": {
       "fact": null,
       "line": 10,
-      "path": "eaos/facts/run.py",
+      "path": "eaos/kernel/facts/run.py",
       "text": "EXTRACTORS = {'history': history, 'syntax': syntax, 'structure': structure, 'resolve': resolve, 'entrypoints': entrypoints,"
      },
-     "to": "eaos/facts/run.py:collect/history"
+     "to": "eaos/kernel/facts/run.py:collect/history"
     },
     {
      "condition": "syntax",
      "evidence": {
       "fact": null,
       "line": 10,
-      "path": "eaos/facts/run.py",
+      "path": "eaos/kernel/facts/run.py",
       "text": "EXTRACTORS = {'history': history, 'syntax': syntax, 'structure': structure, 'resolve': resolve, 'entrypoints': entrypoints,"
      },
-     "to": "eaos/facts/run.py:collect/syntax"
+     "to": "eaos/kernel/facts/run.py:collect/syntax"
     },
     {
      "condition": "structure",
      "evidence": {
       "fact": null,
       "line": 10,
-      "path": "eaos/facts/run.py",
+      "path": "eaos/kernel/facts/run.py",
       "text": "EXTRACTORS = {'history': history, 'syntax': syntax, 'structure': structure, 'resolve': resolve, 'entrypoints': entrypoints,"
      },
-     "to": "eaos/facts/run.py:collect/structure"
+     "to": "eaos/kernel/facts/run.py:collect/structure"
     },
     {
      "condition": "resolve",
      "evidence": {
       "fact": null,
       "line": 10,
-      "path": "eaos/facts/run.py",
+      "path": "eaos/kernel/facts/run.py",
       "text": "EXTRACTORS = {'history': history, 'syntax': syntax, 'structure': structure, 'resolve': resolve, 'entrypoints': entrypoints,"
      },
-     "to": "eaos/facts/run.py:collect/resolve"
+     "to": "eaos/kernel/facts/run.py:collect/resolve"
     },
     {
      "condition": "entrypoints",
      "evidence": {
       "fact": null,
       "line": 10,
-      "path": "eaos/facts/run.py",
+      "path": "eaos/kernel/facts/run.py",
       "text": "EXTRACTORS = {'history': history, 'syntax': syntax, 'structure': structure, 'resolve': resolve, 'entrypoints': entrypoints,"
      },
-     "to": "eaos/facts/run.py:collect/entrypoints"
+     "to": "eaos/kernel/facts/run.py:collect/entrypoints"
     },
     {
      "condition": "config",
      "evidence": {
       "fact": null,
       "line": 11,
-      "path": "eaos/facts/run.py",
+      "path": "eaos/kernel/facts/run.py",
       "text": "'config': config, 'metrics': metrics, 'graph': graph, 'flows': flows, 'domain': domain,"
      },
-     "to": "eaos/facts/run.py:collect/config"
+     "to": "eaos/kernel/facts/run.py:collect/config"
     },
     {
      "condition": "metrics",
      "evidence": {
       "fact": null,
       "line": 11,
-      "path": "eaos/facts/run.py",
+      "path": "eaos/kernel/facts/run.py",
       "text": "'config': config, 'metrics': metrics, 'graph': graph, 'flows': flows, 'domain': domain,"
      },
-     "to": "eaos/facts/run.py:collect/metrics"
+     "to": "eaos/kernel/facts/run.py:collect/metrics"
     },
     {
      "condition": "graph",
      "evidence": {
       "fact": null,
       "line": 11,
-      "path": "eaos/facts/run.py",
+      "path": "eaos/kernel/facts/run.py",
       "text": "'config': config, 'metrics': metrics, 'graph': graph, 'flows': flows, 'domain': domain,"
      },
-     "to": "eaos/facts/run.py:collect/graph"
+     "to": "eaos/kernel/facts/run.py:collect/graph"
     },
     {
      "condition": "flows",
      "evidence": {
       "fact": null,
       "line": 11,
-      "path": "eaos/facts/run.py",
+      "path": "eaos/kernel/facts/run.py",
       "text": "'config': config, 'metrics': metrics, 'graph': graph, 'flows': flows, 'domain': domain,"
      },
-     "to": "eaos/facts/run.py:collect/flows"
+     "to": "eaos/kernel/facts/run.py:collect/flows"
     },
     {
      "condition": "domain",
      "evidence": {
       "fact": null,
       "line": 11,
-      "path": "eaos/facts/run.py",
+      "path": "eaos/kernel/facts/run.py",
       "text": "'config': config, 'metrics': metrics, 'graph': graph, 'flows': flows, 'domain': domain,"
      },
-     "to": "eaos/facts/run.py:collect/domain"
+     "to": "eaos/kernel/facts/run.py:collect/domain"
     },
     {
      "condition": "fingerprint",
      "evidence": {
       "fact": null,
       "line": 12,
-      "path": "eaos/facts/run.py",
+      "path": "eaos/kernel/facts/run.py",
       "text": "'fingerprint': fingerprint, 'sequences': sequences, 'redundancy': redundancy, 'runtime': runtime,"
      },
-     "to": "eaos/facts/run.py:collect/fingerprint"
+     "to": "eaos/kernel/facts/run.py:collect/fingerprint"
     },
     {
      "condition": "sequences",
      "evidence": {
       "fact": null,
       "line": 12,
-      "path": "eaos/facts/run.py",
+      "path": "eaos/kernel/facts/run.py",
       "text": "'fingerprint': fingerprint, 'sequences': sequences, 'redundancy': redundancy, 'runtime': runtime,"
      },
-     "to": "eaos/facts/run.py:collect/sequences"
+     "to": "eaos/kernel/facts/run.py:collect/sequences"
     },
     {
      "condition": "redundancy",
      "evidence": {
       "fact": null,
       "line": 12,
-      "path": "eaos/facts/run.py",
+      "path": "eaos/kernel/facts/run.py",
       "text": "'fingerprint': fingerprint, 'sequences': sequences, 'redundancy': redundancy, 'runtime': runtime,"
      },
-     "to": "eaos/facts/run.py:collect/redundancy"
+     "to": "eaos/kernel/facts/run.py:collect/redundancy"
     },
     {
      "condition": "runtime",
      "evidence": {
       "fact": null,
       "line": 12,
-      "path": "eaos/facts/run.py",
+      "path": "eaos/kernel/facts/run.py",
       "text": "'fingerprint': fingerprint, 'sequences': sequences, 'redundancy': redundancy, 'runtime': runtime,"
      },
-     "to": "eaos/facts/run.py:collect/runtime"
+     "to": "eaos/kernel/facts/run.py:collect/runtime"
     },
     {
      "condition": "leftovers",
      "evidence": {
       "fact": null,
       "line": 13,
-      "path": "eaos/facts/run.py",
+      "path": "eaos/kernel/facts/run.py",
       "text": "'leftovers': leftovers, 'deadcode': deadcode, 'broken': broken,"
      },
-     "to": "eaos/facts/run.py:collect/leftovers"
+     "to": "eaos/kernel/facts/run.py:collect/leftovers"
     },
     {
      "condition": "deadcode",
      "evidence": {
       "fact": null,
       "line": 13,
-      "path": "eaos/facts/run.py",
+      "path": "eaos/kernel/facts/run.py",
       "text": "'leftovers': leftovers, 'deadcode': deadcode, 'broken': broken,"
      },
-     "to": "eaos/facts/run.py:collect/deadcode"
+     "to": "eaos/kernel/facts/run.py:collect/deadcode"
     },
     {
      "condition": "broken",
      "evidence": {
       "fact": null,
       "line": 13,
-      "path": "eaos/facts/run.py",
+      "path": "eaos/kernel/facts/run.py",
       "text": "'leftovers': leftovers, 'deadcode': deadcode, 'broken': broken,"
      },
-     "to": "eaos/facts/run.py:collect/broken"
+     "to": "eaos/kernel/facts/run.py:collect/broken"
     },
     {
      "condition": "secrets",
      "evidence": {
       "fact": null,
       "line": 14,
-      "path": "eaos/facts/run.py",
+      "path": "eaos/kernel/facts/run.py",
       "text": "'secrets': secrets, 'pipeline': pipeline}"
      },
-     "to": "eaos/facts/run.py:collect/secrets"
+     "to": "eaos/kernel/facts/run.py:collect/secrets"
     },
     {
      "condition": "pipeline",
      "evidence": {
       "fact": null,
       "line": 14,
-      "path": "eaos/facts/run.py",
+      "path": "eaos/kernel/facts/run.py",
       "text": "'secrets': secrets, 'pipeline': pipeline}"
      },
-     "to": "eaos/facts/run.py:collect/pipeline"
+     "to": "eaos/kernel/facts/run.py:collect/pipeline"
     }
    ],
    "default": null,
    "entry": {
     "fact": null,
     "line": 101,
-    "path": "eaos/facts/run.py",
+    "path": "eaos/kernel/facts/run.py",
     "text": "module = EXTRACTORS[name]"
    },
-   "id": "eaos/facts/run.py:collect:EXTRACTORS",
+   "id": "eaos/kernel/facts/run.py:collect:EXTRACTORS",
    "kind": "dict_dispatch",
    "on": "name",
-   "pipeline": "eaos/facts/run.py:collect",
-   "stage": "eaos/facts/run.py:collect/EXTRACTORS",
+   "pipeline": "eaos/kernel/facts/run.py:collect",
+   "stage": "eaos/kernel/facts/run.py:collect/EXTRACTORS",
    "table": "EXTRACTORS",
    "total": true,
    "unhandled": []
@@ -3242,167 +3242,167 @@
      "evidence": {
       "fact": null,
       "line": 102,
-      "path": "eaos/facts/run.py",
+      "path": "eaos/kernel/facts/run.py",
       "text": "if name == 'history': result = module.run(target, source, max_commits=max_commits)"
      },
-     "to": "eaos/facts/run.py:collect/history"
+     "to": "eaos/kernel/facts/run.py:collect/history"
     },
     {
      "condition": "resolve",
      "evidence": {
       "fact": null,
       "line": 103,
-      "path": "eaos/facts/run.py",
+      "path": "eaos/kernel/facts/run.py",
       "text": "elif name == 'resolve':"
      },
-     "to": "eaos/facts/run.py:collect/resolve"
+     "to": "eaos/kernel/facts/run.py:collect/resolve"
     },
     {
      "condition": "redundancy",
      "evidence": {
       "fact": null,
       "line": 109,
-      "path": "eaos/facts/run.py",
+      "path": "eaos/kernel/facts/run.py",
       "text": "elif name == 'redundancy': result = module.run(target, source, symbols=[f for f in produced.get('syntax', []) if f['kind'] == 'symbol'] or None,"
      },
-     "to": "eaos/facts/run.py:collect/redundancy"
+     "to": "eaos/kernel/facts/run.py:collect/redundancy"
     },
     {
      "condition": "structure",
      "evidence": {
       "fact": null,
       "line": 111,
-      "path": "eaos/facts/run.py",
+      "path": "eaos/kernel/facts/run.py",
       "text": "elif name in {'structure', 'fingerprint', 'sequences', 'runtime'}: result = module.run(target, source, symbols=[f for f in produced.get('syntax', []) if f['kind"
      },
-     "to": "eaos/facts/run.py:collect/structure"
+     "to": "eaos/kernel/facts/run.py:collect/structure"
     },
     {
      "condition": "fingerprint",
      "evidence": {
       "fact": null,
       "line": 111,
-      "path": "eaos/facts/run.py",
+      "path": "eaos/kernel/facts/run.py",
       "text": "elif name in {'structure', 'fingerprint', 'sequences', 'runtime'}: result = module.run(target, source, symbols=[f for f in produced.get('syntax', []) if f['kind"
      },
-     "to": "eaos/facts/run.py:collect/fingerprint"
+     "to": "eaos/kernel/facts/run.py:collect/fingerprint"
     },
     {
      "condition": "sequences",
      "evidence": {
       "fact": null,
       "line": 111,
-      "path": "eaos/facts/run.py",
+      "path": "eaos/kernel/facts/run.py",
       "text": "elif name in {'structure', 'fingerprint', 'sequences', 'runtime'}: result = module.run(target, source, symbols=[f for f in produced.get('syntax', []) if f['kind"
      },
-     "to": "eaos/facts/run.py:collect/sequences"
+     "to": "eaos/kernel/facts/run.py:collect/sequences"
     },
     {
      "condition": "runtime",
      "evidence": {
       "fact": null,
       "line": 111,
-      "path": "eaos/facts/run.py",
+      "path": "eaos/kernel/facts/run.py",
       "text": "elif name in {'structure', 'fingerprint', 'sequences', 'runtime'}: result = module.run(target, source, symbols=[f for f in produced.get('syntax', []) if f['kind"
      },
-     "to": "eaos/facts/run.py:collect/runtime"
+     "to": "eaos/kernel/facts/run.py:collect/runtime"
     },
     {
      "condition": "entrypoints",
      "evidence": {
       "fact": null,
       "line": 112,
-      "path": "eaos/facts/run.py",
+      "path": "eaos/kernel/facts/run.py",
       "text": "elif name in {'entrypoints', 'metrics'}: result = module.run(target, source, symbols=[f for f in produced.get('syntax', []) if f['kind'] == 'symbol'] or None)"
      },
-     "to": "eaos/facts/run.py:collect/entrypoints"
+     "to": "eaos/kernel/facts/run.py:collect/entrypoints"
     },
     {
      "condition": "metrics",
      "evidence": {
       "fact": null,
       "line": 112,
-      "path": "eaos/facts/run.py",
+      "path": "eaos/kernel/facts/run.py",
       "text": "elif name in {'entrypoints', 'metrics'}: result = module.run(target, source, symbols=[f for f in produced.get('syntax', []) if f['kind'] == 'symbol'] or None)"
      },
-     "to": "eaos/facts/run.py:collect/metrics"
+     "to": "eaos/kernel/facts/run.py:collect/metrics"
     },
     {
      "condition": "flows",
      "evidence": {
       "fact": null,
       "line": 113,
-      "path": "eaos/facts/run.py",
+      "path": "eaos/kernel/facts/run.py",
       "text": "elif name == 'flows': result = module.run(target, source, symbols=[f for f in produced.get('syntax', []) if f['kind'] == 'symbol'],"
      },
-     "to": "eaos/facts/run.py:collect/flows"
+     "to": "eaos/kernel/facts/run.py:collect/flows"
     },
     {
      "condition": "graph",
      "evidence": {
       "fact": null,
       "line": 117,
-      "path": "eaos/facts/run.py",
+      "path": "eaos/kernel/facts/run.py",
       "text": "elif name == 'graph': result = module.run(target, source, edges=produced.get('resolve', []), entry_points=produced.get('entrypoints', []), metrics=produced.get("
      },
-     "to": "eaos/facts/run.py:collect/graph"
+     "to": "eaos/kernel/facts/run.py:collect/graph"
     },
     {
      "condition": "syntax",
      "evidence": {
       "fact": null,
       "line": 118,
-      "path": "eaos/facts/run.py",
+      "path": "eaos/kernel/facts/run.py",
       "text": "elif name == 'syntax': result = module.run(target, source, cache=cache)"
      },
-     "to": "eaos/facts/run.py:collect/syntax"
+     "to": "eaos/kernel/facts/run.py:collect/syntax"
     },
     {
      "condition": "leftovers",
      "evidence": {
       "fact": null,
       "line": 119,
-      "path": "eaos/facts/run.py",
+      "path": "eaos/kernel/facts/run.py",
       "text": "elif name == 'leftovers': result = module.run(target, source, resolve_facts=produced.get('resolve', []))"
      },
-     "to": "eaos/facts/run.py:collect/leftovers"
+     "to": "eaos/kernel/facts/run.py:collect/leftovers"
     },
     {
      "condition": "secrets",
      "evidence": {
       "fact": null,
       "line": 120,
-      "path": "eaos/facts/run.py",
+      "path": "eaos/kernel/facts/run.py",
       "text": "elif name == 'secrets': result = module.run(target, source)"
      },
-     "to": "eaos/facts/run.py:collect/secrets"
+     "to": "eaos/kernel/facts/run.py:collect/secrets"
     },
     {
      "condition": "broken",
      "evidence": {
       "fact": null,
       "line": 121,
-      "path": "eaos/facts/run.py",
+      "path": "eaos/kernel/facts/run.py",
       "text": "elif name == 'broken': result = module.run(target, source, resolved=produced.get('resolve', []))"
      },
-     "to": "eaos/facts/run.py:collect/broken"
+     "to": "eaos/kernel/facts/run.py:collect/broken"
     },
     {
      "condition": "deadcode",
      "evidence": {
       "fact": null,
       "line": 122,
-      "path": "eaos/facts/run.py",
+      "path": "eaos/kernel/facts/run.py",
       "text": "elif name == 'deadcode': result = module.run(target, source, symbols=[f for f in produced.get('syntax', []) if f['kind'] == 'symbol'],"
      },
-     "to": "eaos/facts/run.py:collect/deadcode"
+     "to": "eaos/kernel/facts/run.py:collect/deadcode"
     },
     {
      "condition": "else",
      "evidence": {
       "fact": null,
       "line": 124,
-      "path": "eaos/facts/run.py",
+      "path": "eaos/kernel/facts/run.py",
       "text": "else: result = module.run(target, source)"
      },
      "to": null
@@ -3412,14 +3412,14 @@
    "entry": {
     "fact": null,
     "line": 102,
-    "path": "eaos/facts/run.py",
+    "path": "eaos/kernel/facts/run.py",
     "text": "if name == 'history': result = module.run(target, source, max_commits=max_commits)"
    },
-   "id": "eaos/facts/run.py:collect:name-chain",
+   "id": "eaos/kernel/facts/run.py:collect:name-chain",
    "kind": "if_chain",
    "on": "name",
-   "pipeline": "eaos/facts/run.py:collect",
-   "stage": "eaos/facts/run.py:collect/if-name",
+   "pipeline": "eaos/kernel/facts/run.py:collect",
+   "stage": "eaos/kernel/facts/run.py:collect/if-name",
    "table": "name",
    "total": true,
    "unhandled": []
@@ -3630,7 +3630,7 @@
     "path": "eaos/pipeline/runners.py",
     "text": "def facts(context):"
    },
-   "id": "eaos/pipeline/stages.py:STAGES/facts",
+   "id": "eaos/features/check/journey/stages.py:STAGES/facts",
    "inputs": [],
    "kind": "stage",
    "label": "facts",
@@ -3645,7 +3645,7 @@
      "shape": null
     }
    ],
-   "pipeline": "eaos/pipeline/stages.py:STAGES",
+   "pipeline": "eaos/features/check/journey/stages.py:STAGES",
    "side_effects": [],
    "steps": [
     "M03"
@@ -3665,7 +3665,7 @@
     "path": "eaos/pipeline/runners.py",
     "text": "def features(context):"
    },
-   "id": "eaos/pipeline/stages.py:STAGES/features",
+   "id": "eaos/features/check/journey/stages.py:STAGES/features",
    "inputs": [
     {
      "kind": "artifact",
@@ -3691,7 +3691,7 @@
      "shape": null
     }
    ],
-   "pipeline": "eaos/pipeline/stages.py:STAGES",
+   "pipeline": "eaos/features/check/journey/stages.py:STAGES",
    "side_effects": [
     {
      "fact": null,
@@ -3720,7 +3720,7 @@
     "path": "eaos/pipeline/runners.py",
     "text": "def lock(context):"
    },
-   "id": "eaos/pipeline/stages.py:STAGES/lock",
+   "id": "eaos/features/check/journey/stages.py:STAGES/lock",
    "inputs": [
     {
      "kind": "artifact",
@@ -3746,7 +3746,7 @@
      "shape": null
     }
    ],
-   "pipeline": "eaos/pipeline/stages.py:STAGES",
+   "pipeline": "eaos/features/check/journey/stages.py:STAGES",
    "side_effects": [],
    "steps": [
     "M03"
@@ -3766,7 +3766,7 @@
     "path": "eaos/pipeline/runners.py",
     "text": "def intake(context):"
    },
-   "id": "eaos/pipeline/stages.py:STAGES/intake",
+   "id": "eaos/features/check/journey/stages.py:STAGES/intake",
    "inputs": [
     {
      "kind": "artifact",
@@ -3792,7 +3792,7 @@
      "shape": null
     }
    ],
-   "pipeline": "eaos/pipeline/stages.py:STAGES",
+   "pipeline": "eaos/features/check/journey/stages.py:STAGES",
    "side_effects": [],
    "steps": [
     "M03"
@@ -3812,7 +3812,7 @@
     "path": "eaos/pipeline/runners.py",
     "text": "def engines(context):"
    },
-   "id": "eaos/pipeline/stages.py:STAGES/engines",
+   "id": "eaos/features/check/journey/stages.py:STAGES/engines",
    "inputs": [
     {
      "kind": "artifact",
@@ -3838,7 +3838,7 @@
      "shape": null
     }
    ],
-   "pipeline": "eaos/pipeline/stages.py:STAGES",
+   "pipeline": "eaos/features/check/journey/stages.py:STAGES",
    "side_effects": [
     {
      "fact": null,
@@ -3867,7 +3867,7 @@
     "path": "eaos/pipeline/runners.py",
     "text": "def verify(context):"
    },
-   "id": "eaos/pipeline/stages.py:STAGES/verify",
+   "id": "eaos/features/check/journey/stages.py:STAGES/verify",
    "inputs": [
     {
      "kind": "artifact",
@@ -3888,7 +3888,7 @@
      "shape": null
     }
    ],
-   "pipeline": "eaos/pipeline/stages.py:STAGES",
+   "pipeline": "eaos/features/check/journey/stages.py:STAGES",
    "side_effects": [],
    "steps": [
     "M03"
@@ -3908,7 +3908,7 @@
     "path": "eaos/pipeline/runners.py",
     "text": "def measure(context):"
    },
-   "id": "eaos/pipeline/stages.py:STAGES/measure",
+   "id": "eaos/features/check/journey/stages.py:STAGES/measure",
    "inputs": [
     {
      "kind": "artifact",
@@ -3934,7 +3934,7 @@
      "shape": null
     }
    ],
-   "pipeline": "eaos/pipeline/stages.py:STAGES",
+   "pipeline": "eaos/features/check/journey/stages.py:STAGES",
    "side_effects": [],
    "steps": [
     "M03"
@@ -3954,7 +3954,7 @@
     "path": "eaos/pipeline/runners.py",
     "text": "def policy(context):"
    },
-   "id": "eaos/pipeline/stages.py:STAGES/policy",
+   "id": "eaos/features/check/journey/stages.py:STAGES/policy",
    "inputs": [
     {
      "kind": "artifact",
@@ -3980,7 +3980,7 @@
      "shape": null
     }
    ],
-   "pipeline": "eaos/pipeline/stages.py:STAGES",
+   "pipeline": "eaos/features/check/journey/stages.py:STAGES",
    "side_effects": [],
    "steps": [
     "M03"
@@ -4002,7 +4002,7 @@
     "path": "eaos/pipeline/runners.py",
     "text": "def load(context):"
    },
-   "id": "eaos/pipeline/stages.py:STAGES/load",
+   "id": "eaos/features/check/journey/stages.py:STAGES/load",
    "inputs": [
     {
      "kind": "artifact",
@@ -4028,7 +4028,7 @@
      "shape": null
     }
    ],
-   "pipeline": "eaos/pipeline/stages.py:STAGES",
+   "pipeline": "eaos/features/check/journey/stages.py:STAGES",
    "side_effects": [],
    "steps": [
     "M03"
@@ -4048,7 +4048,7 @@
     "path": "eaos/pipeline/runners.py",
     "text": "def claims(context):"
    },
-   "id": "eaos/pipeline/stages.py:STAGES/claims",
+   "id": "eaos/features/check/journey/stages.py:STAGES/claims",
    "inputs": [
     {
      "kind": "artifact",
@@ -4089,7 +4089,7 @@
      "shape": null
     }
    ],
-   "pipeline": "eaos/pipeline/stages.py:STAGES",
+   "pipeline": "eaos/features/check/journey/stages.py:STAGES",
    "side_effects": [],
    "steps": [
     "M03"
@@ -4109,7 +4109,7 @@
     "path": "eaos/pipeline/runners.py",
     "text": "def probe(context):"
    },
-   "id": "eaos/pipeline/stages.py:STAGES/probe",
+   "id": "eaos/features/check/journey/stages.py:STAGES/probe",
    "inputs": [
     {
      "kind": "artifact",
@@ -4140,7 +4140,7 @@
      "shape": null
     }
    ],
-   "pipeline": "eaos/pipeline/stages.py:STAGES",
+   "pipeline": "eaos/features/check/journey/stages.py:STAGES",
    "side_effects": [],
    "steps": [
     "M03"
@@ -4160,7 +4160,7 @@
     "path": "eaos/pipeline/runners.py",
     "text": "def semantic(context):"
    },
-   "id": "eaos/pipeline/stages.py:STAGES/semantic",
+   "id": "eaos/features/check/journey/stages.py:STAGES/semantic",
    "inputs": [
     {
      "kind": "artifact",
@@ -4194,7 +4194,7 @@
      "shape": null
     }
    ],
-   "pipeline": "eaos/pipeline/stages.py:STAGES",
+   "pipeline": "eaos/features/check/journey/stages.py:STAGES",
    "side_effects": [],
    "steps": [
     "M03"
@@ -4214,7 +4214,7 @@
     "path": "eaos/pipeline/runners.py",
     "text": "def sustainability(context):"
    },
-   "id": "eaos/pipeline/stages.py:STAGES/sustainability",
+   "id": "eaos/features/check/journey/stages.py:STAGES/sustainability",
    "inputs": [
     {
      "kind": "artifact",
@@ -4250,7 +4250,7 @@
      "shape": null
     }
    ],
-   "pipeline": "eaos/pipeline/stages.py:STAGES",
+   "pipeline": "eaos/features/check/journey/stages.py:STAGES",
    "side_effects": [],
    "steps": [
     "M03"
@@ -4270,7 +4270,7 @@
     "path": "eaos/pipeline/runners.py",
     "text": "def transform(context):"
    },
-   "id": "eaos/pipeline/stages.py:STAGES/transform",
+   "id": "eaos/features/check/journey/stages.py:STAGES/transform",
    "inputs": [
     {
      "kind": "artifact",
@@ -4301,7 +4301,7 @@
      "shape": null
     }
    ],
-   "pipeline": "eaos/pipeline/stages.py:STAGES",
+   "pipeline": "eaos/features/check/journey/stages.py:STAGES",
    "side_effects": [],
    "steps": [
     "M03"
@@ -4323,7 +4323,7 @@
     "path": "eaos/pipeline/runners.py",
     "text": "def plan(context):"
    },
-   "id": "eaos/pipeline/stages.py:STAGES/plan",
+   "id": "eaos/features/check/journey/stages.py:STAGES/plan",
    "inputs": [
     {
      "kind": "artifact",
@@ -4349,7 +4349,7 @@
      "shape": null
     }
    ],
-   "pipeline": "eaos/pipeline/stages.py:STAGES",
+   "pipeline": "eaos/features/check/journey/stages.py:STAGES",
    "side_effects": [],
    "steps": [
     "M03"
@@ -4369,7 +4369,7 @@
     "path": "eaos/pipeline/runners.py",
     "text": "def target(context):"
    },
-   "id": "eaos/pipeline/stages.py:STAGES/target",
+   "id": "eaos/features/check/journey/stages.py:STAGES/target",
    "inputs": [
     {
      "kind": "artifact",
@@ -4410,7 +4410,7 @@
      "shape": null
     }
    ],
-   "pipeline": "eaos/pipeline/stages.py:STAGES",
+   "pipeline": "eaos/features/check/journey/stages.py:STAGES",
    "side_effects": [],
    "steps": [
     "M03"
@@ -4430,7 +4430,7 @@
     "path": "eaos/pipeline/runners.py",
     "text": "def reports(context):"
    },
-   "id": "eaos/pipeline/stages.py:STAGES/reports",
+   "id": "eaos/features/check/journey/stages.py:STAGES/reports",
    "inputs": [
     {
      "kind": "artifact",
@@ -4486,7 +4486,7 @@
      "shape": null
     }
    ],
-   "pipeline": "eaos/pipeline/stages.py:STAGES",
+   "pipeline": "eaos/features/check/journey/stages.py:STAGES",
    "side_effects": [],
    "steps": [
     "M03"
@@ -4506,7 +4506,7 @@
     "path": "eaos/pipeline/runners.py",
     "text": "def quality(context):"
    },
-   "id": "eaos/pipeline/stages.py:STAGES/quality",
+   "id": "eaos/features/check/journey/stages.py:STAGES/quality",
    "inputs": [
     {
      "kind": "artifact",
@@ -4537,7 +4537,7 @@
      "shape": null
     }
    ],
-   "pipeline": "eaos/pipeline/stages.py:STAGES",
+   "pipeline": "eaos/features/check/journey/stages.py:STAGES",
    "side_effects": [],
    "steps": [
     "M03"
@@ -4557,7 +4557,7 @@
     "path": "eaos/pipeline/runners.py",
     "text": "def pdf(context):"
    },
-   "id": "eaos/pipeline/stages.py:STAGES/pdf",
+   "id": "eaos/features/check/journey/stages.py:STAGES/pdf",
    "inputs": [
     {
      "kind": "artifact",
@@ -4588,7 +4588,7 @@
      "shape": null
     }
    ],
-   "pipeline": "eaos/pipeline/stages.py:STAGES",
+   "pipeline": "eaos/features/check/journey/stages.py:STAGES",
    "side_effects": [],
    "steps": [
     "M03"
@@ -4608,7 +4608,7 @@
     "path": "eaos/pipeline/runners.py",
     "text": "def execution_guide(context):"
    },
-   "id": "eaos/pipeline/stages.py:STAGES/execution_guide",
+   "id": "eaos/features/check/journey/stages.py:STAGES/execution_guide",
    "inputs": [
     {
      "kind": "artifact",
@@ -4654,7 +4654,7 @@
      "shape": null
     }
    ],
-   "pipeline": "eaos/pipeline/stages.py:STAGES",
+   "pipeline": "eaos/features/check/journey/stages.py:STAGES",
    "side_effects": [],
    "steps": [
     "M03"
@@ -4674,7 +4674,7 @@
     "path": "eaos/pipeline/runners.py",
     "text": "def executive(context):"
    },
-   "id": "eaos/pipeline/stages.py:STAGES/executive",
+   "id": "eaos/features/check/journey/stages.py:STAGES/executive",
    "inputs": [
     {
      "kind": "artifact",
@@ -4700,7 +4700,7 @@
      "shape": null
     }
    ],
-   "pipeline": "eaos/pipeline/stages.py:STAGES",
+   "pipeline": "eaos/features/check/journey/stages.py:STAGES",
    "side_effects": [],
    "steps": [
     "M03"
@@ -4720,7 +4720,7 @@
     "path": "eaos/pipeline/runners.py",
     "text": "def compose(context):"
    },
-   "id": "eaos/pipeline/stages.py:STAGES/compose",
+   "id": "eaos/features/check/journey/stages.py:STAGES/compose",
    "inputs": [
     {
      "kind": "artifact",
@@ -4776,7 +4776,7 @@
      "shape": null
     }
    ],
-   "pipeline": "eaos/pipeline/stages.py:STAGES",
+   "pipeline": "eaos/features/check/journey/stages.py:STAGES",
    "side_effects": [],
    "steps": [
     "M03"
@@ -4798,7 +4798,7 @@
     "path": "eaos/pipeline/runners.py",
     "text": "def bundles(context):"
    },
-   "id": "eaos/pipeline/stages.py:STAGES/bundles",
+   "id": "eaos/features/check/journey/stages.py:STAGES/bundles",
    "inputs": [
     {
      "kind": "artifact",
@@ -4884,7 +4884,7 @@
      "shape": null
     }
    ],
-   "pipeline": "eaos/pipeline/stages.py:STAGES",
+   "pipeline": "eaos/features/check/journey/stages.py:STAGES",
    "side_effects": [],
    "steps": [
     "M03"
@@ -4904,7 +4904,7 @@
     "path": "eaos/pipeline/runners.py",
     "text": "def emit(context):"
    },
-   "id": "eaos/pipeline/stages.py:STAGES/emit",
+   "id": "eaos/features/check/journey/stages.py:STAGES/emit",
    "inputs": [
     {
      "kind": "artifact",
@@ -4940,7 +4940,7 @@
      "shape": null
     }
    ],
-   "pipeline": "eaos/pipeline/stages.py:STAGES",
+   "pipeline": "eaos/features/check/journey/stages.py:STAGES",
    "side_effects": [],
    "steps": [
     "M03"
@@ -4960,7 +4960,7 @@
     "path": "eaos/pipeline/runners.py",
     "text": "def site(context):"
    },
-   "id": "eaos/pipeline/stages.py:STAGES/site",
+   "id": "eaos/features/check/journey/stages.py:STAGES/site",
    "inputs": [
     {
      "kind": "artifact",
@@ -4991,7 +4991,7 @@
      "shape": null
     }
    ],
-   "pipeline": "eaos/pipeline/stages.py:STAGES",
+   "pipeline": "eaos/features/check/journey/stages.py:STAGES",
    "side_effects": [],
    "steps": [
     "M03"
@@ -5011,7 +5011,7 @@
     "path": "eaos/pipeline/runners.py",
     "text": "def validate(context):"
    },
-   "id": "eaos/pipeline/stages.py:STAGES/validate",
+   "id": "eaos/features/check/journey/stages.py:STAGES/validate",
    "inputs": [
     {
      "kind": "artifact",
@@ -5047,7 +5047,7 @@
      "shape": null
     }
    ],
-   "pipeline": "eaos/pipeline/stages.py:STAGES",
+   "pipeline": "eaos/features/check/journey/stages.py:STAGES",
    "side_effects": [
     {
      "fact": null,
@@ -5076,7 +5076,7 @@
     "path": "eaos/pipeline/runners.py",
     "text": "RUNNERS = {'facts': facts, 'features': features, 'intake': intake, 'measure': measure, 'lock': lock, 'reports': reports, 'quality': quality, 'pdf': pdf, 'engine"
    },
-   "id": "eaos/pipeline/stages.py:STAGES/RUNNERS",
+   "id": "eaos/features/check/journey/stages.py:STAGES/RUNNERS",
    "inputs": [],
    "kind": "router",
    "label": "RUNNERS",
@@ -5085,7 +5085,7 @@
    "optional": false,
    "order": 1,
    "outputs": [],
-   "pipeline": "eaos/pipeline/stages.py:STAGES",
+   "pipeline": "eaos/features/check/journey/stages.py:STAGES",
    "side_effects": [],
    "steps": [
     "M03"
@@ -5627,7 +5627,7 @@
     "path": "eaos/facts/syntax.py",
     "text": "def run(target, source, cache=None, **options):"
    },
-   "id": "eaos/facts/run.py:collect/syntax",
+   "id": "eaos/kernel/facts/run.py:collect/syntax",
    "inputs": [],
    "kind": "stage",
    "label": "syntax",
@@ -5642,7 +5642,7 @@
      "shape": null
     }
    ],
-   "pipeline": "eaos/facts/run.py:collect",
+   "pipeline": "eaos/kernel/facts/run.py:collect",
    "side_effects": [],
    "steps": [
     "M03"
@@ -5663,7 +5663,7 @@
     "path": "eaos/facts/resolve.py",
     "text": "def run(target, source, imports=None, external_edges=None, **options):"
    },
-   "id": "eaos/facts/run.py:collect/resolve",
+   "id": "eaos/kernel/facts/run.py:collect/resolve",
    "inputs": [
     {
      "kind": "value",
@@ -5684,7 +5684,7 @@
      "shape": null
     }
    ],
-   "pipeline": "eaos/facts/run.py:collect",
+   "pipeline": "eaos/kernel/facts/run.py:collect",
    "side_effects": [],
    "steps": [
     "M03",
@@ -5712,7 +5712,7 @@
     "path": "eaos/facts/structure.py",
     "text": "def run(target, source, symbols=None, **options):"
    },
-   "id": "eaos/facts/run.py:collect/structure",
+   "id": "eaos/kernel/facts/run.py:collect/structure",
    "inputs": [
     {
      "kind": "value",
@@ -5733,7 +5733,7 @@
      "shape": null
     }
    ],
-   "pipeline": "eaos/facts/run.py:collect",
+   "pipeline": "eaos/kernel/facts/run.py:collect",
    "side_effects": [],
    "steps": [
     "M01",
@@ -5753,7 +5753,7 @@
     "path": "eaos/facts/fingerprint.py",
     "text": "def run(target, source, symbols=None, **options):"
    },
-   "id": "eaos/facts/run.py:collect/fingerprint",
+   "id": "eaos/kernel/facts/run.py:collect/fingerprint",
    "inputs": [
     {
      "kind": "value",
@@ -5774,7 +5774,7 @@
      "shape": null
     }
    ],
-   "pipeline": "eaos/facts/run.py:collect",
+   "pipeline": "eaos/kernel/facts/run.py:collect",
    "side_effects": [],
    "steps": [],
    "sub_pipeline": null,
@@ -5792,7 +5792,7 @@
     "path": "eaos/facts/sequences.py",
     "text": "def run(target, source, symbols=None, **options):"
    },
-   "id": "eaos/facts/run.py:collect/sequences",
+   "id": "eaos/kernel/facts/run.py:collect/sequences",
    "inputs": [
     {
      "kind": "value",
@@ -5813,7 +5813,7 @@
      "shape": null
     }
    ],
-   "pipeline": "eaos/facts/run.py:collect",
+   "pipeline": "eaos/kernel/facts/run.py:collect",
    "side_effects": [],
    "steps": [
     "M04"
@@ -5835,7 +5835,7 @@
     "path": "eaos/facts/runtime.py",
     "text": "def run(target, source, symbols=None, **options):"
    },
-   "id": "eaos/facts/run.py:collect/runtime",
+   "id": "eaos/kernel/facts/run.py:collect/runtime",
    "inputs": [
     {
      "kind": "value",
@@ -5856,7 +5856,7 @@
      "shape": null
     }
    ],
-   "pipeline": "eaos/facts/run.py:collect",
+   "pipeline": "eaos/kernel/facts/run.py:collect",
    "side_effects": [],
    "steps": [
     "M01",
@@ -5878,7 +5878,7 @@
     "path": "eaos/facts/entrypoints.py",
     "text": "def run(target, source, symbols=None, **options):"
    },
-   "id": "eaos/facts/run.py:collect/entrypoints",
+   "id": "eaos/kernel/facts/run.py:collect/entrypoints",
    "inputs": [
     {
      "kind": "value",
@@ -5899,7 +5899,7 @@
      "shape": null
     }
    ],
-   "pipeline": "eaos/facts/run.py:collect",
+   "pipeline": "eaos/kernel/facts/run.py:collect",
    "side_effects": [],
    "steps": [
     "M04"
@@ -5921,7 +5921,7 @@
     "path": "eaos/facts/redundancy.py",
     "text": "def run(target, source, symbols=None, structure=None, entrypoints=None, **options):"
    },
-   "id": "eaos/facts/run.py:collect/redundancy",
+   "id": "eaos/kernel/facts/run.py:collect/redundancy",
    "inputs": [
     {
      "kind": "value",
@@ -5952,7 +5952,7 @@
      "shape": null
     }
    ],
-   "pipeline": "eaos/facts/run.py:collect",
+   "pipeline": "eaos/kernel/facts/run.py:collect",
    "side_effects": [],
    "steps": [
     "M03",
@@ -5975,7 +5975,7 @@
     "path": "eaos/facts/config.py",
     "text": "def run(target, source, **options):"
    },
-   "id": "eaos/facts/run.py:collect/config",
+   "id": "eaos/kernel/facts/run.py:collect/config",
    "inputs": [],
    "kind": "stage",
    "label": "config",
@@ -5990,7 +5990,7 @@
      "shape": null
     }
    ],
-   "pipeline": "eaos/facts/run.py:collect",
+   "pipeline": "eaos/kernel/facts/run.py:collect",
    "side_effects": [],
    "steps": [
     "M03",
@@ -6012,7 +6012,7 @@
     "path": "eaos/facts/metrics.py",
     "text": "def run(target, source, symbols=None, **options):"
    },
-   "id": "eaos/facts/run.py:collect/metrics",
+   "id": "eaos/kernel/facts/run.py:collect/metrics",
    "inputs": [
     {
      "kind": "value",
@@ -6033,7 +6033,7 @@
      "shape": null
     }
    ],
-   "pipeline": "eaos/facts/run.py:collect",
+   "pipeline": "eaos/kernel/facts/run.py:collect",
    "side_effects": [],
    "steps": [
     "M03",
@@ -6056,7 +6056,7 @@
     "path": "eaos/facts/domain.py",
     "text": "def run(target, source, **options):"
    },
-   "id": "eaos/facts/run.py:collect/domain",
+   "id": "eaos/kernel/facts/run.py:collect/domain",
    "inputs": [],
    "kind": "stage",
    "label": "domain",
@@ -6071,7 +6071,7 @@
      "shape": null
     }
    ],
-   "pipeline": "eaos/facts/run.py:collect",
+   "pipeline": "eaos/kernel/facts/run.py:collect",
    "side_effects": [],
    "steps": [
     "M03",
@@ -6090,7 +6090,7 @@
     "path": "eaos/facts/history.py",
     "text": "def run(target, source=None, max_commits=2000, **options):"
    },
-   "id": "eaos/facts/run.py:collect/history",
+   "id": "eaos/kernel/facts/run.py:collect/history",
    "inputs": [],
    "kind": "stage",
    "label": "history",
@@ -6105,7 +6105,7 @@
      "shape": null
     }
    ],
-   "pipeline": "eaos/facts/run.py:collect",
+   "pipeline": "eaos/kernel/facts/run.py:collect",
    "side_effects": [],
    "steps": [],
    "sub_pipeline": null,
@@ -6125,7 +6125,7 @@
     "path": "eaos/facts/graph.py",
     "text": "def run(target, source, edges=None, entry_points=None, metrics=None, history=None, **options):"
    },
-   "id": "eaos/facts/run.py:collect/graph",
+   "id": "eaos/kernel/facts/run.py:collect/graph",
    "inputs": [
     {
      "kind": "value",
@@ -6161,7 +6161,7 @@
      "shape": null
     }
    ],
-   "pipeline": "eaos/facts/run.py:collect",
+   "pipeline": "eaos/kernel/facts/run.py:collect",
    "side_effects": [],
    "steps": [
     "M03",
@@ -6184,7 +6184,7 @@
     "path": "eaos/facts/flows.py",
     "text": "def run(target, source, symbols=None, calls=None, edges=None, entry_points=None, env=None, imports=None, **options):"
    },
-   "id": "eaos/facts/run.py:collect/flows",
+   "id": "eaos/kernel/facts/run.py:collect/flows",
    "inputs": [
     {
      "kind": "value",
@@ -6230,7 +6230,7 @@
      "shape": null
     }
    ],
-   "pipeline": "eaos/facts/run.py:collect",
+   "pipeline": "eaos/kernel/facts/run.py:collect",
    "side_effects": [],
    "steps": [
     "M03",
@@ -6249,7 +6249,7 @@
     "path": "eaos/facts/leftovers.py",
     "text": "def run(target, source, resolve_facts=None, **options):"
    },
-   "id": "eaos/facts/run.py:collect/leftovers",
+   "id": "eaos/kernel/facts/run.py:collect/leftovers",
    "inputs": [
     {
      "kind": "value",
@@ -6270,7 +6270,7 @@
      "shape": null
     }
    ],
-   "pipeline": "eaos/facts/run.py:collect",
+   "pipeline": "eaos/kernel/facts/run.py:collect",
    "side_effects": [],
    "steps": [],
    "sub_pipeline": null,
@@ -6286,7 +6286,7 @@
     "path": "eaos/facts/deadcode.py",
     "text": "def run(target, source, symbols=None, resolved=None, entry_points=None, **options):"
    },
-   "id": "eaos/facts/run.py:collect/deadcode",
+   "id": "eaos/kernel/facts/run.py:collect/deadcode",
    "inputs": [
     {
      "kind": "value",
@@ -6317,7 +6317,7 @@
      "shape": null
     }
    ],
-   "pipeline": "eaos/facts/run.py:collect",
+   "pipeline": "eaos/kernel/facts/run.py:collect",
    "side_effects": [],
    "steps": [],
    "sub_pipeline": null,
@@ -6333,7 +6333,7 @@
     "path": "eaos/facts/broken.py",
     "text": "def run(target, source, resolved=None, **options):"
    },
-   "id": "eaos/facts/run.py:collect/broken",
+   "id": "eaos/kernel/facts/run.py:collect/broken",
    "inputs": [
     {
      "kind": "value",
@@ -6354,7 +6354,7 @@
      "shape": null
     }
    ],
-   "pipeline": "eaos/facts/run.py:collect",
+   "pipeline": "eaos/kernel/facts/run.py:collect",
    "side_effects": [],
    "steps": [],
    "sub_pipeline": null,
@@ -6370,7 +6370,7 @@
     "path": "eaos/facts/secrets.py",
     "text": "def run(target, source, **options):"
    },
-   "id": "eaos/facts/run.py:collect/secrets",
+   "id": "eaos/kernel/facts/run.py:collect/secrets",
    "inputs": [],
    "kind": "stage",
    "label": "secrets",
@@ -6385,7 +6385,7 @@
      "shape": null
     }
    ],
-   "pipeline": "eaos/facts/run.py:collect",
+   "pipeline": "eaos/kernel/facts/run.py:collect",
    "side_effects": [],
    "steps": [],
    "sub_pipeline": null,
@@ -6401,7 +6401,7 @@
     "path": "eaos/facts/pipeline.py",
     "text": "def run(target, source, **_):"
    },
-   "id": "eaos/facts/run.py:collect/pipeline",
+   "id": "eaos/kernel/facts/run.py:collect/pipeline",
    "inputs": [],
    "kind": "stage",
    "label": "pipeline",
@@ -6416,7 +6416,7 @@
      "shape": null
     }
    ],
-   "pipeline": "eaos/facts/run.py:collect",
+   "pipeline": "eaos/kernel/facts/run.py:collect",
    "side_effects": [],
    "steps": [],
    "sub_pipeline": null,
@@ -6433,10 +6433,10 @@
    "entry": {
     "fact": "FACT-589323c29f9430a9",
     "line": 10,
-    "path": "eaos/facts/run.py",
+    "path": "eaos/kernel/facts/run.py",
     "text": "EXTRACTORS = {'history': history, 'syntax': syntax, 'structure': structure, 'resolve': resolve, 'entrypoints': entrypoints,"
    },
-   "id": "eaos/facts/run.py:collect/EXTRACTORS",
+   "id": "eaos/kernel/facts/run.py:collect/EXTRACTORS",
    "inputs": [],
    "kind": "router",
    "label": "EXTRACTORS",
@@ -6445,7 +6445,7 @@
    "optional": false,
    "order": 6,
    "outputs": [],
-   "pipeline": "eaos/facts/run.py:collect",
+   "pipeline": "eaos/kernel/facts/run.py:collect",
    "side_effects": [],
    "steps": [
     "M03",
@@ -6465,10 +6465,10 @@
    "entry": {
     "fact": "FACT-fddf7c4fcfd26894",
     "line": 102,
-    "path": "eaos/facts/run.py",
+    "path": "eaos/kernel/facts/run.py",
     "text": "if name == 'history': result = module.run(target, source, max_commits=max_commits)"
    },
-   "id": "eaos/facts/run.py:collect/if-name",
+   "id": "eaos/kernel/facts/run.py:collect/if-name",
    "inputs": [],
    "kind": "router",
    "label": "if name ==",
@@ -6477,7 +6477,7 @@
    "optional": false,
    "order": 7,
    "outputs": [],
-   "pipeline": "eaos/facts/run.py:collect",
+   "pipeline": "eaos/kernel/facts/run.py:collect",
    "side_effects": [],
    "steps": [
     "M03",
@@ -6909,54 +6909,54 @@
    "evidence": {
     "fact": null,
     "line": 105,
-    "path": "eaos/facts/run.py",
+    "path": "eaos/kernel/facts/run.py",
     "text": "if 'external' in produced:"
    },
-   "id": "eaos/facts/run.py:collect:unresolved:external",
-   "pipeline": "eaos/facts/run.py:collect",
+   "id": "eaos/kernel/facts/run.py:collect:unresolved:external",
+   "pipeline": "eaos/kernel/facts/run.py:collect",
    "reason": "read here, but no stage of this loop writes it",
-   "stage": "eaos/facts/run.py:collect/resolve"
+   "stage": "eaos/kernel/facts/run.py:collect/resolve"
   }
  ],
- "verdict": "This project is a pipeline: EAOS found 5 pipelines with 66 stages (STEPS (eaos/guided.py), STAGES (eaos/pipeline/stages.py), NODES (eaos/studio/nodes/__init__.py)).",
+ "verdict": "This project is a pipeline: EAOS found 5 pipelines with 66 stages (STEPS (eaos/guided.py), STAGES (eaos/features/check/journey/stages.py), NODES (eaos/studio/nodes/__init__.py)).",
  "views": {
   "current": {
    "edges": [
     "eaos/guided.py:STEPS/scan->ready",
     "eaos/guided.py:STEPS/ready->safety",
     "eaos/guided.py:STEPS/safety->fix",
-    "eaos/pipeline/stages.py:STAGES/facts->features",
-    "eaos/pipeline/stages.py:STAGES/features->lock",
-    "eaos/pipeline/stages.py:STAGES/features->intake",
-    "eaos/pipeline/stages.py:STAGES/facts->engines",
-    "eaos/pipeline/stages.py:STAGES/facts->verify",
-    "eaos/pipeline/stages.py:STAGES/facts->measure",
-    "eaos/pipeline/stages.py:STAGES/facts->policy",
-    "eaos/pipeline/stages.py:STAGES/facts->load",
-    "eaos/pipeline/stages.py:STAGES/facts->claims",
-    "eaos/pipeline/stages.py:STAGES/load->claims",
-    "eaos/pipeline/stages.py:STAGES/claims->probe",
-    "eaos/pipeline/stages.py:STAGES/claims->semantic",
-    "eaos/pipeline/stages.py:STAGES/claims->sustainability",
-    "eaos/pipeline/stages.py:STAGES/sustainability->transform",
-    "eaos/pipeline/stages.py:STAGES/probe->plan",
-    "eaos/pipeline/stages.py:STAGES/plan->target",
-    "eaos/pipeline/stages.py:STAGES/transform->target",
-    "eaos/pipeline/stages.py:STAGES/plan->reports",
-    "eaos/pipeline/stages.py:STAGES/target->reports",
-    "eaos/pipeline/stages.py:STAGES/reports->quality",
-    "eaos/pipeline/stages.py:STAGES/reports->pdf",
-    "eaos/pipeline/stages.py:STAGES/plan->execution_guide",
-    "eaos/pipeline/stages.py:STAGES/transform->execution_guide",
-    "eaos/pipeline/stages.py:STAGES/load->execution_guide",
-    "eaos/pipeline/stages.py:STAGES/sustainability->executive",
-    "eaos/pipeline/stages.py:STAGES/plan->compose",
-    "eaos/pipeline/stages.py:STAGES/target->compose",
-    "eaos/pipeline/stages.py:STAGES/executive->compose",
-    "eaos/pipeline/stages.py:STAGES/compose->bundles",
-    "eaos/pipeline/stages.py:STAGES/compose->emit",
-    "eaos/pipeline/stages.py:STAGES/compose->site",
-    "eaos/pipeline/stages.py:STAGES/compose->validate",
+    "eaos/features/check/journey/stages.py:STAGES/facts->features",
+    "eaos/features/check/journey/stages.py:STAGES/features->lock",
+    "eaos/features/check/journey/stages.py:STAGES/features->intake",
+    "eaos/features/check/journey/stages.py:STAGES/facts->engines",
+    "eaos/features/check/journey/stages.py:STAGES/facts->verify",
+    "eaos/features/check/journey/stages.py:STAGES/facts->measure",
+    "eaos/features/check/journey/stages.py:STAGES/facts->policy",
+    "eaos/features/check/journey/stages.py:STAGES/facts->load",
+    "eaos/features/check/journey/stages.py:STAGES/facts->claims",
+    "eaos/features/check/journey/stages.py:STAGES/load->claims",
+    "eaos/features/check/journey/stages.py:STAGES/claims->probe",
+    "eaos/features/check/journey/stages.py:STAGES/claims->semantic",
+    "eaos/features/check/journey/stages.py:STAGES/claims->sustainability",
+    "eaos/features/check/journey/stages.py:STAGES/sustainability->transform",
+    "eaos/features/check/journey/stages.py:STAGES/probe->plan",
+    "eaos/features/check/journey/stages.py:STAGES/plan->target",
+    "eaos/features/check/journey/stages.py:STAGES/transform->target",
+    "eaos/features/check/journey/stages.py:STAGES/plan->reports",
+    "eaos/features/check/journey/stages.py:STAGES/target->reports",
+    "eaos/features/check/journey/stages.py:STAGES/reports->quality",
+    "eaos/features/check/journey/stages.py:STAGES/reports->pdf",
+    "eaos/features/check/journey/stages.py:STAGES/plan->execution_guide",
+    "eaos/features/check/journey/stages.py:STAGES/transform->execution_guide",
+    "eaos/features/check/journey/stages.py:STAGES/load->execution_guide",
+    "eaos/features/check/journey/stages.py:STAGES/sustainability->executive",
+    "eaos/features/check/journey/stages.py:STAGES/plan->compose",
+    "eaos/features/check/journey/stages.py:STAGES/target->compose",
+    "eaos/features/check/journey/stages.py:STAGES/executive->compose",
+    "eaos/features/check/journey/stages.py:STAGES/compose->bundles",
+    "eaos/features/check/journey/stages.py:STAGES/compose->emit",
+    "eaos/features/check/journey/stages.py:STAGES/compose->site",
+    "eaos/features/check/journey/stages.py:STAGES/compose->validate",
     "eaos/studio/nodes/__init__.py:NODES/card_triage->plan_orderer",
     "eaos/studio/nodes/__init__.py:NODES/ideal_planner->plan_orderer",
     "eaos/studio/nodes/__init__.py:NODES/pipeline_gap_planner->plan_orderer",
@@ -6966,29 +6966,29 @@
     "eaos/studio/nodes/__init__.py:NODES/pipeline_gap_planner->pipeline_gap_planner-router",
     "eaos/studio/nodes/__init__.py:NODES/plan_orderer->plan_orderer-router",
     "eaos/studio/nodes/__init__.py:NODES/fix_reviewer->fix_reviewer-router",
-    "eaos/facts/run.py:collect/syntax->resolve",
-    "eaos/facts/run.py:collect/structure->redundancy",
-    "eaos/facts/run.py:collect/entrypoints->redundancy",
-    "eaos/facts/run.py:collect/syntax->redundancy",
-    "eaos/facts/run.py:collect/syntax->structure",
-    "eaos/facts/run.py:collect/syntax->fingerprint",
-    "eaos/facts/run.py:collect/syntax->sequences",
-    "eaos/facts/run.py:collect/syntax->runtime",
-    "eaos/facts/run.py:collect/syntax->entrypoints",
-    "eaos/facts/run.py:collect/syntax->metrics",
-    "eaos/facts/run.py:collect/resolve->flows",
-    "eaos/facts/run.py:collect/entrypoints->flows",
-    "eaos/facts/run.py:collect/config->flows",
-    "eaos/facts/run.py:collect/syntax->flows",
-    "eaos/facts/run.py:collect/resolve->graph",
-    "eaos/facts/run.py:collect/entrypoints->graph",
-    "eaos/facts/run.py:collect/metrics->graph",
-    "eaos/facts/run.py:collect/history->graph",
-    "eaos/facts/run.py:collect/resolve->leftovers",
-    "eaos/facts/run.py:collect/resolve->broken",
-    "eaos/facts/run.py:collect/resolve->deadcode",
-    "eaos/facts/run.py:collect/entrypoints->deadcode",
-    "eaos/facts/run.py:collect/syntax->deadcode",
+    "eaos/kernel/facts/run.py:collect/syntax->resolve",
+    "eaos/kernel/facts/run.py:collect/structure->redundancy",
+    "eaos/kernel/facts/run.py:collect/entrypoints->redundancy",
+    "eaos/kernel/facts/run.py:collect/syntax->redundancy",
+    "eaos/kernel/facts/run.py:collect/syntax->structure",
+    "eaos/kernel/facts/run.py:collect/syntax->fingerprint",
+    "eaos/kernel/facts/run.py:collect/syntax->sequences",
+    "eaos/kernel/facts/run.py:collect/syntax->runtime",
+    "eaos/kernel/facts/run.py:collect/syntax->entrypoints",
+    "eaos/kernel/facts/run.py:collect/syntax->metrics",
+    "eaos/kernel/facts/run.py:collect/resolve->flows",
+    "eaos/kernel/facts/run.py:collect/entrypoints->flows",
+    "eaos/kernel/facts/run.py:collect/config->flows",
+    "eaos/kernel/facts/run.py:collect/syntax->flows",
+    "eaos/kernel/facts/run.py:collect/resolve->graph",
+    "eaos/kernel/facts/run.py:collect/entrypoints->graph",
+    "eaos/kernel/facts/run.py:collect/metrics->graph",
+    "eaos/kernel/facts/run.py:collect/history->graph",
+    "eaos/kernel/facts/run.py:collect/resolve->leftovers",
+    "eaos/kernel/facts/run.py:collect/resolve->broken",
+    "eaos/kernel/facts/run.py:collect/resolve->deadcode",
+    "eaos/kernel/facts/run.py:collect/entrypoints->deadcode",
+    "eaos/kernel/facts/run.py:collect/syntax->deadcode",
     "eaos/runtime/pipeline.py:_execute/deterministic-facts->source-inspection",
     "eaos/runtime/pipeline.py:_execute/source-inspection->architecture-reconstruction",
     "eaos/runtime/pipeline.py:_execute/architecture-reconstruction->scope-and-review-module",
@@ -7005,33 +7005,33 @@
     "eaos/guided.py:STEPS/ready",
     "eaos/guided.py:STEPS/safety",
     "eaos/guided.py:STEPS/fix",
-    "eaos/pipeline/stages.py:STAGES/facts",
-    "eaos/pipeline/stages.py:STAGES/features",
-    "eaos/pipeline/stages.py:STAGES/lock",
-    "eaos/pipeline/stages.py:STAGES/intake",
-    "eaos/pipeline/stages.py:STAGES/engines",
-    "eaos/pipeline/stages.py:STAGES/verify",
-    "eaos/pipeline/stages.py:STAGES/measure",
-    "eaos/pipeline/stages.py:STAGES/policy",
-    "eaos/pipeline/stages.py:STAGES/load",
-    "eaos/pipeline/stages.py:STAGES/claims",
-    "eaos/pipeline/stages.py:STAGES/probe",
-    "eaos/pipeline/stages.py:STAGES/semantic",
-    "eaos/pipeline/stages.py:STAGES/sustainability",
-    "eaos/pipeline/stages.py:STAGES/transform",
-    "eaos/pipeline/stages.py:STAGES/plan",
-    "eaos/pipeline/stages.py:STAGES/target",
-    "eaos/pipeline/stages.py:STAGES/reports",
-    "eaos/pipeline/stages.py:STAGES/quality",
-    "eaos/pipeline/stages.py:STAGES/pdf",
-    "eaos/pipeline/stages.py:STAGES/execution_guide",
-    "eaos/pipeline/stages.py:STAGES/executive",
-    "eaos/pipeline/stages.py:STAGES/compose",
-    "eaos/pipeline/stages.py:STAGES/bundles",
-    "eaos/pipeline/stages.py:STAGES/emit",
-    "eaos/pipeline/stages.py:STAGES/site",
-    "eaos/pipeline/stages.py:STAGES/validate",
-    "eaos/pipeline/stages.py:STAGES/RUNNERS",
+    "eaos/features/check/journey/stages.py:STAGES/facts",
+    "eaos/features/check/journey/stages.py:STAGES/features",
+    "eaos/features/check/journey/stages.py:STAGES/lock",
+    "eaos/features/check/journey/stages.py:STAGES/intake",
+    "eaos/features/check/journey/stages.py:STAGES/engines",
+    "eaos/features/check/journey/stages.py:STAGES/verify",
+    "eaos/features/check/journey/stages.py:STAGES/measure",
+    "eaos/features/check/journey/stages.py:STAGES/policy",
+    "eaos/features/check/journey/stages.py:STAGES/load",
+    "eaos/features/check/journey/stages.py:STAGES/claims",
+    "eaos/features/check/journey/stages.py:STAGES/probe",
+    "eaos/features/check/journey/stages.py:STAGES/semantic",
+    "eaos/features/check/journey/stages.py:STAGES/sustainability",
+    "eaos/features/check/journey/stages.py:STAGES/transform",
+    "eaos/features/check/journey/stages.py:STAGES/plan",
+    "eaos/features/check/journey/stages.py:STAGES/target",
+    "eaos/features/check/journey/stages.py:STAGES/reports",
+    "eaos/features/check/journey/stages.py:STAGES/quality",
+    "eaos/features/check/journey/stages.py:STAGES/pdf",
+    "eaos/features/check/journey/stages.py:STAGES/execution_guide",
+    "eaos/features/check/journey/stages.py:STAGES/executive",
+    "eaos/features/check/journey/stages.py:STAGES/compose",
+    "eaos/features/check/journey/stages.py:STAGES/bundles",
+    "eaos/features/check/journey/stages.py:STAGES/emit",
+    "eaos/features/check/journey/stages.py:STAGES/site",
+    "eaos/features/check/journey/stages.py:STAGES/validate",
+    "eaos/features/check/journey/stages.py:STAGES/RUNNERS",
     "eaos/studio/nodes/__init__.py:NODES/card_triage",
     "eaos/studio/nodes/__init__.py:NODES/ideal_planner",
     "eaos/studio/nodes/__init__.py:NODES/pipeline_gap_planner",
@@ -7050,27 +7050,27 @@
     "eaos/studio/nodes/__init__.py:NODES/handover",
     "eaos/studio/nodes/__init__.py:NODES/fix",
     "eaos/studio/nodes/__init__.py:NODES/gates",
-    "eaos/facts/run.py:collect/syntax",
-    "eaos/facts/run.py:collect/resolve",
-    "eaos/facts/run.py:collect/structure",
-    "eaos/facts/run.py:collect/fingerprint",
-    "eaos/facts/run.py:collect/sequences",
-    "eaos/facts/run.py:collect/runtime",
-    "eaos/facts/run.py:collect/entrypoints",
-    "eaos/facts/run.py:collect/redundancy",
-    "eaos/facts/run.py:collect/config",
-    "eaos/facts/run.py:collect/metrics",
-    "eaos/facts/run.py:collect/domain",
-    "eaos/facts/run.py:collect/history",
-    "eaos/facts/run.py:collect/graph",
-    "eaos/facts/run.py:collect/flows",
-    "eaos/facts/run.py:collect/leftovers",
-    "eaos/facts/run.py:collect/deadcode",
-    "eaos/facts/run.py:collect/broken",
-    "eaos/facts/run.py:collect/secrets",
-    "eaos/facts/run.py:collect/pipeline",
-    "eaos/facts/run.py:collect/EXTRACTORS",
-    "eaos/facts/run.py:collect/if-name",
+    "eaos/kernel/facts/run.py:collect/syntax",
+    "eaos/kernel/facts/run.py:collect/resolve",
+    "eaos/kernel/facts/run.py:collect/structure",
+    "eaos/kernel/facts/run.py:collect/fingerprint",
+    "eaos/kernel/facts/run.py:collect/sequences",
+    "eaos/kernel/facts/run.py:collect/runtime",
+    "eaos/kernel/facts/run.py:collect/entrypoints",
+    "eaos/kernel/facts/run.py:collect/redundancy",
+    "eaos/kernel/facts/run.py:collect/config",
+    "eaos/kernel/facts/run.py:collect/metrics",
+    "eaos/kernel/facts/run.py:collect/domain",
+    "eaos/kernel/facts/run.py:collect/history",
+    "eaos/kernel/facts/run.py:collect/graph",
+    "eaos/kernel/facts/run.py:collect/flows",
+    "eaos/kernel/facts/run.py:collect/leftovers",
+    "eaos/kernel/facts/run.py:collect/deadcode",
+    "eaos/kernel/facts/run.py:collect/broken",
+    "eaos/kernel/facts/run.py:collect/secrets",
+    "eaos/kernel/facts/run.py:collect/pipeline",
+    "eaos/kernel/facts/run.py:collect/EXTRACTORS",
+    "eaos/kernel/facts/run.py:collect/if-name",
     "eaos/runtime/pipeline.py:_execute/deterministic-facts",
     "eaos/runtime/pipeline.py:_execute/source-inspection",
     "eaos/runtime/pipeline.py:_execute/architecture-reconstruction",
@@ -7129,12 +7129,12 @@
      "path": "eaos/pipeline/runners.py",
      "text": "def facts(context):"
     },
-    "id": "gap:P6:eaos/pipeline/stages.py:STAGES",
+    "id": "gap:P6:eaos/features/check/journey/stages.py:STAGES",
     "operation": "refactor",
-    "pipeline": "eaos/pipeline/stages.py:STAGES",
+    "pipeline": "eaos/features/check/journey/stages.py:STAGES",
     "rule": "P6",
     "step": "M03",
-    "subject": "eaos/pipeline/stages.py:STAGES",
+    "subject": "eaos/features/check/journey/stages.py:STAGES",
     "subject_kind": "pipeline"
    },
    {
@@ -7160,15 +7160,15 @@
     "evidence": {
      "fact": null,
      "line": 80,
-     "path": "eaos/facts/run.py",
+     "path": "eaos/kernel/facts/run.py",
      "text": "def collect(target, out, selected=None, max_commits=2000, max_files=100000, max_bytes=2_000_000, source=None,"
     },
-    "id": "gap:P2:eaos/facts/run.py:collect",
+    "id": "gap:P2:eaos/kernel/facts/run.py:collect",
     "operation": "refactor",
-    "pipeline": "eaos/facts/run.py:collect",
+    "pipeline": "eaos/kernel/facts/run.py:collect",
     "rule": "P2",
     "step": "M04",
-    "subject": "eaos/facts/run.py:collect",
+    "subject": "eaos/kernel/facts/run.py:collect",
     "subject_kind": "pipeline"
    },
    {
@@ -7177,15 +7177,15 @@
     "evidence": {
      "fact": null,
      "line": 80,
-     "path": "eaos/facts/run.py",
+     "path": "eaos/kernel/facts/run.py",
      "text": "def collect(target, out, selected=None, max_commits=2000, max_files=100000, max_bytes=2_000_000, source=None,"
     },
-    "id": "gap:P7:eaos/facts/run.py:collect",
+    "id": "gap:P7:eaos/kernel/facts/run.py:collect",
     "operation": "new",
-    "pipeline": "eaos/facts/run.py:collect",
+    "pipeline": "eaos/kernel/facts/run.py:collect",
     "rule": "P7",
     "step": "M04",
-    "subject": "eaos/facts/run.py:collect",
+    "subject": "eaos/kernel/facts/run.py:collect",
     "subject_kind": "pipeline"
    },
    {
@@ -7214,12 +7214,12 @@
      "path": "eaos/pipeline/runners.py",
      "text": "context['collected'] = collect(context.target, context.out, None, source=context['source'],"
     },
-    "id": "gap:P3:eaos/pipeline/stages.py:STAGES:ctx:collected",
+    "id": "gap:P3:eaos/features/check/journey/stages.py:STAGES:ctx:collected",
     "operation": "refactor",
-    "pipeline": "eaos/pipeline/stages.py:STAGES",
+    "pipeline": "eaos/features/check/journey/stages.py:STAGES",
     "rule": "P3",
     "step": "M03",
-    "subject": "eaos/pipeline/stages.py:STAGES:ctx:collected",
+    "subject": "eaos/features/check/journey/stages.py:STAGES:ctx:collected",
     "subject_kind": "hidden"
    },
    {
@@ -7231,12 +7231,12 @@
      "path": "eaos/pipeline/runners.py",
      "text": "context['dossier_status'] = result['status']"
     },
-    "id": "gap:P8:eaos/pipeline/stages.py:STAGES:ctx:dossier_status",
+    "id": "gap:P8:eaos/features/check/journey/stages.py:STAGES:ctx:dossier_status",
     "operation": "delete",
-    "pipeline": "eaos/pipeline/stages.py:STAGES",
+    "pipeline": "eaos/features/check/journey/stages.py:STAGES",
     "rule": "P8",
     "step": "M03",
-    "subject": "eaos/pipeline/stages.py:STAGES:ctx:dossier_status",
+    "subject": "eaos/features/check/journey/stages.py:STAGES:ctx:dossier_status",
     "subject_kind": "hidden"
    },
    {
@@ -7248,12 +7248,12 @@
      "path": "eaos/pipeline/runners.py",
      "text": "context['exclude'] = sorted({*context.exclude, *declared_exclusions(context.target)})"
     },
-    "id": "gap:P3:eaos/pipeline/stages.py:STAGES:ctx:exclude",
+    "id": "gap:P3:eaos/features/check/journey/stages.py:STAGES:ctx:exclude",
     "operation": "refactor",
-    "pipeline": "eaos/pipeline/stages.py:STAGES",
+    "pipeline": "eaos/features/check/journey/stages.py:STAGES",
     "rule": "P3",
     "step": "M03",
-    "subject": "eaos/pipeline/stages.py:STAGES:ctx:exclude",
+    "subject": "eaos/features/check/journey/stages.py:STAGES:ctx:exclude",
     "subject_kind": "hidden"
    },
    {
@@ -7265,12 +7265,12 @@
      "path": "eaos/pipeline/runners.py",
      "text": "context['source'] = Source(context.target, exclude=context['exclude'],"
     },
-    "id": "gap:P3:eaos/pipeline/stages.py:STAGES:ctx:source",
+    "id": "gap:P3:eaos/features/check/journey/stages.py:STAGES:ctx:source",
     "operation": "refactor",
-    "pipeline": "eaos/pipeline/stages.py:STAGES",
+    "pipeline": "eaos/features/check/journey/stages.py:STAGES",
     "rule": "P3",
     "step": "M03",
-    "subject": "eaos/pipeline/stages.py:STAGES:ctx:source",
+    "subject": "eaos/features/check/journey/stages.py:STAGES:ctx:source",
     "subject_kind": "hidden"
    },
    {
@@ -7316,12 +7316,12 @@
      "path": "eaos/pipeline/runners.py",
      "text": "def semantic(context):"
     },
-    "id": "gap:P9:eaos/pipeline/stages.py:STAGES/semantic",
+    "id": "gap:P9:eaos/features/check/journey/stages.py:STAGES/semantic",
     "operation": "refactor",
-    "pipeline": "eaos/pipeline/stages.py:STAGES",
+    "pipeline": "eaos/features/check/journey/stages.py:STAGES",
     "rule": "P9",
     "step": "M03",
-    "subject": "eaos/pipeline/stages.py:STAGES/semantic",
+    "subject": "eaos/features/check/journey/stages.py:STAGES/semantic",
     "subject_kind": "stage"
    },
    {
@@ -7434,228 +7434,228 @@
      "to": "eaos/guided.py:STEPS/fix"
     },
     {
-     "from": "eaos/pipeline/stages.py:STAGES/facts",
+     "from": "eaos/features/check/journey/stages.py:STAGES/facts",
      "op": "retain",
-     "pipeline": "eaos/pipeline/stages.py:STAGES",
+     "pipeline": "eaos/features/check/journey/stages.py:STAGES",
      "rule": null,
-     "to": "eaos/pipeline/stages.py:STAGES/features"
+     "to": "eaos/features/check/journey/stages.py:STAGES/features"
     },
     {
-     "from": "eaos/pipeline/stages.py:STAGES/features",
+     "from": "eaos/features/check/journey/stages.py:STAGES/features",
      "op": "retain",
-     "pipeline": "eaos/pipeline/stages.py:STAGES",
+     "pipeline": "eaos/features/check/journey/stages.py:STAGES",
      "rule": null,
-     "to": "eaos/pipeline/stages.py:STAGES/lock"
+     "to": "eaos/features/check/journey/stages.py:STAGES/lock"
     },
     {
-     "from": "eaos/pipeline/stages.py:STAGES/features",
+     "from": "eaos/features/check/journey/stages.py:STAGES/features",
      "op": "retain",
-     "pipeline": "eaos/pipeline/stages.py:STAGES",
+     "pipeline": "eaos/features/check/journey/stages.py:STAGES",
      "rule": null,
-     "to": "eaos/pipeline/stages.py:STAGES/intake"
+     "to": "eaos/features/check/journey/stages.py:STAGES/intake"
     },
     {
-     "from": "eaos/pipeline/stages.py:STAGES/facts",
+     "from": "eaos/features/check/journey/stages.py:STAGES/facts",
      "op": "retain",
-     "pipeline": "eaos/pipeline/stages.py:STAGES",
+     "pipeline": "eaos/features/check/journey/stages.py:STAGES",
      "rule": null,
-     "to": "eaos/pipeline/stages.py:STAGES/engines"
+     "to": "eaos/features/check/journey/stages.py:STAGES/engines"
     },
     {
-     "from": "eaos/pipeline/stages.py:STAGES/facts",
+     "from": "eaos/features/check/journey/stages.py:STAGES/facts",
      "op": "retain",
-     "pipeline": "eaos/pipeline/stages.py:STAGES",
+     "pipeline": "eaos/features/check/journey/stages.py:STAGES",
      "rule": null,
-     "to": "eaos/pipeline/stages.py:STAGES/verify"
+     "to": "eaos/features/check/journey/stages.py:STAGES/verify"
     },
     {
-     "from": "eaos/pipeline/stages.py:STAGES/facts",
+     "from": "eaos/features/check/journey/stages.py:STAGES/facts",
      "op": "retain",
-     "pipeline": "eaos/pipeline/stages.py:STAGES",
+     "pipeline": "eaos/features/check/journey/stages.py:STAGES",
      "rule": null,
-     "to": "eaos/pipeline/stages.py:STAGES/measure"
+     "to": "eaos/features/check/journey/stages.py:STAGES/measure"
     },
     {
-     "from": "eaos/pipeline/stages.py:STAGES/facts",
+     "from": "eaos/features/check/journey/stages.py:STAGES/facts",
      "op": "retain",
-     "pipeline": "eaos/pipeline/stages.py:STAGES",
+     "pipeline": "eaos/features/check/journey/stages.py:STAGES",
      "rule": null,
-     "to": "eaos/pipeline/stages.py:STAGES/policy"
+     "to": "eaos/features/check/journey/stages.py:STAGES/policy"
     },
     {
-     "from": "eaos/pipeline/stages.py:STAGES/facts",
+     "from": "eaos/features/check/journey/stages.py:STAGES/facts",
      "op": "retain",
-     "pipeline": "eaos/pipeline/stages.py:STAGES",
+     "pipeline": "eaos/features/check/journey/stages.py:STAGES",
      "rule": null,
-     "to": "eaos/pipeline/stages.py:STAGES/load"
+     "to": "eaos/features/check/journey/stages.py:STAGES/load"
     },
     {
-     "from": "eaos/pipeline/stages.py:STAGES/facts",
+     "from": "eaos/features/check/journey/stages.py:STAGES/facts",
      "op": "retain",
-     "pipeline": "eaos/pipeline/stages.py:STAGES",
+     "pipeline": "eaos/features/check/journey/stages.py:STAGES",
      "rule": null,
-     "to": "eaos/pipeline/stages.py:STAGES/claims"
+     "to": "eaos/features/check/journey/stages.py:STAGES/claims"
     },
     {
-     "from": "eaos/pipeline/stages.py:STAGES/load",
+     "from": "eaos/features/check/journey/stages.py:STAGES/load",
      "op": "retain",
-     "pipeline": "eaos/pipeline/stages.py:STAGES",
+     "pipeline": "eaos/features/check/journey/stages.py:STAGES",
      "rule": null,
-     "to": "eaos/pipeline/stages.py:STAGES/claims"
+     "to": "eaos/features/check/journey/stages.py:STAGES/claims"
     },
     {
-     "from": "eaos/pipeline/stages.py:STAGES/claims",
+     "from": "eaos/features/check/journey/stages.py:STAGES/claims",
      "op": "retain",
-     "pipeline": "eaos/pipeline/stages.py:STAGES",
+     "pipeline": "eaos/features/check/journey/stages.py:STAGES",
      "rule": null,
-     "to": "eaos/pipeline/stages.py:STAGES/probe"
+     "to": "eaos/features/check/journey/stages.py:STAGES/probe"
     },
     {
-     "from": "eaos/pipeline/stages.py:STAGES/claims",
+     "from": "eaos/features/check/journey/stages.py:STAGES/claims",
      "op": "retain",
-     "pipeline": "eaos/pipeline/stages.py:STAGES",
+     "pipeline": "eaos/features/check/journey/stages.py:STAGES",
      "rule": null,
-     "to": "eaos/pipeline/stages.py:STAGES/semantic"
+     "to": "eaos/features/check/journey/stages.py:STAGES/semantic"
     },
     {
-     "from": "eaos/pipeline/stages.py:STAGES/claims",
+     "from": "eaos/features/check/journey/stages.py:STAGES/claims",
      "op": "retain",
-     "pipeline": "eaos/pipeline/stages.py:STAGES",
+     "pipeline": "eaos/features/check/journey/stages.py:STAGES",
      "rule": null,
-     "to": "eaos/pipeline/stages.py:STAGES/sustainability"
+     "to": "eaos/features/check/journey/stages.py:STAGES/sustainability"
     },
     {
-     "from": "eaos/pipeline/stages.py:STAGES/sustainability",
+     "from": "eaos/features/check/journey/stages.py:STAGES/sustainability",
      "op": "retain",
-     "pipeline": "eaos/pipeline/stages.py:STAGES",
+     "pipeline": "eaos/features/check/journey/stages.py:STAGES",
      "rule": null,
-     "to": "eaos/pipeline/stages.py:STAGES/transform"
+     "to": "eaos/features/check/journey/stages.py:STAGES/transform"
     },
     {
-     "from": "eaos/pipeline/stages.py:STAGES/probe",
+     "from": "eaos/features/check/journey/stages.py:STAGES/probe",
      "op": "retain",
-     "pipeline": "eaos/pipeline/stages.py:STAGES",
+     "pipeline": "eaos/features/check/journey/stages.py:STAGES",
      "rule": null,
-     "to": "eaos/pipeline/stages.py:STAGES/plan"
+     "to": "eaos/features/check/journey/stages.py:STAGES/plan"
     },
     {
-     "from": "eaos/pipeline/stages.py:STAGES/plan",
+     "from": "eaos/features/check/journey/stages.py:STAGES/plan",
      "op": "retain",
-     "pipeline": "eaos/pipeline/stages.py:STAGES",
+     "pipeline": "eaos/features/check/journey/stages.py:STAGES",
      "rule": null,
-     "to": "eaos/pipeline/stages.py:STAGES/target"
+     "to": "eaos/features/check/journey/stages.py:STAGES/target"
     },
     {
-     "from": "eaos/pipeline/stages.py:STAGES/transform",
+     "from": "eaos/features/check/journey/stages.py:STAGES/transform",
      "op": "retain",
-     "pipeline": "eaos/pipeline/stages.py:STAGES",
+     "pipeline": "eaos/features/check/journey/stages.py:STAGES",
      "rule": null,
-     "to": "eaos/pipeline/stages.py:STAGES/target"
+     "to": "eaos/features/check/journey/stages.py:STAGES/target"
     },
     {
-     "from": "eaos/pipeline/stages.py:STAGES/plan",
+     "from": "eaos/features/check/journey/stages.py:STAGES/plan",
      "op": "retain",
-     "pipeline": "eaos/pipeline/stages.py:STAGES",
+     "pipeline": "eaos/features/check/journey/stages.py:STAGES",
      "rule": null,
-     "to": "eaos/pipeline/stages.py:STAGES/reports"
+     "to": "eaos/features/check/journey/stages.py:STAGES/reports"
     },
     {
-     "from": "eaos/pipeline/stages.py:STAGES/target",
+     "from": "eaos/features/check/journey/stages.py:STAGES/target",
      "op": "retain",
-     "pipeline": "eaos/pipeline/stages.py:STAGES",
+     "pipeline": "eaos/features/check/journey/stages.py:STAGES",
      "rule": null,
-     "to": "eaos/pipeline/stages.py:STAGES/reports"
+     "to": "eaos/features/check/journey/stages.py:STAGES/reports"
     },
     {
-     "from": "eaos/pipeline/stages.py:STAGES/reports",
+     "from": "eaos/features/check/journey/stages.py:STAGES/reports",
      "op": "retain",
-     "pipeline": "eaos/pipeline/stages.py:STAGES",
+     "pipeline": "eaos/features/check/journey/stages.py:STAGES",
      "rule": null,
-     "to": "eaos/pipeline/stages.py:STAGES/quality"
+     "to": "eaos/features/check/journey/stages.py:STAGES/quality"
     },
     {
-     "from": "eaos/pipeline/stages.py:STAGES/reports",
+     "from": "eaos/features/check/journey/stages.py:STAGES/reports",
      "op": "retain",
-     "pipeline": "eaos/pipeline/stages.py:STAGES",
+     "pipeline": "eaos/features/check/journey/stages.py:STAGES",
      "rule": null,
-     "to": "eaos/pipeline/stages.py:STAGES/pdf"
+     "to": "eaos/features/check/journey/stages.py:STAGES/pdf"
     },
     {
-     "from": "eaos/pipeline/stages.py:STAGES/plan",
+     "from": "eaos/features/check/journey/stages.py:STAGES/plan",
      "op": "retain",
-     "pipeline": "eaos/pipeline/stages.py:STAGES",
+     "pipeline": "eaos/features/check/journey/stages.py:STAGES",
      "rule": null,
-     "to": "eaos/pipeline/stages.py:STAGES/execution_guide"
+     "to": "eaos/features/check/journey/stages.py:STAGES/execution_guide"
     },
     {
-     "from": "eaos/pipeline/stages.py:STAGES/transform",
+     "from": "eaos/features/check/journey/stages.py:STAGES/transform",
      "op": "retain",
-     "pipeline": "eaos/pipeline/stages.py:STAGES",
+     "pipeline": "eaos/features/check/journey/stages.py:STAGES",
      "rule": null,
-     "to": "eaos/pipeline/stages.py:STAGES/execution_guide"
+     "to": "eaos/features/check/journey/stages.py:STAGES/execution_guide"
     },
     {
-     "from": "eaos/pipeline/stages.py:STAGES/load",
+     "from": "eaos/features/check/journey/stages.py:STAGES/load",
      "op": "retain",
-     "pipeline": "eaos/pipeline/stages.py:STAGES",
+     "pipeline": "eaos/features/check/journey/stages.py:STAGES",
      "rule": null,
-     "to": "eaos/pipeline/stages.py:STAGES/execution_guide"
+     "to": "eaos/features/check/journey/stages.py:STAGES/execution_guide"
     },
     {
-     "from": "eaos/pipeline/stages.py:STAGES/sustainability",
+     "from": "eaos/features/check/journey/stages.py:STAGES/sustainability",
      "op": "retain",
-     "pipeline": "eaos/pipeline/stages.py:STAGES",
+     "pipeline": "eaos/features/check/journey/stages.py:STAGES",
      "rule": null,
-     "to": "eaos/pipeline/stages.py:STAGES/executive"
+     "to": "eaos/features/check/journey/stages.py:STAGES/executive"
     },
     {
-     "from": "eaos/pipeline/stages.py:STAGES/plan",
+     "from": "eaos/features/check/journey/stages.py:STAGES/plan",
      "op": "retain",
-     "pipeline": "eaos/pipeline/stages.py:STAGES",
+     "pipeline": "eaos/features/check/journey/stages.py:STAGES",
      "rule": null,
-     "to": "eaos/pipeline/stages.py:STAGES/compose"
+     "to": "eaos/features/check/journey/stages.py:STAGES/compose"
     },
     {
-     "from": "eaos/pipeline/stages.py:STAGES/target",
+     "from": "eaos/features/check/journey/stages.py:STAGES/target",
      "op": "retain",
-     "pipeline": "eaos/pipeline/stages.py:STAGES",
+     "pipeline": "eaos/features/check/journey/stages.py:STAGES",
      "rule": null,
-     "to": "eaos/pipeline/stages.py:STAGES/compose"
+     "to": "eaos/features/check/journey/stages.py:STAGES/compose"
     },
     {
-     "from": "eaos/pipeline/stages.py:STAGES/executive",
+     "from": "eaos/features/check/journey/stages.py:STAGES/executive",
      "op": "retain",
-     "pipeline": "eaos/pipeline/stages.py:STAGES",
+     "pipeline": "eaos/features/check/journey/stages.py:STAGES",
      "rule": null,
-     "to": "eaos/pipeline/stages.py:STAGES/compose"
+     "to": "eaos/features/check/journey/stages.py:STAGES/compose"
     },
     {
-     "from": "eaos/pipeline/stages.py:STAGES/compose",
+     "from": "eaos/features/check/journey/stages.py:STAGES/compose",
      "op": "retain",
-     "pipeline": "eaos/pipeline/stages.py:STAGES",
+     "pipeline": "eaos/features/check/journey/stages.py:STAGES",
      "rule": null,
-     "to": "eaos/pipeline/stages.py:STAGES/bundles"
+     "to": "eaos/features/check/journey/stages.py:STAGES/bundles"
     },
     {
-     "from": "eaos/pipeline/stages.py:STAGES/compose",
+     "from": "eaos/features/check/journey/stages.py:STAGES/compose",
      "op": "retain",
-     "pipeline": "eaos/pipeline/stages.py:STAGES",
+     "pipeline": "eaos/features/check/journey/stages.py:STAGES",
      "rule": null,
-     "to": "eaos/pipeline/stages.py:STAGES/emit"
+     "to": "eaos/features/check/journey/stages.py:STAGES/emit"
     },
     {
-     "from": "eaos/pipeline/stages.py:STAGES/compose",
+     "from": "eaos/features/check/journey/stages.py:STAGES/compose",
      "op": "retain",
-     "pipeline": "eaos/pipeline/stages.py:STAGES",
+     "pipeline": "eaos/features/check/journey/stages.py:STAGES",
      "rule": null,
-     "to": "eaos/pipeline/stages.py:STAGES/site"
+     "to": "eaos/features/check/journey/stages.py:STAGES/site"
     },
     {
-     "from": "eaos/pipeline/stages.py:STAGES/compose",
+     "from": "eaos/features/check/journey/stages.py:STAGES/compose",
      "op": "retain",
-     "pipeline": "eaos/pipeline/stages.py:STAGES",
+     "pipeline": "eaos/features/check/journey/stages.py:STAGES",
      "rule": null,
-     "to": "eaos/pipeline/stages.py:STAGES/validate"
+     "to": "eaos/features/check/journey/stages.py:STAGES/validate"
     },
     {
      "from": "eaos/studio/nodes/__init__.py:NODES/card_triage",
@@ -7721,165 +7721,165 @@
      "to": "eaos/studio/nodes/__init__.py:NODES/fix_reviewer-router"
     },
     {
-     "from": "eaos/facts/run.py:collect/syntax",
+     "from": "eaos/kernel/facts/run.py:collect/syntax",
      "op": "retain",
-     "pipeline": "eaos/facts/run.py:collect",
+     "pipeline": "eaos/kernel/facts/run.py:collect",
      "rule": null,
-     "to": "eaos/facts/run.py:collect/resolve"
+     "to": "eaos/kernel/facts/run.py:collect/resolve"
     },
     {
-     "from": "eaos/facts/run.py:collect/structure",
+     "from": "eaos/kernel/facts/run.py:collect/structure",
      "op": "retain",
-     "pipeline": "eaos/facts/run.py:collect",
+     "pipeline": "eaos/kernel/facts/run.py:collect",
      "rule": null,
-     "to": "eaos/facts/run.py:collect/redundancy"
+     "to": "eaos/kernel/facts/run.py:collect/redundancy"
     },
     {
-     "from": "eaos/facts/run.py:collect/entrypoints",
+     "from": "eaos/kernel/facts/run.py:collect/entrypoints",
      "op": "retain",
-     "pipeline": "eaos/facts/run.py:collect",
+     "pipeline": "eaos/kernel/facts/run.py:collect",
      "rule": null,
-     "to": "eaos/facts/run.py:collect/redundancy"
+     "to": "eaos/kernel/facts/run.py:collect/redundancy"
     },
     {
-     "from": "eaos/facts/run.py:collect/syntax",
+     "from": "eaos/kernel/facts/run.py:collect/syntax",
      "op": "retain",
-     "pipeline": "eaos/facts/run.py:collect",
+     "pipeline": "eaos/kernel/facts/run.py:collect",
      "rule": null,
-     "to": "eaos/facts/run.py:collect/redundancy"
+     "to": "eaos/kernel/facts/run.py:collect/redundancy"
     },
     {
-     "from": "eaos/facts/run.py:collect/syntax",
+     "from": "eaos/kernel/facts/run.py:collect/syntax",
      "op": "retain",
-     "pipeline": "eaos/facts/run.py:collect",
+     "pipeline": "eaos/kernel/facts/run.py:collect",
      "rule": null,
-     "to": "eaos/facts/run.py:collect/structure"
+     "to": "eaos/kernel/facts/run.py:collect/structure"
     },
     {
-     "from": "eaos/facts/run.py:collect/syntax",
+     "from": "eaos/kernel/facts/run.py:collect/syntax",
      "op": "retain",
-     "pipeline": "eaos/facts/run.py:collect",
+     "pipeline": "eaos/kernel/facts/run.py:collect",
      "rule": null,
-     "to": "eaos/facts/run.py:collect/fingerprint"
+     "to": "eaos/kernel/facts/run.py:collect/fingerprint"
     },
     {
-     "from": "eaos/facts/run.py:collect/syntax",
+     "from": "eaos/kernel/facts/run.py:collect/syntax",
      "op": "retain",
-     "pipeline": "eaos/facts/run.py:collect",
+     "pipeline": "eaos/kernel/facts/run.py:collect",
      "rule": null,
-     "to": "eaos/facts/run.py:collect/sequences"
+     "to": "eaos/kernel/facts/run.py:collect/sequences"
     },
     {
-     "from": "eaos/facts/run.py:collect/syntax",
+     "from": "eaos/kernel/facts/run.py:collect/syntax",
      "op": "retain",
-     "pipeline": "eaos/facts/run.py:collect",
+     "pipeline": "eaos/kernel/facts/run.py:collect",
      "rule": null,
-     "to": "eaos/facts/run.py:collect/runtime"
+     "to": "eaos/kernel/facts/run.py:collect/runtime"
     },
     {
-     "from": "eaos/facts/run.py:collect/syntax",
+     "from": "eaos/kernel/facts/run.py:collect/syntax",
      "op": "retain",
-     "pipeline": "eaos/facts/run.py:collect",
+     "pipeline": "eaos/kernel/facts/run.py:collect",
      "rule": null,
-     "to": "eaos/facts/run.py:collect/entrypoints"
+     "to": "eaos/kernel/facts/run.py:collect/entrypoints"
     },
     {
-     "from": "eaos/facts/run.py:collect/syntax",
+     "from": "eaos/kernel/facts/run.py:collect/syntax",
      "op": "retain",
-     "pipeline": "eaos/facts/run.py:collect",
+     "pipeline": "eaos/kernel/facts/run.py:collect",
      "rule": null,
-     "to": "eaos/facts/run.py:collect/metrics"
+     "to": "eaos/kernel/facts/run.py:collect/metrics"
     },
     {
-     "from": "eaos/facts/run.py:collect/resolve",
+     "from": "eaos/kernel/facts/run.py:collect/resolve",
      "op": "retain",
-     "pipeline": "eaos/facts/run.py:collect",
+     "pipeline": "eaos/kernel/facts/run.py:collect",
      "rule": null,
-     "to": "eaos/facts/run.py:collect/flows"
+     "to": "eaos/kernel/facts/run.py:collect/flows"
     },
     {
-     "from": "eaos/facts/run.py:collect/entrypoints",
+     "from": "eaos/kernel/facts/run.py:collect/entrypoints",
      "op": "retain",
-     "pipeline": "eaos/facts/run.py:collect",
+     "pipeline": "eaos/kernel/facts/run.py:collect",
      "rule": null,
-     "to": "eaos/facts/run.py:collect/flows"
+     "to": "eaos/kernel/facts/run.py:collect/flows"
     },
     {
-     "from": "eaos/facts/run.py:collect/config",
+     "from": "eaos/kernel/facts/run.py:collect/config",
      "op": "retain",
-     "pipeline": "eaos/facts/run.py:collect",
+     "pipeline": "eaos/kernel/facts/run.py:collect",
      "rule": null,
-     "to": "eaos/facts/run.py:collect/flows"
+     "to": "eaos/kernel/facts/run.py:collect/flows"
     },
     {
-     "from": "eaos/facts/run.py:collect/syntax",
+     "from": "eaos/kernel/facts/run.py:collect/syntax",
      "op": "retain",
-     "pipeline": "eaos/facts/run.py:collect",
+     "pipeline": "eaos/kernel/facts/run.py:collect",
      "rule": null,
-     "to": "eaos/facts/run.py:collect/flows"
+     "to": "eaos/kernel/facts/run.py:collect/flows"
     },
     {
-     "from": "eaos/facts/run.py:collect/resolve",
+     "from": "eaos/kernel/facts/run.py:collect/resolve",
      "op": "retain",
-     "pipeline": "eaos/facts/run.py:collect",
+     "pipeline": "eaos/kernel/facts/run.py:collect",
      "rule": null,
-     "to": "eaos/facts/run.py:collect/graph"
+     "to": "eaos/kernel/facts/run.py:collect/graph"
     },
     {
-     "from": "eaos/facts/run.py:collect/entrypoints",
+     "from": "eaos/kernel/facts/run.py:collect/entrypoints",
      "op": "retain",
-     "pipeline": "eaos/facts/run.py:collect",
+     "pipeline": "eaos/kernel/facts/run.py:collect",
      "rule": null,
-     "to": "eaos/facts/run.py:collect/graph"
+     "to": "eaos/kernel/facts/run.py:collect/graph"
     },
     {
-     "from": "eaos/facts/run.py:collect/metrics",
+     "from": "eaos/kernel/facts/run.py:collect/metrics",
      "op": "retain",
-     "pipeline": "eaos/facts/run.py:collect",
+     "pipeline": "eaos/kernel/facts/run.py:collect",
      "rule": null,
-     "to": "eaos/facts/run.py:collect/graph"
+     "to": "eaos/kernel/facts/run.py:collect/graph"
     },
     {
-     "from": "eaos/facts/run.py:collect/history",
+     "from": "eaos/kernel/facts/run.py:collect/history",
      "op": "retain",
-     "pipeline": "eaos/facts/run.py:collect",
+     "pipeline": "eaos/kernel/facts/run.py:collect",
      "rule": null,
-     "to": "eaos/facts/run.py:collect/graph"
+     "to": "eaos/kernel/facts/run.py:collect/graph"
     },
     {
-     "from": "eaos/facts/run.py:collect/resolve",
+     "from": "eaos/kernel/facts/run.py:collect/resolve",
      "op": "retain",
-     "pipeline": "eaos/facts/run.py:collect",
+     "pipeline": "eaos/kernel/facts/run.py:collect",
      "rule": null,
-     "to": "eaos/facts/run.py:collect/leftovers"
+     "to": "eaos/kernel/facts/run.py:collect/leftovers"
     },
     {
-     "from": "eaos/facts/run.py:collect/resolve",
+     "from": "eaos/kernel/facts/run.py:collect/resolve",
      "op": "retain",
-     "pipeline": "eaos/facts/run.py:collect",
+     "pipeline": "eaos/kernel/facts/run.py:collect",
      "rule": null,
-     "to": "eaos/facts/run.py:collect/broken"
+     "to": "eaos/kernel/facts/run.py:collect/broken"
     },
     {
-     "from": "eaos/facts/run.py:collect/resolve",
+     "from": "eaos/kernel/facts/run.py:collect/resolve",
      "op": "retain",
-     "pipeline": "eaos/facts/run.py:collect",
+     "pipeline": "eaos/kernel/facts/run.py:collect",
      "rule": null,
-     "to": "eaos/facts/run.py:collect/deadcode"
+     "to": "eaos/kernel/facts/run.py:collect/deadcode"
     },
     {
-     "from": "eaos/facts/run.py:collect/entrypoints",
+     "from": "eaos/kernel/facts/run.py:collect/entrypoints",
      "op": "retain",
-     "pipeline": "eaos/facts/run.py:collect",
+     "pipeline": "eaos/kernel/facts/run.py:collect",
      "rule": null,
-     "to": "eaos/facts/run.py:collect/deadcode"
+     "to": "eaos/kernel/facts/run.py:collect/deadcode"
     },
     {
-     "from": "eaos/facts/run.py:collect/syntax",
+     "from": "eaos/kernel/facts/run.py:collect/syntax",
      "op": "retain",
-     "pipeline": "eaos/facts/run.py:collect",
+     "pipeline": "eaos/kernel/facts/run.py:collect",
      "rule": null,
-     "to": "eaos/facts/run.py:collect/deadcode"
+     "to": "eaos/kernel/facts/run.py:collect/deadcode"
     },
     {
      "from": "eaos/runtime/pipeline.py:_execute/deterministic-facts",
@@ -7952,46 +7952,46 @@
      "to": "studio/package.json:build/node-scripts/ship.mjs"
     },
     {
-     "from": "eaos/pipeline/stages.py:STAGES/facts",
+     "from": "eaos/features/check/journey/stages.py:STAGES/facts",
      "op": "new",
-     "pipeline": "eaos/pipeline/stages.py:STAGES",
+     "pipeline": "eaos/features/check/journey/stages.py:STAGES",
      "rule": "P3",
-     "to": "eaos/pipeline/stages.py:STAGES/features"
+     "to": "eaos/features/check/journey/stages.py:STAGES/features"
     },
     {
-     "from": "eaos/pipeline/stages.py:STAGES/facts",
+     "from": "eaos/features/check/journey/stages.py:STAGES/facts",
      "op": "new",
-     "pipeline": "eaos/pipeline/stages.py:STAGES",
+     "pipeline": "eaos/features/check/journey/stages.py:STAGES",
      "rule": "P3",
-     "to": "eaos/pipeline/stages.py:STAGES/engines"
+     "to": "eaos/features/check/journey/stages.py:STAGES/engines"
     },
     {
-     "from": "eaos/pipeline/stages.py:STAGES/facts",
+     "from": "eaos/features/check/journey/stages.py:STAGES/facts",
      "op": "new",
-     "pipeline": "eaos/pipeline/stages.py:STAGES",
+     "pipeline": "eaos/features/check/journey/stages.py:STAGES",
      "rule": "P3",
-     "to": "eaos/pipeline/stages.py:STAGES/claims"
+     "to": "eaos/features/check/journey/stages.py:STAGES/claims"
     },
     {
-     "from": "eaos/pipeline/stages.py:STAGES/facts",
+     "from": "eaos/features/check/journey/stages.py:STAGES/facts",
      "op": "new",
-     "pipeline": "eaos/pipeline/stages.py:STAGES",
+     "pipeline": "eaos/features/check/journey/stages.py:STAGES",
      "rule": "P3",
-     "to": "eaos/pipeline/stages.py:STAGES/engines"
+     "to": "eaos/features/check/journey/stages.py:STAGES/engines"
     },
     {
-     "from": "eaos/pipeline/stages.py:STAGES/facts",
+     "from": "eaos/features/check/journey/stages.py:STAGES/facts",
      "op": "new",
-     "pipeline": "eaos/pipeline/stages.py:STAGES",
+     "pipeline": "eaos/features/check/journey/stages.py:STAGES",
      "rule": "P3",
-     "to": "eaos/pipeline/stages.py:STAGES/claims"
+     "to": "eaos/features/check/journey/stages.py:STAGES/claims"
     },
     {
-     "from": "eaos/pipeline/stages.py:STAGES/facts",
+     "from": "eaos/features/check/journey/stages.py:STAGES/facts",
      "op": "new",
-     "pipeline": "eaos/pipeline/stages.py:STAGES",
+     "pipeline": "eaos/features/check/journey/stages.py:STAGES",
      "rule": "P3",
-     "to": "eaos/pipeline/stages.py:STAGES/engines"
+     "to": "eaos/features/check/journey/stages.py:STAGES/engines"
     }
    ],
    "made_by": "rules",
@@ -8062,11 +8062,11 @@
        "facts/index.json"
       ]
      },
-     "id": "eaos/pipeline/stages.py:STAGES/facts",
+     "id": "eaos/features/check/journey/stages.py:STAGES/facts",
      "label": "facts",
      "marks": [],
      "op": "refactor",
-     "pipeline": "eaos/pipeline/stages.py:STAGES",
+     "pipeline": "eaos/features/check/journey/stages.py:STAGES",
      "rule": "P6",
      "why": "26 stages take one shared, mutable context, so none can run alone without rebuilding it"
     },
@@ -8080,11 +8080,11 @@
        "FEATURES.md"
       ]
      },
-     "id": "eaos/pipeline/stages.py:STAGES/features",
+     "id": "eaos/features/check/journey/stages.py:STAGES/features",
      "label": "features",
      "marks": [],
      "op": "refactor",
-     "pipeline": "eaos/pipeline/stages.py:STAGES",
+     "pipeline": "eaos/features/check/journey/stages.py:STAGES",
      "rule": "P6",
      "why": "26 stages take one shared, mutable context, so none can run alone without rebuilding it"
     },
@@ -8098,11 +8098,11 @@
        "behavior-lock/plan.json"
       ]
      },
-     "id": "eaos/pipeline/stages.py:STAGES/lock",
+     "id": "eaos/features/check/journey/stages.py:STAGES/lock",
      "label": "lock",
      "marks": [],
      "op": "refactor",
-     "pipeline": "eaos/pipeline/stages.py:STAGES",
+     "pipeline": "eaos/features/check/journey/stages.py:STAGES",
      "rule": "P6",
      "why": "26 stages take one shared, mutable context, so none can run alone without rebuilding it"
     },
@@ -8116,11 +8116,11 @@
        "intake.json"
       ]
      },
-     "id": "eaos/pipeline/stages.py:STAGES/intake",
+     "id": "eaos/features/check/journey/stages.py:STAGES/intake",
      "label": "intake",
      "marks": [],
      "op": "refactor",
-     "pipeline": "eaos/pipeline/stages.py:STAGES",
+     "pipeline": "eaos/features/check/journey/stages.py:STAGES",
      "rule": "P6",
      "why": "26 stages take one shared, mutable context, so none can run alone without rebuilding it"
     },
@@ -8134,11 +8134,11 @@
        "ENGINES.md"
       ]
      },
-     "id": "eaos/pipeline/stages.py:STAGES/engines",
+     "id": "eaos/features/check/journey/stages.py:STAGES/engines",
      "label": "engines",
      "marks": [],
      "op": "refactor",
-     "pipeline": "eaos/pipeline/stages.py:STAGES",
+     "pipeline": "eaos/features/check/journey/stages.py:STAGES",
      "rule": "P6",
      "why": "26 stages take one shared, mutable context, so none can run alone without rebuilding it"
     },
@@ -8151,11 +8151,11 @@
        "verification.json"
       ]
      },
-     "id": "eaos/pipeline/stages.py:STAGES/verify",
+     "id": "eaos/features/check/journey/stages.py:STAGES/verify",
      "label": "verify",
      "marks": [],
      "op": "refactor",
-     "pipeline": "eaos/pipeline/stages.py:STAGES",
+     "pipeline": "eaos/features/check/journey/stages.py:STAGES",
      "rule": "P6",
      "why": "26 stages take one shared, mutable context, so none can run alone without rebuilding it"
     },
@@ -8169,11 +8169,11 @@
        "MEASUREMENTS.md"
       ]
      },
-     "id": "eaos/pipeline/stages.py:STAGES/measure",
+     "id": "eaos/features/check/journey/stages.py:STAGES/measure",
      "label": "measure",
      "marks": [],
      "op": "refactor",
-     "pipeline": "eaos/pipeline/stages.py:STAGES",
+     "pipeline": "eaos/features/check/journey/stages.py:STAGES",
      "rule": "P6",
      "why": "26 stages take one shared, mutable context, so none can run alone without rebuilding it"
     },
@@ -8187,11 +8187,11 @@
        "POLICY.md"
       ]
      },
-     "id": "eaos/pipeline/stages.py:STAGES/policy",
+     "id": "eaos/features/check/journey/stages.py:STAGES/policy",
      "label": "policy",
      "marks": [],
      "op": "refactor",
-     "pipeline": "eaos/pipeline/stages.py:STAGES",
+     "pipeline": "eaos/features/check/journey/stages.py:STAGES",
      "rule": "P6",
      "why": "26 stages take one shared, mutable context, so none can run alone without rebuilding it"
     },
@@ -8205,11 +8205,11 @@
        "LOAD-MODEL.md"
       ]
      },
-     "id": "eaos/pipeline/stages.py:STAGES/load",
+     "id": "eaos/features/check/journey/stages.py:STAGES/load",
      "label": "load",
      "marks": [],
      "op": "refactor",
-     "pipeline": "eaos/pipeline/stages.py:STAGES",
+     "pipeline": "eaos/features/check/journey/stages.py:STAGES",
      "rule": "P6",
      "why": "26 stages take one shared, mutable context, so none can run alone without rebuilding it"
     },
@@ -8226,11 +8226,11 @@
        "README.md"
       ]
      },
-     "id": "eaos/pipeline/stages.py:STAGES/claims",
+     "id": "eaos/features/check/journey/stages.py:STAGES/claims",
      "label": "claims",
      "marks": [],
      "op": "refactor",
-     "pipeline": "eaos/pipeline/stages.py:STAGES",
+     "pipeline": "eaos/features/check/journey/stages.py:STAGES",
      "rule": "P6",
      "why": "26 stages take one shared, mutable context, so none can run alone without rebuilding it"
     },
@@ -8245,11 +8245,11 @@
        "probes.json"
       ]
      },
-     "id": "eaos/pipeline/stages.py:STAGES/probe",
+     "id": "eaos/features/check/journey/stages.py:STAGES/probe",
      "label": "probe",
      "marks": [],
      "op": "refactor",
-     "pipeline": "eaos/pipeline/stages.py:STAGES",
+     "pipeline": "eaos/features/check/journey/stages.py:STAGES",
      "rule": "P6",
      "why": "26 stages take one shared, mutable context, so none can run alone without rebuilding it"
     },
@@ -8264,14 +8264,14 @@
        "SEMANTIC.md"
       ]
      },
-     "id": "eaos/pipeline/stages.py:STAGES/semantic",
+     "id": "eaos/features/check/journey/stages.py:STAGES/semantic",
      "label": "semantic",
      "marks": [
       "ai",
       "slow"
      ],
      "op": "refactor",
-     "pipeline": "eaos/pipeline/stages.py:STAGES",
+     "pipeline": "eaos/features/check/journey/stages.py:STAGES",
      "rule": "P6",
      "why": "26 stages take one shared, mutable context, so none can run alone without rebuilding it"
     },
@@ -8287,11 +8287,11 @@
        "sustainability.json"
       ]
      },
-     "id": "eaos/pipeline/stages.py:STAGES/sustainability",
+     "id": "eaos/features/check/journey/stages.py:STAGES/sustainability",
      "label": "sustainability",
      "marks": [],
      "op": "refactor",
-     "pipeline": "eaos/pipeline/stages.py:STAGES",
+     "pipeline": "eaos/features/check/journey/stages.py:STAGES",
      "rule": "P6",
      "why": "26 stages take one shared, mutable context, so none can run alone without rebuilding it"
     },
@@ -8306,11 +8306,11 @@
        "transform-plan.json"
       ]
      },
-     "id": "eaos/pipeline/stages.py:STAGES/transform",
+     "id": "eaos/features/check/journey/stages.py:STAGES/transform",
      "label": "transform",
      "marks": [],
      "op": "refactor",
-     "pipeline": "eaos/pipeline/stages.py:STAGES",
+     "pipeline": "eaos/features/check/journey/stages.py:STAGES",
      "rule": "P6",
      "why": "26 stages take one shared, mutable context, so none can run alone without rebuilding it"
     },
@@ -8324,11 +8324,11 @@
        "PLAN/WAVES.md"
       ]
      },
-     "id": "eaos/pipeline/stages.py:STAGES/plan",
+     "id": "eaos/features/check/journey/stages.py:STAGES/plan",
      "label": "plan",
      "marks": [],
      "op": "refactor",
-     "pipeline": "eaos/pipeline/stages.py:STAGES",
+     "pipeline": "eaos/features/check/journey/stages.py:STAGES",
      "rule": "P6",
      "why": "26 stages take one shared, mutable context, so none can run alone without rebuilding it"
     },
@@ -8345,11 +8345,11 @@
        "target-architecture.json"
       ]
      },
-     "id": "eaos/pipeline/stages.py:STAGES/target",
+     "id": "eaos/features/check/journey/stages.py:STAGES/target",
      "label": "target",
      "marks": [],
      "op": "refactor",
-     "pipeline": "eaos/pipeline/stages.py:STAGES",
+     "pipeline": "eaos/features/check/journey/stages.py:STAGES",
      "rule": "P6",
      "why": "26 stages take one shared, mutable context, so none can run alone without rebuilding it"
     },
@@ -8369,11 +8369,11 @@
        "reports.json"
       ]
      },
-     "id": "eaos/pipeline/stages.py:STAGES/reports",
+     "id": "eaos/features/check/journey/stages.py:STAGES/reports",
      "label": "reports",
      "marks": [],
      "op": "refactor",
-     "pipeline": "eaos/pipeline/stages.py:STAGES",
+     "pipeline": "eaos/features/check/journey/stages.py:STAGES",
      "rule": "P6",
      "why": "26 stages take one shared, mutable context, so none can run alone without rebuilding it"
     },
@@ -8388,11 +8388,11 @@
        "report-quality.json"
       ]
      },
-     "id": "eaos/pipeline/stages.py:STAGES/quality",
+     "id": "eaos/features/check/journey/stages.py:STAGES/quality",
      "label": "quality",
      "marks": [],
      "op": "refactor",
-     "pipeline": "eaos/pipeline/stages.py:STAGES",
+     "pipeline": "eaos/features/check/journey/stages.py:STAGES",
      "rule": "P6",
      "why": "26 stages take one shared, mutable context, so none can run alone without rebuilding it"
     },
@@ -8407,11 +8407,11 @@
        "EXECUTIVE.pdf"
       ]
      },
-     "id": "eaos/pipeline/stages.py:STAGES/pdf",
+     "id": "eaos/features/check/journey/stages.py:STAGES/pdf",
      "label": "pdf",
      "marks": [],
      "op": "refactor",
-     "pipeline": "eaos/pipeline/stages.py:STAGES",
+     "pipeline": "eaos/features/check/journey/stages.py:STAGES",
      "rule": "P6",
      "why": "26 stages take one shared, mutable context, so none can run alone without rebuilding it"
     },
@@ -8429,11 +8429,11 @@
        "EXECUTION-GUIDE.md"
       ]
      },
-     "id": "eaos/pipeline/stages.py:STAGES/execution_guide",
+     "id": "eaos/features/check/journey/stages.py:STAGES/execution_guide",
      "label": "execution_guide",
      "marks": [],
      "op": "refactor",
-     "pipeline": "eaos/pipeline/stages.py:STAGES",
+     "pipeline": "eaos/features/check/journey/stages.py:STAGES",
      "rule": "P6",
      "why": "26 stages take one shared, mutable context, so none can run alone without rebuilding it"
     },
@@ -8447,11 +8447,11 @@
        "EXECUTIVE.md"
       ]
      },
-     "id": "eaos/pipeline/stages.py:STAGES/executive",
+     "id": "eaos/features/check/journey/stages.py:STAGES/executive",
      "label": "executive",
      "marks": [],
      "op": "refactor",
-     "pipeline": "eaos/pipeline/stages.py:STAGES",
+     "pipeline": "eaos/features/check/journey/stages.py:STAGES",
      "rule": "P6",
      "why": "26 stages take one shared, mutable context, so none can run alone without rebuilding it"
     },
@@ -8471,11 +8471,11 @@
        "human/index.html"
       ]
      },
-     "id": "eaos/pipeline/stages.py:STAGES/compose",
+     "id": "eaos/features/check/journey/stages.py:STAGES/compose",
      "label": "compose",
      "marks": [],
      "op": "refactor",
-     "pipeline": "eaos/pipeline/stages.py:STAGES",
+     "pipeline": "eaos/features/check/journey/stages.py:STAGES",
      "rule": "P6",
      "why": "26 stages take one shared, mutable context, so none can run alone without rebuilding it"
     },
@@ -8501,11 +8501,11 @@
        "INTEGRATIONS.md"
       ]
      },
-     "id": "eaos/pipeline/stages.py:STAGES/bundles",
+     "id": "eaos/features/check/journey/stages.py:STAGES/bundles",
      "label": "bundles",
      "marks": [],
      "op": "refactor",
-     "pipeline": "eaos/pipeline/stages.py:STAGES",
+     "pipeline": "eaos/features/check/journey/stages.py:STAGES",
      "rule": "P6",
      "why": "26 stages take one shared, mutable context, so none can run alone without rebuilding it"
     },
@@ -8521,11 +8521,11 @@
        "handover/validation.json"
       ]
      },
-     "id": "eaos/pipeline/stages.py:STAGES/emit",
+     "id": "eaos/features/check/journey/stages.py:STAGES/emit",
      "label": "emit",
      "marks": [],
      "op": "refactor",
-     "pipeline": "eaos/pipeline/stages.py:STAGES",
+     "pipeline": "eaos/features/check/journey/stages.py:STAGES",
      "rule": "P6",
      "why": "26 stages take one shared, mutable context, so none can run alone without rebuilding it"
     },
@@ -8540,11 +8540,11 @@
        "index.html"
       ]
      },
-     "id": "eaos/pipeline/stages.py:STAGES/site",
+     "id": "eaos/features/check/journey/stages.py:STAGES/site",
      "label": "site",
      "marks": [],
      "op": "refactor",
-     "pipeline": "eaos/pipeline/stages.py:STAGES",
+     "pipeline": "eaos/features/check/journey/stages.py:STAGES",
      "rule": "P6",
      "why": "26 stages take one shared, mutable context, so none can run alone without rebuilding it"
     },
@@ -8560,11 +8560,11 @@
        "RUN.md"
       ]
      },
-     "id": "eaos/pipeline/stages.py:STAGES/validate",
+     "id": "eaos/features/check/journey/stages.py:STAGES/validate",
      "label": "validate",
      "marks": [],
      "op": "refactor",
-     "pipeline": "eaos/pipeline/stages.py:STAGES",
+     "pipeline": "eaos/features/check/journey/stages.py:STAGES",
      "rule": "P6",
      "why": "26 stages take one shared, mutable context, so none can run alone without rebuilding it"
     },
@@ -8573,11 +8573,11 @@
       "inputs": [],
       "outputs": []
      },
-     "id": "eaos/pipeline/stages.py:STAGES/RUNNERS",
+     "id": "eaos/features/check/journey/stages.py:STAGES/RUNNERS",
      "label": "RUNNERS",
      "marks": [],
      "op": "retain",
-     "pipeline": "eaos/pipeline/stages.py:STAGES",
+     "pipeline": "eaos/features/check/journey/stages.py:STAGES",
      "rule": null,
      "why": null
     },
@@ -8853,11 +8853,11 @@
        "produced['syntax']"
       ]
      },
-     "id": "eaos/facts/run.py:collect/syntax",
+     "id": "eaos/kernel/facts/run.py:collect/syntax",
      "label": "syntax",
      "marks": [],
      "op": "refactor",
-     "pipeline": "eaos/facts/run.py:collect",
+     "pipeline": "eaos/kernel/facts/run.py:collect",
      "rule": "P2",
      "why": "19 stages take their inputs from an accumulator by an if-chain on the stage name, not from a declared contract"
     },
@@ -8870,11 +8870,11 @@
        "produced['resolve']"
       ]
      },
-     "id": "eaos/facts/run.py:collect/resolve",
+     "id": "eaos/kernel/facts/run.py:collect/resolve",
      "label": "resolve",
      "marks": [],
      "op": "refactor",
-     "pipeline": "eaos/facts/run.py:collect",
+     "pipeline": "eaos/kernel/facts/run.py:collect",
      "rule": "P2",
      "why": "19 stages take their inputs from an accumulator by an if-chain on the stage name, not from a declared contract"
     },
@@ -8887,11 +8887,11 @@
        "produced['structure']"
       ]
      },
-     "id": "eaos/facts/run.py:collect/structure",
+     "id": "eaos/kernel/facts/run.py:collect/structure",
      "label": "structure",
      "marks": [],
      "op": "refactor",
-     "pipeline": "eaos/facts/run.py:collect",
+     "pipeline": "eaos/kernel/facts/run.py:collect",
      "rule": "P2",
      "why": "19 stages take their inputs from an accumulator by an if-chain on the stage name, not from a declared contract"
     },
@@ -8904,11 +8904,11 @@
        "produced['fingerprint']"
       ]
      },
-     "id": "eaos/facts/run.py:collect/fingerprint",
+     "id": "eaos/kernel/facts/run.py:collect/fingerprint",
      "label": "fingerprint",
      "marks": [],
      "op": "refactor",
-     "pipeline": "eaos/facts/run.py:collect",
+     "pipeline": "eaos/kernel/facts/run.py:collect",
      "rule": "P2",
      "why": "19 stages take their inputs from an accumulator by an if-chain on the stage name, not from a declared contract"
     },
@@ -8921,11 +8921,11 @@
        "produced['sequences']"
       ]
      },
-     "id": "eaos/facts/run.py:collect/sequences",
+     "id": "eaos/kernel/facts/run.py:collect/sequences",
      "label": "sequences",
      "marks": [],
      "op": "refactor",
-     "pipeline": "eaos/facts/run.py:collect",
+     "pipeline": "eaos/kernel/facts/run.py:collect",
      "rule": "P2",
      "why": "19 stages take their inputs from an accumulator by an if-chain on the stage name, not from a declared contract"
     },
@@ -8938,11 +8938,11 @@
        "produced['runtime']"
       ]
      },
-     "id": "eaos/facts/run.py:collect/runtime",
+     "id": "eaos/kernel/facts/run.py:collect/runtime",
      "label": "runtime",
      "marks": [],
      "op": "refactor",
-     "pipeline": "eaos/facts/run.py:collect",
+     "pipeline": "eaos/kernel/facts/run.py:collect",
      "rule": "P2",
      "why": "19 stages take their inputs from an accumulator by an if-chain on the stage name, not from a declared contract"
     },
@@ -8955,11 +8955,11 @@
        "produced['entrypoints']"
       ]
      },
-     "id": "eaos/facts/run.py:collect/entrypoints",
+     "id": "eaos/kernel/facts/run.py:collect/entrypoints",
      "label": "entrypoints",
      "marks": [],
      "op": "refactor",
-     "pipeline": "eaos/facts/run.py:collect",
+     "pipeline": "eaos/kernel/facts/run.py:collect",
      "rule": "P2",
      "why": "19 stages take their inputs from an accumulator by an if-chain on the stage name, not from a declared contract"
     },
@@ -8974,11 +8974,11 @@
        "produced['redundancy']"
       ]
      },
-     "id": "eaos/facts/run.py:collect/redundancy",
+     "id": "eaos/kernel/facts/run.py:collect/redundancy",
      "label": "redundancy",
      "marks": [],
      "op": "refactor",
-     "pipeline": "eaos/facts/run.py:collect",
+     "pipeline": "eaos/kernel/facts/run.py:collect",
      "rule": "P2",
      "why": "19 stages take their inputs from an accumulator by an if-chain on the stage name, not from a declared contract"
     },
@@ -8989,11 +8989,11 @@
        "produced['config']"
       ]
      },
-     "id": "eaos/facts/run.py:collect/config",
+     "id": "eaos/kernel/facts/run.py:collect/config",
      "label": "config",
      "marks": [],
      "op": "refactor",
-     "pipeline": "eaos/facts/run.py:collect",
+     "pipeline": "eaos/kernel/facts/run.py:collect",
      "rule": "P2",
      "why": "19 stages take their inputs from an accumulator by an if-chain on the stage name, not from a declared contract"
     },
@@ -9006,11 +9006,11 @@
        "produced['metrics']"
       ]
      },
-     "id": "eaos/facts/run.py:collect/metrics",
+     "id": "eaos/kernel/facts/run.py:collect/metrics",
      "label": "metrics",
      "marks": [],
      "op": "refactor",
-     "pipeline": "eaos/facts/run.py:collect",
+     "pipeline": "eaos/kernel/facts/run.py:collect",
      "rule": "P2",
      "why": "19 stages take their inputs from an accumulator by an if-chain on the stage name, not from a declared contract"
     },
@@ -9021,11 +9021,11 @@
        "produced['domain']"
       ]
      },
-     "id": "eaos/facts/run.py:collect/domain",
+     "id": "eaos/kernel/facts/run.py:collect/domain",
      "label": "domain",
      "marks": [],
      "op": "refactor",
-     "pipeline": "eaos/facts/run.py:collect",
+     "pipeline": "eaos/kernel/facts/run.py:collect",
      "rule": "P2",
      "why": "19 stages take their inputs from an accumulator by an if-chain on the stage name, not from a declared contract"
     },
@@ -9036,11 +9036,11 @@
        "produced['history']"
       ]
      },
-     "id": "eaos/facts/run.py:collect/history",
+     "id": "eaos/kernel/facts/run.py:collect/history",
      "label": "history",
      "marks": [],
      "op": "refactor",
-     "pipeline": "eaos/facts/run.py:collect",
+     "pipeline": "eaos/kernel/facts/run.py:collect",
      "rule": "P2",
      "why": "19 stages take their inputs from an accumulator by an if-chain on the stage name, not from a declared contract"
     },
@@ -9056,11 +9056,11 @@
        "produced['graph']"
       ]
      },
-     "id": "eaos/facts/run.py:collect/graph",
+     "id": "eaos/kernel/facts/run.py:collect/graph",
      "label": "graph",
      "marks": [],
      "op": "refactor",
-     "pipeline": "eaos/facts/run.py:collect",
+     "pipeline": "eaos/kernel/facts/run.py:collect",
      "rule": "P2",
      "why": "19 stages take their inputs from an accumulator by an if-chain on the stage name, not from a declared contract"
     },
@@ -9078,11 +9078,11 @@
        "produced['flows']"
       ]
      },
-     "id": "eaos/facts/run.py:collect/flows",
+     "id": "eaos/kernel/facts/run.py:collect/flows",
      "label": "flows",
      "marks": [],
      "op": "refactor",
-     "pipeline": "eaos/facts/run.py:collect",
+     "pipeline": "eaos/kernel/facts/run.py:collect",
      "rule": "P2",
      "why": "19 stages take their inputs from an accumulator by an if-chain on the stage name, not from a declared contract"
     },
@@ -9095,11 +9095,11 @@
        "produced['leftovers']"
       ]
      },
-     "id": "eaos/facts/run.py:collect/leftovers",
+     "id": "eaos/kernel/facts/run.py:collect/leftovers",
      "label": "leftovers",
      "marks": [],
      "op": "refactor",
-     "pipeline": "eaos/facts/run.py:collect",
+     "pipeline": "eaos/kernel/facts/run.py:collect",
      "rule": "P2",
      "why": "19 stages take their inputs from an accumulator by an if-chain on the stage name, not from a declared contract"
     },
@@ -9114,11 +9114,11 @@
        "produced['deadcode']"
       ]
      },
-     "id": "eaos/facts/run.py:collect/deadcode",
+     "id": "eaos/kernel/facts/run.py:collect/deadcode",
      "label": "deadcode",
      "marks": [],
      "op": "refactor",
-     "pipeline": "eaos/facts/run.py:collect",
+     "pipeline": "eaos/kernel/facts/run.py:collect",
      "rule": "P2",
      "why": "19 stages take their inputs from an accumulator by an if-chain on the stage name, not from a declared contract"
     },
@@ -9131,11 +9131,11 @@
        "produced['broken']"
       ]
      },
-     "id": "eaos/facts/run.py:collect/broken",
+     "id": "eaos/kernel/facts/run.py:collect/broken",
      "label": "broken",
      "marks": [],
      "op": "refactor",
-     "pipeline": "eaos/facts/run.py:collect",
+     "pipeline": "eaos/kernel/facts/run.py:collect",
      "rule": "P2",
      "why": "19 stages take their inputs from an accumulator by an if-chain on the stage name, not from a declared contract"
     },
@@ -9146,11 +9146,11 @@
        "produced['secrets']"
       ]
      },
-     "id": "eaos/facts/run.py:collect/secrets",
+     "id": "eaos/kernel/facts/run.py:collect/secrets",
      "label": "secrets",
      "marks": [],
      "op": "refactor",
-     "pipeline": "eaos/facts/run.py:collect",
+     "pipeline": "eaos/kernel/facts/run.py:collect",
      "rule": "P2",
      "why": "19 stages take their inputs from an accumulator by an if-chain on the stage name, not from a declared contract"
     },
@@ -9161,11 +9161,11 @@
        "produced['pipeline']"
       ]
      },
-     "id": "eaos/facts/run.py:collect/pipeline",
+     "id": "eaos/kernel/facts/run.py:collect/pipeline",
      "label": "pipeline",
      "marks": [],
      "op": "refactor",
-     "pipeline": "eaos/facts/run.py:collect",
+     "pipeline": "eaos/kernel/facts/run.py:collect",
      "rule": "P2",
      "why": "19 stages take their inputs from an accumulator by an if-chain on the stage name, not from a declared contract"
     },
@@ -9174,11 +9174,11 @@
       "inputs": [],
       "outputs": []
      },
-     "id": "eaos/facts/run.py:collect/EXTRACTORS",
+     "id": "eaos/kernel/facts/run.py:collect/EXTRACTORS",
      "label": "EXTRACTORS",
      "marks": [],
      "op": "retain",
-     "pipeline": "eaos/facts/run.py:collect",
+     "pipeline": "eaos/kernel/facts/run.py:collect",
      "rule": null,
      "why": null
     },
@@ -9187,11 +9187,11 @@
       "inputs": [],
       "outputs": []
      },
-     "id": "eaos/facts/run.py:collect/if-name",
+     "id": "eaos/kernel/facts/run.py:collect/if-name",
      "label": "if name ==",
      "marks": [],
      "op": "retain",
-     "pipeline": "eaos/facts/run.py:collect",
+     "pipeline": "eaos/kernel/facts/run.py:collect",
      "rule": null,
      "why": null
     },
@@ -9412,11 +9412,11 @@
        "recorded failure"
       ]
      },
-     "id": "eaos/facts/run.py:collect/failure-lane",
+     "id": "eaos/kernel/facts/run.py:collect/failure-lane",
      "label": "failure lane",
      "marks": [],
      "op": "new",
-     "pipeline": "eaos/facts/run.py:collect",
+     "pipeline": "eaos/kernel/facts/run.py:collect",
      "rule": "P7",
      "why": "every failure needs a route"
     }

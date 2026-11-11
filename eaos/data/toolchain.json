@@ -4,37 +4,37 @@
   "env": "EAOS_ENGINE_TOOLS",
   "default": "~/.eaos/tools"
  },
- "description": "Every external tool EAOS runs or validates with, at its pinned version, and how to install it without root. The only list: eaos tools install and doctor, the engines stage (eaos/engines/__init__.py ADAPTERS) and the pages read it; `source_commit` pins the source tools/dev_paths.py upstreams clones for reading. A release is accepted only if its sha256 matches the one pinned here, copied from the checksums the project publishes. `check` names the stage of the check that runs a tool (eaos/pipeline/stages.py): the check waits for those tools, on a project they apply to, before it starts.",
+ "description": "Every external tool EAOS runs or validates with, at its pinned version, and how to install it without root. The only list: eaos tools install and doctor, the engines stage (eaos/features/engines/adapters/__init__.py ADAPTERS) and the pages read it; `source_commit` pins the source tools/dev_paths.py upstreams clones for reading. A release is accepted only if its sha256 matches the one pinned here, copied from the checksums the project publishes. `check` names the stage of the check that runs a tool (eaos/features/check/journey/stages.py): the check waits for those tools, on a project they apply to, before it starts.",
  "jobs": {
   "code_graph": {
    "what": "The imports and calls between files, and the layers they cross",
    "primary": "eaos",
    "eaos": [
-    "eaos/facts/code/syntax.py",
-    "eaos/facts/code/graph.py",
-    "eaos/analysis/layers/boundaries.py"
+    "eaos/features/code_reading/facts/code/syntax.py",
+    "eaos/features/code_reading/facts/code/graph.py",
+    "eaos/features/layers/analysis/boundaries.py"
    ]
   },
   "near_copies": {
    "what": "Code copied or nearly copied in several places",
    "primary": "jscpd",
    "eaos": [
-    "eaos/analysis/assessments/one_source.py"
+    "eaos/features/one_source/analysis/one_source.py"
    ]
   },
   "dead_code": {
    "what": "Code and files nothing reaches",
    "primary": "eaos",
    "eaos": [
-    "eaos/facts/dead_code/detect.py"
+    "eaos/features/dead_code/facts/detect.py"
    ]
   },
   "size_complexity": {
    "what": "The size and complexity of files and functions",
    "primary": "eaos",
    "eaos": [
-    "eaos/core/contracts/code_laws.py",
-    "eaos/facts/code/metrics.py"
+    "eaos/kernel/contracts/code_laws.py",
+    "eaos/features/code_reading/facts/code/metrics.py"
    ]
   },
   "code_rules": {
@@ -49,7 +49,7 @@
    "what": "Secrets written into the files",
    "primary": "gitleaks",
    "eaos": [
-    "eaos/facts/defects/secrets.py"
+    "eaos/features/defects/facts/secrets.py"
    ]
   },
   "personal_data": {
@@ -589,7 +589,7 @@
     "method": "npm",
     "package": "lighthouse"
    },
-   "install_note": "Mobile performance, accessibility and best-practices scores of one URL, as JSON (eaos/live/screens/audit.py). It drives the Chromium the pinned Playwright installed (CHROME_PATH); it needs Node.js 22.19 or newer.",
+   "install_note": "Mobile performance, accessibility and best-practices scores of one URL, as JSON (eaos/features/app_run/adapters/screens/audit.py). It drives the Chromium the pinned Playwright installed (CHROME_PATH); it needs Node.js 22.19 or newer.",
    "jobs": {
     "page_performance": "primary"
    }
@@ -612,7 +612,7 @@
      "rrweb-player@2.1.7"
     ]
    },
-   "install_note": "Libraries, no executable: the journeys stage (eaos/live/behavior/lock.py run_journeys) injects rrweb's recorder unmodified into each page a journey opens and keeps its events as JSON, capped in size, for the assistant and a later replay with rrweb-player from local files, never from a network.",
+   "install_note": "Libraries, no executable: the journeys stage (eaos/features/behaviour_lock/analysis/lock.py run_journeys) injects rrweb's recorder unmodified into each page a journey opens and keeps its events as JSON, capped in size, for the assistant and a later replay with rrweb-player from local files, never from a network.",
    "jobs": {
     "journey_recording": "primary"
    }

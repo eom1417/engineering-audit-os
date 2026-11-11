@@ -5,16 +5,16 @@ from pathlib import Path
 import tempfile
 import unittest
 from shared_fixture import TemporaryWorkspace
-from eaos.analysis.claims import ledger
-from eaos.analysis.claims import probes
-from eaos.ai.ask import answer
-from eaos.core.language.words import statement_of
-from eaos.core.contracts.document_rules import validate
-from eaos.analysis.understanding.dossier import assemble, refresh_views
-from eaos.facts.run import collect
-from eaos.facts.store import read_set
-from eaos.analysis.planning.cards import build
-from eaos.report.views import refresh
+from eaos.features.claims.analysis import ledger
+from eaos.features.claims.analysis import probes
+from eaos.features.ai_review.analysis.ask import answer
+from eaos.kernel.language.words import statement_of
+from eaos.features.plan.analysis.document_rules import validate
+from eaos.features.plan.analysis.dossier import assemble, refresh_views
+from eaos.kernel.facts.run import collect
+from eaos.kernel.facts.store import read_set
+from eaos.features.plan.analysis.cards import build
+from eaos.features.report.interface.views import refresh
 
 FIXTURE = Path(__file__).resolve().parents[1] / 'fixtures/polyglot'
 
@@ -116,7 +116,7 @@ class LayeringTests(unittest.TestCase):
 
     def test_the_ledger_is_below_its_views_and_the_package_has_no_import_cycle(self):
         root = Path(__file__).resolve().parents[2]
-        tree = ast.parse((root / 'eaos/analysis/understanding/dossier.py').read_text())
+        tree = ast.parse((root / 'eaos/features/plan/analysis/dossier.py').read_text())
         imported = {node.module.lstrip('.') for node in ast.walk(tree) if isinstance(node, ast.ImportFrom)
                     and node.module}
         self.assertFalse(imported & {'plan',

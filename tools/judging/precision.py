@@ -67,7 +67,7 @@ def score(folder=LABELS):
 
 def sample(report, detector):
     """A check's outputs of one detector, kept aside or shown, as lines for the judge to give a verdict."""
-    from eaos.analysis.claims.ledger import detector_of
+    from eaos.features.claims.analysis.ledger import detector_of
     dossier = json.loads((Path(report) / 'dossier.json').read_text(encoding='utf-8'))
     claims = [*(dossier.get('claims') or ()), *(dossier.get('withheld') or ())]
     return [{'project': Path(dossier.get('target') or report).name, 'claim': claim.get('id'),

@@ -1,11 +1,11 @@
-"""The run engine (eaos/journeys/runs): direct runs with a fake assistant
+"""The run engine (eaos/features/studio/journey/runs): direct runs with a fake assistant
 (tests/fixtures/studio/actions/fake_assistant.py)."""
 import json
 import os
 import unittest
 from unittest import mock
-from eaos.ai.assistant import headless as adapters
-from eaos.core.project import runs as store
+from eaos.features.assistant.adapters import headless as adapters
+from eaos.kernel.project import runs as store
 from tests.interfaces._studio_actions_fixture import Base
 
 
@@ -30,11 +30,11 @@ class Direct(Base):
         self.assertIn(created['id'], [run['id'] for run in self.get('/api/runs')[1]['runs']])
 
     def test_a_reading_action_answers_at_once_and_a_job_is_followed_with_its_progress(self):
-        from eaos.core.project import jobs
+        from eaos.kernel.project import jobs
         self.app.manager.tools, calls = self.fake_tools({'status': {'next': 'audit'},
                                                          'audit': {'job': 'audit-1', 'status': 'running'}})
         applied = {'branch': 'main', 'waves': [{'status': 'applied', 'branch': 'eaos/main/wave-1', 'kept': ['TASK-1']}]}
-        with mock.patch('eaos.core.project.state.load',
+        with mock.patch('eaos.kernel.project.state.load',
                         return_value=applied):     # a batch handed over earlier is not this read's
             status, payload = self.post('/api/runs', {'action': 'status'})
         self.assertEqual((status, payload['run']['state'], payload['run']['result']['answer']),
@@ -50,7 +50,7 @@ class Direct(Base):
             if state['n'] < 3: return {'id': job, 'kind': 'audit', 'status': 'running',
                                        'progress': {'done': state['n'], 'total': 3, 'stage': 'engines'}}
             return {'id': job, 'kind': 'audit', 'status': 'done', 'result': {'overview': 'fine'}}
-        with mock.patch.object(jobs, 'read', side_effect=read), mock.patch('eaos.core.project.state.load',
+        with mock.patch.object(jobs, 'read', side_effect=read), mock.patch('eaos.kernel.project.state.load',
                                                                            return_value=applied):
             run = self.post('/api/runs', {'action': 'audit'})[1]['run']['id']
             done = self.app.wait(run, ('done', 'failed'), 20)
@@ -161,7 +161,7 @@ class Direct(Base):
         self.app.store.save({'id': 'r-fix', 'action': 'fix', 'verb': 'fix', 'mode': 'assistant', 'state': 'done',
                              'label': {'en': 'x', 'ar': 'x'},
                              'created': '0', 'result': {'branch': 'eaos/develop/wave-10'}}, new=True)
-        listed = lambda waves: mock.patch('eaos.core.project.state.load', return_value={'waves': waves})
+        listed = lambda waves: mock.patch('eaos.kernel.project.state.load', return_value={'waves': waves})
         with listed([{'number': 10, 'status': 'applied', 'branch': 'eaos/develop/wave-10'}]):
             self.assertIsNone(self.get('/api/runs')[1]['runs'][0].get('outcome'), 'handed over, it waits')
         with listed([{'number': 10, 'status': 'accepted', 'branch': 'eaos/develop/wave-10'},

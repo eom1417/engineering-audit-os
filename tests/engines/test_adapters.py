@@ -6,7 +6,7 @@ from unittest import mock
 from shared_fixture import Workspace
 
 from needs import need
-from eaos.engines.tool import version_of
+from eaos.features.engines.adapters.tool import version_of
 
 CONTRACTS = Path(__file__).resolve().parents[1] / 'contracts'
 
@@ -17,9 +17,9 @@ def sample(name):
 
 class SampleTests(Workspace):
     def test_each_sample_is_pinned_and_maps_everything_and_no_secret_survives(self):
-        from eaos.engines.security import semgrep
-        from eaos.engines.code import dependency_cruiser
-        from eaos.engines import sarif
+        from eaos.features.engines.adapters.security import semgrep
+        from eaos.features.engines.adapters.code import dependency_cruiser
+        from eaos.features.engines.adapters import sarif
         for module, name, file, kinds in ((semgrep, 'semgrep', 'semgrep.sarif', None),):
             with self.subTest(engine=name):
                 payload = sample(name)                       # its pin: test_engine_contracts
@@ -51,8 +51,8 @@ class SemgrepTests(Workspace):
         return rules
 
     def test_every_own_rule_is_in_the_eaos_namespace_with_a_kind_an_example_and_a_mapping_and_no_official_rule_is_here(self):
-        from eaos.engines.contract import KINDS
-        from eaos.engines.sarif import RULES
+        from eaos.features.engines.adapters.contract import KINDS
+        from eaos.features.engines.adapters.sarif import RULES
         from fnmatch import fnmatch
         rows = json.loads(RULES.read_text())['semgrep']
         examples = ''.join(p.read_text() for p in self.RULES.iterdir() if p.suffix in ('.ts', '.py'))
@@ -69,7 +69,7 @@ class SemgrepTests(Workspace):
         self.assertFalse((root / 'eaos/rules/semgrep-rules').exists())
 
     def test_the_rules_catch_their_examples_and_spare_the_correct_code(self):
-        from eaos.engines.security import semgrep
+        from eaos.features.engines.adapters.security import semgrep
         need(self, 'semgrep is not installed' if version_of(semgrep) is None else '')
         import subprocess
         done = subprocess.run([semgrep.which('semgrep'), '--test', '--disable-version-check', str(self.RULES)],
@@ -77,7 +77,7 @@ class SemgrepTests(Workspace):
         self.assertEqual(done.returncode, 0, done.stdout[-2000:] + done.stderr[-2000:])
 
     def test_the_silenced_official_rules_are_left_out_and_the_other_security_rules_kept(self):
-        from eaos.engines.security import semgrep
+        from eaos.features.engines.adapters.security import semgrep
         checkout = Path(self.tmp) / 'official'
         for name in (*semgrep.SILENCED, 'javascript/browser/security/insecure-innerhtml.yaml',
                      'javascript/lang/style/x.yaml',
@@ -92,7 +92,7 @@ class SemgrepTests(Workspace):
                                   'php/lang/security/injection.yaml'})
 
     def test_rule_ids_and_paths_do_not_depend_on_where_things_are_installed(self):
-        from eaos.engines.security import semgrep
+        from eaos.features.engines.adapters.security import semgrep
         sarif = Path(self.tmp) / 'out.sarif'
         sarif.write_text(json.dumps({'runs': [{'tool': {'driver': {'rules': [
                                                    {'id': 'rules.official.python.lang.security.x'}]}},
@@ -104,7 +104,7 @@ class SemgrepTests(Workspace):
         self.assertEqual(run['tool']['driver']['rules'][0]['id'], 'python.lang.security.x')
         self.assertEqual(run['results'][0]['ruleId'], 'eaos.security.y')
         self.assertEqual(run['results'][0]['locations'][0]['physicalLocation']['artifactLocation']['uri'], 'app/db.py')
-        from eaos.engines.sarif import relative
+        from eaos.features.engines.adapters.sarif import relative
         root = Path(self.tmp) / 'project'
         (root / 'app').mkdir(parents=True)
         (root / 'Dockerfile').write_text('FROM x\n')
@@ -116,7 +116,7 @@ class SemgrepTests(Workspace):
 
 class DependencyCruiserTests(Workspace):
     def test_a_policy_deny_becomes_a_forbidden_rule_written_outside_the_project(self):
-        from eaos.engines.code.dependency_cruiser import configuration, glob_regex
+        from eaos.features.engines.adapters.code.dependency_cruiser import configuration, glob_regex
         (Path(self.tmp) / 'eaos.policy.json').write_text(json.dumps({
             'layers': {'ui': ['src/ui/**'], 'db': ['src/db/*.ts']},
             'rules': [{'deny': {'from': 'ui', 'to': 'db'}, 'reason': 'screens go through services'}]}))
@@ -129,7 +129,7 @@ class DependencyCruiserTests(Workspace):
         self.assertFalse(re.match(glob_regex('src/db/*.ts'), 'src/db/deep/users.ts'))
 
     def test_a_cycle_closed_only_by_import_type_is_coupling_not_a_runtime_cycle(self):
-        from eaos.engines.code import dependency_cruiser
+        from eaos.features.engines.adapters.code import dependency_cruiser
         need(self, 'dependency-cruiser is not installed' if version_of(dependency_cruiser) is None else '')
         root = Path(self.tmp) / 'project'
         (root / 'src').mkdir(parents=True)
@@ -139,7 +139,7 @@ class DependencyCruiserTests(Workspace):
                                           '}\nrender();\n')
         (root / 'src/child.ts').write_text('import type { Message } from "./page";\nexport const render = (m?: '
                                            'Message) => m;\n')
-        from eaos.engines.process import state_digest
+        from eaos.features.engines.adapters.process import state_digest
         before = state_digest(root)
         report = dependency_cruiser.analyze(root, Path(self.tmp) / 'work')
         self.assertEqual(state_digest(root), before)
@@ -154,18 +154,18 @@ class ReportedRunTests(Workspace):
     """What a run of a tool reports beyond its findings: what it examined, what passed, what is only style, pages."""
 
     def test_measurements_stay_metrics_and_an_empty_run_is_an_error(self):
-        from eaos.analysis.claims.correlate import _findings
-        from eaos.facts import engine_findings as external
+        from eaos.features.claims.analysis.correlate import _findings
+        from eaos.features.engines.facts import engine_findings as external
         manifest = {'engines': {'scc': {'version': '4.1.0', 'metrics': [
             {'path': 'a.py', 'granularity': 'file', 'measurements': {'code': 10}}]}}, 'findings': [],
                     'coverage': {'scc': {'status': 'observed', 'evaluated_kinds': {}}}, 'target_unchanged': True}
         source = mock.Mock(exclude=(), content_fingerprint='f')
-        with mock.patch('eaos.engines.analyze', return_value=manifest):
+        with mock.patch('eaos.features.engines.adapters.analyze', return_value=manifest):
             result = external.run(self.tmp, source, out=self.tmp)
         kinds = {fact['kind'] for fact in result['facts']}
         self.assertEqual(kinds, {'symbol_metric_external'})
         self.assertEqual(_findings({'external': {'facts': result['facts']}}), [])
-        from eaos.engines.code import dependency_cruiser
+        from eaos.features.engines.adapters.code import dependency_cruiser
         def fake_run(command, **_):
             out = Path(command[command.index('--output-to') + 1])
             out.write_text(json.dumps({'summary': {'totalCruised': 0, 'violations': [],

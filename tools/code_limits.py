@@ -20,15 +20,14 @@ from collections import defaultdict
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
-from eaos.core.contracts.code_laws import (  # noqa: E402
-    MAX_COMPLEXITY, MAX_FUNCTION_LINES, MAX_LINES, MAX_PARAMETERS, complexity)
+from eaos.kernel.contracts.code_laws import MAX_COMPLEXITY, MAX_FUNCTION_LINES, MAX_LINES, MAX_PARAMETERS, complexity  # noqa: E402
 
 ROOT = Path(__file__).resolve().parents[1]
 BASELINE = ROOT / 'tools' / 'code_limits.json'
 FOLDERS = ('eaos', 'tools')
 # Each kind of limit and its number; every kind but 'modules' is keyed by function.
 # EAOS holds itself to the target laws since M3 (2026-10-24): complexity 10, modules of 400 lines. The laws it holds
-# every project to stay eaos/core/contracts/code_laws.py's.
+# every project to stay eaos/kernel/contracts/code_laws.py's.
 LIMITS = {'functions': min(MAX_COMPLEXITY, 10), 'function_lines': MAX_FUNCTION_LINES, 'parameters': MAX_PARAMETERS,
           'modules': min(MAX_LINES, 400)}
 # The kinds a function may justify on its signature, and the comment that does: the kind, then `--` and a reason.

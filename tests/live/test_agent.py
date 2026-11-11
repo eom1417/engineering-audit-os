@@ -1,4 +1,4 @@
-"""The browser agent (eaos/live/agent.py): the assistant drives the browser a step at a time towards a goal, each step
+"""The browser agent (eaos/features/app_run/adapters/agent.py): the assistant drives the browser a step at a time towards a goal, each step
 recorded with its picture, and the record replays with no assistant; a step that would delete is refused."""
 import tempfile
 import threading
@@ -7,8 +7,8 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 
 from needs import needs
-from eaos.live import agent
-from eaos.live.screens.audit import missing
+from eaos.features.app_run.adapters import agent
+from eaos.features.app_run.adapters.screens.audit import missing
 
 # A hash-routed app whose second screen only a tab button opens: no link, no address in a menu.
 PAGE = """<html><body><nav><button onclick="location.hash='#/reports'">Reports</button>

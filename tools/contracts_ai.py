@@ -3,7 +3,7 @@ from contract_shapes import B, NN, NS, S, arr, enum, obj
 
 COUNT = {'type': 'integer', 'minimum': 0}
 REFS = arr(S)
-# The AI nodes (eaos/ai/nodes/): a stage whose input is a deterministic output and whose output is
+# The AI nodes (eaos/features/ai_review/analysis/): a stage whose input is a deterministic output and whose output is
 # a structured decision, routed on by declared branches. `ai-node` is one node's run (<report>/nodes/<node>/last.json),
 # whose decisions all share one shape.
 NODE_STATES = ('decided', 'rules_only', 'failed')

@@ -2,7 +2,7 @@
 import json
 from pathlib import Path
 import unittest
-from eaos.facts.code import graph_queries as arch
+from eaos.features.code_reading.facts.code import graph_queries as arch
 
 MODEL = Path(__file__).resolve().parents[1] / 'fixtures/architecture-model.json'
 

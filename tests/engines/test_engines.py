@@ -4,10 +4,10 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from eaos.analysis.claims import correlate
-from eaos.engines import ADAPTERS, analyze, health
-from eaos.engines.contract import Report, UNAVAILABLE, finding, subject
-from eaos.engines.tool import version_of
+from eaos.features.claims.analysis import correlate
+from eaos.features.engines.adapters import ADAPTERS, analyze, health
+from eaos.features.engines.adapters.contract import Report, UNAVAILABLE, finding, subject
+from eaos.features.engines.adapters.tool import version_of
 
 
 def engine_fact(identifier, engine, kind, path, rule='r', sites=None, message='m', measurements=()):
@@ -73,8 +73,8 @@ class DegradationTests(unittest.TestCase):
         self.assertEqual((manifest['unknown_engines'], manifest['findings']), (['imaginary'], []))
         # A tool with nothing to read is not applicable, not absent.
         from unittest import mock
-        from eaos.engines import tool
-        from eaos.engines.contract import NOT_APPLICABLE
+        from eaos.features.engines.adapters import tool
+        from eaos.features.engines.adapters.contract import NOT_APPLICABLE
         with tempfile.TemporaryDirectory() as tmp:
             (Path(tmp) / 'app.py').write_text('print(1)\n')
             with mock.patch.object(tool, 'version', return_value='6.0.0'):
@@ -94,7 +94,7 @@ class EnginesAtOnceTests(unittest.TestCase):
         import threading
         import time
         from unittest import mock
-        from eaos.engines import run as engines
+        from eaos.features.engines.adapters import run as engines
         state, guard = {}, threading.Lock()
         def adapter(name, after=()):
             def analyze(*_args, **_kwargs):
@@ -152,8 +152,8 @@ class CorrelationTests(unittest.TestCase):
 
 class EngineClaimTests(unittest.TestCase):
     def test_engine_evidence_becomes_a_claim_only_when_corroborated_and_never_above_its_ceiling(self):
-        from eaos.analysis.claims.ledger import from_engines
-        from eaos.analysis.claims.probes import _apply_ceiling
+        from eaos.features.claims.analysis.ledger import from_engines
+        from eaos.features.claims.analysis.probes import _apply_ceiling
         self.assertEqual(from_engines(fact_set([engine_fact('F1', 'enola', 'complexity', 'a.py')],
                                                {'enola': evaluated_at(complexity=('observed', 'file'))})), [])
         [claim] = from_engines(fact_set([engine_fact('F1', 'enola', 'complexity', 'a.py'),
@@ -204,15 +204,15 @@ class InstalledEngineTests(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
-        from eaos.engines.code import jscpd, lizard
+        from eaos.features.engines.adapters.code import jscpd, lizard
         if not (version_of(lizard) and version_of(jscpd)):
             raise unittest.SkipTest('the pinned engines are not installed in this environment')
 
     def test_a_run_only_runs_what_was_asked_leaves_the_target_untouched_and_is_reproducible(self):
         import os, shutil
-        from eaos.facts.run import collect
+        from eaos.kernel.facts.run import collect
         with tempfile.TemporaryDirectory() as workdir:
-            manifest = analyze('eaos/core/progress', workdir, only=['jscpd'], formats=['python'])
+            manifest = analyze('eaos/kernel/progress', workdir, only=['jscpd'], formats=['python'])
         self.assertTrue(manifest['target_unchanged'])
         self.assertEqual((manifest['requested'], sorted(manifest['coverage'])), (['jscpd'], ['jscpd']))
         # A fact id does not hash modification times: they change with every clone, and with them the measurement a
@@ -220,7 +220,7 @@ class InstalledEngineTests(unittest.TestCase):
         ids = []
         with tempfile.TemporaryDirectory() as tmp:
             for name, mtime in (('a', 1_000_000), ('b', 2_000_000)):
-                target = shutil.copytree('eaos/core/progress', Path(tmp, name, 'progress'))
+                target = shutil.copytree('eaos/kernel/progress', Path(tmp, name, 'progress'))
                 for path in target.rglob('*'): os.utime(path, (mtime, mtime))
                 collect(target, Path(tmp, name, 'out'), engines=['lizard', 'jscpd'])
                 facts = json.loads(Path(tmp, name, 'out', 'facts/external.json').read_text())['facts']

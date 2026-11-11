@@ -8,7 +8,7 @@ import json
 import unittest
 from pathlib import Path
 
-from eaos.engines.contract import KINDS
+from eaos.features.engines.adapters.contract import KINDS
 
 CONTRACTS = Path(__file__).resolve().parents[1] / 'contracts'
 
@@ -26,7 +26,7 @@ class SampleTests(unittest.TestCase):
         # The one contract every engine holds. Without `analyze` the registry raises AttributeError on every run and a
         # working engine contributes nothing.
         import importlib
-        from eaos.engines import ADAPTERS, tool
+        from eaos.features.engines.adapters import ADAPTERS, tool
         for name, adapter in ADAPTERS.items():
             with self.subTest(engine=name):
                 self.assertEqual((adapter.__name__.rsplit('.', 1)[-1], importlib.import_module(adapter.__name__)),

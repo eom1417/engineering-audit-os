@@ -3,7 +3,7 @@ from pathlib import Path
 
 from shared_fixture import Workspace
 
-from eaos.analysis.repair import context_trim
+from eaos.features.tidy.analysis import context_trim
 
 RULE = 'Run the whole test suite before every commit, with the coverage gate on.\n'
 FILES = {

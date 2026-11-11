@@ -65,4 +65,4 @@ revert واحد يعيد الملف أو الرمز كما كان.
 
 ## Effort
 
-S · estimate confidence: A rule on the files it touches and its dependents (eaos/analysis/planning/roadmap.py), not a measured duration.
+S · estimate confidence: A rule on the files it touches and its dependents (eaos/features/plan/analysis/roadmap.py), not a measured duration.

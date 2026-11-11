@@ -11,10 +11,11 @@ import time
 import unittest
 from pathlib import Path
 from unittest import mock
-from eaos.core.project import jobs, state as project_state
-from eaos.interfaces import cli
-from eaos.journeys import agent_tools, guided
-from eaos.live.access import sign_in
+from eaos.kernel.project import jobs, state as project_state
+from eaos.doors import cli
+from eaos.features.guided.interface import agent_tools
+from eaos.features.guided import journey as guided
+from eaos.features.app_run.adapters.access import sign_in
 from tests.journeys._active_work_fixture import SECONDS, Work, _job
 
 
@@ -60,7 +61,7 @@ class CleaningBesideAJob(Work):
         self.assertEqual(order[-1], 'job began', order)
 
     def test_a_job_starting_during_the_picture_removal_waits_for_it(self):
-        from eaos.pipeline import run as pipeline_run
+        from eaos.features.check.journey import run as pipeline_run
         patch, order = self.starts_while(pipeline_run, 'clear')
         with patch: self.clean('--pictures')
         self.waiting.join(SECONDS)
@@ -152,7 +153,7 @@ class AJobWithNoProcessKnown(Work):
         jobs._write(record)
 
     def worker(self):
-        process = subprocess.Popen([sys.executable, '-c', 'import time; time.sleep(60)', 'eaos.core.project.jobs',
+        process = subprocess.Popen([sys.executable, '-c', 'import time; time.sleep(60)', 'eaos.kernel.project.jobs',
                                     'no-pid', self.where])
         self.addCleanup(process.wait)
         self.addCleanup(process.kill)

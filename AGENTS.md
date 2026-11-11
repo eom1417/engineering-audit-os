@@ -28,7 +28,7 @@ before anything else; it binds over this file.
 - EAOS itself: modules ≤ 400 lines and function complexity ≤ 10, no exception; functions ≤ 50 lines and ≤ 5
   parameters, none listed: a function whose parameters cannot be grouped (a tool mirroring its command, a record's
   constructor) says why on its `def` line, `# limits: parameters -- <why>`. The laws EAOS holds every project to stay
-  600 / 15 (`eaos/core/contracts/code_laws.py`). No dead code, no duplication, no security finding; layers per
+  600 / 15 (`eaos/kernel/contracts/code_laws.py`). No dead code, no duplication, no security finding; layers per
   `docs/ARCHITECTURE.md`. **One source per pattern**: no near copy of one responsibility (alike shapes of two stay
   apart), no way of working written three times (`core/system/files.py` reads JSON, `core/system/clock.py` tells the
   time); a copy kept on purpose says why,

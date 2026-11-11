@@ -3,7 +3,7 @@ the part it alone gives (eaos/data/toolchain.json `jobs`)."""
 import unittest
 from pathlib import Path
 
-from eaos.core.toolchain import registry
+from eaos.kernel.toolchain import registry
 
 ROOT = Path(__file__).resolve().parents[2]
 PRIMARY = 'primary'

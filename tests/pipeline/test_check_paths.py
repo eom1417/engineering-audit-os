@@ -1,4 +1,4 @@
-"""A check can follow some paths only (eaos/pipeline/path_choice.py): it runs what they need, keeps or leaves the rest,
+"""A check can follow some paths only (eaos/features/check/journey/path_choice.py): it runs what they need, keeps or leaves the rest,
 and says so."""
 import json
 import os
@@ -9,12 +9,12 @@ import unittest
 from pathlib import Path
 from unittest import mock
 
-from eaos.engines import ADAPTERS
-from eaos.core.contracts.check_paths import HELD, PATHS, SPINE
-from eaos.pipeline.path_choice import resolve
-from eaos.pipeline.run import check
-from eaos.pipeline.stages import OPTIONAL, STAGES
-from eaos.analysis.repair.remediation import PATTERNS
+from eaos.features.engines.adapters import ADAPTERS
+from eaos.kernel.contracts.check_paths import HELD, PATHS, SPINE
+from eaos.features.check.journey.path_choice import resolve
+from eaos.features.check.journey.run import check
+from eaos.features.check.journey.stages import OPTIONAL, STAGES
+from eaos.kernel.remedy.remediation import PATTERNS
 
 FIXTURE = Path(__file__).parents[1] / 'fixtures/polyglot'
 LIVE = {stage.name for stage in STAGES if 'app' in stage.uses}
@@ -56,8 +56,8 @@ class PathsTests(unittest.TestCase):
 
 
     def test_a_redo_from_a_stage_is_timed_as_that_stage_and_its_readers_only(self):
-        from eaos.journeys import check_choices
-        from eaos.pipeline.stages import ORDER, dependents
+        from eaos.features.guided.journey import check_choices
+        from eaos.features.check.journey.stages import ORDER, dependents
         with mock.patch.object(check_choices, 'previous_seconds', return_value={name: 60.0 for name in ORDER}):
             whole, redo = check_choices.estimate('report'), check_choices.estimate('report', again_from='reports')
         self.assertLess(redo['minutes_high'], whole['minutes_low'])
@@ -65,7 +65,7 @@ class PathsTests(unittest.TestCase):
 
 
     def test_a_redo_from_a_check_made_without_the_assistant_runs_without_it_unless_one_is_chosen_now(self):
-        from eaos.journeys import check_choices
+        from eaos.features.guided.journey import check_choices
         with tempfile.TemporaryDirectory() as report:
             Path(report, 'run-manifest.json').write_text(
                 json.dumps({'stages': {'triage': {'reason_code': 'ai_skipped'}}}))

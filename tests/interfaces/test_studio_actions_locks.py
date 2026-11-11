@@ -1,14 +1,14 @@
-"""The run engine (eaos/journeys/runs): the locks, the selection of cards, and the handoff."""
+"""The run engine (eaos/features/studio/journey/runs): the locks, the selection of cards, and the handoff."""
 import json
 import os
 import subprocess
 import time
 import unittest
 from unittest import mock
-from eaos.journeys.runs import handoff
-from eaos.core.system import studio_access as security
-from eaos.journeys.fix import selection  # noqa: E402
-from eaos.core.project import state as project_state
+from eaos.features.studio.journey.runs import handoff
+from eaos.kernel.system import studio_access as security
+from eaos.features.guided.journey import selection  # noqa: E402
+from eaos.kernel.project import state as project_state
 from tests.interfaces._studio_actions_fixture import Base, card
 
 
@@ -96,8 +96,10 @@ class Locks(Base):
 
 
     def test_speed_mode_is_offered_in_a_fixs_preview_kept_for_the_project_and_given_to_its_assistant(self):
-        from eaos.journeys import agent_tools, check_choices, guided
-        from eaos.pipeline import schedule
+        from eaos.features.guided.interface import agent_tools
+        from eaos.features.guided.journey import check_choices
+        from eaos.features.guided import journey as guided
+        from eaos.features.check.journey import schedule
         guided.save(agent_tools.state_of(str(self.project)))              # a project checked once: its fixes come after
         subprocess.run(['git', '-C', str(self.project), '-c', 'user.name=a', '-c', 'user.email=a@b', 'commit', '-q',
                         '--allow-empty', '-m', 'm'], check=True)
@@ -174,8 +176,8 @@ class Handoff(Base):
                          'the request waits in the EAOS workspace, never the project')
         [written] = list((self.base / 'home').rglob('studio-requests.json'))
         self.assertIn(f'studio-request {run} done', json.loads(written.read_text())[0]['request']['en'])
-        from eaos.interfaces.mcp_server import server as mcp_server
-        with mock.patch('eaos.journeys.agent_tools.status',
+        from eaos.doors.mcp_server import server as mcp_server
+        with mock.patch('eaos.features.guided.interface.agent_tools.status',
                         side_effect=lambda project: {'next': 'audit'}), mock.patch.dict(os.environ,
                                                                                         {'EAOS_ASSISTANT': 'Codex'}):
             answer = mcp_server._status(str(self.project))
@@ -190,8 +192,8 @@ class Handoff(Base):
 
     def test_the_studios_own_calls_neither_take_the_request_nor_use_the_person_only_tools(self):
         handoff.add(self.project, 'r1', 'do it', {'en': 'x', 'ar': 'x'})
-        from eaos.interfaces.mcp_server import server as mcp_server
-        with mock.patch('eaos.journeys.agent_tools.status', return_value={}), \
+        from eaos.doors.mcp_server import server as mcp_server
+        with mock.patch('eaos.features.guided.interface.agent_tools.status', return_value={}), \
                 mock.patch.dict(os.environ, {'EAOS_ASSISTANT': mcp_server.STUDIO}):
             self.assertEqual(mcp_server._status(str(self.project)), {})
         self.assertEqual(len(handoff.pending(self.project)), 1)

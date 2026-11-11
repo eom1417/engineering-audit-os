@@ -8,9 +8,9 @@ import tempfile
 from shared_fixture import Workspace
 
 from needs import need
-from eaos.analysis.repair.codemods import (
-    TRANSFORM, _commands, _run_steps, attach, binary, card_for, dry_run, remove_python)
-from eaos.engines.process import state_digest, which
+from eaos.features.defects.analysis.codemods import (TRANSFORM, _commands, _run_steps, attach, binary, card_for,
+                                                     dry_run, remove_python)
+from eaos.features.engines.adapters.process import state_digest, which
 
 
 def upgrade(path, symbol, fixed):

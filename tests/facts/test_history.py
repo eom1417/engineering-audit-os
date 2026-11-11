@@ -4,7 +4,7 @@ from pathlib import Path
 import subprocess
 import tempfile
 import unittest
-from eaos.facts.run import collect
+from eaos.kernel.facts.run import collect
 
 
 def git(repo, *args):

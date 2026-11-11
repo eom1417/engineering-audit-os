@@ -1,8 +1,8 @@
 """A multi-runtime font binding is not server code merely because its guarded Node implementation uses argv."""
 import unittest
 from needs import needs
-from eaos.analysis.layers.placement import _written
-from eaos.facts.code.syntax import parser_for
+from eaos.features.layers.analysis.placement import _written
+from eaos.features.code_reading.facts.code.syntax import parser_for
 
 RUNTIME = '''
 let ENVIRONMENT_IS_WEB = false;

@@ -4,8 +4,8 @@ from pathlib import Path
 
 from shared_fixture import Workspace
 
-from eaos.analysis.understanding import intake
-from eaos.core.contracts.artifact_rules import contracts, validate
+from eaos.features.plan.analysis.understanding import intake
+from eaos.kernel.contracts.artifact_rules import contracts, validate
 
 
 class IntakeTests(Workspace):

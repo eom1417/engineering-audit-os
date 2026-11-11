@@ -2,7 +2,7 @@
  "schema_version": 1,
  "contract": "studio-actions",
  "revision": 1,
- "about": "The run engine's contract: every EAOS action a run can do, the selections and verbs, the run lifecycle, the run events, the preview, the endpoints of its action API and their security. Implemented by eaos/journeys/runs/ (wired to the MCP tools by eaos/interfaces/runs.py). A packaged byte-identical copy is eaos/data/studio-actions.json.",
+ "about": "The run engine's contract: every EAOS action a run can do, the selections and verbs, the run lifecycle, the run events, the preview, the endpoints of its action API and their security. Implemented by eaos/features/studio/journey/runs/ (wired to the MCP tools by eaos/doors/runs.py). A packaged byte-identical copy is eaos/data/studio-actions.json.",
  "actions": [
   {
    "id": "status",
@@ -405,7 +405,7 @@
         "speed"
        ]
       },
-      "description": "Only these paths of the check (eaos/pipeline/path_choice.py); the complete check when empty."
+      "description": "Only these paths of the check (eaos/features/check/journey/path_choice.py); the complete check when empty."
      },
      "mode": {
       "type": [
@@ -1052,7 +1052,7 @@
       "type": "integer",
       "minimum": 1,
       "maximum": 5,
-      "description": "How many assistants fix the batch at once, in the Studio's speed mode: the Studio starts the others, each with its own cards and files (eaos/journeys/fix/lanes.py); one anywhere else."
+      "description": "How many assistants fix the batch at once, in the Studio's speed mode: the Studio starts the others, each with its own cards and files (eaos/features/fix/journey/lanes.py); one anywhere else."
      },
      "project": {
       "type": [
@@ -1771,7 +1771,7 @@
      },
      "speed": {
       "type": "boolean",
-      "description": "Speed mode: several assistants fix the batch at once, as many as this computer holds (eaos/journeys/fix/lanes.py), each its own files; they spend the assistant's usage limit faster. The person's choice, kept for the project with the check's speed mode."
+      "description": "Speed mode: several assistants fix the batch at once, as many as this computer holds (eaos/features/fix/journey/lanes.py), each its own files; they spend the assistant's usage limit faster. The person's choice, kept for the project with the check's speed mode."
      }
     },
     "required": []
@@ -2415,7 +2415,7 @@
   {
    "method": "GET",
    "path": "/api/usage",
-   "does": "What the assistant used (eaos/core/system/usage.py): the last check stage by stage, and every run and the conversations with the assistant (tokens, the cost at API prices when the assistant gives it, time, turns, models, cards kept)."
+   "does": "What the assistant used (eaos/kernel/system/usage.py): the last check stage by stage, and every run and the conversations with the assistant (tokens, the cost at API prices when the assistant gives it, time, turns, models, cards kept)."
   },
   {
    "method": "POST",
@@ -2595,7 +2595,7 @@
   "listen": "127.0.0.1 only; the server refuses to bind any other address.",
   "launch_token": "A random token per server launch (secrets.token_urlsafe(32)), in the URL the server opens (#token=) and sent by the Studio as the header X-EAOS-Token on every API call; compared in constant time (hmac.compare_digest).",
   "csrf": "Every POST carries X-EAOS-CSRF equal to the token GET /api/session returned for this launch; constant-time compare.",
-  "origin": "Every POST must carry an Origin (or, if absent, a Referer) of http://127.0.0.1:<port> or http://localhost:<port>; Host must be one of the two as well (DNS rebinding; refused with 421, by the same check as the server, eaos/core/system/studio_access.py).",
+  "origin": "Every POST must carry an Origin (or, if absent, a Referer) of http://127.0.0.1:<port> or http://localhost:<port>; Host must be one of the two as well (DNS rebinding; refused with 421, by the same check as the server, eaos/kernel/system/studio_access.py).",
   "confirm": "Irreversible actions and code-changing runs need a single-use confirm token from their preview, valid 10 minutes, bound to the action, the selection and the project (HMAC with the launch token).",
   "log": "Every accepted action is an action event before it runs; every refusal is logged to the server log with its reason (never the token).",
   "network": "Nothing is fetched from or sent to the network by the action API; the assistants are the person's own, started on this computer.",

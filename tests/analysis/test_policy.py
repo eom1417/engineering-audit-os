@@ -6,11 +6,11 @@ from pathlib import Path
 import tempfile
 import unittest
 import shared_fixture  # noqa: F401  (runs without measured detector verdicts)
-from eaos.interfaces import cli
-from eaos.analysis.understanding.dossier import assemble
-from eaos.facts.run import collect
-from eaos.facts.scope import declared_exclusions
-from eaos.analysis.target_state.policy import check, init, load_policy
+from eaos.doors import cli
+from eaos.features.plan.analysis.dossier import assemble
+from eaos.kernel.facts.run import collect
+from eaos.kernel.facts.scope import declared_exclusions
+from eaos.features.layers.analysis.target_state.policy import check, init, load_policy
 
 SETS = ['syntax', 'resolve', 'entrypoints', 'config', 'metrics', 'domain', 'history', 'graph', 'flows']
 

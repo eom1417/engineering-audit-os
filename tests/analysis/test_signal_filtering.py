@@ -6,7 +6,7 @@ import unittest
 import shared_fixture  # noqa: F401  (runs without measured detector verdicts)
 from pathlib import Path
 
-from eaos.analysis.understanding.dossier import assemble
+from eaos.features.plan.analysis.dossier import assemble
 
 
 class VendoredUiExclusionTests(unittest.TestCase):

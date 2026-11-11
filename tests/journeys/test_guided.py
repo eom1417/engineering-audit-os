@@ -12,11 +12,11 @@ from contextlib import redirect_stdout
 from pathlib import Path
 from unittest import mock
 
-from eaos.journeys import guided
-from eaos.interfaces.terminal import commands as terminal, branches as terminal_branches  # noqa: F401  (the terminal's check, accept and undo, registered in guided)
-from eaos.interfaces.terminal import run_end
-from eaos.core.project import state as project_state
-from eaos.report.documents.start_here import start_here
+from eaos.features.guided import journey as guided
+from eaos.doors.terminal import commands as terminal, branches as terminal_branches  # noqa: F401  (the terminal's check, accept and undo, registered in guided)
+from eaos.doors.terminal import run_end
+from eaos.kernel.project import state as project_state
+from eaos.features.report.interface.documents.start_here import start_here
 
 BOX_END = guided.LINE
 
@@ -69,9 +69,9 @@ def run(command, project=None, **options):
             mock.patch.dict(guided.TERMINAL,
                             check=lambda args: _fake_scan(project_state.current(args.project), args)), \
             mock.patch.object(sys.stdin, 'isatty', return_value=False), \
-            mock.patch('eaos.core.toolchain.doctor', return_value={'tools': []}), \
-            mock.patch('eaos.ai.assistant.readiness.probe_all', return_value=NO_ASSISTANT), \
-            mock.patch('eaos.ai.assistant.setup.install', return_value=['Claude Code', 'Codex']):
+            mock.patch('eaos.kernel.toolchain.doctor', return_value={'tools': []}), \
+            mock.patch('eaos.features.assistant.adapters.readiness.probe_all', return_value=NO_ASSISTANT), \
+            mock.patch('eaos.features.assistant.adapters.setup.install', return_value=['Claude Code', 'Codex']):
         code = guided.main(args)
     return code, printed.getvalue()
 
@@ -189,8 +189,8 @@ class Journey(unittest.TestCase):
         guided.report_of(state).mkdir(parents=True, exist_ok=True)
         (guided.report_of(state) / 'plan.json').write_text(json.dumps(PLAN))
         printed = io.StringIO()
-        with redirect_stdout(printed), mock.patch('eaos.journeys.fix.waves.open_batch') as opened, \
-                mock.patch('eaos.journeys.fix.waves.finish_batch') as finished:
+        with redirect_stdout(printed), mock.patch('eaos.features.fix.journey.waves.open_batch') as opened, \
+                mock.patch('eaos.features.fix.journey.waves.finish_batch') as finished:
             self.assertEqual(guided.fix(state, Namespace(yes=True)), 0)
         opened.assert_not_called()
         finished.assert_not_called()
@@ -203,7 +203,7 @@ class Journey(unittest.TestCase):
 class Bulk(unittest.TestCase):
     def test_a_new_check_replaces_the_previous_checks_bulky_data_and_clean_deletes_old_pictures_on_request(self):
         # a new check does not keep the pictures and the assistant's raw runs of the previous one
-        from eaos.pipeline import run as pipeline
+        from eaos.features.check.journey import run as pipeline
         with tempfile.TemporaryDirectory() as folder, \
                 mock.patch.dict(os.environ, {'EAOS_HOME': str(Path(folder) / 'home')}):
             report = guided.outputs_root() / 'shop/technical'
@@ -260,7 +260,7 @@ class Pages(unittest.TestCase):
             text = start_here(tmp, 'ar', 'shop').read_text()
         self.assertIn('كود منسوخ', text)
         self.assertNotIn('Copied code', text)
-        from eaos.pipeline import execute
+        from eaos.features.check.journey import execute
         seen = []
         with tempfile.TemporaryDirectory() as tmp:
             project = Path(tmp) / 'p'; project.mkdir(); (project / 'a.py').write_text('x = 1\n')

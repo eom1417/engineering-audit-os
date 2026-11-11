@@ -4,9 +4,9 @@ from pathlib import Path
 import tempfile
 import unittest
 import shared_fixture  # noqa: F401  (runs without measured detector verdicts)
-from eaos.analysis.claims import probe_queries, probes
-from eaos.analysis.understanding.dossier import assemble
-from eaos.facts.run import collect
+from eaos.features.claims.analysis import probe_queries, probes
+from eaos.features.plan.analysis.dossier import assemble
+from eaos.kernel.facts.run import collect
 
 FIXTURE = Path(__file__).resolve().parents[1] / 'fixtures/polyglot'
 
@@ -61,7 +61,7 @@ class ProbeTests(unittest.TestCase):
             self.assertTrue(all(claim['confidence'] != 'REFUTED' for claim in claims))
 
     def test_a_probe_never_settles_more_than_it_can_see(self):
-        from eaos.analysis.claims.probes import linking_import, run_graph_query
+        from eaos.features.claims.analysis.probes import linking_import, run_graph_query
         # An import whose names were not captured is inconclusive, not a refutation.
         sets = {'syntax': {'facts': [{'id': 'F1', 'kind': 'import_edge', 'value': {'names': []}}]},
                 'resolve': {'facts': [{'resolution': 'RESOLVED', 'location': {'path': 'a.ts'},
@@ -83,7 +83,7 @@ class ProbeTests(unittest.TestCase):
 
     def test_a_static_probe_cannot_confirm_a_causal_claim(self):
         """A branch-count probe does not raise a claim about why the branches exist to CONFIRMED."""
-        from eaos.analysis.claims import ledger
+        from eaos.features.claims.analysis import ledger
         with tempfile.TemporaryDirectory() as tmp:
             repo = Path(tmp) / 'repo'; repo.mkdir()
             branches = '\n'.join(f'    if value == {n}:\n        return {n}' for n in range(70))
@@ -114,7 +114,7 @@ class ProbeTests(unittest.TestCase):
     def test_a_complexity_card_clears_exactly_its_finish_line_each_judged_by_one_ruler(self):
         # One card mixing seven kinds of finding is judged on each kind by its own ruler, so a batch of cards can pass
         # by what the assistant changes.
-        from eaos.analysis.repair import finish_line
+        from eaos.features.claims.analysis import finish_line
         def engine(rule, symbol, value=20):
             return {'id': rule + symbol, 'value': {'kind': 'complexity', 'engine': rule.split('.')[0], 'rule': rule,
                     'measurements': [{'value': value, 'threshold': 15}]}, 'location': {'path': 'a.py',
@@ -147,7 +147,7 @@ class ProbeTests(unittest.TestCase):
     def test_a_function_with_no_name_is_judged_in_its_file_and_a_name_follows_only_where_it_was_not(self):
         # A target named <anonymous> is looked for in its own file only: an arrow function anywhere in the project must
         # not keep the card standing whatever its own file became.
-        from eaos.analysis.repair import finish_line
+        from eaos.features.claims.analysis import finish_line
         def ccn(path, symbol, line=1):
             return {'id': path + symbol, 'value': {'kind': 'complexity', 'engine': 'lizard', 'rule': 'ccn',
                     'measurements': [{'value': 30, 'threshold': 15}]}, 'location': {'path': path, 'symbol': symbol,
@@ -169,7 +169,7 @@ class ProbeTests(unittest.TestCase):
 
 
 class VerificationTests(unittest.TestCase):
-    """The project's own tests, run in an isolated copy with coverage (eaos/live/testing/verify.py)."""
+    """The project's own tests, run in an isolated copy with coverage (eaos/features/app_run/adapters/testing/verify.py)."""
 
     def project(self, tmp):
         repo = Path(tmp) / 'repo'
@@ -182,8 +182,8 @@ class VerificationTests(unittest.TestCase):
         return repo
 
     def test_a_real_suite_gives_coverage_facts_and_leaves_the_target_untouched(self):
-        from eaos.facts.store import read_set
-        from eaos.live.testing.verify import run as verify_run
+        from eaos.kernel.facts.store import read_set
+        from eaos.features.app_run.adapters.testing.verify import run as verify_run
         with tempfile.TemporaryDirectory() as tmp:
             repo = self.project(tmp)
             before = {p.relative_to(repo).as_posix(): p.read_bytes() for p in repo.rglob('*') if p.is_file()}
@@ -201,7 +201,7 @@ class VerificationTests(unittest.TestCase):
         import subprocess
         import sys
         from unittest import mock
-        from eaos.live.testing import verify
+        from eaos.features.app_run.adapters.testing import verify
 
         ran = []
 
@@ -223,8 +223,8 @@ class VerificationTests(unittest.TestCase):
                 done = subprocess.run(argv, cwd=self.sandbox.copy, capture_output=True, text=True)
                 return done.returncode, done.stdout, done.stderr
 
-        with tempfile.TemporaryDirectory() as tmp, mock.patch('eaos.live.app.run.LiveRun', FakeRun), \
-                mock.patch('eaos.live.app.run.load_profile', lambda runtime: FakeRun.PROFILE):
+        with tempfile.TemporaryDirectory() as tmp, mock.patch('eaos.features.app_run.adapters.app.run.LiveRun', FakeRun), \
+                mock.patch('eaos.features.app_run.adapters.app.run.load_profile', lambda runtime: FakeRun.PROFILE):
             repo, runtime = self.project(tmp), Path(tmp) / 'runtime'
             result = verify.run_profile(repo, Path(tmp) / 'out', runtime)
         self.assertNotIn(['npm', 'run', 'lint'], ran)

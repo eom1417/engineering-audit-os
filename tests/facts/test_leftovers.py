@@ -7,11 +7,11 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from eaos.facts.defects.leftovers import classify, run
+from eaos.features.only_code.facts.leftovers import classify, run
 
 
 class _Source:
-    """Minimal Source shim: provides readable() like eaos.facts.source.Source."""
+    """Minimal Source shim: provides readable() like eaos.kernel.facts.source.Source."""
     def __init__(self, files):
         self._items = [{'path': rel, 'sha256': 'a' * 64} for rel in files]
 
@@ -52,10 +52,10 @@ class LeftoverTests(unittest.TestCase):
 
     def test_source_named_or_placed_as_build_output_beside_imported_source_or_under_src_is_source(self):
         # A build_info.py beside the modules it is imported with, and a Java package named `target`, are source.
-        files = ['eaos/core/system/build_info.py', 'eaos/core/system/launch.py', 'src/main/java/app/target/Plan.java',
+        files = ['eaos/kernel/system/build_info.py', 'eaos/kernel/system/launch.py', 'src/main/java/app/target/Plan.java',
                  'target/classes/app/Plan.class', 'build_notes.txt', 'dist/bundle.js']
-        imported = [{'kind': 'module_edge', 'value': {'to_path': 'eaos/core/system/launch.py'},
-                     'location': {'path': 'eaos/interfaces/cli.py', 'start_line': 1}}]
+        imported = [{'kind': 'module_edge', 'value': {'to_path': 'eaos/kernel/system/launch.py'},
+                     'location': {'path': 'eaos/doors/cli.py', 'start_line': 1}}]
         with tempfile.TemporaryDirectory() as tmp:
             found = {f['location']['path'] for f in run(Path(tmp), _Source(files), resolve_facts=imported)['facts']}
         self.assertEqual(found, {'target/classes/app/Plan.class', 'build_notes.txt', 'dist/bundle.js'})

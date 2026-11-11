@@ -1,0 +1,219 @@
+"""Run deterministic extractors over one shared snapshot and persist their fact sets."""
+import json
+import time as _time
+from pathlib import Path
+from ...features.defects.facts import broken, secrets
+from ...features.only_code.facts import leftovers
+from ...features.code_reading.facts.code import (config, entrypoints, flows, graph, history, metrics, resolve,
+                                                 structure, syntax)
+from ...features.dead_code.facts import detect as deadcode
+from ...features.code_reading.facts.domain import model as domain
+from ...features.engines.facts import engine_findings as external
+from ...features.one_source.facts import fingerprint, redundancy
+from ...features.code_reading.facts.runtime import operations as runtime
+from ...features.only_code.facts import read as repository
+from .source import Source
+from .. import progress
+from .store import write_index, write_set
+from hashlib import sha256 as _sha256
+from ..system.files import read_json
+
+
+def digest(data): return _sha256(data).hexdigest()
+
+EXTRACTORS = {'history': history, 'syntax': syntax, 'structure': structure, 'resolve': resolve,
+              'entrypoints': entrypoints, 'config': config, 'metrics': metrics, 'graph': graph, 'flows': flows,
+              'domain': domain, 'fingerprint': fingerprint, 'redundancy': redundancy, 'runtime': runtime,
+              'leftovers': leftovers, 'deadcode': deadcode, 'broken': broken,
+              'secrets': secrets, 'repository': repository}
+ORDER = ['syntax', 'resolve', 'structure', 'fingerprint', 'runtime', 'entrypoints', 'redundancy', 'config',
+         'metrics', 'domain', 'history', 'graph', 'flows', 'leftovers', 'deadcode', 'broken', 'secrets',
+         'repository']
+
+
+# Every fact set the tool can read, in one place, so every reader sees the same list.
+# 'external' is produced here too, but only when a caller asks for engines: it shells out to
+# pinned binaries, so it never runs by default. 'boundaries' is the layers' (eaos/features/layers/analysis/).
+PRODUCED_ELSEWHERE = ['policy', 'verification', 'external', 'boundaries']
+ALL_SETS = ORDER + PRODUCED_ELSEWHERE
+# The minimum a caller needs before it can ask what a change would reach.
+GRAPH_PREREQUISITES = ['syntax', 'resolve', 'entrypoints', 'config', 'metrics', 'history', 'graph']
+
+
+def read_available(out):
+    """Every fact set present in a report directory, whoever produced it, each read when first asked for."""
+    from .store import Sets
+    return Sets(out, ALL_SETS)
+
+
+def ordered(selected):
+    names = [n for n in ORDER if n in (selected or EXTRACTORS)]
+    unknown = sorted(set(selected or []) - set(EXTRACTORS))
+    if unknown: raise ValueError('Unknown extractor: ' + ', '.join(unknown))
+    return names
+
+
+def collect_external(target, out, source, only=None, keep=False):
+    """Run the pinned external engines over the same snapshot and persist their fact set.
+
+    Registry-referenced dead-code candidates are tagged ``value.referenced_by_registry``, then every
+    dead-code candidate is adjudicated against EAOS's own detector (facts/deadcode): the engine's fields
+    stay as written, and value.adjudication says whether EAOS asserts it.
+    """
+    result = external.run(target, source, out=out, only=only, keep=keep)
+    from ...features.dead_code.facts.registry import filter_dead_code_references as _filter_dead_code_references
+    facts, _dropped = _filter_dead_code_references(result['facts'], source)
+    # One verdict per dead-code candidate, whichever engine raised it: EAOS's own detector and the same
+    # textual reference test decide what the report asserts (see facts/deadcode.adjudicate).
+    facts = deadcode.adjudicate(facts, source, _own(out, 'deadcode'))
+    from ...features.engines.facts.misread import set_aside
+    facts, misread = set_aside(facts, _own(out, 'metrics'))
+    referenced = sum(1 for f in facts
+                     if (f.get('value') or {}).get('referenced_by_registry'))
+    counted = {'registry_referenced_dead_code_marked': referenced, 'measures_longer_than_their_function': misread}
+    if any(counted.values()):
+        result['summary'] = {**(result.get('summary') or {}), **{name: n for name, n in counted.items() if n}}
+    external_entry = write_set(out, 'external', external.NAME, external.VERSION, external.LIMITATIONS,
+                               {**result, 'facts': facts})
+    return [external_entry]
+
+
+def _own(out, name):
+    """The facts of one of EAOS's own sets already written, [] when it is not there."""
+    from .store import read_set
+    try: return read_set(out, name).get('facts') or []
+    except (OSError, ValueError): return []
+
+
+def add_to_index(out, target, entry):
+    """Fold a set produced outside the main sweep into the index, replacing any earlier copy."""
+    from .store import facts_dir
+    import json as _json
+    path = facts_dir(out) / 'index.json'
+    existing = _json.loads(path.read_text(encoding='utf-8'))['sets'] if path.is_file() else []
+    keep = [row for row in existing if row['set'] != entry['set']]
+    return write_index(out, target, keep + [entry])
+
+
+def _syntax_of(produced, kind):
+    return [f for f in produced.get('syntax', []) if f['kind'] == kind]
+
+
+def _symbols_or_none(produced, context):
+    return {'symbols': _syntax_of(produced, 'symbol') or None}
+
+
+def _resolve_args(produced, context):
+    ext = [f for f in produced.get('external', []) if f.get('resolution') == 'RESOLVED_BY_ENGINE']
+    return {'imports': _syntax_of(produced, 'import_edge') or None, 'external_edges': ext or None}
+
+
+def _redundancy_args(produced, context):
+    return {'symbols': _syntax_of(produced, 'symbol') or None, 'structure': produced.get('structure'),
+            'entrypoints': produced.get('entrypoints')}
+
+
+def _flows_args(produced, context):
+    return {'symbols': _syntax_of(produced, 'symbol'), 'calls': _syntax_of(produced, 'call_edge'),
+            'edges': produced.get('resolve', []), 'entry_points': produced.get('entrypoints', []),
+            'env': produced.get('config', []),
+            'imports': _syntax_of(produced, 'import_edge')}
+
+
+def _graph_args(produced, context):
+    return {'edges': produced.get('resolve', []), 'entry_points': produced.get('entrypoints', []),
+            'metrics': produced.get('metrics', []), 'history': produced.get('history', [])}
+
+
+def _deadcode_args(produced, context):
+    return {'symbols': _syntax_of(produced, 'symbol'), 'resolved': produced.get('resolve', []),
+            'entry_points': produced.get('entrypoints', [])}
+
+
+# What each extractor reads from the sets produced before it; an extractor absent here reads only the snapshot.
+EXTRACTOR_ARGS = {
+    'history': lambda produced, context: {'max_commits': context['max_commits']},
+    'resolve': _resolve_args,
+    'redundancy': _redundancy_args,
+    'structure': _symbols_or_none, 'fingerprint': _symbols_or_none,
+    'runtime': _symbols_or_none, 'entrypoints': _symbols_or_none, 'metrics': _symbols_or_none,
+    'flows': _flows_args,
+    'graph': _graph_args,
+    'syntax': lambda produced, context: {'cache': context['cache']},
+    'leftovers': lambda produced, context: {'resolve_facts': produced.get('resolve', [])},
+    'broken': lambda produced, context: {'resolved': produced.get('resolve', [])},
+    'repository': lambda produced, context: {'resolved': produced.get('resolve', [])},
+    'deadcode': _deadcode_args,
+}
+
+
+def _checked_paths(target, out):
+    target = Path(target).resolve()
+    if not target.is_dir(): raise ValueError('Target must be an existing directory')
+    out = Path(out).resolve()
+    if out == target or target in out.parents:
+        raise ValueError('Write facts outside the target; the target stays read-only')
+    return target, out
+
+
+def _load_cache(cache_path):
+    if not cache_path.is_file(): return {}
+    return read_json(cache_path, {})
+
+
+def _run_extractor(name, target, source, produced, context):
+    """(the extractor's module, its result, the seconds it took)."""
+    module = EXTRACTORS[name]
+    began = _time.monotonic()
+    arguments = EXTRACTOR_ARGS.get(name, lambda produced, context: {})(produced, context)
+    result = module.run(target, source, **arguments)
+    return module, result, _time.monotonic() - began
+
+
+def _extract(names, target, out, source, context):
+    """Each named extractor run in order over the one snapshot, its set written: (index entries, sets reused from the
+    cache)."""
+    entries, produced, reuse = [], {}, {}
+    step = progress.step
+    for name in names: step(name, 0, len(names), 'waiting')
+    for done, name in enumerate(names):
+        step(name, done, len(names), 'running')
+        module, result, seconds = _run_extractor(name, target, source, produced, context)
+        available = result['available']
+        step(name, done + 1, len(names), 'ok' if available else 'unavailable', seconds,
+             reason='' if available else result.get('reason') or '',
+             reason_code='' if available else 'extractor_unavailable')
+        produced[name] = result['facts']
+        if result.get('reused_from_cache'): reuse[name] = result['reused_from_cache']
+        entries.append(write_set(out, name, module.NAME, module.VERSION, module.LIMITATIONS, result))
+    return entries, reuse
+
+
+def collect(target, out, selected=None, max_commits=2000, source=None, exclude=(), engines=None, cache=None):  # limits: parameters -- the `eaos facts` command's options and a check's own snapshot and cache, each a keyword
+    """Each extractor's start and end is reported as a step of the running stage
+    (eaos/kernel/progress/context.py): the live map shows where the facts stage is inside. It does not change what
+    runs. `cache`: the file the parsed files are kept in between checks (in the check's runtime, never in the
+    report: 63 MB of it sat among EAOS's facts); without one they are kept for this call only. `source`: the
+    snapshot to read when the caller built it (with its own bounds); else one with the default bounds."""
+    target, out = _checked_paths(target, out)
+    # What the project declared out of scope applies to every caller, not only the ones that
+    # remembered to ask.
+    from .scope import declared_exclusions
+    from .scope import exclusion_reasons
+    exclude = sorted({*(exclude or ()), *declared_exclusions(target)})
+    exclusion_reason_map = exclusion_reasons(target)
+    names = ordered(selected)
+    source = source or Source(target, exclude=exclude)
+    context = {'cache': _load_cache(Path(cache)) if cache else {}, 'max_commits': max_commits}
+    entries, reuse = _extract(names, target, out, source, context)
+    if engines is not None:
+        entries += collect_external(target, out, source, only=engines or None)
+    if cache:
+        Path(cache).parent.mkdir(parents=True, exist_ok=True)       # the facts come before the runtime's other parts
+        Path(cache).write_text(json.dumps(context['cache'], ensure_ascii=False), encoding='utf-8')
+    index = write_index(out, target, entries, source.unread_names)
+    return {'target': str(target), 'out': str(out), 'fingerprint': source.fingerprint, 'sets': index['sets'],
+            'facts': sum(e['facts'] for e in entries), 'reused_from_cache': reuse,
+            'excluded_paths': len(source.excluded_files), 'exclude_patterns': list(exclude or []),
+            'exclusion_reasons': exclusion_reason_map, 'unread_names': source.unread_names,
+            'limits': 'Deterministic extraction only. No model was consulted and no semantic conclusion is implied.'}

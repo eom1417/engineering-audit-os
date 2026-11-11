@@ -23,19 +23,19 @@ class Extending(unittest.TestCase):
                                            for path in full)), [])
 
     def test_every_engine_has_what_its_recipe_asks_for(self):
-        from eaos.engines import ADAPTERS
+        from eaos.features.engines.adapters import ADAPTERS
         from tests.engines.test_engine_contracts import UNSAMPLED
         notices = (ROOT / 'THIRD_PARTY_NOTICES.md').read_text(encoding='utf-8')
         for name, adapter in ADAPTERS.items():
             with self.subTest(engine=name):
-                self.assertTrue(Path(adapter.__file__).is_relative_to(ROOT / 'eaos' / 'engines'),
-                                'an adapter in eaos/engines/')
+                self.assertTrue(Path(adapter.__file__).is_relative_to(ROOT / 'eaos' / 'features' / 'engines' / 'adapters'),
+                                'an adapter in eaos/features/engines/adapters/')
                 self.assertTrue(name in UNSAMPLED or (ROOT / 'tests' / 'contracts' / f'{name}.json').is_file(),
                                 'a pinned sample')
                 self.assertIn(f'| `{name}`', notices, 'a row in THIRD_PARTY_NOTICES.md')
 
     def test_every_licence_kept_names_a_pinned_tool_or_a_noticed_work(self):
-        from eaos.core.toolchain import registry
+        from eaos.kernel.toolchain import registry
         names = {tool['name'] for tool in registry()['tools']}
         notices = (ROOT / 'THIRD_PARTY_NOTICES.md').read_text(encoding='utf-8')
         for kept in sorted((ROOT / 'upstreams' / 'licenses').iterdir()):
@@ -44,7 +44,7 @@ class Extending(unittest.TestCase):
                 self.assertTrue(work in names or f'[{work}]' in notices, 'a licence of a tool no longer pinned')
 
     def test_every_stage_has_its_words(self):
-        from eaos.pipeline.stages import STAGES
+        from eaos.features.check.journey.stages import STAGES
         words = json.loads((ROOT / 'eaos' / 'data' / 'words.json').read_text(encoding='utf-8'))['stages']
         for stage in STAGES:
             with self.subTest(stage=stage.name):

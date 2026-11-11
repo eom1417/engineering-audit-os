@@ -3,7 +3,7 @@ import json
 from pathlib import Path
 
 from shared_fixture import Workspace
-from eaos.engines.sarif import read
+from eaos.features.engines.adapters.sarif import read
 
 SARIF = {'version': '2.1.0', 'runs': [{'tool': {'driver': {'name': 'x', 'rules': []}}, 'results': [
     {'ruleId': 'KNOWN-1', 'level': 'error', 'message': {'text': 'known'},

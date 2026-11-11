@@ -1,4 +1,4 @@
-// EAOS's browser agent: one browser kept open and driven a step at a time (eaos/live/agent.py), the one browser layer an
+// EAOS's browser agent: one browser kept open and driven a step at a time (eaos/features/app_run/adapters/agent.py), the one browser layer an
 // explorer with a goal and a replay without AI both use (M5.2; M10's simulated users reuse it).
 //
 // Run as a separate process:  node agent.mjs <config.json>   (config: modules.playwright, base, out, storage_state?)

@@ -54,8 +54,8 @@ class CodeLimits(unittest.TestCase):
     def test_a_temporary_folder_is_removed_by_what_made_it(self):
         # A folder from mkdtemp stays for ever unless its maker removes it, so a suite using it piles them up.
         # TemporaryDirectory removes its own; each of these removes its folders as said.
-        owners = {'eaos/live/isolation/sandbox.py': 'the next run sweeps what no live run holds',
-                  'eaos/analysis/repair/codemods.py': 'removed in finally',
+        owners = {'eaos/features/app_run/adapters/isolation/sandbox.py': 'the next run sweeps what no live run holds',
+                  'eaos/features/defects/analysis/codemods.py': 'removed in finally',
                   'tests/shared_fixture.py': 'scratch() and Workspace: removed when the run or the test ends'}
         root = Path(__file__).resolve().parents[2]
         code = [path for folder in ('eaos', 'tests',
@@ -67,9 +67,9 @@ class CodeLimits(unittest.TestCase):
                          'use tempfile.TemporaryDirectory, or scratch() in a test')
 
     def test_every_assistant_works_to_the_code_laws(self):
-        from eaos.interfaces.mcp_server import server as mcp_server
-        from eaos.core.contracts.code_laws import LAWS
-        from eaos.ai.nodes import framework as core
+        from eaos.doors.mcp_server import server as mcp_server
+        from eaos.kernel.contracts.code_laws import LAWS
+        from eaos.features.assistant.analysis import framework as core
         data = {'lang': 'en', 'project': {'language': 'English'}}
         carried = {'fixing (MCP)': mcp_server.INSTRUCTIONS,
                    'every node': core.prompt('task', data),
@@ -81,7 +81,7 @@ class CodeLimits(unittest.TestCase):
                   '    if a and b: return [x for x in a if x]\n'
                   '    def inner():\n        if b: return 1\n'
                   '    return 0 if a else 1\n')
-        from eaos.core.contracts.code_laws import complexity
+        from eaos.kernel.contracts.code_laws import complexity
         self.assertEqual(complexity(ast.parse(source).body[0]), 6)
 
 

@@ -4,13 +4,15 @@ thread while the read is rebuilding the report."""
 import threading
 from unittest import mock
 
-from eaos.core.project import state as project_state
-from eaos.interfaces.mcp_server.server import functions
-from eaos.journeys import agent_tools, check as check_journey, guided
-from eaos.journeys.agent_tools import fixing
-from eaos.journeys.fix import finish as batch_finish, lanes
-from eaos.journeys.fix.waves import batch as batch_steps
-from eaos.journeys.guided import batches
+from eaos.kernel.project import state as project_state
+from eaos.doors.mcp_server.server import functions
+from eaos.features.guided.interface import agent_tools
+from eaos.features.guided.journey import check as check_journey
+from eaos.features.guided import journey as guided
+from eaos.features.guided.interface.agent_tools import fixing
+from eaos.features.fix.journey import finish as batch_finish, lanes
+from eaos.features.fix.journey.waves import batch as batch_steps
+from eaos.features.guided.journey import batches
 from tests.journeys.test_continuity import git
 from tests.journeys.test_stale_batch_changes import Batch, EDIT
 
@@ -46,7 +48,7 @@ class Interleaved(Batch):
             for patch in patches: patch.stop()
 
     def keep(self):
-        with mock.patch('eaos.journeys.fix.waves.edit_gates', return_value=([], 0, None)):
+        with mock.patch('eaos.features.fix.journey.waves.edit_gates', return_value=([], 0, None)):
             self.assertTrue(fixing._fix_edit_job(self.where, {'card': 'TASK-001', 'edits': EDIT, 'summary': ''},
                                                  lambda *_: None)['kept'])
 
@@ -60,8 +62,8 @@ class Interleaved(Batch):
                    mock.patch.object(batch_steps, '_secure', side_effect=lambda b, kept, *_: kept),
                    mock.patch.object(batch_steps, '_through_gates', side_effect=lambda b, kept, *_: kept),
                    mock.patch.object(batch_steps, '_declare'), mock.patch.object(batch_steps, '_new_truth'),
-                   mock.patch('eaos.journeys.fix.regenerate.regenerate'),
-                   mock.patch('eaos.journeys.fix.regenerate.keep_guide')]
+                   mock.patch('eaos.features.fix.journey.regenerate.regenerate'),
+                   mock.patch('eaos.features.fix.journey.regenerate.keep_guide')]
         for patch in patches: patch.start()
         try: batch_finish.finish_job(self.where, {}, lambda *_: None)
         finally:
@@ -202,9 +204,9 @@ class ACheckThatClosesABatch(Interleaved):
     def test_it_keeps_what_it_stamped(self):
         self.person_commits()
         head = git(self.project, 'rev-parse', 'HEAD')
-        with mock.patch('eaos.journeys.check.check', return_value={}), \
-                mock.patch('eaos.journeys.check.remedies.apply', return_value={}), \
-                mock.patch('eaos.journeys.check.source', return_value=self.project):
+        with mock.patch('eaos.features.guided.journey.check.check', return_value={}), \
+                mock.patch('eaos.features.guided.journey.check.remedies.apply', return_value={}), \
+                mock.patch('eaos.features.guided.journey.check.source', return_value=self.project):
             check_journey.run(project_state.load(self.project), {})
         state = self.on_disk()
         self.assertEqual((state['scanned_commit'], state.get('open_wave'), state['waves'][-1]['status']),

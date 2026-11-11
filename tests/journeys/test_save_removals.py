@@ -5,12 +5,13 @@ import shutil
 from pathlib import Path
 from unittest import mock
 
-from eaos.core.project import state as project_state
-from eaos.interfaces.mcp_server.govern import every
-from eaos.interfaces.mcp_server.server import build
-from eaos.journeys import agent_tools, guided
-from eaos.journeys.fix import finish as batch_finish
-from eaos.journeys.fix.waves import batch as batch_steps
+from eaos.kernel.project import state as project_state
+from eaos.doors.mcp_server.govern import every
+from eaos.doors.mcp_server.server import build
+from eaos.features.guided.interface import agent_tools
+from eaos.features.guided import journey as guided
+from eaos.features.fix.journey import finish as batch_finish
+from eaos.features.fix.journey.waves import batch as batch_steps
 from tests.interfaces.test_read_only_tools import _called
 from tests.journeys.test_continuity import git
 from tests.journeys.test_stale_batch_changes import Batch as OpenBatch
@@ -103,8 +104,8 @@ class AReadLeavesThem(Leftovers):
 
     def test_when_it_rebuilds_a_report_an_older_eaos_made(self):
         before = self.leftovers()
-        with mock.patch('eaos.journeys.agent_tools.where.tool_digest', return_value='another'), \
-                mock.patch('eaos.journeys.agent_tools.project.tool_digest', return_value='another'):
+        with mock.patch('eaos.features.guided.interface.agent_tools.where.tool_digest', return_value='another'), \
+                mock.patch('eaos.features.guided.interface.agent_tools.project.tool_digest', return_value='another'):
             self.read('status')
         self.assertEqual(self.kept(), before)
 
@@ -184,8 +185,8 @@ class ClosingABatch(Leftovers):
         steps = [mock.patch.object(batch_steps, name, side_effect=lambda batch, kept, *_: kept)
                  for name in ('_accepted', '_secure', '_through_gates')]
         steps += [mock.patch.object(batch_steps, '_declare'), mock.patch.object(batch_steps, '_new_truth'),
-                  mock.patch('eaos.journeys.fix.regenerate.regenerate'),
-                  mock.patch('eaos.journeys.fix.regenerate.keep_guide')]
+                  mock.patch('eaos.features.fix.journey.regenerate.regenerate'),
+                  mock.patch('eaos.features.fix.journey.regenerate.keep_guide')]
         for step in steps:
             step.start()
             self.addCleanup(step.stop)

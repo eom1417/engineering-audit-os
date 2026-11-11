@@ -5,8 +5,9 @@ from pathlib import Path
 
 from shared_fixture import Workspace
 
-from eaos.facts.domain import model as domain
-from eaos.facts.frameworks import go_cli, library_api, manifests, python_cli, python_jobs, python_web
+from eaos.features.code_reading.facts.domain import model as domain
+from eaos.features.code_reading.facts.frameworks import (go_cli, library_api, manifests, python_cli, python_jobs,
+                                                         python_web)
 
 
 def line_of(pattern, text):
@@ -43,7 +44,7 @@ class DeclarationLineTests(Workspace):
 class StarletteRouteTests(unittest.TestCase):
     def test_starlette_route_objects_are_http_entry_points_with_their_methods(self):
         # Its /api routes are Route(...) objects; without them no route is found, so no load test runs.
-        from eaos.facts.code.entrypoints import Context
+        from eaos.features.code_reading.facts.code.entrypoints import Context
         text = ("from starlette.routing import Route\n"
                 "routes = [Route('/api/runs', runs, methods=['GET', 'POST']), Route('/health', health)]\n")
         found = python_web.detect(Context('app/server.py', text, 'python', []))
@@ -52,7 +53,7 @@ class StarletteRouteTests(unittest.TestCase):
 
     def test_a_blueprint_or_router_made_with_its_prefix_puts_its_routes_under_it(self):
         # /auth/register is read as /auth/register, not /register
-        from eaos.facts.code.entrypoints import Context
+        from eaos.features.code_reading.facts.code.entrypoints import Context
         text = ('bp = Blueprint("auth", __name__, url_prefix="/auth")\napi = APIRouter(prefix="/api/")\nplain = Blueprint("blog", __name__)\n'
                 '@bp.route("/register")\ndef register(): pass\n@api.get("/users")\ndef users(): pass\n@plain.route("/")\ndef index(): pass\n')
         self.assertEqual([f['route'] for f in python_web.detect(Context('app/auth.py', text, 'python', []))], ['/auth/register', '/api/users', '/'])

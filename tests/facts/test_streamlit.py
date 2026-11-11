@@ -1,8 +1,8 @@
 """A Streamlit script that renders at module level is a web page; a module of view functions is not."""
 from shared_fixture import Workspace
 
-from eaos.facts.code.entrypoints import Context
-from eaos.facts.frameworks import streamlit
+from eaos.features.code_reading.facts.code.entrypoints import Context
+from eaos.features.code_reading.facts.frameworks import streamlit
 
 
 def detect(rel, text):

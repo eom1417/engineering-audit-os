@@ -1,4 +1,4 @@
-"""The progress contract: eaos/core/progress/ and eaos/data/schemas/progress.json.
+"""The progress contract: eaos/kernel/progress/ and eaos/data/schemas/progress.json.
 
 - the running external programs are read from `ps` on Linux and on macOS, and a `ps` that fails turns the sampler off
   with one line;
@@ -15,10 +15,10 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / 'tests'))
 sys.path.insert(0, str(ROOT / 'tools'))
-from eaos.core import progress  # noqa: E402
-from eaos.pipeline import STAGES, execute  # noqa: E402
-from eaos.pipeline.stages import ORDER  # noqa: E402
-from eaos.core.progress import log as writer, sampler  # noqa: E402
+from eaos.kernel import progress  # noqa: E402
+from eaos.features.check.journey import STAGES, execute  # noqa: E402
+from eaos.features.check.journey.stages import ORDER  # noqa: E402
+from eaos.kernel.progress import log as writer, sampler  # noqa: E402
 from shared_fixture import scratch  # noqa: E402
 from tests.core._progress_fixture import Clock, FIXTURES, GOLDEN, project, stepping_runners
 

@@ -5,8 +5,8 @@ import tempfile
 import unittest
 from pathlib import Path
 from unittest import mock
-from eaos.live.app import first_page, own_checks, profile
-from eaos.journeys.agent_tools import fixing, where
+from eaos.features.app_run.adapters.app import first_page, own_checks, profile
+from eaos.features.guided.interface.agent_tools import fixing, where
 
 
 class NoInterfaceTests(unittest.TestCase):
@@ -61,15 +61,15 @@ class NoInterfaceTests(unittest.TestCase):
             self.assertFalse(own_checks.refreshed(runtime, project))
 
     def test_the_originals_checks_are_run_again_when_the_profile_changed_them(self):
-        from eaos.journeys.fix import execute
+        from eaos.features.fix.journey import execute
         with tempfile.TemporaryDirectory() as runtime:
             (Path(runtime) / 'run.json').write_text(json.dumps(
                 {'install': [['true']], 'start': ['true'], 'checks': [['python', '-m', 'pytest']]}), encoding='utf-8')
             (Path(runtime) / 'runtime').mkdir()
             (Path(runtime) / 'runtime/checks-original.json').write_text(
                 json.dumps({'commit': 'c', 'checks': [{'argv': ['x'], 'exit': 1}]}), encoding='utf-8')
-            with mock.patch('eaos.live.isolation.sandbox.head', return_value='c'), \
-                    mock.patch('eaos.live.app.run.load_profile',
+            with mock.patch('eaos.features.app_run.adapters.isolation.sandbox.head', return_value='c'), \
+                    mock.patch('eaos.features.app_run.adapters.app.run.load_profile',
                                side_effect=lambda r: json.loads((Path(r) / 'run.json').read_text())), \
                     mock.patch.object(execute, 'project_checks',
                                       return_value=[{'argv': ['python', '-m', 'pytest'], 'exit': 0}]) as ran:
@@ -90,7 +90,7 @@ class NoInterfaceTests(unittest.TestCase):
             self.assertEqual(where._setup_step(state, 'c')[0], 'none')
 
     def test_the_safety_net_of_a_project_with_no_interface_starts_nothing_and_runs_its_own_checks(self):
-        from eaos.journeys.guided import running
+        from eaos.features.guided.journey import running
         with tempfile.TemporaryDirectory() as tmp:
             (Path(tmp) / 'run.json').write_text('{}', encoding='utf-8')
             state = {'setup': {'ok': False, 'no_interface': True, 'commit': 'c'}}
@@ -98,9 +98,9 @@ class NoInterfaceTests(unittest.TestCase):
                     mock.patch.object(running, 'report_of', return_value=Path(tmp)), \
                     mock.patch.object(running, 'source', return_value=Path(tmp)), \
                     mock.patch.object(running, 'save'), \
-                    mock.patch('eaos.live.behavior.specs.build'), \
-                    mock.patch('eaos.live.behavior.lock.run_lock', side_effect=AssertionError('started')), \
-                    mock.patch('eaos.journeys.fix.execute.original_checks',
+                    mock.patch('eaos.features.app_run.adapters.specs.build'), \
+                    mock.patch('eaos.features.behaviour_lock.analysis.lock.run_lock', side_effect=AssertionError('started')), \
+                    mock.patch('eaos.features.fix.journey.execute.original_checks',
                                side_effect=[[{'argv': ['pytest'], 'exit': 0}], []]):
                 outcome = running._safety_run(state, lambda n: None)
                 self.assertEqual((outcome['screens'], outcome['own_checks'], state['safety']['own_checks']), (0, 1, 1))
@@ -109,7 +109,7 @@ class NoInterfaceTests(unittest.TestCase):
         self.assertIn('no tests EAOS can run', state['safety']['skipped'][0]['reason'])
 
     def test_a_batch_of_a_project_with_no_interface_is_held_by_its_checks_not_by_screens(self):
-        from eaos.journeys.fix import finish
+        from eaos.features.fix.journey import finish
         state = {'setup': {'no_interface': True}, 'open_wave': {'root': '/x', 'base': 'b'}}
         with mock.patch.object(finish.project_state, 'load', return_value=state), \
                 mock.patch.object(finish.project_state, 'runtime_of'), \
@@ -117,7 +117,7 @@ class NoInterfaceTests(unittest.TestCase):
                 mock.patch.object(finish.guided, '_git'), \
                 mock.patch.object(finish.guided, 'save'), mock.patch.object(finish.guided, 'report_of'), \
                 mock.patch.object(finish.guided, 'source'), \
-                mock.patch('eaos.journeys.fix.waves.finish_batch', side_effect=RuntimeError('stop')) as batch:
+                mock.patch('eaos.features.fix.journey.waves.finish_batch', side_effect=RuntimeError('stop')) as batch:
             with self.assertRaises(RuntimeError): finish.finish_job('/p', {}, lambda *_: None)
         self.assertIs(batch.call_args.kwargs['lock'], False)
 

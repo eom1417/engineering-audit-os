@@ -6,8 +6,8 @@ import unittest
 from pathlib import Path
 from unittest import mock
 
-from eaos.analysis.target_state.projection import _secrets_item
-from eaos.core.contracts.decisions import unattended
+from eaos.features.layers.analysis.target_state.projection import _secrets_item
+from eaos.kernel.contracts.decisions import unattended
 
 
 def card(kind='remediate', pattern='hotspot', check='command'):
@@ -21,7 +21,7 @@ class HonestSummary(unittest.TestCase):
             self.assertFalse(unattended(told))
 
     def test_a_card_from_a_detector_not_measured_is_said_as_such(self):
-        from eaos.report.documents import start_here
+        from eaos.features.report.interface.documents import start_here
         with tempfile.TemporaryDirectory() as folder:
             (Path(folder) / 'dossier.json').write_text(json.dumps({'claims': [
                 {'id': 'C1', 'render': {'key': 'hotspot'}}, {'id': 'C2', 'render': {'key': 'never_judged'}}]}))

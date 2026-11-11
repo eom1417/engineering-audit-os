@@ -7,8 +7,8 @@ from pathlib import Path
 
 from shared_fixture import Workspace, scratch
 
-from eaos.analysis.repair import move_gate, moves
-from eaos.analysis.repair.move_python import Unmovable
+from eaos.features.tidy.analysis import move_gate, moves
+from eaos.features.tidy.analysis.move_python import Unmovable
 
 SHOP = {
     'shop/__init__.py': '"""Shop."""\nfrom .pipeline_run import go\n',

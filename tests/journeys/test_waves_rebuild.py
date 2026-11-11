@@ -4,8 +4,8 @@ import unittest
 from pathlib import Path
 from unittest import mock
 from needs import need
-from eaos.journeys.fix import waves
-from eaos.journeys.fix.waves import batch as wave_batch
+from eaos.features.fix.journey import waves
+from eaos.features.fix.journey.waves import batch as wave_batch
 from shared_fixture import scratch
 from tests.journeys._waves_fixture import commit_file, git, repository
 
@@ -13,7 +13,7 @@ from tests.journeys._waves_fixture import commit_file, git, repository
 class RebuildTests(unittest.TestCase):
     def test_a_module_is_split_only_after_its_complex_functions_and_a_split_tried_too_early_comes_back(self):
         # a split tried before its simplifications fails and must come back after them
-        from eaos.core.project import ledger
+        from eaos.kernel.project import ledger
         report = Path(scratch())
         card = lambda i, needs=(): {'id': i, 'kind': 'remediate', 'decision': {'readiness': 'ready'},
                                     'prerequisites': [{'task_id': n} for n in needs]}
@@ -102,7 +102,7 @@ class RebuildTests(unittest.TestCase):
 
     def test_a_lock_that_installs_only_unfrozen_fails_the_gate(self):
         # A fallback to an unfrozen npm install must not pass the gate: a lock that npm ci refuses must fail it.
-        from eaos.journeys.fix.execute import project_checks, regressions
+        from eaos.features.fix.journey.execute import project_checks, regressions
 
         class Run:
             def __init__(self, *_, **__):
@@ -114,7 +114,7 @@ class RebuildTests(unittest.TestCase):
             def run(self, argv, **_): return 0, '', ''
             def stop(self): pass
             def record(self, name): pass
-        with mock.patch('eaos.live.app.run.LiveRun', Run):
+        with mock.patch('eaos.features.app_run.adapters.app.run.LiveRun', Run):
             after = project_checks('copy', 'runtime', 'S09', 'edit', python=False)
         before = [{'argv': ['npm', 'ci', '--no-audit', '--no-fund'], 'exit': 0, 'failing': []},
                   {'argv': ['npm', 'test'], 'exit': 0, 'failing': []}]
@@ -122,7 +122,7 @@ class RebuildTests(unittest.TestCase):
 
     def test_a_check_runs_once_as_on_ci_not_watching(self):
         # `vitest` watches unless CI is set: a check runs once, as on CI, so the suite ends.
-        from eaos.journeys.fix.execute import project_checks
+        from eaos.features.fix.journey.execute import project_checks
         root = repository()
 
         class Run:
@@ -134,13 +134,13 @@ class RebuildTests(unittest.TestCase):
                 return (0, '', '') if (env or {}).get('CI') else (1, '', 'stopped after 1800s')
             def stop(self): pass
             def record(self, name): pass
-        with mock.patch('eaos.live.app.run.LiveRun', Run):
+        with mock.patch('eaos.features.app_run.adapters.app.run.LiveRun', Run):
             self.assertEqual([row['exit'] for row in project_checks(root, 'runtime', 'S09', 'edit', python=False)], [0])
 
     def test_a_check_that_rewrites_the_files_is_named_and_is_no_gate(self):
         # A project's lint may reach `biome --write` and pass by fixing the files it checked; such a check rewrites
         # files and is no gate.
-        from eaos.journeys.fix.execute import project_checks, regressions, rewrites
+        from eaos.features.fix.journey.execute import project_checks, regressions, rewrites
         root = repository()
         copy = Path(scratch()) / 'copy'
         copy.mkdir()
@@ -157,14 +157,14 @@ class RebuildTests(unittest.TestCase):
                 return 0, '', ''
             def stop(self): pass
             def record(self, name): pass
-        with mock.patch('eaos.live.app.run.LiveRun', Run):
+        with mock.patch('eaos.features.app_run.adapters.app.run.LiveRun', Run):
             after = project_checks(root, 'runtime', 'S09', 'edit', python=False)
         self.assertEqual([row.get('writes') for row in after], [['a.txt'], None])
         self.assertEqual((copy / 'a.txt').read_text(), 'a\n', 'the files it rewrote are restored for the next check')
         self.assertEqual(rewrites(after), ['npm run lint'])
         before = [{'argv': ['npm', 'run', 'lint'], 'exit': 0, 'failing': []}]
         self.assertEqual(regressions(before, [{**after[0], 'exit': 1}]), [], 'its exit is no gate')
-        from eaos.journeys.fix import finish
+        from eaos.features.fix.journey import finish
         runtime = Path(scratch())
         (runtime / 'runtime').mkdir()
         (runtime / 'runtime/checks-original.json').write_text(json.dumps({'checks': after}))
@@ -175,8 +175,8 @@ class RebuildTests(unittest.TestCase):
 
     def test_the_cards_put_off_are_counted_at_the_hand_over_and_said_in_the_persons_language(self):
         # The cards put off are said in the person's language, not in English.
-        from eaos.ai.assistant import prompts
-        from eaos.journeys.fix import finish
+        from eaos.features.assistant.adapters import prompts
+        from eaos.features.fix.journey import finish
         wave = {'failed': {'T1': 'skipped: a large split', 'T2': 'skipped: an import loop', 'T3': 'it broke something'}}
         with mock.patch.object(finish.project_state, 'runtime_of', return_value=Path(scratch())):
             keys, words = finish._said_too({}, wave)
@@ -187,7 +187,7 @@ class RebuildTests(unittest.TestCase):
     def test_a_fix_that_raises_the_go_line_of_go_mod_says_so_in_its_commit_and_at_the_hand_over(self):
         # A Go module upgrade may raise go.mod's `go` line, so everyone building the project needs a newer Go: the
         # commit and the hand-over say it.
-        from eaos.journeys.fix import finish
+        from eaos.features.fix.journey import finish
         root = repository()
         (root / 'svc').mkdir()
         base = commit_file(root, 'svc/go.mod',
@@ -213,20 +213,20 @@ class RebuildTests(unittest.TestCase):
     def test_a_codemod_that_fails_says_why_in_its_own_words(self):
         # a failed upgrade records the command's own output, not only its command line
         import sys
-        from eaos.journeys.fix.execute import run_codemod
+        from eaos.features.fix.journey.execute import run_codemod
         step = [sys.executable, '-c',
                 "import sys; sys.stderr.write('npm error ERESOLVE could not resolve'); sys.exit(1)"]
-        with mock.patch('eaos.analysis.repair.codemods.card_for', return_value={'kind': 'x'}), \
-                mock.patch('eaos.analysis.repair.codemods._commands',
-                           return_value=[(step, None)]), mock.patch('eaos.facts.store.by_id'):
+        with mock.patch('eaos.features.defects.analysis.codemods.card_for', return_value={'kind': 'x'}), \
+                mock.patch('eaos.features.defects.analysis.codemods._commands',
+                           return_value=[(step, None)]), mock.patch('eaos.kernel.facts.store.by_id'):
             with self.assertRaisesRegex(RuntimeError, 'exited 1: npm error ERESOLVE could not resolve'):
                 run_codemod({'id': 'T1'}, scratch(), scratch())
 
     def test_a_dependency_change_that_breaks_a_consumers_range_is_refused_at_its_commit(self):
         # an upgrade that puts a package out of the range a consumer asks for breaks the install; the dependency gate
         # must see it, not only the card's own gate
-        from eaos.engines.process import which
-        from eaos.journeys.fix.execute import _dependencies_broken
+        from eaos.features.engines.adapters.process import which
+        from eaos.features.fix.journey.execute import _dependencies_broken
         need(self, '' if which('npm') else 'npm is not installed')
         lock = lambda b: json.dumps({'name': 'shop', 'version': '1.0.0', 'lockfileVersion': 3, 'requires': True,
                                      'packages': {
@@ -253,9 +253,9 @@ class RebuildTests(unittest.TestCase):
         self._lock_card_in_part({'exit': 1, 'files_changed': 0})
 
     def _lock_card_in_part(self, dry_run):
-        from eaos.engines.process import which
-        from eaos.journeys.fix.automatic import automatic_fixes
-        from eaos.journeys.fix.execute import _dependencies_broken
+        from eaos.features.engines.adapters.process import which
+        from eaos.features.fix.journey.automatic import automatic_fixes
+        from eaos.features.fix.journey.execute import _dependencies_broken
         need(self, '' if which('npm') else 'npm is not installed')
         root = repository()
         commit_file(root, 'package.json', '{"name": "shop", "version": "1.0.0", "dependencies": {"a": "1.0.0"}}')
@@ -281,11 +281,11 @@ class RebuildTests(unittest.TestCase):
         card = {'id': 'TASK-1', 'title': 'Upgrade the lock file', 'key': 'k1', 'evidence': {'fact_ids': list(facts)},
                 'codemod': {'command': 'npm install', 'dry_run': dry_run}}
         wave = {'kept': {}, 'failed': {}, 'tools': {}}
-        with mock.patch('eaos.analysis.repair.codemods.card_for', return_value={'kind': 'npm', 'group': members}), \
-                mock.patch('eaos.analysis.repair.codemods._commands',
+        with mock.patch('eaos.features.defects.analysis.codemods.card_for', return_value={'kind': 'npm', 'group': members}), \
+                mock.patch('eaos.features.defects.analysis.codemods._commands',
                            lambda detail, copy: [bump(m) for m in detail.get('group') or [detail]]), \
-                mock.patch('eaos.facts.store.by_id', return_value=facts), \
-                mock.patch('eaos.journeys.fix.automatic.new_breakage',
+                mock.patch('eaos.kernel.facts.store.by_id', return_value=facts), \
+                mock.patch('eaos.features.fix.journey.automatic.new_breakage',
                            lambda report, where: _dependencies_broken(where)):
             automatic_fixes(wave, [card], root, scratch(), lambda *_: None)
         self.assertEqual((list(wave['kept']), wave['failed']), (['TASK-1'], {}))

@@ -14,8 +14,8 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from eaos.facts.dead_code.registry import filter_dead_code_references, filter_in_sets
-from eaos.facts.source import Source
+from eaos.features.dead_code.facts.registry import filter_dead_code_references, filter_in_sets
+from eaos.kernel.facts.source import Source
 
 
 def _write(root, rel, content=''):
@@ -71,9 +71,9 @@ class RegistryReferenceTests(unittest.TestCase):
 
     def test_a_compatibility_path_finding_is_left_alone(self):
         with tempfile.TemporaryDirectory() as tmp:
-            facts = [_dead_fact('eaos/analysis/claims/ledger.py', 'compatibility path has 6 markers without a clear '
+            facts = [_dead_fact('eaos/features/claims/analysis/ledger.py', 'compatibility path has 6 markers without a clear '
                                 'sunset or migration boundary'),
-                     _dead_fact('eaos/analysis/understanding/dossier.py', 'compatibility path has 3 markers without a '
+                     _dead_fact('eaos/features/plan/analysis/dossier.py', 'compatibility path has 3 markers without a '
                                 'clear sunset')]
             kept, dropped = filter_dead_code_references(facts, Source(Path(tmp)))
         self.assertEqual((dropped, len(kept)), (0, 2))

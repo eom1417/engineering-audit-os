@@ -4,10 +4,10 @@ import json
 import unittest
 from pathlib import Path
 
-from eaos.analysis.assessments import one_source
-from eaos.analysis.claims import from_one_source
-from eaos.analysis.planning.ranking import claim_paths
-from eaos.engines.code import jscpd
+from eaos.features.one_source.analysis import one_source
+from eaos.features.claims.analysis import from_one_source
+from eaos.features.plan.analysis.ranking import claim_paths
+from eaos.features.engines.adapters.code import jscpd
 from shared_fixture import scratch
 
 CONTRACTS = Path(__file__).resolve().parents[1] / 'contracts'
@@ -95,7 +95,7 @@ class ThreeConditions(unittest.TestCase):
         self.assertEqual(len(one_source.findings(None, {**sets(renamed), 'history': churn})[0]), 1)
 
     def test_one_mass_commit_never_makes_files_change_together(self):
-        from eaos.facts.code import history
+        from eaos.features.code_reading.facts.code import history
         def commit(paths): return {'files': [(1, 1, p) for p in paths], 'fix': False, 'author': 'a',
                                    'date': '2026-10-28'}
         _, pairs = history._tally([commit([f'src/f{i}.js' for i in range(60)])], history.Settings().bulk_limit)
@@ -108,7 +108,7 @@ class ThreeConditions(unittest.TestCase):
         # Two responsibilities alike in one folder: the rules propose a card, nobody is told to merge them.
         import os
         from unittest import mock
-        from eaos.analysis.claims import ledger
+        from eaos.features.claims.analysis import ledger
         claims = from_one_source.one_source_claims(None, sets(near(('src/billing/tax.js', 1), ('src/billing/fee.js', 1),
                                                                    'similar')), None, 0)
         with mock.patch.dict(os.environ, {'EAOS_DETECTOR_VERDICTS': str(ledger.VERDICTS)}):
@@ -158,7 +158,7 @@ class KeptAside(unittest.TestCase):
     def test_a_card_of_a_detector_under_its_bar_is_kept_aside_with_its_reason(self):
         import os
         from unittest import mock
-        from eaos.analysis.claims import ledger
+        from eaos.features.claims.analysis import ledger
         claims = from_one_source.one_source_claims(None, sets(near(('a.py', 1), ('b.py', 1), 'similar')), None, 0)
         verdicts = Path(scratch('eaos-verdicts-')) / 'verdicts.json'
         verdicts.write_text(json.dumps({'hidden': {'one_source:near_copy': 'precision under the bar'}, 'shown': []}),

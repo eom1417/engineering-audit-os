@@ -116,10 +116,10 @@ run), against the M2 numbers. The machine was quiet, so the time is comparable t
   the laws pass. `reforge` counts complexity per file (its 1,095 findings), not the laws' per-function measure.
 - **Security, untriaged**: 19 items without the assistant's triage: 5 are test fixtures' sample tokens, the rest
   single-engine audit rules (semgrep's subprocess call in 30 files, CWE-78; CodeQL 4) that a full check's triage settles (card M8.4).
-- **Architecture**: GitNexus reports 10 import cycles (`eaos/ai/nodes`, `core/language/markup.py`, `report/human_report/html.py`)
+- **Architecture**: GitNexus reports 10 import cycles (`core/language/markup.py`, `report/human_report/html.py`)
   that import-linter's layers and the dependency-cruiser pass: lazy imports inside functions; settled in M4.6 (all six GitNexus's misreading).
 - The cards' titles of agreeing engines were stored in Arabic and printed so in an English check: stored in English
-  since this measure (`eaos/analysis/claims/ledger.py`), the reports render them from the template in the reader's language.
+  since this measure (`eaos/features/claims/analysis/ledger.py`), the reports render them from the template in the reader's language.
 
 ## After M4: 0.0.76 (2026-10-24)
 

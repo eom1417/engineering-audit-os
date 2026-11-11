@@ -2,8 +2,8 @@
 a deeply nested function is."""
 import unittest
 
-from eaos.analysis.claims.harm import mark
-from eaos.core.contracts.decisions import decide
+from eaos.features.claims.analysis.harm import mark
+from eaos.kernel.contracts.decisions import decide
 
 
 def metric(path, symbol, nesting):
@@ -67,7 +67,7 @@ class SizeNeedsHarm(unittest.TestCase):
 class NestingTests(unittest.TestCase):
     def test_only_a_block_is_a_level_an_object_or_a_jsx_value_is_not(self):
         # only a block is a level: counting every brace would read most complex functions five deep
-        from eaos.facts.code.metrics import nesting_depth
+        from eaos.features.code_reading.facts.code.metrics import nesting_depth
         script = ['function f(a) {', '  const o = { x: { y: 1 } };', '  if (a) {', '    for (const b of a) {',
                   '      call({ k: () => { return 1; } });', '    }', '  } else {', '    return <div>{a}</div>;', '  }',
                   '}']

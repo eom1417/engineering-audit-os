@@ -1,8 +1,8 @@
-"""Branch control (eaos/journeys/branches/): reading, selecting, merging and guarding branches on real temporary git
+"""Branch control (eaos/features/studio/journey/branches/): reading, selecting, merging and guarding branches on real temporary git
 repositories through the server's own authenticated handler."""
 import unittest
-from eaos.interfaces import runs as actions
-from eaos.core.project import state as project_state
+from eaos.doors import runs as actions
+from eaos.kernel.project import state as project_state
 from tests.interfaces._studio_branches_fixture import EAOS, Repo, commit, git
 
 
@@ -26,7 +26,7 @@ class Inventory(Repo):
         entry = self.app.branches._registry()['branches']['eaos/task-1']
         self.assertEqual((entry['kind'], entry['tip'], entry['checks'][0]['status']), ('task', self.work_tip, 'passed'),
                          'merged, never replaced')
-        from eaos.journeys import branches as control
+        from eaos.features.studio.journey import branches as control
         self.assertEqual(control.git(self.project, 'log', timeout=0.000001).returncode, 124,
                          'a git timeout is an exit code')
 

@@ -2,14 +2,14 @@
 from pathlib import Path
 import tempfile
 import unittest
-from eaos.analysis.claims import ledger as claims, from_records as record_claims
-from eaos.analysis.claims.ledger import from_facts
-from eaos.analysis.claims.engine_measures import engine_measurement
-from eaos.analysis.claims.from_facts import naming
-from eaos.core.language.words import IMPACTS, impact_of
-from eaos.facts.run import collect
-from eaos.facts.store import read_set
-from eaos.core.contracts.vocabulary import schema_errors
+from eaos.features.claims.analysis import ledger as claims, from_records as record_claims
+from eaos.features.claims.analysis.ledger import from_facts
+from eaos.features.claims.analysis.engine_measures import engine_measurement
+from eaos.features.claims.analysis.from_facts import naming
+from eaos.kernel.language.words import IMPACTS, impact_of
+from eaos.kernel.facts.run import collect
+from eaos.kernel.facts.store import read_set
+from eaos.kernel.contracts.vocabulary import schema_errors
 
 
 def valid(**overrides):
@@ -49,7 +49,7 @@ class LedgerTests(unittest.TestCase):
 
     def test_a_claim_with_no_evidence_is_set_aside_not_stopping_the_ledger(self):
         bare = valid(evidence_ids=[], render={'key': 'layer_finding', 'params': {'rule': 'server-module-in-browser'}})
-        from eaos.analysis.claims.aside import set_aside
+        from eaos.features.claims.analysis.aside import set_aside
         kept, aside = set_aside([valid(), bare])
         self.assertEqual(len(kept), 1)
         self.assertIn('no evidence and no fact', aside[0]['withheld']['why'])
@@ -59,7 +59,7 @@ class LedgerTests(unittest.TestCase):
         self.assertIn('no evidence behind them', said[0])
 
     def test_a_chain_only_dependency_cruiser_followed_names_its_fact(self):
-        from eaos.analysis.claims.from_layers import layer_findings, REACH
+        from eaos.features.claims.analysis.from_layers import layer_findings, REACH
         fact = {'id': 'FACT-chain', 'kind': 'engine_finding', 'location': {'path': 'web/App.tsx'},
                 'value': {'rule': REACH, 'message': 'web/App.tsx imports server/db.ts, the server'}}
         rows = []
@@ -193,7 +193,7 @@ class HotspotTests(unittest.TestCase):
     severity term, so a complexity-1 file never outranks a real risk."""
 
     def test_a_hotspot_is_one_function_one_card_and_the_worst_measurement_ranks_first(self):
-        from eaos.analysis.planning.ranking import rank
+        from eaos.features.plan.analysis.ranking import rank
         node = lambda path, rank_, deps=(): {'id': 'G-' + path, 'kind': 'graph_node', 'location': {'path': path},
                                              'value': {'attention_rank': rank_, 'depends_on': list(deps)}}
         observed = {'status': 'observed', 'granularity': 'symbol'}

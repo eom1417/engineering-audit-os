@@ -182,7 +182,7 @@ The paths that look at the running app need your consent to run it (`--run-app`,
 
 ## The stages of a check
 
-A check is 27 declared stages (`eaos/pipeline/stages.py`), grouped in loops. A stage runs as soon as what it reads is
+A check is 27 declared stages (`eaos/features/check/journey/stages.py`), grouped in loops. A stage runs as soon as what it reads is
 ready; a stage that did not run says why, and a tool that failed is named. Any of them can be given to
 `--again-from`, `--only` and `--skip`.
 

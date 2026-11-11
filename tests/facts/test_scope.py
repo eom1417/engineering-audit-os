@@ -2,10 +2,10 @@
 import json
 from pathlib import Path
 
-from eaos.facts.scope import declared_exclusions, exclusion_reasons, VENDORED
-from eaos.facts.source import Source
+from eaos.kernel.facts.scope import declared_exclusions, exclusion_reasons, VENDORED
+from eaos.kernel.facts.source import Source
 from shared_fixture import Workspace
-from eaos.facts.run import collect
+from eaos.kernel.facts.run import collect
 
 
 class ScopeTests(Workspace):

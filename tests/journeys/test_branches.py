@@ -1,6 +1,6 @@
 """A project whose work goes on in a branch far ahead of main is checked on that branch, not on whatever is checked out.
 EAOS asks which branch when there is a real choice, and the check, the fixes, the merges, the progress and the report
-follow it (eaos/core/project/branches.py, guided.choose/source)."""
+follow it (eaos/kernel/project/branches.py, guided.choose/source)."""
 import json
 import os
 import subprocess
@@ -9,13 +9,14 @@ import unittest
 from pathlib import Path
 from unittest import mock
 
-from eaos.journeys import agent_tools, guided
-from eaos.journeys.guided.project import branch_links
-from eaos.journeys.fix import finish as batch_finish
-from eaos.core.project import branches, ledger
-from eaos.live.app import setup as live_setup
-from eaos.journeys.fix.waves import commit as eaos_commit, plan as read_plan
-from eaos.core.project import places, state as project_state
+from eaos.features.guided.interface import agent_tools
+from eaos.features.guided import journey as guided
+from eaos.features.guided.journey.project import branch_links
+from eaos.features.fix.journey import finish as batch_finish
+from eaos.kernel.project import branches, ledger
+from eaos.features.app_run.adapters.app import setup as live_setup
+from eaos.features.fix.journey.waves import commit as eaos_commit, plan as read_plan
+from eaos.kernel.project import places, state as project_state
 
 
 def card(number, pattern, path, title):
@@ -212,10 +213,10 @@ class Branches(unittest.TestCase):
         cards = {c['id']: c for c in read_plan(guided.report_of(state))['tasks']}
         wave['kept'][card] = eaos_commit(root, cards[card])
         guided.save(state)
-        with mock.patch('eaos.journeys.fix.waves.batch.gates',
-                        return_value=''), mock.patch('eaos.journeys.fix.waves.batch.original_checks',
+        with mock.patch('eaos.features.fix.journey.waves.batch.gates',
+                        return_value=''), mock.patch('eaos.features.fix.journey.waves.batch.original_checks',
                                                      return_value={}), \
-                mock.patch('eaos.journeys.fix.waves.batch.batch_acceptance', side_effect=lambda report, chosen, root,
+                mock.patch('eaos.features.fix.journey.waves.batch.batch_acceptance', side_effect=lambda report, chosen, root,
                            **_: {c['id']: None for c in chosen}):
             return batch_finish.finish_job(str(self.project), {}, lambda *_: None)
 

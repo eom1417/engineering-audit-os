@@ -1,5 +1,5 @@
 # Real data written in the code (M12.2): a table of records written as code (an array of three objects or more) and a
-# map keyed by dates or months. Records, not verdicts: eaos/analysis/assessments/real_data.py reads each table's keys
+# map keyed by dates or months. Records, not verdicts: eaos/features/only_code/analysis/real_data.py reads each table's keys
 # and the personal values Presidio found inside it, and only then says whether it is data.
 id: eaos.data.table
 language: JavaScript

@@ -62,7 +62,7 @@ CONTRACTS = {
        'env': {'type': 'object', 'additionalProperties': {'type': 'string'}},
        'seed': arr(arr(S, 1)), 'sign_in': arr(S), 'baseline': {'type': 'object'},
        'checks': arr(arr(S, 1)), 'database': obj({'kind': enum('postgres', 'sqlite'), 'name': S}, ['kind', 'name']),
-       'screens': {'description': 'How the app keeps its language and theme (in localStorage, a key and, for a JSON object, its field; or a query parameter), so every screen is pictured in each language (eaos/live/screens/audit.py variants).', 'type': 'object', 'properties': {k: S for k in ('lang_key', 'lang_field', 'lang_param', 'theme_key', 'theme_field', 'theme_param')}},
+       'screens': {'description': 'How the app keeps its language and theme (in localStorage, a key and, for a JSON object, its field; or a query parameter), so every screen is pictured in each language (eaos/features/app_run/adapters/screens/audit.py variants).', 'type': 'object', 'properties': {k: S for k in ('lang_key', 'lang_field', 'lang_param', 'theme_key', 'theme_field', 'theme_param')}},
        'limitations': arr(S)}, ['schema_version', 'install', 'start', 'port', 'health'])),
  'approvals': ('approvals.json', 'NS17.T4', 'A person\'s recorded approval of a stage whose gate needs a human (S06: the target architecture). EAOS never writes it; eaos engage approve does, on the owner\'s command.',
   obj({'schema_version': {'const': 1},

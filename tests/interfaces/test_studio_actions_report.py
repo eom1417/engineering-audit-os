@@ -1,4 +1,4 @@
-"""The run engine (eaos/journeys/runs): the decisions a report carries and the headless assistant."""
+"""The run engine (eaos/features/studio/journey/runs): the decisions a report carries and the headless assistant."""
 import json
 import os
 import subprocess
@@ -8,10 +8,10 @@ import time
 import unittest
 from pathlib import Path
 from unittest import mock
-from eaos.interfaces import runs as actions  # noqa: E402
-from eaos.ai.assistant import prompts
-from eaos.journeys.runs import runs
-from eaos.core.project import runs as store
+from eaos.doors import runs as actions  # noqa: E402
+from eaos.features.assistant.adapters import prompts
+from eaos.features.studio.journey.runs import runs
+from eaos.kernel.project import runs as store
 from tests.interfaces._studio_actions_fixture import Base
 
 
@@ -120,7 +120,7 @@ class ReportDecisions(Base):
 
 
 class Headless(unittest.TestCase):
-    """Outside the run engine (eaos/interfaces/govern.py): a command queues without starting anything, one host
+    """Outside the run engine (eaos/doors/govern.py): a command queues without starting anything, one host
     starts the runs."""
 
     def setUp(self):
@@ -138,7 +138,7 @@ class Headless(unittest.TestCase):
         for argv in (['init', '-q'], ['add', '-A'],
                      ['-c', 'user.name=t', '-c', 'user.email=t@t', 'commit', '-qm', 'first']):
             subprocess.run(['git', '-C', str(self.project), *argv], check=True, capture_output=True)
-        from eaos.interfaces import govern
+        from eaos.doors import govern
         self.govern = govern
         govern._core.cache_clear()
         self.addCleanup(govern._core.cache_clear)
@@ -195,7 +195,7 @@ class Headless(unittest.TestCase):
         import argparse
         import contextlib
         import io
-        from eaos.interfaces.terminal import commands
+        from eaos.doors.terminal import commands
         printed = io.StringIO()
         with contextlib.redirect_stdout(printed):
             code = commands.act(argparse.Namespace(command='fix', project=str(self.project), ids=[], group=None,
@@ -207,7 +207,7 @@ class Headless(unittest.TestCase):
 
     def test_where_studios_are_services_the_queue_host_is_one_too(self):
         # the queue host is a service too, so the runner does not end it with the session that queued a run
-        from eaos.core.system import launch
+        from eaos.kernel.system import launch
         with mock.patch.object(launch, 'durable', return_value=True), mock.patch.object(launch, 'as_unit',
                                                                                         return_value=True) as unit, \
                 mock.patch.object(launch, 'detach') as detached:
@@ -219,7 +219,7 @@ class Headless(unittest.TestCase):
         import argparse
         import contextlib
         import io
-        from eaos.interfaces.terminal import commands
+        from eaos.doors.terminal import commands
         core = self.govern.core(str(self.project))
         self.addCleanup(core.close)
         asked = lambda: commands.runs(argparse.Namespace(command='runs', project=str(self.project), all=False,

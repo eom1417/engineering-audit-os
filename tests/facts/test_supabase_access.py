@@ -5,7 +5,7 @@ layer using `.from(...)` without that name is ignored, so the ledger stays clean
 """
 import unittest
 
-from eaos.facts.frameworks import supabase_access
+from eaos.features.code_reading.facts.frameworks import supabase_access
 
 
 SOURCE = """\
@@ -84,7 +84,7 @@ class SupabaseBindingThroughTheAuditTests(unittest.TestCase):
                          {'src/services/BaseService.ts': {'client'}, 'src/services/Orders.ts': {'client'}})
         import json, tempfile
         from pathlib import Path
-        from eaos.facts.run import collect
+        from eaos.kernel.facts.run import collect
         with tempfile.TemporaryDirectory() as tmp:
             repo, out = Path(tmp) / 'repo', Path(tmp) / 'out'
             (repo / 'src/services').mkdir(parents=True)

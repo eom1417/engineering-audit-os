@@ -1,8 +1,8 @@
 """User-facing routes of React Router, TanStack Router and Next.js apps are entry points."""
 import unittest
 
-from eaos.facts.code.entrypoints import Context
-from eaos.facts.frameworks import js_routes
+from eaos.features.code_reading.facts.code.entrypoints import Context
+from eaos.features.code_reading.facts.frameworks import js_routes
 
 
 def detect(rel, text):

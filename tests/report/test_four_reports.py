@@ -4,7 +4,7 @@ from pathlib import Path
 
 from shared_fixture import Workspace
 
-from eaos.report.documents.four_reports import NAMES, clip, write
+from eaos.features.report.interface.documents.four_reports import NAMES, clip, write
 
 
 class FourReportsTests(Workspace):

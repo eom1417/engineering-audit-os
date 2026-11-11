@@ -12,10 +12,10 @@ import unittest.mock
 from pathlib import Path
 
 from needs import need
-from eaos.core.system.process import run_command
-from eaos.engines.process import state_digest
-from eaos.facts.run import ORDER, collect
-from eaos.interfaces import cli
+from eaos.kernel.system.process import run_command
+from eaos.features.engines.adapters.process import state_digest
+from eaos.kernel.facts.run import ORDER, collect
+from eaos.doors import cli
 
 BAD = os.fsdecode(b'caf\xe9.py')
 SHOWN = 'caf\\xe9.py'

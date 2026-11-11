@@ -3,9 +3,9 @@ nothing is found on its clean twin (tests/fixtures/baseline-clean), from the fac
 import shutil
 from pathlib import Path
 
-from eaos.analysis import layers
-from eaos.analysis.claims.recheck import recheck
-from eaos.facts.run import collect
+from eaos.features.layers import analysis as layers
+from eaos.features.fix.analysis.recheck import recheck
+from eaos.kernel.facts.run import collect
 from shared_fixture import TemporaryWorkspace
 
 FIXTURES = Path(__file__).parents[1] / 'fixtures'
@@ -63,7 +63,7 @@ class LayersTests(TemporaryWorkspace):
     def test_fastapi_sign_in_dependencies_are_guards(self):
         # A FastAPI template signs in with `Depends(get_current_active_superuser)` and `user: CurrentUser`; both are
         # sign-ins. A current time is still no sign-in.
-        from eaos.analysis.layers import guards
+        from eaos.features.layers.analysis import guards
         signed_in = lambda text: guards.read(text)['authentication']
         self.assertIsNotNone(signed_in('@router.patch(\n    "/{user_id}",\n    '
                                        'dependencies=[Depends(get_current_active_superuser)],\n)\n'
@@ -75,7 +75,7 @@ class LayersTests(TemporaryWorkspace):
     def test_a_route_after_an_interpolated_prefix_is_named_by_the_test(self):
         # A FastAPI template's tests write `f"{settings.API_V1_STR}/items/{item.id}"`: the route must be found anywhere
         # in the string, not only right after a quote.
-        from eaos.analysis.layers import operations
+        from eaos.features.layers.analysis import operations
         self.assertTrue(operations._named({'route': '/items/{id}', 'handler': 'delete_item'},
                                           'client.delete(f"{settings.API_V1_STR}/items/{item.id}")'))
 

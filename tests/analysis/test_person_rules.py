@@ -10,8 +10,9 @@ from unittest import mock
 
 from tests.shared_fixture import Workspace
 
-from eaos.analysis.rules import changed, context, guards, held
-from eaos.core.project import rules as registry
+from eaos.features.fix.analysis import changed
+from eaos.features.rules.analysis import context, guards, held
+from eaos.features.rules.facts import rules as registry
 
 ROOT = Path(__file__).resolve().parents[2]
 DATA_IN_CODE = {'kind': 'pattern', 'language': 'javascript', 'rule': {'pattern': 'const $X = [$$$ITEMS]',
@@ -176,7 +177,7 @@ class AtTheGate(Rules):
 
 class ThroughTheTools(Rules):
     def test_saying_a_rule_is_the_assistants_to_do_and_pinning_it_the_persons_never_inside_a_studio_run(self):
-        from eaos.interfaces.mcp_server import rules as tools
+        from eaos.doors.mcp_server import rules as tools
         added = tools.rule('add', words='Never send the whole state on every save', project=str(self.project))
         self.assertEqual((added['rule']['id'], added['rule']['doors']), ('R1', ['mcp']))
         self.assertEqual(tools.rule('pin', id='R1', project=str(self.project))['status'], 'needs_the_person')
@@ -236,9 +237,9 @@ class Written(Rules):
 
 class InACheck(Rules):
     def test_a_broken_rule_is_one_card_with_every_place_that_closes_only_when_its_guard_finds_none(self):
-        from eaos.analysis.claims.recheck import recheck
-        from eaos.core.project.places import workspace
-        from eaos.pipeline import execute
+        from eaos.features.fix.analysis.recheck import recheck
+        from eaos.kernel.project.places import workspace
+        from eaos.features.check.journey import execute
         rule, _ = registry.add(self.project, 'No records written in the code', 'studio', scope={'kind': 'pinned'})
         registry.guard(self.project, rule['id'], guards.checked(DATA_IN_CODE), 'person', 'studio')
         (self.project / 'src/seed.js').write_text('export const users = [{ name: "Sara" }];\nexport const cities = [{ '
@@ -264,7 +265,7 @@ class InACheck(Rules):
                      'more.js'): (self.project / 'src' / name).write_text('export const rows = async (db) => '
                          'db.all();\n')
         self.assertEqual(recheck(self.project, spec)[0], 'REFUTED', 'closed only when the guard finds none')
-        from eaos.journeys.fix.waves.acceptance import _probe_exit
+        from eaos.features.fix.journey.waves.acceptance import _probe_exit
         self.assertEqual(_probe_exit(json.loads(json.dumps(spec)), {}, out, self.project), 0,
                          "a batch's check runs the guard on the copy, never the check's own finding")
 
